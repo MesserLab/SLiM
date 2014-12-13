@@ -1,0 +1,50 @@
+/ Background selection with gene structure and varying recombination rate
+
+#MUTATION TYPES 
+m1 0.1 g -0.05 0.2 / deleterious (gamma DFE, h=0.1) 
+m2 0.5 f 0.0 / neutral 
+
+#MUTATION RATE 
+1e-8 
+
+#GENOMIC ELEMENT TYPES 
+g1 m1 0.75 m2 0.25 / exon (75% del, 25% neutral) 
+g2 m1 0.50 m2 0.50 / UTR (50% del, 50% neutral) 
+g3 m2 1.0 / intron (100% neutral) 
+
+#CHROMOSOME ORGANIZATION 
+g2 1 550 / 5' UTR 
+g1 551 700 / 1. exon 
+g3 701 2200 / 1. intron 
+g1 2201 2350 / 2. exon
+g3 2351 3850 / 2. intron
+g1 3851 4000 / 3. exon
+g3 4001 5500 / 3. intron
+g1 5501 5650 / 4. exon
+g3 5651 7150 / 4. intron
+g1 7151 7300 / 5. exon
+g3 7301 8800 / 5. intron
+g1 8801 8950 / 6. exon
+g3 8951 10450 / 6. intron
+g1 10451 10600 / 7. exon
+g3 10601 12100 / 7. intron
+g1 12101 12250 / 8. exon
+g2 12251 12800 / 3' UTR
+ 
+#RECOMBINATION RATE 
+5500 1e-8 / left region
+6500 4e-8 / middle region
+12800 2e-8 / right region
+
+#GENERATIONS 
+1000000 
+
+#DEMOGRAPHY AND STRUCTURE 
+1 P p1 10000 / single population of 10000 individuals 
+
+#OUTPUT 
+20000 R p1 100 / output sample of 100 genomes 
+40000 R p1 100
+60000 R p1 100
+80000 R p1 100
+100000 R p1 100

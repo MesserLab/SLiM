@@ -1,0 +1,28 @@
+/ Adaptive introgression after a population split (first stage)
+
+#MUTATION TYPES 
+m1 0.5 f 0.0 / neutral 
+
+#MUTATION RATE 
+1e-9 
+
+#GENOMIC ELEMENT TYPES 
+g1 m1 1.0 
+
+#CHROMOSOME ORGANIZATION 
+g1 1 100000 / uniform chromosome structure (100 kb) 
+
+#RECOMBINATION RATE 
+100000 5e-8 / uniform recombination rate (5 cM/Mb) 
+
+#GENERATIONS 
+101200 
+
+#DEMOGRAPHY AND STRUCTURE 
+1 P p1 1e4 / population of 10000 individuals 
+100000 P p2 1e3 p1 / split off subpopulation p2 from p1 
+100000 M p2 p1 0.001 / set migration rate p1 to p2 
+100500 N p2 1e4 / expand subpopulation p2 
+
+#OUTPUT 
+101200 A outfile / save population in outfile

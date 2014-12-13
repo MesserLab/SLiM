@@ -1,0 +1,36 @@
+/ Hitchhiking of deleterious mutations under recurrent selective sweeps
+
+#MUTATION TYPES 
+m1 0.2 e -0.01 / deleterious (exponential DFE, h=0.2) 
+m2 0.5 f 0.01 / advantageous (fixed s=0.01, h=0.5) 
+
+#MUTATION RATE 
+2.5e-9 
+
+#GENOMIC ELEMENT TYPES 
+g1 m1 0.9995 m2 0.0005 / 1 in 2000 mutations is adaptive 
+
+#CHROMOSOME ORGANIZATION 
+g1 1 10000000 / uniform chromosome of length 10 Mb 
+
+#RECOMBINATION RATE 
+10000000 1e-8 / uniform recombination rate (1 cM/Mb) 
+
+#GENERATIONS 
+100000 
+
+#DEMOGRAPHY AND STRUCTURE 
+1 P p1 1000 / single population of 1000 individuals 
+
+#OUTPUT 
+10000 R p1 50 / output sample of 50 genomes 
+20000 R p1 50 
+30000 R p1 50
+40000 R p1 50
+50000 R p1 50
+60000 R p1 50
+70000 R p1 50
+80000 R p1 50
+90000 R p1 50
+100000 R p1 50
+100000 F / output fixed mutations
