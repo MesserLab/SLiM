@@ -1,0 +1,9 @@
+comment header declarations consistently
+check all warnings and FIXMEs
+flesh out README.md file with relevant information about licenses, websites, contributions, examples, documentation, etc. : http://en.wikipedia.org/wiki/Markdown
+work out instructions for compilation at the command line with g++ and put them in the readme; Philipp had: // g++ -O3   ./slim.cpp -lgsl -lgslcblas -o slim
+
+apparently unused:
+#include <set>
+#include <algorithm>
+#include <unistd.h>

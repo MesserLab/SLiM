@@ -8,7 +8,21 @@
 
 /* Begin PBXBuildFile section */
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
-		9860210A1A3BB504001BDCFE /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 986021091A3BB504001BDCFE /* README.md */; };
+		98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
+		98E9A68D1A3CD4B7000AD4FC /* event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68B1A3CD4B7000AD4FC /* event.cpp */; };
+		98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */; };
+		98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */; };
+		98E9A6961A3CD51A000AD4FC /* genomic_element_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6941A3CD51A000AD4FC /* genomic_element_type.cpp */; };
+		98E9A6991A3CD52A000AD4FC /* chromosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6971A3CD52A000AD4FC /* chromosome.cpp */; };
+		98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */; };
+		98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69D1A3CD551000AD4FC /* substitution.cpp */; };
+		98E9A6A21A3CD587000AD4FC /* introduced_mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A01A3CD587000AD4FC /* introduced_mutation.cpp */; };
+		98E9A6A51A3CD595000AD4FC /* partial_sweep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A31A3CD595000AD4FC /* partial_sweep.cpp */; };
+		98E9A6A81A3CD5A0000AD4FC /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */; };
+		98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AC1A3CD5D3000AD4FC /* population.cpp */; };
+		98E9A6B11A3CD633000AD4FC /* input_parsing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AF1A3CD633000AD4FC /* input_parsing.cpp */; };
+		98E9A6B81A3CE35E000AD4FC /* g_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,11 +38,42 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		982663501A3BABD300A0CBBF /* SLiM */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SLiM; sourceTree = BUILT_PRODUCTS_DIR; };
+		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
+		98E9A6891A3CCFD0000AD4FC /* mutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation.h; sourceTree = "<group>"; };
+		98E9A68B1A3CD4B7000AD4FC /* event.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = event.cpp; sourceTree = "<group>"; };
+		98E9A68C1A3CD4B7000AD4FC /* event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = event.h; sourceTree = "<group>"; };
+		98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_type.cpp; sourceTree = "<group>"; };
+		98E9A68F1A3CD4CF000AD4FC /* mutation_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_type.h; sourceTree = "<group>"; };
+		98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = genomic_element.cpp; sourceTree = "<group>"; };
+		98E9A6921A3CD4EF000AD4FC /* genomic_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genomic_element.h; sourceTree = "<group>"; };
+		98E9A6941A3CD51A000AD4FC /* genomic_element_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = genomic_element_type.cpp; sourceTree = "<group>"; };
+		98E9A6951A3CD51A000AD4FC /* genomic_element_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genomic_element_type.h; sourceTree = "<group>"; };
+		98E9A6971A3CD52A000AD4FC /* chromosome.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = chromosome.cpp; sourceTree = "<group>"; };
+		98E9A6981A3CD52A000AD4FC /* chromosome.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chromosome.h; sourceTree = "<group>"; };
+		98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = polymorphism.cpp; sourceTree = "<group>"; };
+		98E9A69B1A3CD542000AD4FC /* polymorphism.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymorphism.h; sourceTree = "<group>"; };
+		98E9A69D1A3CD551000AD4FC /* substitution.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = substitution.cpp; sourceTree = "<group>"; };
+		98E9A69E1A3CD551000AD4FC /* substitution.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = substitution.h; sourceTree = "<group>"; };
+		98E9A6A01A3CD587000AD4FC /* introduced_mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = introduced_mutation.cpp; sourceTree = "<group>"; };
+		98E9A6A11A3CD587000AD4FC /* introduced_mutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = introduced_mutation.h; sourceTree = "<group>"; };
+		98E9A6A31A3CD595000AD4FC /* partial_sweep.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = partial_sweep.cpp; sourceTree = "<group>"; };
+		98E9A6A41A3CD595000AD4FC /* partial_sweep.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = partial_sweep.h; sourceTree = "<group>"; };
+		98E9A6A61A3CD5A0000AD4FC /* genome.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = genome.cpp; sourceTree = "<group>"; };
+		98E9A6A71A3CD5A0000AD4FC /* genome.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genome.h; sourceTree = "<group>"; };
+		98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = subpopulation.cpp; sourceTree = "<group>"; };
+		98E9A6AA1A3CD5BB000AD4FC /* subpopulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = subpopulation.h; sourceTree = "<group>"; };
+		98E9A6AC1A3CD5D3000AD4FC /* population.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = population.cpp; sourceTree = "<group>"; };
+		98E9A6AD1A3CD5D3000AD4FC /* population.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = population.h; sourceTree = "<group>"; };
+		98E9A6AF1A3CD633000AD4FC /* input_parsing.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = input_parsing.cpp; sourceTree = "<group>"; };
+		98E9A6B01A3CD633000AD4FC /* input_parsing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input_parsing.h; sourceTree = "<group>"; };
+		98E9A6B21A3CE299000AD4FC /* TO_DO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TO_DO; sourceTree = "<group>"; };
+		98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = g_rng.cpp; sourceTree = "<group>"; };
+		98E9A6B71A3CE35E000AD4FC /* g_rng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = g_rng.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,10 +90,11 @@
 		982663471A3BABD300A0CBBF = {
 			isa = PBXGroup;
 			children = (
+				98E9A6B21A3CE299000AD4FC /* TO_DO */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				986021091A3BB504001BDCFE /* README.md */,
 				986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */,
-				982663521A3BABD300A0CBBF /* SLiM */,
+				982663521A3BABD300A0CBBF /* core */,
 				982663511A3BABD300A0CBBF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,17 +102,47 @@
 		982663511A3BABD300A0CBBF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				982663501A3BABD300A0CBBF /* SLiM */,
+				982663501A3BABD300A0CBBF /* slim */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		982663521A3BABD300A0CBBF /* SLiM */ = {
+		982663521A3BABD300A0CBBF /* core */ = {
 			isa = PBXGroup;
 			children = (
 				982663531A3BABD300A0CBBF /* main.cpp */,
+				98E9A6B71A3CE35E000AD4FC /* g_rng.h */,
+				98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */,
+				98E9A6B01A3CD633000AD4FC /* input_parsing.h */,
+				98E9A6AF1A3CD633000AD4FC /* input_parsing.cpp */,
+				98E9A6891A3CCFD0000AD4FC /* mutation.h */,
+				98E9A6881A3CCFD0000AD4FC /* mutation.cpp */,
+				98E9A68C1A3CD4B7000AD4FC /* event.h */,
+				98E9A68B1A3CD4B7000AD4FC /* event.cpp */,
+				98E9A68F1A3CD4CF000AD4FC /* mutation_type.h */,
+				98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */,
+				98E9A6921A3CD4EF000AD4FC /* genomic_element.h */,
+				98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */,
+				98E9A6951A3CD51A000AD4FC /* genomic_element_type.h */,
+				98E9A6941A3CD51A000AD4FC /* genomic_element_type.cpp */,
+				98E9A6981A3CD52A000AD4FC /* chromosome.h */,
+				98E9A6971A3CD52A000AD4FC /* chromosome.cpp */,
+				98E9A69B1A3CD542000AD4FC /* polymorphism.h */,
+				98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */,
+				98E9A69E1A3CD551000AD4FC /* substitution.h */,
+				98E9A69D1A3CD551000AD4FC /* substitution.cpp */,
+				98E9A6A11A3CD587000AD4FC /* introduced_mutation.h */,
+				98E9A6A01A3CD587000AD4FC /* introduced_mutation.cpp */,
+				98E9A6A41A3CD595000AD4FC /* partial_sweep.h */,
+				98E9A6A31A3CD595000AD4FC /* partial_sweep.cpp */,
+				98E9A6A71A3CD5A0000AD4FC /* genome.h */,
+				98E9A6A61A3CD5A0000AD4FC /* genome.cpp */,
+				98E9A6AA1A3CD5BB000AD4FC /* subpopulation.h */,
+				98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */,
+				98E9A6AD1A3CD5D3000AD4FC /* population.h */,
+				98E9A6AC1A3CD5D3000AD4FC /* population.cpp */,
 			);
-			path = SLiM;
+			path = core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -86,7 +162,7 @@
 			);
 			name = SLiM;
 			productName = SLiM;
-			productReference = 982663501A3BABD300A0CBBF /* SLiM */;
+			productReference = 982663501A3BABD300A0CBBF /* slim */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -125,8 +201,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9860210A1A3BB504001BDCFE /* README.md in Sources */,
+				98E9A68D1A3CD4B7000AD4FC /* event.cpp in Sources */,
+				98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */,
+				98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */,
+				98E9A6A81A3CD5A0000AD4FC /* genome.cpp in Sources */,
+				98E9A6991A3CD52A000AD4FC /* chromosome.cpp in Sources */,
+				98E9A6B11A3CD633000AD4FC /* input_parsing.cpp in Sources */,
+				98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */,
+				98E9A6B81A3CE35E000AD4FC /* g_rng.cpp in Sources */,
+				98E9A6A21A3CD587000AD4FC /* introduced_mutation.cpp in Sources */,
+				98E9A6961A3CD51A000AD4FC /* genomic_element_type.cpp in Sources */,
+				98E9A6A51A3CD595000AD4FC /* partial_sweep.cpp in Sources */,
+				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
+				98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */,
+				98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */,
+				98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,10 +227,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++98";
+				CLANG_CXX_LIBRARY = "libstdc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -166,9 +255,15 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lgsl",
+					"-lgslcblas",
+				);
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -177,10 +272,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++98";
+				CLANG_CXX_LIBRARY = "libstdc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -195,14 +289,21 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_LDFLAGS = (
+					"-lgsl",
+					"-lgslcblas",
+				);
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -210,14 +311,14 @@
 		982663581A3BABD300A0CBBF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = slim;
 			};
 			name = Debug;
 		};
 		982663591A3BABD300A0CBBF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = slim;
 			};
 			name = Release;
 		};
