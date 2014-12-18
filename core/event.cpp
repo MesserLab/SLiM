@@ -40,7 +40,7 @@ Event::Event(char p_event_type, std::vector<std::string> p_parameters)
 	}
 }  
 
-std::ostream& operator<<(std::ostream& p_outstream, const Event& p_event)
+std::ostream &operator<<(std::ostream &p_outstream, const Event &p_event)
 {
 	p_outstream << "Event{event_type_ '" << p_event.event_type_ << "', parameters_ ";
 	

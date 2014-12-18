@@ -44,7 +44,7 @@ public:
 };
 
 // support stream output of IntroducedMutation, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const IntroducedMutation& p_introduced_mutation);
+std::ostream &operator<<(std::ostream &p_outstream, const IntroducedMutation &p_introduced_mutation);
 
 
 #endif /* defined(__SLiM__introduced_mutation__) */

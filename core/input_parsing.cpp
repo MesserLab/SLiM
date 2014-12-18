@@ -64,7 +64,7 @@ enum EOFExpected
 
 
 // get one line of input, sanitizing by removing comments and whitespace
-void GetInputLine(ifstream& p_input_file, string& p_line);
+void GetInputLine(ifstream &p_input_file, string &p_line);
 
 // generate cerr output describing an error that has occurred
 void InputError(InputErrorType p_error_type, string p_line);
@@ -74,10 +74,10 @@ bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_s
 bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpected p_eof_expected);
 
 // initialize the population from the information in the file given
-void InitializePopulationFromFile(Population& p_population, const char* p_file, Chromosome& p_chromosome);
+void InitializePopulationFromFile(Population &p_population, const char *p_file, Chromosome &p_chromosome);
 
 
-void GetInputLine(ifstream& p_input_file, string& p_line)
+void GetInputLine(ifstream &p_input_file, string &p_line)
 {
 	getline(p_input_file, p_line);
 	
@@ -306,7 +306,7 @@ bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, st
 	return good;
 }
 
-void CheckInputFile(char* p_input_file)
+void CheckInputFile(char *p_input_file)
 {
 	int num_mutation_types = 0;
 	int num_mutation_rates = 0;
@@ -727,7 +727,7 @@ void CheckInputFile(char* p_input_file)
 	}
 }
 
-void InitializePopulationFromFile(Population& p_population, const char* p_file, Chromosome& p_chromosome)
+void InitializePopulationFromFile(Population &p_population, const char *p_file, Chromosome &p_chromosome)
 {
 	std::map<int,Mutation> M;
 	string line, sub; 
@@ -817,16 +817,16 @@ void InitializePopulationFromFile(Population& p_population, const char* p_file, 
 		subpop_iter->second.UpdateFitness(p_chromosome);
 }
 
-void Initialize(Population& p_population,
-				char* p_input_file,
-				Chromosome& p_chromosome,
+void Initialize(Population &p_population,
+				char *p_input_file,
+				Chromosome &p_chromosome,
 				int &p_time_start,
 				int &p_time_duration,
-				multimap<int,Event>& p_events,
-				multimap<int,Event>& p_outputs,
-				multimap<int,IntroducedMutation>& p_introduced_mutations,
-				std::vector<PartialSweep>& p_partial_sweeps,
-				std::vector<string>& p_parameters)
+				multimap<int,Event> &p_events,
+				multimap<int,Event> &p_outputs,
+				multimap<int,IntroducedMutation> &p_introduced_mutations,
+				std::vector<PartialSweep> &p_partial_sweeps,
+				std::vector<string> &p_parameters)
 {
 	string line, sub; 
 	ifstream infile (p_input_file);
@@ -1103,7 +1103,7 @@ void Initialize(Population& p_population,
 					while (iss >> sub)
 						event_parameters.push_back(sub.c_str());
 					
-					Event new_event = Event(event_type, event_parameters);
+					Event new_event(event_type, event_parameters);
 					
 					p_events.insert(std::pair<int,Event>(event_time, new_event));
 					

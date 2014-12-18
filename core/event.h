@@ -57,7 +57,7 @@ public:
 	Event(char p_event_type, std::vector<std::string> p_parameters);  
 };
 
-std::ostream& operator<<(std::ostream& p_outstream, const Event& p_event);
+std::ostream &operator<<(std::ostream &p_outstream, const Event &p_event);
 
 
 #endif /* defined(__SLiM__event__) */

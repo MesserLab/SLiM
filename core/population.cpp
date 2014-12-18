@@ -103,7 +103,7 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
-void Population::ExecuteEvent(Event& p_event, int p_generation, Chromosome& p_chromosome, std::vector<int>& p_tracked_mutations)
+void Population::ExecuteEvent(Event &p_event, int p_generation, Chromosome &p_chromosome, std::vector<int> &p_tracked_mutations)
 {
 	char event_type = p_event.event_type_;
 	std::vector<std::string> &event_parameters = p_event.parameters_;
@@ -253,7 +253,7 @@ void Population::ExecuteEvent(Event& p_event, int p_generation, Chromosome& p_ch
 }
 
 // introduce a user-defined mutation
-void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation, Chromosome& p_chromosome) 
+void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation, Chromosome &p_chromosome) 
 {
 	
 	if (count(p_introduced_mutation.subpop_index_) == 0)
@@ -305,7 +305,7 @@ void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation, Chr
 }
 
 // output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-void Population::TrackMutations(int p_generation, std::vector<int>& p_tracked_mutations, std::vector<PartialSweep>& p_partial_sweeps, Chromosome& p_chromosome)
+void Population::TrackMutations(int p_generation, std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps, Chromosome &p_chromosome)
 {
 	std::map<int,Subpopulation>::iterator subpop_iter;
 	
@@ -377,7 +377,7 @@ void Population::TrackMutations(int p_generation, std::vector<int>& p_tracked_mu
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 // FIXME whole lotta find(p_subpop_id) going on here; the result of that will be constant across this function, no?
-void Population::EvolveSubpopulation(int p_subpop_id, Chromosome& p_chromosome, int p_generation)
+void Population::EvolveSubpopulation(int p_subpop_id, Chromosome &p_chromosome, int p_generation)
 {
 	int child_genome1, child_genome2, parent1, parent2;
 	
@@ -472,7 +472,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, Chromosome& p_chromosome, 
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, Chromosome& p_chromosome, int p_generation)
+void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, Chromosome &p_chromosome, int p_generation)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -595,7 +595,7 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 }
 
 // step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations(int p_generation, Chromosome& p_chromosome)
+void Population::SwapGenerations(int p_generation, Chromosome &p_chromosome)
 {
 	// find and remove fixed mutations from the children in all subpopulations
 	RemoveFixedMutations(p_generation);
@@ -638,7 +638,7 @@ void Population::RemoveFixedMutations(int p_generation)
 
 // print all mutations and all genomes
 // FIXME can this be merged with the function below?
-void Population::PrintAll(Chromosome& p_chromosome)
+void Population::PrintAll(Chromosome &p_chromosome)
 {
 	std::map<int,Subpopulation>::iterator subpop_iter;
 	
@@ -682,7 +682,7 @@ void Population::PrintAll(Chromosome& p_chromosome)
 }
 
 // print all mutations and all genomes to a file
-void Population::PrintAll(std::ofstream& p_outfile, Chromosome& p_chromosome)
+void Population::PrintAll(std::ofstream &p_outfile, Chromosome &p_chromosome)
 {
 	std::map<int,Subpopulation>::iterator subpop_iter;
 	
@@ -727,7 +727,7 @@ void Population::PrintAll(std::ofstream& p_outfile, Chromosome& p_chromosome)
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
 // FIXME whole lotta find(p_subpop_id) going on here; the result of that will be constant across this function, no?
-void Population::PrintSample(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome)
+void Population::PrintSample(int p_subpop_id, int p_sample_size, Chromosome &p_chromosome)
 {
 	if (count(p_subpop_id) == 0)
 	{
@@ -775,7 +775,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, Chromosome& p_c
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome)
+void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome &p_chromosome)
 {
 	if (count(p_subpop_id) == 0)
 	{
@@ -839,7 +839,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome& 
 }
 
 // find p_mutation in p_polymorphisms and return its id
-int Population::FindMutation(multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation)
+int Population::FindMutation(multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation)
 {
 	// iterate through all mutations with same position
 	std::pair<multimap<int,Polymorphism>::iterator,multimap<int,Polymorphism>::iterator> range = p_polymorphisms.equal_range(p_mutation.position_);
@@ -853,7 +853,7 @@ int Population::FindMutation(multimap<int,Polymorphism>& p_polymorphisms, Mutati
 }
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void Population::AddMutation(multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation)
+void Population::AddMutation(multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation)
 {
 	// iterate through all mutations with same position
 	std::pair<multimap<int,Polymorphism>::iterator,multimap<int,Polymorphism>::iterator> range = p_polymorphisms.equal_range(p_mutation.position_);

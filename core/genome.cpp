@@ -21,7 +21,7 @@
 #include "genome.h"
 
 // return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
-Genome GenomeWithFixedMutations(Genome& p_genome1, Genome& p_genome2)
+Genome GenomeWithFixedMutations(Genome &p_genome1, Genome &p_genome2)
 {
 	Genome merge_genome;
 	
@@ -69,7 +69,7 @@ Genome GenomeWithFixedMutations(Genome& p_genome1, Genome& p_genome2)
 }
 
 // return a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
-Genome GenomeWithPolymorphicMutations(Genome& p_genome1, Genome& p_genome2)
+Genome GenomeWithPolymorphicMutations(Genome &p_genome1, Genome &p_genome2)
 {
 	Genome merge_genome;
 	

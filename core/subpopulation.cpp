@@ -42,7 +42,7 @@ int Subpopulation::DrawIndividual()
 	return (int)gsl_ran_discrete(g_rng, lookup_individual);
 }
 
-void Subpopulation::UpdateFitness(Chromosome& p_chromosome)
+void Subpopulation::UpdateFitness(Chromosome &p_chromosome)
 {
 	// calculate fitnesses in parent population and create new lookup table
 	gsl_ran_discrete_free(lookup_individual);
@@ -55,7 +55,7 @@ void Subpopulation::UpdateFitness(Chromosome& p_chromosome)
 	lookup_individual = gsl_ran_discrete_preproc((int)(parent_genomes_.size() / 2), A);
 }
 
-double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome& p_chromosome)
+double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome &p_chromosome)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;

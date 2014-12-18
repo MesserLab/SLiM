@@ -43,8 +43,8 @@ class Chromosome : public std::vector<GenomicElement>
 {
 private:
 	
-	gsl_ran_discrete_t* lookup_mutation; // mutation
-	gsl_ran_discrete_t* lookup_recombination; // recombination
+	gsl_ran_discrete_t *lookup_mutation;		// mutation
+	gsl_ran_discrete_t *lookup_recombination;	// recombination
 	
 public:
 	

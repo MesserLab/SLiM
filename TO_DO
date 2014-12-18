@@ -4,7 +4,7 @@ add private const copy constructors X(const X&) to all classes; nothing should b
 	private:
 
 	Event(const Event&);						// disable copy constructor
-	Event& operator = (const Event&);			// disable assignment operator
+	Event &operator = (const Event&);			// disable assignment operator
 
 consider setting -ffast-math; see how much of a difference it makes, check with Philipp
 consider switching to fast exponential code; do some profiling to see where hot spots are

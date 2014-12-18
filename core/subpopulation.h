@@ -41,7 +41,7 @@ class Subpopulation
 {
 private:
 	
-	gsl_ran_discrete_t* lookup_individual;   
+	gsl_ran_discrete_t *lookup_individual;   
 	
 public:
 	
@@ -58,9 +58,9 @@ public:
 	
 	int DrawIndividual();
 	
-	void UpdateFitness(Chromosome& p_chromosome);
+	void UpdateFitness(Chromosome &p_chromosome);
 	
-	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome& p_chromosome);
+	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome &p_chromosome);
 	
 	void SwapChildAndParentGenomes();
 };

@@ -40,7 +40,7 @@ class GenomicElementType
 {
 private:
 	
-	gsl_ran_discrete_t* lookup_mutation_type;
+	gsl_ran_discrete_t *lookup_mutation_type;
 	
 public:
 	
@@ -53,7 +53,7 @@ public:
 };
 
 // support stream output of GenomicElementType, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const GenomicElementType& p_genomic_element_type);
+std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_genomic_element_type);
 
 
 #endif /* defined(__SLiM__genomic_element_type__) */

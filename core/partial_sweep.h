@@ -43,7 +43,7 @@ public:
 };
 
 // support stream output of PartialSweep, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const PartialSweep& p_partial_sweep);
+std::ostream &operator<<(std::ostream &p_outstream, const PartialSweep &p_partial_sweep);
 
 
 #endif /* defined(__SLiM__partial_sweep__) */

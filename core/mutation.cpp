@@ -1,5 +1,5 @@
 //
-//  introduced_mutation.cpp
+//  mutation.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
@@ -18,27 +18,38 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "introduced_mutation.h"
+#include "mutation.h"
 
 
-IntroducedMutation::IntroducedMutation(int p_mutation_type, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes)
-{
+Mutation::Mutation(void) { ; }
+
+Mutation::Mutation(int p_mutation_type, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) 
+{ 
 	mutation_type_ = p_mutation_type;
 	position_ = p_position;
+	selection_coeff_ = (float)p_selection_coeff;
 	subpop_index_ = p_subpop_index;
 	generation_ = p_generation;
-	num_homozygotes_ = p_num_homozygotes;
-	num_heterozygotes_ = p_num_heterozygotes;
 }
 
-std::ostream &operator<<(std::ostream &p_outstream, const IntroducedMutation &p_introduced_mutation)
+bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2)
 {
-	p_outstream << "IntroducedMutation{mutation_type_ " << p_introduced_mutation.mutation_type_ << ", position_ " << p_introduced_mutation.position_ << ", subpop_index_ " << p_introduced_mutation.subpop_index_ << ", generation_ " << p_introduced_mutation.generation_ << ", num_homozygotes_ " << p_introduced_mutation.num_homozygotes_ << ", num_heterozygotes_ " << p_introduced_mutation.num_heterozygotes_ << "}";
+	return (p_mutation1.position_ < p_mutation2.position_);
+}
+
+bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2)
+{
+	return (p_mutation1.position_ == p_mutation2.position_ &&
+			p_mutation1.mutation_type_ == p_mutation2.mutation_type_ &&
+			p_mutation1.selection_coeff_ == p_mutation2.selection_coeff_);
+}
+
+std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
+{
+	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", generation_ " << p_mutation.generation_;
 	
 	return p_outstream;
 }
-
-
 
 
 

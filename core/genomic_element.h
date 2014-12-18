@@ -43,7 +43,7 @@ public:
 };
 
 // support stream output of GenomicElement, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const GenomicElement& p_genomic_element);
+std::ostream &operator<<(std::ostream &p_outstream, const GenomicElement &p_genomic_element);
 
 
 #endif /* defined(__SLiM__genomic_element__) */

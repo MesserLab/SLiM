@@ -33,21 +33,21 @@ Polymorphism::Polymorphism(int p_mutation_id, int p_mutation_type, double p_sele
 	prevalence_  = p_prevalence;
 }
 
-void Polymorphism::print(int p_index, Chromosome& p_chromosome) 
+void Polymorphism::print(int p_index, Chromosome &p_chromosome) 
 { 
 	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
 	
 	std::cout << mutation_id_ << " m" << mutation_type_ << " " << p_index + 1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
 
-void Polymorphism::print(std::ofstream& p_outfile, int p_index, Chromosome& p_chromosome) 
+void Polymorphism::print(std::ofstream &p_outfile, int p_index, Chromosome &p_chromosome) 
 { 
 	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
 	
 	p_outfile << mutation_id_ << " m" << mutation_type_ << " " << p_index + 1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
 
-void Polymorphism::print_no_id(int p_index, Chromosome& p_chromosome) 
+void Polymorphism::print_no_id(int p_index, Chromosome &p_chromosome) 
 { 
 	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
 	

@@ -55,7 +55,7 @@ public:
 };
 
 // support stream output of MutationType, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const MutationType& p_mutation_type);
+std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type);
 
 
 #endif /* defined(__SLiM__mutation_type__) */

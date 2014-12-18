@@ -64,43 +64,43 @@ public:
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a given event in the population; the event is assumed to be due to trigger
-	void ExecuteEvent(Event& p_event, int p_generation, Chromosome& p_chromosome, std::vector<int>& p_tracked_mutations);
+	void ExecuteEvent(Event &p_event, int p_generation, Chromosome &p_chromosome, std::vector<int> &p_tracked_mutations);
 	
 	// introduce a user-defined mutation
-	void IntroduceMutation(IntroducedMutation p_introduced_mutation, Chromosome& p_chromosome);
+	void IntroduceMutation(IntroducedMutation p_introduced_mutation, Chromosome &p_chromosome);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-	void TrackMutations(int p_generation, std::vector<int>& p_tracked_mutations, std::vector<PartialSweep>& p_partial_sweeps, Chromosome& p_chromosome);
+	void TrackMutations(int p_generation, std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps, Chromosome &p_chromosome);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-	void EvolveSubpopulation(int p_subpop_id, Chromosome& p_chromosome, int p_generation);
+	void EvolveSubpopulation(int p_subpop_id, Chromosome &p_chromosome, int p_generation);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-	void CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, Chromosome& p_chromosome, int p_generation);
+	void CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, Chromosome &p_chromosome, int p_generation);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-	void SwapGenerations(int p_generation, Chromosome& p_chromosome);
+	void SwapGenerations(int p_generation, Chromosome &p_chromosome);
 	
 	// find mutations that are fixed in all child subpopulations and remove them
 	void RemoveFixedMutations(int p_generation);
 	
 	// print all mutations and all genomes
-	void PrintAll(Chromosome& p_chromosome);
+	void PrintAll(Chromosome &p_chromosome);
 	
 	// print all mutations and all genomes to a file
-	void PrintAll(std::ofstream& p_outfile, Chromosome& p_chromosome);
+	void PrintAll(std::ofstream &p_outfile, Chromosome &p_chromosome);
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id
-	void PrintSample(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome);
+	void PrintSample(int p_subpop_id, int p_sample_size, Chromosome &p_chromosome);
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-	void PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome);
+	void PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome &p_chromosome);
 	
 	// find p_mutation in p_polymorphisms and return its id
-	int FindMutation(std::multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation);
+	int FindMutation(std::multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation);
 	
 	// if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-	void AddMutation(std::multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation);
+	void AddMutation(std::multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation);
 };
 
 

@@ -55,7 +55,7 @@ bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2);
 bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2);
 
 // support stream output of Mutation, for debugging
-std::ostream& operator<<(std::ostream& p_outstream, const Mutation& p_mutation);
+std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation);
 
 
 #endif /* defined(__SLiM__mutation__) */

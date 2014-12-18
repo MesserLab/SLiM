@@ -35,19 +35,19 @@
 
 
 // check an input file for correctness and exit with a good error message if there is a problem
-void CheckInputFile(char* p_input_file);
+void CheckInputFile(char *p_input_file);
 
 // parse a (previously checked) input file and set up the simulation state from its contents
-void Initialize(Population& p_population,
-				char* p_input_file,
-				Chromosome& p_chromosome,
+void Initialize(Population &p_population,
+				char *p_input_file,
+				Chromosome &p_chromosome,
 				int &p_time_start,
 				int &p_time_duration,
-				std::multimap<int,Event>& p_events,
-				std::multimap<int,Event>& p_outputs,
-				std::multimap<int,IntroducedMutation>& p_introduced_mutations,
-				std::vector<PartialSweep>& p_partial_sweeps,
-				std::vector<std::string>& p_parameters);
+				std::multimap<int,Event> &p_events,
+				std::multimap<int,Event> &p_outputs,
+				std::multimap<int,IntroducedMutation> &p_introduced_mutations,
+				std::vector<PartialSweep> &p_partial_sweeps,
+				std::vector<std::string> &p_parameters);
 
 
 #endif /* defined(__SLiM__input_parsing__) */
