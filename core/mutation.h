@@ -17,32 +17,113 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Mutation represents a single mutation, defined by its type, its position on the chromosome, and its selection coefficient.
+ Mutations are also tagged with the subpopulation and generation in which they arose.
+ 
+ */
+
 #ifndef __SLiM__mutation__
 #define __SLiM__mutation__
 
 
-class mutation
+#include <iostream>
+
+
+class Mutation
 {
 public:
 	
-	int   t; // mutation type identifier
-	int   x; // position
-	float s; // selection coefficient
-	int   i; // subpopulation in which mutation arose
-	int   g; // generation in which mutation arose  
+	int   mutation_type_;		// mutation type identifier
+	int   position_;			// position on the chromosome
+	float selection_coeff_;		// selection coefficient
+	int   subpop_index_;		// subpopulation in which mutation arose
+	int   generation_;			// generation in which mutation arose  
 	
 	// null constructor
-	mutation(void);
+	Mutation(void);
 	
 	// standard constructor, supplying values for all ivars
-	mutation(int T, int X, float S, int I, int G);
+	Mutation(int p_mutation_type, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 };
 
 // true if M1 has an earlier (smaller) position than M2
-bool operator< (const mutation &M1,const mutation &M2);
+bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2);
 
 // true if M1 and M2 have the same position, type, and selection coefficient
-bool operator== (const mutation &M1,const mutation &M2);
+bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2);
+
+// support stream output of Mutation, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const Mutation& p_mutation);
 
 
 #endif /* defined(__SLiM__mutation__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

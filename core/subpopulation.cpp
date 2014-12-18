@@ -21,120 +21,210 @@
 #include "subpopulation.h"
 
 
-subpopulation::subpopulation(int n)
+Subpopulation::Subpopulation(int p_subpop_size)
 {
-	N = n;
-	S = 0.0;
-	G_parent.resize(2*N); G_child.resize(2*N);
-	double A[N]; for (int i=0; i<N; i++) { A[i] = 1.0; }
-	LT = gsl_ran_discrete_preproc(N,A);
+	subpop_size_ = p_subpop_size;
+	selfing_fraction_ = 0.0;
+	parent_genomes_.resize(2 * subpop_size_);
+	child_genomes_.resize(2 * subpop_size_);
+	
+	// Set up to draw random individuals, based initially on equal fitnesses
+	double A[subpop_size_];
+	
+	for (int i = 0; i < subpop_size_; i++)
+		A[i] = 1.0;
+	
+	lookup_individual = gsl_ran_discrete_preproc(subpop_size_, A);
 }
 
+int Subpopulation::DrawIndividual()
+{
+	return (int)gsl_ran_discrete(g_rng, lookup_individual);
+}
 
-int subpopulation::draw_individual() { return gsl_ran_discrete(g_rng,LT); }
-
-
-void subpopulation::update_fitness(chromosome& chr)
+void Subpopulation::UpdateFitness(Chromosome& p_chromosome)
 {
 	// calculate fitnesses in parent population and create new lookup table
+	gsl_ran_discrete_free(lookup_individual);
 	
-	gsl_ran_discrete_free(LT);
-	double A[(int)(G_parent.size()/2)]; for (int i=0; i<(int)(G_parent.size()/2); i++) { A[i] = W(2*i,2*i+1,chr); }
-	LT = gsl_ran_discrete_preproc((int)(G_parent.size()/2),A);
+	double A[(int)(parent_genomes_.size() / 2)];
+	
+	for (int i = 0; i < (int)(parent_genomes_.size() / 2); i++)
+		A[i] = FitnessOfIndividualWithGenomeIndices(2 * i, 2 * i + 1, p_chromosome);
+	
+	lookup_individual = gsl_ran_discrete_preproc((int)(parent_genomes_.size() / 2), A);
 }
 
-
-double subpopulation::W(int i, int j, chromosome& chr)
+double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome& p_chromosome)
 {
-	// calculate the fitness of the individual constituted by genomes i and j in the parent population
-	
+	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
+	std::vector<Mutation>::iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
+	std::vector<Mutation>::iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
 	
-	std::vector<mutation>::iterator pi = G_parent[i].begin();
-	std::vector<mutation>::iterator pj = G_parent[j].begin();
+	std::vector<Mutation>::iterator genome1_max = parent_genomes_[p_genome_index1].end();
+	std::vector<Mutation>::iterator genome2_max = parent_genomes_[p_genome_index2].end();
 	
-	std::vector<mutation>::iterator pi_max = G_parent[i].end();
-	std::vector<mutation>::iterator pj_max = G_parent[j].end();
-	
-	while (w>0 && (pi != pi_max || pj != pj_max))
+	while (w > 0 && (genome1_iter != genome1_max || genome2_iter != genome2_max))
 	{
-		// advance i while pi.x < pj.x
-		
-		while (pi != pi_max && (pj == pj_max || (*pi).x < (*pj).x))
+		// advance genome1_iter while genome1_iter.x < genome2_iter.x (or genome2_iter is done), to handle mutations that are in genome1 but not genome2
+		while (genome1_iter != genome1_max && (genome2_iter == genome2_max || genome1_iter->position_ < genome2_iter->position_))
 		{
-			if ((*pi).s != 0) { w = w*(1.0+chr.mutation_types.find((*pi).t)->second.h*(*pi).s); }
-			pi++;
+			if (genome1_iter->selection_coeff_ != 0)
+				w *= (1.0 + p_chromosome.mutation_types_.find(genome1_iter->mutation_type_)->second.dominance_coeff_ * genome1_iter->selection_coeff_);
+			
+			genome1_iter++;
 		}
 		
-		// advance j while pj.x < pi.x
-		
-		while (pj != pj_max && (pi == pi_max || (*pj).x < (*pi).x))
+		// advance genome2_iter while genome2_iter.x < genome1_iter.x (or genome1_iter is done), to handle mutations that are in genome2 but not genome1
+		while (genome2_iter != genome2_max && (genome1_iter == genome1_max || genome2_iter->position_ < genome1_iter->position_))
 		{
-			if ((*pj).s != 0) { w = w*(1.0+chr.mutation_types.find((*pj).t)->second.h*(*pj).s); }
-			pj++;
+			if (genome2_iter->selection_coeff_ != 0)
+				w *= (1.0 + p_chromosome.mutation_types_.find(genome2_iter->mutation_type_)->second.dominance_coeff_ * genome2_iter->selection_coeff_);
+			
+			genome2_iter++;
 		}
 		
-		// check for homozygotes and heterozygotes at x
-		
-		if (pi != pi_max && pj != pj_max && (*pj).x == (*pi).x)
+		// if genome1_iter and genome2_iter are now at the same (valid) position, check for homozygotes and heterozygotes at that position
+		// this is complicated because multiple mutations might exist at the same position, so duplicated mutations must be matched into pairs
+		if (genome1_iter != genome1_max && genome2_iter != genome2_max && genome2_iter->position_ == genome1_iter->position_)
 		{
-			int x = (*pi).x; 
+			int position = genome1_iter->position_; 
+			std::vector<Mutation>::iterator genome1_start = genome1_iter;
 			
-			std::vector<mutation>::iterator pi_start = pi;
-			
-			// advance through pi
-			
-			while (pi != pi_max && (*pi).x == x)
+			// advance through genome1 as long as we remain at the same position, handling one mutation at a time
+			while (genome1_iter != genome1_max && genome1_iter->position_ == position)
 			{
-				if ((*pi).s != 0.0)
+				if (genome1_iter->selection_coeff_ != 0.0)
 				{
-					std::vector<mutation>::iterator temp_j = pj; 
-					bool homo = 0;
+					std::vector<Mutation>::iterator genome2_matchscan = genome2_iter; 
+					bool homozygous = false;
 					
-					while (homo == 0 && temp_j != pj_max && (*temp_j).x == x)
+					// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
+					while (!homozygous && genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
 					{
-						if ((*pi).t == (*temp_j).t && (*pi).s == (*temp_j).s) 
-						{ 
-							w = w*(1.0+(*pi).s); homo = 1; 
+						if (genome1_iter->mutation_type_ == genome2_matchscan->mutation_type_ && genome1_iter->selection_coeff_ == genome2_matchscan->selection_coeff_) 
+						{
+							// a match was found, so we multiply our fitness by the full selection coefficient
+							w *= (1.0 + genome1_iter->selection_coeff_);
+							homozygous = true; 
 						}
-						temp_j++;
+						
+						genome2_matchscan++;
 					}
 					
-					if (homo == 0) { w = w*(1.0+chr.mutation_types.find((*pi).t)->second.h*(*pi).s); }
+					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+					if (!homozygous)
+						w *= (1.0 + p_chromosome.mutation_types_.find(genome1_iter->mutation_type_)->second.dominance_coeff_ * genome1_iter->selection_coeff_);
 				}
-				pi++;
+				
+				genome1_iter++;
 			}
 			
-			// advance through pj
-			
-			while (pj != pj_max && (*pj).x == x)
+			// advance through genome2 as long as we remain at the same position, handling one mutation at a time
+			while (genome2_iter != genome2_max && genome2_iter->position_ == position)
 			{
-				if ((*pj).s != 0.0)
+				if (genome2_iter->selection_coeff_ != 0.0)
 				{
-					std::vector<mutation>::iterator temp_i = pi_start; 
-					bool homo = 0;
+					std::vector<Mutation>::iterator genome1_matchscan = genome1_start; 
+					bool homozygous = false;
 					
-					while (homo == 0 && temp_i != pi_max && (*temp_i).x == x)
+					while (!homozygous && genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
 					{
-						if ((*pj).t == (*temp_i).t && (*pj).s == (*temp_i).s) { homo = 1; }
-						temp_i++;
+						if (genome2_iter->mutation_type_ == genome1_matchscan->mutation_type_ && genome2_iter->selection_coeff_ == genome1_matchscan->selection_coeff_)
+						{
+							// a match was found; we know this match was already found my the genome1 loop above, so our fitness has already been multiplied appropriately
+							homozygous = true;
+						}
+						
+						genome1_matchscan++;
 					}
-					if (homo == 0) { w = w*(1.0+chr.mutation_types.find((*pj).t)->second.h*(*pj).s); }
+					
+					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+					if (!homozygous)
+						w *= (1.0 + p_chromosome.mutation_types_.find(genome2_iter->mutation_type_)->second.dominance_coeff_ * genome2_iter->selection_coeff_);
 				}
-				pj++;
+				
+				genome2_iter++;
 			}
 		}
 	}
 	
-	if (w<0) { w = 0.0; }
-	
-	return w;
+	return (w < 0 ? 0.0 : w);
 }
 
-void subpopulation::swap()
+void Subpopulation::SwapChildAndParentGenomes()
 {
-	G_child.swap(G_parent);
-	G_child.resize(2*N);
+	child_genomes_.swap(parent_genomes_);
+	child_genomes_.resize(2 * subpop_size_);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

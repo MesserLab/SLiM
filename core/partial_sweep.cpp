@@ -21,7 +21,83 @@
 #include "partial_sweep.h"
 
 
-partial_sweep::partial_sweep(int T, int X, float P)
+PartialSweep::PartialSweep(int p_mutation_type, int p_position, double p_target_prevalence)
 {
-	t = T; x = X; p = P;
+	mutation_type_ = p_mutation_type;
+	position_ = p_position;
+	target_prevalence_ = (float)p_target_prevalence;
 }
+
+std::ostream& operator<<(std::ostream& p_outstream, const PartialSweep& p_partial_sweep)
+{
+	p_outstream << "PartialSweep{mutation_type_ m" << p_partial_sweep.mutation_type_ << ", position_ " << p_partial_sweep.position_ << ", target_prevalence_ " << p_partial_sweep.target_prevalence_ << "}";
+	
+	return p_outstream;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

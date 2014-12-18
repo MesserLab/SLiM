@@ -17,34 +17,111 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class GenomicElementType represents a possible type of genomic element, defined by the types of mutations the element undergoes,
+ and the relative fractions of each of those mutation types.  Exons and introns might be represented by different genomic element types,
+ for example, and might have different types of mutations (exons undergo adaptive mutations while introns do not, perhaps).  At present,
+ these mutational dynamics are the only defining characteristics of genomic elements.
+ 
+ */
+
 #ifndef __SLiM__genomic_element_type__
 #define __SLiM__genomic_element_type__
 
 
 #include <vector>
+#include <iostream>
 
 #include "g_rng.h"
 
 
-class genomic_element_type
+class GenomicElementType
 {
-	// a genomic element type is specified by a vector of the mutation type identifiers off all 
-	// mutation types than can occur in such elements and a vector of their relative fractions.
-	// examples: exon, intron, utr, intergenic, etc.
-	
 private:
 	
-	gsl_ran_discrete_t* LT;
+	gsl_ran_discrete_t* lookup_mutation_type;
 	
 public:
 	
-	std::vector<int>    m; // mutation types identifiers in this element
-	std::vector<double> g; // relative fractions of each mutation type
+	std::vector<int>    mutation_types_;		// mutation types identifiers in this element
+	std::vector<double> mutation_fractions_;	// relative fractions of each mutation type
 	
-	genomic_element_type(std::vector<int> M, std::vector<double> G);
+	GenomicElementType(std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions);
 	
-	int draw_mutation_type();
+	int DrawMutationType();
 };
+
+// support stream output of GenomicElementType, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const GenomicElementType& p_genomic_element_type);
 
 
 #endif /* defined(__SLiM__genomic_element_type__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

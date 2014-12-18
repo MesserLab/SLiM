@@ -20,5 +20,91 @@
 
 #include "g_rng.h"
 
+#include <unistd.h>
+#include <time.h>
+
 
 const gsl_rng *g_rng; 
+
+
+int GenerateSeedFromPIDAndTime()
+{
+	long pid = getpid();
+	time_t t;
+	
+	time(&t);
+	t += pid;
+	
+	return (int)t;
+}
+
+void InitializeRNGFromSeed(int p_seed)
+{
+	g_rng = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng_set(g_rng, (long)p_seed);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -17,6 +17,13 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Polymorphism represents a polymorphism within a population.  It is not used in the simulation dynamics; it is only used
+ for the purpose of collating statistics about a simulation for output.
+ 
+ */
+
 #ifndef __SLiM__polymorphism__
 #define __SLiM__polymorphism__
 
@@ -26,25 +33,93 @@
 #include "chromosome.h"
 
 
-class polymorphism
+class Polymorphism
 {
 public:
 	
-	int   id; // mutation id
-	int   t;  // mutation type
-	float s;  // selection coefficient
-	int   i;  // subpopulation in which mutation arose
-	int   g;  // generation in which mutation arose  
-	int   n;  // prevalence
+	int   mutation_id_; // mutation id
+	int   mutation_type_;  // mutation type
+	float selection_coeff_;  // selection coefficient
+	int   subpop_index_;  // subpopulation in which mutation arose
+	int   generation_;  // generation in which mutation arose  
+	int   prevalence_;  // prevalence
 	
-	polymorphism(int ID, int T, float S, int I, int G, int N);
+	Polymorphism(int p_mutation_id, int p_mutation_type, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
 	
-	void print(int x, chromosome& chr);
+	void print(int p_index, Chromosome& p_chromosome);
 	
-	void print(std::ofstream& outfile, int x, chromosome& chr);
+	void print(std::ofstream& p_outfile, int p_index, Chromosome& p_chromosome);
 	
-	void print_no_id(int x, chromosome& chr);
+	void print_no_id(int p_index, Chromosome& p_chromosome);
 };
 
 
 #endif /* defined(__SLiM__polymorphism__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

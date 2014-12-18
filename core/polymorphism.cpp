@@ -23,30 +23,101 @@
 #include <fstream>
 
 
-polymorphism::polymorphism(int ID, int T, float S, int I, int G, int N)
+Polymorphism::Polymorphism(int p_mutation_id, int p_mutation_type, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence)
 {
-	id = ID;
-	t  = T;
-	s  = S;
-	i  = I;
-	g  = G;
-	n  = N;
+	mutation_id_ = p_mutation_id;
+	mutation_type_  = p_mutation_type;
+	selection_coeff_  = (float)p_selection_coeff;
+	subpop_index_  = p_subpop_index;
+	generation_  = p_generation;
+	prevalence_  = p_prevalence;
 }
 
-void polymorphism::print(int x, chromosome& chr) 
+void Polymorphism::print(int p_index, Chromosome& p_chromosome) 
 { 
-	float h = chr.mutation_types.find(t)->second.h;
-	std::cout << id << " m" << t << " " << x+1 << " " << s << " " << h << " p" << i << " " << g << " " << n << std::endl; 
+	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
+	
+	std::cout << mutation_id_ << " m" << mutation_type_ << " " << p_index + 1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
 
-void polymorphism::print(std::ofstream& outfile, int x, chromosome& chr) 
+void Polymorphism::print(std::ofstream& p_outfile, int p_index, Chromosome& p_chromosome) 
 { 
-	float h = chr.mutation_types.find(t)->second.h;
-	outfile << id << " m" << t << " " << x+1 << " " << s << " " << h << " p" << i << " " << g << " " << n << std::endl; 
+	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
+	
+	p_outfile << mutation_id_ << " m" << mutation_type_ << " " << p_index + 1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
 
-void polymorphism::print_no_id(int x, chromosome& chr) 
+void Polymorphism::print_no_id(int p_index, Chromosome& p_chromosome) 
 { 
-	float h = chr.mutation_types.find(t)->second.h;
-	std::cout << "m" << t << " " << x+1 << " " << s << " " << h << " p" << i << " " << g << " " << n << std::endl; 
+	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
+	
+	std::cout << "m" << mutation_type_ << " " << p_index + 1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

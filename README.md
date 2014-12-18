@@ -1,7 +1,15 @@
-SLiM
-====
+PLEASE NOTE THAT THIS VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
+---------------------------------------------------------------------------------------------
+It is strongly recommended that all end users of SLiM use version 1.8, released at [http://messerlab.org/software/](http://messerlab.org/software/).
+---------------------------------------------------------------------------------------------
+ 
+
+SLiM 2.0 (prerelease)
+=================
 
 **S**election on **Li**nked **M**utations: a forward population genetic simulation for studying linkage effects, such as hitchhiking, background selection, and Hill-Robertson interference.
+
+SLiM can incorporate complex scenarios of demography and population substructure, various models for selection and dominance of new mutations, realistic gene and chromosome structure, and user-defined recombination maps. Emphasis was further placed on the ability to model and track individual selective sweeps – both complete and partial. While retaining all capabilities of a forward simulation, SLiM utilizes sophisticated algorithms and optimized data structures that enable simulations on the scale of entire eukaryotic chromosomes in reasonably large populations. All these features are implemented in an easy-to-use C++ command line program.
 
 SLiM is a product of the Messer Lab at Cornell University. It was developed by Philipp Messer, and is now maintained and extended by Philipp Messer and Ben Haller.
 
@@ -22,31 +30,35 @@ SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
 
 You should have received a copy of the GNU General Public License along with SLiM.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
-Usage
----------
-For Mac OS X users, an Xcode project is provided that can be used to build SLiM. For users on other platforms, or for those who prefer not to use Xcode, SLiM can be built in Terminal with the command:
+Building and Running SLiM
+------------------------------------
+For Mac OS X users, an Xcode project is provided that can be used to build SLiM. For users on other platforms, or for those who prefer not to use Xcode, SLiM can be built in Terminal with the commands:
 
 ```
 cd SLiM
-<commands to be supplied here>
+g++ -O3 ./core/*.cpp -lgsl -lgslcblas -o slim
 ```
 
-Once SLiM is built, just run it at Terminal's command line, like:
+If your GNU Standard Library headers are not in the default search paths for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
 
 ```
-slim <input-file>
+gsl-config --cflags --libs
 ```
 
-Examples
--------------
-Some example input files that illustrate how to use SLiM are provided as part of this distribution, in the *examples* folder.  If you don't have that folder, please visit the SLiM's GitHub page (link above).
+For example, I have installed gsl using MacPorts, so my compilation command looks like:
 
-For example, assuming you have built SLiM inside its own folder, you can run the first example file in Terminal by executing:
+```
+g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -o slim
+```
+
+Once SLiM is built, just run it at Terminal's command line. For example, to run the first example provided in SLiM's distribution, execute:
 
 ```
 cd SLiM
-slim ./input_example_1.txt
+./slim ./examples/input_example_1.txt
 ```
+
+If you have made a Release build of SLiM with Xcode, it should be at /usr/local/bin/slim; you can provide that path or ensure that it is part of your shell's default search path.
 
 Development & Feedback
 -----------------------------------
@@ -54,14 +66,25 @@ SLiM is under active development, and our goal is to make it as broadly useful a
 
 References
 ---------------
-*The original paper on SLiM:*
+<u>The original paper on SLiM:</u>
 
-Messer, P.W. (2013). SLiM: Simulating evolution with selection and linkage. *Genetics 194*(4), 1037-1039.
+Messer, P. W. (2013). SLiM: Simulating evolution with selection and linkage. *Genetics 194*(4), 1037-1039.
 
-*Papers that have used SLiM:*
+<u>Publications that have used SLiM:</u>
 
 Enard, D., Messer, P. W., & Petrov, D. A. (2014). Genome-wide signals of positive selection in human evolution. *Genome research*.
 
-**others?**
+Kousathanas, A., & Keightley, P. D. (2013). A comparison of models to infer the distribution of fitness effects of new mutations. *Genetics 193*(4), 1197-1208.
 
-**discussion of authorship/citation in papers that use SLiM?**
+Messer, P. W., & Petrov, D. A. (2013). Frequent adaptation and the McDonald–Kreitman test. *Proceedings of the National Academy of Sciences 110*(21), 8615-8620.
+
+Using SLiM in Your Research
+---------------------------------------
+
+SLiM is open-source and can be used without restriction in scientific research.  We have only three requests:
+
+  * If you use SLiM to obtain data used in a publication, please ***cite SLiM*** by citing the original paper about SLiM (Messer 2013 *Genetics*).
+  * Please also notify Philipp Messer of your publication at [messer@cornell.edu](mailto:messer@cornell.edu), so that he can add it to the list of publications above.
+  * If you request a new feature in SLiM and we implement it for you, co-authorship is generally appropriate.
+
+Thanks, and enjoy!

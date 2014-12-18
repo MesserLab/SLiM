@@ -17,6 +17,15 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Substitution represents a mutation that has fixed in the population. Fixed mutations are converted to substitutions for
+ efficiency, since such mutations no longer need to be tracked in each generation.  This class is not a subclass of Mutation, to
+ avoid any possibility of instances of this class getting confused with mutation instances in the code.  It also adds one new
+ piece of information, the time to fixation.
+ 
+ */
+
 #ifndef __SLiM__substitution__
 #define __SLiM__substitution__
 
@@ -25,21 +34,89 @@
 #import "chromosome.h"
 
 
-class substitution
+class Substitution
 {
 public:
 	
-	int   t; // mutation type
-	int   x; // position
-	float s; // selection coefficient
-	int   i; // subpopulation in which mutation arose
-	int   g; // generation in which mutation arose  
-	int   f; // fixation time
+	int   mutation_type_;		// mutation type
+	int   position_;			// position
+	float selection_coeff_;		// selection coefficient
+	int   subpop_index_;		// subpopulation in which mutation arose
+	int   generation_;			// generation in which mutation arose  
+	int   fixation_time_;		// fixation time
 	
-	substitution(mutation M, int F);
+	Substitution(Mutation p_mutation, int p_fixation_time);
 	
-	void print(chromosome& chr);
+	void print(Chromosome& p_chromosome);
 };
 
 
 #endif /* defined(__SLiM__substitution__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,9 +1,16 @@
-comment header declarations consistently
-check all warnings and FIXMEs
-flesh out README.md file with relevant information about licenses, websites, contributions, examples, documentation, etc. : http://en.wikipedia.org/wiki/Markdown
-work out instructions for compilation at the command line with g++ and put them in the readme; Philipp had: // g++ -O3   ./slim.cpp -lgsl -lgslcblas -o slim
+set up testing code, check against old version of the code
+add const keyword to references where appropriate, i.e. everywhere; pass by pointer when modification will occur
+add private const copy constructors X(const X&) to all classes; nothing should be getting copied!
+	private:
 
-apparently unused:
-#include <set>
-#include <algorithm>
-#include <unistd.h>
+	Event(const Event&);						// disable copy constructor
+	Event& operator = (const Event&);			// disable assignment operator
+
+consider setting -ffast-math; see how much of a difference it makes, check with Philipp
+consider switching to fast exponential code; do some profiling to see where hot spots are
+consider checking the "unroll loops" pref; do timings
+revisit float policy in light of Philipp's email, make sure it is optimal
+
+changes to mention in docs:
+	changed comment format from / to //
+	revised example files to use new comment format

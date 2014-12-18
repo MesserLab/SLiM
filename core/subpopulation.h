@@ -17,6 +17,15 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Subpopulation represents one simulated subpopulation, defined primarily by the genomes of the individuals it contains.
+ Since one Genome object represents the mutations along one chromosome, and since SLiM presently simulates diploid individuals,
+ each individual is represented by two genomes in the genome vector: individual i is represented by genomes 2*i and 2*i+1.
+ A subpopulations also knows its size, its selfing fraction, and what fraction it receives as migrants from other subpopulations.
+ 
+ */
+
 #ifndef __SLiM__subpopulation__
 #define __SLiM__subpopulation__
 
@@ -28,36 +37,101 @@
 #include "chromosome.h"
 
 
-class subpopulation
+class Subpopulation
 {
-	// a subpopulation is described by the vector G of 2N genomes
-	// individual i is constituted by the two genomes 2*i and 2*i+1
-	
 private:
 	
-	gsl_ran_discrete_t* LT;   
+	gsl_ran_discrete_t* lookup_individual;   
 	
 public:
 	
-	int    N; // population size  
-	double S; // selfing fraction
+	int    subpop_size_; // subpopulation size  
+	double selfing_fraction_; // selfing fraction
 	
-	std::vector<genome> G_parent;
-	std::vector<genome> G_child;
+	std::vector<Genome> parent_genomes_;
+	std::vector<Genome> child_genomes_;
 	
-	std::map<int,double> m; // m[i]: fraction made up of migrants from subpopulation i per generation
+	std::map<int,double> migrant_fractions_; // m[i]: fraction made up of migrants from subpopulation i per generation
  
 	
-	subpopulation(int n);
+	Subpopulation(int p_subpop_size);
 	
-	int draw_individual();
+	int DrawIndividual();
 	
-	void update_fitness(chromosome& chr);
+	void UpdateFitness(Chromosome& p_chromosome);
 	
-	double W(int i, int j, chromosome& chr);
+	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome& p_chromosome);
 	
-	void swap();
+	void SwapChildAndParentGenomes();
 };
 
 
 #endif /* defined(__SLiM__subpopulation__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

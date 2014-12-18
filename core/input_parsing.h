@@ -17,19 +17,105 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ Input parsing functions are defined here, mostly to keep them from clogging up main.cpp.
+ 
+ */
+
 #ifndef __SLiM__input_parsing__
 #define __SLiM__input_parsing__
 
 
 #include <iostream>
 #include <string>
+#include <map>
+
+#include "Population.h"
 
 
-void get_line(std::ifstream& infile, std::string& line);
+// check an input file for correctness and exit with a good error message if there is a problem
+void CheckInputFile(char* p_input_file);
 
-void input_error(int type, std::string line);
-
-void check_input_file(char* file);
+// parse a (previously checked) input file and set up the simulation state from its contents
+void Initialize(Population& p_population,
+				char* p_input_file,
+				Chromosome& p_chromosome,
+				int &p_time_start,
+				int &p_time_duration,
+				std::multimap<int,Event>& p_events,
+				std::multimap<int,Event>& p_outputs,
+				std::multimap<int,IntroducedMutation>& p_introduced_mutations,
+				std::vector<PartialSweep>& p_partial_sweeps,
+				std::vector<std::string>& p_parameters);
 
 
 #endif /* defined(__SLiM__input_parsing__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

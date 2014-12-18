@@ -17,6 +17,13 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Population represents the entire simulated population as a map of one or more subpopulations.  This class is where much
+ of the simulation logic resides; the population is called to put events into effect, to evolve, and so forth.
+ 
+ */
+
 #ifndef __SLiM__population__
 #define __SLiM__population__
 
@@ -34,54 +41,135 @@
 #include "partial_sweep.h"
 
 
-class population : public std::map<int,subpopulation>
+class Population : public std::map<int,Subpopulation>
 {
-	// the population is a map of subpopulations
-	
 public: 
 	
-	std::vector<substitution> Substitutions;
+	std::vector<Substitution> substitutions_;
+	std::vector<std::string> parameters_;
 	
-	std::map<int,subpopulation>::iterator it;
+	// add new empty subpopulation p_subpop_id of size p_subpop_size
+	void AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size);
 	
-	std::vector<std::string> parameters;
+	// add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
+	void AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsigned int p_subpop_size);
 	
-	void add_subpopulation(int i, unsigned int N);
+	// set size of subpopulation p_subpop_id to p_subpop_size
+	void SetSize(int p_subpop_id, unsigned int p_subpop_size);
 	
-	void add_subpopulation(int i, int j, unsigned int N);
+	// set fraction selfing_fraction of p_subpop_id that reproduces by selfing
+	void SetSelfing(int p_subpop_id, double p_selfing_fraction);
 	
-	void set_size(int i, unsigned int N);
+	// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
+	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
-	void set_selfing(int i, double s);
+	// execute a given event in the population; the event is assumed to be due to trigger
+	void ExecuteEvent(Event& p_event, int p_generation, Chromosome& p_chromosome, std::vector<int>& p_tracked_mutations);
 	
-	void set_migration(int i, int j, double m);
+	// introduce a user-defined mutation
+	void IntroduceMutation(IntroducedMutation p_introduced_mutation, Chromosome& p_chromosome);
 	
-	void execute_event(event& E, int g, chromosome& chr, std::vector<int>& FM);
+	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
+	void TrackMutations(int p_generation, std::vector<int>& p_tracked_mutations, std::vector<PartialSweep>& p_partial_sweeps, Chromosome& p_chromosome);
 	
-	void introduce_mutation(introduced_mutation M, chromosome& chr);
+	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
+	void EvolveSubpopulation(int p_subpop_id, Chromosome& p_chromosome, int p_generation);
 	
-	void track_mutations(int g, std::vector<int>& TM, std::vector<partial_sweep>& PS, chromosome& chr);
+	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
+	void CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, Chromosome& p_chromosome, int p_generation);
 	
-	void evolve_subpopulation(int i, chromosome& chr, int g);
+	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
+	void SwapGenerations(int p_generation, Chromosome& p_chromosome);
 	
-	void crossover_mutation(int i, int c, int j, int P1, int P2, chromosome& chr, int g);
+	// find mutations that are fixed in all child subpopulations and remove them
+	void RemoveFixedMutations(int p_generation);
 	
-	void swap_generations(int g, chromosome& chr);
+	// print all mutations and all genomes
+	void PrintAll(Chromosome& p_chromosome);
 	
-	void remove_fixed(int g);
+	// print all mutations and all genomes to a file
+	void PrintAll(std::ofstream& p_outfile, Chromosome& p_chromosome);
 	
-	void print_all(chromosome& chr);
+	// print sample of p_sample_size genomes from subpopulation p_subpop_id
+	void PrintSample(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome);
 	
-	void print_all(std::ofstream& outfile, chromosome& chr);
+	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
+	void PrintSample_ms(int p_subpop_id, int p_sample_size, Chromosome& p_chromosome);
 	
-	void print_sample(int i, int n, chromosome& chr);
+	// find p_mutation in p_polymorphisms and return its id
+	int FindMutation(std::multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation);
 	
-	void print_sample_ms(int i, int n, chromosome& chr);
-	
-	int find_mut(std::multimap<int,polymorphism>& P, mutation m);
-	
-	void add_mut(std::multimap<int,polymorphism>& P, mutation m);
+	// if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
+	void AddMutation(std::multimap<int,Polymorphism>& p_polymorphisms, Mutation p_mutation);
 };
 
 
 #endif /* defined(__SLiM__population__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

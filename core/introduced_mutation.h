@@ -17,24 +17,102 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class IntroducedMutation represents a prearranged mutation defined in the input file.  In addition to the usual characteristics of
+ a mutation, the initial number of homozygotes and heterozygotes to be set up in the affected subpopulation is defined.
+ 
+ */
+
 #ifndef __SLiM__introduced_mutation__
 #define __SLiM__introduced_mutation__
 
 
 #import "mutation.h"
 
+#include <iostream>
 
-class introduced_mutation : public mutation
+
+class IntroducedMutation : public Mutation
 {
 public:
 	
-	int i;   // subpopulation into which mutation is introduced
-	int g;   // generation in which mutation is introduced
-	int nAA; // number of homozygotes
-	int nAa; // number of heterozygotes
+	int num_homozygotes_;
+	int num_heterozygotes_;
 	
-	introduced_mutation(int T, int X, int I, int G, int NAA, int NAa);
+	IntroducedMutation(int p_mutation_type, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes);
 };
+
+// support stream output of IntroducedMutation, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const IntroducedMutation& p_introduced_mutation);
 
 
 #endif /* defined(__SLiM__introduced_mutation__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

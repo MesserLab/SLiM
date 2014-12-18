@@ -17,20 +17,101 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class PartialSweep represents a request, in the input file, that a particular mutation should sweep only partway to fixation.
+ Once the mutation has swept to the requested prevalence, it becomes neutral – its selection coefficient is set to 0.
+ 
+ */
+
 #ifndef __SLiM__partial_sweep__
 #define __SLiM__partial_sweep__
 
 
-class partial_sweep
+#include <iostream>
+
+
+class PartialSweep
 {
 public:
 	
-	int t;
-	int x;
-	float p;
+	int mutation_type_;
+	int position_;
+	float target_prevalence_;
 	
-	partial_sweep(int T, int X, float P);
+	PartialSweep(int p_mutation_type, int p_position, double p_target_prevalence);
 };
+
+// support stream output of PartialSweep, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const PartialSweep& p_partial_sweep);
 
 
 #endif /* defined(__SLiM__partial_sweep__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

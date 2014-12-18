@@ -17,20 +17,101 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class GenomicElement represents a portion of a chromosome with particular properties.  A genomic element is defined by its type,
+ which might represent introns versus extrons for example, and the start and end positions of the element on the chromosome.
+ 
+ */
+
 #ifndef __SLiM__genomic_element__
 #define __SLiM__genomic_element__
 
 
-class genomic_element
+#include <iostream>
+
+
+class GenomicElement
 {
-	// a genomic element has a genomic element type identifier (i), start (s) and end (e) position
-	
 public:
 	
-	int i, s, e;
+	int genomic_element_type_;
+	int start_position_;
+	int end_position_;
 	
-	genomic_element(int I, int S, int E);
+	GenomicElement(int p_genomic_element_type, int p_start_position, int p_end_position);
 };
+
+// support stream output of GenomicElement, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const GenomicElement& p_genomic_element);
 
 
 #endif /* defined(__SLiM__genomic_element__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

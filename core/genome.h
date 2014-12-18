@@ -17,6 +17,13 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Genome represents a particular genome, defined as a vector of mutations.  Each individual in the simulation has a genome,
+ which determines that individual's fitness (from the fitness effects of all of the mutations possessed).
+ 
+ */
+
 #ifndef __SLiM__genome__
 #define __SLiM__genome__
 
@@ -26,13 +33,83 @@
 #include "mutation.h"
 
 
-class genome : public std::vector<mutation>
+class Genome : public std::vector<Mutation>
 {
 };
 
-genome fixed(genome& G1, genome& G2);
+// return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
+Genome GenomeWithFixedMutations(Genome& p_genome1, Genome& p_genome2);
 
-genome polymorphic(genome& G1, genome& G2);
+// return a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
+Genome GenomeWithPolymorphicMutations(Genome& p_genome1, Genome& p_genome2);
 
 
 #endif /* defined(__SLiM__genome__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

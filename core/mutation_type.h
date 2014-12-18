@@ -17,6 +17,14 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class MutationType represents a type of mutation defined in the input file, such as a synonymous mutation or an adaptive mutation.
+ A particular mutation type is defined by its distribution of fitness effects (DFE) and its dominance coefficient.  Once a mutation type
+ is defined, a draw from its DFE can be generated to determine the selection coefficient of a particular mutation of that type.
+ 
+ */
+
 #ifndef __SLiM__mutation_type__
 #define __SLiM__mutation_type__
 
@@ -25,8 +33,10 @@
 #include <string>
 
 
-class mutation_type
+class MutationType
 {
+public:
+	
 	// a mutation type is specified by the DFE and the dominance coefficient
 	//
 	// DFE options: f: fixed (s) 
@@ -35,16 +45,85 @@ class mutation_type
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
-public:
+	float dominance_coeff_;						// dominance coefficient (h)
+	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
+	std::vector<double> dfe_parameters_;		// DFE parameters
 	
-	float  h;				// dominance coefficient 
-	char d;					// DFE (f: fixed, g: gamma, e: exponential)
-	std::vector<double> p;	// DFE parameters
+	MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 	
-	mutation_type(float H, char D, std::vector<double> P);
-	
-	float draw_s();
+	double DrawSelectionCoefficient();
 };
+
+// support stream output of MutationType, for debugging
+std::ostream& operator<<(std::ostream& p_outstream, const MutationType& p_mutation_type);
 
 
 #endif /* defined(__SLiM__mutation_type__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

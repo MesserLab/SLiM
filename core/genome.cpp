@@ -20,104 +20,182 @@
 
 #include "genome.h"
 
-// FIXME name conflict with std::fixed, would be wise to change names
-genome fixed(genome& G1, genome& G2)
+// return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
+Genome GenomeWithFixedMutations(Genome& p_genome1, Genome& p_genome2)
 {
-	// return genome G consisting only of the mutations that are present in both G1 and G2
+	Genome merge_genome;
 	
-	genome G;
+	std::vector<Mutation>::iterator genome1_iter = p_genome1.begin();
+	std::vector<Mutation>::iterator genome2_iter = p_genome2.begin();
 	
-	std::vector<mutation>::iterator g1 = G1.begin();
-	std::vector<mutation>::iterator g2 = G2.begin();
+	std::vector<Mutation>::iterator genome1_max = p_genome1.end();
+	std::vector<Mutation>::iterator genome2_max = p_genome2.end();
 	
-	std::vector<mutation>::iterator g1_max = G1.end();
-	std::vector<mutation>::iterator g2_max = G2.end();
-	
-	while (g1 != g1_max && g2 != g2_max)
+	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
-		// advance g1 while g1.x < g2.x
+		// advance genome1_iter while genome1_iter.x < genome2_iter.x
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter).position_ < (*genome2_iter).position_)
+			genome1_iter++;
 		
-		while (g1 != g1_max && g2 != g2_max && (*g1).x < (*g2).x) { g1++; }
-		
-		// advance g2 while g1.x < g2.x
-		
-		while (g1 != g1_max && g2 != g2_max && (*g2).x < (*g1).x) { g2++; }
+		// advance genome2_iter while genome2_iter.x < genome1_iter.x
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome2_iter).position_ < (*genome1_iter).position_)
+			genome2_iter++;
 		
 		// identify shared mutations at positions x and add to G
-		
-		if (g2 != g2_max && g1 != g1_max && (*g2).x == (*g1).x)
+		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ == (*genome1_iter).position_)
 		{
-			int x = (*g1).x;
+			int position = (*genome1_iter).position_;
 			
-			std::vector<mutation>::iterator temp;
+			std::vector<Mutation>::iterator temp;
 			
-			while (g1 != g1_max && (*g1).x == x)
+			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
 			{
-				temp = g2;
-				while (temp != g2_max && (*temp).x == x)
-		  {
-			  if ((*temp).t==(*g1).t && (*temp).s==(*g1).s) { G.push_back(*g1); }
-			  temp++;
-		  }
-				g1++;
-			}
-		}
-	}
-	
-	return G;
-}
-
-
-genome polymorphic(genome& G1, genome& G2)
-{
-	// return genome G consisting only of the mutations in G1 that are not in G2
-	
-	genome G;
-	
-	std::vector<mutation>::iterator g1 = G1.begin();
-	std::vector<mutation>::iterator g2 = G2.begin();
-	
-	std::vector<mutation>::iterator g1_max = G1.end();
-	std::vector<mutation>::iterator g2_max = G2.end();
-	
-	while (g1 != g1_max && g2 != g2_max)
-	{
-		// advance g1 while g1.x < g2.x
-		
-		while (g1 != g1_max && g2 != g2_max && (*g1).x < (*g2).x) { G.push_back(*g1); g1++; }
-		
-		// advance g2 while g1.x < g2.x
-		
-		while (g2 != g2_max && g1 != g1_max && (*g2).x < (*g1).x) { g2++; }
-		
-		// identify polymorphic mutations at positions x and add to G
-		
-		if (g2 != g2_max && g1 != g1_max && (*g2).x == (*g1).x)
-		{
-			int x = (*g1).x;
-			
-			// go through g1 and check for those mutations that are not present in g2
-			
-			std::vector<mutation>::iterator temp = g2;
-			
-			while (g1 != g1_max && (*g1).x == x)
-			{
-				bool poly = 1;
+				temp = genome2_iter;
 				
-				while (temp != g2_max && (*temp).x == x)
-		  {
-			  if ((*g1).t==(*temp).t && (*g1).s==(*temp).s) { poly = 0; }
-			  temp++;
-		  }
-				if (poly == 1) { G.push_back(*g1); }
-				g1++;
+				while (temp != genome2_max && (*temp).position_ == position)
+				{
+					if ((*temp).mutation_type_==(*genome1_iter).mutation_type_ && (*temp).selection_coeff_==(*genome1_iter).selection_coeff_)
+						merge_genome.push_back(*genome1_iter);
+					
+					temp++;
+				}
+				
+				genome1_iter++;
 			}
-			
-			while (g2 != g2_max && (*g2).x == x) { g2++; }
 		}
 	}
 	
-	while (g1 != g1_max) { G.push_back(*g1); g1++; }
-	
-	return G;
+	return merge_genome;
 }
+
+// return a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
+Genome GenomeWithPolymorphicMutations(Genome& p_genome1, Genome& p_genome2)
+{
+	Genome merge_genome;
+	
+	std::vector<Mutation>::iterator genome1_iter = p_genome1.begin();
+	std::vector<Mutation>::iterator genome2_iter = p_genome2.begin();
+	
+	std::vector<Mutation>::iterator genome1_max = p_genome1.end();
+	std::vector<Mutation>::iterator genome2_max = p_genome2.end();
+	
+	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
+	{
+		// advance genome1_iter while genome1_iter.position_ < genome2_iter.position_
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter).position_ < (*genome2_iter).position_)
+		{
+			merge_genome.push_back(*genome1_iter);
+			genome1_iter++;
+		}
+		
+		// advance genome2_iter while genome2_iter.position_ < genome1_iter.position_
+		while (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ < (*genome1_iter).position_)
+			genome2_iter++;
+		
+		// identify polymorphic mutations at position_ and add to merge_genome
+		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ == (*genome1_iter).position_)
+		{
+			int position = (*genome1_iter).position_;
+			
+			// go through p_genome1 and check for those mutations that are not present in p_genome2
+			std::vector<Mutation>::iterator temp = genome2_iter;
+			
+			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
+			{
+				bool polymorphic = true;
+				
+				while (temp != genome2_max && (*temp).position_ == position)
+				{
+					if ((*genome1_iter).mutation_type_==(*temp).mutation_type_ && (*genome1_iter).selection_coeff_==(*temp).selection_coeff_)
+						polymorphic = false;
+					
+					temp++;
+				}
+				
+				if (polymorphic)
+					merge_genome.push_back(*genome1_iter);
+				
+				genome1_iter++;
+			}
+			
+			while (genome2_iter != genome2_max && (*genome2_iter).position_ == position)
+				genome2_iter++;
+		}
+	}
+	
+	while (genome1_iter != genome1_max)
+	{
+		merge_genome.push_back(*genome1_iter);
+		genome1_iter++;
+	}
+	
+	return merge_genome;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

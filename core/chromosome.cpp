@@ -25,95 +25,206 @@
 #include "g_rng.h"
 
 
-void chromosome::initialize_rng()
+// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+void Chromosome::InitializeDraws()
 {
-	if (size() == 0)       { std::cerr << "ERROR (initialize): empty chromosome" << std::endl; exit(1); }
-	if (rec_r.size() == 0) { std::cerr << "ERROR (initialize): recombination rate not specified" << std::endl; exit(1); }
-	if (!(M>=0))           { std::cerr << "ERROR (initialize): invalid mutation rate" << std::endl; exit(1); }
-	
-	L = 0;
-	
-	for (int i=0; i<size(); i++)
+	if (size() == 0)
 	{
-		if (genomic_element_types.count(operator[](i).i)==0) 
-		{ 
-			std::cerr << "ERROR (initialize): genomic element type " << operator[](i).i << " not defined" << std::endl; exit(1); 
+		std::cerr << "ERROR (Initialize): empty chromosome" << std::endl;
+		exit(1);
+	}
+	if (recombination_rates_.size() == 0)
+	{
+		std::cerr << "ERROR (Initialize): recombination rate not specified" << std::endl;
+		exit(1);
+	}
+	if (!(overall_mutation_rate_ >= 0))
+	{
+		std::cerr << "ERROR (Initialize): invalid mutation rate" << std::endl;
+		exit(1);
+	}
+	
+	length_ = 0;
+	
+	for (int i = 0; i < size(); i++)
+	{
+		if (genomic_element_types_.count((*this)[i].genomic_element_type_) == 0) 
+		{
+			std::cerr << "ERROR (Initialize): genomic element type " << (*this)[i].genomic_element_type_ << " not defined" << std::endl;
+			exit(1); 
 		}
 	}
 	
-	for (std::map<int,genomic_element_type>::iterator it = genomic_element_types.begin(); it!=genomic_element_types.end(); it++)
+	for (std::map<int,GenomicElementType>::iterator genomic_element_type_iter = genomic_element_types_.begin(); genomic_element_type_iter != genomic_element_types_.end(); genomic_element_type_iter++)
 	{
-		for (int j=0; j<it->second.m.size(); j++)
+		for (int j = 0; j < genomic_element_type_iter->second.mutation_types_.size(); j++)
 		{
-			if (mutation_types.count(it->second.m[j]) == 0)
+			if (mutation_types_.count(genomic_element_type_iter->second.mutation_types_[j]) == 0)
 			{
-				std::cerr << "ERROR (initialize): mutation type " << it->second.m[j] << " not defined" << std::endl; exit(1); 
+				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_type_iter->second.mutation_types_[j] << " not defined" << std::endl;
+				exit(1); 
 			}
 		}
-	}  
-	
-	double A[size()]; int l = 0;
-	for (int i=0; i<size(); i++) 
-	{ 
-		if (operator[](i).e > L) { L = operator[](i).e; }
-		int l_i = operator[](i).e - operator[](i).s + 1.0; 
-		A[i] = (double)l_i; l += l_i;
 	}
-	LT_M = gsl_ran_discrete_preproc(size(),A); M = M*(double)l;
 	
-	double B[rec_r.size()];
-	B[0] = rec_r[0]*(double)rec_x[0]; R += B[0];
-	for (int i=1; i<rec_r.size(); i++) 
+	double A[size()];
+	int l = 0;
+	
+	for (int i = 0; i < size(); i++) 
 	{ 
-		B[i] = rec_r[i]*(double)(rec_x[i]-rec_x[i-1]); R+= B[i];
-		if (rec_x[i]>L) { L = rec_x[i]; }
+		if ((*this)[i].end_position_ > length_)
+			length_ = (*this)[i].end_position_;
+		
+		int l_i = (*this)[i].end_position_ - (*this)[i].start_position_ + 1;
+		
+		A[i] = (double)l_i;
+		l += l_i;
 	}
-	LT_R = gsl_ran_discrete_preproc(rec_r.size(),B);
+	
+	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
+	overall_mutation_rate_ = overall_mutation_rate_ * (double)l;
+	
+	double B[recombination_rates_.size()];
+	
+	B[0] = recombination_rates_[0] * (double)recombination_end_positions_[0];
+	overall_recombination_rate_ += B[0];
+	
+	for (int i = 1; i < recombination_rates_.size(); i++) 
+	{ 
+		B[i] = recombination_rates_[i] * (double)(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
+		overall_recombination_rate_+= B[i];
+		
+		if (recombination_end_positions_[i] > length_)
+			length_ = recombination_end_positions_[i];
+	}
+	
+	lookup_recombination = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
 }
 
-
-int chromosome::draw_n_mut() { return gsl_ran_poisson(g_rng,M); }
-
-mutation chromosome::draw_new_mut(int i, int g)
+// draw the number of mutations that occur, based on the overall mutation rate
+int Chromosome::DrawMutationCount()
 {
-	int ge = gsl_ran_discrete(g_rng,LT_M); // genomic element
-	genomic_element_type ge_type = genomic_element_types.find(operator[](ge).i)->second; // genomic element type
-	
-	int mut_type_id = ge_type.draw_mutation_type(); // mutation type id
-	mutation_type mut_type = mutation_types.find(mut_type_id)->second; // mutation type
-	
-	int   x = operator[](ge).s + gsl_rng_uniform_int(g_rng,operator[](ge).e - operator[](ge).s + 1); // position    
-	float s = mut_type.draw_s(); // selection coefficient
-	
-	return mutation(mut_type_id,x,s,i,g);
+	return gsl_ran_poisson(g_rng, overall_mutation_rate_);
 }
 
-
-std::vector<int> chromosome::draw_breakpoints()
+// draw a new mutation, based on the genomic element types present and their mutational proclivities
+Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation)
 {
-	vector<int> r;
+	int genomic_element = (int)gsl_ran_discrete(g_rng, lookup_mutation);
+	GenomicElement &source_element = (*this)[genomic_element];
+	
+	GenomicElementType genomic_element_type = genomic_element_types_.find(source_element.genomic_element_type_)->second;
+	
+	int mutation_type_id = genomic_element_type.DrawMutationType();
+	
+	MutationType mutation_type = mutation_types_.find(mutation_type_id)->second;
+	
+	int position = source_element.start_position_ + (int)gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1);  
+	
+	double selection_coeff = mutation_type.DrawSelectionCoefficient();
+	
+	return Mutation(mutation_type_id, position, selection_coeff, p_subpop_index, p_generation);
+}
+
+// choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
+std::vector<int> Chromosome::DrawBreakpoints()
+{
+	vector<int> breakpoints;
 	
 	// draw recombination breakpoints
+	int num_breakpoints = gsl_ran_poisson(g_rng, overall_recombination_rate_);
 	
-	int nr = gsl_ran_poisson(g_rng,R);
-	
-	for (int i=0; i<nr; i++)
+	for (int i = 0; i < num_breakpoints; i++)
 	{
-		int x = 0;
-		int j = gsl_ran_discrete(g_rng,LT_R);
+		int breakpoint = 0;
+		int recombination_interval = (int)gsl_ran_discrete(g_rng, lookup_recombination);
 		
-		if (j==0) { x = gsl_rng_uniform_int(g_rng,rec_x[j]); }
-		else     { x = rec_x[j-1] + gsl_rng_uniform_int(g_rng,rec_x[j]-rec_x[j-1]); }
+		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
+		if (recombination_interval == 0)
+			breakpoint = (int)gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval]);
+		else
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + (int)gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]);
 		
-		r.push_back(x);
+		breakpoints.push_back(breakpoint);
 		
-		if (gsl_rng_uniform(g_rng)<G_f) // recombination results in gene conversion 
+		// recombination can result in gene conversion, with probability gene_conversion_fraction_
+		if (gsl_rng_uniform(g_rng) < gene_conversion_fraction_)
 		{
-			int x2 = x+gsl_ran_geometric(g_rng,1.0/G_l);
-			r.push_back(x2);
+			// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
+			int breakpoint2 = breakpoint + gsl_ran_geometric(g_rng, 1.0 / gene_conversion_avg_length_);
+			
+			breakpoints.push_back(breakpoint2);
 		}
 	}
 	
-	return r;
+	return breakpoints;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -17,6 +17,12 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ SLiM uses a globally shared random number generator called g_rng.  This file defines that global and relevant helper functions.
+ 
+ */
+
 #ifndef __SLiM__g_rng__
 #define __SLiM__g_rng__
 
@@ -25,8 +31,82 @@
 #include <gsl/gsl_randist.h>
 
 
-// This is a globally shared random number generator
+// this is a globally shared random number generator
 extern const gsl_rng *g_rng; 
+
+// generate a new random number seed from the PID and clock time
+int GenerateSeedFromPIDAndTime();
+
+// set up the random number generator with a given seed
+void InitializeRNGFromSeed(int p_seed);
 
 
 #endif /* defined(__SLiM__g_rng__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

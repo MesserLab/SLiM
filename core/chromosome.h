@@ -17,6 +17,14 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Chromosome represents an entire chromosome.  Only the portions of the chromosome that are relevant to the simulation are
+ explicitly tracked, so in practice, a chromosome is a vector of genomic elements defined by the input file.  A chromosome also has
+ a length, an overall mutation rate, an overall recombination rate, and parameters related to gene conversion.
+ 
+ */
+
 #ifndef __SLiM__chromosome__
 #define __SLiM__chromosome__
 
@@ -31,36 +39,106 @@
 #include "g_rng.h"
 
 
-class chromosome : public std::vector<genomic_element>
+class Chromosome : public std::vector<GenomicElement>
 {
-	// the chromosome is a vector of genomic elements (type, start, end)
-	
 private:
 	
-	gsl_ran_discrete_t* LT_M; // mutation
-	gsl_ran_discrete_t* LT_R; // recombination
+	gsl_ran_discrete_t* lookup_mutation; // mutation
+	gsl_ran_discrete_t* lookup_recombination; // recombination
 	
 public:
 	
-	std::map<int,mutation_type>        mutation_types;
-	std::map<int,genomic_element_type> genomic_element_types;
-	vector<int>                   rec_x;
-	vector<double>                rec_r;
+	std::map<int,MutationType>			mutation_types_;
+	std::map<int,GenomicElementType>	genomic_element_types_;
+	vector<int>							recombination_end_positions_;
+	vector<double>						recombination_rates_;	// in events per base pair
 	
-	int    L;   // length of chromosome
-	double M;   // overall mutation rate
-	double R;   // overall recombination rate
-	double G_f; // gene conversion fraction
-	double G_l; // average stretch length
+	int    length_;							// length of chromosome
+	double overall_mutation_rate_;			// overall mutation rate
+	double overall_recombination_rate_;		// overall recombination rate
+	double gene_conversion_fraction_;		// gene conversion fraction
+	double gene_conversion_avg_length_;		// average stretch length
 	
-	void initialize_rng();	
+	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	void InitializeDraws();	
 	
-	int draw_n_mut();
+	// draw the number of mutations that occur, based on the overall mutation rate
+	int DrawMutationCount();
 	
-	mutation draw_new_mut(int i, int g);
+	// draw a new mutation, based on the genomic element types present and their mutational proclivities
+	Mutation DrawNewMutation(int p_subpop_index, int p_generation);
 	
-	vector<int> draw_breakpoints();
+	// choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
+	vector<int> DrawBreakpoints();
 };
 
 
 #endif /* defined(__SLiM__chromosome__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

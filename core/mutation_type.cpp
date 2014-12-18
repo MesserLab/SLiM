@@ -25,25 +25,133 @@
 #include <gsl/gsl_randist.h>
 
 
-mutation_type::mutation_type(float H, char D, std::vector<double> P)
+using std::cerr;
+using std::endl;
+using std::string;
+
+
+MutationType::MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters)
 {
-	h = H;
-	d = D;
-	p = P;
+	dominance_coeff_ = (float)p_dominance_coeff;
+	dfe_type_ = p_dfe_type;
+	dfe_parameters_ = p_dfe_parameters;
 	
-	std::string s = "fge";
+	static string possible_dfe_types = "fge";
 	
-	if (s.find(d)==std::string::npos)  { std::cerr << "ERROR (initialize): invalid mutation type parameters" << std::endl; exit(1); }
-	if (p.size()==0)              { std::cerr << "ERROR (initialize): invalid mutation type parameters" << std::endl; exit(1); }
+	if (possible_dfe_types.find(dfe_type_) == string::npos)
+	{
+		cerr << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << endl;
+		exit(1);
+	}
+	
+	if (dfe_parameters_.size() == 0)
+	{
+		cerr << "ERROR (Initialize): invalid mutation type parameters" << endl;
+		exit(1);
+	}
 }
 
-float mutation_type::draw_s()
+double MutationType::DrawSelectionCoefficient()
 {
-	switch (d)
+	switch (dfe_type_)
 	{
-		case 'f': return p[0]; 
-		case 'g': return gsl_ran_gamma(g_rng,p[1],p[0]/p[1]);
-		case 'e': return gsl_ran_exponential(g_rng,p[0]);
+		case 'f': return dfe_parameters_[0];
+		case 'g': return gsl_ran_gamma(g_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		case 'e': return gsl_ran_exponential(g_rng, dfe_parameters_[0]);
 		default: exit(1);
 	}
 }
+
+std::ostream& operator<<(std::ostream& p_outstream, const MutationType& p_mutation_type)
+{
+	p_outstream << "MutationType{dominance_coeff_ " << p_mutation_type.dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ ";
+	
+	if (p_mutation_type.dfe_parameters_.size() == 0)
+	{
+		p_outstream << "*";
+	}
+	else
+	{
+		p_outstream << "<";
+		
+		for (int i = 0; i < p_mutation_type.dfe_parameters_.size(); ++i)
+		{
+			p_outstream << p_mutation_type.dfe_parameters_[i];
+			
+			if (i < p_mutation_type.dfe_parameters_.size() - 1)
+				p_outstream << " ";
+		}
+		
+		p_outstream << ">";
+	}
+	
+	p_outstream << "}";
+	
+	return p_outstream;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

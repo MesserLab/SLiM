@@ -20,21 +20,117 @@
 
 #include "event.h"
 
-#include <iostream>
 
-
-event::event(char T, std::vector<std::string> S)
+Event::Event(char p_event_type, std::vector<std::string> p_parameters)
 {
-	t = T;
-	s = S;
-	np = s.size();
+	event_type_ = p_event_type;
+	parameters_ = p_parameters;
 	
-	std::string options = "PNMSRFAT";
-	if (options.find(t)==std::string::npos) 
+	static std::string possible_options = "PNMSRFAT";
+	
+	if (possible_options.find(event_type_) == std::string::npos) 
 	{ 
-		std::cerr << "ERROR (initialize): invalid event type \"" << t;
-		for (int i=0; i<np; i++) { std::cerr << " " << s[i]; }
+		std::cerr << "ERROR (Initialize): invalid event type \"" << event_type_;
+		
+		for (int i = 0; i < parameters_.size(); i++)
+			std::cerr << " " << parameters_[i];
+		
 		std::cerr << "\"" << std::endl;
 		exit(1); 
 	}
 }  
+
+std::ostream& operator<<(std::ostream& p_outstream, const Event& p_event)
+{
+	p_outstream << "Event{event_type_ '" << p_event.event_type_ << "', parameters_ ";
+	
+	if (p_event.parameters_.size() == 0)
+	{
+		p_outstream << "*";
+	}
+	else
+	{
+		p_outstream << "<";
+		
+		for (int i = 0; i < p_event.parameters_.size(); ++i)
+		{
+			p_outstream << p_event.parameters_[i];
+			
+			if (i < p_event.parameters_.size() - 1)
+				p_outstream << " ";
+		}
+		
+		p_outstream << ">";
+	}
+	
+	p_outstream << "}";
+	
+	return p_outstream;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

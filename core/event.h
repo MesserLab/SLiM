@@ -17,16 +17,27 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ The class Event represents an event defined by the input file, such as a change in the population structure, the introduction of
+ a new mutation, or a request for output to be generated.  The type of event is specified by a character tag, and additional
+ parameters are kept as a vector of strings.
+ 
+ */
+
 #ifndef __SLiM__event__
 #define __SLiM__event__
 
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 
-class event
+class Event
 {
+public:
+	
 	// type of events:
 	//
 	// t P i n [j]:  add subpopulation i of size n [drawn from j]
@@ -39,15 +50,82 @@ class event
 	// t A [file]:   output state of entire population [into file]
 	// t T m:        follow trajectory of mutation m (specified by mutation type) from generation t on
 	
-public:
-	
-	char t;						// event type
-	std::vector<std::string> s;	// vector of strings with parameters of event
-	int np;						// number of parameters
+	char event_type_;						// event type
+	std::vector<std::string> parameters_;	// vector of strings with parameters of event
 	
 	// construct an event with a given type and parameters
-	event(char T, std::vector<std::string> S);  
+	Event(char p_event_type, std::vector<std::string> p_parameters);  
 };
+
+std::ostream& operator<<(std::ostream& p_outstream, const Event& p_event);
 
 
 #endif /* defined(__SLiM__event__) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

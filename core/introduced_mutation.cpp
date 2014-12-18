@@ -21,12 +21,88 @@
 #include "introduced_mutation.h"
 
 
-introduced_mutation::introduced_mutation(int T, int X, int I, int G, int NAA, int NAa)
+IntroducedMutation::IntroducedMutation(int p_mutation_type, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes)
 {
-	t = T;
-	x = X;
-	i = I;
-	g = G;
-	nAA = NAA;
-	nAa = NAa;
+	mutation_type_ = p_mutation_type;
+	position_ = p_position;
+	subpop_index_ = p_subpop_index;
+	generation_ = p_generation;
+	num_homozygotes_ = p_num_homozygotes;
+	num_heterozygotes_ = p_num_heterozygotes;
 }
+
+std::ostream& operator<<(std::ostream& p_outstream, const IntroducedMutation& p_introduced_mutation)
+{
+	p_outstream << "IntroducedMutation{mutation_type_ " << p_introduced_mutation.mutation_type_ << ", position_ " << p_introduced_mutation.position_ << ", subpop_index_ " << p_introduced_mutation.subpop_index_ << ", generation_ " << p_introduced_mutation.generation_ << ", num_homozygotes_ " << p_introduced_mutation.num_homozygotes_ << ", num_heterozygotes_ " << p_introduced_mutation.num_heterozygotes_ << "}";
+	
+	return p_outstream;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
