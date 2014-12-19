@@ -25,7 +25,7 @@ PartialSweep::PartialSweep(int p_mutation_type, int p_position, double p_target_
 {
 	mutation_type_ = p_mutation_type;
 	position_ = p_position;
-	target_prevalence_ = (float)p_target_prevalence;
+	target_prevalence_ = p_target_prevalence;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const PartialSweep &p_partial_sweep)

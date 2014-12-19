@@ -37,7 +37,7 @@ public:
 	
 	int mutation_type_;
 	int position_;
-	float target_prevalence_;
+	double target_prevalence_;
 	
 	PartialSweep(int p_mutation_type, int p_position, double p_target_prevalence);
 };

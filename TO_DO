@@ -8,7 +8,6 @@ add private const copy constructors X(const X&) to all classes; nothing should b
 consider setting -ffast-math; see how much of a difference it makes, check with Philipp
 consider switching to fast exponential code; do some profiling to see where hot spots are
 consider checking the "unroll loops" pref; do timings
-revisit float policy in light of Philipp's email, make sure it is optimal
 
 changes to mention in docs:
 	changed comment format from / to //
