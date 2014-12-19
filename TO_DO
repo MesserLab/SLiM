@@ -23,10 +23,17 @@ timings (user time, with g++ build executed on command line):
 		18 Dec. 2014	4m8.412s	(-funroll-loops)	– basically no benefit
 		18 Dec. 2014	4m3.373s	(-ffast-math)		– basically no benefit
 		18 Dec. 2014	3m41.662s	after caching the result of find(p_subpop_id)->second in Population::CrossoverMutation()
+		19 Dec. 2014	3m41.247s	after further find(subpop) optimizations in Population::EvolveSubpopulation()
+		19 Dec. 2014	3m37.656s	after checking for degenerate cases for selfing_fraction in Population::EvolveSubpopulation()
+		19 Dec. 2014	3m24.652s	after optimizing Subpopulation::FitnessOfIndividualWithGenomeIndices with caching
+		19 Dec. 2014	3m7.618s	after optimizing Population::CrossoverMutation() to cache child genome, and writing no-mutation case
 
 output tails:
 	-seed 1418961197 ./examples/input_example_3.txt:	339 m1 9221449 -0.000262588 0.2 p1 96159 99118
 	-seed 1418990125 ./examples/input_example_1.txt:	72 m1 4678 0 0.5 p1 7486 9424
+
+	19 Dec. 2014: broke backward reproducibility with optimizations
+	-seed 1418961197 ./examples/input_example_3.txt:	329 m1 2099186 -0.000473915 0.2 p1 97746 99887
 
 profile results:
 	for input_example_1.txt, 97.9% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()

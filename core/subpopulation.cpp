@@ -66,13 +66,29 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	std::vector<Mutation>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
 	std::vector<Mutation>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
 	
+	// we cache the last observed dominance coefficient, for speed; this avoids the find(), the float->double conversion, etc.
+	double cached_dominance_coeff = 0.0;
+	int cached_dominance_coeff_mutation_type = INT_MIN;		// flag value that the cache is not set up
+	
 	while (w > 0 && (genome1_iter != genome1_max || genome2_iter != genome2_max))
 	{
 		// advance genome1_iter while genome1_iter.x < genome2_iter.x (or genome2_iter is done), to handle mutations that are in genome1 but not genome2
 		while (genome1_iter != genome1_max && (genome2_iter == genome2_max || genome1_iter->position_ < genome2_iter->position_))
 		{
-			if (genome1_iter->selection_coeff_ != 0)
-				w *= (1.0 + p_chromosome.mutation_types_.find(genome1_iter->mutation_type_)->second.dominance_coeff_ * genome1_iter->selection_coeff_);
+			double selection_coeff = genome1_iter->selection_coeff_;
+			
+			if (selection_coeff != 0)
+			{
+				int mutation_type = genome1_iter->mutation_type_;
+				
+				if (mutation_type != cached_dominance_coeff_mutation_type)
+				{
+					cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+					cached_dominance_coeff_mutation_type = mutation_type;
+				}
+				
+				w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			}
 			
 			genome1_iter++;
 		}
@@ -80,8 +96,20 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		// advance genome2_iter while genome2_iter.x < genome1_iter.x (or genome1_iter is done), to handle mutations that are in genome2 but not genome1
 		while (genome2_iter != genome2_max && (genome1_iter == genome1_max || genome2_iter->position_ < genome1_iter->position_))
 		{
-			if (genome2_iter->selection_coeff_ != 0)
-				w *= (1.0 + p_chromosome.mutation_types_.find(genome2_iter->mutation_type_)->second.dominance_coeff_ * genome2_iter->selection_coeff_);
+			double selection_coeff = genome2_iter->selection_coeff_;
+			
+			if (selection_coeff != 0)
+			{
+				int mutation_type = genome2_iter->mutation_type_;
+				
+				if (mutation_type != cached_dominance_coeff_mutation_type)
+				{
+					cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+					cached_dominance_coeff_mutation_type = mutation_type;
+				}
+				
+				w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			}
 			
 			genome2_iter++;
 		}
@@ -96,19 +124,23 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 			// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 			while (genome1_iter != genome1_max && genome1_iter->position_ == position)
 			{
-				if (genome1_iter->selection_coeff_ != 0.0)
+				double selection_coeff = genome1_iter->selection_coeff_;
+				
+				if (selection_coeff != 0.0)
 				{
+					int mutation_type = genome1_iter->mutation_type_;
 					std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
 					bool homozygous = false;
 					
 					// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-					while (!homozygous && genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
+					while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
 					{
-						if (genome1_iter->mutation_type_ == genome2_matchscan->mutation_type_ && genome1_iter->selection_coeff_ == genome2_matchscan->selection_coeff_) 
+						if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == (double)genome2_matchscan->selection_coeff_) 
 						{
 							// a match was found, so we multiply our fitness by the full selection coefficient
-							w *= (1.0 + genome1_iter->selection_coeff_);
-							homozygous = true; 
+							w *= (1.0 + selection_coeff);
+							homozygous = true;
+							break;
 						}
 						
 						genome2_matchscan++;
@@ -116,7 +148,15 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					
 					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 					if (!homozygous)
-						w *= (1.0 + p_chromosome.mutation_types_.find(genome1_iter->mutation_type_)->second.dominance_coeff_ * genome1_iter->selection_coeff_);
+					{
+						if (mutation_type != cached_dominance_coeff_mutation_type)
+						{
+							cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+							cached_dominance_coeff_mutation_type = mutation_type;
+						}
+						
+						w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					}
 				}
 				
 				genome1_iter++;
@@ -125,17 +165,22 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 			// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 			while (genome2_iter != genome2_max && genome2_iter->position_ == position)
 			{
-				if (genome2_iter->selection_coeff_ != 0.0)
+				double selection_coeff = genome2_iter->selection_coeff_;
+				
+				if (selection_coeff != 0.0)
 				{
+					int mutation_type = genome2_iter->mutation_type_;
 					std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
 					bool homozygous = false;
 					
-					while (!homozygous && genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
+					// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
+					while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
 					{
-						if (genome2_iter->mutation_type_ == genome1_matchscan->mutation_type_ && genome2_iter->selection_coeff_ == genome1_matchscan->selection_coeff_)
+						if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == (double)genome1_matchscan->selection_coeff_)
 						{
 							// a match was found; we know this match was already found my the genome1 loop above, so our fitness has already been multiplied appropriately
 							homozygous = true;
+							break;
 						}
 						
 						genome1_matchscan++;
@@ -143,7 +188,15 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					
 					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 					if (!homozygous)
-						w *= (1.0 + p_chromosome.mutation_types_.find(genome2_iter->mutation_type_)->second.dominance_coeff_ * genome2_iter->selection_coeff_);
+					{
+						if (mutation_type != cached_dominance_coeff_mutation_type)
+						{
+							cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+							cached_dominance_coeff_mutation_type = mutation_type;
+						}
+						
+						w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					}
 				}
 				
 				genome2_iter++;

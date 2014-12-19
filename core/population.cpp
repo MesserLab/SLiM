@@ -47,15 +47,18 @@ void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsig
 	if (count(p_source_subpop_id) == 0)	{ cerr << "ERROR (AddSubpopulation): source subpopulation p" << p_source_subpop_id << " does not exist" << endl; exit(1); }
 	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(1); }
 	
-	insert(std::pair<int,Subpopulation>(p_subpop_id, Subpopulation(p_subpop_size))); 
+	insert(std::pair<int,Subpopulation>(p_subpop_id, Subpopulation(p_subpop_size)));
 	
-	for (int parent_index = 0; parent_index < find(p_subpop_id)->second.subpop_size_; parent_index++)	// FIXME why not just use p_subpop_size?
+	Subpopulation &subpop = find(p_subpop_id)->second;
+	Subpopulation &source_subpop = find(p_source_subpop_id)->second;
+	
+	for (int parent_index = 0; parent_index < subpop.subpop_size_; parent_index++)
 	{
-		// draw individual from subpopulation p_source_subpop_id and assign to be a parent in p_subpop_id
-		int migrant_index = find(p_source_subpop_id)->second.DrawIndividual();
+		// draw individual from source_subpop and assign to be a parent in subpop
+		int migrant_index = source_subpop.DrawIndividual();
 		
-		find(p_subpop_id)->second.parent_genomes_[2 * parent_index] = find(p_source_subpop_id)->second.parent_genomes_[2 * migrant_index];
-		find(p_subpop_id)->second.parent_genomes_[2 * parent_index + 1] = find(p_source_subpop_id)->second.parent_genomes_[2 * migrant_index + 1];
+		subpop.parent_genomes_[2 * parent_index] = source_subpop.parent_genomes_[2 * migrant_index];
+		subpop.parent_genomes_[2 * parent_index + 1] = source_subpop.parent_genomes_[2 * migrant_index + 1];
 	}
 }
 
@@ -336,8 +339,6 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 		multimap<int,Polymorphism>::iterator polymorphism_iter;
 		int current_pop_size = 0;
 		
-		polymorphisms.clear();	// FIXME unnecessary, right? this instance is different from the one above.
-		
 		for (subpop_iter = begin(); subpop_iter != end(); subpop_iter++)
 			current_pop_size += subpop_iter->second.subpop_size_;
 		
@@ -375,29 +376,29 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 }
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-// FIXME whole lotta find(p_subpop_id) going on here; the result of that will be constant across this function, no?
 void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation)
 {
+	Subpopulation &subpop = find(p_subpop_id)->second;
 	int child_genome1, child_genome2, parent1, parent2;
 	
 	// create map of shuffled children ids
-	int child_map[find(p_subpop_id)->second.subpop_size_];  
+	int child_map[subpop.subpop_size_];  
 	
-	for (int j = 0; j < find(p_subpop_id)->second.subpop_size_; j++)
+	for (int j = 0; j < subpop.subpop_size_; j++)
 		child_map[j] = j;
 	
-	gsl_ran_shuffle(g_rng, child_map, find(p_subpop_id)->second.subpop_size_, sizeof(int));
+	gsl_ran_shuffle(g_rng, child_map, subpop.subpop_size_, sizeof(int));
 	
 	int child_count = 0; // counter over all subpop_size_ children (will get mapped to child_map[child_count])
 	
 	// draw number of migrant individuals
-	double migration_rates[find(p_subpop_id)->second.migrant_fractions_.size() + 1];
-	unsigned int num_migrants[find(p_subpop_id)->second.migrant_fractions_.size() + 1];
+	double migration_rates[subpop.migrant_fractions_.size() + 1];
+	unsigned int num_migrants[subpop.migrant_fractions_.size() + 1];
 	double migration_rate_sum = 0.0;
 	int pop_count = 0;
 	map<int,double>::iterator fractions_iter;
 	
-	for (fractions_iter = find(p_subpop_id)->second.migrant_fractions_.begin(); fractions_iter != find(p_subpop_id)->second.migrant_fractions_.end(); fractions_iter++)
+	for (fractions_iter = subpop.migrant_fractions_.begin(); fractions_iter != subpop.migrant_fractions_.end(); fractions_iter++)
 	{
 		migration_rates[pop_count] = fractions_iter->second;
 		migration_rate_sum += fractions_iter->second;
@@ -415,31 +416,36 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 		exit(1);
 	}
 	
-	gsl_ran_multinomial(g_rng, find(p_subpop_id)->second.migrant_fractions_.size() + 1, find(p_subpop_id)->second.subpop_size_, migration_rates, num_migrants);
+	gsl_ran_multinomial(g_rng, subpop.migrant_fractions_.size() + 1, subpop.subpop_size_, migration_rates, num_migrants);
 	
 	// loop over all migration source populations
 	pop_count = 0;
 	
-	for (fractions_iter = find(p_subpop_id)->second.migrant_fractions_.begin(); fractions_iter != find(p_subpop_id)->second.migrant_fractions_.end(); fractions_iter++)
+	for (fractions_iter = subpop.migrant_fractions_.begin(); fractions_iter != subpop.migrant_fractions_.end(); fractions_iter++)
 	{
+		int source_subpop_id = fractions_iter->first;
+		Subpopulation &source_subpop = find(source_subpop_id)->second;
+		double selfing_fraction = source_subpop.selfing_fraction_;
 		int migrant_count = 0;
 		
 		while (migrant_count < num_migrants[pop_count])
 		{
 			child_genome1 = 2 * child_map[child_count];
-			child_genome2 = 2 * child_map[child_count] + 1;
+			child_genome2 = child_genome1 + 1;
 			
 			// draw parents in source population
-			parent1 = (int)gsl_rng_uniform_int(g_rng, find(fractions_iter->first)->second.parent_genomes_.size() / 2);
+			parent1 = (int)gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2);
 			
-			if (gsl_rng_uniform(g_rng) < find(fractions_iter->first)->second.selfing_fraction_)
+			if (selfing_fraction == 1.0)
 				parent2 = parent1;	// self
+			else if (selfing_fraction == 0.0 || gsl_rng_uniform(g_rng) >= selfing_fraction)
+				parent2 = (int)gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2);
 			else
-				parent2 = (int)gsl_rng_uniform_int(g_rng, find(fractions_iter->first)->second.parent_genomes_.size() / 2);
+				parent2 = parent1;	// self
 			
 			// recombination, gene-conversion, mutation
-			CrossoverMutation(p_subpop_id, child_genome1, fractions_iter->first, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
-			CrossoverMutation(p_subpop_id, child_genome2, fractions_iter->first, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
+			CrossoverMutation(subpop, source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
+			CrossoverMutation(subpop, source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
 			
 			migrant_count++;
 			child_count++;
@@ -449,29 +455,32 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	}
 	
 	// the remainder of the children are generated by within-population matings
-	while (child_count < find(p_subpop_id)->second.subpop_size_) 
+	while (child_count < subpop.subpop_size_) 
 	{
 		child_genome1 = 2 * child_map[child_count];
-		child_genome2 = 2 * child_map[child_count] + 1;
+		child_genome2 = child_genome1 + 1;
+		double selfing_fraction = subpop.selfing_fraction_;
 		
 		// draw parents from this subpopulation
-		parent1 = find(p_subpop_id)->second.DrawIndividual();
+		parent1 = subpop.DrawIndividual();
 		
-		if (gsl_rng_uniform(g_rng) < find(p_subpop_id)->second.selfing_fraction_)
+		if (selfing_fraction == 1.0)
 			parent2 = parent1;	// self
+		else if (selfing_fraction == 0.0 || gsl_rng_uniform(g_rng) >= selfing_fraction)
+			parent2 = subpop.DrawIndividual();
 		else
-			parent2 = find(p_subpop_id)->second.DrawIndividual();
+			parent2 = parent1;	// self
 		
 		// recombination, gene-conversion, mutation
-		CrossoverMutation(p_subpop_id, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
-		CrossoverMutation(p_subpop_id, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
+		CrossoverMutation(subpop, subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
+		CrossoverMutation(subpop, subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
 		
 		child_count++;
 	}
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation)
+void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -482,9 +491,6 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 	// mutations (r1 <= x < r2) assigned from p2
 	// mutations (r2 <= x     ) assigned from p1
 	
-	Subpopulation &subpop = find(p_subpop_id)->second;
-	Subpopulation &source_subpop = find(p_source_subpop_id)->second;
-	
 	// swap parent1_genome_index and parent2_genome_index in half of cases, to assure random assortment
 	if (gsl_rng_uniform_int(g_rng, 2) == 0)
 	{
@@ -494,105 +500,153 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 	}
 	
 	// start with a clean slate in the child genome
-	subpop.child_genomes_[p_child_genome_index].clear();
+	Genome &child_genome = subpop.child_genomes_[p_child_genome_index];
+	child_genome.clear();
 	
-	// create vector with the mutations to be added
-	std::vector<Mutation> mutations_to_add;
+	// mutations are usually rare, so let's streamline the case where none occur
 	int num_mutations = p_chromosome.DrawMutationCount();
 	
-	for (int k = 0; k < num_mutations; k++)
-		mutations_to_add.push_back(p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation));
-	
-	sort(mutations_to_add.begin(), mutations_to_add.end());
-	
-	// create vector with uniqued recombination breakpoints
-	std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(); 
-	all_breakpoints.push_back(p_chromosome.length_ + 1);
-	sort(all_breakpoints.begin(), all_breakpoints.end());
-	all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-	
-	// do the crossover
-	std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
-	std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
-	
-	std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
-	std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
-	
-	std::vector<Mutation>::iterator mutation_iter		= mutations_to_add.begin();
-	std::vector<Mutation>::iterator mutation_iter_max	= mutations_to_add.end();
-	
-	std::vector<Mutation>::iterator parent_iter			= parent1_iter;
-	std::vector<Mutation>::iterator parent_iter_max		= parent1_iter_max;
-	
-	int break_index_max = (int)all_breakpoints.size();
-	int num_mutations_added = 0;
-	bool present;
-	
-	for (int break_index = 0; break_index != break_index_max; break_index++)
+	if (num_mutations == 0)
 	{
-		int breakpoint = all_breakpoints[break_index];
+		// create vector with uniqued recombination breakpoints
+		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(); 
+		all_breakpoints.push_back(p_chromosome.length_ + 1);
+		sort(all_breakpoints.begin(), all_breakpoints.end());
+		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
-		// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
-		while ((parent_iter != parent_iter_max && parent_iter->position_ < breakpoint) || (mutation_iter != mutation_iter_max && mutation_iter->position_ < breakpoint))
+		// do the crossover
+		std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		
+		std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		
+		std::vector<Mutation>::iterator parent_iter			= parent1_iter;
+		std::vector<Mutation>::iterator parent_iter_max		= parent1_iter_max;
+		
+		int break_index_max = (int)all_breakpoints.size();
+		
+		for (int break_index = 0; break_index != break_index_max; break_index++)
 		{
-			// while an old mutation in the parent is before the breakpoint and before the next new mutation...
-			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint && (mutation_iter == mutation_iter_max || parent_iter->position_ <= mutation_iter->position_))
+			int breakpoint = all_breakpoints[break_index];
+			
+			// while there are still old mutations in the parent before the current breakpoint...
+			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
 			{
-				present = false;
-				
-				// search back through the mutations already added to see if the one we intend to add is already present
-				// FIXME why would it be?  this is puzzling...
-				if (num_mutations_added != 0 && subpop.child_genomes_[p_child_genome_index].back().position_ == parent_iter->position_)
-					for (int k = num_mutations_added - 1; k >= 0; k--)
-						if (subpop.child_genomes_[p_child_genome_index][k] == *parent_iter)
-						{
-							present = true;
-							break;
-						}
-				
-				// if the mutation was not present, add it
-				if (!present)
-				{
-					subpop.child_genomes_[p_child_genome_index].push_back(*parent_iter);
-					num_mutations_added++;
-				}
+				// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+				child_genome.push_back(*parent_iter);
 				
 				parent_iter++;
 			}
 			
-			// while a new mutation is before the breakpoint and before the next old mutation in the parent...
-			while (mutation_iter != mutation_iter_max && mutation_iter->position_ < breakpoint && (parent_iter == parent_iter_max || mutation_iter->position_ <= parent_iter->position_))
+			// we have reached the breakpoint, so swap parents
+			parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
+			parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
+			parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+			
+			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
+				parent_iter++;
+		}
+	}
+	else
+	{
+		// create vector with the mutations to be added
+		std::vector<Mutation> mutations_to_add;
+		
+		for (int k = 0; k < num_mutations; k++)
+			mutations_to_add.push_back(p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation));
+		
+		sort(mutations_to_add.begin(), mutations_to_add.end());
+		
+		// create vector with uniqued recombination breakpoints
+		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(); 
+		all_breakpoints.push_back(p_chromosome.length_ + 1);
+		sort(all_breakpoints.begin(), all_breakpoints.end());
+		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+		
+		// do the crossover
+		std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		
+		std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		
+		std::vector<Mutation>::iterator mutation_iter		= mutations_to_add.begin();
+		std::vector<Mutation>::iterator mutation_iter_max	= mutations_to_add.end();
+		
+		std::vector<Mutation>::iterator parent_iter			= parent1_iter;
+		std::vector<Mutation>::iterator parent_iter_max		= parent1_iter_max;
+		
+		int break_index_max = (int)all_breakpoints.size();
+		int num_mutations_added = 0;
+		bool present;
+		
+		for (int break_index = 0; break_index != break_index_max; break_index++)
+		{
+			int breakpoint = all_breakpoints[break_index];
+			
+			// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
+			while ((parent_iter != parent_iter_max && parent_iter->position_ < breakpoint) || (mutation_iter != mutation_iter_max && mutation_iter->position_ < breakpoint))
 			{
-				present = false;
-				
-				// search back through the mutations already added to see if the one we intend to add is already present
-				if (num_mutations_added != 0 && subpop.child_genomes_[p_child_genome_index].back().position_ == mutation_iter->position_)
-					for (int k = num_mutations_added - 1; k >= 0; k--)
-						if (subpop.child_genomes_[p_child_genome_index][k] == *mutation_iter)
-						{
-							present = true;
-							break;
-						}
-				
-				// if the mutation was not present, add it
-				if (!present)
+				// while an old mutation in the parent is before the breakpoint and before the next new mutation...
+				while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint && (mutation_iter == mutation_iter_max || parent_iter->position_ <= mutation_iter->position_))
 				{
-					subpop.child_genomes_[p_child_genome_index].push_back(*mutation_iter);
-					num_mutations_added++;
+					present = false;
+					
+					// search back through the mutations already added to see if the one we intend to add is already present
+					if (num_mutations_added != 0 && child_genome.back().position_ == parent_iter->position_)
+						for (int k = num_mutations_added - 1; k >= 0; k--)
+							if (child_genome[k] == *parent_iter)
+							{
+								present = true;
+								break;
+							}
+					
+					// if the mutation was not present, add it
+					if (!present)
+					{
+						child_genome.push_back(*parent_iter);
+						num_mutations_added++;
+					}
+					
+					parent_iter++;
 				}
 				
-				mutation_iter++;
+				// while a new mutation is before the breakpoint and before the next old mutation in the parent...
+				while (mutation_iter != mutation_iter_max && mutation_iter->position_ < breakpoint && (parent_iter == parent_iter_max || mutation_iter->position_ <= parent_iter->position_))
+				{
+					present = false;
+					
+					// search back through the mutations already added to see if the one we intend to add is already present
+					if (num_mutations_added != 0 && child_genome.back().position_ == mutation_iter->position_)
+						for (int k = num_mutations_added - 1; k >= 0; k--)
+							if (child_genome[k] == *mutation_iter)
+							{
+								present = true;
+								break;
+							}
+					
+					// if the mutation was not present, add it
+					if (!present)
+					{
+						child_genome.push_back(*mutation_iter);
+						num_mutations_added++;
+					}
+					
+					mutation_iter++;
+				}
 			}
+			
+			// we have reached the breakpoint, so swap parents
+			parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
+			parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
+			parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+			
+			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
+				parent_iter++;
 		}
-		
-		// we have reached the breakpoint, so swap parents
-		parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-		parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-		parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
-		
-		// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-		while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
-			parent_iter++;
 	}
 }
 

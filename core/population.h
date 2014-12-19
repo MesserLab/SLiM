@@ -76,7 +76,7 @@ public:
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-	void CrossoverMutation(int p_subpop_id, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation);
+	void CrossoverMutation(Subpopulation &subpop, Subpopulation &source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
 	void SwapGenerations(int p_generation, const Chromosome &p_chromosome);
