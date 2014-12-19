@@ -47,7 +47,8 @@ void Initialize(Population &p_population,
 				std::multimap<int,Event> &p_outputs,
 				std::multimap<int,IntroducedMutation> &p_introduced_mutations,
 				std::vector<PartialSweep> &p_partial_sweeps,
-				std::vector<std::string> &p_parameters);
+				std::vector<std::string> &p_parameters,
+				int *p_override_seed);
 
 
 #endif /* defined(__SLiM__input_parsing__) */

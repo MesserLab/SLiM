@@ -36,19 +36,17 @@
 using std::multimap;
 
 
-int main(int argc, char *argv[])
+void RunSLiM(char *p_input_file, int *p_override_seed);
+void PrintUsageAndDie();
+
+
+// Run a simulation using the given input file and the supplied seed (if it is not NULL)
+void RunSLiM(char *p_input_file, int *p_override_seed)
 {
+	// check the input file for syntactic correctness
+	CheckInputFile(p_input_file);
+	
 	// initialize simulation parameters
-	
-	if (argc <= 1)
-	{
-		std::cerr << "usage: slim <parameter file>" << std::endl;
-		exit(1);
-	} 
-	
-	char *input_file = argv[1];
-	CheckInputFile(input_file);
-	
 	int time_start;
 	int time_duration;
 	Chromosome chromosome;
@@ -56,7 +54,7 @@ int main(int argc, char *argv[])
 	std::map<int,Subpopulation>::iterator subpopulation_iter;
 	
 	population.parameters_.push_back("#INPUT PARAMETER FILE");
-	population.parameters_.push_back(input_file);
+	population.parameters_.push_back(p_input_file);
 	
 	// demographic and structure events
 	multimap<int,Event> events; 
@@ -76,8 +74,8 @@ int main(int argc, char *argv[])
 	// mutations undergoing partial sweeps
 	std::vector<PartialSweep> partial_sweeps;
 	
-	// read all configuration information from the input fiel
-	Initialize(population, input_file, chromosome, time_start, time_duration, events, outputs, introduced_mutations, partial_sweeps, population.parameters_);
+	// read all configuration information from the input file
+	Initialize(population, p_input_file, chromosome, time_start, time_duration, events, outputs, introduced_mutations, partial_sweeps, population.parameters_, p_override_seed);
 	
 	// evolve over t generations
 	std::cout << time_start << " " << time_duration << std::endl;
@@ -112,6 +110,50 @@ int main(int argc, char *argv[])
 		// swap generations
 		population.SwapGenerations(generation, chromosome);   
 	}
+}
+
+void PrintUsageAndDie()
+{
+	std::cerr << "usage: slim [-seed <seed>] <parameter file>" << std::endl;
+	exit(1);
+}
+
+int main(int argc, char *argv[])
+{
+	// parse command-line arguments
+	int override_seed = 0;
+	int *override_seed_ptr = NULL;			// by default, a seed is generated or supplied in the input file
+	char *input_file = NULL;
+	
+	for (int arg_index = 1; arg_index < argc; ++arg_index)
+	{
+		char *arg = argv[arg_index];
+		
+		// -seed <x> : override the default seed with the supplied seed value
+		if (strcmp(arg, "-seed") == 0)
+		{
+			if (++arg_index == argc)
+				PrintUsageAndDie();
+			
+			override_seed = atoi(argv[arg_index]);
+			override_seed_ptr = &override_seed;
+			
+			continue;
+		}
+		
+		// this is the fall-through, which should be the input file, and should be the last argument given
+		if (arg_index + 1 != argc)
+			PrintUsageAndDie();
+		
+		input_file = argv[arg_index];
+	}
+	
+	// check that we got what we need
+	if (!input_file)
+		PrintUsageAndDie();
+	
+	// run the simulation
+	RunSLiM(input_file, override_seed_ptr);
 	
 	return 0;
 }

@@ -1,14 +1,34 @@
 set up testing code, check against old version of the code
 add private const copy constructors X(const X&) to all classes; nothing should be getting copied!
 	private:
-
 	Event(const Event&);						// disable copy constructor
 	Event &operator = (const Event&);			// disable assignment operator
 
-consider setting -ffast-math; see how much of a difference it makes, check with Philipp
-consider switching to fast exponential code; do some profiling to see where hot spots are
-consider checking the "unroll loops" pref; do timings
+optimizations:
+	consider setting -ffast-math; see how much of a difference it makes, check with Philipp
+	consider switching to fast exponential code; do some profiling to see where hot spots are
+	consider checking the "unroll loops" pref; do timings
 
 changes to mention in docs:
 	changed comment format from / to //
 	revised example files to use new comment format
+	full paths can now be supplied for files
+	added ability to pass a seed value on the command line via -seed
+
+building on the command line for me:
+	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -o slim
+
+timings (user time):
+	1.8:	time ./slim input_example_3.txt		(seed == 1418961197)
+		18 Dec. 2014: 4m22.112s
+	2.0:	time ./slim -seed 1418961197 ./examples/input_example_3.txt
+		18 Dec. 2014: 4m8.451s	4m8.610s	4m8.102s
+
+output tails:
+	-seed 1418961197 ./examples/input_example_3.txt: 339 m1 9221449 -0.000262588 0.2 p1 96159 99118
+	-seed 1 ./examples/input_example_1.txt: 81 m1 94815 0 0.5 p1 8503 9583
+
+profile results:
+	for input_example_1.txt, 97.9% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
+	for input_example_3.txt, 97.8% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
+	is this really true??

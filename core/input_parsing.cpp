@@ -826,7 +826,8 @@ void Initialize(Population &p_population,
 				multimap<int,Event> &p_outputs,
 				multimap<int,IntroducedMutation> &p_introduced_mutations,
 				std::vector<PartialSweep> &p_partial_sweeps,
-				std::vector<string> &p_parameters)
+				std::vector<string> &p_parameters,
+				int *p_override_seed)
 {
 	string line, sub; 
 	ifstream infile (p_input_file);
@@ -1263,6 +1264,10 @@ void Initialize(Population &p_population,
 	
 	// initialize chromosome
 	p_chromosome.InitializeDraws();
+	
+	// if an override seed value has been supplied via the command line, use it in preference
+	if (p_override_seed != NULL)
+		seed = *p_override_seed;
 	
 	// initialize rng
 	InitializeRNGFromSeed(seed);
