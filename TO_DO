@@ -4,10 +4,6 @@ add private const copy constructors X(const X&) to all classes; nothing should b
 	Event(const Event&);						// disable copy constructor
 	Event &operator = (const Event&);			// disable assignment operator
 
-optimizations:
-	consider switching to fast exponential code; do some profiling to see where hot spots are
-
-
 changes to mention in docs:
 	changed comment format from / to //
 	revised example files to use new comment format
@@ -24,8 +20,9 @@ timings (user time, with g++ build executed on command line):
 		18 Dec. 2014	4m22.112s
 	2.0:	time ./slim -seed 1418961197 ./examples/input_example_3.txt
 		18 Dec. 2014	4m8.451s	4m8.610s	4m8.102s
-		18 Dec. 2014	4m8.412s (-funroll-loops)	– basically no benefit
-		18 Dec. 2014	4m3.373s (-ffast-math)		– basically no benefit
+		18 Dec. 2014	4m8.412s	(-funroll-loops)	– basically no benefit
+		18 Dec. 2014	4m3.373s	(-ffast-math)		– basically no benefit
+		18 Dec. 2014	3m41.662s	after caching the result of find(p_subpop_id)->second in Population::CrossoverMutation()
 
 output tails:
 	-seed 1418961197 ./examples/input_example_3.txt:	339 m1 9221449 -0.000262588 0.2 p1 96159 99118

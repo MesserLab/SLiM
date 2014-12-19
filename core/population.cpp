@@ -482,6 +482,9 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 	// mutations (r1 <= x < r2) assigned from p2
 	// mutations (r2 <= x     ) assigned from p1
 	
+	Subpopulation &subpop = find(p_subpop_id)->second;
+	Subpopulation &source_subpop = find(p_source_subpop_id)->second;
+	
 	// swap parent1_genome_index and parent2_genome_index in half of cases, to assure random assortment
 	if (gsl_rng_uniform_int(g_rng, 2) == 0)
 	{
@@ -491,7 +494,7 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 	}
 	
 	// start with a clean slate in the child genome
-	find(p_subpop_id)->second.child_genomes_[p_child_genome_index].clear();
+	subpop.child_genomes_[p_child_genome_index].clear();
 	
 	// create vector with the mutations to be added
 	std::vector<Mutation> mutations_to_add;
@@ -509,11 +512,11 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 	all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 	
 	// do the crossover
-	std::vector<Mutation>::iterator parent1_iter		= find(p_source_subpop_id)->second.parent_genomes_[p_parent1_genome_index].begin();
-	std::vector<Mutation>::iterator parent2_iter		= find(p_source_subpop_id)->second.parent_genomes_[p_parent2_genome_index].begin();
+	std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
+	std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
 	
-	std::vector<Mutation>::iterator parent1_iter_max	= find(p_source_subpop_id)->second.parent_genomes_[p_parent1_genome_index].end();
-	std::vector<Mutation>::iterator parent2_iter_max	= find(p_source_subpop_id)->second.parent_genomes_[p_parent2_genome_index].end();
+	std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
+	std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
 	
 	std::vector<Mutation>::iterator mutation_iter		= mutations_to_add.begin();
 	std::vector<Mutation>::iterator mutation_iter_max	= mutations_to_add.end();
@@ -539,9 +542,9 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 				
 				// search back through the mutations already added to see if the one we intend to add is already present
 				// FIXME why would it be?  this is puzzling...
-				if (num_mutations_added != 0 && find(p_subpop_id)->second.child_genomes_[p_child_genome_index].back().position_ == parent_iter->position_)
+				if (num_mutations_added != 0 && subpop.child_genomes_[p_child_genome_index].back().position_ == parent_iter->position_)
 					for (int k = num_mutations_added - 1; k >= 0; k--)
-						if (find(p_subpop_id)->second.child_genomes_[p_child_genome_index][k] == *parent_iter)
+						if (subpop.child_genomes_[p_child_genome_index][k] == *parent_iter)
 						{
 							present = true;
 							break;
@@ -550,7 +553,7 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 				// if the mutation was not present, add it
 				if (!present)
 				{
-					find(p_subpop_id)->second.child_genomes_[p_child_genome_index].push_back(*parent_iter);
+					subpop.child_genomes_[p_child_genome_index].push_back(*parent_iter);
 					num_mutations_added++;
 				}
 				
@@ -563,9 +566,9 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 				present = false;
 				
 				// search back through the mutations already added to see if the one we intend to add is already present
-				if (num_mutations_added != 0 && find(p_subpop_id)->second.child_genomes_[p_child_genome_index].back().position_ == mutation_iter->position_)
+				if (num_mutations_added != 0 && subpop.child_genomes_[p_child_genome_index].back().position_ == mutation_iter->position_)
 					for (int k = num_mutations_added - 1; k >= 0; k--)
-						if (find(p_subpop_id)->second.child_genomes_[p_child_genome_index][k] == *mutation_iter)
+						if (subpop.child_genomes_[p_child_genome_index][k] == *mutation_iter)
 						{
 							present = true;
 							break;
@@ -574,7 +577,7 @@ void Population::CrossoverMutation(int p_subpop_id, int p_child_genome_index, in
 				// if the mutation was not present, add it
 				if (!present)
 				{
-					find(p_subpop_id)->second.child_genomes_[p_child_genome_index].push_back(*mutation_iter);
+					subpop.child_genomes_[p_child_genome_index].push_back(*mutation_iter);
 					num_mutations_added++;
 				}
 				
