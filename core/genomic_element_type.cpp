@@ -41,7 +41,7 @@ GenomicElementType::GenomicElementType(std::vector<int> p_mutation_types, std::v
 	lookup_mutation_type = gsl_ran_discrete_preproc(p_mutation_fractions.size(), A);
 }
 
-int GenomicElementType::DrawMutationType()
+int GenomicElementType::DrawMutationType() const
 {
 	return mutation_types_[gsl_ran_discrete(g_rng, lookup_mutation_type)];
 }

@@ -37,12 +37,12 @@ Subpopulation::Subpopulation(int p_subpop_size)
 	lookup_individual = gsl_ran_discrete_preproc(subpop_size_, A);
 }
 
-int Subpopulation::DrawIndividual()
+int Subpopulation::DrawIndividual() const
 {
 	return (int)gsl_ran_discrete(g_rng, lookup_individual);
 }
 
-void Subpopulation::UpdateFitness(Chromosome &p_chromosome)
+void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
 {
 	// calculate fitnesses in parent population and create new lookup table
 	gsl_ran_discrete_free(lookup_individual);
@@ -55,16 +55,16 @@ void Subpopulation::UpdateFitness(Chromosome &p_chromosome)
 	lookup_individual = gsl_ran_discrete_preproc((int)(parent_genomes_.size() / 2), A);
 }
 
-double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome &p_chromosome)
+double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	std::vector<Mutation>::iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
-	std::vector<Mutation>::iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
+	std::vector<Mutation>::const_iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
+	std::vector<Mutation>::const_iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
 	
-	std::vector<Mutation>::iterator genome1_max = parent_genomes_[p_genome_index1].end();
-	std::vector<Mutation>::iterator genome2_max = parent_genomes_[p_genome_index2].end();
+	std::vector<Mutation>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
+	std::vector<Mutation>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
 	
 	while (w > 0 && (genome1_iter != genome1_max || genome2_iter != genome2_max))
 	{
@@ -91,14 +91,14 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max && genome2_iter->position_ == genome1_iter->position_)
 		{
 			int position = genome1_iter->position_; 
-			std::vector<Mutation>::iterator genome1_start = genome1_iter;
+			std::vector<Mutation>::const_iterator genome1_start = genome1_iter;
 			
 			// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 			while (genome1_iter != genome1_max && genome1_iter->position_ == position)
 			{
 				if (genome1_iter->selection_coeff_ != 0.0)
 				{
-					std::vector<Mutation>::iterator genome2_matchscan = genome2_iter; 
+					std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
 					bool homozygous = false;
 					
 					// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -127,7 +127,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 			{
 				if (genome2_iter->selection_coeff_ != 0.0)
 				{
-					std::vector<Mutation>::iterator genome1_matchscan = genome1_start; 
+					std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
 					bool homozygous = false;
 					
 					while (!homozygous && genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)

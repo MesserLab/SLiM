@@ -47,7 +47,7 @@ public:
 	
 	Substitution(Mutation p_mutation, int p_fixation_time);
 	
-	void print(Chromosome &p_chromosome);
+	void print(const Chromosome &p_chromosome) const;
 };
 
 

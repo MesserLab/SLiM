@@ -1,5 +1,4 @@
 set up testing code, check against old version of the code
-add const keyword to references where appropriate, i.e. everywhere; pass by pointer when modification will occur
 add private const copy constructors X(const X&) to all classes; nothing should be getting copied!
 	private:
 

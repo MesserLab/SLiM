@@ -74,7 +74,7 @@ bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_s
 bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpected p_eof_expected);
 
 // initialize the population from the information in the file given
-void InitializePopulationFromFile(Population &p_population, const char *p_file, Chromosome &p_chromosome);
+void InitializePopulationFromFile(Population &p_population, const char *p_file, const Chromosome &p_chromosome);
 
 
 void GetInputLine(ifstream &p_input_file, string &p_line)
@@ -727,7 +727,7 @@ void CheckInputFile(char *p_input_file)
 	}
 }
 
-void InitializePopulationFromFile(Population &p_population, const char *p_file, Chromosome &p_chromosome)
+void InitializePopulationFromFile(Population &p_population, const char *p_file, const Chromosome &p_chromosome)
 {
 	std::map<int,Mutation> M;
 	string line, sub; 

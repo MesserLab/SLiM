@@ -33,7 +33,7 @@ Substitution::Substitution(Mutation p_mutation, int p_fixation_time)
 	fixation_time_ = p_fixation_time;
 }
 
-void Substitution::print(Chromosome &p_chromosome) 
+void Substitution::print(const Chromosome &p_chromosome) const
 { 
 	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
 	

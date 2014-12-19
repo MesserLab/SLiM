@@ -49,7 +49,7 @@ public:
 	
 	GenomicElementType(std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions);
 	
-	int DrawMutationType();
+	int DrawMutationType() const;
 };
 
 // support stream output of GenomicElementType, for debugging

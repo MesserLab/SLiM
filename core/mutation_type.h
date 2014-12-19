@@ -51,7 +51,7 @@ public:
 	
 	MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 	
-	double DrawSelectionCoefficient();
+	double DrawSelectionCoefficient() const;
 };
 
 // support stream output of MutationType, for debugging

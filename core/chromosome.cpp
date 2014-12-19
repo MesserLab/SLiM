@@ -102,16 +102,16 @@ void Chromosome::InitializeDraws()
 }
 
 // draw the number of mutations that occur, based on the overall mutation rate
-int Chromosome::DrawMutationCount()
+int Chromosome::DrawMutationCount() const
 {
 	return gsl_ran_poisson(g_rng, overall_mutation_rate_);
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
-Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation)
+Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 {
 	int genomic_element = (int)gsl_ran_discrete(g_rng, lookup_mutation);
-	GenomicElement &source_element = (*this)[genomic_element];
+	const GenomicElement &source_element = (*this)[genomic_element];
 	
 	GenomicElementType genomic_element_type = genomic_element_types_.find(source_element.genomic_element_type_)->second;
 	
@@ -127,7 +127,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation)
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-std::vector<int> Chromosome::DrawBreakpoints()
+std::vector<int> Chromosome::DrawBreakpoints() const
 {
 	vector<int> breakpoints;
 	

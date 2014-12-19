@@ -21,15 +21,15 @@
 #include "genome.h"
 
 // return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
-Genome GenomeWithFixedMutations(Genome &p_genome1, Genome &p_genome2)
+Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2)
 {
 	Genome merge_genome;
 	
-	std::vector<Mutation>::iterator genome1_iter = p_genome1.begin();
-	std::vector<Mutation>::iterator genome2_iter = p_genome2.begin();
+	std::vector<Mutation>::const_iterator genome1_iter = p_genome1.begin();
+	std::vector<Mutation>::const_iterator genome2_iter = p_genome2.begin();
 	
-	std::vector<Mutation>::iterator genome1_max = p_genome1.end();
-	std::vector<Mutation>::iterator genome2_max = p_genome2.end();
+	std::vector<Mutation>::const_iterator genome1_max = p_genome1.end();
+	std::vector<Mutation>::const_iterator genome2_max = p_genome2.end();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
@@ -46,7 +46,7 @@ Genome GenomeWithFixedMutations(Genome &p_genome1, Genome &p_genome2)
 		{
 			int position = (*genome1_iter).position_;
 			
-			std::vector<Mutation>::iterator temp;
+			std::vector<Mutation>::const_iterator temp;
 			
 			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
 			{
@@ -69,15 +69,15 @@ Genome GenomeWithFixedMutations(Genome &p_genome1, Genome &p_genome2)
 }
 
 // return a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
-Genome GenomeWithPolymorphicMutations(Genome &p_genome1, Genome &p_genome2)
+Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_genome2)
 {
 	Genome merge_genome;
 	
-	std::vector<Mutation>::iterator genome1_iter = p_genome1.begin();
-	std::vector<Mutation>::iterator genome2_iter = p_genome2.begin();
+	std::vector<Mutation>::const_iterator genome1_iter = p_genome1.begin();
+	std::vector<Mutation>::const_iterator genome2_iter = p_genome2.begin();
 	
-	std::vector<Mutation>::iterator genome1_max = p_genome1.end();
-	std::vector<Mutation>::iterator genome2_max = p_genome2.end();
+	std::vector<Mutation>::const_iterator genome1_max = p_genome1.end();
+	std::vector<Mutation>::const_iterator genome2_max = p_genome2.end();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
@@ -98,7 +98,7 @@ Genome GenomeWithPolymorphicMutations(Genome &p_genome1, Genome &p_genome2)
 			int position = (*genome1_iter).position_;
 			
 			// go through p_genome1 and check for those mutations that are not present in p_genome2
-			std::vector<Mutation>::iterator temp = genome2_iter;
+			std::vector<Mutation>::const_iterator temp = genome2_iter;
 			
 			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
 			{

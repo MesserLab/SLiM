@@ -46,11 +46,11 @@ public:
 	
 	Polymorphism(int p_mutation_id, int p_mutation_type, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
 	
-	void print(int p_index, Chromosome &p_chromosome);
+	void print(int p_index, const Chromosome &p_chromosome) const;
 	
-	void print(std::ofstream &p_outfile, int p_index, Chromosome &p_chromosome);
+	void print(std::ofstream &p_outfile, int p_index, const Chromosome &p_chromosome) const;
 	
-	void print_no_id(int p_index, Chromosome &p_chromosome);
+	void print_no_id(int p_index, const Chromosome &p_chromosome) const;
 };
 
 

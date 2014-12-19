@@ -56,11 +56,11 @@ public:
 	
 	Subpopulation(int p_subpop_size);
 	
-	int DrawIndividual();
+	int DrawIndividual() const;
 	
-	void UpdateFitness(Chromosome &p_chromosome);
+	void UpdateFitness(const Chromosome &p_chromosome);
 	
-	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, Chromosome &p_chromosome);
+	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const;
 	
 	void SwapChildAndParentGenomes();
 };

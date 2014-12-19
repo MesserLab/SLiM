@@ -51,7 +51,7 @@ MutationType::MutationType(double p_dominance_coeff, char p_dfe_type, std::vecto
 	}
 }
 
-double MutationType::DrawSelectionCoefficient()
+double MutationType::DrawSelectionCoefficient() const
 {
 	switch (dfe_type_)
 	{
