@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 	int override_seed = 0;
 	int *override_seed_ptr = NULL;			// by default, a seed is generated or supplied in the input file
 	char *input_file = NULL;
+	bool keep_time = false;
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
@@ -141,6 +142,14 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
+		// -time : take a time measurement and output it at the end of execution
+		if (strcmp(arg, "-time") == 0)
+		{
+			keep_time = true;
+			
+			continue;
+		}
+		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
 			PrintUsageAndDie();
@@ -153,7 +162,18 @@ int main(int argc, char *argv[])
 		PrintUsageAndDie();
 	
 	// run the simulation
+	clock_t begin, end;
+	double time_spent;
+	
+	begin = clock();
+	
 	RunSLiM(input_file, override_seed_ptr);
+	
+	end = clock();
+	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	
+	if (keep_time)
+		std::cerr << "CPU time used: " << time_spent << std::endl;
 	
 	return 0;
 }

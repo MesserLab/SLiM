@@ -13,6 +13,7 @@ changes to mention in docs:
 	revised example files to use new comment format
 	full paths can now be supplied for files
 	added ability to pass a seed value on the command line via -seed
+	added ability to take a time measurement with -time (probably doesn't need to be documented)
 
 
 building on the command line for me:
@@ -28,9 +29,11 @@ timings (user time, with g++ build executed on command line):
 
 output tails:
 	-seed 1418961197 ./examples/input_example_3.txt:	339 m1 9221449 -0.000262588 0.2 p1 96159 99118
-	-seed 1 ./examples/input_example_1.txt:				81 m1 94815 0 0.5 p1 8503 9583
+	-seed 1418990125 ./examples/input_example_1.txt:	72 m1 4678 0 0.5 p1 7486 9424
 
 profile results:
 	for input_example_1.txt, 97.9% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
 	for input_example_3.txt, 97.8% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
-	is this really true??
+	is this really true??  nope.  but Population::CrossoverMutation() is very hot.
+
+
