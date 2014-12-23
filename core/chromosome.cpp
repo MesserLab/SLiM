@@ -55,7 +55,7 @@ void Chromosome::InitializeDraws()
 		}
 	}
 	
-	for (std::map<int,GenomicElementType>::iterator genomic_element_type_iter = genomic_element_types_.begin(); genomic_element_type_iter != genomic_element_types_.end(); genomic_element_type_iter++)
+	for (std::map<int,GenomicElementType>::const_iterator genomic_element_type_iter = genomic_element_types_.begin(); genomic_element_type_iter != genomic_element_types_.end(); genomic_element_type_iter++)
 	{
 		for (int j = 0; j < genomic_element_type_iter->second.mutation_types_.size(); j++)
 		{

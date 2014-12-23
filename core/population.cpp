@@ -396,7 +396,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	unsigned int num_migrants[subpop.migrant_fractions_.size() + 1];
 	double migration_rate_sum = 0.0;
 	int pop_count = 0;
-	map<int,double>::iterator fractions_iter;
+	map<int,double>::const_iterator fractions_iter;
 	
 	for (fractions_iter = subpop.migrant_fractions_.begin(); fractions_iter != subpop.migrant_fractions_.end(); fractions_iter++)
 	{
@@ -515,14 +515,14 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
 		
-		std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
-		std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
 		
-		std::vector<Mutation>::iterator parent_iter			= parent1_iter;
-		std::vector<Mutation>::iterator parent_iter_max		= parent1_iter_max;
+		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
+		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
 		
 		int break_index_max = (int)all_breakpoints.size();
 		
@@ -566,17 +566,17 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		std::vector<Mutation>::iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<Mutation>::iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
 		
-		std::vector<Mutation>::iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
-		std::vector<Mutation>::iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
 		
-		std::vector<Mutation>::iterator mutation_iter		= mutations_to_add.begin();
-		std::vector<Mutation>::iterator mutation_iter_max	= mutations_to_add.end();
+		std::vector<Mutation>::const_iterator mutation_iter		= mutations_to_add.begin();
+		std::vector<Mutation>::const_iterator mutation_iter_max	= mutations_to_add.end();
 		
-		std::vector<Mutation>::iterator parent_iter			= parent1_iter;
-		std::vector<Mutation>::iterator parent_iter_max		= parent1_iter_max;
+		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
+		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
 		
 		int break_index_max = (int)all_breakpoints.size();
 		int num_mutations_added = 0;
@@ -703,7 +703,7 @@ void Population::PrintAll(const Chromosome &p_chromosome) const
 		cout << "p" << subpop_iter->first << " " << subpop_iter->second.subpop_size_ << endl;
 	
 	multimap<int,Polymorphism> polymorphisms;
-	multimap<int,Polymorphism>::iterator polymorphism_iter;
+	multimap<int,Polymorphism>::const_iterator polymorphism_iter;
 	
 	// add all polymorphisms
 	for (subpop_iter = begin(); subpop_iter != end(); subpop_iter++)				// go through all subpopulations
@@ -747,7 +747,7 @@ void Population::PrintAll(std::ofstream &p_outfile, const Chromosome &p_chromoso
 		p_outfile << "p" << subpop_iter->first << " " << subpop_iter->second.subpop_size_ << endl;
 	
 	multimap<int,Polymorphism> polymorphisms;
-	multimap<int,Polymorphism>::iterator polymorphism_iter;
+	multimap<int,Polymorphism>::const_iterator polymorphism_iter;
 	
 	// add all polymorphisms
 	for (subpop_iter = begin(); subpop_iter != end(); subpop_iter++)				// go through all subpopulations
@@ -794,7 +794,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, const Chromosom
 	// assemble the sample and get the polymorphisms within it
 	std::vector<int> sample; 
 	multimap<int,Polymorphism> polymorphisms;
-	multimap<int,Polymorphism>::iterator polymorphism_iter;
+	multimap<int,Polymorphism>::const_iterator polymorphism_iter;
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
@@ -841,7 +841,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	
 	std::vector<int> sample; 
 	multimap<int,Polymorphism> polymorphisms;
-	multimap<int,Polymorphism>::iterator polymorphism_iter;
+	multimap<int,Polymorphism>::const_iterator polymorphism_iter;
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
