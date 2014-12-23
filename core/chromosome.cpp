@@ -77,21 +77,21 @@ void Chromosome::InitializeDraws()
 		
 		int l_i = (*this)[i].end_position_ - (*this)[i].start_position_ + 1;
 		
-		A[i] = (double)l_i;
+		A[i] = static_cast<double>(l_i);
 		l += l_i;
 	}
 	
 	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
-	overall_mutation_rate_ = overall_mutation_rate_ * (double)l;
+	overall_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
 	double B[recombination_rates_.size()];
 	
-	B[0] = recombination_rates_[0] * (double)recombination_end_positions_[0];
+	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);
 	overall_recombination_rate_ += B[0];
 	
 	for (int i = 1; i < recombination_rates_.size(); i++) 
 	{ 
-		B[i] = recombination_rates_[i] * (double)(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
+		B[i] = recombination_rates_[i] * static_cast<double>(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
 		overall_recombination_rate_+= B[i];
 		
 		if (recombination_end_positions_[i] > length_)
@@ -110,7 +110,7 @@ int Chromosome::DrawMutationCount() const
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
 Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 {
-	int genomic_element = (int)gsl_ran_discrete(g_rng, lookup_mutation);
+	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
 	
 	GenomicElementType genomic_element_type = genomic_element_types_.find(source_element.genomic_element_type_)->second;
@@ -119,7 +119,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 	
 	MutationType mutation_type = mutation_types_.find(mutation_type_id)->second;
 	
-	int position = source_element.start_position_ + (int)gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1);  
+	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
 	double selection_coeff = mutation_type.DrawSelectionCoefficient();
 	
@@ -137,13 +137,13 @@ std::vector<int> Chromosome::DrawBreakpoints() const
 	for (int i = 0; i < num_breakpoints; i++)
 	{
 		int breakpoint = 0;
-		int recombination_interval = (int)gsl_ran_discrete(g_rng, lookup_recombination);
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(g_rng, lookup_recombination));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
-			breakpoint = (int)gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval]);
+			breakpoint = static_cast<int>(gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval]));
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + (int)gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]);
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<int>(gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
 		
 		breakpoints.push_back(breakpoint);
 		

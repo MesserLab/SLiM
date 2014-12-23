@@ -798,7 +798,7 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 	while (!infile.eof())
 	{
 		istringstream iss(line); iss >> sub; sub.erase(0, 1);
-		int pos = (int)sub.find_first_of(":"); 
+		int pos = static_cast<int>(sub.find_first_of(":")); 
 		int p = atoi(sub.substr(0, pos + 1).c_str()); sub.erase(0, pos + 1);  
 		int i = atoi(sub.c_str());
 		
@@ -976,10 +976,10 @@ void Initialize(Population &p_population,
 					int genomic_element_type = atoi(sub.c_str());
 					
 					iss >> sub;
-					int start_position = (int)atof(sub.c_str()) - 1;
+					int start_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
 					iss >> sub;
-					int end_position = (int)atof(sub.c_str()) - 1;
+					int end_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
 					GenomicElement new_genomic_element = GenomicElement(genomic_element_type, start_position, end_position);
 					p_chromosome.push_back(new_genomic_element);
@@ -1006,7 +1006,7 @@ void Initialize(Population &p_population,
 					istringstream iss(line);
 					
 					iss >> sub;
-					int recombination_end_position = (int)atof(sub.c_str()) - 1;
+					int recombination_end_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
 					iss >> sub;
 					double recombination_rate = atof(sub.c_str());
@@ -1066,10 +1066,10 @@ void Initialize(Population &p_population,
 					istringstream iss(line);
 					
 					iss >> sub;
-					p_time_duration = (int)atof(sub.c_str());
+					p_time_duration = static_cast<int>(atof(sub.c_str()));
 					
 					if (iss >> sub)
-						p_time_start = (int)atof(sub.c_str());
+						p_time_start = static_cast<int>(atof(sub.c_str()));
 					else
 						p_time_start = 1;
 					
@@ -1095,7 +1095,7 @@ void Initialize(Population &p_population,
 					istringstream iss(line);
 					
 					iss >> sub;
-					int event_time = (int)atof(sub.c_str());
+					int event_time = static_cast<int>(atof(sub.c_str()));
 					
 					iss >> sub;
 					char event_type = sub.at(0);
@@ -1130,7 +1130,7 @@ void Initialize(Population &p_population,
 					istringstream iss(line);
 					
 					iss >> sub;
-					int event_time = (int)atof(sub.c_str());
+					int event_time = static_cast<int>(atof(sub.c_str()));
 					
 					iss >> sub;
 					char event_type = sub.at(0);
@@ -1165,24 +1165,24 @@ void Initialize(Population &p_population,
 					istringstream iss(line); 
 					
 					iss >> sub;
-					int generation = (int)atof(sub.c_str());
+					int generation = static_cast<int>(atof(sub.c_str()));
 					
 					iss >> sub;
 					sub.erase(0, 1);	// m
 					int mutation_type = atoi(sub.c_str());
 					
 					iss >> sub;
-					int position = (int)atof(sub.c_str())-1;
+					int position = static_cast<int>(atof(sub.c_str())) - 1;
 					
 					iss >> sub;
 					sub.erase(0, 1);	// p
 					int subpop_index = atoi(sub.c_str());
 					
 					iss >> sub;
-					int num_AA = (int)atof(sub.c_str());
+					int num_AA = static_cast<int>(atof(sub.c_str()));
 					
 					iss >> sub;
-					int num_Aa = (int)atof(sub.c_str());
+					int num_Aa = static_cast<int>(atof(sub.c_str()));
 					
 					IntroducedMutation new_introduced_mutation(mutation_type, position, subpop_index, generation, num_AA, num_Aa);
 					

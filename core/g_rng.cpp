@@ -35,13 +35,13 @@ int GenerateSeedFromPIDAndTime()
 	time(&t);
 	t += pid;
 	
-	return (int)t;
+	return static_cast<int>(t);
 }
 
 void InitializeRNGFromSeed(int p_seed)
 {
 	g_rng = gsl_rng_alloc(gsl_rng_taus2);
-	gsl_rng_set(g_rng, (long)p_seed);
+	gsl_rng_set(g_rng, static_cast<long>(p_seed));
 }
 
 

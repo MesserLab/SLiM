@@ -110,7 +110,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 {
 	char event_type = p_event.event_type_;
 	const std::vector<std::string> &event_parameters = p_event.parameters_;
-	int num_event_parameters = (int)event_parameters.size();
+	int num_event_parameters = static_cast<int>(event_parameters.size());
 	
 	switch (event_type)
 	{
@@ -120,7 +120,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			sub.erase(0, 1); // p
 			int subpop_id = atoi(sub.c_str());
 			
-			int subpop_size = (int)atof(event_parameters[1].c_str());
+			int subpop_size = static_cast<int>(atof(event_parameters[1].c_str()));
 			
 			if (num_event_parameters == 2)		// empty subpopulation
 			{ 
@@ -144,7 +144,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			sub.erase(0, 1); // p
 			int subpop_id = atoi(sub.c_str());
 			
-			int subpop_size = (int)atof(event_parameters[1].c_str());
+			int subpop_size = static_cast<int>(atof(event_parameters[1].c_str()));
 			
 			SetSize(subpop_id, subpop_size);
 			
@@ -275,7 +275,7 @@ void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation, con
 	
 	new_mutation.position_ = p_introduced_mutation.position_;
 	new_mutation.mutation_type_ = p_introduced_mutation.mutation_type_;
-	new_mutation.selection_coeff_ = (float)p_chromosome.mutation_types_.find(p_introduced_mutation.mutation_type_)->second.DrawSelectionCoefficient();
+	new_mutation.selection_coeff_ = static_cast<float>(p_chromosome.mutation_types_.find(p_introduced_mutation.mutation_type_)->second.DrawSelectionCoefficient());
 	new_mutation.subpop_index_ = p_introduced_mutation.subpop_index_;
 	new_mutation.generation_ = p_introduced_mutation.generation_;
 	
@@ -357,7 +357,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 			{
 				if (polymorphism_iter->first == p_partial_sweeps[j].position_ && polymorphism_iter->second.mutation_type_ == p_partial_sweeps[j].mutation_type_)
 				{
-					if (((double)polymorphism_iter->second.prevalence_) / (2 * current_pop_size) >= p_partial_sweeps[j].target_prevalence_)
+					if (static_cast<double>(polymorphism_iter->second.prevalence_) / (2 * current_pop_size) >= p_partial_sweeps[j].target_prevalence_)
 					{
 						// sweep has reached target frequency, set all selection_coeff_ to zero
 						for (subpop_iter = begin(); subpop_iter != end(); subpop_iter++)				// go through all subpopulations
@@ -434,12 +434,12 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			child_genome2 = child_genome1 + 1;
 			
 			// draw parents in source population
-			parent1 = (int)gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2);
+			parent1 = static_cast<int>(gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2));
 			
 			if (selfing_fraction == 1.0)
 				parent2 = parent1;	// self
 			else if (selfing_fraction == 0.0 || gsl_rng_uniform(g_rng) >= selfing_fraction)
-				parent2 = (int)gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2);
+				parent2 = static_cast<int>(gsl_rng_uniform_int(g_rng, source_subpop.parent_genomes_.size() / 2));
 			else
 				parent2 = parent1;	// self
 			
@@ -524,7 +524,7 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
 		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
 		
-		int break_index_max = (int)all_breakpoints.size();
+		int break_index_max = static_cast<int>(all_breakpoints.size());
 		
 		for (int break_index = 0; break_index != break_index_max; break_index++)
 		{
@@ -578,7 +578,7 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
 		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
 		
-		int break_index_max = (int)all_breakpoints.size();
+		int break_index_max = static_cast<int>(all_breakpoints.size());
 		int num_mutations_added = 0;
 		bool present;
 		
@@ -798,7 +798,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, const Chromosom
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
-		int j = (int)gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second.child_genomes_.size());
+		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second.child_genomes_.size()));
 		
 		sample.push_back(j);
 		
@@ -845,7 +845,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
-		int j = (int)gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second.child_genomes_.size());
+		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second.child_genomes_.size()));
 		
 		sample.push_back(j);
 		
@@ -862,7 +862,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		cout << "positions:";
 		
 		for (polymorphism_iter = polymorphisms.begin(); polymorphism_iter != polymorphisms.end(); polymorphism_iter++) 
-			cout << " " << std::fixed << std::setprecision(7) << (double)(polymorphism_iter->first + 1) / (p_chromosome.length_ + 1); 
+			cout << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_iter->first + 1) / (p_chromosome.length_ + 1); 
 		
 		cout << endl;
 	}
@@ -923,7 +923,7 @@ void Population::AddMutation(multimap<int,Polymorphism> &p_polymorphisms, Mutati
 		}
 	
 	// the mutation was not found, so add it to p_polymorphisms
-	int mutation_id = (int)p_polymorphisms.size() + 1;
+	int mutation_id = static_cast<int>(p_polymorphisms.size()) + 1;
 	Polymorphism new_polymorphism = Polymorphism(mutation_id, p_mutation.mutation_type_, p_mutation.selection_coeff_, p_mutation.subpop_index_, p_mutation.generation_, 1);
 	
 	p_polymorphisms.insert(std::pair<int,Polymorphism>(p_mutation.position_, new_polymorphism));

@@ -32,7 +32,7 @@ using std::string;
 
 MutationType::MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters)
 {
-	dominance_coeff_ = (float)p_dominance_coeff;
+	dominance_coeff_ = static_cast<float>(p_dominance_coeff);
 	dfe_type_ = p_dfe_type;
 	dfe_parameters_ = p_dfe_parameters;
 	

@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 	RunSLiM(input_file, override_seed_ptr);
 	
 	end = clock();
-	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
 		std::cerr << "CPU time used: " << time_spent << std::endl;

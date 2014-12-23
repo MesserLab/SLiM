@@ -27,7 +27,7 @@ Polymorphism::Polymorphism(int p_mutation_id, int p_mutation_type, double p_sele
 {
 	mutation_id_ = p_mutation_id;
 	mutation_type_  = p_mutation_type;
-	selection_coeff_  = (float)p_selection_coeff;
+	selection_coeff_  = static_cast<float>(p_selection_coeff);
 	subpop_index_  = p_subpop_index;
 	generation_  = p_generation;
 	prevalence_  = p_prevalence;

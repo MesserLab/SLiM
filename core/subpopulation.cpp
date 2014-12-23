@@ -39,7 +39,7 @@ Subpopulation::Subpopulation(int p_subpop_size)
 
 int Subpopulation::DrawIndividual() const
 {
-	return (int)gsl_ran_discrete(g_rng, lookup_individual);
+	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_individual));
 }
 
 void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
@@ -47,12 +47,12 @@ void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
 	// calculate fitnesses in parent population and create new lookup table
 	gsl_ran_discrete_free(lookup_individual);
 	
-	double A[(int)(parent_genomes_.size() / 2)];
+	double A[static_cast<int>(parent_genomes_.size() / 2)];
 	
-	for (int i = 0; i < (int)(parent_genomes_.size() / 2); i++)
+	for (int i = 0; i < static_cast<int>(parent_genomes_.size() / 2); i++)
 		A[i] = FitnessOfIndividualWithGenomeIndices(2 * i, 2 * i + 1, p_chromosome);
 	
-	lookup_individual = gsl_ran_discrete_preproc((int)(parent_genomes_.size() / 2), A);
+	lookup_individual = gsl_ran_discrete_preproc(static_cast<int>(parent_genomes_.size() / 2), A);
 }
 
 double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const
@@ -135,7 +135,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
 					while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
 					{
-						if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == (double)genome2_matchscan->selection_coeff_) 
+						if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == static_cast<double>(genome2_matchscan->selection_coeff_)) 
 						{
 							// a match was found, so we multiply our fitness by the full selection coefficient
 							w *= (1.0 + selection_coeff);
@@ -176,7 +176,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
 					while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
 					{
-						if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == (double)genome1_matchscan->selection_coeff_)
+						if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == static_cast<double>(genome1_matchscan->selection_coeff_))
 						{
 							// a match was found; we know this match was already found my the genome1 loop above, so our fitness has already been multiplied appropriately
 							homozygous = true;

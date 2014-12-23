@@ -27,7 +27,7 @@ Mutation::Mutation(int p_mutation_type, int p_position, double p_selection_coeff
 { 
 	mutation_type_ = p_mutation_type;
 	position_ = p_position;
-	selection_coeff_ = (float)p_selection_coeff;
+	selection_coeff_ = static_cast<float>(p_selection_coeff);
 	subpop_index_ = p_subpop_index;
 	generation_ = p_generation;
 }
