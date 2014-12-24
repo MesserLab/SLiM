@@ -36,8 +36,10 @@ For Mac OS X users, an Xcode project is provided that can be used to build SLiM.
 
 ```
 cd SLiM
-g++ -O3 ./core/*.cpp -lgsl -lgslcblas -o slim
+g++ -O3 ./core/*.cpp -lgsl -lgslcblas -std=c++11 -o slim
 ```
+
+Note that SLiM uses C++11 extensions, and thus that standard is specified at compilation in order to suppress warnings.
 
 If your GNU Standard Library headers are not in the default search paths for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
 
@@ -48,7 +50,7 @@ gsl-config --cflags --libs
 For example, I have installed gsl using MacPorts, so my compilation command looks like:
 
 ```
-g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -o slim
+g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 ```
 
 Once SLiM is built, just run it at Terminal's command line. For example, to run the first example provided in SLiM's distribution, execute:
