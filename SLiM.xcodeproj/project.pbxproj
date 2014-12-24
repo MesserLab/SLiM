@@ -43,6 +43,7 @@
 		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9878A93C1A4B59360007B9D6 /* stacktrace.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stacktrace.h; sourceTree = "<group>"; };
 		98E5F0551A3DFD3900FABCC8 /* README.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = README.html; sourceTree = "<group>"; };
 		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
 		98E9A6891A3CCFD0000AD4FC /* mutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation.h; sourceTree = "<group>"; };
@@ -113,6 +114,7 @@
 			isa = PBXGroup;
 			children = (
 				982663531A3BABD300A0CBBF /* main.cpp */,
+				9878A93C1A4B59360007B9D6 /* stacktrace.h */,
 				98E9A6B71A3CE35E000AD4FC /* g_rng.h */,
 				98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */,
 				98E9A6B01A3CD633000AD4FC /* input_parsing.h */,
