@@ -43,10 +43,21 @@
 
 class Population : public std::map<int,Subpopulation>
 {
+private:
+	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	Population(const Population&);						// disable copy constructor
+	Population &operator = (const Population&);			// disable assignment operator
+
 public: 
 	
 	std::vector<Substitution> substitutions_;
 	std::vector<std::string> parameters_;
+	
+	// default constructor
+	Population() = default;
 	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
 	void AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size);
@@ -97,10 +108,10 @@ public:
 	void PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome) const;
 	
 	// find p_mutation in p_polymorphisms and return its id
-	int FindMutation(const std::multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
+	int FindMutation(const std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
 	
 	// if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-	void AddMutation(std::multimap<int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
+	void AddMutation(std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
 };
 
 

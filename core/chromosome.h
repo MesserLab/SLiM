@@ -43,6 +43,12 @@ class Chromosome : public std::vector<GenomicElement>
 {
 private:
 	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	Chromosome(const Chromosome&);						// disable copy constructor
+	Chromosome &operator = (const Chromosome&);			// disable assignment operator
+	
 	gsl_ran_discrete_t *lookup_mutation;		// mutation
 	gsl_ran_discrete_t *lookup_recombination;	// recombination
 	
@@ -58,6 +64,9 @@ public:
 	double overall_recombination_rate_;		// overall recombination rate
 	double gene_conversion_fraction_;		// gene conversion fraction
 	double gene_conversion_avg_length_;		// average stretch length
+	
+	// default constructor
+	Chromosome() = default;
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws();	

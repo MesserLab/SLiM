@@ -1,13 +1,4 @@
-questions / ideas:
-	good tests for validation, optimization
-	user interface - learning Swift
-
-set up testing code, check against old version of the code
-add private const copy constructors X(const X&) to all classes; nothing should be getting copied!
-- softened on this considerably, but copying should still be thought about and monitored for efficiency; and switch from copy initialization to direct initialization in many spots, p. 84
-	private:
-	Event(const Event&);						// disable copy constructor
-	Event &operator = (const Event&);			// disable assignment operator
+set up testing code for validation, check against old version of the code
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -18,7 +9,7 @@ changes to mention in docs:
 
 
 building on the command line for me:
-	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -o slim
+	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 
 timings (user time, with g++ build executed on command line):
 	1.8:	time ./slim input_example_3.txt		(seed == 1418961197)

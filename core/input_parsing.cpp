@@ -788,7 +788,7 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		
 		int g = atoi(sub.c_str());
 		
-		M.insert(std::pair<int,Mutation>(id, Mutation(t, x, s, i, g)));
+		M.insert(std::pair<const int,Mutation>(id, Mutation(t, x, s, i, g)));
 		
 		GetInputLine(infile, line); 
 	}
@@ -811,10 +811,8 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		GetInputLine(infile, line);
 	}
 	
-	std::map<int,Subpopulation>::iterator subpop_iter;
-	
-	for (subpop_iter = p_population.begin(); subpop_iter != p_population.end(); subpop_iter++)
-		subpop_iter->second.UpdateFitness(p_chromosome);
+	for (std::pair<const int,Subpopulation> &subpop_pair : p_population)
+		subpop_pair.second.UpdateFitness(p_chromosome);
 }
 
 void Initialize(Population &p_population,
@@ -822,9 +820,9 @@ void Initialize(Population &p_population,
 				Chromosome &p_chromosome,
 				int &p_time_start,
 				int &p_time_duration,
-				multimap<int,Event> &p_events,
-				multimap<int,Event> &p_outputs,
-				multimap<int,IntroducedMutation> &p_introduced_mutations,
+				multimap<const int,Event> &p_events,
+				multimap<const int,Event> &p_outputs,
+				multimap<const int,IntroducedMutation> &p_introduced_mutations,
 				std::vector<PartialSweep> &p_partial_sweeps,
 				std::vector<string> &p_parameters,
 				int *p_override_seed)
@@ -903,7 +901,7 @@ void Initialize(Population &p_population,
 						dfe_parameters.push_back(atof(sub.c_str()));
 					
 					MutationType new_mutation_type = MutationType(dominance_coeff, dfe_type, dfe_parameters);
-					p_chromosome.mutation_types_.insert(std::pair<int,MutationType>(map_identifier, new_mutation_type));
+					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType>(map_identifier, new_mutation_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << new_mutation_type << endl;
@@ -948,7 +946,7 @@ void Initialize(Population &p_population,
 					}
 					
 					GenomicElementType new_genomic_element_type = GenomicElementType(mutation_types, mutation_fractions);
-					p_chromosome.genomic_element_types_.insert(std::pair<int,GenomicElementType>(map_identifier, new_genomic_element_type));
+					p_chromosome.genomic_element_types_.insert(std::pair<const int,GenomicElementType>(map_identifier, new_genomic_element_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #GENOMIC ELEMENT TYPES: " << "g" << map_identifier << " " << new_genomic_element_type << endl;
@@ -1106,7 +1104,7 @@ void Initialize(Population &p_population,
 					
 					Event new_event(event_type, event_parameters);
 					
-					p_events.insert(std::pair<int,Event>(event_time, new_event));
+					p_events.insert(std::pair<const int,Event>(event_time, new_event));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #DEMOGRAPHY AND STRUCTURE: event_time " << event_time << " " << new_event << endl;
@@ -1141,7 +1139,7 @@ void Initialize(Population &p_population,
 					
 					Event new_event = Event(event_type, event_parameters);
 					
-					p_outputs.insert(std::pair<int,Event>(event_time, new_event));
+					p_outputs.insert(std::pair<const int,Event>(event_time, new_event));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #OUTPUT: event_time " << event_time << " " << new_event << endl;
@@ -1186,7 +1184,7 @@ void Initialize(Population &p_population,
 					
 					IntroducedMutation new_introduced_mutation(mutation_type, position, subpop_index, generation, num_AA, num_Aa);
 					
-					p_introduced_mutations.insert(std::pair<int,IntroducedMutation>(generation, new_introduced_mutation));
+					p_introduced_mutations.insert(std::pair<const int,IntroducedMutation>(generation, new_introduced_mutation));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #PREDETERMINED MUTATIONS: generation " << generation << " " << new_introduced_mutation << endl;

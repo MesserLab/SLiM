@@ -51,22 +51,21 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 	int time_duration;
 	Chromosome chromosome;
 	Population population;
-	std::map<int,Subpopulation>::iterator subpopulation_iter;
 	
 	population.parameters_.push_back("#INPUT PARAMETER FILE");
 	population.parameters_.push_back(p_input_file);
 	
 	// demographic and structure events
-	multimap<int,Event> events; 
-	multimap<int,Event>::iterator eventsIterator;
+	multimap<const int,Event> events; 
+	multimap<const int,Event>::iterator eventsIterator;
 	
 	// output events (time, output)
-	multimap<int,Event> outputs; 
-	multimap<int,Event>::iterator outputsIterator;
+	multimap<const int,Event> outputs; 
+	multimap<const int,Event>::iterator outputsIterator;
 	
 	// user-defined mutations that will be introduced (time, mutation)
-	multimap<int,IntroducedMutation> introduced_mutations; 
-	multimap<int,IntroducedMutation>::iterator introduced_mutations_iter;
+	multimap<const int,IntroducedMutation> introduced_mutations; 
+	multimap<const int,IntroducedMutation>::iterator introduced_mutations_iter;
 	
 	// tracked mutation-types
 	std::vector<int> tracked_mutations; 
@@ -83,23 +82,23 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 	for (int generation = time_start; generation < (time_start + time_duration); generation++)
 	{ 
 		// execute demographic and substructure events in this generation 
-		std::pair<multimap<int,Event>::iterator,multimap<int,Event>::iterator> event_range = events.equal_range(generation);
+		std::pair<multimap<const int,Event>::iterator,multimap<const int,Event>::iterator> event_range = events.equal_range(generation);
 		
 		for (eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
 			population.ExecuteEvent(eventsIterator->second, generation, chromosome, tracked_mutations);
 		
 		// evolve all subpopulations
-		for (subpopulation_iter = population.begin(); subpopulation_iter != population.end(); subpopulation_iter++)
-			population.EvolveSubpopulation(subpopulation_iter->first, chromosome, generation);
+		for (const std::pair<const int,Subpopulation> &subpop_pair : population)
+			population.EvolveSubpopulation(subpop_pair.first, chromosome, generation);
 		
 		// introduce user-defined mutations
-		std::pair<multimap<int,IntroducedMutation>::iterator,multimap<int,IntroducedMutation>::iterator> introd_mut_range = introduced_mutations.equal_range(generation);
+		std::pair<multimap<const int,IntroducedMutation>::iterator,multimap<const int,IntroducedMutation>::iterator> introd_mut_range = introduced_mutations.equal_range(generation);
 		
 		for (introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
 			population.IntroduceMutation(introduced_mutations_iter->second, chromosome);
 		
 		// execute output events
-		std::pair<multimap<int,Event>::iterator,multimap<int,Event>::iterator> output_event_range = outputs.equal_range(generation);
+		std::pair<multimap<const int,Event>::iterator,multimap<const int,Event>::iterator> output_event_range = outputs.equal_range(generation);
 		for (outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
 			population.ExecuteEvent(outputsIterator->second, generation, chromosome, tracked_mutations);
 		
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
 	{
 		char *arg = argv[arg_index];
 		
-		// -seed <x> : override the default seed with the supplied seed value
+		// -seed <x>: override the default seed with the supplied seed value
 		if (strcmp(arg, "-seed") == 0)
 		{
 			if (++arg_index == argc)
@@ -142,7 +141,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		// -time : take a time measurement and output it at the end of execution
+		// -time: take a time measurement and output it at the end of execution
 		if (strcmp(arg, "-time") == 0)
 		{
 			keep_time = true;

@@ -18,15 +18,77 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "subpopulation.h"
+#include <iostream>
 
+#include "subpopulation.h"
+#include "stacktrace.h"
+
+
+bool Subpopulation::s_log_copy_and_assign_ = true;
+
+
+Subpopulation::Subpopulation(const Subpopulation& p_original)
+{
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Subpopulation::Subpopulation(Subpopulation&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+	
+	lookup_individual_ = p_original.lookup_individual_;   
+	subpop_size_ = p_original.subpop_size_;
+	selfing_fraction_ = p_original.selfing_fraction_;
+	
+	bool old_log = Genome::LogGenomeCopyAndAssign(false);
+	parent_genomes_ = p_original.parent_genomes_;
+	child_genomes_ = p_original.child_genomes_;
+	Genome::LogGenomeCopyAndAssign(old_log);
+	
+	migrant_fractions_ = p_original.migrant_fractions_;
+}
+
+Subpopulation& Subpopulation::operator= (const Subpopulation& p_original)
+{
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Subpopulation::operator=(Subpopulation&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+	
+	lookup_individual_ = p_original.lookup_individual_;   
+	subpop_size_ = p_original.subpop_size_;
+	selfing_fraction_ = p_original.selfing_fraction_;
+
+	bool old_log = Genome::LogGenomeCopyAndAssign(false);
+	parent_genomes_ = p_original.parent_genomes_;
+	child_genomes_ = p_original.child_genomes_;
+	Genome::LogGenomeCopyAndAssign(old_log);
+
+	migrant_fractions_ = p_original.migrant_fractions_;
+	
+	return *this;
+}
+
+bool Subpopulation::LogSubpopulationCopyAndAssign(bool p_log)
+{
+	bool old_value = s_log_copy_and_assign_;
+	
+	s_log_copy_and_assign_ = p_log;
+	
+	return old_value;
+}
 
 Subpopulation::Subpopulation(int p_subpop_size)
 {
 	subpop_size_ = p_subpop_size;
 	selfing_fraction_ = 0.0;
+	
+	bool old_log = Genome::LogGenomeCopyAndAssign(false);
 	parent_genomes_.resize(2 * subpop_size_);
 	child_genomes_.resize(2 * subpop_size_);
+	Genome::LogGenomeCopyAndAssign(old_log);
 	
 	// Set up to draw random individuals, based initially on equal fitnesses
 	double A[subpop_size_];
@@ -34,25 +96,25 @@ Subpopulation::Subpopulation(int p_subpop_size)
 	for (int i = 0; i < subpop_size_; i++)
 		A[i] = 1.0;
 	
-	lookup_individual = gsl_ran_discrete_preproc(subpop_size_, A);
+	lookup_individual_ = gsl_ran_discrete_preproc(subpop_size_, A);
 }
 
 int Subpopulation::DrawIndividual() const
 {
-	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_individual));
+	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_individual_));
 }
 
 void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
 {
 	// calculate fitnesses in parent population and create new lookup table
-	gsl_ran_discrete_free(lookup_individual);
+	gsl_ran_discrete_free(lookup_individual_);
 	
 	double A[static_cast<int>(parent_genomes_.size() / 2)];
 	
 	for (int i = 0; i < static_cast<int>(parent_genomes_.size() / 2); i++)
 		A[i] = FitnessOfIndividualWithGenomeIndices(2 * i, 2 * i + 1, p_chromosome);
 	
-	lookup_individual = gsl_ran_discrete_preproc(static_cast<int>(parent_genomes_.size() / 2), A);
+	lookup_individual_ = gsl_ran_discrete_preproc(static_cast<int>(parent_genomes_.size() / 2), A);
 }
 
 double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const
@@ -204,7 +266,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		}
 	}
 	
-	return (w < 0 ? 0.0 : w);
+	return (w < 0 ? 0.0:w);
 }
 
 void Subpopulation::SwapChildAndParentGenomes()

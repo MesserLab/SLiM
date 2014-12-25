@@ -55,13 +55,13 @@ void Chromosome::InitializeDraws()
 		}
 	}
 	
-	for (std::map<int,GenomicElementType>::const_iterator genomic_element_type_iter = genomic_element_types_.begin(); genomic_element_type_iter != genomic_element_types_.end(); genomic_element_type_iter++)
+	for (const std::pair<const int,GenomicElementType> &genomic_element_pair : genomic_element_types_)
 	{
-		for (int j = 0; j < genomic_element_type_iter->second.mutation_types_.size(); j++)
+		for (int j = 0; j < genomic_element_pair.second.mutation_types_.size(); j++)
 		{
-			if (mutation_types_.count(genomic_element_type_iter->second.mutation_types_[j]) == 0)
+			if (mutation_types_.count(genomic_element_pair.second.mutation_types_[j]) == 0)
 			{
-				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_type_iter->second.mutation_types_[j] << " not defined" << std::endl;
+				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_pair.second.mutation_types_[j] << " not defined" << std::endl;
 				exit(1); 
 			}
 		}
