@@ -49,16 +49,25 @@ public:
 };
 
 // true if M1 has an earlier (smaller) position than M2
-bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2);
+inline bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2)
+{
+	return (p_mutation1.position_ < p_mutation2.position_);
+}
 
 // true if M1 and M2 have the same position, type, and selection coefficient
-bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2);
+inline bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2)
+{
+	return (p_mutation1.position_ == p_mutation2.position_ &&
+			p_mutation1.mutation_type_ == p_mutation2.mutation_type_ &&
+			p_mutation1.selection_coeff_ == p_mutation2.selection_coeff_);
+}
 
 // support stream output of Mutation, for debugging
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation);
 
 
 #endif /* defined(__SLiM__mutation__) */
+
 
 
 

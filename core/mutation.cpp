@@ -32,18 +32,6 @@ Mutation::Mutation(int p_mutation_type, int p_position, double p_selection_coeff
 	generation_ = p_generation;
 }
 
-bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2)
-{
-	return (p_mutation1.position_ < p_mutation2.position_);
-}
-
-bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2)
-{
-	return (p_mutation1.position_ == p_mutation2.position_ &&
-			p_mutation1.mutation_type_ == p_mutation2.mutation_type_ &&
-			p_mutation1.selection_coeff_ == p_mutation2.selection_coeff_);
-}
-
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 {
 	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", generation_ " << p_mutation.generation_;
