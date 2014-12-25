@@ -139,7 +139,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		{
 			double selection_coeff = genome1_iter->selection_coeff_;
 			
-			if (selection_coeff != 0)
+			if (selection_coeff != 0.0)
 			{
 				int mutation_type = genome1_iter->mutation_type_;
 				
@@ -160,7 +160,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		{
 			double selection_coeff = genome2_iter->selection_coeff_;
 			
-			if (selection_coeff != 0)
+			if (selection_coeff != 0.0)
 			{
 				int mutation_type = genome2_iter->mutation_type_;
 				
@@ -266,7 +266,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		}
 	}
 	
-	return (w < 0 ? 0.0:w);
+	return (w < 0.0 ? 0.0 : w);
 }
 
 void Subpopulation::SwapChildAndParentGenomes()

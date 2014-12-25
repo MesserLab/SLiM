@@ -1,4 +1,10 @@
 set up testing code for validation, check against old version of the code
+pointers instead of non-const references
+use EXIT_FAILURE and EXIT_SUCCESS, defined in cstdlib
+assert, NDEBUG, __FILE__, __LINE__
+import list of targets from emails, start on adding sex
+optimization: could add a unique ID to Mutation to allow faster tests for equality in places like FitnessOfIndividualWithGenomeIndices(); slightly changes the definition of equality, however!
+optimization: for FitnessOfIndividualWithGenomeIndices, have Mutation cache the selection coefficient pre-multiplied with the dominance coefficient, plus 1.0
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -32,8 +38,35 @@ output tails:
 	-seed 1418961197 ./examples/input_example_3.txt:	329 m1 2099186 -0.000473915 0.2 p1 97746 99887
 
 profile results:
-	for input_example_1.txt, 97.9% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
-	for input_example_3.txt, 97.8% of time spent in gsl_ran_poisson() inside Chromosome::DrawBreakpoints()
-	is this really true??  nope.  but Population::CrossoverMutation() is very hot.
+Running Time	Self		Symbol Name
+98917.0ms   99.9%	12.0	 	   RunSLiM(char*, int*)
+62142.0ms   62.8%	672.0	 	    Population::EvolveSubpopulation(int, Chromosome const&, int)
+56247.0ms   56.8%	11150.0	 	     Population::CrossoverMutation(Subpopulation&, Subpopulation&, int, int, int, int, Chromosome const&, int)
+ 9948.0ms   10.0%	9948.0	 	      __gnu_cxx::new_allocator<Mutation>::construct(Mutation*, Mutation const&)
+ 6518.0ms    6.5%	529.0	 	      std::vector<int, std::allocator<int> >::_M_insert_aux(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, int const&)
+ 5738.0ms    5.8%	0.0	 	          __gnu_cxx::new_allocator<Mutation>::deallocate(Mutation*, unsigned long)
+ 5387.0ms    5.4%	424.0	 	      Chromosome::DrawBreakpoints() const
+ 5091.0ms    5.1%	5091.0	 	      __gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > >::operator++(int)
+ 3119.0ms    3.1%	2606.0	 	      gsl_rng_uniform_int
+ 3093.0ms    3.1%	523.0	 	      gsl_ran_poisson
+ 1709.0ms    1.7%	32.0	 	      Chromosome::DrawNewMutation(int, int) const
+ 1300.0ms    1.3%	1300.0	 	      __gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >::__normal_iterator(Mutation* const&)
+  933.0ms    0.9%	48.0	 	      void std::sort<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)
+  532.0ms    0.5%	0.0	 	          std::vector<Mutation, std::allocator<Mutation> >::clear()
+  279.0ms    0.2%	151.0	 	      std::vector<Mutation, std::allocator<Mutation> >::push_back(Mutation const&)
+  277.0ms    0.2%	14.0	 	      std::vector<Mutation, std::allocator<Mutation> >::_M_insert_aux(__gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >, Mutation const&)
+ 2751.0ms    2.7%	1829.0	 	     gsl_ran_discrete
+ 1888.0ms    1.9%	1623.0	 	     gsl_ran_shuffle
+36661.0ms   37.0%	1.0	 	        Population::SwapGenerations(int, Chromosome const&)
+33102.0ms   33.4%	114.0	 	     Subpopulation::UpdateFitness(Chromosome const&)
+30181.0ms   30.5%	29470.0	 	      Subpopulation::FitnessOfIndividualWithGenomeIndices(int, int, Chromosome const&) const
+  457.0ms    0.4%	457.0	 	       bool __gnu_cxx::operator!=<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > >(__gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > > const&, __gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > > const&)
+ 2765.0ms    2.7%	2486.0	 	      gsl_ran_discrete_preproc
+ 3538.0ms    3.5%	227.0	 	     Population::RemoveFixedMutations(int)
+ 1226.0ms    1.2%	368.0	 	      GenomeWithFixedMutations(Genome const&, Genome const&)
+  486.0ms    0.4%	39.0	 	       std::vector<Mutation, std::allocator<Mutation> >::_M_insert_aux(__gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >, Mutation const&)
+ 1194.0ms    1.2%	316.0	 	      Genome::operator=(Genome const&)
+  513.0ms    0.5%	25.0	 	      GenomeWithPolymorphicMutations(Genome const&, Genome const&)
+  347.0ms    0.3%	108.0	 	      Genome::~Genome()
 
 
