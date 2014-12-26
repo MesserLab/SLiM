@@ -41,7 +41,7 @@
 #include "partial_sweep.h"
 
 
-class Population : public std::map<int,Subpopulation>
+class Population : public std::map<int,Subpopulation*>
 {
 private:
 	

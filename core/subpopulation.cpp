@@ -25,62 +25,6 @@
 #include "stacktrace.h"
 
 
-bool Subpopulation::s_log_copy_and_assign_ = true;
-
-
-Subpopulation::Subpopulation(const Subpopulation& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::Subpopulation(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-	
-	lookup_individual_ = p_original.lookup_individual_;   
-	subpop_size_ = p_original.subpop_size_;
-	selfing_fraction_ = p_original.selfing_fraction_;
-	
-	bool old_log = Genome::LogGenomeCopyAndAssign(false);
-	parent_genomes_ = p_original.parent_genomes_;
-	child_genomes_ = p_original.child_genomes_;
-	Genome::LogGenomeCopyAndAssign(old_log);
-	
-	migrant_fractions_ = p_original.migrant_fractions_;
-}
-
-Subpopulation& Subpopulation::operator= (const Subpopulation& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::operator=(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-	
-	lookup_individual_ = p_original.lookup_individual_;   
-	subpop_size_ = p_original.subpop_size_;
-	selfing_fraction_ = p_original.selfing_fraction_;
-
-	bool old_log = Genome::LogGenomeCopyAndAssign(false);
-	parent_genomes_ = p_original.parent_genomes_;
-	child_genomes_ = p_original.child_genomes_;
-	Genome::LogGenomeCopyAndAssign(old_log);
-
-	migrant_fractions_ = p_original.migrant_fractions_;
-	
-	return *this;
-}
-
-bool Subpopulation::LogSubpopulationCopyAndAssign(bool p_log)
-{
-	bool old_value = s_log_copy_and_assign_;
-	
-	s_log_copy_and_assign_ = p_log;
-	
-	return old_value;
-}
-
 Subpopulation::Subpopulation(int p_subpop_size)
 {
 	subpop_size_ = p_subpop_size;

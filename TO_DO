@@ -41,6 +41,7 @@ timings (user time, with g++ build executed on command line):
 		26 Dec. 2014	2m31.647s	conversion of mutation_type_ to pointer		(final output p1:4426 15 16)
 		26 Dec. 2014	2m31.267s	removal of dominance_coeff cache		(final output p1:4426 15 16)
 		26 Dec. 2014	2m29.125s	conversion of MutationType to completely uncopyable		(final output p1:4426 15 16)
+		26 Dec. 2014	2m29.330s	conversion of Subpopulation to completely uncopyable		(final output p1:4426 15 16)
 
 profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name

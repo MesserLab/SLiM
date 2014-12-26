@@ -812,14 +812,14 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		while (iss >> sub) 
 		{
 			int id = atoi(sub.c_str());
-			p_population.find(p)->second.parent_genomes_[i - 1].push_back(M.find(id)->second);
+			p_population.find(p)->second->parent_genomes_[i - 1].push_back(M.find(id)->second);
 		}
 		
 		GetInputLine(infile, line);
 	}
 	
-	for (std::pair<const int,Subpopulation> &subpop_pair : p_population)
-		subpop_pair.second.UpdateFitness();
+	for (std::pair<const int,Subpopulation*> &subpop_pair : p_population)
+		subpop_pair.second->UpdateFitness();
 }
 
 void Initialize(Population &p_population,

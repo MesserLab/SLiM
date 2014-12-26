@@ -88,7 +88,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 			population.ExecuteEvent(eventsIterator->second, generation, chromosome, tracked_mutations);
 		
 		// evolve all subpopulations
-		for (const std::pair<const int,Subpopulation> &subpop_pair : population)
+		for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
 			population.EvolveSubpopulation(subpop_pair.first, chromosome, generation);
 		
 		// introduce user-defined mutations

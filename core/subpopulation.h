@@ -41,8 +41,13 @@ class Subpopulation
 {
 private:
 	
-	static bool s_log_copy_and_assign_;
-	gsl_ran_discrete_t *lookup_individual_;   
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	Subpopulation(const Subpopulation&);						// disable copy constructor
+	Subpopulation &operator = (const Subpopulation&);			// disable assignment operator
+	
+	gsl_ran_discrete_t *lookup_individual_;
 	
 public:
 	
@@ -53,17 +58,6 @@ public:
 	std::vector<Genome> child_genomes_;
 	
 	std::map<int,double> migrant_fractions_; // m[i]: fraction made up of migrants from subpopulation i per generation
-	
-	
-	//
-	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
-	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
-	//	constructor and the default assignment operator to log whenever they are called.  This is intended to reduce the risk of
-	//	unintentional copying.  Logging can be disabled by calling LogSubpopulationCopyAndAssign() when appropriate.
-	//
-	Subpopulation(const Subpopulation &p_original);
-	Subpopulation& operator= (const Subpopulation &p_original);
-	static bool LogSubpopulationCopyAndAssign(bool p_log);			// returns the old value; save and restore that value!
 	
 	
 	Subpopulation(int p_subpop_size);
