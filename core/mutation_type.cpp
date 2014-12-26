@@ -18,11 +18,12 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "mutation_type.h"
-#include "g_rng.h"
-
 #include <iostream>
 #include <gsl/gsl_randist.h>
+
+#include "mutation_type.h"
+#include "g_rng.h"
+#include "stacktrace.h"
 
 
 using std::cerr;
@@ -30,8 +31,54 @@ using std::endl;
 using std::string;
 
 
-MutationType::MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters)
+bool MutationType::s_log_copy_and_assign_ = true;
+
+
+MutationType::MutationType(const MutationType& p_original)
 {
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Subpopulation::Subpopulation(Subpopulation&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+	
+	mutation_type_id_ = p_original.mutation_type_id_;
+	dominance_coeff_ = p_original.dominance_coeff_;
+	dfe_type_ = p_original.dfe_type_;
+	dfe_parameters_ = p_original.dfe_parameters_;
+}
+
+MutationType& MutationType::operator= (const MutationType& p_original)
+{
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Subpopulation::operator=(Subpopulation&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+	
+	mutation_type_id_ = p_original.mutation_type_id_;
+	dominance_coeff_ = p_original.dominance_coeff_;
+	dfe_type_ = p_original.dfe_type_;
+	dfe_parameters_ = p_original.dfe_parameters_;
+	
+	return *this;
+}
+
+bool MutationType::LogMutationTypeCopyAndAssign(bool p_log)
+{
+	bool old_value = s_log_copy_and_assign_;
+	
+	s_log_copy_and_assign_ = p_log;
+	
+	return old_value;
+}
+
+MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters)
+{
+	mutation_type_id_ = p_mutation_type_id;
+	
 	dominance_coeff_ = static_cast<float>(p_dominance_coeff);
 	dfe_type_ = p_dfe_type;
 	dfe_parameters_ = p_dfe_parameters;

@@ -38,7 +38,7 @@ class Substitution
 {
 public:
 	
-	int   mutation_type_;		// mutation type
+	const MutationType *mutation_type_ptr_;		// mutation type identifier
 	int   position_;			// position
 	float selection_coeff_;		// selection coefficient
 	int   subpop_index_;		// subpopulation in which mutation arose
@@ -47,7 +47,7 @@ public:
 	
 	Substitution(Mutation p_mutation, int p_fixation_time);
 	
-	void print(const Chromosome &p_chromosome) const;
+	void print() const;
 };
 
 

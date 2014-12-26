@@ -788,7 +788,14 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		
 		int g = atoi(sub.c_str());
 		
-		M.insert(std::pair<const int,Mutation>(id, Mutation(t, x, s, i, g)));
+		const MutationType *mutation_type_ptr = &(p_chromosome.mutation_types_.find(t)->second);
+		
+		if (!mutation_type_ptr) 
+		{ 
+			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< t << " has not been defined" << endl; exit(1); 
+		}
+		
+		M.insert(std::pair<const int,Mutation>(id, Mutation(mutation_type_ptr, x, s, i, g)));
 		
 		GetInputLine(infile, line); 
 	}
@@ -812,7 +819,7 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 	}
 	
 	for (std::pair<const int,Subpopulation> &subpop_pair : p_population)
-		subpop_pair.second.UpdateFitness(p_chromosome);
+		subpop_pair.second.UpdateFitness();
 }
 
 void Initialize(Population &p_population,
@@ -900,8 +907,10 @@ void Initialize(Population &p_population,
 					while (iss >> sub)
 						dfe_parameters.push_back(atof(sub.c_str()));
 					
-					MutationType new_mutation_type = MutationType(dominance_coeff, dfe_type, dfe_parameters);
+					bool old_log = MutationType::LogMutationTypeCopyAndAssign(false);
+					MutationType new_mutation_type = MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
 					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType>(map_identifier, new_mutation_type));
+					MutationType::LogMutationTypeCopyAndAssign(old_log);
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << new_mutation_type << endl;
@@ -1167,7 +1176,7 @@ void Initialize(Population &p_population,
 					
 					iss >> sub;
 					sub.erase(0, 1);	// m
-					int mutation_type = atoi(sub.c_str());
+					int mutation_type_id = atoi(sub.c_str());
 					
 					iss >> sub;
 					int position = static_cast<int>(atof(sub.c_str())) - 1;
@@ -1182,7 +1191,9 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int num_Aa = static_cast<int>(atof(sub.c_str()));
 					
-					IntroducedMutation new_introduced_mutation(mutation_type, position, subpop_index, generation, num_AA, num_Aa);
+					const MutationType *mutation_type_ptr = &(p_chromosome.mutation_types_.find(mutation_type_id)->second);
+					
+					IntroducedMutation new_introduced_mutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					
 					p_introduced_mutations.insert(std::pair<const int,IntroducedMutation>(generation, new_introduced_mutation));
 					
@@ -1195,7 +1206,7 @@ void Initialize(Population &p_population,
 						{
 							iss >> sub;
 							double target_prevalence = atof(sub.c_str());
-							PartialSweep new_partial_sweep = PartialSweep(mutation_type, position, target_prevalence);
+							PartialSweep new_partial_sweep = PartialSweep(mutation_type_ptr, position, target_prevalence);
 							
 							p_partial_sweeps.push_back(new_partial_sweep);
 							

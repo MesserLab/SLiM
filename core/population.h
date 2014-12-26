@@ -78,10 +78,10 @@ public:
 	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> &p_tracked_mutations);
 	
 	// introduce a user-defined mutation
-	void IntroduceMutation(IntroducedMutation p_introduced_mutation, const Chromosome &p_chromosome);
+	void IntroduceMutation(IntroducedMutation p_introduced_mutation);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps, const Chromosome &p_chromosome);
+	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation);
@@ -90,19 +90,19 @@ public:
 	void CrossoverMutation(Subpopulation &subpop, Subpopulation &source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-	void SwapGenerations(int p_generation, const Chromosome &p_chromosome);
+	void SwapGenerations(int p_generation);
 	
 	// find mutations that are fixed in all child subpopulations and remove them
 	void RemoveFixedMutations(int p_generation);
 	
 	// print all mutations and all genomes
-	void PrintAll(const Chromosome &p_chromosome) const;
+	void PrintAll() const;
 	
 	// print all mutations and all genomes to a file
-	void PrintAll(std::ofstream &p_outfile, const Chromosome &p_chromosome) const;
+	void PrintAll(std::ofstream &p_outfile) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id
-	void PrintSample(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome) const;
+	void PrintSample(int p_subpop_id, int p_sample_size) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 	void PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome) const;

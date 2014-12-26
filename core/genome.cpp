@@ -92,7 +92,7 @@ Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2
 				
 				while (temp != genome2_max && (*temp).position_ == position)
 				{
-					if ((*temp).mutation_type_==(*genome1_iter).mutation_type_ && (*temp).selection_coeff_==(*genome1_iter).selection_coeff_)
+					if ((*temp).mutation_type_ptr_ == (*genome1_iter).mutation_type_ptr_ && (*temp).selection_coeff_ == (*genome1_iter).selection_coeff_)
 						merge_genome.push_back(*genome1_iter);
 					
 					temp++;
@@ -144,7 +144,7 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 				
 				while (temp != genome2_max && (*temp).position_ == position)
 				{
-					if ((*genome1_iter).mutation_type_==(*temp).mutation_type_ && (*genome1_iter).selection_coeff_==(*temp).selection_coeff_)
+					if ((*genome1_iter).mutation_type_ptr_ == (*temp).mutation_type_ptr_ && (*genome1_iter).selection_coeff_ == (*temp).selection_coeff_)
 						polymorphic = false;
 					
 					temp++;

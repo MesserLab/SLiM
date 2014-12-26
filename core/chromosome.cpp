@@ -117,13 +117,13 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 	
 	int mutation_type_id = genomic_element_type.DrawMutationType();
 	
-	MutationType mutation_type = mutation_types_.find(mutation_type_id)->second;
+	const MutationType *mutation_type_ptr = &(mutation_types_.find(mutation_type_id)->second);
 	
 	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
-	double selection_coeff = mutation_type.DrawSelectionCoefficient();
+	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
-	return Mutation(mutation_type_id, position, selection_coeff, p_subpop_index, p_generation);
+	return Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability

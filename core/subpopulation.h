@@ -70,9 +70,9 @@ public:
 	
 	int DrawIndividual() const;
 	
-	void UpdateFitness(const Chromosome &p_chromosome);
+	void UpdateFitness();
 	
-	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const;
+	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;
 	
 	void SwapChildAndParentGenomes();
 };

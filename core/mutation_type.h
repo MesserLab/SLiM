@@ -35,6 +35,10 @@
 
 class MutationType
 {
+private:
+	
+	static bool s_log_copy_and_assign_;
+	
 public:
 	
 	// a mutation type is specified by the DFE and the dominance coefficient
@@ -44,12 +48,25 @@ public:
 	//              g: gamma distribution (mean s,shape)
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
+	int mutation_type_id_;						// the id by which this mutation type is indexed in the chromosome
 	
 	float dominance_coeff_;						// dominance coefficient (h)
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
-	MutationType(double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
+	
+	//
+	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
+	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
+	//	constructor and the default assignment operator to log whenever they are called.  This is intended to reduce the risk of
+	//	unintentional copying.  Logging can be disabled by calling LogMutationTypeCopyAndAssign() when appropriate.
+	//
+	MutationType(const MutationType &p_original);
+	MutationType& operator= (const MutationType &p_original);
+	static bool LogMutationTypeCopyAndAssign(bool p_log);			// returns the old value; save and restore that value!
+	
+	
+	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 	
 	double DrawSelectionCoefficient() const;
 };

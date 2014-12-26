@@ -38,19 +38,19 @@ class Polymorphism
 public:
 	
 	int   mutation_id_; // mutation id
-	int   mutation_type_;  // mutation type
+	const MutationType *mutation_type_ptr_;		// mutation type identifier
 	float selection_coeff_;  // selection coefficient
 	int   subpop_index_;  // subpopulation in which mutation arose
 	int   generation_;  // generation in which mutation arose  
 	int   prevalence_;  // prevalence
 	
-	Polymorphism(int p_mutation_id, int p_mutation_type, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
+	Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
 	
-	void print(int p_index, const Chromosome &p_chromosome) const;
+	void print(int p_index) const;
 	
-	void print(std::ofstream &p_outfile, int p_index, const Chromosome &p_chromosome) const;
+	void print(std::ofstream &p_outfile, int p_index) const;
 	
-	void print_no_id(int p_index, const Chromosome &p_chromosome) const;
+	void print_no_id(int p_index) const;
 };
 
 

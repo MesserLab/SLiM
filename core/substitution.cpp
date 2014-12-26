@@ -25,7 +25,7 @@
 
 Substitution::Substitution(Mutation p_mutation, int p_fixation_time)
 {
-	mutation_type_ = p_mutation.mutation_type_;
+	mutation_type_ptr_ = p_mutation.mutation_type_ptr_;
 	position_ = p_mutation.position_;
 	selection_coeff_ = p_mutation.selection_coeff_;
 	subpop_index_ = p_mutation.subpop_index_;
@@ -33,11 +33,9 @@ Substitution::Substitution(Mutation p_mutation, int p_fixation_time)
 	fixation_time_ = p_fixation_time;
 }
 
-void Substitution::print(const Chromosome &p_chromosome) const
+void Substitution::print() const
 { 
-	double dominance_coeff = p_chromosome.mutation_types_.find(mutation_type_)->second.dominance_coeff_;
-	
-	std::cout << " m" << mutation_type_ << " " << position_+1 << " " << selection_coeff_ << " " << dominance_coeff << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl; 
+	std::cout << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_+1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl; 
 }
 
 

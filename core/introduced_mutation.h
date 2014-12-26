@@ -40,7 +40,7 @@ public:
 	int num_homozygotes_;
 	int num_heterozygotes_;
 	
-	IntroducedMutation(int p_mutation_type, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes);
+	IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes);
 };
 
 // support stream output of IntroducedMutation, for debugging

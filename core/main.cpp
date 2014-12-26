@@ -95,7 +95,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 		std::pair<multimap<const int,IntroducedMutation>::iterator,multimap<const int,IntroducedMutation>::iterator> introd_mut_range = introduced_mutations.equal_range(generation);
 		
 		for (introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
-			population.IntroduceMutation(introduced_mutations_iter->second, chromosome);
+			population.IntroduceMutation(introduced_mutations_iter->second);
 		
 		// execute output events
 		std::pair<multimap<const int,Event>::iterator,multimap<const int,Event>::iterator> output_event_range = outputs.equal_range(generation);
@@ -104,10 +104,10 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 		
 		// track particular mutation-types and set s=0 for partial sweeps when completed
 		if (tracked_mutations.size() > 0 || partial_sweeps.size() > 0)
-			population.TrackMutations(generation, tracked_mutations, partial_sweeps, chromosome);
+			population.TrackMutations(generation, tracked_mutations, partial_sweeps);
 		
 		// swap generations
-		population.SwapGenerations(generation, chromosome);   
+		population.SwapGenerations(generation);   
 	}
 }
 

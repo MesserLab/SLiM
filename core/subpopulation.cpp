@@ -105,7 +105,7 @@ int Subpopulation::DrawIndividual() const
 	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_individual_));
 }
 
-void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
+void Subpopulation::UpdateFitness()
 {
 	// calculate fitnesses in parent population and create new lookup table
 	gsl_ran_discrete_free(lookup_individual_);
@@ -113,12 +113,12 @@ void Subpopulation::UpdateFitness(const Chromosome &p_chromosome)
 	double A[static_cast<int>(parent_genomes_.size() / 2)];
 	
 	for (int i = 0; i < static_cast<int>(parent_genomes_.size() / 2); i++)
-		A[i] = FitnessOfIndividualWithGenomeIndices(2 * i, 2 * i + 1, p_chromosome);
+		A[i] = FitnessOfIndividualWithGenomeIndices(2 * i, 2 * i + 1);
 	
 	lookup_individual_ = gsl_ran_discrete_preproc(static_cast<int>(parent_genomes_.size() / 2), A);
 }
 
-double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2, const Chromosome &p_chromosome) const
+double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2) const
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
@@ -128,10 +128,6 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	
 	std::vector<Mutation>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
 	std::vector<Mutation>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
-	
-	// we cache the last observed dominance coefficient, for speed; this avoids the find(), the float->double conversion, etc.
-	double cached_dominance_coeff = 0.0;
-	int cached_dominance_coeff_mutation_type = INT_MIN;		// flag value that the cache is not set up
 	
 	// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 	if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -147,15 +143,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 				
 				if (selection_coeff != 0.0f)
 				{
-					int mutation_type = genome1_iter->mutation_type_;
-					
-					if (mutation_type != cached_dominance_coeff_mutation_type)
-					{
-						cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-						cached_dominance_coeff_mutation_type = mutation_type;
-					}
-					
-					w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					w *= (1.0 + genome1_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -175,15 +163,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 				
 				if (selection_coeff != 0.0f)
 				{
-					int mutation_type = genome2_iter->mutation_type_;
-					
-					if (mutation_type != cached_dominance_coeff_mutation_type)
-					{
-						cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-						cached_dominance_coeff_mutation_type = mutation_type;
-					}
-					
-					w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					w *= (1.0 + genome2_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -209,14 +189,14 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					
 					if (selection_coeff != 0.0f)
 					{
-						int mutation_type = genome1_iter->mutation_type_;
+						const MutationType *mutation_type_ptr = genome1_iter->mutation_type_ptr_;
 						std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
 						bool homozygous = false;
 						
 						// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
 						while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
 						{
-							if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == genome2_matchscan->selection_coeff_) 
+							if (mutation_type_ptr == genome2_matchscan->mutation_type_ptr_ && selection_coeff == genome2_matchscan->selection_coeff_) 
 							{
 								// a match was found, so we multiply our fitness by the full selection coefficient
 								w *= (1.0 + selection_coeff);
@@ -230,13 +210,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 						if (!homozygous)
 						{
-							if (mutation_type != cached_dominance_coeff_mutation_type)
-							{
-								cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-								cached_dominance_coeff_mutation_type = mutation_type;
-							}
-							
-							w *= (1.0 + cached_dominance_coeff * selection_coeff);
+							w *= (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -253,14 +227,14 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					
 					if (selection_coeff != 0.0f)
 					{
-						int mutation_type = genome2_iter->mutation_type_;
+						const MutationType *mutation_type_ptr = genome2_iter->mutation_type_ptr_;
 						std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
 						bool homozygous = false;
 						
 						// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
 						while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
 						{
-							if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == genome1_matchscan->selection_coeff_)
+							if (mutation_type_ptr == genome1_matchscan->mutation_type_ptr_ && selection_coeff == genome1_matchscan->selection_coeff_)
 							{
 								// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
 								homozygous = true;
@@ -273,13 +247,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 						if (!homozygous)
 						{
-							if (mutation_type != cached_dominance_coeff_mutation_type)
-							{
-								cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-								cached_dominance_coeff_mutation_type = mutation_type;
-							}
-							
-							w *= (1.0 + cached_dominance_coeff * selection_coeff);
+							w *= (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -309,15 +277,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		
 		if (selection_coeff != 0.0f)
 		{
-			int mutation_type = genome1_iter->mutation_type_;
-			
-			if (mutation_type != cached_dominance_coeff_mutation_type)
-			{
-				cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-				cached_dominance_coeff_mutation_type = mutation_type;
-			}
-			
-			w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			w *= (1.0 + genome1_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
 			if (w <= 0.0)
 				return 0.0;
@@ -333,15 +293,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 		
 		if (selection_coeff != 0.0f)
 		{
-			int mutation_type = genome2_iter->mutation_type_;
-			
-			if (mutation_type != cached_dominance_coeff_mutation_type)
-			{
-				cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-				cached_dominance_coeff_mutation_type = mutation_type;
-			}
-			
-			w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			w *= (1.0 + genome2_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
 			if (w <= 0.0)
 				return 0.0;

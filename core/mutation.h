@@ -30,22 +30,24 @@
 
 #include <iostream>
 
+#include "mutation_type.h"
+
 
 class Mutation
 {
 public:
 	
-	int   mutation_type_;		// mutation type identifier
-	int   position_;			// position on the chromosome
-	float selection_coeff_;		// selection coefficient
-	int   subpop_index_;		// subpopulation in which mutation arose
-	int   generation_;			// generation in which mutation arose  
+	const MutationType *mutation_type_ptr_;		// mutation type identifier
+	int   position_;				// position on the chromosome
+	float selection_coeff_;			// selection coefficient
+	int   subpop_index_;			// subpopulation in which mutation arose
+	int   generation_;				// generation in which mutation arose  
 	
 	// null constructor
 	Mutation(void);
 	
 	// standard constructor, supplying values for all ivars
-	Mutation(int p_mutation_type, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
+	Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 };
 
 // true if M1 has an earlier (smaller) position than M2
@@ -58,7 +60,7 @@ inline bool operator< (const Mutation &p_mutation1, const Mutation &p_mutation2)
 inline bool operator== (const Mutation &p_mutation1, const Mutation &p_mutation2)
 {
 	return (p_mutation1.position_ == p_mutation2.position_ &&
-			p_mutation1.mutation_type_ == p_mutation2.mutation_type_ &&
+			p_mutation1.mutation_type_ptr_ == p_mutation2.mutation_type_ptr_ &&
 			p_mutation1.selection_coeff_ == p_mutation2.selection_coeff_);
 }
 

@@ -21,9 +21,9 @@
 #include "introduced_mutation.h"
 
 
-IntroducedMutation::IntroducedMutation(int p_mutation_type, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes)
+IntroducedMutation::IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes)
 {
-	mutation_type_ = p_mutation_type;
+	mutation_type_ptr_ = p_mutation_type_ptr;
 	position_ = p_position;
 	subpop_index_ = p_subpop_index;
 	generation_ = p_generation;
@@ -33,7 +33,7 @@ IntroducedMutation::IntroducedMutation(int p_mutation_type, int p_position, int 
 
 std::ostream &operator<<(std::ostream &p_outstream, const IntroducedMutation &p_introduced_mutation)
 {
-	p_outstream << "IntroducedMutation{mutation_type_ " << p_introduced_mutation.mutation_type_ << ", position_ " << p_introduced_mutation.position_ << ", subpop_index_ " << p_introduced_mutation.subpop_index_ << ", generation_ " << p_introduced_mutation.generation_ << ", num_homozygotes_ " << p_introduced_mutation.num_homozygotes_ << ", num_heterozygotes_ " << p_introduced_mutation.num_heterozygotes_ << "}";
+	p_outstream << "IntroducedMutation{mutation_type_ " << p_introduced_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_introduced_mutation.position_ << ", subpop_index_ " << p_introduced_mutation.subpop_index_ << ", generation_ " << p_introduced_mutation.generation_ << ", num_homozygotes_ " << p_introduced_mutation.num_homozygotes_ << ", num_heterozygotes_ " << p_introduced_mutation.num_heterozygotes_ << "}";
 	
 	return p_outstream;
 }

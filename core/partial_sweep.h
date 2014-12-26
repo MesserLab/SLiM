@@ -30,16 +30,18 @@
 
 #include <iostream>
 
+#include "mutation_type.h"
+
 
 class PartialSweep
 {
 public:
 	
-	int mutation_type_;
+	const MutationType *mutation_type_ptr_;		// mutation type identifier
 	int position_;
 	double target_prevalence_;
 	
-	PartialSweep(int p_mutation_type, int p_position, double p_target_prevalence);
+	PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence);
 };
 
 // support stream output of PartialSweep, for debugging
