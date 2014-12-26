@@ -21,8 +21,9 @@
 #include "genomic_element_type.h"
 
 
-GenomicElementType::GenomicElementType(std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions)
+GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions)
 {
+	genomic_element_type_id_ = p_genomic_element_type_id;
 	mutation_types_ = p_mutation_types;
 	mutation_fractions_ = p_mutation_fractions;  
 	

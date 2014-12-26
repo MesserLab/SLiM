@@ -46,22 +46,13 @@ void Chromosome::InitializeDraws()
 	
 	length_ = 0;
 	
-	for (int i = 0; i < size(); i++)
+	for (const std::pair<const int,GenomicElementType*> &genomic_element_pair : genomic_element_types_)
 	{
-		if (genomic_element_types_.count((*this)[i].genomic_element_type_) == 0) 
+		for (int j = 0; j < genomic_element_pair.second->mutation_types_.size(); j++)
 		{
-			std::cerr << "ERROR (Initialize): genomic element type " << (*this)[i].genomic_element_type_ << " not defined" << std::endl;
-			exit(1); 
-		}
-	}
-	
-	for (const std::pair<const int,GenomicElementType> &genomic_element_pair : genomic_element_types_)
-	{
-		for (int j = 0; j < genomic_element_pair.second.mutation_types_.size(); j++)
-		{
-			if (mutation_types_.count(genomic_element_pair.second.mutation_types_[j]) == 0)
+			if (mutation_types_.count(genomic_element_pair.second->mutation_types_[j]) == 0)
 			{
-				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_pair.second.mutation_types_[j] << " not defined" << std::endl;
+				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_pair.second->mutation_types_[j] << " not defined" << std::endl;
 				exit(1); 
 			}
 		}
@@ -112,8 +103,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 {
 	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
-	
-	GenomicElementType genomic_element_type = genomic_element_types_.find(source_element.genomic_element_type_)->second;
+	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	
 	int mutation_type_id = genomic_element_type.DrawMutationType();
 	

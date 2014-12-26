@@ -21,16 +21,16 @@
 #include "genomic_element.h"
 
 
-GenomicElement::GenomicElement(int p_genomic_element_type, int p_start_position, int p_end_position)
+GenomicElement::GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position)
 {
-	genomic_element_type_ = p_genomic_element_type;
+	genomic_element_type_ptr_ = p_genomic_element_type_ptr;
 	start_position_ = p_start_position;
 	end_position_ = p_end_position;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const GenomicElement &p_genomic_element)
 {
-	p_outstream << "GenomicElement{genomic_element_type_ g" << p_genomic_element.genomic_element_type_ << ", start_position_ " << p_genomic_element.start_position_ << ", end_position_ " << p_genomic_element.end_position_ << "}";
+	p_outstream << "GenomicElement{genomic_element_type_ g" << p_genomic_element.genomic_element_type_ptr_->genomic_element_type_id_ << ", start_position_ " << p_genomic_element.start_position_ << ", end_position_ " << p_genomic_element.end_position_ << "}";
 	
 	return p_outstream;
 }

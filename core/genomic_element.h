@@ -30,16 +30,18 @@
 
 #include <iostream>
 
+#include "genomic_element_type.h"
+
 
 class GenomicElement
 {
 public:
 	
-	int genomic_element_type_;
+	const GenomicElementType *genomic_element_type_ptr_;
 	int start_position_;
 	int end_position_;
 	
-	GenomicElement(int p_genomic_element_type, int p_start_position, int p_end_position);
+	GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
 };
 
 // support stream output of GenomicElement, for debugging

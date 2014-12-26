@@ -40,14 +40,22 @@ class GenomicElementType
 {
 private:
 	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	GenomicElementType(const GenomicElementType&);						// disable copy constructor
+	GenomicElementType &operator = (const GenomicElementType&);			// disable assignment operator
+	
 	gsl_ran_discrete_t *lookup_mutation_type;
 	
 public:
 	
+	int genomic_element_type_id_;				// the id by which this genomic element type is indexed in the chromosome
+	
 	std::vector<int>    mutation_types_;		// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;	// relative fractions of each mutation type
 	
-	GenomicElementType(std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions);
+	GenomicElementType(int p_genomic_element_type_id, std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions);
 	
 	int DrawMutationType() const;
 };

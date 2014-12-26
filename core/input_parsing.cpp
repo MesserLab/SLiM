@@ -953,8 +953,8 @@ void Initialize(Population &p_population,
 						exit(1);
 					}
 					
-					GenomicElementType new_genomic_element_type = GenomicElementType(mutation_types, mutation_fractions);
-					p_chromosome.genomic_element_types_.insert(std::pair<const int,GenomicElementType>(map_identifier, new_genomic_element_type));
+					GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);
+					p_chromosome.genomic_element_types_.insert(std::pair<const int,GenomicElementType*>(map_identifier, new_genomic_element_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #GENOMIC ELEMENT TYPES: " << "g" << map_identifier << " " << new_genomic_element_type << endl;
@@ -987,7 +987,8 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int end_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
-					GenomicElement new_genomic_element = GenomicElement(genomic_element_type, start_position, end_position);
+					const GenomicElementType *genomic_element_type_ptr = p_chromosome.genomic_element_types_.find(genomic_element_type)->second;
+					GenomicElement new_genomic_element = GenomicElement(genomic_element_type_ptr, start_position, end_position);
 					p_chromosome.push_back(new_genomic_element);
 					
 					if (DEBUG_INPUT)
