@@ -908,12 +908,11 @@ void Initialize(Population &p_population,
 						dfe_parameters.push_back(atof(sub.c_str()));
 					
 					bool old_log = MutationType::LogMutationTypeCopyAndAssign(false);
-					MutationType new_mutation_type = MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
-					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType>(map_identifier, new_mutation_type));
+					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType>(map_identifier, MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters)));
 					MutationType::LogMutationTypeCopyAndAssign(old_log);
 					
 					if (DEBUG_INPUT)
-						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << new_mutation_type << endl;
+						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << p_chromosome.mutation_types_.find(map_identifier)->second << endl;
 				} while (true);
 				
 				continue;
