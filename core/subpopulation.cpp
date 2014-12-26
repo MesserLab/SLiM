@@ -19,6 +19,7 @@
 
 
 #include <iostream>
+#include <assert.h>
 
 #include "subpopulation.h"
 #include "stacktrace.h"
@@ -132,141 +133,224 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	double cached_dominance_coeff = 0.0;
 	int cached_dominance_coeff_mutation_type = INT_MIN;		// flag value that the cache is not set up
 	
-	while (w > 0 && (genome1_iter != genome1_max || genome2_iter != genome2_max))
+	// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
+	if (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
-		// advance genome1_iter while genome1_iter.x < genome2_iter.x (or genome2_iter is done), to handle mutations that are in genome1 but not genome2
-		while (genome1_iter != genome1_max && (genome2_iter == genome2_max || genome1_iter->position_ < genome2_iter->position_))
-		{
-			double selection_coeff = genome1_iter->selection_coeff_;
-			
-			if (selection_coeff != 0.0)
-			{
-				int mutation_type = genome1_iter->mutation_type_;
-				
-				if (mutation_type != cached_dominance_coeff_mutation_type)
-				{
-					cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-					cached_dominance_coeff_mutation_type = mutation_type;
-				}
-				
-				w *= (1.0 + cached_dominance_coeff * selection_coeff);
-			}
-			
-			genome1_iter++;
-		}
+		int genome1_iter_position = genome1_iter->position_, genome2_iter_position = genome2_iter->position_;
 		
-		// advance genome2_iter while genome2_iter.x < genome1_iter.x (or genome1_iter is done), to handle mutations that are in genome2 but not genome1
-		while (genome2_iter != genome2_max && (genome1_iter == genome1_max || genome2_iter->position_ < genome1_iter->position_))
+		do
 		{
-			double selection_coeff = genome2_iter->selection_coeff_;
-			
-			if (selection_coeff != 0.0)
+			if (genome1_iter_position < genome2_iter_position)
 			{
-				int mutation_type = genome2_iter->mutation_type_;
+				// Process a mutation in genome1 since it is leading
+				float selection_coeff = genome1_iter->selection_coeff_;
 				
-				if (mutation_type != cached_dominance_coeff_mutation_type)
-				{
-					cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-					cached_dominance_coeff_mutation_type = mutation_type;
-				}
-				
-				w *= (1.0 + cached_dominance_coeff * selection_coeff);
-			}
-			
-			genome2_iter++;
-		}
-		
-		// if genome1_iter and genome2_iter are now at the same (valid) position, check for homozygotes and heterozygotes at that position
-		// this is complicated because multiple mutations might exist at the same position, so duplicated mutations must be matched into pairs
-		if (genome1_iter != genome1_max && genome2_iter != genome2_max && genome2_iter->position_ == genome1_iter->position_)
-		{
-			int position = genome1_iter->position_; 
-			std::vector<Mutation>::const_iterator genome1_start = genome1_iter;
-			
-			// advance through genome1 as long as we remain at the same position, handling one mutation at a time
-			while (genome1_iter != genome1_max && genome1_iter->position_ == position)
-			{
-				double selection_coeff = genome1_iter->selection_coeff_;
-				
-				if (selection_coeff != 0.0)
+				if (selection_coeff != 0.0f)
 				{
 					int mutation_type = genome1_iter->mutation_type_;
-					std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
-					bool homozygous = false;
 					
-					// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-					while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
+					if (mutation_type != cached_dominance_coeff_mutation_type)
 					{
-						if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == static_cast<double>(genome2_matchscan->selection_coeff_)) 
-						{
-							// a match was found, so we multiply our fitness by the full selection coefficient
-							w *= (1.0 + selection_coeff);
-							homozygous = true;
-							break;
-						}
-						
-						genome2_matchscan++;
+						cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+						cached_dominance_coeff_mutation_type = mutation_type;
 					}
 					
-					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-					if (!homozygous)
-					{
-						if (mutation_type != cached_dominance_coeff_mutation_type)
-						{
-							cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-							cached_dominance_coeff_mutation_type = mutation_type;
-						}
-						
-						w *= (1.0 + cached_dominance_coeff * selection_coeff);
-					}
+					w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					
+					if (w <= 0.0)
+						return 0.0;
 				}
 				
 				genome1_iter++;
-			}
-			
-			// advance through genome2 as long as we remain at the same position, handling one mutation at a time
-			while (genome2_iter != genome2_max && genome2_iter->position_ == position)
-			{
-				double selection_coeff = genome2_iter->selection_coeff_;
 				
-				if (selection_coeff != 0.0)
+				if (genome1_iter == genome1_max)
+					break;
+				else
+					genome1_iter_position = genome1_iter->position_;
+			}
+			else if (genome1_iter_position > genome2_iter_position)
+			{
+				// Process a mutation in genome2 since it is leading
+				float selection_coeff = genome2_iter->selection_coeff_;
+				
+				if (selection_coeff != 0.0f)
 				{
 					int mutation_type = genome2_iter->mutation_type_;
-					std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
-					bool homozygous = false;
 					
-					// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-					while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
+					if (mutation_type != cached_dominance_coeff_mutation_type)
 					{
-						if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == static_cast<double>(genome1_matchscan->selection_coeff_))
-						{
-							// a match was found; we know this match was already found my the genome1 loop above, so our fitness has already been multiplied appropriately
-							homozygous = true;
-							break;
-						}
-						
-						genome1_matchscan++;
+						cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+						cached_dominance_coeff_mutation_type = mutation_type;
 					}
 					
-					// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-					if (!homozygous)
-					{
-						if (mutation_type != cached_dominance_coeff_mutation_type)
-						{
-							cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
-							cached_dominance_coeff_mutation_type = mutation_type;
-						}
-						
-						w *= (1.0 + cached_dominance_coeff * selection_coeff);
-					}
+					w *= (1.0 + cached_dominance_coeff * selection_coeff);
+					
+					if (w <= 0.0)
+						return 0.0;
 				}
 				
 				genome2_iter++;
+				
+				if (genome2_iter == genome2_max)
+					break;
+				else
+					genome2_iter_position = genome2_iter->position_;
 			}
-		}
+			else
+			{
+				// Look for homozygosity: genome1_iter_position == genome2_iter_position
+				int position = genome1_iter->position_; 
+				std::vector<Mutation>::const_iterator genome1_start = genome1_iter;
+				
+				// advance through genome1 as long as we remain at the same position, handling one mutation at a time
+				do
+				{
+					float selection_coeff = genome1_iter->selection_coeff_;
+					
+					if (selection_coeff != 0.0f)
+					{
+						int mutation_type = genome1_iter->mutation_type_;
+						std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
+						bool homozygous = false;
+						
+						// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
+						while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
+						{
+							if (mutation_type == genome2_matchscan->mutation_type_ && selection_coeff == genome2_matchscan->selection_coeff_) 
+							{
+								// a match was found, so we multiply our fitness by the full selection coefficient
+								w *= (1.0 + selection_coeff);
+								homozygous = true;
+								break;
+							}
+							
+							genome2_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						if (!homozygous)
+						{
+							if (mutation_type != cached_dominance_coeff_mutation_type)
+							{
+								cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+								cached_dominance_coeff_mutation_type = mutation_type;
+							}
+							
+							w *= (1.0 + cached_dominance_coeff * selection_coeff);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+					}
+					
+					genome1_iter++;
+				} while (genome1_iter != genome1_max && genome1_iter->position_ == position);
+				
+				// advance through genome2 as long as we remain at the same position, handling one mutation at a time
+				do
+				{
+					float selection_coeff = genome2_iter->selection_coeff_;
+					
+					if (selection_coeff != 0.0f)
+					{
+						int mutation_type = genome2_iter->mutation_type_;
+						std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
+						bool homozygous = false;
+						
+						// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
+						while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
+						{
+							if (mutation_type == genome1_matchscan->mutation_type_ && selection_coeff == genome1_matchscan->selection_coeff_)
+							{
+								// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
+								homozygous = true;
+								break;
+							}
+							
+							genome1_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						if (!homozygous)
+						{
+							if (mutation_type != cached_dominance_coeff_mutation_type)
+							{
+								cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+								cached_dominance_coeff_mutation_type = mutation_type;
+							}
+							
+							w *= (1.0 + cached_dominance_coeff * selection_coeff);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+					}
+					
+					genome2_iter++;
+				} while (genome2_iter != genome2_max && genome2_iter->position_ == position);
+				
+				// get things back in order for the top-level loop: break out if either genome has reached its end, otherwise get the position indices up to date
+				if (genome1_iter == genome1_max || genome2_iter == genome2_max)
+					break;
+				
+				genome1_iter_position = genome1_iter->position_;
+				genome2_iter_position = genome2_iter->position_;
+			}
+		} while (true);
 	}
 	
-	return (w < 0.0 ? 0.0 : w);
+	// one or the other genome has now reached its end, so now we just need to handle the remaining mutations in the unfinished genome
+	assert(!(genome1_iter != genome1_max && genome2_iter != genome2_max));
+	
+	// if genome1 is unfinished, finish it
+	while (genome1_iter != genome1_max)
+	{
+		float selection_coeff = genome1_iter->selection_coeff_;
+		
+		if (selection_coeff != 0.0f)
+		{
+			int mutation_type = genome1_iter->mutation_type_;
+			
+			if (mutation_type != cached_dominance_coeff_mutation_type)
+			{
+				cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+				cached_dominance_coeff_mutation_type = mutation_type;
+			}
+			
+			w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			
+			if (w <= 0.0)
+				return 0.0;
+		}
+		
+		genome1_iter++;
+	}
+	
+	// if genome2 is unfinished, finish it
+	while (genome2_iter != genome2_max)
+	{
+		float selection_coeff = genome2_iter->selection_coeff_;
+		
+		if (selection_coeff != 0.0f)
+		{
+			int mutation_type = genome2_iter->mutation_type_;
+			
+			if (mutation_type != cached_dominance_coeff_mutation_type)
+			{
+				cached_dominance_coeff = p_chromosome.mutation_types_.find(mutation_type)->second.dominance_coeff_;
+				cached_dominance_coeff_mutation_type = mutation_type;
+			}
+			
+			w *= (1.0 + cached_dominance_coeff * selection_coeff);
+			
+			if (w <= 0.0)
+				return 0.0;
+		}
+		
+		genome2_iter++;
+	}
+	
+	return w;
 }
 
 void Subpopulation::SwapChildAndParentGenomes()

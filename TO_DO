@@ -3,8 +3,9 @@ pointers instead of non-const references
 use EXIT_FAILURE and EXIT_SUCCESS, defined in cstdlib
 assert, NDEBUG, __FILE__, __LINE__
 import list of targets from emails, start on adding sex
-optimization: could add a unique ID to Mutation to allow faster tests for equality in places like FitnessOfIndividualWithGenomeIndices(); slightly changes the definition of equality, however!
-optimization: for FitnessOfIndividualWithGenomeIndices, have Mutation cache the selection coefficient pre-multiplied with the dominance coefficient, plus 1.0
+optimizations:
+	convert to pointers to mutation types and genomic element instead of looking them up in the chromosome at all
+	then perhaps remove the dominance_coeff cache, since it should be faster to just get the dominance value through the pointer
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -29,15 +30,15 @@ timings (user time, with g++ build executed on command line):
 		19 Dec. 2014	3m37.656s	after checking for degenerate cases for selfing_fraction in Population::EvolveSubpopulation()
 		19 Dec. 2014	3m24.652s	after optimizing Subpopulation::FitnessOfIndividualWithGenomeIndices with caching
 		19 Dec. 2014	3m7.618s	after optimizing Population::CrossoverMutation() to cache child genome, and writing no-mutation case
+		26 Dec. 2014	3m2.990s	streamlining of flow control in FitnessOfIndividualWithGenomeIndices		(final output 329 m1 2099186 -0.000473915 0.2 p1 97746 99887)
 
-output tails:
-	-seed 1418961197 ./examples/input_example_3.txt:	339 m1 9221449 -0.000262588 0.2 p1 96159 99118
-	-seed 1418990125 ./examples/input_example_1.txt:	72 m1 4678 0 0.5 p1 7486 9424
+	1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
+		26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
+	2.0:	time ./slim -seed 1419702403 ./examples/test_case_4.txt
+		26 Dec. 2014	2m37.180s	original timing		(final output p1:4426 15 16)
+		26 Dec. 2014	2m35.390s	streamlining of flow control in FitnessOfIndividualWithGenomeIndices		(final output p1:4426 15 16)
 
-	19 Dec. 2014: broke backward reproducibility with optimizations
-	-seed 1418961197 ./examples/input_example_3.txt:	329 m1 2099186 -0.000473915 0.2 p1 97746 99887
-
-profile results:
+profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name
 98917.0ms   99.9%	12.0	 	   RunSLiM(char*, int*)
 62142.0ms   62.8%	672.0	 	    Population::EvolveSubpopulation(int, Chromosome const&, int)
