@@ -117,7 +117,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 	
 	int mutation_type_id = genomic_element_type.DrawMutationType();
 	
-	const MutationType *mutation_type_ptr = &(mutation_types_.find(mutation_type_id)->second);
+	const MutationType *mutation_type_ptr = mutation_types_.find(mutation_type_id)->second;
 	
 	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	

@@ -4,7 +4,7 @@ use EXIT_FAILURE and EXIT_SUCCESS, defined in cstdlib
 assert, NDEBUG, __FILE__, __LINE__
 import list of targets from emails, start on adding sex
 optimizations:
-	convert genomic element to pointers, protect it against copying
+	convert genomic element to pointers, protect it against copying, always look up pointer after construction
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -40,6 +40,7 @@ timings (user time, with g++ build executed on command line):
 		26 Dec. 2014	2m35.390s	streamlining of flow control in FitnessOfIndividualWithGenomeIndices		(final output p1:4426 15 16)
 		26 Dec. 2014	2m31.647s	conversion of mutation_type_ to pointer		(final output p1:4426 15 16)
 		26 Dec. 2014	2m31.267s	removal of dominance_coeff cache		(final output p1:4426 15 16)
+		26 Dec. 2014	2m29.125s	conversion of MutationType to completely uncopyable		(final output p1:4426 15 16)
 
 profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name

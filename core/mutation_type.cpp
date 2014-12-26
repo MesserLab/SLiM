@@ -31,50 +31,6 @@ using std::endl;
 using std::string;
 
 
-bool MutationType::s_log_copy_and_assign_ = true;
-
-
-MutationType::MutationType(const MutationType& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::Subpopulation(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-	
-	mutation_type_id_ = p_original.mutation_type_id_;
-	dominance_coeff_ = p_original.dominance_coeff_;
-	dfe_type_ = p_original.dfe_type_;
-	dfe_parameters_ = p_original.dfe_parameters_;
-}
-
-MutationType& MutationType::operator= (const MutationType& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::operator=(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-	
-	mutation_type_id_ = p_original.mutation_type_id_;
-	dominance_coeff_ = p_original.dominance_coeff_;
-	dfe_type_ = p_original.dfe_type_;
-	dfe_parameters_ = p_original.dfe_parameters_;
-	
-	return *this;
-}
-
-bool MutationType::LogMutationTypeCopyAndAssign(bool p_log)
-{
-	bool old_value = s_log_copy_and_assign_;
-	
-	s_log_copy_and_assign_ = p_log;
-	
-	return old_value;
-}
-
 MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters)
 {
 	mutation_type_id_ = p_mutation_type_id;

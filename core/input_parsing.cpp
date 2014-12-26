@@ -788,7 +788,7 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		
 		int g = atoi(sub.c_str());
 		
-		const MutationType *mutation_type_ptr = &(p_chromosome.mutation_types_.find(t)->second);
+		const MutationType *mutation_type_ptr = p_chromosome.mutation_types_.find(t)->second;
 		
 		if (!mutation_type_ptr) 
 		{ 
@@ -907,9 +907,9 @@ void Initialize(Population &p_population,
 					while (iss >> sub)
 						dfe_parameters.push_back(atof(sub.c_str()));
 					
-					bool old_log = MutationType::LogMutationTypeCopyAndAssign(false);
-					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType>(map_identifier, MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters)));
-					MutationType::LogMutationTypeCopyAndAssign(old_log);
+					MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
+					
+					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << p_chromosome.mutation_types_.find(map_identifier)->second << endl;
@@ -1190,7 +1190,7 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int num_Aa = static_cast<int>(atof(sub.c_str()));
 					
-					const MutationType *mutation_type_ptr = &(p_chromosome.mutation_types_.find(mutation_type_id)->second);
+					const MutationType *mutation_type_ptr = p_chromosome.mutation_types_.find(mutation_type_id)->second;
 					
 					IntroducedMutation new_introduced_mutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					

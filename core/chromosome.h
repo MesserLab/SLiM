@@ -54,7 +54,7 @@ private:
 	
 public:
 	
-	std::map<int,MutationType>			mutation_types_;
+	std::map<int,MutationType*>			mutation_types_;
 	std::map<int,GenomicElementType>	genomic_element_types_;
 	vector<int>							recombination_end_positions_;
 	vector<double>						recombination_rates_;	// in events per base pair
