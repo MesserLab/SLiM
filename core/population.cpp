@@ -39,24 +39,19 @@ void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size)
 	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(EXIT_FAILURE); }
 	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(EXIT_FAILURE); }
 	
-	Subpopulation *new_subpop = new Subpopulation(p_subpop_size);
-	
-	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
+	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new Subpopulation(p_subpop_size)));
 }
 
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsigned int p_subpop_size) 
 {
 	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(EXIT_FAILURE); }
-	if (count(p_source_subpop_id) == 0)	{ cerr << "ERROR (AddSubpopulation): source subpopulation p" << p_source_subpop_id << " does not exist" << endl; exit(EXIT_FAILURE); }
 	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(EXIT_FAILURE); }
 	
-	Subpopulation *new_subpop = new Subpopulation(p_subpop_size);
+	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new Subpopulation(p_subpop_size)));
 	
-	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
-	
-	Subpopulation &subpop = *(find(p_subpop_id)->second);
-	Subpopulation &source_subpop = *(find(p_source_subpop_id)->second);
+	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
+	Subpopulation &source_subpop = SubpopulationWithID(p_source_subpop_id);
 	
 	for (int parent_index = 0; parent_index < subpop.subpop_size_; parent_index++)
 	{
@@ -82,31 +77,33 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 	}
 	else
 	{
-		find(p_subpop_id)->second->subpop_size_ = p_subpop_size;
-		find(p_subpop_id)->second->child_genomes_.resize(2 * p_subpop_size);
+		Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
+		
+		subpop.subpop_size_ = p_subpop_size;
+		subpop.child_genomes_.resize(2 * p_subpop_size);
 	}
 }
 
 // set fraction selfing_fraction of p_subpop_id that reproduces by selfing
 void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction) 
 { 
-	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetSelfing): no subpopulation p" << p_subpop_id << endl; exit(EXIT_FAILURE); }
 	if (p_selfing_fraction < 0.0 || p_selfing_fraction > 1.0)	{ cerr << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << endl; exit(EXIT_FAILURE); }
 	
-	find(p_subpop_id)->second->selfing_fraction_ = p_selfing_fraction; 
+	SubpopulationWithID(p_subpop_id).selfing_fraction_ = p_selfing_fraction; 
 }
 
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
 { 
-	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetMigration): no subpopulation p" << p_subpop_id << endl; exit(EXIT_FAILURE); }
 	if (count(p_source_subpop_id) == 0)							{ cerr << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << endl; exit(EXIT_FAILURE); }
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)	{ cerr << "ERROR (SetMigration): migration fraction has to be within [0,1]" << endl; exit(EXIT_FAILURE); }
 	
-	if (find(p_subpop_id)->second->migrant_fractions_.count(p_source_subpop_id) != 0)
-		find(p_subpop_id)->second->migrant_fractions_.erase(p_source_subpop_id);
+	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
-	find(p_subpop_id)->second->migrant_fractions_.insert(std::pair<const int,double>(p_source_subpop_id, p_migrant_fraction)); 
+	if (subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
+		subpop.migrant_fractions_.erase(p_source_subpop_id);
+	
+	subpop.migrant_fractions_.insert(std::pair<const int,double>(p_source_subpop_id, p_migrant_fraction)); 
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
@@ -264,13 +261,12 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 // introduce a user-defined mutation
 void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutation)
 {
-	if (count(p_introduced_mutation.subpop_index_) == 0)
-	{
-		cerr << "ERROR (predetermined mutation): subpopulation "<< p_introduced_mutation.subpop_index_ << " does not exist" << endl; exit(EXIT_FAILURE);
-	}
-	if (find(p_introduced_mutation.subpop_index_)->second->child_genomes_.size() / 2 < p_introduced_mutation.num_homozygotes_ + p_introduced_mutation.num_heterozygotes_) 
+	Subpopulation &introduction_subpop = SubpopulationWithID(p_introduced_mutation.subpop_index_);
+	
+	if (introduction_subpop.child_genomes_.size() / 2 < p_introduced_mutation.num_homozygotes_ + p_introduced_mutation.num_heterozygotes_) 
 	{ 
-		cerr << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl; exit(EXIT_FAILURE); 
+		cerr << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl;
+		exit(EXIT_FAILURE); 
 	}
 	
 	Mutation new_mutation;
@@ -284,8 +280,8 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 	// introduce homozygotes
 	for (int j = 0; j < p_introduced_mutation.num_homozygotes_; j++) 
 	{ 
-		Genome *g1 = &find(p_introduced_mutation.subpop_index_)->second->child_genomes_[2 * j];
-		Genome *g2 = &find(p_introduced_mutation.subpop_index_)->second->child_genomes_[2 * j + 1];
+		Genome *g1 = &introduction_subpop.child_genomes_[2 * j];
+		Genome *g2 = &introduction_subpop.child_genomes_[2 * j + 1];
 		(*g1).push_back(new_mutation);
 		(*g2).push_back(new_mutation);
 		
@@ -299,7 +295,7 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 	// introduce heterozygotes
 	for (int j = p_introduced_mutation.num_homozygotes_; j < p_introduced_mutation.num_homozygotes_ + p_introduced_mutation.num_heterozygotes_; j++) 
 	{ 
-		Genome *g1 = &find(p_introduced_mutation.subpop_index_)->second->child_genomes_[2 * j];
+		Genome *g1 = &introduction_subpop.child_genomes_[2 * j];
 		(*g1).push_back(new_mutation);
 		
 		// FIXME can this be done just once, outside the loop?
@@ -385,7 +381,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation)
 {
-	Subpopulation &subpop = *(find(p_subpop_id)->second);
+	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	int child_genome1, child_genome2, parent1, parent2;
 	
 	// create map of shuffled children ids
@@ -430,7 +426,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	for (const std::pair<const int,double> &fractions_pair : subpop.migrant_fractions_)
 	{
 		int source_subpop_id = fractions_pair.first;
-		Subpopulation &source_subpop = *(find(source_subpop_id)->second);
+		Subpopulation &source_subpop = SubpopulationWithID(source_subpop_id);
 		double selfing_fraction = source_subpop.selfing_fraction_;
 		int migrant_count = 0;
 		
@@ -782,14 +778,9 @@ void Population::PrintAll(std::ofstream &p_outfile) const
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-// FIXME whole lotta find(p_subpop_id) going on here; the result of that will be constant across this function, no?
 void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 {
-	if (count(p_subpop_id) == 0)
-	{
-		cerr << "ERROR (output): subpopulation p" << p_subpop_id << " does not exists" << endl;
-		exit(EXIT_FAILURE);
-	}
+	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
 	// assemble the sample and get the polymorphisms within it
 	std::vector<int> sample; 
@@ -797,12 +788,12 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
-		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second->child_genomes_.size()));
+		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, subpop.child_genomes_.size()));
 		
 		sample.push_back(j);
 		
-		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
+		for (int k = 0; k < subpop.child_genomes_[j].size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, subpop.child_genomes_[j][k]);
 	}
 	
 	// print the sample's polymorphisms
@@ -816,11 +807,11 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 	
 	for (int j = 0; j < sample.size(); j++)														// go through all children
 	{
-		cout << "p" << find(p_subpop_id)->first << ":" << sample[j] + 1;
+		cout << "p" << p_subpop_id << ":" << sample[j] + 1;
 		
-		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[sample[j]].size(); k++)	// go through all mutations
+		for (int k = 0; k < subpop.child_genomes_[sample[j]].size(); k++)	// go through all mutations
 		{
-			int mutation_id = FindMutationInPolymorphismMap(polymorphisms, find(p_subpop_id)->second->child_genomes_[sample[j]][k]);
+			int mutation_id = FindMutationInPolymorphismMap(polymorphisms, subpop.child_genomes_[sample[j]][k]);
 			
 			cout << " " << mutation_id;
 		}
@@ -832,23 +823,19 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome) const
 {
-	if (count(p_subpop_id) == 0)
-	{
-		cerr << "ERROR (output): subpopulation p" << p_subpop_id << " does not exists" << endl;
-		exit(EXIT_FAILURE);
-	}
+	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
 	std::vector<int> sample; 
 	multimap<const int,Polymorphism> polymorphisms;
 	
 	for (int s = 0; s < p_sample_size; s++)
 	{
-		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, find(p_subpop_id)->second->child_genomes_.size()));
+		int j = static_cast<int>(gsl_rng_uniform_int(g_rng, subpop.child_genomes_.size()));
 		
 		sample.push_back(j);
 		
-		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
+		for (int k = 0; k < subpop.child_genomes_[j].size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, subpop.child_genomes_[j][k]);
 	}
 	
 	// print header
@@ -870,9 +857,9 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	{
 		string genotype(polymorphisms.size(), '0'); // fill with 0s
 		
-		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[sample[j]].size(); k++)	// go through all mutations
+		for (int k = 0; k < subpop.child_genomes_[sample[j]].size(); k++)	// go through all mutations
 		{
-			Mutation mutation = find(p_subpop_id)->second->child_genomes_[sample[j]][k];
+			Mutation mutation = subpop.child_genomes_[sample[j]][k];
 			int position = 0;
 			
 			for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 

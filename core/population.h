@@ -39,6 +39,7 @@
 #include "event.h"
 #include "introduced_mutation.h"
 #include "partial_sweep.h"
+#include "stacktrace.h"
 
 class SLiMSim;
 
@@ -60,6 +61,21 @@ public:
 	
 	// default constructor
 	Population() = default;
+	
+	// find a subpopulation given an id
+	inline Subpopulation &SubpopulationWithID(int p_subpop_id) const {
+		auto found_pair = find(p_subpop_id);
+		
+		if (found_pair == this->end())
+		{
+			std::clog << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl;
+			print_stacktrace(stderr);
+			std::clog << "************************************************" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		
+		return *(found_pair->second);
+	}
 	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
 	void AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size);

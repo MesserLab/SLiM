@@ -806,19 +806,15 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 	{
 		istringstream iss(line); iss >> sub; sub.erase(0, 1);
 		int pos = static_cast<int>(sub.find_first_of(":")); 
-		int p = atoi(sub.substr(0, pos + 1).c_str()); sub.erase(0, pos + 1);  
+		int p = atoi(sub.substr(0, pos + 1).c_str()); sub.erase(0, pos + 1);
+		
+		Subpopulation &subpop = population_.SubpopulationWithID(p);
+		
 		int i = atoi(sub.c_str());
 		
 		while (iss >> sub) 
 		{
 			int id = atoi(sub.c_str());
-			auto found_subpop_pair = population_.find(p);
-			
-			if (found_subpop_pair == population_.end()) 
-			{ 
-				cerr << "ERROR (InitializePopulationFromFile): subpopulation p"<< p << " has not been defined" << endl;
-				exit(EXIT_FAILURE); 
-			}
 			
 			auto found_mut_pair = M.find(id);
 			
@@ -830,7 +826,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			
 			Mutation &mutation = found_mut_pair->second;
 			
-			found_subpop_pair->second->parent_genomes_[i - 1].push_back(mutation);
+			subpop.parent_genomes_[i - 1].push_back(mutation);
 		}
 		
 		GetInputLine(infile, line);
