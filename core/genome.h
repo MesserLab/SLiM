@@ -35,6 +35,8 @@
 
 class Genome : public std::vector<Mutation>
 {
+	// This class has a restricted copying policy; see below
+	
 private:
 	
 	static bool s_log_copy_and_assign_;

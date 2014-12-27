@@ -35,6 +35,8 @@
 
 class Mutation
 {
+	// This class allows copying by design
+	
 public:
 	
 	const MutationType *mutation_type_ptr_;		// mutation type identifier

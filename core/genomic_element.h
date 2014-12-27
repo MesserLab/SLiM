@@ -35,6 +35,8 @@
 
 class GenomicElement
 {
+	// This class allows copying by design
+	
 public:
 	
 	const GenomicElementType *genomic_element_type_ptr_;

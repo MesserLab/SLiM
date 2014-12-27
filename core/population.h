@@ -108,12 +108,6 @@ public:
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 	void PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome) const;
-	
-	// find p_mutation in p_polymorphisms and return its id
-	int FindMutation(const std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
-	
-	// if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-	void AddMutation(std::multimap<const int,Polymorphism> *p_polymorphisms, Mutation p_mutation) const;
 };
 
 
