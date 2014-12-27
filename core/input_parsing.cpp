@@ -788,13 +788,15 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		
 		int g = atoi(sub.c_str());
 		
-		const MutationType *mutation_type_ptr = p_chromosome.mutation_types_.find(t)->second;
+		auto found_muttype_pair = p_chromosome.mutation_types_.find(t);
 		
-		if (!mutation_type_ptr) 
+		if (found_muttype_pair == p_chromosome.mutation_types_.end()) 
 		{ 
-			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< t << " has not been defined" << endl; exit(1); 
+			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< t << " has not been defined" << endl;
+			exit(1); 
 		}
 		
+		const MutationType *mutation_type_ptr = found_muttype_pair->second;
 		M.insert(std::pair<const int,Mutation>(id, Mutation(mutation_type_ptr, x, s, i, g)));
 		
 		GetInputLine(infile, line); 
@@ -812,7 +814,25 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		while (iss >> sub) 
 		{
 			int id = atoi(sub.c_str());
-			p_population.find(p)->second->parent_genomes_[i - 1].push_back(M.find(id)->second);
+			auto found_subpop_pair = p_population.find(p);
+			
+			if (found_subpop_pair == p_population.end()) 
+			{ 
+				cerr << "ERROR (InitializePopulationFromFile): subpopulation p"<< p << " has not been defined" << endl;
+				exit(1); 
+			}
+			
+			auto found_mut_pair = M.find(id);
+			
+			if (found_mut_pair == M.end()) 
+			{ 
+				cerr << "ERROR (InitializePopulationFromFile): mutation "<< id << " has not been defined" << endl;
+				exit(1); 
+			}
+			
+			Mutation &mutation = found_mut_pair->second;
+			
+			found_subpop_pair->second->parent_genomes_[i - 1].push_back(mutation);
 		}
 		
 		GetInputLine(infile, line);
@@ -912,7 +932,7 @@ void Initialize(Population &p_population,
 					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
 					
 					if (DEBUG_INPUT)
-						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << p_chromosome.mutation_types_.find(map_identifier)->second << endl;
+						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << *new_mutation_type << endl;
 				} while (true);
 				
 				continue;
@@ -930,7 +950,7 @@ void Initialize(Population &p_population,
 					p_parameters.push_back(line);
 					
 					// FORMAT: map_identifier mutation_type mutation_fraction [more type/fraction pairs...]
-					std::vector<int> mutation_types;
+					std::vector<MutationType*> mutation_types;
 					std::vector<double> mutation_fractions;
 					istringstream iss(line);
 					
@@ -941,7 +961,17 @@ void Initialize(Population &p_population,
 					while (iss >> sub) 
 					{ 
 						sub.erase(0, 1);	// m
-						mutation_types.push_back(atoi(sub.c_str()));
+						int mutation_type_id = atoi(sub.c_str());
+						auto found_muttype_pair = p_chromosome.mutation_types_.find(mutation_type_id);
+						
+						if (found_muttype_pair == p_chromosome.mutation_types_.end())
+						{
+							std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
+							exit(1);
+						}
+						
+						MutationType *mutation_type_ptr = found_muttype_pair->second;
+						mutation_types.push_back(mutation_type_ptr);
 						iss >> sub;
 						
 						mutation_fractions.push_back(atof(sub.c_str()));
@@ -949,7 +979,7 @@ void Initialize(Population &p_population,
 					
 					if (p_chromosome.genomic_element_types_.count(map_identifier) > 0) 
 					{
-						std::cerr << "ERROR (Initialize): genomic element type "<< map_identifier << " already defined" << endl;
+						std::cerr << "ERROR (Initialize): genomic element type " << map_identifier << " already defined" << endl;
 						exit(1);
 					}
 					
@@ -987,7 +1017,15 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int end_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
-					const GenomicElementType *genomic_element_type_ptr = p_chromosome.genomic_element_types_.find(genomic_element_type)->second;
+					auto found_getype_pair = p_chromosome.genomic_element_types_.find(genomic_element_type);
+					
+					if (found_getype_pair == p_chromosome.genomic_element_types_.end())
+					{
+						std::cerr << "ERROR (Initialize): genomic element type m" << genomic_element_type << " not defined" << endl;
+						exit(1);
+					}
+					
+					const GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
 					GenomicElement new_genomic_element = GenomicElement(genomic_element_type_ptr, start_position, end_position);
 					p_chromosome.push_back(new_genomic_element);
 					
@@ -1191,7 +1229,15 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int num_Aa = static_cast<int>(atof(sub.c_str()));
 					
-					const MutationType *mutation_type_ptr = p_chromosome.mutation_types_.find(mutation_type_id)->second;
+					auto found_muttype_pair = p_chromosome.mutation_types_.find(mutation_type_id);
+					
+					if (found_muttype_pair == p_chromosome.mutation_types_.end())
+					{
+						std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
+						exit(1);
+					}
+					
+					const MutationType *mutation_type_ptr = found_muttype_pair->second;
 					
 					IntroducedMutation new_introduced_mutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					

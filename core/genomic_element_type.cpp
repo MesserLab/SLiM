@@ -21,37 +21,37 @@
 #include "genomic_element_type.h"
 
 
-GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions)
+GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions)
 {
 	genomic_element_type_id_ = p_genomic_element_type_id;
-	mutation_types_ = p_mutation_types;
+	mutation_type_ptrs_ = p_mutation_type_ptrs;
 	mutation_fractions_ = p_mutation_fractions;  
 	
-	if (mutation_types_.size() != mutation_fractions_.size())
+	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
 	{
 		std::cerr << "ERROR (Initialize): mutation types and fractions have different sizes" << std::endl;
 		exit(1);
 	}
 	
 	// Prepare to randomly draw mutation types
-	double A[mutation_types_.size()];
+	double A[mutation_type_ptrs_.size()];
 	
-	for (int i = 0; i < mutation_types_.size(); i++)
+	for (int i = 0; i < mutation_type_ptrs_.size(); i++)
 		A[i] = mutation_fractions_[i];
 	
 	lookup_mutation_type = gsl_ran_discrete_preproc(p_mutation_fractions.size(), A);
 }
 
-int GenomicElementType::DrawMutationType() const
+const MutationType *GenomicElementType::DrawMutationType() const
 {
-	return mutation_types_[gsl_ran_discrete(g_rng, lookup_mutation_type)];
+	return mutation_type_ptrs_[gsl_ran_discrete(g_rng, lookup_mutation_type)];
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_genomic_element_type)
 {
 	p_outstream << "GenomicElementType{mutation_types_ ";
 	
-	if (p_genomic_element_type.mutation_types_.size() == 0)
+	if (p_genomic_element_type.mutation_type_ptrs_.size() == 0)
 	{
 		p_outstream << "*";
 	}
@@ -59,11 +59,11 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	{
 		p_outstream << "<";
 		
-		for (int i = 0; i < p_genomic_element_type.mutation_types_.size(); ++i)
+		for (int i = 0; i < p_genomic_element_type.mutation_type_ptrs_.size(); ++i)
 		{
-			p_outstream << p_genomic_element_type.mutation_types_[i];
+			p_outstream << p_genomic_element_type.mutation_type_ptrs_[i]->mutation_type_id_;
 			
-			if (i < p_genomic_element_type.mutation_types_.size() - 1)
+			if (i < p_genomic_element_type.mutation_type_ptrs_.size() - 1)
 				p_outstream << " ";
 		}
 		

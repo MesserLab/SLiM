@@ -34,6 +34,7 @@
 #include <iostream>
 
 #include "g_rng.h"
+#include "mutation_type.h"
 
 
 class GenomicElementType
@@ -52,12 +53,12 @@ public:
 	
 	int genomic_element_type_id_;				// the id by which this genomic element type is indexed in the chromosome
 	
-	std::vector<int>    mutation_types_;		// mutation types identifiers in this element
+	std::vector<MutationType*> mutation_type_ptrs_;		// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;	// relative fractions of each mutation type
 	
-	GenomicElementType(int p_genomic_element_type_id, std::vector<int> p_mutation_types, std::vector<double> p_mutation_fractions);
+	GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	
-	int DrawMutationType() const;
+	const MutationType *DrawMutationType() const;
 };
 
 // support stream output of GenomicElementType, for debugging

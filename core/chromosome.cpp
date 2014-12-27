@@ -46,18 +46,6 @@ void Chromosome::InitializeDraws()
 	
 	length_ = 0;
 	
-	for (const std::pair<const int,GenomicElementType*> &genomic_element_pair : genomic_element_types_)
-	{
-		for (int j = 0; j < genomic_element_pair.second->mutation_types_.size(); j++)
-		{
-			if (mutation_types_.count(genomic_element_pair.second->mutation_types_[j]) == 0)
-			{
-				std::cerr << "ERROR (Initialize): mutation type " << genomic_element_pair.second->mutation_types_[j] << " not defined" << std::endl;
-				exit(1); 
-			}
-		}
-	}
-	
 	double A[size()];
 	int l = 0;
 	
@@ -104,10 +92,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
-	
-	int mutation_type_id = genomic_element_type.DrawMutationType();
-	
-	const MutationType *mutation_type_ptr = mutation_types_.find(mutation_type_id)->second;
+	const MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
