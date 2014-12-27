@@ -516,44 +516,55 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	if (num_mutations == 0)
 	{
 		// create vector with uniqued recombination breakpoints
-		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(); 
-		all_breakpoints.push_back(p_chromosome.length_ + 1);
-		sort(all_breakpoints.begin(), all_breakpoints.end());
-		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints();
 		
-		// do the crossover
-		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
-		
-		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
-		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
-		
-		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
-		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
-		
-		int break_index_max = static_cast<int>(all_breakpoints.size());
-		
-		for (int break_index = 0; break_index != break_index_max; break_index++)
+		if (all_breakpoints.size() == 0)
 		{
-			int breakpoint = all_breakpoints[break_index];
+			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
+			bool old_log = Genome::LogGenomeCopyAndAssign(false);
+			child_genome = source_subpop->parent_genomes_[p_parent1_genome_index];
+			Genome::LogGenomeCopyAndAssign(old_log);
+		}
+		else
+		{
+			all_breakpoints.push_back(p_chromosome.length_ + 1);
+			sort(all_breakpoints.begin(), all_breakpoints.end());
+			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
-			// while there are still old mutations in the parent before the current breakpoint...
-			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
+			// do the crossover
+			std::vector<Mutation>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
+			std::vector<Mutation>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
+			
+			std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
+			std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
+			
+			std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
+			std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
+			
+			int break_index_max = static_cast<int>(all_breakpoints.size());
+			
+			for (int break_index = 0; break_index != break_index_max; break_index++)
 			{
-				// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
-				child_genome.push_back(*parent_iter);
+				int breakpoint = all_breakpoints[break_index];
 				
-				parent_iter++;
+				// while there are still old mutations in the parent before the current breakpoint...
+				while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
+				{
+					// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+					child_genome.push_back(*parent_iter);
+					
+					parent_iter++;
+				}
+				
+				// we have reached the breakpoint, so swap parents
+				parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
+				parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
+				parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+				
+				// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+				while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
+					parent_iter++;
 			}
-			
-			// we have reached the breakpoint, so swap parents
-			parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-			parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-			parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
-			
-			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-			while (parent_iter != parent_iter_max && parent_iter->position_ < breakpoint)
-				parent_iter++;
 		}
 	}
 	else
