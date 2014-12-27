@@ -25,6 +25,8 @@
 
 
 const gsl_rng *g_rng; 
+int g_random_bool_bit_counter = 0;
+unsigned long int g_random_bool_bit_buffer = 0;
 
 
 int GenerateSeedFromPIDAndTime()

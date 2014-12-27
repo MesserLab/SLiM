@@ -34,11 +34,41 @@
 // this is a globally shared random number generator
 extern const gsl_rng *g_rng; 
 
+
 // generate a new random number seed from the PID and clock time
 int GenerateSeedFromPIDAndTime();
 
 // set up the random number generator with a given seed
 void InitializeRNGFromSeed(int p_seed);
+
+
+// get a random bool from a random number generator
+//static inline bool g_rng_bool(const gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
+
+// optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
+// I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
+extern int g_random_bool_bit_counter;
+extern unsigned long int g_random_bool_bit_buffer;
+
+static inline bool g_rng_bool(const gsl_rng * r)
+{
+	bool retval;
+	
+	if (g_random_bool_bit_counter > 0)
+	{
+		g_random_bool_bit_counter--;
+		g_random_bool_bit_buffer >>= 1;
+		retval = g_random_bool_bit_buffer & 0x01;
+	}
+	else
+	{
+		g_random_bool_bit_buffer = gsl_rng_get(r);
+		retval = g_random_bool_bit_buffer & 0x01;
+		g_random_bool_bit_counter = 31;				// 32 good bits originally, and now we've used one
+	}
+	
+	return retval;
+}
 
 
 #endif /* defined(__SLiM__g_rng__) */

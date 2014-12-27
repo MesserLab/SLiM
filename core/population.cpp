@@ -494,7 +494,8 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	// mutations (r2 <= x     ) assigned from p1
 	
 	// swap parent1_genome_index and parent2_genome_index in half of cases, to assure random assortment
-	if (gsl_rng_uniform_int(g_rng, 2) == 0)
+	//if (gsl_rng_uniform_int(g_rng, 2) == 0)	// g_rng_bool() should be quite a bit faster
+	if (g_rng_bool(g_rng))
 	{
 		int swap = p_parent1_genome_index;
 		p_parent1_genome_index = p_parent2_genome_index;
