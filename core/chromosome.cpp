@@ -31,17 +31,17 @@ void Chromosome::InitializeDraws()
 	if (size() == 0)
 	{
 		std::cerr << "ERROR (Initialize): empty chromosome" << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (recombination_rates_.size() == 0)
 	{
 		std::cerr << "ERROR (Initialize): recombination rate not specified" << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (!(overall_mutation_rate_ >= 0))
 	{
 		std::cerr << "ERROR (Initialize): invalid mutation rate" << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	length_ = 0;

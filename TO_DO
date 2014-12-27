@@ -1,8 +1,8 @@
 set up testing code for validation, check against old version of the code
 pointers instead of non-const references
-use EXIT_FAILURE and EXIT_SUCCESS, defined in cstdlib
 assert, NDEBUG, __FILE__, __LINE__
 import list of targets from emails, start on adding sex
+make a new SLiMSim class that encapsulates a simulation and allows it be be controlled externally, for GUI work
 
 changes to mention in docs:
 	changed comment format from / to //

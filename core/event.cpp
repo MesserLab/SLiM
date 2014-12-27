@@ -36,7 +36,7 @@ Event::Event(char p_event_type, std::vector<std::string> p_parameters)
 			std::cerr << " " << parameters_[i];
 		
 		std::cerr << "\"" << std::endl;
-		exit(1); 
+		exit(EXIT_FAILURE); 
 	}
 }  
 

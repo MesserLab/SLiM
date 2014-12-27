@@ -34,8 +34,8 @@ using std::multimap;
 // add new empty subpopulation p_subpop_id of size p_subpop_size
 void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size) 
 { 
-	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(1); }
-	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(1); }
+	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(EXIT_FAILURE); }
+	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(EXIT_FAILURE); }
 	
 	Subpopulation *new_subpop = new Subpopulation(p_subpop_size);
 	
@@ -45,9 +45,9 @@ void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size)
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsigned int p_subpop_size) 
 {
-	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(1); }
-	if (count(p_source_subpop_id) == 0)	{ cerr << "ERROR (AddSubpopulation): source subpopulation p" << p_source_subpop_id << " does not exist" << endl; exit(1); }
-	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(1); }
+	if (count(p_subpop_id) != 0)		{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl; exit(EXIT_FAILURE); }
+	if (count(p_source_subpop_id) == 0)	{ cerr << "ERROR (AddSubpopulation): source subpopulation p" << p_source_subpop_id << " does not exist" << endl; exit(EXIT_FAILURE); }
+	if (p_subpop_size < 1)				{ cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl; exit(EXIT_FAILURE); }
 	
 	Subpopulation *new_subpop = new Subpopulation(p_subpop_size);
 	
@@ -69,7 +69,7 @@ void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsig
 // set size of subpopulation p_subpop_id to p_subpop_size
 void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 {
-	if (count(p_subpop_id) == 0)		{ cerr << "ERROR (change size): no subpopulation p" << p_subpop_id << endl; exit(1); }
+	if (count(p_subpop_id) == 0)		{ cerr << "ERROR (change size): no subpopulation p" << p_subpop_id << endl; exit(EXIT_FAILURE); }
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
@@ -88,8 +88,8 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 // set fraction selfing_fraction of p_subpop_id that reproduces by selfing
 void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction) 
 { 
-	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetSelfing): no subpopulation p" << p_subpop_id << endl; exit(1); }
-	if (p_selfing_fraction < 0.0 || p_selfing_fraction > 1.0)	{ cerr << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << endl; exit(1); }
+	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetSelfing): no subpopulation p" << p_subpop_id << endl; exit(EXIT_FAILURE); }
+	if (p_selfing_fraction < 0.0 || p_selfing_fraction > 1.0)	{ cerr << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << endl; exit(EXIT_FAILURE); }
 	
 	find(p_subpop_id)->second->selfing_fraction_ = p_selfing_fraction; 
 }
@@ -97,9 +97,9 @@ void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction)
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
 { 
-	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetMigration): no subpopulation p" << p_subpop_id << endl; exit(1); }
-	if (count(p_source_subpop_id) == 0)							{ cerr << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << endl; exit(1); }
-	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)	{ cerr << "ERROR (SetMigration): migration fraction has to be within [0,1]" << endl; exit(1); }
+	if (count(p_subpop_id) == 0)								{ cerr << "ERROR (SetMigration): no subpopulation p" << p_subpop_id << endl; exit(EXIT_FAILURE); }
+	if (count(p_source_subpop_id) == 0)							{ cerr << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << endl; exit(EXIT_FAILURE); }
+	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)	{ cerr << "ERROR (SetMigration): migration fraction has to be within [0,1]" << endl; exit(EXIT_FAILURE); }
 	
 	if (find(p_subpop_id)->second->migrant_fractions_.count(p_source_subpop_id) != 0)
 		find(p_subpop_id)->second->migrant_fractions_.erase(p_source_subpop_id);
@@ -207,7 +207,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 				else
 				{
 					cerr << "ERROR (output): could not open "<< event_parameters[0].c_str() << endl;
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			
@@ -262,11 +262,11 @@ void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation)
 {
 	if (count(p_introduced_mutation.subpop_index_) == 0)
 	{
-		cerr << "ERROR (predetermined mutation): subpopulation "<< p_introduced_mutation.subpop_index_ << " does not exist" << endl; exit(1);
+		cerr << "ERROR (predetermined mutation): subpopulation "<< p_introduced_mutation.subpop_index_ << " does not exist" << endl; exit(EXIT_FAILURE);
 	}
 	if (find(p_introduced_mutation.subpop_index_)->second->child_genomes_.size() / 2 < p_introduced_mutation.num_homozygotes_ + p_introduced_mutation.num_heterozygotes_) 
 	{ 
-		cerr << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl; exit(1); 
+		cerr << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl; exit(EXIT_FAILURE); 
 	}
 	
 	Mutation new_mutation;
@@ -406,7 +406,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	else
 	{
 		cerr << "ERROR (evolve subpopulation): too many migrants in subpopulation " << p_subpop_id << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	gsl_ran_multinomial(g_rng, subpop.migrant_fractions_.size() + 1, subpop.subpop_size_, migration_rates, num_migrants);
@@ -775,7 +775,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 	if (count(p_subpop_id) == 0)
 	{
 		cerr << "ERROR (output): subpopulation p" << p_subpop_id << " does not exists" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	// assemble the sample and get the polymorphisms within it
@@ -822,7 +822,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	if (count(p_subpop_id) == 0)
 	{
 		cerr << "ERROR (output): subpopulation p" << p_subpop_id << " does not exists" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	std::vector<int> sample; 

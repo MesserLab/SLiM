@@ -114,7 +114,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 void PrintUsageAndDie()
 {
 	std::cerr << "usage: slim [-seed <seed>] [-time] <parameter file>" << std::endl;
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[])
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 	if (keep_time)
 		std::cerr << "CPU time used: " << time_spent << std::endl;
 	
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 

@@ -44,13 +44,13 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 	if (possible_dfe_types.find(dfe_type_) == string::npos)
 	{
 		cerr << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	if (dfe_parameters_.size() == 0)
 	{
 		cerr << "ERROR (Initialize): invalid mutation type parameters" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -61,7 +61,7 @@ double MutationType::DrawSelectionCoefficient() const
 		case 'f': return dfe_parameters_[0];
 		case 'g': return gsl_ran_gamma(g_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
 		case 'e': return gsl_ran_exponential(g_rng, dfe_parameters_[0]);
-		default: exit(1);
+		default: exit(EXIT_FAILURE);
 	}
 }
 

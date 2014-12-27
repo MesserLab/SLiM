@@ -30,7 +30,7 @@ GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vecto
 	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
 	{
 		std::cerr << "ERROR (Initialize): mutation types and fractions have different sizes" << std::endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	
 	// Prepare to randomly draw mutation types
