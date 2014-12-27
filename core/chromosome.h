@@ -54,8 +54,6 @@ private:
 	
 public:
 	
-	std::map<int,MutationType*>			mutation_types_;			// this map is the owner of all allocated MutationType objects
-	std::map<int,GenomicElementType*>	genomic_element_types_;		// this map is the owner of all allocated GenomicElementType objects
 	vector<int>							recombination_end_positions_;
 	vector<double>						recombination_rates_;	// in events per base pair
 	

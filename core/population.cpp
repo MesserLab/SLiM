@@ -23,6 +23,8 @@
 #include <fstream>
 #include <iomanip>
 
+#include "slim_sim.h"
+
 
 using std::cout;
 using std::cerr;
@@ -108,7 +110,7 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
-void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> *p_tracked_mutations)
+void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &sim, std::vector<int> *p_tracked_mutations)
 {
 	char event_type = p_event.event_type_;
 	const std::vector<std::string> &event_parameters = p_event.parameters_;
@@ -195,10 +197,12 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 				std::ofstream outfile;
 				outfile.open(event_parameters[0].c_str());
 				
-				if (outfile.is_open()) 
-				{ 
-					for (int i = 0; i < parameters_.size(); i++)
-						outfile << parameters_[i] << endl;
+				if (outfile.is_open())
+				{
+					const std::vector<std::string> &parameters = sim.InputParameters();
+					
+					for (int i = 0; i < parameters.size(); i++)
+						outfile << parameters[i] << endl;
 					
 					outfile << "#OUT: " << p_generation << " A " << event_parameters[0].c_str() << endl;
 					PrintAll(outfile);

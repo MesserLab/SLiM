@@ -40,6 +40,8 @@
 #include "introduced_mutation.h"
 #include "partial_sweep.h"
 
+class SLiMSim;
+
 
 class Population : public std::map<int,Subpopulation*>
 {
@@ -54,7 +56,7 @@ private:
 public: 
 	
 	std::vector<Substitution> substitutions_;
-	std::vector<std::string> parameters_;
+
 	
 	// default constructor
 	Population() = default;
@@ -75,7 +77,7 @@ public:
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a given event in the population; the event is assumed to be due to trigger
-	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> *p_tracked_mutations);
+	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &sim, std::vector<int> *p_tracked_mutations);
 	
 	// introduce a user-defined mutation
 	void IntroduceMutation(IntroducedMutation &p_introduced_mutation);

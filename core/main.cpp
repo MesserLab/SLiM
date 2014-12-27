@@ -24,92 +24,12 @@
  */
 
 
-#include <map>
 #include <iostream>
 
-#include "input_parsing.h"
-#include "mutation.h"
-#include "population.h"
-#include "chromosome.h"
+#include "slim_sim.h"
 
 
-using std::multimap;
-
-
-void RunSLiM(char *p_input_file, int *p_override_seed);
 void PrintUsageAndDie();
-
-
-// Run a simulation using the given input file and the supplied seed (if it is not NULL)
-void RunSLiM(char *p_input_file, int *p_override_seed)
-{
-	// check the input file for syntactic correctness
-	CheckInputFile(p_input_file);
-	
-	// initialize simulation parameters
-	int time_start;
-	int time_duration;
-	Chromosome chromosome;
-	Population population;
-	
-	population.parameters_.push_back("#INPUT PARAMETER FILE");
-	population.parameters_.push_back(p_input_file);
-	
-	// demographic and structure events
-	multimap<const int,Event*> events; 
-	multimap<const int,Event*>::iterator eventsIterator;
-	
-	// output events (time, output)
-	multimap<const int,Event*> outputs; 
-	multimap<const int,Event*>::iterator outputsIterator;
-	
-	// user-defined mutations that will be introduced (time, mutation)
-	multimap<const int,IntroducedMutation> introduced_mutations; 
-	multimap<const int,IntroducedMutation>::iterator introduced_mutations_iter;
-	
-	// tracked mutation-types
-	std::vector<int> tracked_mutations; 
-	
-	// mutations undergoing partial sweeps
-	std::vector<PartialSweep> partial_sweeps;
-	
-	// read all configuration information from the input file
-	Initialize(&population, p_input_file, &chromosome, &time_start, &time_duration, &events, &outputs, &introduced_mutations, &partial_sweeps, &population.parameters_, p_override_seed);
-	
-	// evolve over t generations
-	std::cout << time_start << " " << time_duration << std::endl;
-	
-	for (int generation = time_start; generation < (time_start + time_duration); generation++)
-	{ 
-		// execute demographic and substructure events in this generation 
-		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> event_range = events.equal_range(generation);
-		
-		for (eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
-			population.ExecuteEvent(*eventsIterator->second, generation, chromosome, &tracked_mutations);
-		
-		// evolve all subpopulations
-		for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
-			population.EvolveSubpopulation(subpop_pair.first, chromosome, generation);
-		
-		// introduce user-defined mutations
-		std::pair<multimap<const int,IntroducedMutation>::iterator,multimap<const int,IntroducedMutation>::iterator> introd_mut_range = introduced_mutations.equal_range(generation);
-		
-		for (introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
-			population.IntroduceMutation(introduced_mutations_iter->second);
-		
-		// execute output events
-		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs.equal_range(generation);
-		for (outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
-			population.ExecuteEvent(*outputsIterator->second, generation, chromosome, &tracked_mutations);
-		
-		// track particular mutation-types and set s=0 for partial sweeps when completed
-		if (tracked_mutations.size() > 0 || partial_sweeps.size() > 0)
-			population.TrackMutations(generation, tracked_mutations, &partial_sweeps);
-		
-		// swap generations
-		population.SwapGenerations(generation);   
-	}
-}
 
 void PrintUsageAndDie()
 {
@@ -160,16 +80,21 @@ int main(int argc, char *argv[])
 	if (!input_file)
 		PrintUsageAndDie();
 	
+	// keep time (we do this whether or not the -time flag was passed)
+	clock_t begin = clock();
+	
 	// run the simulation
-	clock_t begin, end;
-	double time_spent;
+	SLiMSim *sim = new SLiMSim(input_file, override_seed_ptr);
 	
-	begin = clock();
+	if (sim)
+	{
+		sim->RunToEnd();
+		//delete sim;		// clean up; but this is an unnecessary waste of time in the command-line context
+	}
 	
-	RunSLiM(input_file, override_seed_ptr);
-	
-	end = clock();
-	time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+	// end timing and print elapsed time
+	clock_t end = clock();
+	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
 		std::cerr << "CPU time used: " << time_spent << std::endl;
