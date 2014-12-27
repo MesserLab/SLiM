@@ -1229,12 +1229,12 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					
 					const MutationType *mutation_type_ptr = found_muttype_pair->second;
 					
-					IntroducedMutation new_introduced_mutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
+					const IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					
-					introduced_mutations_.insert(std::pair<const int,IntroducedMutation>(generation, new_introduced_mutation));
+					introduced_mutations_.insert(std::pair<const int,const IntroducedMutation*>(generation, new_introduced_mutation));
 					
 					if (DEBUG_INPUT)
-						std::cout << "   #PREDETERMINED MUTATIONS: generation " << generation << " " << new_introduced_mutation << endl;
+						std::cout << "   #PREDETERMINED MUTATIONS: generation " << generation << " " << *new_introduced_mutation << endl;
 					
 					while (iss >> sub) 
 					{ 

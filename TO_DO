@@ -2,6 +2,7 @@ set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__
 import list of targets from emails
 start on adding sex
+make more classes uncopyable, eradicate find() calls where possible, optimize CrossoverMutation() more
 
 changes to mention in docs:
 	changed comment format from / to //

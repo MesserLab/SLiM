@@ -70,10 +70,10 @@ void SLiMSim::RunOneGeneration(void)
 			population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
 		
 		// introduce user-defined mutations
-		std::pair<multimap<const int,IntroducedMutation>::iterator,multimap<const int,IntroducedMutation>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
+		std::pair<multimap<const int,const IntroducedMutation*>::iterator,multimap<const int,const IntroducedMutation*>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
 		
-		for (multimap<const int,IntroducedMutation>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
-			population_.IntroduceMutation(introduced_mutations_iter->second);
+		for (multimap<const int,const IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
+			population_.IntroduceMutation(*introduced_mutations_iter->second);
 		
 		// execute output events
 		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);

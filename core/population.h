@@ -80,7 +80,7 @@ public:
 	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &sim, std::vector<int> *p_tracked_mutations);
 	
 	// introduce a user-defined mutation
-	void IntroduceMutation(IntroducedMutation &p_introduced_mutation);
+	void IntroduceMutation(const IntroducedMutation &p_introduced_mutation);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
 	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> *p_partial_sweeps);

@@ -35,6 +35,13 @@
 
 class IntroducedMutation : public Mutation
 {
+	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	IntroducedMutation(const IntroducedMutation&);						// disable copy constructor
+	IntroducedMutation &operator = (const IntroducedMutation&);			// disable assignment operator
+	
 public:
 	
 	int num_homozygotes_;

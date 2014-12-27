@@ -61,7 +61,7 @@ private:
 	std::multimap<const int,Event*> outputs_; 
 	
 	// user-defined mutations that will be introduced (time, mutation)
-	std::multimap<const int,IntroducedMutation> introduced_mutations_; 
+	std::multimap<const int,const IntroducedMutation*> introduced_mutations_; 
 	
 	// tracked mutation-types
 	std::vector<int> tracked_mutations_; 

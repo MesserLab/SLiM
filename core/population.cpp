@@ -262,7 +262,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 }
 
 // introduce a user-defined mutation
-void Population::IntroduceMutation(IntroducedMutation &p_introduced_mutation)
+void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutation)
 {
 	if (count(p_introduced_mutation.subpop_index_) == 0)
 	{
