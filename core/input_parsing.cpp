@@ -847,8 +847,8 @@ void Initialize(Population &p_population,
 				Chromosome &p_chromosome,
 				int &p_time_start,
 				int &p_time_duration,
-				multimap<const int,Event> &p_events,
-				multimap<const int,Event> &p_outputs,
+				multimap<const int,Event*> &p_events,
+				multimap<const int,Event*> &p_outputs,
 				multimap<const int,IntroducedMutation> &p_introduced_mutations,
 				std::vector<PartialSweep> &p_partial_sweeps,
 				std::vector<string> &p_parameters,
@@ -1149,12 +1149,12 @@ void Initialize(Population &p_population,
 					while (iss >> sub)
 						event_parameters.push_back(sub.c_str());
 					
-					Event new_event(event_type, event_parameters);
+					Event *new_event_ptr = new Event(event_type, event_parameters);
 					
-					p_events.insert(std::pair<const int,Event>(event_time, new_event));
+					p_events.insert(std::pair<const int,Event*>(event_time, new_event_ptr));
 					
 					if (DEBUG_INPUT)
-						std::cout << "   #DEMOGRAPHY AND STRUCTURE: event_time " << event_time << " " << new_event << endl;
+						std::cout << "   #DEMOGRAPHY AND STRUCTURE: event_time " << event_time << " " << *new_event_ptr << endl;
 				} while (true);
 				
 				continue;
@@ -1184,12 +1184,12 @@ void Initialize(Population &p_population,
 					while (iss >> sub)
 						event_parameters.push_back(sub.c_str());
 					
-					Event new_event = Event(event_type, event_parameters);
+					Event *new_event_ptr = new Event(event_type, event_parameters);
 					
-					p_outputs.insert(std::pair<const int,Event>(event_time, new_event));
+					p_outputs.insert(std::pair<const int,Event*>(event_time, new_event_ptr));
 					
 					if (DEBUG_INPUT)
-						std::cout << "   #OUTPUT: event_time " << event_time << " " << new_event << endl;
+						std::cout << "   #OUTPUT: event_time " << event_time << " " << *new_event_ptr << endl;
 				} while (true);
 				
 				continue;

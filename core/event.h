@@ -36,6 +36,14 @@
 
 class Event
 {
+private:
+	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	Event(const Event&);						// disable copy constructor
+	Event &operator = (const Event&);			// disable assignment operator
+	
 public:
 	
 	// type of events:

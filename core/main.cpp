@@ -56,12 +56,12 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 	population.parameters_.push_back(p_input_file);
 	
 	// demographic and structure events
-	multimap<const int,Event> events; 
-	multimap<const int,Event>::iterator eventsIterator;
+	multimap<const int,Event*> events; 
+	multimap<const int,Event*>::iterator eventsIterator;
 	
 	// output events (time, output)
-	multimap<const int,Event> outputs; 
-	multimap<const int,Event>::iterator outputsIterator;
+	multimap<const int,Event*> outputs; 
+	multimap<const int,Event*>::iterator outputsIterator;
 	
 	// user-defined mutations that will be introduced (time, mutation)
 	multimap<const int,IntroducedMutation> introduced_mutations; 
@@ -82,10 +82,10 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 	for (int generation = time_start; generation < (time_start + time_duration); generation++)
 	{ 
 		// execute demographic and substructure events in this generation 
-		std::pair<multimap<const int,Event>::iterator,multimap<const int,Event>::iterator> event_range = events.equal_range(generation);
+		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> event_range = events.equal_range(generation);
 		
 		for (eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
-			population.ExecuteEvent(eventsIterator->second, generation, chromosome, tracked_mutations);
+			population.ExecuteEvent(*eventsIterator->second, generation, chromosome, tracked_mutations);
 		
 		// evolve all subpopulations
 		for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
@@ -98,9 +98,9 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 			population.IntroduceMutation(introduced_mutations_iter->second);
 		
 		// execute output events
-		std::pair<multimap<const int,Event>::iterator,multimap<const int,Event>::iterator> output_event_range = outputs.equal_range(generation);
+		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs.equal_range(generation);
 		for (outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
-			population.ExecuteEvent(outputsIterator->second, generation, chromosome, tracked_mutations);
+			population.ExecuteEvent(*outputsIterator->second, generation, chromosome, tracked_mutations);
 		
 		// track particular mutation-types and set s=0 for partial sweeps when completed
 		if (tracked_mutations.size() > 0 || partial_sweeps.size() > 0)
@@ -113,7 +113,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 
 void PrintUsageAndDie()
 {
-	std::cerr << "usage: slim [-seed <seed>] <parameter file>" << std::endl;
+	std::cerr << "usage: slim [-seed <seed>] [-time] <parameter file>" << std::endl;
 	exit(1);
 }
 
