@@ -25,39 +25,6 @@
 bool Genome::s_log_copy_and_assign_ = true;
 
 
-Genome::Genome(const Genome& p_original) : std::vector<Mutation>(p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::Subpopulation(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-}
-
-Genome& Genome::operator= (const Genome& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		std::clog << "********* Subpopulation::operator=(Subpopulation&) called!" << std::endl;
-		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
-	}
-	
-	std::vector<Mutation>::operator=(p_original);
-	
-	return *this;
-}
-
-bool Genome::LogGenomeCopyAndAssign(bool p_log)
-{
-	bool old_value = s_log_copy_and_assign_;
-	
-	s_log_copy_and_assign_ = p_log;
-	
-	return old_value;
-}
-
 // return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
 Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2)
 {
@@ -170,6 +137,43 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 	return merge_genome;
 }
 
+
+//
+//	Methods to enforce limited copying
+//
+
+Genome::Genome(const Genome& p_original) : std::vector<Mutation>(p_original)
+{
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Genome::Genome(Genome&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+}
+
+Genome& Genome::operator= (const Genome& p_original)
+{
+	if (s_log_copy_and_assign_)
+	{
+		std::clog << "********* Genome::operator=(Genome&) called!" << std::endl;
+		print_stacktrace(stderr);
+		std::clog << "************************************************" << std::endl;
+	}
+	
+	std::vector<Mutation>::operator=(p_original);
+	
+	return *this;
+}
+
+bool Genome::LogGenomeCopyAndAssign(bool p_log)
+{
+	bool old_value = s_log_copy_and_assign_;
+	
+	s_log_copy_and_assign_ = p_log;
+	
+	return old_value;
+}
 
 
 

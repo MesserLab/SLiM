@@ -1016,8 +1016,11 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					}
 					
 					const GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
-					GenomicElement new_genomic_element = GenomicElement(genomic_element_type_ptr, start_position, end_position);
+					GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
+					
+					bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
 					chromosome_.push_back(new_genomic_element);
+					GenomicElement::LogGenomicElementCopyAndAssign(old_log);
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #CHROMOSOME ORGANIZATION: " << new_genomic_element << endl;
