@@ -35,6 +35,14 @@
 
 class PartialSweep
 {
+private:
+	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	PartialSweep(const PartialSweep&);						// disable copy constructor
+	PartialSweep &operator = (const PartialSweep&);			// disable assignment operator
+	
 public:
 	
 	const MutationType *mutation_type_ptr_;		// mutation type identifier

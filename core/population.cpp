@@ -309,7 +309,7 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 }
 
 // output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-void Population::TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> *p_partial_sweeps)
+void Population::TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps)
 {
 	// FIXME this whole loop could be enclosed in if(p_tracked_mutations.size() > 0) couldn't it?
 	// find all polymorphism of the types that are to be tracked
@@ -345,7 +345,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 				for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
 					for (int j = 0; j < p_partial_sweeps->size(); j++)
-						if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_) 
+						if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j]->position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j]->mutation_type_ptr_) 
 							AddMutation(&polymorphisms, subpop_pair.second->child_genomes_[i][k]); 
 		
 		// check whether a partial sweep has reached its target frequency
@@ -353,15 +353,15 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 		{ 
 			for (int j = 0; j < p_partial_sweeps->size(); j++)
 			{
-				if (polymorphism_pair.first == (*p_partial_sweeps)[j].position_ && polymorphism_pair.second.mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_)
+				if (polymorphism_pair.first == (*p_partial_sweeps)[j]->position_ && polymorphism_pair.second.mutation_type_ptr_ == (*p_partial_sweeps)[j]->mutation_type_ptr_)
 				{
-					if (static_cast<double>(polymorphism_pair.second.prevalence_) / (2 * current_pop_size) >= (*p_partial_sweeps)[j].target_prevalence_)
+					if (static_cast<double>(polymorphism_pair.second.prevalence_) / (2 * current_pop_size) >= (*p_partial_sweeps)[j]->target_prevalence_)
 					{
 						// sweep has reached target frequency, set all selection_coeff_ to zero
 						for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
 							for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 								for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
-									if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_)
+									if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j]->position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j]->mutation_type_ptr_)
 										subpop_pair.second->child_genomes_[i][k].selection_coeff_ = 0.0;
 						
 						p_partial_sweeps->erase(p_partial_sweeps->begin() + j);

@@ -83,7 +83,7 @@ public:
 	void IntroduceMutation(const IntroducedMutation &p_introduced_mutation);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> *p_partial_sweeps);
+	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation);

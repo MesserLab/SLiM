@@ -74,7 +74,7 @@ private:
 	std::vector<int> tracked_mutations_; 
 	
 	// mutations undergoing partial sweeps
-	std::vector<PartialSweep> partial_sweeps_;
+	std::vector<const PartialSweep*> partial_sweeps_;
 	
 	// this map is the owner of all allocated MutationType objects
 	std::map<int,MutationType*>			mutation_types_;

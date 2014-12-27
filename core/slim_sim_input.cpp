@@ -1242,12 +1242,12 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 						{
 							iss >> sub;
 							double target_prevalence = atof(sub.c_str());
-							PartialSweep new_partial_sweep = PartialSweep(mutation_type_ptr, position, target_prevalence);
+							const PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, position, target_prevalence);
 							
 							partial_sweeps_.push_back(new_partial_sweep);
 							
 							if (DEBUG_INPUT)
-								std::cout << "      " << new_partial_sweep << endl;
+								std::cout << "      " << *new_partial_sweep << endl;
 						}
 					}
 				} while (true);
