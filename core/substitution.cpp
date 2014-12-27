@@ -23,7 +23,7 @@
 #include <iostream>
 
 
-Substitution::Substitution(Mutation p_mutation, int p_fixation_time)
+Substitution::Substitution(const Mutation &p_mutation, int p_fixation_time)
 {
 	mutation_type_ptr_ = p_mutation.mutation_type_ptr_;
 	position_ = p_mutation.position_;

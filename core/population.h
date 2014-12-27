@@ -55,7 +55,7 @@ private:
 
 public: 
 	
-	std::vector<Substitution> substitutions_;
+	std::vector<const Substitution*> substitutions_;
 
 	
 	// default constructor

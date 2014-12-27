@@ -244,7 +244,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			for (int i = 0; i < substitutions_.size(); i++)
 			{
 				cout << i + 1;
-				substitutions_[i].print();
+				substitutions_[i]->print();
 			}
 			
 			break;
@@ -683,7 +683,7 @@ void Population::RemoveFixedMutations(int p_generation)
 				subpop_pair.second->child_genomes_[i] = GenomeWithPolymorphicMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator);
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.push_back(Substitution(fixed_mutation_accumulator[i], p_generation));
+			substitutions_.push_back(new Substitution(fixed_mutation_accumulator[i], p_generation));
 	}
 	
 	Genome::LogGenomeCopyAndAssign(old_log);

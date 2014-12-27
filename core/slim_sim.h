@@ -42,6 +42,13 @@ class SLiMSim
 {
 private:
 	
+	//
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	//
+	SLiMSim(const SLiMSim&);						// disable copy constructor
+	SLiMSim &operator = (const SLiMSim&);			// disable assignment operator
+	
+	
 	// the start and duration for which the simulation will run, in generations, and the current generation
 	int time_start_, time_duration_, generation_;
 	
@@ -78,13 +85,6 @@ private:
 	// random number generator seed info
 	int rng_seed_;
 	bool rng_seed_supplied_to_constructor_;
-	
-	
-	//
-	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	SLiMSim(const SLiMSim&);						// disable copy constructor
-	SLiMSim &operator = (const SLiMSim&);			// disable assignment operator
 	
 	
 	// defined in slim_sim_input.cpp: check an input file for correctness and exit with a good error message if there is a problem
