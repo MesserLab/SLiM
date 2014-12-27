@@ -108,7 +108,7 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
-void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> &p_tracked_mutations)
+void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> *p_tracked_mutations)
 {
 	char event_type = p_event.event_type_;
 	const std::vector<std::string> &event_parameters = p_event.parameters_;
@@ -250,7 +250,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 		{
 			string sub = event_parameters[0];
 			sub.erase(0, 1); // m
-			p_tracked_mutations.push_back(atoi(sub.c_str()));
+			p_tracked_mutations->push_back(atoi(sub.c_str()));
 			
 			break;
 		}
@@ -258,7 +258,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 }
 
 // introduce a user-defined mutation
-void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation)
+void Population::IntroduceMutation(IntroducedMutation &p_introduced_mutation)
 {
 	if (count(p_introduced_mutation.subpop_index_) == 0)
 	{
@@ -305,7 +305,7 @@ void Population::IntroduceMutation(IntroducedMutation p_introduced_mutation)
 }
 
 // output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-void Population::TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps)
+void Population::TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> *p_partial_sweeps)
 {
 	// FIXME this whole loop could be enclosed in if(p_tracked_mutations.size() > 0) couldn't it?
 	// find all polymorphism of the types that are to be tracked
@@ -317,7 +317,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 			for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
 				for (int j = 0; j < p_tracked_mutations.size(); j++)
 					if (subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_->mutation_type_id_ == p_tracked_mutations[j])
-						AddMutation(polymorphisms, subpop_pair.second->child_genomes_[i][k]);
+						AddMutation(&polymorphisms, subpop_pair.second->child_genomes_[i][k]);
 		
 		// output the frequencies of these mutations in each subpopulation
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
@@ -328,7 +328,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 	}
 	
 	// check partial sweeps
-	if (p_partial_sweeps.size() > 0)
+	if (p_partial_sweeps->size() > 0)
 	{
 		multimap<const int,Polymorphism> polymorphisms;
 		int current_pop_size = 0;
@@ -340,27 +340,27 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 		for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 				for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
-					for (int j = 0; j < p_partial_sweeps.size(); j++)
-						if (subpop_pair.second->child_genomes_[i][k].position_ == p_partial_sweeps[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == p_partial_sweeps[j].mutation_type_ptr_) 
-							AddMutation(polymorphisms, subpop_pair.second->child_genomes_[i][k]); 
+					for (int j = 0; j < p_partial_sweeps->size(); j++)
+						if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_) 
+							AddMutation(&polymorphisms, subpop_pair.second->child_genomes_[i][k]); 
 		
 		// check whether a partial sweep has reached its target frequency
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
 		{ 
-			for (int j = 0; j < p_partial_sweeps.size(); j++)
+			for (int j = 0; j < p_partial_sweeps->size(); j++)
 			{
-				if (polymorphism_pair.first == p_partial_sweeps[j].position_ && polymorphism_pair.second.mutation_type_ptr_ == p_partial_sweeps[j].mutation_type_ptr_)
+				if (polymorphism_pair.first == (*p_partial_sweeps)[j].position_ && polymorphism_pair.second.mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_)
 				{
-					if (static_cast<double>(polymorphism_pair.second.prevalence_) / (2 * current_pop_size) >= p_partial_sweeps[j].target_prevalence_)
+					if (static_cast<double>(polymorphism_pair.second.prevalence_) / (2 * current_pop_size) >= (*p_partial_sweeps)[j].target_prevalence_)
 					{
 						// sweep has reached target frequency, set all selection_coeff_ to zero
 						for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
 							for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 								for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
-									if (subpop_pair.second->child_genomes_[i][k].position_ == p_partial_sweeps[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == p_partial_sweeps[j].mutation_type_ptr_)
+									if (subpop_pair.second->child_genomes_[i][k].position_ == (*p_partial_sweeps)[j].position_ && subpop_pair.second->child_genomes_[i][k].mutation_type_ptr_ == (*p_partial_sweeps)[j].mutation_type_ptr_)
 										subpop_pair.second->child_genomes_[i][k].selection_coeff_ = 0.0;
 						
-						p_partial_sweeps.erase(p_partial_sweeps.begin() + j);
+						p_partial_sweeps->erase(p_partial_sweeps->begin() + j);
 						j--;	// check the partial sweep that just backfilled in
 					}
 				}
@@ -437,8 +437,8 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 				parent2 = parent1;	// self
 			
 			// recombination, gene-conversion, mutation
-			CrossoverMutation(subpop, source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
-			CrossoverMutation(subpop, source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
+			CrossoverMutation(&subpop, &source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
+			CrossoverMutation(&subpop, &source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
 			
 			migrant_count++;
 			child_count++;
@@ -465,15 +465,15 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			parent2 = parent1;	// self
 		
 		// recombination, gene-conversion, mutation
-		CrossoverMutation(subpop, subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
-		CrossoverMutation(subpop, subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
+		CrossoverMutation(&subpop, &subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation);
+		CrossoverMutation(&subpop, &subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation);
 		
 		child_count++;
 	}
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation)
+void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -493,7 +493,7 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 	}
 	
 	// start with a clean slate in the child genome
-	Genome &child_genome = subpop.child_genomes_[p_child_genome_index];
+	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	child_genome.clear();
 	
 	// mutations are usually rare, so let's streamline the case where none occur
@@ -508,11 +508,11 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
 		
-		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
-		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
 		
 		std::vector<Mutation>::const_iterator parent_iter			= parent1_iter;
 		std::vector<Mutation>::const_iterator parent_iter_max		= parent1_iter_max;
@@ -559,11 +559,11 @@ void Population::CrossoverMutation(Subpopulation &subpop, Subpopulation &source_
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop.parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop.parent_genomes_[p_parent2_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
+		std::vector<Mutation>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
 		
-		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop.parent_genomes_[p_parent1_genome_index].end();
-		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop.parent_genomes_[p_parent2_genome_index].end();
+		std::vector<Mutation>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
+		std::vector<Mutation>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
 		
 		std::vector<Mutation>::const_iterator mutation_iter		= mutations_to_add.begin();
 		std::vector<Mutation>::const_iterator mutation_iter_max	= mutations_to_add.end();
@@ -699,7 +699,7 @@ void Population::PrintAll() const
 	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)						// go through all subpopulations
 		for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)					// go through all children
 			for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)		// go through all mutations
-				AddMutation(polymorphisms, subpop_pair.second->child_genomes_[i][k]);
+				AddMutation(&polymorphisms, subpop_pair.second->child_genomes_[i][k]);
 	
 	// print all polymorphisms
 	cout << "Mutations:"  << endl;
@@ -740,7 +740,7 @@ void Population::PrintAll(std::ofstream &p_outfile) const
 	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)					// go through all subpopulations
 		for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 			for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
-				AddMutation(polymorphisms, subpop_pair.second->child_genomes_[i][k]);
+				AddMutation(&polymorphisms, subpop_pair.second->child_genomes_[i][k]);
 	
 	// print all polymorphisms
 	p_outfile << "Mutations:"  << endl;
@@ -789,7 +789,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size) const
 		sample.push_back(j);
 		
 		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[j].size(); k++)			// go through all mutations
-			AddMutation(polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
+			AddMutation(&polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
 	}
 	
 	// print the sample's polymorphisms
@@ -835,7 +835,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		sample.push_back(j);
 		
 		for (int k = 0; k < find(p_subpop_id)->second->child_genomes_[j].size(); k++)			// go through all mutations
-			AddMutation(polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
+			AddMutation(&polymorphisms, find(p_subpop_id)->second->child_genomes_[j][k]);
 	}
 	
 	// print header
@@ -894,10 +894,10 @@ int Population::FindMutation(const multimap<const int,Polymorphism> &p_polymorph
 }
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void Population::AddMutation(multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const
+void Population::AddMutation(multimap<const int,Polymorphism> *p_polymorphisms, Mutation p_mutation) const
 {
 	// iterate through all mutations with same position
-	std::pair<multimap<const int,Polymorphism>::iterator,multimap<const int,Polymorphism>::iterator> range = p_polymorphisms.equal_range(p_mutation.position_);
+	std::pair<multimap<const int,Polymorphism>::iterator,multimap<const int,Polymorphism>::iterator> range = p_polymorphisms->equal_range(p_mutation.position_);
 	multimap<const int,Polymorphism>::iterator polymorphisms_iter;
 	
 	for (polymorphisms_iter = range.first; polymorphisms_iter != range.second; polymorphisms_iter++)
@@ -908,10 +908,10 @@ void Population::AddMutation(multimap<const int,Polymorphism> &p_polymorphisms, 
 		}
 	
 	// the mutation was not found, so add it to p_polymorphisms
-	int mutation_id = static_cast<int>(p_polymorphisms.size()) + 1;
+	int mutation_id = static_cast<int>(p_polymorphisms->size()) + 1;
 	Polymorphism new_polymorphism = Polymorphism(mutation_id, p_mutation.mutation_type_ptr_, p_mutation.selection_coeff_, p_mutation.subpop_index_, p_mutation.generation_, 1);
 	
-	p_polymorphisms.insert(std::pair<const int,Polymorphism>(p_mutation.position_, new_polymorphism));
+	p_polymorphisms->insert(std::pair<const int,Polymorphism>(p_mutation.position_, new_polymorphism));
 }
 
 

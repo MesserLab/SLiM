@@ -74,7 +74,7 @@ bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_s
 bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpected p_eof_expected);
 
 // initialize the population from the information in the file given
-void InitializePopulationFromFile(Population &p_population, const char *p_file, const Chromosome &p_chromosome);
+void InitializePopulationFromFile(Population *p_population, const char *p_file, const Chromosome &p_chromosome);
 
 
 void GetInputLine(ifstream &p_input_file, string &p_line)
@@ -727,7 +727,7 @@ void CheckInputFile(char *p_input_file)
 	}
 }
 
-void InitializePopulationFromFile(Population &p_population, const char *p_file, const Chromosome &p_chromosome)
+void InitializePopulationFromFile(Population *p_population, const char *p_file, const Chromosome &p_chromosome)
 {
 	std::map<int,Mutation> M;
 	string line, sub; 
@@ -756,7 +756,7 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		iss >> sub;
 		
 		int n = atoi(sub.c_str());
-		p_population.AddSubpopulation(i, n);
+		p_population->AddSubpopulation(i, n);
 		
 		GetInputLine(infile, line);      
 	}
@@ -814,9 +814,9 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		while (iss >> sub) 
 		{
 			int id = atoi(sub.c_str());
-			auto found_subpop_pair = p_population.find(p);
+			auto found_subpop_pair = p_population->find(p);
 			
-			if (found_subpop_pair == p_population.end()) 
+			if (found_subpop_pair == p_population->end()) 
 			{ 
 				cerr << "ERROR (InitializePopulationFromFile): subpopulation p"<< p << " has not been defined" << endl;
 				exit(EXIT_FAILURE); 
@@ -838,20 +838,20 @@ void InitializePopulationFromFile(Population &p_population, const char *p_file, 
 		GetInputLine(infile, line);
 	}
 	
-	for (std::pair<const int,Subpopulation*> &subpop_pair : p_population)
+	for (std::pair<const int,Subpopulation*> &subpop_pair : *p_population)
 		subpop_pair.second->UpdateFitness();
 }
 
-void Initialize(Population &p_population,
+void Initialize(Population *p_population,
 				char *p_input_file,
-				Chromosome &p_chromosome,
-				int &p_time_start,
-				int &p_time_duration,
-				multimap<const int,Event*> &p_events,
-				multimap<const int,Event*> &p_outputs,
-				multimap<const int,IntroducedMutation> &p_introduced_mutations,
-				std::vector<PartialSweep> &p_partial_sweeps,
-				std::vector<string> &p_parameters,
+				Chromosome *p_chromosome,
+				int *p_time_start,
+				int *p_time_duration,
+				multimap<const int,Event*> *p_events,
+				multimap<const int,Event*> *p_outputs,
+				multimap<const int,IntroducedMutation> *p_introduced_mutations,
+				std::vector<PartialSweep> *p_partial_sweeps,
+				std::vector<string> *p_parameters,
 				int *p_override_seed)
 {
 	string line, sub; 
@@ -869,14 +869,14 @@ void Initialize(Population &p_population,
 		{
 			if (line.find("MUTATION RATE") != string::npos)
 			{
-				p_parameters.push_back("#MUTATION RATE");
+				p_parameters->push_back("#MUTATION RATE");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: overall_mutation_rate
 					istringstream iss(line);
@@ -884,7 +884,7 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					double overall_mutation_rate = atof(sub.c_str());
 					
-					p_chromosome.overall_mutation_rate_ = overall_mutation_rate;
+					p_chromosome->overall_mutation_rate_ = overall_mutation_rate;
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #MUTATION RATE: overall_mutation_rate " << overall_mutation_rate << endl;
@@ -895,14 +895,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("MUTATION TYPES") != string::npos)
 			{
-				p_parameters.push_back("#MUTATION TYPES");
+				p_parameters->push_back("#MUTATION TYPES");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: map_identifier dominance_coeff dfe_type dfe_parameters...
 					std::vector<double> dfe_parameters;
@@ -912,7 +912,7 @@ void Initialize(Population &p_population,
 					sub.erase(0, 1);	// m
 					int map_identifier = atoi(sub.c_str());
 					
-					if (p_chromosome.mutation_types_.count(map_identifier) > 0) 
+					if (p_chromosome->mutation_types_.count(map_identifier) > 0) 
 					{  
 						std::cerr << "ERROR (Initialize): mutation type " << map_identifier << " already defined" << endl;
 						exit(EXIT_FAILURE);
@@ -929,7 +929,7 @@ void Initialize(Population &p_population,
 					
 					MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
 					
-					p_chromosome.mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
+					p_chromosome->mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #MUTATION TYPES: " << "m" << map_identifier << " " << *new_mutation_type << endl;
@@ -940,14 +940,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("GENOMIC ELEMENT TYPES") != string::npos)
 			{
-				p_parameters.push_back("#GENOMIC ELEMENT TYPES");
+				p_parameters->push_back("#GENOMIC ELEMENT TYPES");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: map_identifier mutation_type mutation_fraction [more type/fraction pairs...]
 					std::vector<MutationType*> mutation_types;
@@ -962,9 +962,9 @@ void Initialize(Population &p_population,
 					{ 
 						sub.erase(0, 1);	// m
 						int mutation_type_id = atoi(sub.c_str());
-						auto found_muttype_pair = p_chromosome.mutation_types_.find(mutation_type_id);
+						auto found_muttype_pair = p_chromosome->mutation_types_.find(mutation_type_id);
 						
-						if (found_muttype_pair == p_chromosome.mutation_types_.end())
+						if (found_muttype_pair == p_chromosome->mutation_types_.end())
 						{
 							std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
 							exit(EXIT_FAILURE);
@@ -977,14 +977,14 @@ void Initialize(Population &p_population,
 						mutation_fractions.push_back(atof(sub.c_str()));
 					}
 					
-					if (p_chromosome.genomic_element_types_.count(map_identifier) > 0) 
+					if (p_chromosome->genomic_element_types_.count(map_identifier) > 0) 
 					{
 						std::cerr << "ERROR (Initialize): genomic element type " << map_identifier << " already defined" << endl;
 						exit(EXIT_FAILURE);
 					}
 					
 					GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);
-					p_chromosome.genomic_element_types_.insert(std::pair<const int,GenomicElementType*>(map_identifier, new_genomic_element_type));
+					p_chromosome->genomic_element_types_.insert(std::pair<const int,GenomicElementType*>(map_identifier, new_genomic_element_type));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #GENOMIC ELEMENT TYPES: " << "g" << map_identifier << " " << new_genomic_element_type << endl;
@@ -995,14 +995,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("CHROMOSOME ORGANIZATION") != string::npos)
 			{
-				p_parameters.push_back("#CHROMOSOME ORGANIZATION");
+				p_parameters->push_back("#CHROMOSOME ORGANIZATION");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: genomic_element_type start_position end_position
 					istringstream iss(line);
@@ -1017,9 +1017,9 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int end_position = static_cast<int>(atof(sub.c_str())) - 1;
 					
-					auto found_getype_pair = p_chromosome.genomic_element_types_.find(genomic_element_type);
+					auto found_getype_pair = p_chromosome->genomic_element_types_.find(genomic_element_type);
 					
-					if (found_getype_pair == p_chromosome.genomic_element_types_.end())
+					if (found_getype_pair == p_chromosome->genomic_element_types_.end())
 					{
 						std::cerr << "ERROR (Initialize): genomic element type m" << genomic_element_type << " not defined" << endl;
 						exit(EXIT_FAILURE);
@@ -1027,7 +1027,7 @@ void Initialize(Population &p_population,
 					
 					const GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
 					GenomicElement new_genomic_element = GenomicElement(genomic_element_type_ptr, start_position, end_position);
-					p_chromosome.push_back(new_genomic_element);
+					p_chromosome->push_back(new_genomic_element);
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #CHROMOSOME ORGANIZATION: " << new_genomic_element << endl;
@@ -1038,14 +1038,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("RECOMBINATION RATE") != string::npos)
 			{
-				p_parameters.push_back("#RECOMBINATION RATE");
+				p_parameters->push_back("#RECOMBINATION RATE");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: recombination_end_position recombination_rate
 					istringstream iss(line);
@@ -1056,8 +1056,8 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					double recombination_rate = atof(sub.c_str());
 					
-					p_chromosome.recombination_end_positions_.push_back(recombination_end_position);
-					p_chromosome.recombination_rates_.push_back(recombination_rate);
+					p_chromosome->recombination_end_positions_.push_back(recombination_end_position);
+					p_chromosome->recombination_rates_.push_back(recombination_rate);
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #RECOMBINATION RATE: recombination_end_position " << recombination_end_position << ", recombination_rate " << recombination_rate << endl;
@@ -1068,14 +1068,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("GENE CONVERSION") != string::npos)
 			{
-				p_parameters.push_back("#GENE CONVERSION");
+				p_parameters->push_back("#GENE CONVERSION");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: gene_conversion_fraction gene_conversion_avg_length
 					istringstream iss(line);
@@ -1086,8 +1086,8 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					double gene_conversion_avg_length = atof(sub.c_str());
 					
-					p_chromosome.gene_conversion_fraction_ = gene_conversion_fraction;
-					p_chromosome.gene_conversion_avg_length_ = gene_conversion_avg_length;
+					p_chromosome->gene_conversion_fraction_ = gene_conversion_fraction;
+					p_chromosome->gene_conversion_avg_length_ = gene_conversion_avg_length;
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #GENE CONVERSION: gene_conversion_fraction " << gene_conversion_fraction << ", gene_conversion_avg_length_ " << gene_conversion_avg_length << endl;
@@ -1098,25 +1098,25 @@ void Initialize(Population &p_population,
 			
 			if (line.find("GENERATIONS") != string::npos)
 			{
-				p_parameters.push_back("#GENERATIONS");
+				p_parameters->push_back("#GENERATIONS");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: time_duration [time_start]
 					istringstream iss(line);
 					
 					iss >> sub;
-					p_time_duration = static_cast<int>(atof(sub.c_str()));
+					*p_time_duration = static_cast<int>(atof(sub.c_str()));
 					
 					if (iss >> sub)
-						p_time_start = static_cast<int>(atof(sub.c_str()));
+						*p_time_start = static_cast<int>(atof(sub.c_str()));
 					else
-						p_time_start = 1;
+						*p_time_start = 1;
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #GENERATIONS: time_duration " << p_time_duration << ", time_start " << p_time_start << endl;
@@ -1127,14 +1127,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("DEMOGRAPHY AND STRUCTURE") != string::npos)
 			{
-				p_parameters.push_back("#DEMOGRAPHY AND STRUCTURE");
+				p_parameters->push_back("#DEMOGRAPHY AND STRUCTURE");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: event_time event_type [event_parameters...]
 					istringstream iss(line);
@@ -1151,7 +1151,7 @@ void Initialize(Population &p_population,
 					
 					Event *new_event_ptr = new Event(event_type, event_parameters);
 					
-					p_events.insert(std::pair<const int,Event*>(event_time, new_event_ptr));
+					p_events->insert(std::pair<const int,Event*>(event_time, new_event_ptr));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #DEMOGRAPHY AND STRUCTURE: event_time " << event_time << " " << *new_event_ptr << endl;
@@ -1162,14 +1162,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("OUTPUT") != string::npos)
 			{
-				p_parameters.push_back("#OUTPUT");
+				p_parameters->push_back("#OUTPUT");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: event_time event_type [event_parameters...]
 					istringstream iss(line);
@@ -1186,7 +1186,7 @@ void Initialize(Population &p_population,
 					
 					Event *new_event_ptr = new Event(event_type, event_parameters);
 					
-					p_outputs.insert(std::pair<const int,Event*>(event_time, new_event_ptr));
+					p_outputs->insert(std::pair<const int,Event*>(event_time, new_event_ptr));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #OUTPUT: event_time " << event_time << " " << *new_event_ptr << endl;
@@ -1197,14 +1197,14 @@ void Initialize(Population &p_population,
 			
 			if (line.find("PREDETERMINED MUTATIONS") != string::npos)
 			{
-				p_parameters.push_back("#PREDETERMINED MUTATIONS");
+				p_parameters->push_back("#PREDETERMINED MUTATIONS");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: generation mutation_type position subpop_index num_AA num_Aa ['P' target_prevalence]
 					istringstream iss(line); 
@@ -1229,9 +1229,9 @@ void Initialize(Population &p_population,
 					iss >> sub;
 					int num_Aa = static_cast<int>(atof(sub.c_str()));
 					
-					auto found_muttype_pair = p_chromosome.mutation_types_.find(mutation_type_id);
+					auto found_muttype_pair = p_chromosome->mutation_types_.find(mutation_type_id);
 					
-					if (found_muttype_pair == p_chromosome.mutation_types_.end())
+					if (found_muttype_pair == p_chromosome->mutation_types_.end())
 					{
 						std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
 						exit(EXIT_FAILURE);
@@ -1241,7 +1241,7 @@ void Initialize(Population &p_population,
 					
 					IntroducedMutation new_introduced_mutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					
-					p_introduced_mutations.insert(std::pair<const int,IntroducedMutation>(generation, new_introduced_mutation));
+					p_introduced_mutations->insert(std::pair<const int,IntroducedMutation>(generation, new_introduced_mutation));
 					
 					if (DEBUG_INPUT)
 						std::cout << "   #PREDETERMINED MUTATIONS: generation " << generation << " " << new_introduced_mutation << endl;
@@ -1254,7 +1254,7 @@ void Initialize(Population &p_population,
 							double target_prevalence = atof(sub.c_str());
 							PartialSweep new_partial_sweep = PartialSweep(mutation_type_ptr, position, target_prevalence);
 							
-							p_partial_sweeps.push_back(new_partial_sweep);
+							p_partial_sweeps->push_back(new_partial_sweep);
 							
 							if (DEBUG_INPUT)
 								std::cout << "      " << new_partial_sweep << endl;
@@ -1291,21 +1291,21 @@ void Initialize(Population &p_population,
 			
 			if (line.find("INITIALIZATION") != string::npos)
 			{
-				p_parameters.push_back("#INITIALIZATION");
+				p_parameters->push_back("#INITIALIZATION");
 				
 				do
 				{
 					GetInputLine(infile, line);
 					if (line.find('#') != string::npos || infile.eof()) break;
 					if (line.length() == 0) continue;
-					p_parameters.push_back(line);
+					p_parameters->push_back(line);
 					
 					// FORMAT: filename
 					istringstream iss(line);
 					
 					iss >> sub;
 					
-					InitializePopulationFromFile(p_population, sub.c_str(), p_chromosome);
+					InitializePopulationFromFile(p_population, sub.c_str(), *p_chromosome);
 				} while (true);
 				
 				continue;
@@ -1318,7 +1318,7 @@ void Initialize(Population &p_population,
 	}
 	
 	// initialize chromosome
-	p_chromosome.InitializeDraws();
+	p_chromosome->InitializeDraws();
 	
 	// if an override seed value has been supplied via the command line, use it in preference
 	if (p_override_seed != NULL)
@@ -1327,15 +1327,15 @@ void Initialize(Population &p_population,
 	// initialize rng
 	InitializeRNGFromSeed(seed);
 	
-	p_parameters.push_back("#SEED");
+	p_parameters->push_back("#SEED");
 	
 	std::stringstream ss;
 	ss << seed;
-	p_parameters.push_back(ss.str());
+	p_parameters->push_back(ss.str());
 	
 	// parameter output
-	for (int i = 0; i < p_population.parameters_.size(); i++)
-		std::cout << p_parameters[i] << endl;
+	for (int i = 0; i < p_population->parameters_.size(); i++)
+		std::cout << (*p_parameters)[i] << endl;
 }
 
 

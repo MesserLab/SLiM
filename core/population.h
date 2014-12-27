@@ -75,19 +75,19 @@ public:
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a given event in the population; the event is assumed to be due to trigger
-	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> &p_tracked_mutations);
+	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, std::vector<int> *p_tracked_mutations);
 	
 	// introduce a user-defined mutation
-	void IntroduceMutation(IntroducedMutation p_introduced_mutation);
+	void IntroduceMutation(IntroducedMutation &p_introduced_mutation);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> &p_partial_sweeps);
+	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<PartialSweep> *p_partial_sweeps);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-	void CrossoverMutation(Subpopulation &subpop, Subpopulation &source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation);
+	void CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
 	void SwapGenerations(int p_generation);
@@ -111,7 +111,7 @@ public:
 	int FindMutation(const std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
 	
 	// if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-	void AddMutation(std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation) const;
+	void AddMutation(std::multimap<const int,Polymorphism> *p_polymorphisms, Mutation p_mutation) const;
 };
 
 

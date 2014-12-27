@@ -38,16 +38,16 @@
 void CheckInputFile(char *p_input_file);
 
 // parse a (previously checked) input file and set up the simulation state from its contents
-void Initialize(Population &p_population,
+void Initialize(Population *p_population,
 				char *p_input_file,
-				Chromosome &p_chromosome,
-				int &p_time_start,
-				int &p_time_duration,
-				std::multimap<const int,Event*> &p_events,
-				std::multimap<const int,Event*> &p_outputs,
-				std::multimap<const int,IntroducedMutation> &p_introduced_mutations,
-				std::vector<PartialSweep> &p_partial_sweeps,
-				std::vector<std::string> &p_parameters,
+				Chromosome *p_chromosome,
+				int *p_time_start,
+				int *p_time_duration,
+				std::multimap<const int,Event*> *p_events,
+				std::multimap<const int,Event*> *p_outputs,
+				std::multimap<const int,IntroducedMutation> *p_introduced_mutations,
+				std::vector<PartialSweep> *p_partial_sweeps,
+				std::vector<std::string> *p_parameters,
 				int *p_override_seed);
 
 

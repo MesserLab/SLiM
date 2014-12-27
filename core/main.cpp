@@ -74,7 +74,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 	std::vector<PartialSweep> partial_sweeps;
 	
 	// read all configuration information from the input file
-	Initialize(population, p_input_file, chromosome, time_start, time_duration, events, outputs, introduced_mutations, partial_sweeps, population.parameters_, p_override_seed);
+	Initialize(&population, p_input_file, &chromosome, &time_start, &time_duration, &events, &outputs, &introduced_mutations, &partial_sweeps, &population.parameters_, p_override_seed);
 	
 	// evolve over t generations
 	std::cout << time_start << " " << time_duration << std::endl;
@@ -85,7 +85,7 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> event_range = events.equal_range(generation);
 		
 		for (eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
-			population.ExecuteEvent(*eventsIterator->second, generation, chromosome, tracked_mutations);
+			population.ExecuteEvent(*eventsIterator->second, generation, chromosome, &tracked_mutations);
 		
 		// evolve all subpopulations
 		for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
@@ -100,11 +100,11 @@ void RunSLiM(char *p_input_file, int *p_override_seed)
 		// execute output events
 		std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs.equal_range(generation);
 		for (outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
-			population.ExecuteEvent(*outputsIterator->second, generation, chromosome, tracked_mutations);
+			population.ExecuteEvent(*outputsIterator->second, generation, chromosome, &tracked_mutations);
 		
 		// track particular mutation-types and set s=0 for partial sweeps when completed
 		if (tracked_mutations.size() > 0 || partial_sweeps.size() > 0)
-			population.TrackMutations(generation, tracked_mutations, partial_sweeps);
+			population.TrackMutations(generation, tracked_mutations, &partial_sweeps);
 		
 		// swap generations
 		population.SwapGenerations(generation);   
