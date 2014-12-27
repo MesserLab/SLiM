@@ -2,7 +2,6 @@ set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 import list of targets from emails
 start on adding sex
-optimize CrossoverMutation() more
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -10,6 +9,7 @@ changes to mention in docs:
 	full paths can now be supplied for files
 	added ability to pass a seed value on the command line via -seed
 	added ability to take a time measurement with -time (probably doesn't need to be documented)
+changed behavior regarding introduced mutations in the same subpopulation and the same generation; they would collide in the same individuals/strands (intentionally; see Philipp email 27 Dec. 2014), now they are placed randomly
 
 
 building on the command line for me:
@@ -33,6 +33,7 @@ timings (user time, with g++ build executed on command line):
 		26 Dec. 2014	3m0.807s	conversion of GenomicElementType to keep a MutationType* vector		(final output 350 m1 8043569 -6.83452e-05 0.2 p1 94232 99753)
 		26 Dec. 2014	2m58.630s	consolidation into SLiMSim class		(final output 350 m1 8043569 -6.83452e-05 0.2 p1 94232 99753)
 		27 Dec. 2014	2m54.810s	switch to g_rng_bool() in CrossoverMutation()		(final output )
+		27 Dec. 2014	2m47.970s	removal of child_map from EvolveSubpopulation()		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 
 	1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
 		26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
@@ -47,6 +48,7 @@ timings (user time, with g++ build executed on command line):
 		26 Dec. 2014	2m31.643s	conversion of GenomicElementType to keep a MutationType* vector		(final output p1:4426 15 16)
 		26 Dec. 2014	2m28.263s	consolidation into SLiMSim class		(final output p1:4426 15 16)
 		27 Dec. 2014	2m22.085s	switch to g_rng_bool() in CrossoverMutation()		(final output p1:11827 1 9 12 13 3)
+		27 Dec. 2014	2m8.474s	removal of child_map from EvolveSubpopulation()		(final output p1:12570)
 
 profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name
