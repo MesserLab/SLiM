@@ -33,7 +33,7 @@
 #include "mutation.h"
 
 
-class Genome : public std::vector<Mutation>
+class Genome : public std::vector<const Mutation*>
 {
 	// This class has a restricted copying policy; see below
 	

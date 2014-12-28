@@ -87,7 +87,7 @@ int Chromosome::DrawMutationCount() const
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
-Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
+Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 {
 	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
@@ -98,7 +98,7 @@ Mutation Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
-	return Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
+	return new Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability

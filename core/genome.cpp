@@ -30,36 +30,36 @@ Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2
 {
 	Genome merge_genome;
 	
-	std::vector<Mutation>::const_iterator genome1_iter = p_genome1.begin();
-	std::vector<Mutation>::const_iterator genome2_iter = p_genome2.begin();
+	std::vector<const Mutation*>::const_iterator genome1_iter = p_genome1.begin();
+	std::vector<const Mutation*>::const_iterator genome2_iter = p_genome2.begin();
 	
-	std::vector<Mutation>::const_iterator genome1_max = p_genome1.end();
-	std::vector<Mutation>::const_iterator genome2_max = p_genome2.end();
+	std::vector<const Mutation*>::const_iterator genome1_max = p_genome1.end();
+	std::vector<const Mutation*>::const_iterator genome2_max = p_genome2.end();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
 		// advance genome1_iter while genome1_iter.x < genome2_iter.x
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter).position_ < (*genome2_iter).position_)
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter)->position_ < (*genome2_iter)->position_)
 			genome1_iter++;
 		
 		// advance genome2_iter while genome2_iter.x < genome1_iter.x
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome2_iter).position_ < (*genome1_iter).position_)
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome2_iter)->position_ < (*genome1_iter)->position_)
 			genome2_iter++;
 		
 		// identify shared mutations at positions x and add to G
-		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ == (*genome1_iter).position_)
+		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ == (*genome1_iter)->position_)
 		{
-			int position = (*genome1_iter).position_;
+			int position = (*genome1_iter)->position_;
 			
-			std::vector<Mutation>::const_iterator temp;
+			std::vector<const Mutation *>::const_iterator temp;
 			
-			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
+			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
 			{
 				temp = genome2_iter;
 				
-				while (temp != genome2_max && (*temp).position_ == position)
+				while (temp != genome2_max && (*temp)->position_ == position)
 				{
-					if ((*temp).mutation_type_ptr_ == (*genome1_iter).mutation_type_ptr_ && (*temp).selection_coeff_ == (*genome1_iter).selection_coeff_)
+					if ((*temp)->mutation_type_ptr_ == (*genome1_iter)->mutation_type_ptr_ && (*temp)->selection_coeff_ == (*genome1_iter)->selection_coeff_)
 						merge_genome.push_back(*genome1_iter);
 					
 					temp++;
@@ -78,40 +78,40 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 {
 	Genome merge_genome;
 	
-	std::vector<Mutation>::const_iterator genome1_iter = p_genome1.begin();
-	std::vector<Mutation>::const_iterator genome2_iter = p_genome2.begin();
+	std::vector<const Mutation*>::const_iterator genome1_iter = p_genome1.begin();
+	std::vector<const Mutation*>::const_iterator genome2_iter = p_genome2.begin();
 	
-	std::vector<Mutation>::const_iterator genome1_max = p_genome1.end();
-	std::vector<Mutation>::const_iterator genome2_max = p_genome2.end();
+	std::vector<const Mutation*>::const_iterator genome1_max = p_genome1.end();
+	std::vector<const Mutation*>::const_iterator genome2_max = p_genome2.end();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
 		// advance genome1_iter while genome1_iter.position_ < genome2_iter.position_
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter).position_ < (*genome2_iter).position_)
+		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter)->position_ < (*genome2_iter)->position_)
 		{
 			merge_genome.push_back(*genome1_iter);
 			genome1_iter++;
 		}
 		
 		// advance genome2_iter while genome2_iter.position_ < genome1_iter.position_
-		while (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ < (*genome1_iter).position_)
+		while (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ < (*genome1_iter)->position_)
 			genome2_iter++;
 		
 		// identify polymorphic mutations at position_ and add to merge_genome
-		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter).position_ == (*genome1_iter).position_)
+		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ == (*genome1_iter)->position_)
 		{
-			int position = (*genome1_iter).position_;
+			int position = (*genome1_iter)->position_;
 			
 			// go through p_genome1 and check for those mutations that are not present in p_genome2
-			std::vector<Mutation>::const_iterator temp = genome2_iter;
+			std::vector<const Mutation*>::const_iterator temp = genome2_iter;
 			
-			while (genome1_iter != genome1_max && (*genome1_iter).position_ == position)
+			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
 			{
 				bool polymorphic = true;
 				
-				while (temp != genome2_max && (*temp).position_ == position)
+				while (temp != genome2_max && (*temp)->position_ == position)
 				{
-					if ((*genome1_iter).mutation_type_ptr_ == (*temp).mutation_type_ptr_ && (*genome1_iter).selection_coeff_ == (*temp).selection_coeff_)
+					if ((*genome1_iter)->mutation_type_ptr_ == (*temp)->mutation_type_ptr_ && (*genome1_iter)->selection_coeff_ == (*temp)->selection_coeff_)
 						polymorphic = false;
 					
 					temp++;
@@ -123,7 +123,7 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 				genome1_iter++;
 			}
 			
-			while (genome2_iter != genome2_max && (*genome2_iter).position_ == position)
+			while (genome2_iter != genome2_max && (*genome2_iter)->position_ == position)
 				genome2_iter++;
 		}
 	}
@@ -142,7 +142,7 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 //	Methods to enforce limited copying
 //
 
-Genome::Genome(const Genome& p_original) : std::vector<Mutation>(p_original)
+Genome::Genome(const Genome& p_original) : std::vector<const Mutation*>(p_original)
 {
 	if (s_log_copy_and_assign_)
 	{
@@ -161,7 +161,7 @@ Genome& Genome::operator= (const Genome& p_original)
 		std::clog << "************************************************" << std::endl;
 	}
 	
-	std::vector<Mutation>::operator=(p_original);
+	std::vector<const Mutation*>::operator=(p_original);
 	
 	return *this;
 }

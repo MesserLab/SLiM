@@ -67,27 +67,28 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	std::vector<Mutation>::const_iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
-	std::vector<Mutation>::const_iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
+	std::vector<const Mutation*>::const_iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
+	std::vector<const Mutation*>::const_iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
 	
-	std::vector<Mutation>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
-	std::vector<Mutation>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
+	std::vector<const Mutation*>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
+	std::vector<const Mutation*>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
 	
 	// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 	if (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
-		int genome1_iter_position = genome1_iter->position_, genome2_iter_position = genome2_iter->position_;
+		const Mutation *genome1_mutation = *genome1_iter, *genome2_mutation = *genome2_iter;
+		int genome1_iter_position = genome1_mutation->position_, genome2_iter_position = genome2_mutation->position_;
 		
 		do
 		{
 			if (genome1_iter_position < genome2_iter_position)
 			{
 				// Process a mutation in genome1 since it is leading
-				float selection_coeff = genome1_iter->selection_coeff_;
+				float selection_coeff = genome1_mutation->selection_coeff_;
 				
 				if (selection_coeff != 0.0f)
 				{
-					w *= (1.0 + genome1_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
+					w *= (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -97,17 +98,19 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 				
 				if (genome1_iter == genome1_max)
 					break;
-				else
-					genome1_iter_position = genome1_iter->position_;
+				else {
+					genome1_mutation = *genome1_iter;
+					genome1_iter_position = genome1_mutation->position_;
+				}
 			}
 			else if (genome1_iter_position > genome2_iter_position)
 			{
 				// Process a mutation in genome2 since it is leading
-				float selection_coeff = genome2_iter->selection_coeff_;
+				float selection_coeff = genome2_mutation->selection_coeff_;
 				
 				if (selection_coeff != 0.0f)
 				{
-					w *= (1.0 + genome2_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
+					w *= (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -117,30 +120,32 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 				
 				if (genome2_iter == genome2_max)
 					break;
-				else
-					genome2_iter_position = genome2_iter->position_;
+				else {
+					genome2_mutation = *genome2_iter;
+					genome2_iter_position = genome2_mutation->position_;
+				}
 			}
 			else
 			{
 				// Look for homozygosity: genome1_iter_position == genome2_iter_position
-				int position = genome1_iter->position_; 
-				std::vector<Mutation>::const_iterator genome1_start = genome1_iter;
+				int position = genome1_iter_position; 
+				std::vector<const Mutation*>::const_iterator genome1_start = genome1_iter;
 				
 				// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 				do
 				{
-					float selection_coeff = genome1_iter->selection_coeff_;
+					float selection_coeff = genome1_mutation->selection_coeff_;
 					
 					if (selection_coeff != 0.0f)
 					{
-						const MutationType *mutation_type_ptr = genome1_iter->mutation_type_ptr_;
-						std::vector<Mutation>::const_iterator genome2_matchscan = genome2_iter; 
+						const MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
+						std::vector<const Mutation*>::const_iterator genome2_matchscan = genome2_iter; 
 						bool homozygous = false;
 						
 						// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-						while (genome2_matchscan != genome2_max && genome2_matchscan->position_ == position)
+						while (genome2_matchscan != genome2_max && (*genome2_matchscan)->position_ == position)
 						{
-							if (mutation_type_ptr == genome2_matchscan->mutation_type_ptr_ && selection_coeff == genome2_matchscan->selection_coeff_) 
+							if (mutation_type_ptr == (*genome2_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome2_matchscan)->selection_coeff_) 
 							{
 								// a match was found, so we multiply our fitness by the full selection coefficient
 								w *= (1.0 + selection_coeff);
@@ -162,23 +167,30 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					}
 					
 					genome1_iter++;
-				} while (genome1_iter != genome1_max && genome1_iter->position_ == position);
+					
+					if (genome1_iter == genome1_max)
+						break;
+					else {
+						genome1_mutation = *genome1_iter;
+						genome1_iter_position = genome1_mutation->position_;
+					}
+				} while (genome1_iter_position == position);
 				
 				// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 				do
 				{
-					float selection_coeff = genome2_iter->selection_coeff_;
+					float selection_coeff = genome2_mutation->selection_coeff_;
 					
 					if (selection_coeff != 0.0f)
 					{
-						const MutationType *mutation_type_ptr = genome2_iter->mutation_type_ptr_;
-						std::vector<Mutation>::const_iterator genome1_matchscan = genome1_start; 
+						const MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
+						std::vector<const Mutation*>::const_iterator genome1_matchscan = genome1_start; 
 						bool homozygous = false;
 						
 						// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-						while (genome1_matchscan != genome1_max && genome1_matchscan->position_ == position)
+						while (genome1_matchscan != genome1_max && (*genome1_matchscan)->position_ == position)
 						{
-							if (mutation_type_ptr == genome1_matchscan->mutation_type_ptr_ && selection_coeff == genome1_matchscan->selection_coeff_)
+							if (mutation_type_ptr == (*genome1_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome1_matchscan)->selection_coeff_)
 							{
 								// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
 								homozygous = true;
@@ -199,14 +211,18 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					}
 					
 					genome2_iter++;
-				} while (genome2_iter != genome2_max && genome2_iter->position_ == position);
+					
+					if (genome2_iter == genome2_max)
+						break;
+					else {
+						genome2_mutation = *genome2_iter;
+						genome2_iter_position = genome2_mutation->position_;
+					}
+				} while (genome2_iter_position == position);
 				
-				// get things back in order for the top-level loop: break out if either genome has reached its end, otherwise get the position indices up to date
+				// break out if either genome has reached its end
 				if (genome1_iter == genome1_max || genome2_iter == genome2_max)
 					break;
-				
-				genome1_iter_position = genome1_iter->position_;
-				genome2_iter_position = genome2_iter->position_;
 			}
 		} while (true);
 	}
@@ -217,11 +233,12 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	// if genome1 is unfinished, finish it
 	while (genome1_iter != genome1_max)
 	{
-		float selection_coeff = genome1_iter->selection_coeff_;
+		const Mutation *genome1_mutation = *genome1_iter;
+		float selection_coeff = genome1_mutation->selection_coeff_;
 		
 		if (selection_coeff != 0.0f)
 		{
-			w *= (1.0 + genome1_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
+			w *= (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
 			if (w <= 0.0)
 				return 0.0;
@@ -233,11 +250,12 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	// if genome2 is unfinished, finish it
 	while (genome2_iter != genome2_max)
 	{
-		float selection_coeff = genome2_iter->selection_coeff_;
+		const Mutation *genome2_mutation = *genome2_iter;
+		float selection_coeff = genome2_mutation->selection_coeff_;
 		
 		if (selection_coeff != 0.0f)
 		{
-			w *= (1.0 + genome2_iter->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
+			w *= (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
 			if (w <= 0.0)
 				return 0.0;

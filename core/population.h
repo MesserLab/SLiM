@@ -56,8 +56,9 @@ private:
 
 public: 
 	
-	std::vector<const Substitution*> substitutions_;
-
+	std::vector<const Mutation*> mutation_registry_;	// a registry of all mutations that have been added to this population
+	std::vector<const Substitution*> substitutions_;	// Substitution objects for all fixed mutations
+	
 	
 	// default constructor
 	Population() = default;
@@ -109,6 +110,9 @@ public:
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
 	void SwapGenerations(int p_generation);
+	
+	// count the references to each Mutation in the registry, and remove mutations that are no longer referenced; returns true if any fixed mutations exist
+	bool ManageMutationReferences(void);
 	
 	// find mutations that are fixed in all child subpopulations and remove them
 	void RemoveFixedMutations(int p_generation);

@@ -727,7 +727,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 
 void SLiMSim::InitializePopulationFromFile(const char *p_file)
 {
-	std::map<int,Mutation> M;
+	std::map<int,const Mutation*> M;
 	string line, sub; 
 	ifstream infile (p_file);
 	
@@ -795,7 +795,10 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		}
 		
 		const MutationType *mutation_type_ptr = found_muttype_pair->second;
-		M.insert(std::pair<const int,Mutation>(id, Mutation(mutation_type_ptr, x, s, i, g)));
+		const Mutation *new_mutation = new Mutation(mutation_type_ptr, x, s, i, g);
+		
+		M.insert(std::pair<const int,const Mutation*>(id, new_mutation));
+		population_.mutation_registry_.push_back(new_mutation);
 		
 		GetInputLine(infile, line); 
 	}
@@ -824,7 +827,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 				exit(EXIT_FAILURE); 
 			}
 			
-			Mutation &mutation = found_mut_pair->second;
+			const Mutation *mutation = found_mut_pair->second;
 			
 			subpop.parent_genomes_[i - 1].push_back(mutation);
 		}

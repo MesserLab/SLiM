@@ -77,10 +77,10 @@ private:
 	std::vector<const PartialSweep*> partial_sweeps_;
 	
 	// this map is the owner of all allocated MutationType objects
-	std::map<int,MutationType*>			mutation_types_;
+	std::map<int,MutationType*> mutation_types_;
 	
 	// this map is the owner of all allocated GenomicElementType objects
-	std::map<int,GenomicElementType*>	genomic_element_types_;
+	std::map<int,GenomicElementType*> genomic_element_types_;
 	
 	// random number generator seed info
 	int rng_seed_;

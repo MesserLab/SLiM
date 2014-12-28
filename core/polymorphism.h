@@ -55,10 +55,10 @@ public:
 
 
 // find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const std::multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation);
+int FindMutationInPolymorphismMap(const std::multimap<const int,Polymorphism> &p_polymorphisms, const Mutation &p_mutation);
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(std::multimap<const int,Polymorphism> *p_polymorphisms, Mutation p_mutation);
+void AddMutationToPolymorphismMap(std::multimap<const int,Polymorphism> *p_polymorphisms, const Mutation &p_mutation);
 
 
 #endif /* defined(__SLiM__polymorphism__) */

@@ -53,7 +53,7 @@ void Polymorphism::print_no_id(int p_index) const
 
 
 // find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_polymorphisms, Mutation p_mutation)
+int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_polymorphisms, const Mutation &p_mutation)
 {
 	// iterate through all mutations with same position
 	std::pair<multimap<const int,Polymorphism>::const_iterator,multimap<const int,Polymorphism>::const_iterator> range = p_polymorphisms.equal_range(p_mutation.position_);
@@ -67,7 +67,7 @@ int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_poly
 }
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(multimap<const int,Polymorphism> *p_polymorphisms, Mutation p_mutation)
+void AddMutationToPolymorphismMap(multimap<const int,Polymorphism> *p_polymorphisms, const Mutation &p_mutation)
 {
 	// iterate through all mutations with same position
 	std::pair<multimap<const int,Polymorphism>::iterator,multimap<const int,Polymorphism>::iterator> range = p_polymorphisms->equal_range(p_mutation.position_);

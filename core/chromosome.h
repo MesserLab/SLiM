@@ -73,7 +73,7 @@ public:
 	int DrawMutationCount() const;
 	
 	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	Mutation DrawNewMutation(int p_subpop_index, int p_generation) const;
+	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;
 	
 	// choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
 	vector<int> DrawBreakpoints() const;
