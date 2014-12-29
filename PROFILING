@@ -24,6 +24,7 @@ timings (user time, with g++ build executed on command line):
 	27 Dec. 2014	2m10.794s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 	28 Dec. 2014	2m11.046s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 	28 Dec. 2014	2m9.511s	turning off Genome log-on-copy code when not building for debugging		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
+	29 Dec. 2014	2m5.167s	custom Poisson draw with exp() precalculated		(final output 326 m1 6615132 -0.0001449 0.2 p1 95945 99828)
 
 1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
 	26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
@@ -46,6 +47,7 @@ timings (user time, with g++ build executed on command line):
 	27 Dec. 2014	1m13.270s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output p1:12570)
 	28 Dec. 2014	1m13.664s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output p1:12570)
 	28 Dec. 2014	1m11.707s	turning off Genome log-on-copy code when not building for debugging		(final output p1:12570)
+	29 Dec. 2014	0m57.244s	custom Poisson draw with exp() precalculated		(final output p1:10380 8 9)
 
 profile results (on input_example_4.txt):
 Running      Time	Self		Symbol Name

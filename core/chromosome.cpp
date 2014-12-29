@@ -21,6 +21,7 @@
 #include "chromosome.h"
 
 #include <iostream>
+#include "math.h"
 
 #include "g_rng.h"
 
@@ -55,6 +56,7 @@ void Chromosome::InitializeDraws()
 		exit(EXIT_FAILURE);
 	}
 	
+	// calculate the overall mutation rate and the lookup table for mutation locations
 	length_ = 0;
 	
 	double A[size()];
@@ -77,6 +79,7 @@ void Chromosome::InitializeDraws()
 	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
 	overall_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
+	// calculate the overall recombination rate and the lookup table for breakpoints
 	double B[recombination_rates_.size()];
 	
 	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);
@@ -95,12 +98,13 @@ void Chromosome::InitializeDraws()
 		gsl_ran_discrete_free(lookup_recombination);
 	
 	lookup_recombination = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
-}
-
-// draw the number of mutations that occur, based on the overall mutation rate
-int Chromosome::DrawMutationCount() const
-{
-	return gsl_ran_poisson(g_rng, overall_mutation_rate_);
+	
+	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
+	double prob_mutation_0 = exp(-overall_mutation_rate_);
+	double prob_breakpoint_0 = exp(-overall_recombination_rate_);
+	
+	exp_neg_overall_mutation_rate_ = prob_mutation_0;
+	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
@@ -119,14 +123,12 @@ Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) cons
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-std::vector<int> Chromosome::DrawBreakpoints() const
+std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 {
 	vector<int> breakpoints;
 	
 	// draw recombination breakpoints
-	int num_breakpoints = gsl_ran_poisson(g_rng, overall_recombination_rate_);
-	
-	for (int i = 0; i < num_breakpoints; i++)
+	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		int breakpoint = 0;
 		int recombination_interval = static_cast<int>(gsl_ran_discrete(g_rng, lookup_recombination));

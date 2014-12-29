@@ -29,6 +29,7 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include "math.h"
 
 
 // this is a globally shared random number generator
@@ -68,6 +69,44 @@ static inline bool g_rng_bool(const gsl_rng * r)
 	}
 	
 	return retval;
+}
+
+
+// Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye, Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505
+// The expected number of mutations / breakpoints will always be quite small, so we should be safe using this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
+// allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good reasons for us to roll our own here.
+static inline unsigned int slim_fast_ran_poisson(double mu)
+{
+	unsigned int x = 0;
+	double p = exp(-mu);
+	double s = p;
+	double u = gsl_rng_uniform(g_rng);
+	
+	while (u > s)
+	{
+		++x;
+		p *= (mu / x);
+		s += p;
+	}
+	
+	return x;
+}
+
+static inline unsigned int slim_fast_ran_poisson(double mu, double exp_neg_mu)
+{
+	unsigned int x = 0;
+	double p = exp_neg_mu;
+	double s = p;
+	double u = gsl_rng_uniform(g_rng);
+	
+	while (u > s)
+	{
+		++x;
+		p *= (mu / x);
+		s += p;
+	}
+	
+	return x;
 }
 
 

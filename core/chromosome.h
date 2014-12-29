@@ -48,6 +48,10 @@ private:
 	gsl_ran_discrete_t *lookup_mutation = nullptr;			// OWNED POINTER: lookup table for drawing mutations
 	gsl_ran_discrete_t *lookup_recombination = nullptr;		// OWNED POINTER: lookup table for drawing recombination breakpoints
 	
+	// caches to speed up Poisson draws in CrossoverMutation()
+	double exp_neg_overall_mutation_rate_;
+	double exp_neg_overall_recombination_rate_;
+	
 public:
 	
 	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
@@ -67,8 +71,23 @@ public:
 	void InitializeDraws();													// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	int DrawMutationCount() const;											// draw the number of mutations that occur, based on the overall mutation rate
 	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	vector<int> DrawBreakpoints() const;									// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
+	int DrawBreakpointCount() const;										// draw the number of breakpoints that occur, based on the overall recombination rate
+	vector<int> DrawBreakpoints(const int p_num_breakpoints) const;			// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 };
+
+// draw the number of mutations that occur, based on the overall mutation rate
+inline int Chromosome::DrawMutationCount() const
+{
+	return slim_fast_ran_poisson(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+	//return gsl_ran_poisson(g_rng, overall_mutation_rate_);
+}
+
+// draw the number of breakpoints that occur, based on the overall recombination rate
+inline int Chromosome::DrawBreakpointCount() const
+{
+	return slim_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+	//return gsl_ran_poisson(g_rng, overall_recombination_rate_);
+}
 
 
 #endif /* defined(__SLiM__chromosome__) */

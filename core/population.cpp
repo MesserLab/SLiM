@@ -549,15 +549,14 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	child_genome.clear();
 	
-	// mutations are usually rare, so let's streamline the case where none occur
+	// get both the number of mutations and the number of breakpoints here
 	int num_mutations = p_chromosome.DrawMutationCount();
+	int num_breakpoints = p_chromosome.DrawBreakpointCount();
 	
+	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
 	{
-		// create vector with uniqued recombination breakpoints
-		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints();
-		
-		if (all_breakpoints.size() == 0)
+		if (num_breakpoints == 0)
 		{
 			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
 #ifdef DEBUG
@@ -570,6 +569,9 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		}
 		else
 		{
+			// create vector with uniqued recombination breakpoints
+			std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
+			
 			all_breakpoints.push_back(p_chromosome.length_ + 1);
 			sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
@@ -631,7 +633,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		sort(mutations_to_add.begin(), mutations_to_add.end(), CompareMutations);
 		
 		// create vector with uniqued recombination breakpoints
-		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(); 
+		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
 		all_breakpoints.push_back(p_chromosome.length_ + 1);
 		sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
