@@ -44,24 +44,19 @@
 class SLiMSim;
 
 
-class Population : public std::map<int,Subpopulation*>
+class Population : public std::map<int,Subpopulation*>		// OWNED POINTERS
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Population(const Population&);						// disable copy constructor
-	Population &operator = (const Population&);			// disable assignment operator
 
-public: 
+public:
 	
-	std::vector<const Mutation*> mutation_registry_;	// a registry of all mutations that have been added to this population
-	std::vector<const Substitution*> substitutions_;	// Substitution objects for all fixed mutations
+	std::vector<const Mutation*> mutation_registry_;		// OWNED POINTERS: a registry of all mutations that have been added to this population
+	std::vector<const Substitution*> substitutions_;		// OWNED POINTERS: Substitution objects for all fixed mutations
 	
-	
-	// default constructor
-	Population() = default;
+	Population(const Population&) = delete;					// no copying
+	Population& operator=(const Population&) = delete;		// no copying
+	Population() = default;									// default constructor
+	~Population(void);										// destructor
 	
 	// find a subpopulation given an id
 	inline Subpopulation &SubpopulationWithID(int p_subpop_id) const {

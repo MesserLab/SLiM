@@ -35,20 +35,16 @@
 
 class PartialSweep
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	PartialSweep(const PartialSweep&);						// disable copy constructor
-	PartialSweep &operator = (const PartialSweep&);			// disable assignment operator
-	
+
 public:
 	
-	const MutationType *mutation_type_ptr_;		// mutation type identifier
-	int position_;
-	double target_prevalence_;
+	const MutationType *mutation_type_ptr_;		// the mutation type of the partial sweep locus
+	int position_;								// the position of the partial sweep locus
+	double target_prevalence_;					// the target prevalence at which the partial sweep becomes neutral
 	
+	PartialSweep(const PartialSweep&) = delete;
+	PartialSweep& operator=(const PartialSweep&) = delete;
 	PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence);
 };
 

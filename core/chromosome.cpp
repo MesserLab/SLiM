@@ -25,6 +25,17 @@
 #include "g_rng.h"
 
 
+Chromosome::~Chromosome(void)
+{
+	//std::cerr << "Chromosome::~Chromosome" << std::endl;
+	
+	if (lookup_mutation)
+		gsl_ran_discrete_free(lookup_mutation);
+	
+	if (lookup_recombination)
+		gsl_ran_discrete_free(lookup_recombination);
+}
+
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 void Chromosome::InitializeDraws()
 {
@@ -60,6 +71,9 @@ void Chromosome::InitializeDraws()
 		l += l_i;
 	}
 	
+	if (lookup_mutation)
+		gsl_ran_discrete_free(lookup_mutation);
+	
 	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
 	overall_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
@@ -76,6 +90,9 @@ void Chromosome::InitializeDraws()
 		if (recombination_end_positions_[i] > length_)
 			length_ = recombination_end_positions_[i];
 	}
+	
+	if (lookup_recombination)
+		gsl_ran_discrete_free(lookup_recombination);
 	
 	lookup_recombination = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
 }

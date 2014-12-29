@@ -39,24 +39,23 @@ class GenomicElement
 	
 private:
 	
-	static bool s_log_copy_and_assign_;
+	static bool s_log_copy_and_assign_;									// true if logging is disabled (see below)
 	
 public:
+	
+	const GenomicElementType *genomic_element_type_ptr_;				// pointer to the type of genomic element this is
+	int start_position_;												// the start position of the element
+	int end_position_;													// the end position of the element
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
 	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
 	//	constructor and the default assignment operator to log whenever they are called.  This is intended to reduce the risk of
-	//	unintentional copying.  Logging can be disabled by calling LogGenomeCopyAndAssign() when appropriate.
+	//	unintentional copying.  Logging can be disabled by bracketing with LogGenomeCopyAndAssign() when appropriate.
 	//
 	GenomicElement(const GenomicElement &p_original);
 	GenomicElement& operator= (const GenomicElement &p_original);
-	static bool LogGenomicElementCopyAndAssign(bool p_log);			// returns the old value; save and restore that value!
-	
-	
-	const GenomicElementType *genomic_element_type_ptr_;
-	int start_position_;
-	int end_position_;
+	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
 	GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
 };

@@ -35,14 +35,8 @@
 
 class Mutation
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Mutation(const Mutation&);						// disable copy constructor
-	Mutation &operator = (const Mutation&);			// disable assignment operator
-	
+
 public:
 	
 	const MutationType *mutation_type_ptr_;		// mutation type identifier
@@ -52,10 +46,9 @@ public:
 	int32_t generation_;						// generation in which mutation arose
 	mutable int32_t reference_count_;			// a count of the number of occurrences of this mutation; valid only at certain times!
 	
-	// null constructor
-	Mutation(void);
-	
-	// standard constructor, supplying values for all ivars
+	Mutation(const Mutation&) = delete;					// no copying
+	Mutation& operator=(const Mutation&) = delete;		// no copying
+	Mutation(void) = default;							// null constructor; does nothing, and does it faster than a defined empty constructor
 	Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 };
 

@@ -39,36 +39,29 @@
 
 class Subpopulation
 {
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+
 private:
 	
-	//
-	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Subpopulation(const Subpopulation&);						// disable copy constructor
-	Subpopulation &operator = (const Subpopulation&);			// disable assignment operator
-	
-	gsl_ran_discrete_t *lookup_individual_;
+	gsl_ran_discrete_t *lookup_individual_ = nullptr;			// OWNED POINTER: lookup table for drawing an individual based upon fitness
 	
 public:
 	
-	int    subpop_size_; // subpopulation size  
-	double selfing_fraction_; // selfing fraction
+	int subpop_size_;								// subpopulation size  
+	double selfing_fraction_;						// selfing fraction
+	std::vector<Genome> parent_genomes_;			// all genomes in the parental generation; each individual gets two genomes
+	std::vector<Genome> child_genomes_;				// all genomes in the child generation; each individual gets two genomes
+	std::map<int,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per generation
 	
-	std::vector<Genome> parent_genomes_;
-	std::vector<Genome> child_genomes_;
+	Subpopulation(const Subpopulation&) = delete;				// no copying
+	Subpopulation& operator=(const Subpopulation&) = delete;	// no copying
+	Subpopulation(int p_subpop_size);							// construct with a population size
+	~Subpopulation(void);										// destructor
 	
-	std::map<int,double> migrant_fractions_; // m[i]: fraction made up of migrants from subpopulation i per generation
-	
-	
-	Subpopulation(int p_subpop_size);
-	
-	int DrawIndividual() const;
-	
-	void UpdateFitness();
-	
-	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;
-	
-	void SwapChildAndParentGenomes();
+	int DrawIndividual() const;																		// draw an individual from the subpopulation based upon fitness
+	void UpdateFitness();																			// update the fitness lookup table based upon current mutations
+	double FitnessOfIndividualWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;	// calculate the fitness of a given individual
+	void SwapChildAndParentGenomes();																// switch to the next generation by swapping; the children become the parents
 };
 
 

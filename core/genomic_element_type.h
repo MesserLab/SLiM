@@ -39,26 +39,24 @@
 
 class GenomicElementType
 {
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+
 private:
 	
-	//
-	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	GenomicElementType(const GenomicElementType&);						// disable copy constructor
-	GenomicElementType &operator = (const GenomicElementType&);			// disable assignment operator
-	
-	gsl_ran_discrete_t *lookup_mutation_type;
+	gsl_ran_discrete_t *lookup_mutation_type = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
 	
 public:
 	
-	int genomic_element_type_id_;				// the id by which this genomic element type is indexed in the chromosome
+	int genomic_element_type_id_;										// the id by which this genomic element type is indexed in the chromosome
+	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
+	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
 	
-	std::vector<MutationType*> mutation_type_ptrs_;		// mutation types identifiers in this element
-	std::vector<double> mutation_fractions_;	// relative fractions of each mutation type
-	
+	GenomicElementType(const GenomicElementType&) = delete;				// no copying
+	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
 	GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
+	~GenomicElementType(void);
 	
-	const MutationType *DrawMutationType() const;
+	const MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
 };
 
 // support stream output of GenomicElementType, for debugging

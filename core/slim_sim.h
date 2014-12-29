@@ -40,77 +40,41 @@
 
 class SLiMSim
 {
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	
 private:
 	
-	//
-	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	SLiMSim(const SLiMSim&);						// disable copy constructor
-	SLiMSim &operator = (const SLiMSim&);			// disable assignment operator
-	
-	
-	// the start and duration for which the simulation will run, in generations, and the current generation
-	int time_start_, time_duration_, generation_;
-	
-	// invocation parameters from input file
-	std::vector<std::string> input_parameters_;
-	
-	// the chromosome, which defines genomic elements
-	Chromosome chromosome_;
-	
-	// the population, which contains sub-populations
-	Population population_;
-	
-	// demographic and structure events
-	std::multimap<const int,Event*> events_; 
-	
-	// output events (time, output)
-	std::multimap<const int,Event*> outputs_; 
-	
-	// user-defined mutations that will be introduced (time, mutation)
-	std::multimap<const int,const IntroducedMutation*> introduced_mutations_; 
-	
-	// tracked mutation-types
-	std::vector<int> tracked_mutations_; 
-	
-	// mutations undergoing partial sweeps
-	std::vector<const PartialSweep*> partial_sweeps_;
-	
-	// this map is the owner of all allocated MutationType objects
-	std::map<int,MutationType*> mutation_types_;
-	
-	// this map is the owner of all allocated GenomicElementType objects
-	std::map<int,GenomicElementType*> genomic_element_types_;
-	
-	// random number generator seed info
-	int rng_seed_;
+	int time_start_, time_duration_, generation_;									// the start and duration for which the simulation will run, in generations, and the current generation
+	std::vector<std::string> input_parameters_;										// invocation parameters from input file
+	Chromosome chromosome_;															// the chromosome, which defines genomic elements
+	Population population_;															// the population, which contains sub-populations
+	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
+	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
+	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
+	std::vector<int> tracked_mutations_;											// tracked mutation-types
+	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
+	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	int rng_seed_;																	// random number generator seed info
 	bool rng_seed_supplied_to_constructor_;
 	
-	
-	// defined in slim_sim_input.cpp: check an input file for correctness and exit with a good error message if there is a problem
-	void CheckInputFile(const char *p_input_file);
-	
-	// defined in slim_sim_input.cpp: initialize the population from the information in the file given
-	void InitializePopulationFromFile(const char *p_file);
-	
-	// defined in slim_sim_input.cpp: parse a (previously checked) input file and set up the simulation state from its contents
-	void InitializeFromFile(const char *p_input_file);
-	
+	// private initialization methods
+	void CheckInputFile(const char *p_input_file);									// check an input file for correctness and exit with a good error message if there is a problem
+	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
+	void InitializeFromFile(const char *p_input_file);								// parse a (previously checked) input file and set up the simulation state from its contents
 	
 public:
 	
-	// construct a SLiMSim from an input file, with an optional RNG seed value (pass nullptr to get a generated seed)
-	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);
+	SLiMSim(const SLiMSim&) = delete;												// no copying
+	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
+	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
+	~SLiMSim(void);																	// destructor
 	
-	// run a single simulation generation and advance the generation counter
-	void RunOneGeneration(void);
-	
-	// run the simulation to the end
-	void RunToEnd(void);
-	
+	void RunOneGeneration(void);													// run a single simulation generation and advance the generation counter
+	void RunToEnd(void);															// run the simulation to the end
 	
 	// accessors
-	const std::vector<std::string> &InputParameters(void) const { return input_parameters_; }
+	const std::vector<std::string> &InputParameters(void) const						{ return input_parameters_; }
 	
 };
 

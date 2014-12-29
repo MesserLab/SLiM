@@ -36,14 +36,8 @@
 
 class Event
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Event(const Event&);						// disable copy constructor
-	Event &operator = (const Event&);			// disable assignment operator
-	
+
 public:
 	
 	// type of events:
@@ -58,11 +52,12 @@ public:
 	// t A [file]:   output state of entire population [into file]
 	// t T m:        follow trajectory of mutation m (specified by mutation type) from generation t on
 	
-	char event_type_;						// event type
-	std::vector<std::string> parameters_;	// vector of strings with parameters of event
+	char event_type_;							// event type (see above)
+	std::vector<std::string> parameters_;		// vector of strings with parameters of event
 	
-	// construct an event with a given type and parameters
-	Event(char p_event_type, std::vector<std::string> p_parameters);  
+	Event(const Event&) = delete;										// no copying
+	Event& operator=(const Event&) = delete;							// no copying
+	Event(char p_event_type, std::vector<std::string> p_parameters);	// construct an event with a given type and parameters
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const Event &p_event);

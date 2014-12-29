@@ -21,8 +21,6 @@
 #include "mutation.h"
 
 
-Mutation::Mutation(void) { ; }
-
 Mutation::Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) 
 { 
 	mutation_type_ptr_ = p_mutation_type_ptr;

@@ -35,19 +35,15 @@
 
 class IntroducedMutation : public Mutation
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	IntroducedMutation(const IntroducedMutation&);						// disable copy constructor
-	IntroducedMutation &operator = (const IntroducedMutation&);			// disable assignment operator
-	
+
 public:
 	
-	int num_homozygotes_;
-	int num_heterozygotes_;
+	int num_homozygotes_;		// the number of homozygotes to introduce
+	int num_heterozygotes_;		// the number of heterozygotes to introduce
 	
+	IntroducedMutation(const IntroducedMutation&) = delete;					// no copying
+	IntroducedMutation& operator=(const IntroducedMutation&) = delete;		// no copying
 	IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes);
 };
 

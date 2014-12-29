@@ -55,6 +55,29 @@ SLiMSim::SLiMSim(const char *p_input_file, int *p_override_seed_ptr)
 	generation_ = time_start_;
 }
 
+SLiMSim::~SLiMSim(void)
+{
+	//std::cerr << "SLiMSim::~SLiMSim" << std::endl;
+	
+	for (auto event : events_)
+		delete event.second;
+	
+	for (auto output_event : outputs_)
+		delete output_event.second;
+	
+	for (auto introduced_mutation : introduced_mutations_)
+		delete introduced_mutation.second;
+	
+	for (auto partial_sweep : partial_sweeps_)
+		delete partial_sweep;
+	
+	for (auto mutation_type : mutation_types_)
+		delete mutation_type.second;
+	
+	for (auto genomic_element_type : genomic_element_types_)
+		delete genomic_element_type.second;
+}
+
 void SLiMSim::RunOneGeneration(void)
 {
 	if (generation_ < time_start_ + time_duration_)

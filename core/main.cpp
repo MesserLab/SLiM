@@ -89,7 +89,9 @@ int main(int argc, char *argv[])
 	if (sim)
 	{
 		sim->RunToEnd();
-		//delete sim;		// clean up; but this is an unnecessary waste of time in the command-line context
+		
+		// clean up; but this is an unnecessary waste of time in the command-line context
+		//delete sim;
 	}
 	
 	// end timing and print elapsed time

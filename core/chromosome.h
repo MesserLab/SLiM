@@ -41,42 +41,33 @@
 
 class Chromosome : public std::vector<GenomicElement>
 {
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+
 private:
 	
-	//
-	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Chromosome(const Chromosome&);						// disable copy constructor
-	Chromosome &operator = (const Chromosome&);			// disable assignment operator
-	
-	gsl_ran_discrete_t *lookup_mutation;		// mutation
-	gsl_ran_discrete_t *lookup_recombination;	// recombination
+	gsl_ran_discrete_t *lookup_mutation = nullptr;			// OWNED POINTER: lookup table for drawing mutations
+	gsl_ran_discrete_t *lookup_recombination = nullptr;		// OWNED POINTER: lookup table for drawing recombination breakpoints
 	
 public:
 	
-	vector<int>							recombination_end_positions_;
-	vector<double>						recombination_rates_;	// in events per base pair
+	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
+	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
-	int    length_;							// length of chromosome
-	double overall_mutation_rate_;			// overall mutation rate
-	double overall_recombination_rate_;		// overall recombination rate
-	double gene_conversion_fraction_;		// gene conversion fraction
-	double gene_conversion_avg_length_;		// average stretch length
+	int    length_;											// length of the chromosome
+	double overall_mutation_rate_;							// overall mutation rate
+	double overall_recombination_rate_;						// overall recombination rate
+	double gene_conversion_fraction_;						// gene conversion fraction
+	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
-	// default constructor
-	Chromosome() = default;
+	Chromosome(const Chromosome&) = delete;									// no copying
+	Chromosome& operator=(const Chromosome&) = delete;						// no copying
+	Chromosome(void) = default;												// default constructor
+	~Chromosome(void);														// destructor
 	
-	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
-	void InitializeDraws();	
-	
-	// draw the number of mutations that occur, based on the overall mutation rate
-	int DrawMutationCount() const;
-	
-	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;
-	
-	// choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-	vector<int> DrawBreakpoints() const;
+	void InitializeDraws();													// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	int DrawMutationCount() const;											// draw the number of mutations that occur, based on the overall mutation rate
+	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
+	vector<int> DrawBreakpoints() const;									// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 };
 
 

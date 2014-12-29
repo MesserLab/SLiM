@@ -1,9 +1,11 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
-import list of targets from emails
 start on adding sex
+tracked_mutations should use pointers to mutation types, not ints
 optimization:
 	try the Poisson draw code from AK
+	use the result of pruning for removal of fixed mutations
+	switch to int32_t and such for all storage, I think; best to be predictable
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -93,5 +95,61 @@ Running Time	Self		Symbol Name
  1194.0ms    1.2%	316.0	 	      Genome::operator=(Genome const&)
   513.0ms    0.5%	25.0	 	      GenomeWithPolymorphicMutations(Genome const&, Genome const&)
   347.0ms    0.3%	108.0	 	      Genome::~Genome()
+
+
+future plans:
+
+add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,
+	individuals are X or XX, with the Y implied
+	if modeling X, there is a global factor (default 1) that says: how much of the homozygous fitness do you feel? similar to codominance
+	#SEX A/X [factor for codominance, for modeling X] – the presence of this directive turns on tracking of male/female sex
+	sex ratio is a directive like the migration rates: a DEMOGRAPHY AND SUBSTRUCTURE event: set sex ratio in subpop, default 0.5
+	sex ratio is modeled in a deterministic fashion; if the sex ratio does not allow for males and females to persist (i.e. extinction), error and quit
+	add sex to output: when you request a sample, you specify whether you want males or females.
+	in full output, need to show M/F somehow; how about listing individuals before genomes, with each individual stating whether they are M or F
+	in full output, in population list, might output the sex ratio in addition to the population size
+	need to think about being able to read back in
+multiple chromosomes – more than one per individual
+test cases for verification: population genetic predictions like fixation probability
+SLAM on GitHub: local adaptation
+set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
+locally and temporally varying selection pressures: for mutation-types
+	in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
+	what happens for new mutations of that type?
+	seasonal changes in optimal phenotype, spatial variation in environmental optimum
+	these seasonal changes alter the strength of selection, but not the optimum
+	so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
+pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too
+add in hard/soft selection: extend event syntax of “set N” to allow setting N as a function of mean fitness
+possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring
+	individuals could have individual-types, which would define their expected # of children
+	statistical genetics and human evolution: bottlenecks and effective population size, debunking bottleneck myths
+2.0 documentation, with revision tracking on it
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

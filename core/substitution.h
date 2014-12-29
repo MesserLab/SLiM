@@ -36,24 +36,20 @@
 
 class Substitution
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	Substitution(const Substitution&);						// disable copy constructor
-	Substitution &operator = (const Substitution&);			// disable assignment operator
-	
+
 public:
 	
 	const MutationType *mutation_type_ptr_;		// mutation type identifier
-	int   position_;			// position
-	float selection_coeff_;		// selection coefficient
-	int   subpop_index_;		// subpopulation in which mutation arose
-	int   generation_;			// generation in which mutation arose  
-	int   fixation_time_;		// fixation time
+	int position_;								// position
+	float selection_coeff_;						// selection coefficient
+	int subpop_index_;							// subpopulation in which mutation arose
+	int generation_;							// generation in which mutation arose  
+	int fixation_time_;							// fixation time
 	
-	Substitution(const Mutation &p_mutation, int p_fixation_time);
+	Substitution(const Substitution&) = delete;							// no copying
+	Substitution& operator=(const Substitution&) = delete;				// no copying
+	Substitution(const Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print() const;
 };

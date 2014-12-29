@@ -33,6 +33,20 @@ using std::string;
 using std::multimap;
 
 
+Population::~Population(void)
+{
+	//std::cerr << "Population::~Population" << std::endl;
+	
+	for (auto subpopulation : *this)
+		delete subpopulation.second;
+	
+	for (auto mutation : mutation_registry_)
+		delete mutation;
+	
+	for (auto substitution : substitutions_)
+		delete substitution;
+}
+
 // add new empty subpopulation p_subpop_id of size p_subpop_size
 void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size) 
 { 
@@ -383,7 +397,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 										{
 											const Mutation &basemut = *subpop_pair.second->child_genomes_[i][k];
 											neutral_mutation = new Mutation(basemut.mutation_type_ptr_, basemut.position_, 0.0, basemut.subpop_index_, basemut.generation_);
-											mutation_registry_.push_back(neutral_mutation);
+											mutation_registry_.push_back(neutral_mutation);		// the old mutation will be dropped from the registry at the end of the generation
 										}
 										
 										subpop_pair.second->child_genomes_[i][k] = neutral_mutation;

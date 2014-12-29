@@ -44,6 +44,14 @@ Subpopulation::Subpopulation(int p_subpop_size)
 	lookup_individual_ = gsl_ran_discrete_preproc(subpop_size_, A);
 }
 
+Subpopulation::~Subpopulation(void)
+{
+	//std::cerr << "Subpopulation::~Subpopulation" << std::endl;
+	
+	if (lookup_individual_)
+		gsl_ran_discrete_free(lookup_individual_);
+}
+
 int Subpopulation::DrawIndividual() const
 {
 	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_individual_));

@@ -35,14 +35,8 @@
 
 class MutationType
 {
-private:
-	
-	//
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
-	//
-	MutationType(const MutationType&);						// disable copy constructor
-	MutationType &operator = (const MutationType&);			// disable assignment operator
-	
+
 public:
 	
 	// a mutation type is specified by the DFE and the dominance coefficient
@@ -52,16 +46,17 @@ public:
 	//              g: gamma distribution (mean s,shape)
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
-	int mutation_type_id_;						// the id by which this mutation type is indexed in the chromosome
 	
+	int mutation_type_id_;						// the id by which this mutation type is indexed in the chromosome
 	float dominance_coeff_;						// dominance coefficient (h)
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
-	
+	MutationType(const MutationType&) = delete;					// no copying
+	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 	
-	double DrawSelectionCoefficient() const;
+	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE
 };
 
 // support stream output of MutationType, for debugging
