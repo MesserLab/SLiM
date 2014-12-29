@@ -1,8 +1,9 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 start on adding sex
+switch to using constructor initializers (p. 288)
+consider using emplace_back instead of push_back; might allow objects instead of pointers in containers even with copying prohibited
 optimization:
-	try the Poisson draw code from AK
 	use the result of pruning for removal of fixed mutations
 	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
 
@@ -62,6 +63,7 @@ timings (user time, with g++ build executed on command line):
 		27 Dec. 2014	1m13.088s	non-copyable Mutations with cleanup		(final output p1:12570)
 		27 Dec. 2014	1m12.949s	optimization of CrossoverMutation() for non-copyable Mutations		(final output p1:12570)
 		27 Dec. 2014	1m13.270s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output p1:12570)
+		28 Dec. 2014	1m15.463s	short-circuit gsl_ran_discrete() in DrawNewMutation()		(final output p1:11727)
 
 profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name

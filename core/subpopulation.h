@@ -55,7 +55,7 @@ public:
 	
 	Subpopulation(const Subpopulation&) = delete;				// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;	// no copying
-	Subpopulation(int p_subpop_size);							// construct with a population size
+	explicit Subpopulation(int p_subpop_size);					// construct with a population size
 	~Subpopulation(void);										// destructor
 	
 	int DrawIndividual() const;																		// draw an individual from the subpopulation based upon fitness
