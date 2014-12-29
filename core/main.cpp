@@ -29,12 +29,12 @@
 #include "slim_sim.h"
 
 
-void PrintUsageAndDie();
+void PrintUsageAndDie(int p_exit_code);
 
-void PrintUsageAndDie()
+void PrintUsageAndDie(int p_exit_code)
 {
-	std::cerr << "usage: slim [-seed <seed>] [-time] <parameter file>" << std::endl;
-	exit(EXIT_FAILURE);
+	std::cerr << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl;
+	exit(p_exit_code);
 }
 
 int main(int argc, char *argv[])
@@ -49,11 +49,11 @@ int main(int argc, char *argv[])
 	{
 		char *arg = argv[arg_index];
 		
-		// -seed <x>: override the default seed with the supplied seed value
-		if (strcmp(arg, "-seed") == 0)
+		// -seed <x> or -s <x>: override the default seed with the supplied seed value
+		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
 		{
 			if (++arg_index == argc)
-				PrintUsageAndDie();
+				PrintUsageAndDie(EXIT_FAILURE);
 			
 			override_seed = atoi(argv[arg_index]);
 			override_seed_ptr = &override_seed;
@@ -61,24 +61,42 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		// -time: take a time measurement and output it at the end of execution
-		if (strcmp(arg, "-time") == 0)
+		// -time or -t: take a time measurement and output it at the end of execution
+		if (strcmp(arg, "-time") == 0 || strcmp(arg, "-t") == 0)
 		{
 			keep_time = true;
 			
 			continue;
 		}
 		
+		// -version or -v: print version information
+		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
+		{
+			std::cerr << "SLiM version 2.0a1, built " << __DATE__ << " " __TIME__ << std::endl;
+			exit(0);
+		}
+		
+		// -usage or -u: print usage information
+		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
+		{
+			PrintUsageAndDie(EXIT_SUCCESS);
+		}
+		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
-			PrintUsageAndDie();
+			PrintUsageAndDie(EXIT_FAILURE);
 		
 		input_file = argv[arg_index];
 	}
 	
 	// check that we got what we need
 	if (!input_file)
-		PrintUsageAndDie();
+		PrintUsageAndDie(EXIT_FAILURE);
+	
+	// announce if we are running a debug build
+#ifdef DEBUG
+	std::cerr << "********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+#endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();
