@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "mutation.h"
+#include "mutation_type.h"
 #include "population.h"
 #include "chromosome.h"
 #include "event.h"
@@ -48,15 +49,15 @@ private:
 	std::vector<std::string> input_parameters_;										// invocation parameters from input file
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
+	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
 	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
 	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
-	std::vector<int> tracked_mutations_;											// tracked mutation-types
 	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
-	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	int rng_seed_;																	// random number generator seed info
-	bool rng_seed_supplied_to_constructor_;
+	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
+	int rng_seed_;																	// random number generator seed
+	bool rng_seed_supplied_to_constructor_;											// true if the RNG seed was supplied, which means it overrides other RNG seed sources
 	
 	// private initialization methods
 	void CheckInputFile(const char *p_input_file);									// check an input file for correctness and exit with a good error message if there is a problem
@@ -74,7 +75,8 @@ public:
 	void RunToEnd(void);															// run the simulation to the end
 	
 	// accessors
-	const std::vector<std::string> &InputParameters(void) const						{ return input_parameters_; }
+	inline const std::vector<std::string> &InputParameters(void) const				{ return input_parameters_; }
+	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
 	
 };
 

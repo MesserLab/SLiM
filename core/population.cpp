@@ -121,7 +121,7 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
-void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &sim, std::vector<int> *p_tracked_mutations)
+void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim, std::vector<MutationType*> *p_tracked_mutations)
 {
 	char event_type = p_event.event_type_;
 	const std::vector<std::string> &event_parameters = p_event.parameters_;
@@ -210,7 +210,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 				
 				if (outfile.is_open())
 				{
-					const std::vector<std::string> &parameters = sim.InputParameters();
+					const std::vector<std::string> &parameters = p_sim.InputParameters();
 					
 					for (int i = 0; i < parameters.size(); i++)
 						outfile << parameters[i] << endl;
@@ -265,7 +265,19 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 		{
 			string sub = event_parameters[0];
 			sub.erase(0, 1); // m
-			p_tracked_mutations->push_back(atoi(sub.c_str()));
+			int mutation_type_id = atoi(sub.c_str());
+			const std::map<int,MutationType*> &mutation_types = p_sim.MutationTypes();
+			auto found_muttype_pair = mutation_types.find(mutation_type_id);
+			
+			if (found_muttype_pair == mutation_types.end())
+			{
+				std::cerr << "ERROR (ExecuteEvent): mutation type m" << mutation_type_id << " not defined" << endl;
+				exit(EXIT_FAILURE);
+			}
+			
+			MutationType *mutation_type_ptr = found_muttype_pair->second;
+			
+			p_tracked_mutations->push_back(mutation_type_ptr);
 			
 			break;
 		}
@@ -330,7 +342,7 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 }
 
 // output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-void Population::TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps)
+void Population::TrackMutations(int p_generation, const std::vector<MutationType*> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps)
 {
 	// find all polymorphism of the types that are to be tracked
 	int tracked_mutation_count = static_cast<int>(p_tracked_mutations.size());
@@ -344,7 +356,7 @@ void Population::TrackMutations(int p_generation, const std::vector<int> &p_trac
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)				// go through all children
 				for (int k = 0; k < subpop_pair.second->child_genomes_[i].size(); k++)	// go through all mutations
 					for (int j = 0; j < tracked_mutation_count; j++)
-						if (subpop_pair.second->child_genomes_[i][k]->mutation_type_ptr_->mutation_type_id_ == p_tracked_mutations[j])
+						if (subpop_pair.second->child_genomes_[i][k]->mutation_type_ptr_ == p_tracked_mutations[j])
 							AddMutationToPolymorphismMap(&polymorphisms, *subpop_pair.second->child_genomes_[i][k]);
 			
 			// output the frequencies of these mutations in each subpopulation

@@ -20,7 +20,7 @@
 /*
  
  The class Chromosome represents an entire chromosome.  Only the portions of the chromosome that are relevant to the simulation are
- explicitly tracked, so in practice, a chromosome is a vector of genomic elements defined by the input file.  A chromosome also has
+ explicitly modeled, so in practice, a chromosome is a vector of genomic elements defined by the input file.  A chromosome also has
  a length, an overall mutation rate, an overall recombination rate, and parameters related to gene conversion.
  
  */

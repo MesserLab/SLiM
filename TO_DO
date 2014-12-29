@@ -1,11 +1,10 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 start on adding sex
-tracked_mutations should use pointers to mutation types, not ints
 optimization:
 	try the Poisson draw code from AK
 	use the result of pruning for removal of fixed mutations
-	switch to int32_t and such for all storage, I think; best to be predictable
+	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
 
 changes to mention in docs:
 	changed comment format from / to //

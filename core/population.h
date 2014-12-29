@@ -89,13 +89,13 @@ public:
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a given event in the population; the event is assumed to be due to trigger
-	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &sim, std::vector<int> *p_tracked_mutations);
+	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim, std::vector<MutationType*> *p_tracked_mutations);
 	
 	// introduce a user-defined mutation
 	void IntroduceMutation(const IntroducedMutation &p_introduced_mutation);
 	
 	// output trajectories of followed mutations and set selection_coeff_ = 0 for partial sweeps 
-	void TrackMutations(int p_generation, const std::vector<int> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps);
+	void TrackMutations(int p_generation, const std::vector<MutationType*> &p_tracked_mutations, std::vector<const PartialSweep*> *p_partial_sweeps);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation);
