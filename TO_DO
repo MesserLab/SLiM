@@ -1,7 +1,6 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
-in CrossoverMutation(), can we somehow combine the draw for the number of mutations and the number of breakpoints into a single draw?  multidimensional Poisson?  just to short-circuit the cases with 0 mutations and 0 crossovers?
 consider converting Genome into straight C code; the standard library might be slowing us down considerably
 
 add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,

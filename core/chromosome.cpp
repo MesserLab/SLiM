@@ -102,9 +102,26 @@ void Chromosome::InitializeDraws()
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
 	double prob_mutation_0 = exp(-overall_mutation_rate_);
 	double prob_breakpoint_0 = exp(-overall_recombination_rate_);
+	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
+	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
+	double prob_both_0 = prob_mutation_0 * prob_breakpoint_0;
+	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
+	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
+	
+//	std::cout << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
+//	std::cout << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
+//	std::cout << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
+//	std::cout << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
+//	std::cout << "prob_both_0 == " << prob_both_0 << std::endl;
+//	std::cout << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
+//	std::cout << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	exp_neg_overall_mutation_rate_ = prob_mutation_0;
 	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
+	
+	probability_both_0 = prob_both_0;
+	probability_both_0_OR_mut_0_break_non0 = prob_both_0 + prob_mutation_0_breakpoint_not_0;
+	probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0 = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities

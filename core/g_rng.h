@@ -51,7 +51,7 @@ void InitializeRNGFromSeed(int p_seed);
 extern int g_random_bool_bit_counter;
 extern unsigned long int g_random_bool_bit_buffer;
 
-static inline bool g_rng_bool(const gsl_rng * r)
+static inline __attribute__((always_inline)) bool g_rng_bool(const gsl_rng * r)
 {
 	bool retval;
 	
@@ -75,7 +75,7 @@ static inline bool g_rng_bool(const gsl_rng * r)
 // Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye, Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505
 // The expected number of mutations / breakpoints will always be quite small, so we should be safe using this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
 // allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good reasons for us to roll our own here.
-static inline unsigned int slim_fast_ran_poisson(double mu)
+static inline __attribute__((always_inline)) unsigned int slim_fast_ran_poisson(double mu)
 {
 	unsigned int x = 0;
 	double p = exp(-mu);
@@ -92,12 +92,39 @@ static inline unsigned int slim_fast_ran_poisson(double mu)
 	return x;
 }
 
-static inline unsigned int slim_fast_ran_poisson(double mu, double exp_neg_mu)
+// This version allows the caller to supply a precalculated exp(-mu) value
+static inline __attribute__((always_inline)) unsigned int slim_fast_ran_poisson(double mu, double exp_neg_mu)
 {
 	unsigned int x = 0;
 	double p = exp_neg_mu;
 	double s = p;
 	double u = gsl_rng_uniform(g_rng);
+	
+	while (u > s)
+	{
+		++x;
+		p *= (mu / x);
+		s += p;
+	}
+	
+	return x;
+}
+
+// This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
+static inline __attribute__((always_inline)) unsigned int slim_fast_ran_poisson_nonzero(double mu, double exp_neg_mu)
+{
+	unsigned int x = 0;
+	double p = exp_neg_mu;
+	double s = p;
+	double u = gsl_rng_uniform_pos(g_rng);	// exclude 0.0 so u != s after rescaling
+	
+	// rescale u so that (u > s) is true in the first round
+	u = u * (1.0 - s) + s;
+	
+	// do the first round, since we now know u > s
+	++x;
+	p *= mu;
+	s += p;
 	
 	while (u > s)
 	{

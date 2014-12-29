@@ -549,9 +549,12 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	child_genome.clear();
 	
-	// get both the number of mutations and the number of breakpoints here
-	int num_mutations = p_chromosome.DrawMutationCount();
-	int num_breakpoints = p_chromosome.DrawBreakpointCount();
+	// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
+	//int num_mutations = p_chromosome.DrawMutationCount();
+	//int num_breakpoints = p_chromosome.DrawBreakpointCount();
+	int num_mutations, num_breakpoints;
+	
+	p_chromosome.DrawMutationAndBreakpointCounts(&num_mutations, &num_breakpoints);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)

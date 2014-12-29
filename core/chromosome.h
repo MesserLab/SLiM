@@ -52,6 +52,10 @@ private:
 	double exp_neg_overall_mutation_rate_;
 	double exp_neg_overall_recombination_rate_;
 	
+	double probability_both_0;
+	double probability_both_0_OR_mut_0_break_non0;
+	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0;
+	
 public:
 	
 	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
@@ -73,20 +77,48 @@ public:
 	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
 	int DrawBreakpointCount() const;										// draw the number of breakpoints that occur, based on the overall recombination rate
 	vector<int> DrawBreakpoints(const int p_num_breakpoints) const;			// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
+	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
 };
 
 // draw the number of mutations that occur, based on the overall mutation rate
-inline int Chromosome::DrawMutationCount() const
+inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
 {
 	return slim_fast_ran_poisson(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
 	//return gsl_ran_poisson(g_rng, overall_mutation_rate_);
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
-inline int Chromosome::DrawBreakpointCount() const
+inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount() const
 {
 	return slim_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
 	//return gsl_ran_poisson(g_rng, overall_recombination_rate_);
+}
+
+// determine both the mutation count and the breakpoint count with (usually) a single RNG draw
+inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const
+{
+	double u = gsl_rng_uniform(g_rng);
+	
+	if (u <= probability_both_0)
+	{
+		*p_mut_count = 0;
+		*p_break_count = 0;
+	}
+	else if (u <= probability_both_0_OR_mut_0_break_non0)
+	{
+		*p_mut_count = 0;
+		*p_break_count = slim_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+	}
+	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
+	{
+		*p_mut_count = slim_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_break_count = 0;
+	}
+	else
+	{
+		*p_mut_count = slim_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_break_count = slim_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+	}
 }
 
 
