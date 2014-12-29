@@ -1,10 +1,7 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 start on adding sex
-consider using emplace_back instead of push_back; might allow objects instead of pointers in containers even with copying prohibited
-optimization:
-	use the result of pruning for removal of fixed mutations
-	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
+switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -42,6 +39,7 @@ timings (user time, with g++ build executed on command line):
 		27 Dec. 2014	2m12.580s	non-copyable Mutations with cleanup		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 		27 Dec. 2014	2m11.170s	optimization of CrossoverMutation() for non-copyable Mutations		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 		27 Dec. 2014	2m10.794s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
+		28 Dec. 2014	2m11.046s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 
 	1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
 		26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
@@ -62,6 +60,7 @@ timings (user time, with g++ build executed on command line):
 		27 Dec. 2014	1m13.088s	non-copyable Mutations with cleanup		(final output p1:12570)
 		27 Dec. 2014	1m12.949s	optimization of CrossoverMutation() for non-copyable Mutations		(final output p1:12570)
 		27 Dec. 2014	1m13.270s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output p1:12570)
+		28 Dec. 2014	1m13.664s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output p1:12570)
 
 profile results (on input_example_3.txt):
 Running Time	Self		Symbol Name

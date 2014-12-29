@@ -107,10 +107,7 @@ public:
 	void SwapGenerations(int p_generation);
 	
 	// count the references to each Mutation in the registry, and remove mutations that are no longer referenced; returns true if any fixed mutations exist
-	bool ManageMutationReferences(void);
-	
-	// find mutations that are fixed in all child subpopulations and remove them
-	void RemoveFixedMutations(int p_generation);
+	void ManageMutationReferencesAndRemoveFixedMutations(int p_generation);
 	
 	// print all mutations and all genomes
 	void PrintAll() const;

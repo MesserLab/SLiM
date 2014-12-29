@@ -757,11 +757,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 // step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
 void Population::SwapGenerations(int p_generation)
 {
-	bool has_fixed_mutations = ManageMutationReferences();
-	
-	// find and remove fixed mutations from the children in all subpopulations
-	if (has_fixed_mutations)
-		RemoveFixedMutations(p_generation);
+	ManageMutationReferencesAndRemoveFixedMutations(p_generation);
 	
 	// make children the new parents and update fitnesses
 	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
@@ -772,10 +768,10 @@ void Population::SwapGenerations(int p_generation)
 }
 
 // count the total number of times that each Mutation in the registry is referenced by a population; returns true if any fixed mutations exist
-bool Population::ManageMutationReferences(void)
+void Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generation)
 {
 	int total_genome_count = 0;
-	bool has_fixed_mutations = false;
+	Genome fixed_mutation_accumulator;
 	
 	// first zero out the refcounts in all registered Mutation objects
 	for (const Mutation *mutation : mutation_registry_)
@@ -828,39 +824,27 @@ bool Population::ManageMutationReferences(void)
 		}
 		else if (reference_count == total_genome_count)
 		{
-			has_fixed_mutations = true;
+			// If this mutation was counted in every genome, then it is fixed; log it
+			fixed_mutation_accumulator.push_back(mutation);
 		}
 	}
 	
-	return has_fixed_mutations;
-}
-
-// find mutations that are fixed in all child subpopulations and remove them
-void Population::RemoveFixedMutations(int p_generation)
-{
-	bool old_log = Genome::LogGenomeCopyAndAssign(false);
-	
-	// start with a genome that contains all of the mutations in one genome of one individual; any fixed mutations must be present in that genome
-	Genome fixed_mutation_accumulator = begin()->second->child_genomes_[0];
-	
-	// loop through all genomes and intersect them with fixed_mutation_accumulator to drop unfixed mutations
-	// FIXME we could use the information from ManageMutationReferences() instead; that would be faster...
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
-		for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)		// child genomes
-			fixed_mutation_accumulator = GenomeWithFixedMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator);
-	
-	// then remove fixed mutations from all genomes, and make new Substitution objects for them
+	// replace fixed mutations with Substitution objects
 	if (fixed_mutation_accumulator.size() > 0)
 	{
+		sort(fixed_mutation_accumulator.begin(), fixed_mutation_accumulator.end(), CompareMutations);
+		
+		bool old_log = Genome::LogGenomeCopyAndAssign(false);
+		
 		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)		// subpopulations
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)	// child genomes
 				subpop_pair.second->child_genomes_[i] = GenomeWithPolymorphicMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator);
 		
+		Genome::LogGenomeCopyAndAssign(old_log);
+		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_generation));
 	}
-	
-	Genome::LogGenomeCopyAndAssign(old_log);
 }
 
 // print all mutations and all genomes
