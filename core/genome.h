@@ -39,10 +39,13 @@ class Genome : public std::vector<const Mutation*>
 	
 private:
 	
+#ifdef DEBUG
 	static bool s_log_copy_and_assign_;						// true if logging is disabled (see below)
+#endif
 	
 public:
 	
+#ifdef DEBUG
 	//
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
 	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
@@ -52,6 +55,7 @@ public:
 	Genome(const Genome &p_original);
 	Genome& operator= (const Genome &p_original);
 	static bool LogGenomeCopyAndAssign(bool p_log);			// returns the old value; save and restore that value!
+#endif
 	
 	Genome() = default;										// default constructor
 };

@@ -29,10 +29,16 @@ Subpopulation::Subpopulation(int p_subpop_size) : subpop_size_(p_subpop_size)
 {
 	selfing_fraction_ = 0.0;
 	
+#ifdef DEBUG
 	bool old_log = Genome::LogGenomeCopyAndAssign(false);
+#endif
+	
 	parent_genomes_.resize(2 * subpop_size_);
 	child_genomes_.resize(2 * subpop_size_);
+	
+#ifdef DEBUG
 	Genome::LogGenomeCopyAndAssign(old_log);
+#endif
 	
 	// Set up to draw random individuals, based initially on equal fitnesses
 	double A[subpop_size_];

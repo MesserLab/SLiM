@@ -22,8 +22,9 @@
 #include "stacktrace.h"
 
 
+#ifdef DEBUG
 bool Genome::s_log_copy_and_assign_ = true;
-
+#endif
 
 // return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
 Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2)
@@ -142,6 +143,8 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 //	Methods to enforce limited copying
 //
 
+#ifdef DEBUG
+
 Genome::Genome(const Genome& p_original) : std::vector<const Mutation*>(p_original)
 {
 	if (s_log_copy_and_assign_)
@@ -175,6 +178,7 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 	return old_value;
 }
 
+#endif
 
 
 

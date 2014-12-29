@@ -560,9 +560,13 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		if (all_breakpoints.size() == 0)
 		{
 			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
+#ifdef DEBUG
 			bool old_log = Genome::LogGenomeCopyAndAssign(false);
+#endif
 			child_genome = source_subpop->parent_genomes_[p_parent1_genome_index];
+#ifdef DEBUG
 			Genome::LogGenomeCopyAndAssign(old_log);
+#endif
 		}
 		else
 		{
@@ -834,13 +838,17 @@ void Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generatio
 	{
 		sort(fixed_mutation_accumulator.begin(), fixed_mutation_accumulator.end(), CompareMutations);
 		
+#ifdef DEBUG
 		bool old_log = Genome::LogGenomeCopyAndAssign(false);
+#endif
 		
 		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)		// subpopulations
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)	// child genomes
 				subpop_pair.second->child_genomes_[i] = GenomeWithPolymorphicMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator);
 		
+#ifdef DEBUG
 		Genome::LogGenomeCopyAndAssign(old_log);
+#endif
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_generation));
