@@ -45,6 +45,7 @@
 		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93C1A4B59360007B9D6 /* stacktrace.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stacktrace.h; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
@@ -97,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				98E9A6B21A3CE299000AD4FC /* TO_DO */,
+				9876DD7E1A51132600F39F17 /* PROFILING */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				986021091A3BB504001BDCFE /* README.md */,
 				98E5F0551A3DFD3900FABCC8 /* README.html */,

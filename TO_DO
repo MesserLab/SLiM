@@ -1,7 +1,19 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
-start on adding sex
 switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
+in CrossoverMutation(), can we somehow combine the draw for the number of mutations and the number of breakpoints into a single draw?  multidimensional Poisson?  just to short-circuit the cases with 0 mutations and 0 crossovers?
+consider converting Genome into straight C code; the standard library might be slowing us down considerably
+
+add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,
+	individuals are X or XX, with the Y implied
+	if modeling X, there is a global factor (default 1) that says: how much of the homozygous fitness do you feel? similar to codominance
+	#SEX A/X [factor for codominance, for modeling X] – the presence of this directive turns on tracking of male/female sex
+	sex ratio is a directive like the migration rates: a DEMOGRAPHY AND SUBSTRUCTURE event: set sex ratio in subpop, default 0.5
+	sex ratio is modeled in a deterministic fashion; if the sex ratio does not allow for males and females to persist (i.e. extinction), error and quit
+	add sex to output: when you request a sample, you specify whether you want males or females.
+	in full output, need to show M/F somehow; how about listing individuals before genomes, with each individual stating whether they are M or F
+	in full output, in population list, might output the sex ratio in addition to the population size
+	need to think about being able to read back in
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -15,114 +27,24 @@ changes to mention in docs:
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 
-timings (user time, with g++ build executed on command line):
-	1.8:	time ./slim input_example_3.txt		(seed == 1418961197)
-		18 Dec. 2014	4m22.112s
-	2.0:	time ./slim -seed 1418961197 ./examples/input_example_3.txt
-		18 Dec. 2014	4m8.451s	4m8.610s	4m8.102s
-		18 Dec. 2014	4m8.412s	(-funroll-loops)	– basically no benefit
-		18 Dec. 2014	4m3.373s	(-ffast-math)		– basically no benefit
-		18 Dec. 2014	3m41.662s	after caching the result of find(p_subpop_id)->second in Population::CrossoverMutation()
-		19 Dec. 2014	3m41.247s	after further find(subpop) optimizations in Population::EvolveSubpopulation()
-		19 Dec. 2014	3m37.656s	after checking for degenerate cases for selfing_fraction in Population::EvolveSubpopulation()
-		19 Dec. 2014	3m24.652s	after optimizing Subpopulation::FitnessOfIndividualWithGenomeIndices with caching
-		19 Dec. 2014	3m7.618s	after optimizing Population::CrossoverMutation() to cache child genome, and writing no-mutation case
-		26 Dec. 2014	3m2.990s	streamlining of flow control in FitnessOfIndividualWithGenomeIndices		(final output 329 m1 2099186 -0.000473915 0.2 p1 97746 99887)
-		26 Dec. 2014	3m5.319s	conversion of mutation_type_ to pointer		(final output 329 m1 2099186 -0.000473915 0.2 p1 97746 99887)
-		26 Dec. 2014	3m3.125s	removal of dominance_coeff cache		(final output 350 m1 8043569 -6.83452e-05 0.2 p1 94232 99753)
-		26 Dec. 2014	3m0.807s	conversion of GenomicElementType to keep a MutationType* vector		(final output 350 m1 8043569 -6.83452e-05 0.2 p1 94232 99753)
-		26 Dec. 2014	2m58.630s	consolidation into SLiMSim class		(final output 350 m1 8043569 -6.83452e-05 0.2 p1 94232 99753)
-		27 Dec. 2014	2m54.810s	switch to g_rng_bool() in CrossoverMutation()		(final output )
-		27 Dec. 2014	2m47.970s	removal of child_map from EvolveSubpopulation()		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		27 Dec. 2014	2m25.672s	optimized the no-mutation no-crossover case		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		27 Dec. 2014	2m9.792s	non-copyable Mutations with no cleanup		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		27 Dec. 2014	2m12.580s	non-copyable Mutations with cleanup		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		27 Dec. 2014	2m11.170s	optimization of CrossoverMutation() for non-copyable Mutations		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		27 Dec. 2014	2m10.794s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-		28 Dec. 2014	2m11.046s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
-
-	1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
-		26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
-	2.0:	time ./slim -seed 1419702403 ./examples/test_case_4.txt
-		26 Dec. 2014	2m37.180s	original timing		(final output p1:4426 15 16)
-		26 Dec. 2014	2m35.390s	streamlining of flow control in FitnessOfIndividualWithGenomeIndices		(final output p1:4426 15 16)
-		26 Dec. 2014	2m31.647s	conversion of mutation_type_ to pointer		(final output p1:4426 15 16)
-		26 Dec. 2014	2m31.267s	removal of dominance_coeff cache		(final output p1:4426 15 16)
-		26 Dec. 2014	2m29.125s	conversion of MutationType to completely uncopyable		(final output p1:4426 15 16)
-		26 Dec. 2014	2m29.330s	conversion of Subpopulation to completely uncopyable		(final output p1:4426 15 16)
-		26 Dec. 2014	2m32.843s	conversion of GenomicElementType to completely uncopyable		(final output p1:4426 15 16)
-		26 Dec. 2014	2m31.643s	conversion of GenomicElementType to keep a MutationType* vector		(final output p1:4426 15 16)
-		26 Dec. 2014	2m28.263s	consolidation into SLiMSim class		(final output p1:4426 15 16)
-		27 Dec. 2014	2m22.085s	switch to g_rng_bool() in CrossoverMutation()		(final output p1:11827 1 9 12 13 3)
-		27 Dec. 2014	2m8.474s	removal of child_map from EvolveSubpopulation()		(final output p1:12570)
-		27 Dec. 2014	1m25.797s	optimized the no-mutation no-crossover case		(final output p1:12570)
-		27 Dec. 2014	1m19.527s	non-copyable Mutations with no cleanup		(final output p1:12570)
-		27 Dec. 2014	1m13.088s	non-copyable Mutations with cleanup		(final output p1:12570)
-		27 Dec. 2014	1m12.949s	optimization of CrossoverMutation() for non-copyable Mutations		(final output p1:12570)
-		27 Dec. 2014	1m13.270s	optimization of FitnessOfIndividualWithGenomeIndices() for non-copyable Mutations		(final output p1:12570)
-		28 Dec. 2014	1m13.664s	folding RemoveFixedMutations into ManageMutationReferences to reuse information		(final output p1:12570)
-
-profile results (on input_example_3.txt):
-Running Time	Self		Symbol Name
-98917.0ms   99.9%	12.0	 	   RunSLiM(char*, int*)
-62142.0ms   62.8%	672.0	 	    Population::EvolveSubpopulation(int, Chromosome const&, int)
-56247.0ms   56.8%	11150.0	 	     Population::CrossoverMutation(Subpopulation&, Subpopulation&, int, int, int, int, Chromosome const&, int)
- 9948.0ms   10.0%	9948.0	 	      __gnu_cxx::new_allocator<Mutation>::construct(Mutation*, Mutation const&)
- 6518.0ms    6.5%	529.0	 	      std::vector<int, std::allocator<int> >::_M_insert_aux(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, int const&)
- 5738.0ms    5.8%	0.0	 	          __gnu_cxx::new_allocator<Mutation>::deallocate(Mutation*, unsigned long)
- 5387.0ms    5.4%	424.0	 	      Chromosome::DrawBreakpoints() const
- 5091.0ms    5.1%	5091.0	 	      __gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > >::operator++(int)
- 3119.0ms    3.1%	2606.0	 	      gsl_rng_uniform_int
- 3093.0ms    3.1%	523.0	 	      gsl_ran_poisson
- 1709.0ms    1.7%	32.0	 	      Chromosome::DrawNewMutation(int, int) const
- 1300.0ms    1.3%	1300.0	 	      __gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >::__normal_iterator(Mutation* const&)
-  933.0ms    0.9%	48.0	 	      void std::sort<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)
-  532.0ms    0.5%	0.0	 	          std::vector<Mutation, std::allocator<Mutation> >::clear()
-  279.0ms    0.2%	151.0	 	      std::vector<Mutation, std::allocator<Mutation> >::push_back(Mutation const&)
-  277.0ms    0.2%	14.0	 	      std::vector<Mutation, std::allocator<Mutation> >::_M_insert_aux(__gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >, Mutation const&)
- 2751.0ms    2.7%	1829.0	 	     gsl_ran_discrete
- 1888.0ms    1.9%	1623.0	 	     gsl_ran_shuffle
-36661.0ms   37.0%	1.0	 	        Population::SwapGenerations(int, Chromosome const&)
-33102.0ms   33.4%	114.0	 	     Subpopulation::UpdateFitness(Chromosome const&)
-30181.0ms   30.5%	29470.0	 	      Subpopulation::FitnessOfIndividualWithGenomeIndices(int, int, Chromosome const&) const
-  457.0ms    0.4%	457.0	 	       bool __gnu_cxx::operator!=<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > >(__gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > > const&, __gnu_cxx::__normal_iterator<Mutation const*, std::vector<Mutation, std::allocator<Mutation> > > const&)
- 2765.0ms    2.7%	2486.0	 	      gsl_ran_discrete_preproc
- 3538.0ms    3.5%	227.0	 	     Population::RemoveFixedMutations(int)
- 1226.0ms    1.2%	368.0	 	      GenomeWithFixedMutations(Genome const&, Genome const&)
-  486.0ms    0.4%	39.0	 	       std::vector<Mutation, std::allocator<Mutation> >::_M_insert_aux(__gnu_cxx::__normal_iterator<Mutation*, std::vector<Mutation, std::allocator<Mutation> > >, Mutation const&)
- 1194.0ms    1.2%	316.0	 	      Genome::operator=(Genome const&)
-  513.0ms    0.5%	25.0	 	      GenomeWithPolymorphicMutations(Genome const&, Genome const&)
-  347.0ms    0.3%	108.0	 	      Genome::~Genome()
-
 
 future plans:
-
-add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,
-	individuals are X or XX, with the Y implied
-	if modeling X, there is a global factor (default 1) that says: how much of the homozygous fitness do you feel? similar to codominance
-	#SEX A/X [factor for codominance, for modeling X] – the presence of this directive turns on tracking of male/female sex
-	sex ratio is a directive like the migration rates: a DEMOGRAPHY AND SUBSTRUCTURE event: set sex ratio in subpop, default 0.5
-	sex ratio is modeled in a deterministic fashion; if the sex ratio does not allow for males and females to persist (i.e. extinction), error and quit
-	add sex to output: when you request a sample, you specify whether you want males or females.
-	in full output, need to show M/F somehow; how about listing individuals before genomes, with each individual stating whether they are M or F
-	in full output, in population list, might output the sex ratio in addition to the population size
-	need to think about being able to read back in
-multiple chromosomes – more than one per individual
-test cases for verification: population genetic predictions like fixation probability
-SLAM on GitHub: local adaptation
-set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
-locally and temporally varying selection pressures: for mutation-types
-	in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
-	what happens for new mutations of that type?
-	seasonal changes in optimal phenotype, spatial variation in environmental optimum
-	these seasonal changes alter the strength of selection, but not the optimum
-	so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
-pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too
-add in hard/soft selection: extend event syntax of “set N” to allow setting N as a function of mean fitness
-possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring
-	individuals could have individual-types, which would define their expected # of children
-	statistical genetics and human evolution: bottlenecks and effective population size, debunking bottleneck myths
-2.0 documentation, with revision tracking on it
+	multiple chromosomes – more than one per individual
+	test cases for verification: population genetic predictions like fixation probability
+	SLAM on GitHub: local adaptation
+	set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
+	locally and temporally varying selection pressures: for mutation-types
+		in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
+		what happens for new mutations of that type?
+		seasonal changes in optimal phenotype, spatial variation in environmental optimum
+		these seasonal changes alter the strength of selection, but not the optimum
+		so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
+	pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too
+	add in hard/soft selection: extend event syntax of “set N” to allow setting N as a function of mean fitness
+	possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring
+		individuals could have individual-types, which would define their expected # of children
+		statistical genetics and human evolution: bottlenecks and effective population size, debunking bottleneck myths
+	2.0 documentation, with revision tracking on it
 
 
 
