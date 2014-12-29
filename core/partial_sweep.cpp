@@ -21,11 +21,9 @@
 #include "partial_sweep.h"
 
 
-PartialSweep::PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence)
+PartialSweep::PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence) :
+	mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), target_prevalence_(p_target_prevalence)
 {
-	mutation_type_ptr_ = p_mutation_type_ptr;
-	position_ = p_position;
-	target_prevalence_ = p_target_prevalence;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const PartialSweep &p_partial_sweep)

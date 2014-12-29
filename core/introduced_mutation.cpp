@@ -21,14 +21,9 @@
 #include "introduced_mutation.h"
 
 
-IntroducedMutation::IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes)
+IntroducedMutation::IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes) :
+	Mutation(p_mutation_type_ptr, p_position, 0.0, p_subpop_index, p_generation), num_homozygotes_(p_num_homozygotes), num_heterozygotes_(p_num_heterozygotes)
 {
-	mutation_type_ptr_ = p_mutation_type_ptr;
-	position_ = p_position;
-	subpop_index_ = p_subpop_index;
-	generation_ = p_generation;
-	num_homozygotes_ = p_num_homozygotes;
-	num_heterozygotes_ = p_num_heterozygotes;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const IntroducedMutation &p_introduced_mutation)

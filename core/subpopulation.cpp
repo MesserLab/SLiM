@@ -25,9 +25,8 @@
 #include "stacktrace.h"
 
 
-Subpopulation::Subpopulation(int p_subpop_size)
+Subpopulation::Subpopulation(int p_subpop_size) : subpop_size_(p_subpop_size)
 {
-	subpop_size_ = p_subpop_size;
 	selfing_fraction_ = 0.0;
 	
 	bool old_log = Genome::LogGenomeCopyAndAssign(false);

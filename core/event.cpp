@@ -21,11 +21,8 @@
 #include "event.h"
 
 
-Event::Event(char p_event_type, std::vector<std::string> p_parameters)
+Event::Event(char p_event_type, std::vector<std::string> p_parameters) : event_type_(p_event_type), parameters_(p_parameters)
 {
-	event_type_ = p_event_type;
-	parameters_ = p_parameters;
-	
 	static std::string possible_options = "PNMSRFAT";
 	
 	if (possible_options.find(event_type_) == std::string::npos) 
