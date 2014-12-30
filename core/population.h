@@ -50,7 +50,7 @@ class Population : public std::map<int,Subpopulation*>		// OWNED POINTERS
 
 public:
 	
-	std::vector<const Mutation*> mutation_registry_;		// OWNED POINTERS: a registry of all mutations that have been added to this population
+	Genome mutation_registry_;								// OWNED POINTERS: a registry of all mutations that have been added to this population
 	std::vector<const Substitution*> substitutions_;		// OWNED POINTERS: Substitution objects for all fixed mutations
 	
 	Population(const Population&) = delete;					// no copying

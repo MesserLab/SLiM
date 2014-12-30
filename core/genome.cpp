@@ -26,16 +26,17 @@
 bool Genome::s_log_copy_and_assign_ = true;
 #endif
 
-// return a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
-Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2)
+// set p_merge_genome to be a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
+// NOTE this function is not used in the present design; it has been obsoleted by Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generation).
+void GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome)
 {
-	Genome merge_genome;
+	p_merge_genome->clear();
 	
-	std::vector<const Mutation*>::const_iterator genome1_iter = p_genome1.begin();
-	std::vector<const Mutation*>::const_iterator genome2_iter = p_genome2.begin();
+	const Mutation **genome1_iter = p_genome1.begin_pointer();
+	const Mutation **genome2_iter = p_genome2.begin_pointer();
 	
-	std::vector<const Mutation*>::const_iterator genome1_max = p_genome1.end();
-	std::vector<const Mutation*>::const_iterator genome2_max = p_genome2.end();
+	const Mutation **genome1_max = p_genome1.end_pointer();
+	const Mutation **genome2_max = p_genome2.end_pointer();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
@@ -52,7 +53,7 @@ Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2
 		{
 			int position = (*genome1_iter)->position_;
 			
-			std::vector<const Mutation *>::const_iterator temp;
+			const Mutation **temp;
 			
 			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
 			{
@@ -61,7 +62,7 @@ Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2
 				while (temp != genome2_max && (*temp)->position_ == position)
 				{
 					if ((*temp)->mutation_type_ptr_ == (*genome1_iter)->mutation_type_ptr_ && (*temp)->selection_coeff_ == (*genome1_iter)->selection_coeff_)
-						merge_genome.push_back(*genome1_iter);
+						p_merge_genome->push_back(*genome1_iter);
 					
 					temp++;
 				}
@@ -70,27 +71,25 @@ Genome GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2
 			}
 		}
 	}
-	
-	return merge_genome;
 }
 
-// return a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
-Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_genome2)
+// set p_merge_genome to be a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
+void GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome)
 {
-	Genome merge_genome;
+	p_merge_genome->clear();
 	
-	std::vector<const Mutation*>::const_iterator genome1_iter = p_genome1.begin();
-	std::vector<const Mutation*>::const_iterator genome2_iter = p_genome2.begin();
+	const Mutation **genome1_iter = p_genome1.begin_pointer();
+	const Mutation **genome2_iter = p_genome2.begin_pointer();
 	
-	std::vector<const Mutation*>::const_iterator genome1_max = p_genome1.end();
-	std::vector<const Mutation*>::const_iterator genome2_max = p_genome2.end();
+	const Mutation **genome1_max = p_genome1.end_pointer();
+	const Mutation **genome2_max = p_genome2.end_pointer();
 	
 	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
 	{
 		// advance genome1_iter while genome1_iter.position_ < genome2_iter.position_
 		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter)->position_ < (*genome2_iter)->position_)
 		{
-			merge_genome.push_back(*genome1_iter);
+			p_merge_genome->push_back(*genome1_iter);
 			genome1_iter++;
 		}
 		
@@ -104,7 +103,7 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 			int position = (*genome1_iter)->position_;
 			
 			// go through p_genome1 and check for those mutations that are not present in p_genome2
-			std::vector<const Mutation*>::const_iterator temp = genome2_iter;
+			const Mutation **temp = genome2_iter;
 			
 			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
 			{
@@ -119,7 +118,7 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 				}
 				
 				if (polymorphic)
-					merge_genome.push_back(*genome1_iter);
+					p_merge_genome->push_back(*genome1_iter);
 				
 				genome1_iter++;
 			}
@@ -131,11 +130,9 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 	
 	while (genome1_iter != genome1_max)
 	{
-		merge_genome.push_back(*genome1_iter);
+		p_merge_genome->push_back(*genome1_iter);
 		genome1_iter++;
 	}
-	
-	return merge_genome;
 }
 
 
@@ -143,32 +140,62 @@ Genome GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_g
 //	Methods to enforce limited copying
 //
 
-#ifdef DEBUG
-
-Genome::Genome(const Genome& p_original) : std::vector<const Mutation*>(p_original)
+Genome::Genome(const Genome &p_original)
 {
+#ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
 		std::clog << "********* Genome::Genome(Genome&) called!" << std::endl;
 		print_stacktrace(stderr);
 		std::clog << "************************************************" << std::endl;
 	}
+#endif
+	
+	int source_mutation_count = p_original.mutation_count_;
+	
+	// first we need to ensure that we have sufficient capacity
+	if (source_mutation_count > mutation_capacity_)
+	{
+		mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
+		mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+	}
+	
+	// then copy all pointers from the source to ourselves
+	memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
+	mutation_count_ = source_mutation_count;
 }
 
 Genome& Genome::operator= (const Genome& p_original)
 {
+#ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
 		std::clog << "********* Genome::operator=(Genome&) called!" << std::endl;
 		print_stacktrace(stderr);
 		std::clog << "************************************************" << std::endl;
 	}
+#endif
 	
-	std::vector<const Mutation*>::operator=(p_original);
+	if (this != &p_original)
+	{
+		int source_mutation_count = p_original.mutation_count_;
+		
+		// first we need to ensure that we have sufficient capacity
+		if (source_mutation_count > mutation_capacity_)
+		{
+			mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
+			mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+		}
+		
+		// then copy all pointers from the source to ourselves
+		memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
+		mutation_count_ = source_mutation_count;
+	}
 	
 	return *this;
 }
 
+#ifdef DEBUG
 bool Genome::LogGenomeCopyAndAssign(bool p_log)
 {
 	bool old_value = s_log_copy_and_assign_;
@@ -177,7 +204,6 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 	
 	return old_value;
 }
-
 #endif
 
 

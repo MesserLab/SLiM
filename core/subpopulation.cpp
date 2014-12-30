@@ -80,11 +80,14 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	std::vector<const Mutation*>::const_iterator genome1_iter = parent_genomes_[p_genome_index1].begin();
-	std::vector<const Mutation*>::const_iterator genome2_iter = parent_genomes_[p_genome_index2].begin();
+	const Genome *genome1 = &(parent_genomes_[p_genome_index1]);
+	const Genome *genome2 = &(parent_genomes_[p_genome_index2]);
 	
-	std::vector<const Mutation*>::const_iterator genome1_max = parent_genomes_[p_genome_index1].end();
-	std::vector<const Mutation*>::const_iterator genome2_max = parent_genomes_[p_genome_index2].end();
+	const Mutation **genome1_iter = genome1->begin_pointer();
+	const Mutation **genome2_iter = genome2->begin_pointer();
+	
+	const Mutation **genome1_max = genome1->end_pointer();
+	const Mutation **genome2_max = genome2->end_pointer();
 	
 	// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 	if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -141,8 +144,8 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 			else
 			{
 				// Look for homozygosity: genome1_iter_position == genome2_iter_position
-				int position = genome1_iter_position; 
-				std::vector<const Mutation*>::const_iterator genome1_start = genome1_iter;
+				int position = genome1_iter_position;
+				const Mutation **genome1_start = genome1_iter;
 				
 				// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 				do
@@ -152,7 +155,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					if (selection_coeff != 0.0f)
 					{
 						const MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
-						std::vector<const Mutation*>::const_iterator genome2_matchscan = genome2_iter; 
+						const Mutation **genome2_matchscan = genome2_iter; 
 						bool homozygous = false;
 						
 						// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -197,7 +200,7 @@ double Subpopulation::FitnessOfIndividualWithGenomeIndices(int p_genome_index1, 
 					if (selection_coeff != 0.0f)
 					{
 						const MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
-						std::vector<const Mutation*>::const_iterator genome1_matchscan = genome1_start; 
+						const Mutation **genome1_matchscan = genome1_start; 
 						bool homozygous = false;
 						
 						// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not

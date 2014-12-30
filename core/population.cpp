@@ -40,11 +40,16 @@ Population::~Population(void)
 	for (auto subpopulation : *this)
 		delete subpopulation.second;
 	
-	for (auto mutation : mutation_registry_)
-		delete mutation;
-	
 	for (auto substitution : substitutions_)
 		delete substitution;
+	
+	// The malloced storage of mutation_registry_ will be freed when it is destroyed, but it
+	// does not know that the Mutation pointers inside it are owned, so we need to free them.
+	const Mutation **registry_iter = mutation_registry_.begin_pointer();
+	const Mutation **registry_iter_end = mutation_registry_.end_pointer();
+	
+	for (; registry_iter != registry_iter_end; ++registry_iter)
+		delete *registry_iter;
 }
 
 // add new empty subpopulation p_subpop_id of size p_subpop_size
@@ -72,8 +77,8 @@ void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsig
 		// draw individual from source_subpop and assign to be a parent in subpop
 		int migrant_index = source_subpop.DrawIndividual();
 		
-		subpop.parent_genomes_[2 * parent_index] = source_subpop.parent_genomes_[2 * migrant_index];
-		subpop.parent_genomes_[2 * parent_index + 1] = source_subpop.parent_genomes_[2 * migrant_index + 1];
+		subpop.parent_genomes_[2 * parent_index].copy_from_genome(source_subpop.parent_genomes_[2 * migrant_index]);
+		subpop.parent_genomes_[2 * parent_index + 1].copy_from_genome(source_subpop.parent_genomes_[2 * migrant_index + 1]);
 	}
 }
 
@@ -319,13 +324,8 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 		int child_index = child_map[j];
 		Genome *g1 = &introduction_subpop.child_genomes_[2 * child_index];
 		Genome *g2 = &introduction_subpop.child_genomes_[2 * child_index + 1];
-		(*g1).push_back(new_mutation);
-		(*g2).push_back(new_mutation);
-		
-		sort((*g1).begin(), (*g1).end(), CompareMutations);
-		sort((*g2).begin(), (*g2).end(), CompareMutations);
-		(*g1).erase(unique((*g1).begin(), (*g1).end(), EqualMutations), (*g1).end());
-		(*g2).erase(unique((*g2).begin(), (*g2).end(), EqualMutations), (*g2).end());
+		(*g1).insert_sorted_mutation_if_unique(new_mutation);
+		(*g2).insert_sorted_mutation_if_unique(new_mutation);
 	}
 	
 	// introduce heterozygotes
@@ -334,10 +334,7 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 		int child_index = child_map[j];
 		bool which_genome = g_rng_bool(g_rng);	// BCH 27 Dec. 2014: choose which genome at random, so if two mutations are introduced in the same generation they don't end up linked
 		Genome *g1 = &introduction_subpop.child_genomes_[2 * child_index + which_genome];
-		(*g1).push_back(new_mutation);
-		
-		sort((*g1).begin(), (*g1).end(), CompareMutations);
-		(*g1).erase(unique((*g1).begin(), (*g1).end(), EqualMutations), (*g1).end());
+		(*g1).insert_sorted_mutation_if_unique(new_mutation);
 	}
 }
 
@@ -562,13 +559,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		if (num_breakpoints == 0)
 		{
 			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
-#ifdef DEBUG
-			bool old_log = Genome::LogGenomeCopyAndAssign(false);
-#endif
-			child_genome = source_subpop->parent_genomes_[p_parent1_genome_index];
-#ifdef DEBUG
-			Genome::LogGenomeCopyAndAssign(old_log);
-#endif
+			child_genome.copy_from_genome(source_subpop->parent_genomes_[p_parent1_genome_index]);
 		}
 		else
 		{
@@ -580,14 +571,14 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
 			// do the crossover
-			std::vector<const Mutation*>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
-			std::vector<const Mutation*>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
+			const Mutation **parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
+			const Mutation **parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
 			
-			std::vector<const Mutation*>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
-			std::vector<const Mutation*>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
+			const Mutation **parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
+			const Mutation **parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
 			
-			std::vector<const Mutation*>::const_iterator parent_iter		= parent1_iter;
-			std::vector<const Mutation*>::const_iterator parent_iter_max	= parent1_iter_max;
+			const Mutation **parent_iter		= parent1_iter;
+			const Mutation **parent_iter_max	= parent1_iter_max;
 			
 			int break_index_max = static_cast<int>(all_breakpoints.size());
 			
@@ -623,17 +614,15 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	else
 	{
 		// create vector with the mutations to be added
-		std::vector<const Mutation*> mutations_to_add;
+		Genome mutations_to_add;
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
 			const Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
-			mutations_to_add.push_back(new_mutation);
+			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			mutation_registry_.push_back(new_mutation);
 		}
-		
-		sort(mutations_to_add.begin(), mutations_to_add.end(), CompareMutations);
 		
 		// create vector with uniqued recombination breakpoints
 		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
@@ -642,17 +631,17 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		std::vector<const Mutation*>::const_iterator parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin();
-		std::vector<const Mutation*>::const_iterator parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin();
+		const Mutation **parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
+		const Mutation **parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
 		
-		std::vector<const Mutation*>::const_iterator parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end();
-		std::vector<const Mutation*>::const_iterator parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end();
+		const Mutation **parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
+		const Mutation **parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
 		
-		std::vector<const Mutation*>::const_iterator mutation_iter		= mutations_to_add.begin();
-		std::vector<const Mutation*>::const_iterator mutation_iter_max	= mutations_to_add.end();
+		const Mutation **mutation_iter		= mutations_to_add.begin_pointer();
+		const Mutation **mutation_iter_max	= mutations_to_add.end_pointer();
 		
-		std::vector<const Mutation*>::const_iterator parent_iter		= parent1_iter;
-		std::vector<const Mutation*>::const_iterator parent_iter_max	= parent1_iter_max;
+		const Mutation **parent_iter		= parent1_iter;
+		const Mutation **parent_iter_max	= parent1_iter_max;
 		
 		int break_index_max = static_cast<int>(all_breakpoints.size());
 		int num_mutations_added = 0;
@@ -783,8 +772,11 @@ void Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generatio
 	Genome fixed_mutation_accumulator;
 	
 	// first zero out the refcounts in all registered Mutation objects
-	for (const Mutation *mutation : mutation_registry_)
-		mutation->reference_count_ = 0;
+	const Mutation **registry_iter = mutation_registry_.begin_pointer();
+	const Mutation **registry_iter_end = mutation_registry_.end_pointer();
+	
+	for (; registry_iter != registry_iter_end; ++registry_iter)
+		(*registry_iter)->reference_count_ = 0;
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
 	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
@@ -798,14 +790,16 @@ void Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generatio
 		for (int i = 0; i < subpop_genome_count; i++)								// child genomes
 		{
 			Genome &genome = subpop_genomes[i];
+			const Mutation **genome_iter = genome.begin_pointer();
+			const Mutation **genome_end_iter = genome.end_pointer();
 			
-			for (const Mutation *mutation : genome)
-				(mutation->reference_count_)++;
+			for (; genome_iter != genome_end_iter; ++genome_iter)
+				++((*genome_iter)->reference_count_);
 		}
 	}
 	
 	// then remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
-	size_type registry_length = mutation_registry_.size();
+	int registry_length = mutation_registry_.size();
 	
 	for (int i = 0; i < registry_length; ++i)
 	{
@@ -834,26 +828,16 @@ void Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generatio
 		else if (reference_count == total_genome_count)
 		{
 			// If this mutation was counted in every genome, then it is fixed; log it
-			fixed_mutation_accumulator.push_back(mutation);
+			fixed_mutation_accumulator.insert_sorted_mutation(mutation);
 		}
 	}
 	
 	// replace fixed mutations with Substitution objects
 	if (fixed_mutation_accumulator.size() > 0)
 	{
-		sort(fixed_mutation_accumulator.begin(), fixed_mutation_accumulator.end(), CompareMutations);
-		
-#ifdef DEBUG
-		bool old_log = Genome::LogGenomeCopyAndAssign(false);
-#endif
-		
 		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)		// subpopulations
 			for (int i = 0; i < 2 * subpop_pair.second->subpop_size_; i++)	// child genomes
-				subpop_pair.second->child_genomes_[i] = GenomeWithPolymorphicMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator);
-		
-#ifdef DEBUG
-		Genome::LogGenomeCopyAndAssign(old_log);
-#endif
+				GenomeWithPolymorphicMutations(subpop_pair.second->child_genomes_[i], fixed_mutation_accumulator, &(subpop_pair.second->child_genomes_[i]));
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_generation));

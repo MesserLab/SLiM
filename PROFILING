@@ -26,6 +26,8 @@ timings (user time, with g++ build executed on command line):
 	28 Dec. 2014	2m9.511s	turning off Genome log-on-copy code when not building for debugging		(final output 347 m1 5911480 -0.00113181 0.2 p1 97984 99669)
 	29 Dec. 2014	2m5.167s	custom Poisson draw with exp() precalculated		(final output 326 m1 6615132 -0.0001449 0.2 p1 95945 99828)
 	29 Dec. 2014	2m1.339s	joint Poisson draw with a single RNG get		(final output 323 m1 2787114 -0.00150006 0.2 p1 95137 99952)
+	29 Dec. 2014	1m18.167s	conversion of Genome to straight C code		(final output 40 m1 4191735 -0.0013313 0.2 p1 96960 98751)
+	29 Dec. 2014	1m12.676s	changed the mutation registry to use Genome instead of std::vector		(final output 40 m1 4191735 -0.0013313 0.2 p1 96960 98751)
 
 1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
 	26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
@@ -50,36 +52,7 @@ timings (user time, with g++ build executed on command line):
 	28 Dec. 2014	1m11.707s	turning off Genome log-on-copy code when not building for debugging		(final output p1:12570)
 	29 Dec. 2014	0m57.244s	custom Poisson draw with exp() precalculated		(final output p1:10380 8 9)
 	29 Dec. 2014	0m49.182s	joint Poisson draw with a single RNG get		(final output p1:4464 1 10 2)
+	29 Dec. 2014	0m46.090s	conversion of Genome to straight C code		(final output p1:4464 1 10 2)
+	29 Dec. 2014	0m46.139s	changed the mutation registry to use Genome instead of std::vector		(final output p1:4464 1 10 2)
 
-profile results (on input_example_4.txt):
-Running      Time	Self		Symbol Name
-74838.0ms   99.9%	0.0	 	  main
-74838.0ms   99.9%	0.0	 	    SLiMSim::RunToEnd()
-74837.0ms   99.9%	1.0	 	      SLiMSim::RunOneGeneration()
-56223.0ms   75.1%	1532.0	 	    Population::EvolveSubpopulation(int, Chromosome const&, int)
-44362.0ms   59.2%	3524.0	 	      Population::CrossoverMutation(Subpopulation*, Subpopulation*, int, int, int, int, Chromosome const&, int)
-13267.0ms   17.7%	1341.0	 	        Genome::operator=(Genome const&)
-12941.0ms   17.2%	1324.0	 	        Chromosome::DrawBreakpoints() const
-11066.0ms   14.7%	1916.0	 	          gsl_ran_poisson
-344.0ms      0.4%	344.0	 	          DYLD-STUB$$exp
-174.0ms      0.2%	174.0	 	          std::vector<int, std::allocator<int> >::vector(std::allocator<int> const&)
-12064.0ms   16.1%	2544.0	 	        gsl_ran_poisson
-697.0ms      0.9%	697.0	 	        Genome::LogGenomeCopyAndAssign(bool)
-338.0ms      0.4%	338.0	 	        Chromosome::DrawMutationCount() const
-334.0ms      0.4%	334.0	 	        DYLD-STUB$$exp
-328.0ms      0.4%	328.0	 	        std::vector<Genome, std::allocator<Genome> >::operator[](unsigned long)
-171.0ms      0.2%	171.0	 	        std::vector<int, std::allocator<int> >::size() const
-163.0ms      0.2%	163.0	 	        std::vector<int, std::allocator<int> >::~vector()
-162.0ms      0.2%	162.0	 	        DYLD-STUB$$gsl_ran_poisson
-161.0ms      0.2%	4.0	 	            std::vector<Mutation const*, std::allocator<Mutation const*> >::clear()
-9601.0ms    12.8%	6750.0	 	      gsl_ran_discrete
-309.0ms      0.4%	309.0	 	      Subpopulation::DrawIndividual() const
-211.0ms      0.2%	211.0	 	      Chromosome::DrawMutationCount() const
-18288.0ms   24.4%	0.0	 	        Population::SwapGenerations(int)
-14232.0ms   19.0%	447.0	 	      Subpopulation::UpdateFitness()
-7398.0ms     9.8%	6670.0	 	        gsl_ran_discrete_preproc
-6242.0ms     8.3%	5711.0	 	        Subpopulation::FitnessOfIndividualWithGenomeIndices(int, int) const
-222.0ms      0.2%	222.0	 	          __gnu_cxx::__normal_iterator<Mutation const* const*, std::vector<Mutation const*, std::allocator<Mutation const*> > >::operator++(int)
-4051.0ms     5.4%	3683.0	 	      Population::ManageMutationReferencesAndRemoveFixedMutations(int)
-191.0ms      0.2%	191.0	 	        __gnu_cxx::__normal_iterator<Mutation const**, std::vector<Mutation const*, std::allocator<Mutation const*> > >::__normal_iterator(Mutation const** const&)
-163.0ms      0.2%	163.0	 	        std::vector<Genome, std::allocator<Genome> >::operator[](unsigned long)
+profile results (on input_example_3.txt):
