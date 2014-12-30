@@ -28,6 +28,7 @@ timings (user time, with g++ build executed on command line):
 	29 Dec. 2014	2m1.339s	joint Poisson draw with a single RNG get		(final output 323 m1 2787114 -0.00150006 0.2 p1 95137 99952)
 	29 Dec. 2014	1m18.167s	conversion of Genome to straight C code		(final output 40 m1 4191735 -0.0013313 0.2 p1 96960 98751)
 	29 Dec. 2014	1m12.676s	changed the mutation registry to use Genome instead of std::vector		(final output 40 m1 4191735 -0.0013313 0.2 p1 96960 98751)
+	29 Dec. 2014	1m12.209s	smarter about using gene_conversion_fraction_		(final output 43 m1 8194564 -0.000798859 0.2 p1 97160 99121)
 
 1.8:	time ./slim test_case_4.txt		(seed == 1419702403)
 	26 Dec. 2014	2m49.009s	original timing (final output p1:5815 3)
@@ -54,5 +55,6 @@ timings (user time, with g++ build executed on command line):
 	29 Dec. 2014	0m49.182s	joint Poisson draw with a single RNG get		(final output p1:4464 1 10 2)
 	29 Dec. 2014	0m46.090s	conversion of Genome to straight C code		(final output p1:4464 1 10 2)
 	29 Dec. 2014	0m46.139s	changed the mutation registry to use Genome instead of std::vector		(final output p1:4464 1 10 2)
+	29 Dec. 2014	0m45.309s	smarter about using gene_conversion_fraction_		(final output p1:7082 10 11 1 2)
 
 profile results (on input_example_3.txt):

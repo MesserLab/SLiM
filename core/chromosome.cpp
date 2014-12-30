@@ -159,12 +159,15 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 		breakpoints.push_back(breakpoint);
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
-		if (gsl_rng_uniform(g_rng) < gene_conversion_fraction_)
+		if (gene_conversion_fraction_ > 0.0)
 		{
-			// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
-			int breakpoint2 = breakpoint + gsl_ran_geometric(g_rng, 1.0 / gene_conversion_avg_length_);
-			
-			breakpoints.push_back(breakpoint2);
+			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(g_rng) < gene_conversion_fraction_))
+			{
+				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
+				int breakpoint2 = breakpoint + gsl_ran_geometric(g_rng, 1.0 / gene_conversion_avg_length_);
+				
+				breakpoints.push_back(breakpoint2);
+			}
 		}
 	}
 	
