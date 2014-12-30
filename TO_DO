@@ -1,7 +1,6 @@
 set up testing code for validation, check against old version of the code
 assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
-precalculate (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff) and store it in the Mutation for faster fitness calculation
 test the joint Poisson code, that it is giving results in line with doing two separate Poisson draws
 
 add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,

@@ -39,16 +39,16 @@ class Mutation
 
 public:
 	
-	const MutationType *mutation_type_ptr_;		// mutation type identifier
-	int32_t position_;							// position on the chromosome
-	float selection_coeff_;						// selection coefficient
-	int32_t subpop_index_;						// subpopulation in which mutation arose
-	int32_t generation_;						// generation in which mutation arose
-	mutable int32_t reference_count_;			// a count of the number of occurrences of this mutation; valid only at certain times!
+	const MutationType *mutation_type_ptr_;				// mutation type identifier
+	const int32_t position_;							// position on the chromosome
+	const float selection_coeff_;						// selection coefficient
+	const int32_t subpop_index_;						// subpopulation in which mutation arose
+	const int32_t generation_;							// generation in which mutation arose
+	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
-	Mutation(void) = default;							// null constructor; does nothing, and does it faster than a defined empty constructor
+	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
 	Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 };
 

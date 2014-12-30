@@ -300,14 +300,8 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 		exit(EXIT_FAILURE); 
 	}
 	
-	Mutation *new_mutation = new Mutation();
+	const Mutation *new_mutation = new Mutation(p_introduced_mutation.mutation_type_ptr_, p_introduced_mutation.position_, p_introduced_mutation.mutation_type_ptr_->DrawSelectionCoefficient(), p_introduced_mutation.subpop_index_, p_introduced_mutation.generation_);
 	mutation_registry_.push_back(new_mutation);
-	
-	new_mutation->position_ = p_introduced_mutation.position_;
-	new_mutation->mutation_type_ptr_ = p_introduced_mutation.mutation_type_ptr_;
-	new_mutation->selection_coeff_ = static_cast<float>(p_introduced_mutation.mutation_type_ptr_->DrawSelectionCoefficient());
-	new_mutation->subpop_index_ = p_introduced_mutation.subpop_index_;
-	new_mutation->generation_ = p_introduced_mutation.generation_;
 	
 	// BCH 27 Dec. 2014: create map of shuffled children ids, so that we introduce the mutation into random individuals
 	// Note this and which_genome, below, represent a change in behavior; introduced mutations used to deliberately coincide in the same individual/strand
