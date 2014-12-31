@@ -36,30 +36,30 @@ using std::multimap;
 
 
 // an enumeration of possible error types for InputError()
-enum InputErrorType {
-	kNoPopulationDefinedError = 1,
-	kUnknownParameterError,
-	kInvalidParameterFileError,
-	kInvalidMutationRateError,
-	kInvalidMutationTypeError,
-	kInvalidGenomicElementTypeError,
-	kInvalidChromosomeOrganizationError,
-	kInvalidRecombinationRateError,
-	kInvalidGenerationsError,
-	kInvalidDemographyAndStructureError,
-	kInvalidOutputError,
-	kInvalidInitializationError,
-	kInvalidSeedError,
-	kInvalidPredeterminedMutationsError,
-	kInvalidGeneConversionError
+enum class InputErrorType {
+	kNoPopulationDefined = 1,
+	kUnknownParameter,
+	kInvalidParameterFile,
+	kInvalidMutationRate,
+	kInvalidMutationType,
+	kInvalidGenomicElementType,
+	kInvalidChromosomeOrganization,
+	kInvalidRecombinationRate,
+	kInvalidGenerations,
+	kInvalidDemographyAndStructure,
+	kInvalidOutput,
+	kInvalidInitialization,
+	kInvalidSeed,
+	kInvalidPredeterminedMutations,
+	kInvalidGeneConversion
 };
 
 // an enumeration of possible expectations regarding the presence of an end-of-file in EatSubstringWithPrefixAndCharactersAtEOF
-enum EOFExpected
+enum class EOFExpectation
 {
-	kAgnosticEOFExpectation = -1,
-	kEOFNotExpected = 0,
-	kEOFExpected = 1
+	kAgnostic = -1,
+	kNoEOF = 0,
+	kEOF = 1
 };
 
 
@@ -70,8 +70,8 @@ void GetInputLine(ifstream &p_input_file, string &p_line);
 void InputError(InputErrorType p_error_type, string p_line);
 
 // eat a substring matching a set of possible characters, with an optional prefix and an optional EOF expectation; return false if expectations are not met
-bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_match_chars, EOFExpected p_eof_expected);
-bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpected p_eof_expected);
+bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_match_chars, EOFExpectation p_eof_expected);
+bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpectation p_eof_expected);
 
 
 void GetInputLine(ifstream &p_input_file, string &p_line)
@@ -94,19 +94,19 @@ void InputError(InputErrorType p_error_type, string p_line)
 	
 	switch (p_error_type)
 	{
-		case kNoPopulationDefinedError:
+		case InputErrorType::kNoPopulationDefined:
 			cerr << "ERROR (parameter file): no population to simulate:" << endl << endl;
 			break;
 			
-		case kUnknownParameterError:
+		case InputErrorType::kUnknownParameter:
 			cerr << "ERROR (parameter file): unknown parameter: " << p_line << endl << endl;
 			break;
 			
-		case kInvalidParameterFileError:
+		case InputErrorType::kInvalidParameterFile:
 			cerr << "ERROR (parameter file): could not open: " << p_line << endl << endl;
 			break;
 			
-		case kInvalidMutationRateError:
+		case InputErrorType::kInvalidMutationRate:
 			cerr << "ERROR (parameter file): invalid mutation rate: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#MUTATION RATE" << endl;
@@ -116,7 +116,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "1.5e-8" << endl << endl;
 			break;
 			
-		case kInvalidMutationTypeError:
+		case InputErrorType::kInvalidMutationType:
 			cerr << "ERROR (parameter file): invalid mutation type: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#MUTATION TYPES" << endl;
@@ -129,7 +129,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "m3 0.5 e 0.01" << endl << endl;
 			break;
 			
-		case kInvalidGenomicElementTypeError:
+		case InputErrorType::kInvalidGenomicElementType:
 			cerr << "ERROR (parameter file): invalid genomic element type: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#GENOMIC ELEMENT TYPES" << endl;
@@ -140,7 +140,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "g1 m3 0.8 m2 0.01 m1 0.19" << endl << endl;
 			break;
 			
-		case kInvalidChromosomeOrganizationError:
+		case InputErrorType::kInvalidChromosomeOrganization:
 			cerr << "ERROR (parameter file): invalid chromosome organization: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#CHROMOSOME ORGANIZATION" << endl;
@@ -151,7 +151,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "g1 1000 1999" << endl << endl;
 			break;
 			
-		case kInvalidRecombinationRateError:
+		case InputErrorType::kInvalidRecombinationRate:
 			cerr << "ERROR (parameter file): invalid recombination rate: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#RECOMBINATION RATE" << endl;
@@ -163,7 +163,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "20000 4.5e-8" << endl << endl;
 			break;
 			
-		case kInvalidGenerationsError:
+		case InputErrorType::kInvalidGenerations:
 			cerr << "ERROR (parameter file): invalid generations: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#GENERATIONS" << endl;
@@ -173,7 +173,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "10000" << endl << endl;
 			break;
 			
-		case kInvalidDemographyAndStructureError:
+		case InputErrorType::kInvalidDemographyAndStructure:
 			cerr << "ERROR (parameter file): invalid demography and structure: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#DEMOGRAPHY AND STRUCTURE" << endl;
@@ -189,7 +189,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "2000 M p2 p1 0.01" << endl << endl;
 			break;
 			
-		case kInvalidOutputError:
+		case InputErrorType::kInvalidOutput:
 			cerr << "ERROR (parameter file): invalid output: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#OUTPUT" << endl;
@@ -204,7 +204,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "1 T m3" << endl << endl;
 			break;
 			
-		case kInvalidInitializationError:
+		case InputErrorType::kInvalidInitialization:
 			cerr << "ERROR (parameter file): invalid initialization: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#INITIALIZATION" << endl;
@@ -214,7 +214,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "outfile" << endl << endl;
 			break;
 			
-		case kInvalidSeedError:
+		case InputErrorType::kInvalidSeed:
 			cerr << "ERROR (parameter file): invalid seed: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#SEED" << endl;
@@ -224,7 +224,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "141235" << endl << endl;
 			break;
 			
-		case kInvalidPredeterminedMutationsError:
+		case InputErrorType::kInvalidPredeterminedMutations:
 			cerr << "ERROR (parameter file): invalid predetermined mutations: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#PREDETERMINED MUTATIONS" << endl;
@@ -234,7 +234,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "5000 m7 45000 p1 0 1" << endl << endl;
 			break;
 			
-		case kInvalidGeneConversionError:
+		case InputErrorType::kInvalidGeneConversion:
 			cerr << "ERROR (parameter file): invalid gene conversion: " << p_line << endl << endl;
 			cerr << "Required syntax:" << endl << endl;
 			cerr << "#GENE CONVERSION" << endl;
@@ -248,12 +248,12 @@ void InputError(InputErrorType p_error_type, string p_line)
 	exit(EXIT_FAILURE);
 }
 
-bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_match_chars, EOFExpected p_eof_expected)
+bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_match_chars, EOFExpectation p_eof_expected)
 {
 	return EatSubstringWithPrefixAndCharactersAtEOF(p_string_stream, p_substring, "", p_match_chars, p_eof_expected);
 }
 
-bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpected p_eof_expected)
+bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_prefix, const char *p_match_chars, EOFExpectation p_eof_expected)
 {
 	bool good = true;
 	size_t prefix_length = strlen(p_prefix);
@@ -275,23 +275,23 @@ bool EatSubstringWithPrefixAndCharactersAtEOF(istringstream &p_string_stream, st
 		good = false;
 	
 	// check for a match with our expectation that we are at the end of string_stream
-	if (p_eof_expected == kEOFNotExpected)
+	if (p_eof_expected == EOFExpectation::kNoEOF)
 	{
 		if (p_string_stream.eof())
 			good = false;
 	}
-	else if (p_eof_expected == kEOFExpected)
+	else if (p_eof_expected == EOFExpectation::kEOF)
 	{
 		if (!p_string_stream.eof())
 			good = false;
 	}
 	
 	// if we do not expect to be at the end of string_stream, or we are agnostic, then prefetch the next substring
-	if (p_eof_expected == kEOFNotExpected)
+	if (p_eof_expected == EOFExpectation::kNoEOF)
 	{
 		p_string_stream >> p_substring;
 	}
-	else if (p_eof_expected == kAgnosticEOFExpectation)
+	else if (p_eof_expected == EOFExpectation::kAgnostic)
 	{
 		// FIXME once I understand streams better this can probably be fixed up...
 		if (p_string_stream.eof())
@@ -317,7 +317,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 	ifstream infile (p_input_file);
 	
 	if (!infile.is_open())
-		InputError(kInvalidParameterFileError, string(p_input_file));
+		InputError(InputErrorType::kInvalidParameterFile, string(p_input_file));
 	
 	string line, sub;
 	
@@ -340,10 +340,10 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.e-", kEOFExpected);						// Chromosome.overall_mutation_rate_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.e-", EOFExpectation::kEOF);						// Chromosome.overall_mutation_rate_
 					
 					if (!good)
-						InputError(kInvalidMutationRateError, line);
+						InputError(InputErrorType::kInvalidMutationRate, line);
 					else
 						num_mutation_rates++;
 				} while (true);
@@ -362,24 +362,24 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", kEOFNotExpected);			// id: Chromosome.mutation_types_ index
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", kEOFNotExpected);						// MutationType.dominance_coeff_
+					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", EOFExpectation::kNoEOF);			// id: Chromosome.mutation_types_ index
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kNoEOF);						// MutationType.dominance_coeff_
 					
 					string dfe_type = sub;
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "fge", kEOFNotExpected);								// MutationType.dfe_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "fge", EOFExpectation::kNoEOF);								// MutationType.dfe_type_
 					
 					if (dfe_type.compare("f") == 0 || dfe_type.compare("e") == 0)													// MutationType.dfe_parameters_: one parameter
 					{ 
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", kEOFExpected);
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kEOF);
 					}
 					else if (dfe_type.compare("g") == 0)																			// MutationType.dfe_parameters_: two parameters
 					{
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", kEOFNotExpected);
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", kEOFExpected);
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kNoEOF);
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kEOF);
 					}
 					
 					if (!good)
-						InputError(kInvalidMutationTypeError, line);
+						InputError(InputErrorType::kInvalidMutationType, line);
 					else
 						num_mutation_types++;
 				} while (true);
@@ -399,16 +399,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "g", "1234567890", kEOFNotExpected);			// id: Chromosome.genomic_element_types_ index
+					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "g", "1234567890", EOFExpectation::kNoEOF);			// id: Chromosome.genomic_element_types_ index
 					
 					while (sub.length() > 0)
 					{
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", kEOFNotExpected);		// GenomicElementType.mutation_types_
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.", kAgnosticEOFExpectation);			// GenomicElementType.mutation_fraction_
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", EOFExpectation::kNoEOF);		// GenomicElementType.mutation_types_
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.", EOFExpectation::kAgnostic);			// GenomicElementType.mutation_fraction_
 					}
 					
 					if (!good)
-						InputError(kInvalidGenomicElementTypeError, line);
+						InputError(InputErrorType::kInvalidGenomicElementType, line);
 					else
 						num_genomic_element_types++;
 				} while (true);
@@ -427,12 +427,12 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "g", "1234567890", kEOFNotExpected);			// GenomicElement.genomic_element_type_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// GenomicElement.start_position_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFExpected);							// GenomicElement.end_position_
+					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "g", "1234567890", EOFExpectation::kNoEOF);			// GenomicElement.genomic_element_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// GenomicElement.start_position_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kEOF);							// GenomicElement.end_position_
 					
 					if (!good)
-						InputError(kInvalidChromosomeOrganizationError, line);
+						InputError(InputErrorType::kInvalidChromosomeOrganization, line);
 					else
 						num_chromosome_organizations++;
 				} while (true);
@@ -451,11 +451,11 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// Chromosome.recombination_end_positions_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", kEOFExpected);						// Chromosome.recombination_rates_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// Chromosome.recombination_end_positions_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", EOFExpectation::kEOF);						// Chromosome.recombination_rates_
 					
 					if (!good)
-						InputError(kInvalidRecombinationRateError, line);
+						InputError(InputErrorType::kInvalidRecombinationRate, line);
 					else
 						num_recombination_rates++;
 				} while (true);
@@ -474,11 +474,11 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", kEOFNotExpected);						// Chromosome.gene_conversion_fraction_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", kEOFExpected);						// Chromosome.gene_conversion_avg_length_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", EOFExpectation::kNoEOF);						// Chromosome.gene_conversion_fraction_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.-", EOFExpectation::kEOF);						// Chromosome.gene_conversion_avg_length_
 					
 					if (!good)
-						InputError(kInvalidGeneConversionError, line);
+						InputError(InputErrorType::kInvalidGeneConversion, line);
 				} while (true);
 				
 				continue;
@@ -495,13 +495,13 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kAgnosticEOFExpectation);				// main() time_duration
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);				// main() time_duration
 					
 					if (sub.length() > 0)
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFExpected);						// [main() time_start]
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kEOF);						// [main() time_start]
 					
 					if (!good)
-						InputError(kInvalidGenerationsError, line);
+						InputError(InputErrorType::kInvalidGenerations, line);
 					else
 						num_generations++;
 				} while (true);
@@ -520,40 +520,40 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// time: main() events index
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// time: main() events index
 					
 					string event_type = sub;
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "PSMN", kEOFNotExpected);								// Event.event_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "PSMN", EOFExpectation::kNoEOF);								// Event.event_type_
 
 					if (event_type.compare("P") == 0)																				// === TYPE P: two or three positive integers
 					{
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p1
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kAgnosticEOFExpectation);			// Event.parameters_: uint N
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p1
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);			// Event.parameters_: uint N
 						
 						if (sub.length() > 0)
-							good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFExpected);		// Event.parameters_: [uint p2]
+							good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kEOF);		// Event.parameters_: [uint p2]
 						
 						num_subpopulations++;
 					}
 					else if (event_type.compare("N") == 0)																			// === TYPE N: two positive integers
 					{ 
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p1
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFExpected);						// Event.parameters_: uint N
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p1
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kEOF);						// Event.parameters_: uint N
 					}
 					else if (event_type.compare("M") == 0)																			// === TYPE M: two positive integers and a double
 					{ 
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", kEOFExpected);					// Event.parameters_: double M
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// Event.parameters_: double M
 					}
 					else if (event_type.compare("S") == 0)																			// === TYPE S: one positive integer and a double
 					{ 
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", kEOFExpected);					// Event.parameters_: double sigma
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// Event.parameters_: double sigma
 					}
 					
 					if (!good)
-						InputError(kInvalidDemographyAndStructureError, line);
+						InputError(InputErrorType::kInvalidDemographyAndStructure, line);
 				} while (true);
 				
 				continue;
@@ -570,10 +570,10 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// time: main() outputs index
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// time: main() outputs index
 
 					string output_type = sub;
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "ARFT", kAgnosticEOFExpectation);						// Event.event_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "ARFT", EOFExpectation::kAgnostic);						// Event.event_type_
 					
 					if (output_type.compare("A") == 0)																				// === TYPE A: no parameter, or a filename
 					{
@@ -582,8 +582,8 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					}
 					else if (output_type.compare("R") == 0)																			// === TYPE R: two positive integers
 					{
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);		// Event.parameters_: uint p
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", kAgnosticEOFExpectation);			// Event.parameters_: uint size
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);			// Event.parameters_: uint size
 						
 						if (sub.length() > 0 && sub != "MS")																		// Event.parameters_: ['MS']
 								good = false;
@@ -599,7 +599,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 						good = false;
 					
 					if (!good)
-						InputError(kInvalidOutputError, line);
+						InputError(InputErrorType::kInvalidOutput, line);
 				} while (true);
 				
 				continue;
@@ -616,21 +616,21 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// Mutation.generation_
-					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", kEOFNotExpected);			// Mutation.mutation_type_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", kEOFNotExpected);						// Mutation.position_
-					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", kEOFNotExpected);			// Mutation.subpop_index_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", kEOFNotExpected);						// IntroducedMutation.num_AA_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", kAgnosticEOFExpectation);				// IntroducedMutation.num_Aa_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// Mutation.generation_
+					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", EOFExpectation::kNoEOF);			// Mutation.mutation_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// Mutation.position_
+					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);			// Mutation.subpop_index_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kNoEOF);						// IntroducedMutation.num_AA_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);				// IntroducedMutation.num_Aa_
 					
 					if (sub.length() > 0)
 					{
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "P", "", kEOFNotExpected);				// ['P']
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", kEOFExpected);					// PartialSweep.target_prevalence_
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "P", "", EOFExpectation::kNoEOF);				// ['P']
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// PartialSweep.target_prevalence_
 					}
 					
 					if (!good)
-						InputError(kInvalidPredeterminedMutationsError, line);
+						InputError(InputErrorType::kInvalidPredeterminedMutations, line);
 				} while (true);
 				
 				continue;
@@ -647,10 +647,10 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890-", kEOFExpected);							// Initialize() seed
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890-", EOFExpectation::kEOF);							// Initialize() seed
 					
 					if (!good)
-						InputError(kInvalidSeedError, line);
+						InputError(InputErrorType::kInvalidSeed, line);
 				} while (true);
 				
 				continue;
@@ -673,7 +673,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 						good = false;
 					
 					if (!good)
-						InputError(kInvalidInitializationError, line);
+						InputError(InputErrorType::kInvalidInitialization, line);
 					
 					num_subpopulations++;
 				} while (true);
@@ -681,7 +681,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
-			InputError(kUnknownParameterError, line);
+			InputError(InputErrorType::kUnknownParameter, line);
 		}
 		else
 		{
@@ -692,25 +692,25 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 	
 	// Check that all elements occurred an allowed number of times.  FIXME check these; shouldn't some of the "< 1" tests be "!= 1" tests?
 	if (num_mutation_rates != 1)
-		InputError(kInvalidMutationRateError, string());
+		InputError(InputErrorType::kInvalidMutationRate, string());
 	
 	if (num_mutation_types < 1)
-		InputError(kInvalidMutationTypeError, string());
+		InputError(InputErrorType::kInvalidMutationType, string());
 	
 	if (num_genomic_element_types < 1)
-		InputError(kInvalidGenomicElementTypeError, string());
+		InputError(InputErrorType::kInvalidGenomicElementType, string());
 	
 	if (num_chromosome_organizations < 1)
-		InputError(kInvalidChromosomeOrganizationError, string());
+		InputError(InputErrorType::kInvalidChromosomeOrganization, string());
 	
 	if (num_recombination_rates < 1)
-		InputError(kInvalidRecombinationRateError, string());
+		InputError(InputErrorType::kInvalidRecombinationRate, string());
 	
 	if (num_generations < 1)
-		InputError(kInvalidGenerationsError, string());
+		InputError(InputErrorType::kInvalidGenerations, string());
 	
 	if (num_subpopulations < 1)
-		InputError(kNoPopulationDefinedError, string());
+		InputError(InputErrorType::kNoPopulationDefined, string());
 	
 	if (DEBUG_INPUT)
 	{

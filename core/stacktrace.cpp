@@ -65,7 +65,7 @@ void print_stacktrace(FILE *out, unsigned int max_frames)
 		if (!(begin_name && begin_offset && end_offset
 			  && begin_name < begin_offset))
 		{
-			enum ParseState {
+			enum class ParseState {
 				kInWhitespace1 = 1,
 				kInLineNumber,
 				kInWhitespace2,
@@ -80,55 +80,55 @@ void print_stacktrace(FILE *out, unsigned int max_frames)
 				kInOffset,
 				kInOverrun
 			};
-			ParseState parse_state = kInWhitespace1;
+			ParseState parse_state = ParseState::kInWhitespace1;
 			char *p;
 			
 			for (p = symbollist[i]; *p; ++p)
 			{
 				switch (parse_state)
 				{
-					case kInWhitespace1:	if (!isspace(*p)) parse_state = kInLineNumber;	break;
-					case kInLineNumber:		if (isspace(*p)) parse_state = kInWhitespace2;	break;
-					case kInWhitespace2:	if (!isspace(*p)) parse_state = kInPackageName;	break;
-					case kInPackageName:	if (isspace(*p)) parse_state = kInWhitespace3;	break;
-					case kInWhitespace3:	if (!isspace(*p)) parse_state = kInAddress;		break;
-					case kInAddress:		if (isspace(*p)) parse_state = kInWhitespace4;	break;
-					case kInWhitespace4:
+					case ParseState::kInWhitespace1:	if (!isspace(*p)) parse_state = ParseState::kInLineNumber;	break;
+					case ParseState::kInLineNumber:		if (isspace(*p)) parse_state = ParseState::kInWhitespace2;	break;
+					case ParseState::kInWhitespace2:	if (!isspace(*p)) parse_state = ParseState::kInPackageName;	break;
+					case ParseState::kInPackageName:	if (isspace(*p)) parse_state = ParseState::kInWhitespace3;	break;
+					case ParseState::kInWhitespace3:	if (!isspace(*p)) parse_state = ParseState::kInAddress;		break;
+					case ParseState::kInAddress:		if (isspace(*p)) parse_state = ParseState::kInWhitespace4;	break;
+					case ParseState::kInWhitespace4:
 						if (!isspace(*p))
 						{
-							parse_state = kInFunction;
+							parse_state = ParseState::kInFunction;
 							begin_name = p - 1;
 						}
 						break;
-					case kInFunction:
+					case ParseState::kInFunction:
 						if (isspace(*p))
 						{
-							parse_state = kInWhitespace5;
+							parse_state = ParseState::kInWhitespace5;
 							end_name = p;
 						}
 						break;
-					case kInWhitespace5:	if (!isspace(*p)) parse_state = kInPlus;		break;
-					case kInPlus:			if (isspace(*p)) parse_state = kInWhitespace6;	break;
-					case kInWhitespace6:
+					case ParseState::kInWhitespace5:	if (!isspace(*p)) parse_state = ParseState::kInPlus;		break;
+					case ParseState::kInPlus:			if (isspace(*p)) parse_state = ParseState::kInWhitespace6;	break;
+					case ParseState::kInWhitespace6:
 						if (!isspace(*p))
 						{
-							parse_state = kInOffset;
+							parse_state = ParseState::kInOffset;
 							begin_offset = p - 1;
 						}
 						break;
-					case kInOffset:
+					case ParseState::kInOffset:
 						if (isspace(*p))
 						{
-							parse_state = kInOverrun;
+							parse_state = ParseState::kInOverrun;
 							end_offset = p;
 						}
 						break;
-					case kInOverrun:
+					case ParseState::kInOverrun:
 						break;
 				}
 			}
 			
-			if (parse_state == kInOffset && !end_offset)
+			if (parse_state == ParseState::kInOffset && !end_offset)
 				end_offset = p;
 		}
 		
