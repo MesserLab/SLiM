@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
 {
 	// parse command-line arguments
 	int override_seed = 0;
-	int *override_seed_ptr = NULL;			// by default, a seed is generated or supplied in the input file
-	char *input_file = NULL;
+	int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
+	char *input_file = nullptr;
 	bool keep_time = false;
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
