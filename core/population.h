@@ -55,7 +55,7 @@ public:
 	
 	Population(const Population&) = delete;					// no copying
 	Population& operator=(const Population&) = delete;		// no copying
-	Population() = default;									// default constructor
+	Population(void) = default;								// default constructor
 	~Population(void);										// destructor
 	
 	// find a subpopulation given an id
@@ -64,9 +64,9 @@ public:
 		
 		if (found_pair == this->end())
 		{
-			std::clog << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl;
+			std::cerr << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl;
 			print_stacktrace(stderr);
-			std::clog << "************************************************" << std::endl;
+			std::cerr << "************************************************" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 		

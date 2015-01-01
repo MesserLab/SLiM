@@ -37,7 +37,7 @@ extern const gsl_rng *g_rng;
 
 
 // generate a new random number seed from the PID and clock time
-int GenerateSeedFromPIDAndTime();
+int GenerateSeedFromPIDAndTime(void);
 
 // set up the random number generator with a given seed
 void InitializeRNGFromSeed(int p_seed);

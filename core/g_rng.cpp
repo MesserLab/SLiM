@@ -29,7 +29,7 @@ int g_random_bool_bit_counter = 0;
 unsigned long int g_random_bool_bit_buffer = 0;
 
 
-int GenerateSeedFromPIDAndTime()
+int GenerateSeedFromPIDAndTime(void)
 {
 	long pid = getpid();
 	time_t t;

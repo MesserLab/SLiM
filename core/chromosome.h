@@ -72,10 +72,10 @@ public:
 	Chromosome(void) = default;												// default constructor
 	~Chromosome(void);														// destructor
 	
-	void InitializeDraws();													// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
-	int DrawMutationCount() const;											// draw the number of mutations that occur, based on the overall mutation rate
+	void InitializeDraws(void);												// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	int DrawMutationCount(void) const;										// draw the number of mutations that occur, based on the overall mutation rate
 	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	int DrawBreakpointCount() const;										// draw the number of breakpoints that occur, based on the overall recombination rate
+	int DrawBreakpointCount(void) const;									// draw the number of breakpoints that occur, based on the overall recombination rate
 	vector<int> DrawBreakpoints(const int p_num_breakpoints) const;			// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
 };

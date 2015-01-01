@@ -38,7 +38,7 @@ Chromosome::~Chromosome(void)
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
-void Chromosome::InitializeDraws()
+void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
 	{

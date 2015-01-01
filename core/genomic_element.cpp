@@ -46,9 +46,9 @@ GenomicElement::GenomicElement(const GenomicElement& p_original)
 {
 	if (s_log_copy_and_assign_)
 	{
-		std::clog << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
+		std::cerr << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
 		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
+		std::cerr << "************************************************" << std::endl;
 	}
 	
 	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
@@ -60,9 +60,9 @@ GenomicElement& GenomicElement::operator= (const GenomicElement& p_original)
 {
 	if (s_log_copy_and_assign_)
 	{
-		std::clog << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
+		std::cerr << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
 		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
+		std::cerr << "************************************************" << std::endl;
 	}
 	
 	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
