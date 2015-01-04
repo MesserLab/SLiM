@@ -28,9 +28,9 @@ Substitution::Substitution(const Mutation &p_mutation, int p_fixation_time) :
 {
 }
 
-void Substitution::print() const
+void Substitution::print(std::ostream &p_out) const
 { 
-	std::cout << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_+1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl; 
+	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_+1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl; 
 }
 
 
