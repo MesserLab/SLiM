@@ -1,0 +1,34 @@
+// simple neutral simulation, continued
+
+#SEX
+X				// X chromosome; model the X, keep a null for the Y
+
+#MUTATION TYPES  
+m1 0.5 f 0.0			// neutral
+
+#MUTATION RATE 
+1e-7 
+
+#GENOMIC ELEMENT TYPES 
+g1 m1 1.0			// only one type comprising the neutral mutations
+
+#CHROMOSOME ORGANIZATION 
+g1 1 100000			// uniform chromosome of length 100 kb
+
+#RECOMBINATION RATE 
+100000 1e-8
+
+#GENERATIONS 
+10000 10001
+
+#DEMOGRAPHY AND STRUCTURE 
+1 P p1 500			// one population of 500 individuals
+3 X p1 0.9			// shift towards males
+5 X p1 0.1			// shift towards females
+7 X p1 0.5			// back to 50:50
+
+#INITIALIZATION 
+/Users/bhaller/Desktop/test_1_SEX_X_outfile.txt		// initialize simulation using output from first stage 
+
+#OUTPUT 
+20000 A				// output all
