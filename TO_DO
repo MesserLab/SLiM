@@ -1,18 +1,11 @@
 set up testing code for validation, check against old version of the code
-assert, NDEBUG, __FILE__, __LINE__; think about how error reporting will work in the GUI context
+assert, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
-test the joint Poisson code, that it is giving results in line with doing two separate Poisson draws
-
-add option of sex: m/f, fixed or varying sex ratio per subpopulation, chromosome has a flag for A/X/Y, if X,
-	individuals are X or XX, with the Y implied
-	if modeling X, there is a global factor (default 1) that says: how much of the homozygous fitness do you feel? similar to codominance
-	#SEX A/X [factor for codominance, for modeling X] – the presence of this directive turns on tracking of male/female sex
-	sex ratio is a directive like the migration rates: a DEMOGRAPHY AND SUBSTRUCTURE event: set sex ratio in subpop, default 0.5
-	sex ratio is modeled in a deterministic fashion; if the sex ratio does not allow for males and females to persist (i.e. extinction), error and quit
-	add sex to output: when you request a sample, you specify whether you want males or females.
-	in full output, need to show M/F somehow; how about listing individuals before genomes, with each individual stating whether they are M or F
-	in full output, in population list, might output the sex ratio in addition to the population size
-	need to think about being able to read back in
+convert input file parsing to flexc++/bisonc++
+could use stoi(), stof(), etc. instead of cstr() and atoi() etc.
+prevalence output could come from refcounts (but what of the subsample output functions?)
+make a stream manipulator class that calls exit(EXIT_FAILURE), use globally
+gather enum classes and other stuff into a new project-wide header for shared stuff
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -21,23 +14,32 @@ changes to mention in docs:
 	added ability to pass a seed value on the command line via -seed
 	added ability to take a time measurement with -time (probably doesn't need to be documented)
 	changed behavior regarding introduced mutations in the same subpopulation and the same generation; they would collide in the same individuals/strands (intentionally; see Philipp email 27 Dec. 2014), now they are placed randomly
-
+	added #SEX command : #SEX \n <A|X|Y> [<x-dominance>]
+	extended 'P' event (add subpop) to take an optional "initial sex ratio" double at the end, only when sex is turned on
+	selfing changed to be deterministic; the requested selfing fraction is realized exactly in each generation
+	migrants are now drawn from the source pop according to their fitness; in 1.8 they were drawn uniformly, although Philipp says it was documented as being according to fitness
+	fixed some issues with input parsing; files that do not end in a newline now parse correctly, non-comment non-parameter non-blank lines at the top of a file now cause an error
+	changes/additions to full output: now listing individuals (with M/F and genome indices), now stating S/H and sex ratio for populations output, now printing A/X/Y for genomes output
+	changes/additions to sample output: now taking an optional M/F specifier to output one sex, now printing A/X/Y for genomes output
+	tabs are now trimmed as whitespace in input files, not just spaces
+	added new sex ratio change event, type X: <time> X <subpop-index> <ratio>
+	population read-in supports the new output additions, but should still be able to read in an old-format output file also
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 
 
 future plans:
-	multiple chromosomes – more than one per individual
-	test cases for verification: population genetic predictions like fixation probability
-	SLAM on GitHub: local adaptation
-	set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
-	locally and temporally varying selection pressures: for mutation-types
+	spatially and temporally varying selection pressures: for mutation-types
 		in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
 		what happens for new mutations of that type?
 		seasonal changes in optimal phenotype, spatial variation in environmental optimum
 		these seasonal changes alter the strength of selection, but not the optimum
 		so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
+	multiple chromosomes – more than one per individual
+	test cases for verification: population genetic predictions like fixation probability
+	SLAM on GitHub: local adaptation
+	set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
 	pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too
 	add in hard/soft selection: extend event syntax of “set N” to allow setting N as a function of mean fitness
 	possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring

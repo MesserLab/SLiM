@@ -23,7 +23,7 @@
 
 Event::Event(char p_event_type, std::vector<std::string> p_parameters) : event_type_(p_event_type), parameters_(p_parameters)
 {
-	static std::string possible_options = "PNMSRFAT";
+	static std::string possible_options = "PNSMXARFT";
 	
 	if (possible_options.find(event_type_) == std::string::npos) 
 	{ 

@@ -26,113 +26,60 @@
 bool Genome::s_log_copy_and_assign_ = true;
 #endif
 
-// set p_merge_genome to be a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
-// NOTE this function is not used in the present design; it has been obsoleted by Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generation).
-void GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome)
+
+// default constructor; gives a non-null genome of type GenomeType::kAutosome
+Genome::Genome(void)
 {
-	p_merge_genome->clear();
-	
-	const Mutation **genome1_iter = p_genome1.begin_pointer();
-	const Mutation **genome2_iter = p_genome2.begin_pointer();
-	
-	const Mutation **genome1_max = p_genome1.end_pointer();
-	const Mutation **genome2_max = p_genome2.end_pointer();
-	
-	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
-	{
-		// advance genome1_iter while genome1_iter.x < genome2_iter.x
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter)->position_ < (*genome2_iter)->position_)
-			genome1_iter++;
-		
-		// advance genome2_iter while genome2_iter.x < genome1_iter.x
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome2_iter)->position_ < (*genome1_iter)->position_)
-			genome2_iter++;
-		
-		// identify shared mutations at positions x and add to G
-		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ == (*genome1_iter)->position_)
-		{
-			int position = (*genome1_iter)->position_;
-			
-			const Mutation **temp;
-			
-			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
-			{
-				temp = genome2_iter;
-				
-				while (temp != genome2_max && (*temp)->position_ == position)
-				{
-					if ((*temp)->mutation_type_ptr_ == (*genome1_iter)->mutation_type_ptr_ && (*temp)->selection_coeff_ == (*genome1_iter)->selection_coeff_)
-						p_merge_genome->push_back(*genome1_iter);
-					
-					temp++;
-				}
-				
-				genome1_iter++;
-			}
-		}
-	}
 }
 
-// set p_merge_genome to be a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
-void GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome)
+// a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
+Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), is_null_genome_(p_is_null)
 {
-	p_merge_genome->clear();
+}
+
+// prints an error message, a stacktrace, and exits; called only for DEBUG
+void Genome::NullGenomeAccessError(void) const
+{
+	std::cerr << "********* Genome::NullGenomeAccessError() called!" << std::endl;
+	print_stacktrace(stderr);
+	std::cerr << "************************************************" << std::endl;
 	
-	const Mutation **genome1_iter = p_genome1.begin_pointer();
-	const Mutation **genome2_iter = p_genome2.begin_pointer();
+	exit(EXIT_FAILURE);
+}
+
+// Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
+void Genome::RemoveFixedMutations(int p_fixed_count)
+{
+#ifdef DEBUG
+	if (is_null_genome_)
+		NullGenomeAccessError();
+#endif
 	
-	const Mutation **genome1_max = p_genome1.end_pointer();
-	const Mutation **genome2_max = p_genome2.end_pointer();
+	const Mutation **genome_iter = begin_pointer();
+	const Mutation **genome_backfill_iter = begin_pointer();
+	const Mutation **genome_max = end_pointer();
 	
-	while (genome1_iter != genome1_max && genome2_iter != genome2_max)
+	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed (copy it backward to the backfill pointer)
+	while (genome_iter != genome_max)
 	{
-		// advance genome1_iter while genome1_iter.position_ < genome2_iter.position_
-		while (genome1_iter != genome1_max && genome2_iter != genome2_max && (*genome1_iter)->position_ < (*genome2_iter)->position_)
+		if ((*genome_iter)->reference_count_ == p_fixed_count)
 		{
-			p_merge_genome->push_back(*genome1_iter);
-			genome1_iter++;
+			// Fixed mutation; we want to omit it, so we just advance our pointer
+			++genome_iter;
 		}
-		
-		// advance genome2_iter while genome2_iter.position_ < genome1_iter.position_
-		while (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ < (*genome1_iter)->position_)
-			genome2_iter++;
-		
-		// identify polymorphic mutations at position_ and add to merge_genome
-		if (genome2_iter != genome2_max && genome1_iter != genome1_max && (*genome2_iter)->position_ == (*genome1_iter)->position_)
+		else
 		{
-			int position = (*genome1_iter)->position_;
+			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+			if (genome_backfill_iter != genome_iter)
+				*genome_backfill_iter = *genome_iter;
 			
-			// go through p_genome1 and check for those mutations that are not present in p_genome2
-			const Mutation **temp = genome2_iter;
-			
-			while (genome1_iter != genome1_max && (*genome1_iter)->position_ == position)
-			{
-				bool polymorphic = true;
-				
-				while (temp != genome2_max && (*temp)->position_ == position)
-				{
-					if ((*genome1_iter)->mutation_type_ptr_ == (*temp)->mutation_type_ptr_ && (*genome1_iter)->selection_coeff_ == (*temp)->selection_coeff_)
-						polymorphic = false;
-					
-					temp++;
-				}
-				
-				if (polymorphic)
-					p_merge_genome->push_back(*genome1_iter);
-				
-				genome1_iter++;
-			}
-			
-			while (genome2_iter != genome2_max && (*genome2_iter)->position_ == position)
-				genome2_iter++;
+			++genome_backfill_iter;
+			++genome_iter;
 		}
 	}
 	
-	while (genome1_iter != genome1_max)
-	{
-		p_merge_genome->push_back(*genome1_iter);
-		genome1_iter++;
-	}
+	// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+	mutation_count_ -= (genome_iter - genome_backfill_iter);
 }
 
 
@@ -145,9 +92,9 @@ Genome::Genome(const Genome &p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		std::clog << "********* Genome::Genome(Genome&) called!" << std::endl;
+		std::cerr << "********* Genome::Genome(Genome&) called!" << std::endl;
 		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
+		std::cerr << "************************************************" << std::endl;
 	}
 #endif
 	
@@ -163,6 +110,10 @@ Genome::Genome(const Genome &p_original)
 	// then copy all pointers from the source to ourselves
 	memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
 	mutation_count_ = source_mutation_count;
+	
+	// and copy other state
+	genome_type_ = p_original.genome_type_;
+	is_null_genome_ = p_original.is_null_genome_;
 }
 
 Genome& Genome::operator= (const Genome& p_original)
@@ -170,9 +121,9 @@ Genome& Genome::operator= (const Genome& p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		std::clog << "********* Genome::operator=(Genome&) called!" << std::endl;
+		std::cerr << "********* Genome::operator=(Genome&) called!" << std::endl;
 		print_stacktrace(stderr);
-		std::clog << "************************************************" << std::endl;
+		std::cerr << "************************************************" << std::endl;
 	}
 #endif
 	
@@ -190,6 +141,10 @@ Genome& Genome::operator= (const Genome& p_original)
 		// then copy all pointers from the source to ourselves
 		memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
 		mutation_count_ = source_mutation_count;
+		
+		// and copy other state
+		genome_type_ = p_original.genome_type_;
+		is_null_genome_ = p_original.is_null_genome_;
 	}
 	
 	return *this;

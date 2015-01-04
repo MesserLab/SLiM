@@ -23,8 +23,18 @@
 
 Mutation::Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
 	mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<float>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation)
-{ 
+{
+#if DEBUG_MUTATIONS
+	std::cout << "Mutation constructed: " << this << std::endl;
+#endif
 }
+
+#if DEBUG_MUTATIONS
+Mutation::~Mutation()
+{
+	std::cout << "Mutation destructed: " << this << std::endl;
+}
+#endif
 
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 {

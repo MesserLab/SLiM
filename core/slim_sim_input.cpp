@@ -39,6 +39,7 @@ using std::multimap;
 enum class InputErrorType {
 	kNoPopulationDefined = 1,
 	kUnknownParameter,
+	kNonParameterInput,
 	kInvalidParameterFile,
 	kInvalidMutationRate,
 	kInvalidMutationType,
@@ -51,7 +52,10 @@ enum class InputErrorType {
 	kInvalidInitialization,
 	kInvalidSeed,
 	kInvalidPredeterminedMutations,
-	kInvalidGeneConversion
+	kInvalidGeneConversion,
+	kInvalidSex,
+	kSexNotDeclared,
+	kSexDeclaredLate
 };
 
 // an enumeration of possible expectations regarding the presence of an end-of-file in EatSubstringWithPrefixAndCharactersAtEOF
@@ -83,9 +87,9 @@ void GetInputLine(ifstream &p_input_file, string &p_line)
 	if (p_line.find("//") != string::npos)
 		p_line.erase(p_line.find("//"));
 	
-	// remove leading and trailing whitespace
-	p_line.erase(0, p_line.find_first_not_of(' '));
-	p_line.erase(p_line.find_last_not_of(' ') + 1);
+	// remove leading and trailing whitespace (spaces and tabs)
+	p_line.erase(0, p_line.find_first_not_of(" \t"));
+	p_line.erase(p_line.find_last_not_of(" \t") + 1);
 }
 
 void InputError(InputErrorType p_error_type, string p_line)
@@ -100,6 +104,10 @@ void InputError(InputErrorType p_error_type, string p_line)
 			
 		case InputErrorType::kUnknownParameter:
 			cerr << "ERROR (parameter file): unknown parameter: " << p_line << endl << endl;
+			break;
+			
+		case InputErrorType::kNonParameterInput:
+			cerr << "ERROR (parameter file): non-parameter input line: " << p_line << endl << endl;
 			break;
 			
 		case InputErrorType::kInvalidParameterFile:
@@ -183,8 +191,9 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "DEMOGRAPHY AND STRUCTURE" << endl;
 			cerr << "1 P p1 1000" << endl;
 			cerr << "1 S p1 0.05" << endl;
-			cerr << "1000 P p2 100 p1" << endl;
+			cerr << "1000 P p2 100 p1 0.8" << endl;
 			cerr << "1000 S p2 0.05" << endl;
+			cerr << "1500 X p2 0.4     // only if #SEX has been declared" << endl;
 			cerr << "2000 N p1 1e4" << endl;
 			cerr << "2000 M p2 p1 0.01" << endl << endl;
 			break;
@@ -242,6 +251,27 @@ void InputError(InputErrorType p_error_type, string p_line)
 			cerr << "Example:" << endl << endl;
 			cerr << "#GENE CONVERSION" << endl;
 			cerr << "0.5 20" << endl << endl;
+			break;
+			
+			// SEX ONLY
+		case InputErrorType::kInvalidSex:
+			cerr << "ERROR (parameter file): invalid sex specification: " << p_line << endl << endl;
+			cerr << "Required syntax:" << endl << endl;
+			cerr << "#SEX" << endl;
+			cerr << "<chromosome-type:AXY> [<x-dominance>]" << endl << endl;
+			cerr << "Example:" << endl << endl;
+			cerr << "#SEX" << endl;
+			cerr << "X 0.75" << endl << endl;
+			break;
+			
+			// SEX ONLY
+		case InputErrorType::kSexNotDeclared:
+			cerr << "ERROR (parameter file): a SEX ONLY feature was used before #SEX was declared: " << p_line << endl << endl;
+			break;
+			
+			// SEX ONLY
+		case InputErrorType::kSexDeclaredLate:
+			cerr << "ERROR (parameter file): #SEX was declared too late; it must occur before subpopulations are added or read in." << endl << endl;
 			break;
 	}
 	
@@ -313,6 +343,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 	int num_recombination_rates = 0;
 	int num_generations = 0;
 	int num_subpopulations = 0;
+	int num_sex_declarations = 0;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	
 	ifstream infile (p_input_file);
 	
@@ -321,20 +352,62 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 	
 	string line, sub;
 	
-	GetInputLine(infile, line);
-	
 	while (!infile.eof())
 	{
 		if (line.find('#') != string::npos) 
 		{
 			bool good = true;
 			
+			// SEX ONLY
+			#pragma mark Check:SEX
+			if (line.find("SEX") != string::npos)
+			{
+				do
+				{
+					if (infile.eof())
+						break;
+					GetInputLine(infile, line);
+					
+					if (line.find('#') != string::npos) break;
+					if (line.length() == 0) continue;
+					
+					if (num_subpopulations > 0)
+						InputError(InputErrorType::kSexDeclaredLate, line);
+					
+					istringstream iss(line);
+					iss >> sub;
+					
+					string chromosome_type = sub;
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "AXY", EOFExpectation::kAgnostic);								// SLiMSim.modeled_chromosome_type_
+					
+					if (chromosome_type.compare("X") == 0)																					// "X": one optional parameter
+					{
+						if (sub.length() > 0)
+							good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kEOF);					// SLiMSim.x_chromosome_dominance_coeff_
+					}
+					
+					if (!iss.eof())
+						good = false;
+					
+					if (!good)
+						InputError(InputErrorType::kInvalidSex, line);
+					else
+						num_sex_declarations++;
+				} while (true);
+				
+				continue;
+			}
+			
+			#pragma mark Check:MUTATION RATE
 			if (line.find("MUTATION RATE") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -351,12 +424,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:MUTATION TYPES
 			if (line.find("MUTATION TYPES") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -368,11 +445,11 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					string dfe_type = sub;
 					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "fge", EOFExpectation::kNoEOF);								// MutationType.dfe_type_
 					
-					if (dfe_type.compare("f") == 0 || dfe_type.compare("e") == 0)													// MutationType.dfe_parameters_: one parameter
+					if (dfe_type.compare("f") == 0 || dfe_type.compare("e") == 0)															// MutationType.dfe_parameters_: one parameter
 					{ 
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kEOF);
 					}
-					else if (dfe_type.compare("g") == 0)																			// MutationType.dfe_parameters_: two parameters
+					else if (dfe_type.compare("g") == 0)																					// MutationType.dfe_parameters_: two parameters
 					{
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kNoEOF);
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-", EOFExpectation::kEOF);
@@ -387,13 +464,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
-			
+			#pragma mark Check:GENOMIC ELEMENT TYPES
 			if (line.find("GENOMIC ELEMENT TYPES") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -404,7 +484,7 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					while (sub.length() > 0)
 					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", EOFExpectation::kNoEOF);		// GenomicElementType.mutation_types_
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.", EOFExpectation::kAgnostic);			// GenomicElementType.mutation_fraction_
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e.", EOFExpectation::kAgnostic);				// GenomicElementType.mutation_fraction_
 					}
 					
 					if (!good)
@@ -416,12 +496,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:CHROMOSOME ORGANIZATION
 			if (line.find("CHROMOSOME ORGANIZATION") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -440,12 +524,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:RECOMBINATION RATE
 			if (line.find("RECOMBINATION RATE") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -463,12 +551,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:GENE CONVERSION
 			if (line.find("GENE CONVERSION") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -484,18 +576,22 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:GENERATIONS
 			if (line.find("GENERATIONS") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
 					iss >> sub;
 					
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);				// main() time_duration
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);						// main() time_duration
 					
 					if (sub.length() > 0)
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kEOF);						// [main() time_start]
@@ -509,12 +605,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:DEMOGRAPHY AND STRUCTURE
 			if (line.find("DEMOGRAPHY AND STRUCTURE") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -523,33 +623,54 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// time: main() events index
 					
 					string event_type = sub;
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "PSMN", EOFExpectation::kNoEOF);								// Event.event_type_
-
-					if (event_type.compare("P") == 0)																				// === TYPE P: two or three positive integers
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "PSMNX", EOFExpectation::kNoEOF);								// Event.event_type_
+					
+					if (event_type.compare("P") == 0)																						// === TYPE P: two or three positive integers
 					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p1
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);			// Event.parameters_: uint N
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kAgnostic);					// Event.parameters_: uint N
 						
+						if (sub.length() > 0 && sub.at(0) == 'p')
+							good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kAgnostic);	// Event.parameters_: [uint p2]
+						
+						// SEX ONLY
 						if (sub.length() > 0)
-							good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kEOF);		// Event.parameters_: [uint p2]
+						{
+							if (num_sex_declarations == 0)
+								InputError(InputErrorType::kSexNotDeclared, line);
+							
+							good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.", EOFExpectation::kEOF);					// Event.parameters_: double initial_sex_ratio
+						}
+						
+						if (!iss.eof())
+							good = false;
 						
 						num_subpopulations++;
 					}
-					else if (event_type.compare("N") == 0)																			// === TYPE N: two positive integers
-					{ 
+					else if (event_type.compare("N") == 0)																					// === TYPE N: two positive integers
+					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p1
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kEOF);						// Event.parameters_: uint N
 					}
-					else if (event_type.compare("M") == 0)																			// === TYPE M: two positive integers and a double
-					{ 
+					else if (event_type.compare("M") == 0)																					// === TYPE M: two positive integers and a double
+					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// Event.parameters_: double M
 					}
-					else if (event_type.compare("S") == 0)																			// === TYPE S: one positive integer and a double
-					{ 
+					else if (event_type.compare("S") == 0)																					// === TYPE S: one positive integer and a double
+					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// Event.parameters_: double sigma
+					}
+					else if (event_type.compare("X") == 0)																					// === TYPE X: one positive integer and a double
+					{
+						// SEX ONLY
+						if (num_sex_declarations == 0)
+							InputError(InputErrorType::kSexNotDeclared, line);
+						
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.", EOFExpectation::kEOF);						// Event.parameters_: double sex_ratio
 					}
 					
 					if (!good)
@@ -559,12 +680,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:OUTPUT
 			if (line.find("OUTPUT") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -573,25 +698,34 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// time: main() outputs index
 
 					string output_type = sub;
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "ARFT", EOFExpectation::kAgnostic);						// Event.event_type_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "ARFT", EOFExpectation::kAgnostic);							// Event.event_type_
 					
-					if (output_type.compare("A") == 0)																				// === TYPE A: no parameter, or a filename
+					if (output_type.compare("A") == 0)																						// === TYPE A: no parameter, or a filename
 					{
-						// sub may or may not now contain a filename																// Event.parameters_: [filename]
+						// sub may or may not now contain a filename																		// Event.parameters_: [filename]
 						// we don't make an EatSubstring call here because we don't do a lexical check on filenames
 					}
-					else if (output_type.compare("R") == 0)																			// === TYPE R: two positive integers
+					else if (output_type.compare("R") == 0)																					// === TYPE R: two positive integers
 					{
 						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);		// Event.parameters_: uint p
-						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);			// Event.parameters_: uint size
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);					// Event.parameters_: uint size
 						
-						if (sub.length() > 0 && sub != "MS")																		// Event.parameters_: ['MS']
-								good = false;
+						// SEX ONLY
+						if (sub.length() > 0 && (sub == "M" || sub == "F" || sub == "*"))													// Event.parameters_: ['M'|'F'|'*']
+						{
+							if (num_sex_declarations == 0)
+								InputError(InputErrorType::kSexNotDeclared, line);
+							
+							good = good && EatSubstringWithCharactersAtEOF(iss, sub, "MF*", EOFExpectation::kAgnostic);
+						}
+						
+						if (sub.length() > 0 && sub != "MS")																				// Event.parameters_: ['MS']
+							good = false;
 					}
-					else if (output_type.compare("F") == 0)																			// === TYPE F: no parameter
+					else if (output_type.compare("F") == 0)																					// === TYPE F: no parameter
 					{
 					}
-					else if (output_type.compare("T") == 0)																			// === TYPE T: ??? FIXME code for this case missing!
+					else if (output_type.compare("T") == 0)																					// === TYPE T: ??? FIXME code for this case missing!
 					{
 					}
 					
@@ -605,12 +739,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:PREDETERMINED MUTATIONS
 			if (line.find("PREDETERMINED MUTATIONS") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -620,12 +758,12 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "m", "1234567890", EOFExpectation::kNoEOF);			// Mutation.mutation_type_
 					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// Mutation.position_
 					good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "p", "1234567890", EOFExpectation::kNoEOF);			// Mutation.subpop_index_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kNoEOF);						// IntroducedMutation.num_AA_
-					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);				// IntroducedMutation.num_Aa_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kNoEOF);							// IntroducedMutation.num_AA_
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890", EOFExpectation::kAgnostic);						// IntroducedMutation.num_Aa_
 					
 					if (sub.length() > 0)
 					{
-						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "P", "", EOFExpectation::kNoEOF);				// ['P']
+						good = good && EatSubstringWithPrefixAndCharactersAtEOF(iss, sub, "P", "", EOFExpectation::kNoEOF);					// ['P']
 						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890.-e", EOFExpectation::kEOF);					// PartialSweep.target_prevalence_
 					}
 					
@@ -636,12 +774,16 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:SEED
 			if (line.find("SEED") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
@@ -656,18 +798,22 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Check:INITIALIZATION
 			if (line.find("INITIALIZATION") != string::npos)
 			{
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					
 					istringstream iss(line);
 					iss >> sub;
 					
-					// sub should now contain a filename, but no checking of filenames is presently done here						// filename
+					// sub should now contain a filename, but no checking of filenames is presently done here								// filename
 					
 					if (!iss.eof())
 						good = false;
@@ -685,8 +831,10 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 		}
 		else
 		{
-			GetInputLine(infile, line);
-			//FIXME should this really not signal an error?  I think it should...
+			if (line.length() == 0)
+				GetInputLine(infile, line);
+			else
+				InputError(InputErrorType::kNonParameterInput, line);	// BCH 2 Jan 2015: added this as an error
 		}
 	}
 	
@@ -712,6 +860,10 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 	if (num_subpopulations < 1)
 		InputError(InputErrorType::kNoPopulationDefined, string());
 	
+	// SEX ONLY
+	if (num_sex_declarations > 1)
+		InputError(InputErrorType::kInvalidSex, string());
+	
 	if (DEBUG_INPUT)
 	{
 		std::cout << "CheckInputFile: file checked out:" << endl;
@@ -722,12 +874,13 @@ void SLiMSim::CheckInputFile(const char *p_input_file)
 		std::cout << "   num_recombination_rates == " << num_recombination_rates << endl;
 		std::cout << "   num_generations == " << num_generations << endl;
 		std::cout << "   num_subpopulations == " << num_subpopulations << endl;
+		std::cout << "   num_sex_declarations == " << num_sex_declarations << endl;
 	}
 }
 
 void SLiMSim::InitializePopulationFromFile(const char *p_file)
 {
-	std::map<int,const Mutation*> M;
+	std::map<int,const Mutation*> mutations;
 	string line, sub; 
 	ifstream infile (p_file);
 	
@@ -737,104 +890,215 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		exit(EXIT_FAILURE);
 	}
 	
-	GetInputLine(infile, line);
-	
-	while (line.find("Populations") == string::npos && !infile.eof())
+	// Read and ignore initial stuff until we hit the Populations section
+	while (!infile.eof())
+	{
 		GetInputLine(infile, line);
-	
-	GetInputLine(infile, line);
-	
-	while (line.find("Mutations") == string::npos && !infile.eof())
-	{ 
-		istringstream iss(line);
-		iss >> sub;
 		
-		sub.erase(0, 1);  
-		int i = atoi(sub.c_str());
-		iss >> sub;
-		
-		int n = atoi(sub.c_str());
-		population_.AddSubpopulation(i, n);
-		
-		GetInputLine(infile, line);      
+		if (line.find("Populations") != string::npos)
+			break;
 	}
 	
-	GetInputLine(infile, line);
-	
-	while (line.find("Genomes") == string::npos && !infile.eof()) 
-	{
+	// Now we are in the Populations section; read and instantiate each population until we hit the Mutations section
+	while (!infile.eof())
+	{ 
+		GetInputLine(infile, line);
+		
+		if (line.length() == 0)
+			continue;
+		if (line.find("Mutations") != string::npos)
+			break;
+		
 		istringstream iss(line);
+		
+		iss >> sub;
+		sub.erase(0, 1);  // p
+		int subpop_index = atoi(sub.c_str());
+		
+		iss >> sub;
+		int subpop_size = atoi(sub.c_str());
+		
+		// SLiM 2.0 output format has <H | S <ratio>> here; if that is missing or "H" is given, the population is hermaphroditic and the ratio given is irrelevant
+		double sex_ratio = 0.0;
+		
+		if (iss >> sub)
+		{
+			if (sub == "S")
+			{
+				iss >> sub;
+				
+				sex_ratio = atof(sub.c_str());
+			}
+		}
+		
+		// Create the population population
+		population_.AddSubpopulation(subpop_index, subpop_size, sex_ratio, *this);
+	}
+	
+	// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
+	while (!infile.eof()) 
+	{
+		GetInputLine(infile, line);
+		
+		if (line.length() == 0)
+			continue;
+		if (line.find("Genomes") != string::npos)
+			break;
+		if (line.find("Individuals") != string::npos)	// SLiM 2.0 added this section
+			break;
+		
+		istringstream iss(line);
+		
 		iss >> sub; 
+		int mutation_id = atoi(sub.c_str());
 		
-		int id = atoi(sub.c_str());
 		iss >> sub;
+		sub.erase(0, 1);	// m
+		int mutation_type_id = atoi(sub.c_str());
 		
-		sub.erase(0, 1);
-		int t = atoi(sub.c_str());
 		iss >> sub;
+		int position = atoi(sub.c_str()) - 1;
 		
-		int x = atoi(sub.c_str()) - 1;
 		iss >> sub;
+		double selection_coeff = atof(sub.c_str());
 		
-		double s = atof(sub.c_str());
+		iss >> sub;		// dominance coefficient, which is given in the mutation type and presumably matches here
+		
 		iss >> sub;
+		sub.erase(0, 1);	// p
+		int subpop_index = atoi(sub.c_str());
+		
 		iss >> sub;
+		int generation = atoi(sub.c_str());
 		
-		sub.erase(0, 1);
-		int i = atoi(sub.c_str());
-		iss >> sub;
-		
-		int g = atoi(sub.c_str());
-		
-		auto found_muttype_pair = mutation_types_.find(t);
+		// look up the mutation type from its index
+		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
 		{ 
-			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< t << " has not been defined" << endl;
+			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << endl;
 			exit(EXIT_FAILURE); 
 		}
 		
 		const MutationType *mutation_type_ptr = found_muttype_pair->second;
-		const Mutation *new_mutation = new Mutation(mutation_type_ptr, x, s, i, g);
 		
-		M.insert(std::pair<const int,const Mutation*>(id, new_mutation));
+		// construct the new mutation
+		const Mutation *new_mutation = new Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		
+		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		mutations.insert(std::pair<const int,const Mutation*>(mutation_id, new_mutation));
 		population_.mutation_registry_.push_back(new_mutation);
-		
-		GetInputLine(infile, line); 
 	}
 	
-	GetInputLine(infile, line);
+	// If there is an Individuals section (added in SLiM 2.0), we skip it; we don't need any of the information that it gives, it is mainly for human readability
+	if (line.find("Individuals") != string::npos)
+	{
+		while (!infile.eof()) 
+		{
+			GetInputLine(infile, line);
+			
+			if (line.length() == 0)
+				continue;
+			if (line.find("Genomes") != string::npos)
+				break;
+		}
+	}
 	
+	// Now we are in the Genomes section, which should take us to the end of the file
 	while (!infile.eof())
 	{
-		istringstream iss(line); iss >> sub; sub.erase(0, 1);
-		int pos = static_cast<int>(sub.find_first_of(":")); 
-		int p = atoi(sub.substr(0, pos + 1).c_str()); sub.erase(0, pos + 1);
+		GetInputLine(infile, line);
 		
-		Subpopulation &subpop = population_.SubpopulationWithID(p);
+		if (line.length() == 0)
+			continue;
 		
-		int i = atoi(sub.c_str());
+		istringstream iss(line);
 		
-		while (iss >> sub) 
+		iss >> sub;
+		sub.erase(0, 1);	// p
+		int pos = static_cast<int>(sub.find_first_of(":"));
+		const char *subpop_id_string = sub.substr(0, pos).c_str();
+		int subpop_id = atoi(subpop_id_string);
+		
+		Subpopulation &subpop = population_.SubpopulationWithID(subpop_id);
+		
+		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
+		int genome_index = atoi(sub.c_str()) - 1;
+		Genome &genome = subpop.parent_genomes_[genome_index];
+		
+		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
+		if (iss >> sub)
 		{
-			int id = atoi(sub.c_str());
+			char genome_type = sub[0];
 			
-			auto found_mut_pair = M.find(id);
-			
-			if (found_mut_pair == M.end()) 
-			{ 
-				cerr << "ERROR (InitializePopulationFromFile): mutation "<< id << " has not been defined" << endl;
-				exit(EXIT_FAILURE); 
+			// check whether this token is a genome type
+			if (genome_type == 'A' || genome_type == 'X' || genome_type == 'Y')
+			{
+				// Let's do a little error-checking against what has already been instantiated for us...
+				if (genome_type == 'A' && genome.GenomeType() != GenomeType::kAutosome)
+				{
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << endl;
+					exit(EXIT_FAILURE);
+				}
+				if (genome_type == 'X' && genome.GenomeType() != GenomeType::kXChromosome)
+				{
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << endl;
+					exit(EXIT_FAILURE);
+				}
+				if (genome_type == 'Y' && genome.GenomeType() != GenomeType::kYChromosome)
+				{
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << endl;
+					exit(EXIT_FAILURE);
+				}
+				
+				if (iss >> sub)
+				{
+					if (sub == "<null>")
+					{
+						if (!genome.IsNull())
+						{
+							cerr << "ERROR (InitializePopulationFromFile): genome is specified as null, but the instantiated genome is non-null" << endl;
+							exit(EXIT_FAILURE);
+						}
+						
+						continue;	// this line is over
+					}
+					else
+					{
+						if (genome.IsNull())
+						{
+							cerr << "ERROR (InitializePopulationFromFile): genome is specified as non-null, but the instantiated genome is null" << endl;
+							exit(EXIT_FAILURE);
+						}
+						
+						// drop through, and sub will be interpreted as a mutation id below
+					}
+				}
+				else
+					continue;
 			}
 			
-			const Mutation *mutation = found_mut_pair->second;
-			
-			subpop.parent_genomes_[i - 1].push_back(mutation);
+			do
+			{
+				int id = atoi(sub.c_str());
+				
+				auto found_mut_pair = mutations.find(id);
+				
+				if (found_mut_pair == mutations.end()) 
+				{ 
+					cerr << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << endl;
+					exit(EXIT_FAILURE);
+				}
+				
+				const Mutation *mutation = found_mut_pair->second;
+				
+				genome.push_back(mutation);
+			}
+			while (iss >> sub);
 		}
-		
-		GetInputLine(infile, line);
 	}
 	
+	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
 	for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
 		subpop_pair.second->UpdateFitness();
 }
@@ -850,20 +1114,70 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 	if (DEBUG_INPUT)
 		std::cout << "Initialize():" << endl;
 	
-	GetInputLine(infile, line);
-	
 	while (!infile.eof())
 	{
 		if (line.find('#') != string::npos) 
 		{
+			// SEX ONLY
+			#pragma mark Initialize:SEX
+			if (line.find("SEX") != string::npos)
+			{
+				input_parameters_.push_back("#SEX");
+				
+				do
+				{
+					if (infile.eof())
+						break;
+					GetInputLine(infile, line);
+					
+					if (line.find('#') != string::npos) break;
+					if (line.length() == 0) continue;
+					input_parameters_.push_back(line);
+					
+					// FORMAT: chromosome_type [x-dominance]
+					istringstream iss(line);
+					
+					iss >> sub;
+					char chromosome_type = sub.at(0);
+					
+					if (chromosome_type == 'A')
+					{
+						modeled_chromosome_type_ = GenomeType::kAutosome;
+					}
+					else if (chromosome_type == 'X')
+					{
+						modeled_chromosome_type_ = GenomeType::kXChromosome;
+						
+						// optional x-dominance coefficient
+						if (iss >> sub)
+							x_chromosome_dominance_coeff_ = atof(sub.c_str());
+					}
+					else if (chromosome_type == 'Y')
+					{
+						modeled_chromosome_type_ = GenomeType::kYChromosome;
+					}
+					
+					sex_enabled_ = true;	// whether we're modeling an autosome or a sex chromosome, the presence of this tag indicates that tracking of sex is turned on
+					
+					if (DEBUG_INPUT)
+						std::cout << "   #SEX: " << chromosome_type << " " << x_chromosome_dominance_coeff_ << endl;
+				} while (true);
+				
+				continue;
+			}
+			
+			#pragma mark Initialize:MUTATION RATE
 			if (line.find("MUTATION RATE") != string::npos)
 			{
 				input_parameters_.push_back("#MUTATION RATE");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -882,14 +1196,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:MUTATION TYPES
 			if (line.find("MUTATION TYPES") != string::npos)
 			{
 				input_parameters_.push_back("#MUTATION TYPES");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -927,14 +1245,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:GENOMIC ELEMENT TYPES
 			if (line.find("GENOMIC ELEMENT TYPES") != string::npos)
 			{
 				input_parameters_.push_back("#GENOMIC ELEMENT TYPES");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -982,14 +1304,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:CHROMOSOME ORGANIZATION
 			if (line.find("CHROMOSOME ORGANIZATION") != string::npos)
 			{
 				input_parameters_.push_back("#CHROMOSOME ORGANIZATION");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1028,14 +1354,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:RECOMBINATION RATE
 			if (line.find("RECOMBINATION RATE") != string::npos)
 			{
 				input_parameters_.push_back("#RECOMBINATION RATE");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1058,14 +1388,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:GENE CONVERSION
 			if (line.find("GENE CONVERSION") != string::npos)
 			{
 				input_parameters_.push_back("#GENE CONVERSION");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1088,14 +1422,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:GENERATIONS
 			if (line.find("GENERATIONS") != string::npos)
 			{
 				input_parameters_.push_back("#GENERATIONS");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1117,14 +1455,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:DEMOGRAPHY AND STRUCTURE
 			if (line.find("DEMOGRAPHY AND STRUCTURE") != string::npos)
 			{
 				input_parameters_.push_back("#DEMOGRAPHY AND STRUCTURE");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1152,14 +1494,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:OUTPUT
 			if (line.find("OUTPUT") != string::npos)
 			{
 				input_parameters_.push_back("#OUTPUT");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1187,14 +1533,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:PREDETERMINED MUTATIONS
 			if (line.find("PREDETERMINED MUTATIONS") != string::npos)
 			{
 				input_parameters_.push_back("#PREDETERMINED MUTATIONS");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					
@@ -1257,14 +1607,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:SEED
 			if (line.find("SEED") != string::npos)
 			{
 				// #SEED is pushed back below
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					// seed is pushed back below
 					
@@ -1284,14 +1638,18 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 				continue;
 			}
 			
+			#pragma mark Initialize:INITIALIZATION
 			if (line.find("INITIALIZATION") != string::npos)
 			{
 				input_parameters_.push_back("#INITIALIZATION");
 				
 				do
 				{
+					if (infile.eof())
+						break;
 					GetInputLine(infile, line);
-					if (line.find('#') != string::npos || infile.eof()) break;
+					
+					if (line.find('#') != string::npos) break;
 					if (line.length() == 0) continue;
 					input_parameters_.push_back(line);
 					

@@ -42,15 +42,16 @@ public:
 	
 	// type of events:
 	//
-	// t P i n [j]:  add subpopulation i of size n [drawn from j]
-	// t N i n:      set size of subpopulation i to n
-	// t M i j x:    set fraction x of subpopulation i that originates as migrants from j
-	// t S i s;      set selfing fraction of subpopulation i to s
+	// t P i n [j] [r]:	add subpopulation i of size n [drawn from j] [SEX ONLY: with initial sex ratio r]
+	// t N i n:			set size of subpopulation i to n
+	// t M i j x:		set fraction x of subpopulation i that originates as migrants from j
+	// t S i s;			set selfing fraction of subpopulation i to s
+	// t X i n:			set sex ratio of subpopulation i to n
 	//
-	// t R i n:      output sample of n randomly drawn genomes from subpopulation i
-	// t F:          output list of all mutations that have become fixed so far
-	// t A [file]:   output state of entire population [into file]
-	// t T m:        follow trajectory of mutation m (specified by mutation type) from generation t on
+	// t R i n:			output sample of n randomly drawn genomes from subpopulation i
+	// t F:				output list of all mutations that have become fixed so far
+	// t A [file]:		output state of entire population [into file]
+	// t T m:			follow trajectory of mutation m (specified by mutation type) from generation t on
 	
 	char event_type_;							// event type (see above)
 	std::vector<std::string> parameters_;		// vector of strings with parameters of event

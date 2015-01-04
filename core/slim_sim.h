@@ -39,13 +39,37 @@
 #include "event.h"
 
 
+enum class IndividualSex
+{
+	kUnspecified = -2,
+	kHermaphrodite = -1,
+	kFemale = 0,
+	kMale = 1
+};
+
+inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
+{
+	switch (p_sex)
+	{
+		case IndividualSex::kUnspecified:		p_out << "*"; break;
+		case IndividualSex::kHermaphrodite:		p_out << "H"; break;
+		case IndividualSex::kFemale:			p_out << "F"; break;	// SEX ONLY
+		case IndividualSex::kMale:				p_out << "M"; break;	// SEX ONLY
+	}
+	
+	return p_out;
+}
+
+
 class SLiMSim
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 private:
 	
-	int time_start_, time_duration_, generation_;									// the start and duration for which the simulation will run, in generations, and the current generation
+	int time_start_ = 0;															// the first generation number for which the simulation will run
+	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
+	int generation_ = 0;															// the current generation reached in simulation
 	std::vector<std::string> input_parameters_;										// invocation parameters from input file
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
@@ -56,8 +80,13 @@ private:
 	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
 	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
 	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
-	int rng_seed_;																	// random number generator seed
-	bool rng_seed_supplied_to_constructor_;											// true if the RNG seed was supplied, which means it overrides other RNG seed sources
+	int rng_seed_ = 0;																// random number generator seed
+	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
+	
+	// SEX ONLY: sex-related instance variables
+	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are considered hermaphroditic
+	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
+	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	// private initialization methods
 	void CheckInputFile(const char *p_input_file);									// check an input file for correctness and exit with a good error message if there is a problem
@@ -78,6 +107,9 @@ public:
 	inline const std::vector<std::string> &InputParameters(void) const				{ return input_parameters_; }
 	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
 	
+	inline bool SexEnabled(void) const												{ return sex_enabled_; }
+	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
+	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 };
 
 

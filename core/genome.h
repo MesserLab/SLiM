@@ -34,18 +34,43 @@
 #include "stacktrace.h"
 
 
+// This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
+// separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
+// of the individual cannot be determined from its modeled genome.
+enum class GenomeType {
+	kAutosome = 0,
+	kXChromosome,
+	kYChromosome
+};
+
+inline std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
+{
+	switch (p_genome_type)
+	{
+		case GenomeType::kAutosome:		p_out << "A"; break;
+		case GenomeType::kXChromosome:	p_out << "X"; break;	// SEX ONLY
+		case GenomeType::kYChromosome:	p_out << "Y"; break;	// SEX ONLY
+	}
+	
+	return p_out;
+}
+
+
 class Genome
 {
 	// This class has a restricted copying policy; see below
 
 private:
 	
-	int mutation_count_ = 0;				// the number of entries presently in mutations_
-	int mutation_capacity_ = 0;				// the capacity of mutations_
-	const Mutation **mutations_ = nullptr;	// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
+	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
+	bool is_null_genome_ = false;						// if true, this genome is a meaningless placeholder (often a Y chromosome)
+	
+	int mutation_count_ = 0;							// the number of entries presently in mutations_
+	int mutation_capacity_ = 0;							// the capacity of mutations_
+	const Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
 	
 #ifdef DEBUG
-	static bool s_log_copy_and_assign_;						// true if logging is disabled (see below)
+	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
 #endif
 	
 public:
@@ -60,43 +85,82 @@ public:
 	Genome(const Genome &p_original);
 	Genome& operator= (const Genome &p_original);
 #ifdef DEBUG
-	static bool LogGenomeCopyAndAssign(bool p_log);			// returns the old value; save and restore that value!
+	static bool LogGenomeCopyAndAssign(bool p_log);		// returns the old value; save and restore that value!
 #endif
 	
-	Genome() = default;										// default constructor
-	~Genome()
+	Genome(void);											// default constructor; gives a non-null genome of type GenomeType::kAutosome
+	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
+	~Genome(void)
 	{
 		free(mutations_);
 	}
 	
-	inline const Mutation *const & operator[] (int index) const		// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	void NullGenomeAccessError(void) const;								// prints an error message, a stacktrace, and exits; called only for DEBUG
+	
+	inline bool IsNull(void) const										// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
+		return is_null_genome_;
+	}
+	
+	GenomeType GenomeType(void) const									// returns the type of the genome: automosomal, X chromosome, or Y chromosome
+	{
+		return genome_type_;
+	}
+	
+	void RemoveFixedMutations(int p_fixed_count);						// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
+	
+	inline const Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return mutations_[index];
 	}
 	
-	inline const Mutation *& operator[] (int index)					// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline const Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return mutations_[index];
 	}
 	
 	inline int size(void)
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return mutation_count_;
 	}
 	
 	inline void clear(void)
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		mutation_count_ = 0;
 	}
 	
-	inline void pop_back()
+	inline void pop_back(void)
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		if (mutation_count_ > 0)	// the standard says that popping an empty vector results in undefined behavior; this seems reasonable
 			--mutation_count_;
 	}
 	
 	inline void push_back(const Mutation *p_mutation)
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		if (mutation_count_ == mutation_capacity_)
 		{
 			if (!mutation_capacity_)
@@ -185,6 +249,10 @@ public:
 	
 	inline void copy_from_genome(const Genome &p_source_genome)
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		int source_mutation_count = p_source_genome.mutation_count_;
 		
 		// first we need to ensure that we have sufficient capacity
@@ -197,31 +265,39 @@ public:
 		// then copy all pointers from the source to ourselves
 		memcpy(mutations_, p_source_genome.mutations_, source_mutation_count * sizeof(Mutation*));
 		mutation_count_ = source_mutation_count;
+		
+		// and copy other state
+		genome_type_ = p_source_genome.genome_type_;
+		is_null_genome_ = p_source_genome.is_null_genome_;
 	}
 	
 	inline const Mutation **begin_pointer(void) const
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return mutations_;
 	}
 	
 	inline const Mutation **end_pointer(void) const
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return mutations_ + mutation_count_;
 	}
 	
 	inline const Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
 	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
 		return *(mutations_ + (mutation_count_ - 1));
 	}
 };
-
-// set p_merge_genome to be a merged genome consisting only of the mutations that are present in both p_genome1 and p_genome2
-// NOTE this function is not used in the present design; it has been obsoleted by Population::ManageMutationReferencesAndRemoveFixedMutations(int p_generation).
-void GenomeWithFixedMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome);
-
-// set p_merge_genome to be a merged genome consisting only of the mutations in p_genome1 that are not in p_genome2
-void GenomeWithPolymorphicMutations(const Genome &p_genome1, const Genome &p_genome2, Genome *p_merge_genome);
-
 
 #endif /* defined(__SLiM__genome__) */
 

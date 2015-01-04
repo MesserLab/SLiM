@@ -33,6 +33,10 @@
 #include "mutation_type.h"
 
 
+#define DEBUG_MUTATIONS	0			// turn on logging of mutation construction and destruction
+#define DEBUG_MUTATION_ZOMBIES	0	// avoid destroying Mutation objects; keep them as zombies
+
+
 class Mutation
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -50,6 +54,10 @@ public:
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
 	Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
+	
+#if DEBUG_MUTATIONS
+	~Mutation();										// destructor, if we are debugging
+#endif
 };
 
 // true if M1 has an earlier (smaller) position than M2
