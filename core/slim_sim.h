@@ -39,28 +39,6 @@
 #include "event.h"
 
 
-enum class IndividualSex
-{
-	kUnspecified = -2,
-	kHermaphrodite = -1,
-	kFemale = 0,
-	kMale = 1
-};
-
-inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
-{
-	switch (p_sex)
-	{
-		case IndividualSex::kUnspecified:		p_out << "*"; break;
-		case IndividualSex::kHermaphrodite:		p_out << "H"; break;
-		case IndividualSex::kFemale:			p_out << "F"; break;	// SEX ONLY
-		case IndividualSex::kMale:				p_out << "M"; break;	// SEX ONLY
-	}
-	
-	return p_out;
-}
-
-
 class SLiMSim
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.

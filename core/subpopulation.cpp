@@ -23,7 +23,7 @@
 
 #include "subpopulation.h"
 #include "slim_sim.h"
-#include "stacktrace.h"
+#include "slim_global.h"
 
 
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
@@ -45,30 +45,18 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = static_cast<int>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
-		{
-			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-		{
-			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
 		
 		if (p_parents_also)
 		{
 			parent_first_male_index_ = static_cast<int>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
-			{
-				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << std::endl;
-				exit(EXIT_FAILURE);
-			}
+				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-			{
-				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << std::endl;
-				exit(EXIT_FAILURE);
-			}
+				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -181,16 +169,6 @@ Subpopulation::~Subpopulation(void)
 	gsl_ran_discrete_free(lookup_parent_);
 	gsl_ran_discrete_free(lookup_female_parent_);
 	gsl_ran_discrete_free(lookup_male_parent_);
-}
-
-IndividualSex Subpopulation::SexOfChild(int p_child_index)
-{
-	if (!sex_enabled_)
-		return IndividualSex::kHermaphrodite;
-	else if (p_child_index < child_first_male_index_)
-		return IndividualSex::kFemale;
-	else
-		return IndividualSex::kMale;
 }
 
 void Subpopulation::UpdateFitness()

@@ -19,7 +19,7 @@
 
 
 #include "genomic_element.h"
-#include "stacktrace.h"
+#include "slim_global.h"
 
 
 bool GenomicElement::s_log_copy_and_assign_ = true;

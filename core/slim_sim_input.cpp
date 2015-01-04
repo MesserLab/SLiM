@@ -23,6 +23,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "slim_global.h"
+
 
 using std::cerr;
 using std::endl;
@@ -30,9 +32,6 @@ using std::string;
 using std::istringstream;
 using std::ifstream;
 using std::multimap;
-
-
-#define DEBUG_INPUT	0
 
 
 // an enumeration of possible error types for InputError()
@@ -275,7 +274,7 @@ void InputError(InputErrorType p_error_type, string p_line)
 			break;
 	}
 	
-	exit(EXIT_FAILURE);
+	cerr << slim_terminate();
 }
 
 bool EatSubstringWithCharactersAtEOF(istringstream &p_string_stream, string &p_substring, const char *p_match_chars, EOFExpectation p_eof_expected)
@@ -885,10 +884,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 	ifstream infile (p_file);
 	
 	if (!infile.is_open())
-	{
-		std::cerr << "ERROR (Initialize): could not open initialization file" << endl;
-		exit(EXIT_FAILURE);
-	}
+		std::cerr << "ERROR (Initialize): could not open initialization file" << endl << slim_terminate();
 	
 	// Read and ignore initial stuff until we hit the Populations section
 	while (!infile.eof())
@@ -975,10 +971,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-		{ 
-			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << endl;
-			exit(EXIT_FAILURE); 
-		}
+			cerr << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << endl << slim_terminate();
 		
 		const MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
@@ -1036,40 +1029,25 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
 				if (genome_type == 'A' && genome.GenomeType() != GenomeType::kAutosome)
-				{
-					cerr << "ERROR (InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << endl;
-					exit(EXIT_FAILURE);
-				}
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << endl << slim_terminate();
 				if (genome_type == 'X' && genome.GenomeType() != GenomeType::kXChromosome)
-				{
-					cerr << "ERROR (InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << endl;
-					exit(EXIT_FAILURE);
-				}
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << endl << slim_terminate();
 				if (genome_type == 'Y' && genome.GenomeType() != GenomeType::kYChromosome)
-				{
-					cerr << "ERROR (InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << endl;
-					exit(EXIT_FAILURE);
-				}
+					cerr << "ERROR (InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << endl << slim_terminate();
 				
 				if (iss >> sub)
 				{
 					if (sub == "<null>")
 					{
 						if (!genome.IsNull())
-						{
-							cerr << "ERROR (InitializePopulationFromFile): genome is specified as null, but the instantiated genome is non-null" << endl;
-							exit(EXIT_FAILURE);
-						}
+							cerr << "ERROR (InitializePopulationFromFile): genome is specified as null, but the instantiated genome is non-null" << endl << slim_terminate();
 						
 						continue;	// this line is over
 					}
 					else
 					{
 						if (genome.IsNull())
-						{
-							cerr << "ERROR (InitializePopulationFromFile): genome is specified as non-null, but the instantiated genome is null" << endl;
-							exit(EXIT_FAILURE);
-						}
+							cerr << "ERROR (InitializePopulationFromFile): genome is specified as non-null, but the instantiated genome is null" << endl << slim_terminate();
 						
 						// drop through, and sub will be interpreted as a mutation id below
 					}
@@ -1085,10 +1063,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 				auto found_mut_pair = mutations.find(id);
 				
 				if (found_mut_pair == mutations.end()) 
-				{ 
-					cerr << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << endl;
-					exit(EXIT_FAILURE);
-				}
+					cerr << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << endl << slim_terminate();
 				
 				const Mutation *mutation = found_mut_pair->second;
 				
@@ -1112,7 +1087,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 		rng_seed_ = GenerateSeedFromPIDAndTime();
 	
 	if (DEBUG_INPUT)
-		std::cout << "Initialize():" << endl;
+		std::cout << "InitializeFromFile():" << endl;
 	
 	while (!infile.eof())
 	{
@@ -1220,10 +1195,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					int map_identifier = atoi(sub.c_str());
 					
 					if (mutation_types_.count(map_identifier) > 0) 
-					{  
-						std::cerr << "ERROR (Initialize): mutation type " << map_identifier << " already defined" << endl;
-						exit(EXIT_FAILURE);
-					}
+						std::cerr << "ERROR (Initialize): mutation type " << map_identifier << " already defined" << endl << slim_terminate();
 					
 					iss >> sub;
 					double dominance_coeff = atof(sub.c_str());
@@ -1276,10 +1248,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 						auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 						
 						if (found_muttype_pair == mutation_types_.end())
-						{
-							std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
-							exit(EXIT_FAILURE);
-						}
+							std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl << slim_terminate();
 						
 						MutationType *mutation_type_ptr = found_muttype_pair->second;
 						mutation_types.push_back(mutation_type_ptr);
@@ -1289,10 +1258,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					}
 					
 					if (genomic_element_types_.count(map_identifier) > 0) 
-					{
-						std::cerr << "ERROR (Initialize): genomic element type " << map_identifier << " already defined" << endl;
-						exit(EXIT_FAILURE);
-					}
+						std::cerr << "ERROR (Initialize): genomic element type " << map_identifier << " already defined" << endl << slim_terminate();
 					
 					GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);
 					genomic_element_types_.insert(std::pair<const int,GenomicElementType*>(map_identifier, new_genomic_element_type));
@@ -1335,10 +1301,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 					
 					if (found_getype_pair == genomic_element_types_.end())
-					{
-						std::cerr << "ERROR (Initialize): genomic element type m" << genomic_element_type << " not defined" << endl;
-						exit(EXIT_FAILURE);
-					}
+						std::cerr << "ERROR (Initialize): genomic element type m" << genomic_element_type << " not defined" << endl << slim_terminate();
 					
 					const GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
 					GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
@@ -1574,10 +1537,7 @@ void SLiMSim::InitializeFromFile(const char *p_input_file)
 					auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 					
 					if (found_muttype_pair == mutation_types_.end())
-					{
-						std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl;
-						exit(EXIT_FAILURE);
-					}
+						std::cerr << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl << slim_terminate();
 					
 					const MutationType *mutation_type_ptr = found_muttype_pair->second;
 					

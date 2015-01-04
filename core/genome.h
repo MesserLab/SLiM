@@ -31,29 +31,7 @@
 #include <vector>
 
 #include "mutation.h"
-#include "stacktrace.h"
-
-
-// This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
-// separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
-// of the individual cannot be determined from its modeled genome.
-enum class GenomeType {
-	kAutosome = 0,
-	kXChromosome,
-	kYChromosome
-};
-
-inline std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
-{
-	switch (p_genome_type)
-	{
-		case GenomeType::kAutosome:		p_out << "A"; break;
-		case GenomeType::kXChromosome:	p_out << "X"; break;	// SEX ONLY
-		case GenomeType::kYChromosome:	p_out << "Y"; break;	// SEX ONLY
-	}
-	
-	return p_out;
-}
+#include "slim_global.h"
 
 
 class Genome

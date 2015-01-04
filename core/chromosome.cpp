@@ -24,6 +24,7 @@
 #include "math.h"
 
 #include "g_rng.h"
+#include "slim_global.h"
 
 
 Chromosome::~Chromosome(void)
@@ -41,20 +42,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-	{
-		std::cerr << "ERROR (Initialize): empty chromosome" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+		std::cerr << "ERROR (Initialize): empty chromosome" << std::endl << slim_terminate();
 	if (recombination_rates_.size() == 0)
-	{
-		std::cerr << "ERROR (Initialize): recombination rate not specified" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+		std::cerr << "ERROR (Initialize): recombination rate not specified" << std::endl << slim_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-	{
-		std::cerr << "ERROR (Initialize): invalid mutation rate" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+		std::cerr << "ERROR (Initialize): invalid mutation rate" << std::endl << slim_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	length_ = 0;

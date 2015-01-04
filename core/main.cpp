@@ -27,14 +27,14 @@
 #include <iostream>
 
 #include "slim_sim.h"
+#include "slim_global.h"
 
 
-void PrintUsageAndDie(int p_exit_code);
+void PrintUsageAndDie();
 
-void PrintUsageAndDie(int p_exit_code)
+void PrintUsageAndDie()
 {
-	std::cerr << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl;
-	exit(p_exit_code);
+	std::cerr << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl << slim_terminate();
 }
 
 int main(int argc, char *argv[])
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
 		{
 			if (++arg_index == argc)
-				PrintUsageAndDie(EXIT_FAILURE);
+				PrintUsageAndDie();
 			
 			override_seed = atoi(argv[arg_index]);
 			override_seed_ptr = &override_seed;
@@ -79,19 +79,19 @@ int main(int argc, char *argv[])
 		// -usage or -u: print usage information
 		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
 		{
-			PrintUsageAndDie(EXIT_SUCCESS);
+			PrintUsageAndDie();
 		}
 		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
-			PrintUsageAndDie(EXIT_FAILURE);
+			PrintUsageAndDie();
 		
 		input_file = argv[arg_index];
 	}
 	
 	// check that we got what we need
 	if (!input_file)
-		PrintUsageAndDie(EXIT_FAILURE);
+		PrintUsageAndDie();
 	
 	// announce if we are running a debug build
 #ifdef DEBUG

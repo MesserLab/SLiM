@@ -1,11 +1,8 @@
 set up testing code for validation, check against old version of the code
-assert, __FILE__, __LINE__; think about how error reporting will work in the GUI context
 switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
 convert input file parsing to flexc++/bisonc++
-could use stoi(), stof(), etc. instead of cstr() and atoi() etc.
+could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
 prevalence output could come from refcounts (but what of the subsample output functions?)
-make a stream manipulator class that calls exit(EXIT_FAILURE), use globally
-gather enum classes and other stuff into a new project-wide header for shared stuff
 
 changes to mention in docs:
 	changed comment format from / to //

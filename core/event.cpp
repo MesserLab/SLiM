@@ -20,6 +20,8 @@
 
 #include "event.h"
 
+#include "slim_global.h"
+
 
 Event::Event(char p_event_type, std::vector<std::string> p_parameters) : event_type_(p_event_type), parameters_(p_parameters)
 {
@@ -32,8 +34,7 @@ Event::Event(char p_event_type, std::vector<std::string> p_parameters) : event_t
 		for (int i = 0; i < parameters_.size(); i++)
 			std::cerr << " " << parameters_[i];
 		
-		std::cerr << "\"" << std::endl;
-		exit(EXIT_FAILURE); 
+		std::cerr << "\"" << std::endl << slim_terminate();
 	}
 }  
 

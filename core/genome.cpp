@@ -19,7 +19,7 @@
 
 
 #include "genome.h"
-#include "stacktrace.h"
+#include "slim_global.h"
 
 
 #ifdef DEBUG
@@ -40,11 +40,7 @@ Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Genome::NullGenomeAccessError(void) const
 {
-	std::cerr << "********* Genome::NullGenomeAccessError() called!" << std::endl;
-	print_stacktrace(stderr);
-	std::cerr << "************************************************" << std::endl;
-	
-	exit(EXIT_FAILURE);
+	std::cerr << "********* Genome::NullGenomeAccessError() called!" << std::endl << slim_terminate(true);
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed

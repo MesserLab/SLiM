@@ -32,6 +32,7 @@
 #include <map>
 #include <string>
 
+#include "slim_global.h"
 #include "subpopulation.h"
 #include "substitution.h"
 #include "chromosome.h"
@@ -39,11 +40,10 @@
 #include "event.h"
 #include "introduced_mutation.h"
 #include "partial_sweep.h"
-#include "stacktrace.h"
+#include "slim_global.h"
 
 
 class SLiMSim;
-enum class IndividualSex;
 
 
 class Population : public std::map<int,Subpopulation*>		// OWNED POINTERS
@@ -66,12 +66,7 @@ public:
 		auto found_pair = find(p_subpop_id);
 		
 		if (found_pair == this->end())
-		{
-			std::cerr << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl;
-			print_stacktrace(stderr);
-			std::cerr << "************************************************" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+			std::cerr << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl << slim_terminate(true);
 		
 		return *(found_pair->second);
 	}

@@ -31,10 +31,7 @@
 #include <iostream>
 
 #include "mutation_type.h"
-
-
-#define DEBUG_MUTATIONS	0			// turn on logging of mutation construction and destruction
-#define DEBUG_MUTATION_ZOMBIES	0	// avoid destroying Mutation objects; keep them as zombies
+#include "slim_global.h"
 
 
 class Mutation

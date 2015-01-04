@@ -1,17 +1,29 @@
-// stacktrace.m (c) 2008, Timo Bingmann from http://idlebox.net/
-// published under the WTFPL v2.0
+//
+//  slim_global.cpp
+//  SLiM
+//
+//  Created by Ben Haller on 1/4/15.
+//  Copyright (c) 2014 Philipp Messer.  All rights reserved.
+//	A product of the Messer Lab, http://messerlab.org/software/
+//
 
-// obtained from http://panthema.net/2008/0901-stacktrace-demangled/ on 24 December 2014 by Ben Haller
-// I have made various changes to formatting, as well as to make it work better on OS X.
+//	This file is part of SLiM.
+//
+//	SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+//
+//	SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <stdio.h>
+#include "slim_global.h"
+
 #include <stdlib.h>
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <ctype.h>
-
-#include "stacktrace.h"
 
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
@@ -168,7 +180,36 @@ void print_stacktrace(FILE *out, unsigned int max_frames)
 	
 	free(funcname);
 	free(symbollist);
+	
+	fflush(out);
 }
+
+
+std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator)
+{
+	p_out.flush();
+	
+	if (p_terminator.print_backtrace_)
+	{
+		if (p_out == std::cout)
+			print_stacktrace(stdout);
+		else
+			print_stacktrace(stderr);
+	}
+	
+	exit(EXIT_FAILURE);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
