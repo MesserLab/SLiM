@@ -31,21 +31,13 @@ Polymorphism::Polymorphism(int p_mutation_id, const MutationType *p_mutation_typ
 {
 }
 
-void Polymorphism::print(int p_index) const
-{ 
-	std::cout << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index + 1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
+void Polymorphism::print(std::ostream &p_out, int p_index, bool include_id /* = true*/) const
+{
+	if (include_id)
+		p_out << mutation_id_ << " ";
+	
+	p_out << "m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index + 1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
 }
-
-void Polymorphism::print(std::ofstream &p_outfile, int p_index) const
-{ 
-	p_outfile << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index + 1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
-}
-
-void Polymorphism::print_no_id(int p_index) const
-{ 
-	std::cout << "m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index + 1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
-}
-
 
 // find p_mutation in p_polymorphisms and return its id
 int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_polymorphisms, const Mutation &p_mutation)

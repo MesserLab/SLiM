@@ -48,9 +48,7 @@ public:
 	
 	Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
 	
-	void print(int p_index) const;
-	void print(std::ofstream &p_outfile, int p_index) const;
-	void print_no_id(int p_index) const;
+	void print(std::ostream &p_out, int p_index, bool include_id = true) const;
 };
 
 
