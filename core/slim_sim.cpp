@@ -49,7 +49,7 @@ SLiMSim::SLiMSim(const char *p_input_file, int *p_override_seed_ptr)
 	InitializeFromFile(p_input_file);
 	
 	// evolve over t generations
-	std::cout << time_start_ << " " << time_duration_ << std::endl;
+	std::cout << "\n// Starting run with <start> <duration>:\n" << time_start_ << " " << time_duration_ << "\n" << std::endl;
 	
 	// start at the beginning
 	generation_ = time_start_;
