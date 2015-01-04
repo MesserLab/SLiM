@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	
 	// announce if we are running a debug build
 #ifdef DEBUG
-	std::cerr << "********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+	std::cerr << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
-		std::cerr << "CPU time used: " << time_spent << std::endl;
+		std::cerr << "// ********** CPU time used: " << time_spent << std::endl;
 	
 	return EXIT_SUCCESS;
 }
