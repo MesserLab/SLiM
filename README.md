@@ -70,15 +70,27 @@ References
 ---------------
 <u>The original paper on SLiM:</u>
 
-Messer, P. W. (2013). SLiM: Simulating evolution with selection and linkage. *Genetics 194*(4), 1037-1039.
+Messer, P. W. (2013). SLiM: Simulating evolution with selection and linkage. *Genetics 194*(4), 1037-1039.  [DOI](http://dx.doi.org/10.1534/genetics.113.152181)
 
-<u>Publications that have used SLiM:</u>
+<u>Selected publications that have used SLiM for core analyses:</u>
 
-Enard, D., Messer, P. W., & Petrov, D. A. (2014). Genome-wide signals of positive selection in human evolution. *Genome research*.
+Arunkumar, R., Ness, R. W., Wright, S. I., & Barrett, S. C. (2014). The evolution of selfing Is accompanied by reduced efficacy of selection and purging of deleterious mutations. *Genetics* (Early Online).  [DOI](http://dx.doi.org/10.1534/genetics.114.172809)
 
-Kousathanas, A., & Keightley, P. D. (2013). A comparison of models to infer the distribution of fitness effects of new mutations. *Genetics 193*(4), 1197-1208.
+Bergland, A. O., Behrman, E. L., O'Brien, K. R., Schmidt, P. S., & Petrov, D. A. (2013). Genomic evidence of rapid and stable adaptive oscillations over seasonal time scales in *Drosophila*. *PLOS Genetics 10*(11), e1004775.  [DOI](http://dx.doi.org/10.1371/journal.pgen.1004775)
 
-Messer, P. W., & Petrov, D. A. (2013). Frequent adaptation and the McDonald–Kreitman test. *Proceedings of the National Academy of Sciences 110*(21), 8615-8620.
+Comeron, J. M. (2014). Background selection as baseline for nucleotide variation across the *Drosophila* genome. *PLOS Genetics 10*(6), e1004434.  [DOI](http://dx.doi.org/10.1371/journal.pgen.1004434)
+
+Enard, D., Messer, P. W., & Petrov, D. A. (2014). Genome-wide signals of positive selection in human evolution. *Genome Research 24*(6), 885-895.  [DOI](http://dx.doi.org/10.1101/gr.164822.113)
+
+Hussin, J., Hodgkinson, A., Idaghdour, Y., Grenier, J. C., Goulet, J. P., Gbeha, E., Hip-Ki, E., & Awadalla, P. (2014). Recombination impacts damaging and disease mutation accumulation in human populations. *bioRxiv*:006064.  [DOI](http://dx.doi.org/10.1101/006064)
+
+Kousathanas, A., & Keightley, P. D. (2013). A comparison of models to infer the distribution of fitness effects of new mutations. *Genetics 193*(4), 1197-1208.  [DOI](http://dx.doi.org/10.1534/genetics.112.148023)
+
+Messer, P. W., & Petrov, D. A. (2013). Frequent adaptation and the McDonald–Kreitman test. *Proceedings of the National Academy of Sciences 110*(21), 8615-8620.  [DOI](http://dx.doi.org/10.1073/pnas.1220835110)
+
+Schrider, D. R., & Kern, A. D. (2014). Inferring selective constraint from population genomic data reveals recent regulatory turnover in the human brain.  *arXiv*:1309.2521.  [URL](http://arxiv.org/abs/1309.2521)
+
+Veeramah, K. R., Gutenkunst, R. N., Woerner, A. E., Watkins, J. C., & Hammer, M. F. (2014). Evidence for increased levels of positive and negative selection on the X chromosome versus autosomes in humans. *Molecular Biology and Evolution 31*(9), 2267-2282.  [DOI](http://dx.doi.org/10.1093/molbev/msu166)
 
 Using SLiM in Your Research
 ---------------------------------------

@@ -3,6 +3,11 @@ switch to int32_t and such for all storage, I think; best to be predictable.  ge
 convert input file parsing to flexc++/bisonc++
 could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
 prevalence output could come from refcounts (but what of the subsample output functions?)
+can we use pointer equality to define equality of mutations, or is the current definition important?
+should we use map instead of multimap?  set?  unordered versions, possibly?
+add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
+should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
+consider making the sex versions of things be derived classes in some cases; would this make the design more or less clean?
 
 changes to mention in docs:
 	changed comment format from / to //
