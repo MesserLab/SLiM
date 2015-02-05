@@ -44,6 +44,7 @@ public:
 	
 	IntroducedMutation(const IntroducedMutation&) = delete;					// no copying
 	IntroducedMutation& operator=(const IntroducedMutation&) = delete;		// no copying
+	IntroducedMutation(void) = delete;										// no null construction
 	IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes);
 };
 

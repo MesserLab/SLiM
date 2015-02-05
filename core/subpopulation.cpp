@@ -45,18 +45,18 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = static_cast<int>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
-			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-			std::cerr << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
 		
 		if (p_parents_also)
 		{
 			parent_first_male_index_ = static_cast<int>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
-				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << std::endl << slim_terminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-				std::cerr << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << std::endl << slim_terminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -164,7 +164,7 @@ Subpopulation::Subpopulation(int p_subpop_size, double p_sex_ratio, GenomeType p
 
 Subpopulation::~Subpopulation(void)
 {
-	//std::cerr << "Subpopulation::~Subpopulation" << std::endl;
+	//SLIM_ERRSTREAM << "Subpopulation::~Subpopulation" << std::endl;
 	
 	gsl_ran_discrete_free(lookup_parent_);
 	gsl_ran_discrete_free(lookup_female_parent_);
@@ -357,6 +357,10 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 									// a match was found, so we multiply our fitness by the full selection coefficient
 									w *= (1.0 + selection_coeff);
 									homozygous = true;
+									
+									if (w <= 0.0)
+										return 0.0;
+									
 									break;
 								}
 								

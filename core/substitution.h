@@ -49,6 +49,7 @@ public:
 	
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
+	Substitution(void) = delete;										// no null construction
 	Substitution(const Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print(std::ostream &p_out) const;

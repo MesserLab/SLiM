@@ -54,6 +54,7 @@ public:
 	
 	MutationType(const MutationType&) = delete;					// no copying
 	MutationType& operator=(const MutationType&) = delete;		// no copying
+	MutationType(void) = delete;								// no null construction
 	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 	
 	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE

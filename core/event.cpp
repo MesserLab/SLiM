@@ -29,12 +29,12 @@ Event::Event(char p_event_type, std::vector<std::string> p_parameters) : event_t
 	
 	if (possible_options.find(event_type_) == std::string::npos) 
 	{ 
-		std::cerr << "ERROR (Initialize): invalid event type \"" << event_type_;
+		SLIM_TERMINATION << "ERROR (Initialize): invalid event type \"" << event_type_;
 		
 		for (int i = 0; i < parameters_.size(); i++)
-			std::cerr << " " << parameters_[i];
+			SLIM_TERMINATION << " " << parameters_[i];
 		
-		std::cerr << "\"" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "\"" << std::endl << slim_terminate();
 	}
 }  
 

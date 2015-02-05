@@ -55,6 +55,7 @@ public:
 	//
 	GenomicElement(const GenomicElement &p_original);
 	GenomicElement& operator= (const GenomicElement &p_original);
+	GenomicElement(void) = delete;										// no null construction
 	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
 	GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);

@@ -38,7 +38,11 @@ class Genome
 {
 	// This class has a restricted copying policy; see below
 
+#ifdef SLIMGUI
+public:
+#else
 private:
+#endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
 	bool is_null_genome_ = false;						// if true, this genome is a meaningless placeholder (often a Y chromosome)

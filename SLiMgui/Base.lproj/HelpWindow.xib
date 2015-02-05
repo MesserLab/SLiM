@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
+        <plugIn identifier="com.apple.pdfkit.ibplugin" version="6254"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="AppDelegate">
+            <connections>
+                <outlet property="helpPDFView" destination="UsV-kh-X2r" id="VDp-Ga-aan"/>
+                <outlet property="helpWindow" destination="QvC-M9-y7g" id="x1T-ey-mh6"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="SLiM Manual" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <rect key="contentRect" x="196" y="240" width="846" height="693"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
+            <view key="contentView" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="846" height="693"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <pdfView autoresizesSubviews="NO" wantsLayer="YES" scaleFactor="1.3403225806451613" autoScales="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UsV-kh-X2r" userLabel="ManualView">
+                        <rect key="frame" x="0.0" y="0.0" width="846" height="693"/>
+                    </pdfView>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="UsV-kh-X2r" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" id="4BL-iO-FU1"/>
+                    <constraint firstItem="UsV-kh-X2r" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" id="4SE-jJ-hfj"/>
+                    <constraint firstAttribute="trailing" secondItem="UsV-kh-X2r" secondAttribute="trailing" id="Jda-xh-lpq"/>
+                    <constraint firstAttribute="bottom" secondItem="UsV-kh-X2r" secondAttribute="bottom" id="x29-lt-Swj"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="734" y="477.5"/>
+        </window>
+    </objects>
+</document>

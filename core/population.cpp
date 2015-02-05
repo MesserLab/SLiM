@@ -27,8 +27,6 @@
 #include "slim_global.h"
 
 
-using std::cout;
-using std::cerr;
 using std::endl;
 using std::string;
 using std::multimap;
@@ -36,7 +34,7 @@ using std::multimap;
 
 Population::~Population(void)
 {
-	//std::cerr << "Population::~Population" << std::endl;
+	//SLIM_ERRSTREAM << "Population::~Population" << std::endl;
 	
 	for (auto subpopulation : *this)
 		delete subpopulation.second;
@@ -57,9 +55,9 @@ Population::~Population(void)
 void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, double p_initial_sex_ratio, const SLiMSim &p_sim) 
 { 
 	if (count(p_subpop_id) != 0)
-		cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl << slim_terminate();
 	if (p_subpop_size < 1)
-		cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl << slim_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -76,9 +74,9 @@ void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, d
 void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsigned int p_subpop_size, double p_initial_sex_ratio, const SLiMSim &p_sim) 
 {
 	if (count(p_subpop_id) != 0)
-		cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << endl << slim_terminate();
 	if (p_subpop_size < 1)
-		cerr << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << endl << slim_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -125,9 +123,9 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid)
-		cerr << "ERROR (SetSize): called when the child generation was valid" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetSize): called when the child generation was valid" << endl << slim_terminate();
 	if (count(p_subpop_id) == 0)
-		cerr << "ERROR (SetSize): no subpopulation p" << p_subpop_id << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetSize): no subpopulation p" << p_subpop_id << endl << slim_terminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
@@ -152,9 +150,9 @@ void Population::SetSexRatio(int p_subpop_id, double p_sex_ratio)
 	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid)
-		cerr << "ERROR (SetSexRatio): called when the child generation was valid" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetSexRatio): called when the child generation was valid" << endl << slim_terminate();
 	if (count(p_subpop_id) == 0)
-		cerr << "ERROR (SetSexRatio): no subpopulation p" << p_subpop_id << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetSexRatio): no subpopulation p" << p_subpop_id << endl << slim_terminate();
 	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
@@ -167,7 +165,7 @@ void Population::SetSexRatio(int p_subpop_id, double p_sex_ratio)
 void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction) 
 { 
 	if (p_selfing_fraction < 0.0 || p_selfing_fraction > 1.0)
-		cerr << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << endl << slim_terminate();
 	
 	SubpopulationWithID(p_subpop_id).selfing_fraction_ = p_selfing_fraction; 
 }
@@ -176,9 +174,9 @@ void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction)
 void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
-		cerr << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << endl << slim_terminate();
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
-		cerr << "ERROR (SetMigration): migration fraction has to be within [0,1]" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SetMigration): migration fraction has to be within [0,1]" << endl << slim_terminate();
 	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
@@ -209,7 +207,6 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			bool source_subpop_given = false;
 			int source_subpop_id = 0;
 			
-			bool sex_ratio_given = false;
 			double sex_ratio = 0.5;			// the default whenever sex is enabled and a ratio is not given for a new pop
 			
 			// parse optional parameters; we can be pretty loose with this because they were already checked for correctness
@@ -226,7 +223,6 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 				else
 				{
 					// SEX ONLY
-					sex_ratio_given = true;
 					sex_ratio = atof(subx.c_str());
 				}
 			}
@@ -305,8 +301,8 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 		{
 			if (num_event_parameters == 0)
 			{
-				cout << "#OUT: " << p_generation << " A" << endl;
-				PrintAll(std::cout);
+				SLIM_OUTSTREAM << "#OUT: " << p_generation << " A" << endl;
+				PrintAll(SLIM_OUTSTREAM);
 			}
 			else if (num_event_parameters == 1)
 			{
@@ -326,7 +322,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 				}
 				else
 				{
-					cerr << "ERROR (output): could not open "<< event_parameters[0].c_str() << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (output): could not open "<< event_parameters[0].c_str() << endl << slim_terminate();
 				}
 			}
 			
@@ -354,12 +350,12 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 					requested_sex = IndividualSex::kUnspecified;
 			}
 			
-			cout << "#OUT: " << p_generation << " R p" << subpop_id << " " << sample_size;
+			SLIM_OUTSTREAM << "#OUT: " << p_generation << " R p" << subpop_id << " " << sample_size;
 			
 			if (p_sim.SexEnabled())
-				cout << " " << requested_sex;
+				SLIM_OUTSTREAM << " " << requested_sex;
 			
-			cout << endl;
+			SLIM_OUTSTREAM << endl;
 			
 			if (num_event_parameters >= 3 && event_parameters[num_event_parameters - 1] == "MS")
 				PrintSample_ms(subpop_id, sample_size, p_chromosome, requested_sex);
@@ -372,13 +368,13 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 		#pragma mark ExecuteEvent: F - Output fixed mutations
 		case 'F':	// output list of fixed mutations
 		{
-			cout << "#OUT: " << p_generation << " F " << endl;
-			cout << "Mutations:" << endl;
+			SLIM_OUTSTREAM << "#OUT: " << p_generation << " F " << endl;
+			SLIM_OUTSTREAM << "Mutations:" << endl;
 			
 			for (int i = 0; i < substitutions_.size(); i++)
 			{
-				cout << i + 1;
-				substitutions_[i]->print(std::cout);
+				SLIM_OUTSTREAM << i + 1;
+				substitutions_[i]->print(SLIM_OUTSTREAM);
 			}
 			
 			break;
@@ -394,7 +390,7 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			auto found_muttype_pair = mutation_types.find(mutation_type_id);
 			
 			if (found_muttype_pair == mutation_types.end())
-				std::cerr << "ERROR (ExecuteEvent): mutation type m" << mutation_type_id << " not defined" << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteEvent): mutation type m" << mutation_type_id << " not defined" << endl << slim_terminate();
 			
 			MutationType *mutation_type_ptr = found_muttype_pair->second;
 			
@@ -411,7 +407,7 @@ void Population::IntroduceMutation(const IntroducedMutation &p_introduced_mutati
 	Subpopulation &introduction_subpop = SubpopulationWithID(p_introduced_mutation.subpop_index_);
 	
 	if (introduction_subpop.child_subpop_size_ < p_introduced_mutation.num_homozygotes_ + p_introduced_mutation.num_heterozygotes_) 
-		cerr << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (predetermined mutation): not enough individuals in subpopulation "<< p_introduced_mutation.subpop_index_ << endl << slim_terminate();
 	
 	const Mutation *new_mutation = new Mutation(p_introduced_mutation.mutation_type_ptr_, p_introduced_mutation.position_, p_introduced_mutation.mutation_type_ptr_->DrawSelectionCoefficient(), p_introduced_mutation.subpop_index_, p_introduced_mutation.generation_);
 	mutation_registry_.push_back(new_mutation);
@@ -466,8 +462,8 @@ void Population::TrackMutations(int p_generation, const std::vector<MutationType
 			// output the frequencies of these mutations in each subpopulation
 			for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
 			{ 
-				cout << "#OUT: " << p_generation << " T p" << subpop_pair.first << " ";
-				polymorphism_pair.second.print(cout, polymorphism_pair.first, false /* no id */);
+				SLIM_OUTSTREAM << "#OUT: " << p_generation << " T p" << subpop_pair.first << " ";
+				polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first, false /* no id */);
 			}
 		}
 	}
@@ -548,7 +544,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 		total_female_children = total_children - total_male_children;
 		
 		if (total_male_children <= 0 || total_female_children <= 0)
-			cerr << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << endl << slim_terminate();
 	}
 	
 	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
@@ -573,7 +569,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	if (migration_rate_sum <= 1.0)
 		migration_rates[pop_count] = 1.0 - migration_rate_sum;		// the remaining fraction is within-subpopulation mating
 	else
-		cerr << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << endl << slim_terminate();
 	
 	gsl_ran_multinomial(g_rng, migrant_source_count + 1, total_children, migration_rates, num_migrants);
 	
@@ -595,9 +591,9 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			int female_migrants = migrants_to_generate - male_migrants;
 			
 			if (male_migrants < 0 || female_migrants < 0)
-				cerr << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << endl << slim_terminate();
 			if (female_migrants < number_to_self)
-				cerr << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_migrants << " to satisfy selfing demand " << number_to_self << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_migrants << " to satisfy selfing demand " << number_to_self << endl << slim_terminate();
 			
 			// generate females first
 			while (migrant_count < female_migrants)
@@ -678,9 +674,9 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 		int female_natives = natives_to_generate - male_natives;
 		
 		if (male_natives < 0 || female_natives < 0)
-			cerr << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << endl << slim_terminate();
 		if (female_natives < number_to_self)
-			cerr << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_natives << " to satisfy selfing demand " << number_to_self << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_natives << " to satisfy selfing demand " << number_to_self << endl << slim_terminate();
 		
 		// generate females first
 		while (native_count < female_natives) 
@@ -762,7 +758,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	// mutations (r2 <= x     ) assigned from p1
 	
 	if (p_child_sex == IndividualSex::kUnspecified)
-		cerr << "ERROR (CrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (CrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << endl << slim_terminate();
 	
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
@@ -778,16 +774,16 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
-			cerr << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 1)" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 1)" << endl << slim_terminate();
 	}
 	else
 	{
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
 		if (p_child_sex == IndividualSex::kHermaphrodite)
-			cerr << "ERROR (CrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (CrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << endl << slim_terminate();
 		
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
-			cerr << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 2)" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 2)" << endl << slim_terminate();
 		
 		if (child_genome_type == GenomeType::kXChromosome)
 		{
@@ -795,7 +791,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			{
 				// If our parent is male (XY or YX), then we have a mismatch, because we're supposed to be male and we're supposed to be getting an X chromosome, but the X must come from the female
 				if (parent1_genome_type == GenomeType::kYChromosome || parent2_genome_type == GenomeType::kYChromosome)
-					cerr << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 3)" << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 3)" << endl << slim_terminate();
 				
 				// else: we're doing inheritance from the female (XX) to get our X chromosome; we treat this just like the autosomal case
 			}
@@ -817,7 +813,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		else // (child_genome_type == GenomeType::kYChromosome), so p_child_sex == IndividualSex::kMale
 		{
 			if (p_child_sex == IndividualSex::kFemale)
-				cerr << "ERROR (CrossoverMutation): A female child is requested but the child genome is a Y chromosome" << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (CrossoverMutation): A female child is requested but the child genome is a Y chromosome" << endl << slim_terminate();
 			
 			if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 			{
@@ -832,7 +828,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			else
 			{
 				// else: we're doing inheritance from the female (XX) to get a Y chromosome, so this is a mismatch
-				cerr << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 4)" << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 4)" << endl << slim_terminate();
 			}
 		}
 	}
@@ -860,13 +856,13 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		{
 			// If we're trying to cross over, both parental strands had better be null
 			if (!parent_genome_1->IsNull() || !parent_genome_2->IsNull())
-				cerr << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << endl << slim_terminate();
 		}
 		else
 		{
 			// So we are not crossing over, and we are supposed to use strand 1; it should also be null, otherwise something has gone wrong
 			if (!parent_genome_1->IsNull())
-				cerr << "Child genome is null, but the parental strand is not" << endl << slim_terminate();
+				SLIM_TERMINATION << "Child genome is null, but the parental strand is not" << endl << slim_terminate();
 		}
 		
 		// a null strand cannot cross over and cannot mutate, so we are done
@@ -874,10 +870,10 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	}
 	
 	if (use_only_strand_1 && parent_genome_1->IsNull())
-		cerr << "Child genome is non-null, but the parental strand is null" << endl << slim_terminate();
+		SLIM_TERMINATION << "Child genome is non-null, but the parental strand is null" << endl << slim_terminate();
 	
 	if (!use_only_strand_1 && (parent_genome_1->IsNull() || parent_genome_2->IsNull()))
-		cerr << "Child genome is non-null, but a parental strand is null" << endl << slim_terminate();
+		SLIM_TERMINATION << "Child genome is non-null, but a parental strand is null" << endl << slim_terminate();
 	
 	//
 	//	OK!  We should have covered all error cases above, so we can now proceed with more alacrity.  We just need to follow
@@ -1115,10 +1111,10 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 void Population::SwapGenerations(int p_generation)
 {
 	// go through all genomes and increment mutation reference counts
-	int total_genome_count = TallyMutationReferences();
+	total_genome_count_ = TallyMutationReferences();
 	
 	// remove any mutations that have been eliminated or have fixed
-	RemoveFixedMutations(p_generation, total_genome_count);
+	RemoveFixedMutations(p_generation, total_genome_count_);
 	
 	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
 #if DEBUG_MUTATION_ZOMBIES
@@ -1196,7 +1192,7 @@ void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count
 		if (reference_count == 0)
 		{
 #if DEBUG_MUTATIONS
-			cerr << "Mutation unreferenced, will remove: " << mutation << endl;
+			SLIM_ERRSTREAM << "Mutation unreferenced, will remove: " << mutation << endl;
 #endif
 			
 			// We have an unreferenced mutation object, so we want to remove it quickly
@@ -1233,7 +1229,7 @@ void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count
 		else if (reference_count == p_total_genome_count)
 		{
 #if DEBUG_MUTATIONS
-			cerr << "Mutation fixed, will substitute: " << mutation << endl;
+			SLIM_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;
 #endif
 			
 			// If this mutation was counted in every genome, then it is fixed; log it
@@ -1269,7 +1265,7 @@ void Population::CheckMutationRegistry(void)
 	// first check that we don't have any zombies in our registry
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		if ((*registry_iter)->reference_count_ == -1)
-			cerr << "Zombie found in registry with address " << (*registry_iter) << endl;
+			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
 	
 	// then check that we don't have any zombies in any genomes
 	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
@@ -1289,7 +1285,7 @@ void Population::CheckMutationRegistry(void)
 				
 				for (; genome_iter != genome_end_iter; ++genome_iter)
 					if ((*genome_iter)->reference_count_ == -1)
-						cerr << "Zombie found in genome with address " << (*genome_iter) << endl;
+						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
 			}
 		}
 	}
@@ -1407,12 +1403,12 @@ void Population::PrintAll(std::ostream &p_out) const
 void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p_requested_sex) const
 {
 	if (!child_generation_valid)
-		cerr << "ERROR (PrintSample): called when the child generation was not valid" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (PrintSample): called when the child generation was not valid" << endl << slim_terminate();
 	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
 	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		cerr << "ERROR (PrintSample): called to output Y chromosomes from females" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << endl << slim_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<int> sample; 
@@ -1434,23 +1430,23 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 	}
 	
 	// print the sample's polymorphisms
-	cout << "Mutations:"  << endl;
+	SLIM_OUTSTREAM << "Mutations:"  << endl;
 	
 	for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.print(cout, polymorphism_pair.first);
+		polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first);
 	
 	// print the sample's genomes
-	cout << "Genomes:" << endl;
+	SLIM_OUTSTREAM << "Genomes:" << endl;
 	
 	for (int j = 0; j < sample.size(); j++)														// go through all children
 	{
 		Genome &genome = subpop.child_genomes_[sample[j]];
 		
-		cout << "p" << p_subpop_id << ":" << sample[j] + 1 << " " << genome.GenomeType();
+		SLIM_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] + 1 << " " << genome.GenomeType();
 		
 		if (genome.IsNull())
 		{
-			cout << " <null>";
+			SLIM_OUTSTREAM << " <null>";
 		}
 		else
 		{
@@ -1458,11 +1454,11 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 			{
 				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, *genome[k]);
 				
-				cout << " " << mutation_id;
+				SLIM_OUTSTREAM << " " << mutation_id;
 			}
 		}
 		
-		cout << endl;
+		SLIM_OUTSTREAM << endl;
 	}
 }
 
@@ -1470,12 +1466,12 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
 {
 	if (!child_generation_valid)
-		cerr << "ERROR (PrintSample_ms): called when the child generation was not valid" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (PrintSample_ms): called when the child generation was not valid" << endl << slim_terminate();
 	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
 	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		cerr << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << endl << slim_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<int> sample; 
@@ -1497,17 +1493,17 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	}
 	
 	// print header
-	cout << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
+	SLIM_OUTSTREAM << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
 	
 	// print the sample's positions
 	if (polymorphisms.size() > 0)
 	{
-		cout << "positions:";
+		SLIM_OUTSTREAM << "positions:";
 		
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-			cout << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first + 1) / (p_chromosome.length_ + 1); 
+			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first + 1) / (p_chromosome.length_ + 1); 
 		
-		cout << endl;
+		SLIM_OUTSTREAM << endl;
 	}
 	
 	// print the sample's genotypes
@@ -1533,7 +1529,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 			}
 		}
 		
-		cout << genotype << endl;
+		SLIM_OUTSTREAM << genotype << endl;
 	}
 }
 

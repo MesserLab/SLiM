@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
+        <plugIn identifier="com.apple.WebKitIBPlugin" version="6254"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="AppDelegate">
+            <connections>
+                <outlet property="aboutVersionTextField" destination="WB2-cU-hkd" id="CNZ-WA-EUh"/>
+                <outlet property="aboutWebView" destination="phj-Uk-cfr" id="WHx-Y9-dPr"/>
+                <outlet property="aboutWindow" destination="QvC-M9-y7g" id="7vI-I4-hc5"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="745" width="619" height="502"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
+            <view key="contentView" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="619" height="502"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="CxN-ue-roS">
+                        <rect key="frame" x="20" y="354" width="128" height="128"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="128" id="rVI-r9-sd7"/>
+                            <constraint firstAttribute="width" constant="128" id="sfg-xt-7oO"/>
+                        </constraints>
+                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSApplicationIcon" id="6vw-j2-cwW"/>
+                    </imageView>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wDw-79-A4b">
+                        <rect key="frame" x="175" y="443" width="297" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="SLiMgui : A graphical user interface for SLiM" id="sJB-jI-icR">
+                            <font key="font" metaFont="systemBold"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9KH-lz-tf6">
+                        <rect key="frame" x="175" y="375" width="274" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="By Benjamin C. Haller, http://benhaller.com/" id="cag-MY-und">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="C4q-EC-cXM">
+                        <rect key="frame" x="175" y="418" width="387" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/software/" id="jqg-yt-Wpi">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cD8-Mz-qIr">
+                        <rect key="frame" x="175" y="400" width="334" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Copyright © 2015 Philipp Messer.  All rights reserved." id="jZm-bw-sGW">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WB2-cU-hkd">
+                        <rect key="frame" x="545" y="465" width="56" height="17"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="52" id="SBS-mC-L6n"/>
+                            <constraint firstAttribute="height" constant="17" id="kLz-az-BTI"/>
+                        </constraints>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="version" id="15F-WF-Zi9">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <box autoresizesSubviews="NO" borderWidth="0.0" boxType="oldStyle" borderType="line" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="VAa-Uu-Ccu">
+                        <rect key="frame" x="20" y="20" width="579" height="314"/>
+                        <view key="contentView">
+                            <rect key="frame" x="1" y="1" width="577" height="312"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <webView maintainsBackForwardList="NO" translatesAutoresizingMaskIntoConstraints="NO" id="phj-Uk-cfr">
+                                    <rect key="frame" x="-1" y="-1" width="579" height="314"/>
+                                    <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
+                                        <nil key="identifier"/>
+                                    </webPreferences>
+                                    <connections>
+                                        <outlet property="policyDelegate" destination="-2" id="xze-uw-031"/>
+                                    </connections>
+                                </webView>
+                            </subviews>
+                        </view>
+                        <constraints>
+                            <constraint firstItem="phj-Uk-cfr" firstAttribute="leading" secondItem="VAa-Uu-Ccu" secondAttribute="leading" id="0j0-aw-Duh"/>
+                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="314" id="3Rk-2o-5VI"/>
+                            <constraint firstAttribute="trailing" secondItem="phj-Uk-cfr" secondAttribute="trailing" id="88g-RR-fLn"/>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="579" id="VkB-Ey-jMZ"/>
+                            <constraint firstAttribute="bottom" secondItem="phj-Uk-cfr" secondAttribute="bottom" id="XPL-Jt-Ra4"/>
+                            <constraint firstItem="phj-Uk-cfr" firstAttribute="top" secondItem="VAa-Uu-Ccu" secondAttribute="top" id="cyf-bg-Zf9"/>
+                        </constraints>
+                        <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
+                        <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                    </box>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="VAa-Uu-Ccu" firstAttribute="top" secondItem="CxN-ue-roS" secondAttribute="bottom" constant="20" id="7rH-XA-pQx"/>
+                    <constraint firstAttribute="trailing" secondItem="WB2-cU-hkd" secondAttribute="trailing" constant="20" id="DNR-LT-Q4b"/>
+                    <constraint firstItem="C4q-EC-cXM" firstAttribute="leading" secondItem="wDw-79-A4b" secondAttribute="leading" id="HW0-by-DLL"/>
+                    <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="C4q-EC-cXM" secondAttribute="leading" id="JdI-QS-ppx"/>
+                    <constraint firstItem="WB2-cU-hkd" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="Jzj-ki-KJ3"/>
+                    <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="-39" id="SgS-FZ-ZOF"/>
+                    <constraint firstItem="cD8-Mz-qIr" firstAttribute="top" secondItem="C4q-EC-cXM" secondAttribute="bottom" constant="1" id="TsK-bf-Azp"/>
+                    <constraint firstItem="CxN-ue-roS" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="b1f-cV-8HA"/>
+                    <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="9KH-lz-tf6" secondAttribute="leading" id="chO-2v-wka"/>
+                    <constraint firstAttribute="bottom" secondItem="VAa-Uu-Ccu" secondAttribute="bottom" constant="20" id="fMc-xt-Ej8"/>
+                    <constraint firstItem="C4q-EC-cXM" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="8" id="iNQ-B5-u82"/>
+                    <constraint firstItem="9KH-lz-tf6" firstAttribute="top" secondItem="cD8-Mz-qIr" secondAttribute="bottom" constant="8" id="sch-36-LNf"/>
+                    <constraint firstItem="VAa-Uu-Ccu" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="vhy-wf-L8e"/>
+                    <constraint firstAttribute="trailing" secondItem="VAa-Uu-Ccu" secondAttribute="trailing" constant="20" id="xUa-48-xh4"/>
+                    <constraint firstItem="wDw-79-A4b" firstAttribute="leading" secondItem="CxN-ue-roS" secondAttribute="trailing" constant="29" id="z2U-EL-tOb"/>
+                    <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zxo-Hp-C8e"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="695.5" y="478"/>
+        </window>
+    </objects>
+    <resources>
+        <image name="NSApplicationIcon" width="128" height="128"/>
+    </resources>
+</document>

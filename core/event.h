@@ -58,6 +58,7 @@ public:
 	
 	Event(const Event&) = delete;										// no copying
 	Event& operator=(const Event&) = delete;							// no copying
+	Event(void) = delete;												// no null construction
 	Event(char p_event_type, std::vector<std::string> p_parameters);	// construct an event with a given type and parameters
 };
 

@@ -45,6 +45,7 @@ public:
 	
 	PartialSweep(const PartialSweep&) = delete;
 	PartialSweep& operator=(const PartialSweep&) = delete;
+	PartialSweep(void) = delete;										// no null construction
 	PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence);
 };
 

@@ -27,9 +27,13 @@
 #include "slim_global.h"
 
 
+Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), length_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+{
+}
+
 Chromosome::~Chromosome(void)
 {
-	//std::cerr << "Chromosome::~Chromosome" << std::endl;
+	//SLIM_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
 	
 	if (lookup_mutation)
 		gsl_ran_discrete_free(lookup_mutation);
@@ -42,11 +46,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		std::cerr << "ERROR (Initialize): empty chromosome" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): empty chromosome" << std::endl << slim_terminate();
 	if (recombination_rates_.size() == 0)
-		std::cerr << "ERROR (Initialize): recombination rate not specified" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): recombination rate not specified" << std::endl << slim_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-		std::cerr << "ERROR (Initialize): invalid mutation rate" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << std::endl << slim_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	length_ = 0;
@@ -74,6 +78,8 @@ void Chromosome::InitializeDraws(void)
 	// calculate the overall recombination rate and the lookup table for breakpoints
 	double B[recombination_rates_.size()];
 	
+	overall_recombination_rate_ = 0.0;
+	
 	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);
 	overall_recombination_rate_ += B[0];
 	
@@ -85,6 +91,8 @@ void Chromosome::InitializeDraws(void)
 		if (recombination_end_positions_[i] > length_)
 			length_ = recombination_end_positions_[i];
 	}
+	
+	// SLIM_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
 	
 	if (lookup_recombination)
 		gsl_ran_discrete_free(lookup_recombination);
@@ -100,13 +108,13 @@ void Chromosome::InitializeDraws(void)
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
-//	std::cout << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
-//	std::cout << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
-//	std::cout << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
-//	std::cout << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
-//	std::cout << "prob_both_0 == " << prob_both_0 << std::endl;
-//	std::cout << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
-//	std::cout << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
+//	SLIM_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	exp_neg_overall_mutation_rate_ = prob_mutation_0;
 	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;

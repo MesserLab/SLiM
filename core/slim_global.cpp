@@ -24,6 +24,19 @@
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <ctype.h>
+#include <stdexcept>
+
+
+// Stuff that changes depending on whether we're building inside SLiMgui or as a standalone tool
+#ifdef SLIMGUI
+
+std::ostringstream gSLiMOut;
+std::ostringstream gSLiMTermination;
+bool gSLiMTerminated;
+
+#else
+
+#endif
 
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
@@ -191,13 +204,22 @@ std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator
 	
 	if (p_terminator.print_backtrace_)
 	{
-		if (p_out == std::cout)
+		if (p_out == SLIM_OUTSTREAM)
 			print_stacktrace(stdout);
 		else
 			print_stacktrace(stderr);
 	}
 	
+#if SLIMGUI
+	// In SLiMgui, slim_terminate() throws an exception that gets caught by SLiMSim.  That invalidates the simulation object, and
+	// causes SLiMgui to display an error message and ends the simulation run, but it does not terminate the app.
+	throw std::runtime_error("A runtime error occurred in SLiM");
+#else
+	// In the SLiM command-line tool, slim_terminate() does in fact terminate
 	exit(EXIT_FAILURE);
+#endif
+	
+	return p_out;
 }
 
 

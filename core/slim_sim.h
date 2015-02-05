@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "mutation.h"
 #include "mutation_type.h"
@@ -39,11 +40,20 @@
 #include "event.h"
 
 
+extern int gLineNumberOfParseError;	// set by CheckInputFile() and used by SLiMgui
+
+
 class SLiMSim
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+#ifdef SLIMGUI
+public:
+	
+	bool simulationValid = true;													// set to false if a terminating condition is encountered while running in SLiMgui
+#else
 private:
+#endif
 	
 	int time_start_ = 0;															// the first generation number for which the simulation will run
 	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
@@ -67,18 +77,19 @@ private:
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	// private initialization methods
-	void CheckInputFile(const char *p_input_file);									// check an input file for correctness and exit with a good error message if there is a problem
+	static std::string CheckInputFile(std::istream &infile);						// check an input file for correctness and exit with a good error message if there is a problem
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
-	void InitializeFromFile(const char *p_input_file);								// parse a (previously checked) input file and set up the simulation state from its contents
+	void InitializeFromFile(std::istream &infile);									// parse a (previously checked) input file and set up the simulation state from its contents
 	
 public:
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
+	SLiMSim(std::istream &infile, int *p_override_seed_ptr = nullptr);				// construct a SLiMSim from an input stream, with an optional RNG seed value
 	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
 	~SLiMSim(void);																	// destructor
 	
-	void RunOneGeneration(void);													// run a single simulation generation and advance the generation counter
+	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end
 	
 	// accessors

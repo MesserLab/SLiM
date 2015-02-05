@@ -28,6 +28,27 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
+
+
+// If we're running inside SLiMgui, we use a global ostringstream to capture all output to both the output and error streams.
+// This stream gets emptied out after every call out to SLiMSim, so a single stream can be safely used by all of the SLiMSim
+// instances running inside SLiMgui (because we do not multithread).  We also have a special stream for termination messages.
+#ifdef SLIMGUI
+
+extern std::ostringstream gSLiMOut;
+extern std::ostringstream gSLiMTermination;
+#define SLIM_OUTSTREAM		(gSLiMOut)
+#define SLIM_ERRSTREAM		(gSLiMOut)
+#define SLIM_TERMINATION	(gSLiMTermination)
+
+#else
+
+#define SLIM_OUTSTREAM		(std::cout)
+#define SLIM_ERRSTREAM		(std::cerr)
+#define SLIM_TERMINATION	(std::cerr)
+
+#endif
 
 
 // Debugging #defines that can be turned on
@@ -52,7 +73,7 @@ public:
 	slim_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace) {};	// optionally request a backtrace
 };
 
-std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator);
+std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator);	// note this returns void, not std::ostream&; that is deliberate
 
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat

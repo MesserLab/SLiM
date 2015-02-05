@@ -26,7 +26,6 @@
 #include "slim_global.h"
 
 
-using std::cerr;
 using std::endl;
 using std::string;
 
@@ -37,9 +36,9 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 	static string possible_dfe_types = "fge";
 	
 	if (possible_dfe_types.find(dfe_type_) == string::npos)
-		cerr << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << endl << slim_terminate();
 	if (dfe_parameters_.size() == 0)
-		cerr << "ERROR (Initialize): invalid mutation type parameters" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << endl << slim_terminate();
 }
 
 double MutationType::DrawSelectionCoefficient() const
@@ -49,7 +48,7 @@ double MutationType::DrawSelectionCoefficient() const
 		case 'f': return dfe_parameters_[0];
 		case 'g': return gsl_ran_gamma(g_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
 		case 'e': return gsl_ran_exponential(g_rng, dfe_parameters_[0]);
-		default: cerr << "ERROR (DrawSelectionCoefficient): invalid DFE type" << endl << slim_terminate(); return 0;
+		default: SLIM_TERMINATION << "ERROR (DrawSelectionCoefficient): invalid DFE type" << endl << slim_terminate(); return 0;
 	}
 }
 

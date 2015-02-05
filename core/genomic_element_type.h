@@ -53,6 +53,7 @@ public:
 	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
+	GenomicElementType(void) = delete;									// no null construction
 	GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	~GenomicElementType(void);
 	

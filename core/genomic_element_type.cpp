@@ -27,7 +27,7 @@ GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vecto
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
 {
 	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
-		std::cerr << "ERROR (Initialize): mutation types and fractions have different sizes" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): mutation types and fractions have different sizes" << std::endl << slim_terminate();
 	
 	// Prepare to randomly draw mutation types
 	double A[mutation_type_ptrs_.size()];
@@ -43,7 +43,7 @@ GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vecto
 
 GenomicElementType::~GenomicElementType(void)
 {
-	//std::cerr << "GenomicElementType::~GenomicElementType" << std::endl;
+	//SLIM_ERRSTREAM << "GenomicElementType::~GenomicElementType" << std::endl;
 	
 	if (lookup_mutation_type)
 		gsl_ran_discrete_free(lookup_mutation_type);

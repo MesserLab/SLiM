@@ -34,7 +34,7 @@ void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	std::cerr << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl << slim_terminate();
+	SLIM_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl << slim_terminate();
 }
 
 int main(int argc, char *argv[])
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			std::cerr << "SLiM version 2.0a1, built " << __DATE__ << " " __TIME__ << std::endl;
+			SLIM_ERRSTREAM << "SLiM version 2.0a1, built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	
 	// announce if we are running a debug build
 #ifdef DEBUG
-	std::cerr << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context
 		//delete sim;
+		//gsl_rng_free(g_rng);
 	}
 	
 	// end timing and print elapsed time
@@ -117,7 +118,7 @@ int main(int argc, char *argv[])
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
-		std::cerr << "// ********** CPU time used: " << time_spent << std::endl;
+		SLIM_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
 	
 	return EXIT_SUCCESS;
 }

@@ -69,7 +69,7 @@ public:
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
-	Chromosome(void) = default;												// default constructor
+	Chromosome(void);														// supplied null constructor
 	~Chromosome(void);														// destructor
 	
 	void InitializeDraws(void);												// initialize the random lookup tables used by Chromosome to draw mutation and recombination events

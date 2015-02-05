@@ -32,9 +32,11 @@
 #include "math.h"
 
 
-// this is a globally shared random number generator
-extern const gsl_rng *g_rng; 
-
+// This is a globally shared random number generator.  It is actually per SLiMSim instance, which does not matter for the slim
+// command-line tool, but does matter to SLiMgui; in the latter case, we need to swap this out around calls out to SLiMSim,
+// so that the correct RNG is used for each simulation window.  That is SLiMgui's problem, however, not ours.  Note that the
+// globals for random bit generation below also need to get swapped in and out by SLiMgui.
+extern gsl_rng *g_rng;
 
 // generate a new random number seed from the PID and clock time
 int GenerateSeedFromPIDAndTime(void);
@@ -44,14 +46,14 @@ void InitializeRNGFromSeed(int p_seed);
 
 
 // get a random bool from a random number generator
-//static inline bool g_rng_bool(const gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
+//static inline bool g_rng_bool(gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
 
 // optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
 // I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
 extern int g_random_bool_bit_counter;
 extern unsigned long int g_random_bool_bit_buffer;
 
-static inline __attribute__((always_inline)) bool g_rng_bool(const gsl_rng * r)
+static inline __attribute__((always_inline)) bool g_rng_bool(gsl_rng *r)
 {
 	bool retval;
 	

@@ -24,7 +24,7 @@
 #include <time.h>
 
 
-const gsl_rng *g_rng; 
+gsl_rng *g_rng;
 int g_random_bool_bit_counter = 0;
 unsigned long int g_random_bool_bit_buffer = 0;
 
@@ -44,6 +44,10 @@ void InitializeRNGFromSeed(int p_seed)
 {
 	g_rng = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(g_rng, static_cast<long>(p_seed));
+	
+	// These need to be zeroed out, too; they are part of our RNG state
+	g_random_bool_bit_counter = 0;
+	g_random_bool_bit_buffer = 0;
 }
 
 
