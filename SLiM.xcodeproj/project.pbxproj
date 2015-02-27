@@ -26,6 +26,8 @@
 		98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F551A76004300C058CB /* show_recombination.pdf */; };
 		98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F601A76041200C058CB /* edit_submenu_H.pdf */; };
 		98453F631A76041200C058CB /* edit_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F611A76041200C058CB /* edit_submenu.pdf */; };
+		986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D21AA1337A0000E138 /* graph_submenu_H.pdf */; };
+		986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D31AA1337A0000E138 /* graph_submenu.pdf */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
 		98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */; };
@@ -141,6 +143,8 @@
 		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
+		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
 		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
@@ -370,6 +374,8 @@
 		98D4C1E41A6FD8D600FFB083 /* buttons */ = {
 			isa = PBXGroup;
 			children = (
+				986926D21AA1337A0000E138 /* graph_submenu_H.pdf */,
+				986926D31AA1337A0000E138 /* graph_submenu.pdf */,
 				98453F4C1A76004300C058CB /* open_type_drawer_H.pdf */,
 				98453F4D1A76004300C058CB /* open_type_drawer.pdf */,
 				98453F601A76041200C058CB /* edit_submenu_H.pdf */,
@@ -530,6 +536,7 @@
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
 				98453F441A75AABE00C058CB /* syntax_help_H.pdf in Resources */,
+				986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
@@ -540,6 +547,7 @@
 				98D4C1FE1A700DC100FFB083 /* recycle_H.pdf in Resources */,
 				98453F5D1A76004300C058CB /* show_mutations.pdf in Resources */,
 				98D4C1FC1A700DC100FFB083 /* play_H.pdf in Resources */,
+				986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */,
 				98453F581A76004300C058CB /* show_fixed_H.pdf in Resources */,
 				98D4C2111A71831000FFB083 /* SLiM_manual.pdf in Resources */,
 				98D4C2011A70192A00FFB083 /* SLiMWindow.xib in Resources */,

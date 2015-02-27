@@ -532,6 +532,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	// Set up our menu buttons with their menus
 	[outputCommandsButton setMenu:outputCommandsMenu];
+	[graphCommandsButton setMenu:graphCommandsMenu];
 	[genomeCommandsButton setMenu:genomeCommandsMenu];
 	
 	// Configure our drawer
@@ -663,6 +664,15 @@ static NSDictionary *mutationTypeAttrs = nil;
 	if (sel == @selector(trackMutationType:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
+	if (sel == @selector(graphAlleleFrequencySpectra:))
+		return !(invalidSimulation);
+	if (sel == @selector(graphAlleleFrequencyTrajectories:))
+		return !(invalidSimulation);
+	if (sel == @selector(graphAverageTimeToMutationLoss:))
+		return !(invalidSimulation);
+	if (sel == @selector(graphAverageTimeToMutationFixation:))
+		return !(invalidSimulation);
+	
 	if (sel == @selector(checkScriptTextView:))
 		return !(continuousPlayOn || generationPlayOn);
 	
@@ -748,6 +758,22 @@ static NSDictionary *mutationTypeAttrs = nil;
 }
 
 - (IBAction)trackMutationType:(id)sender
+{
+}
+
+- (IBAction)graphAlleleFrequencySpectra:(id)sender
+{
+}
+
+- (IBAction)graphAlleleFrequencyTrajectories:(id)sender
+{
+}
+
+- (IBAction)graphAverageTimeToMutationLoss:(id)sender
+{
+}
+
+- (IBAction)graphAverageTimeToMutationFixation:(id)sender
 {
 }
 
@@ -841,6 +867,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	// Same for our context menus
 	[outputCommandsMenu update];
+	[graphCommandsMenu update];
 	[genomeCommandsMenu update];
 }
 

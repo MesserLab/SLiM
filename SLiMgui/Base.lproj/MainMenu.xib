@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
     </dependencies>
@@ -335,6 +335,31 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="trackMutationType:" target="-1" id="yGl-Og-uWj"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="AeK-kn-cUy"/>
+                            <menuItem title="Graph Allele Frequency Spectra..." id="o5J-bi-Lxj">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphAlleleFrequencySpectra:" target="-1" id="xrE-6C-LQz"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Graph Allele Frequency Trajectories..." id="sNv-W4-OFs">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphAlleleFrequencyTrajectories:" target="-1" id="sDu-pe-hoY"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Graph Average Time to Mutation Loss..." id="j5A-d1-g8g">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphAverageTimeToMutationLoss:" target="-1" id="sCF-Rw-6Eg"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Graph Average Time to Mutation Fixation..." id="VuN-MA-8hG">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphAverageTimeToMutationFixation:" target="-1" id="km3-vA-RuG"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="0RT-dB-Yr4"/>

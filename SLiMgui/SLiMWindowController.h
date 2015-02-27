@@ -90,6 +90,9 @@
 	IBOutlet SLiMMenuButton *outputCommandsButton;
 	IBOutlet NSMenu *outputCommandsMenu;
 	
+	IBOutlet SLiMMenuButton *graphCommandsButton;
+	IBOutlet NSMenu *graphCommandsMenu;
+	
 	IBOutlet SLiMMenuButton *genomeCommandsButton;
 	IBOutlet NSMenu *genomeCommandsMenu;
 }
@@ -136,6 +139,11 @@
 - (IBAction)outputPopulationSample:(id)sender;
 - (IBAction)outputFixedMutations:(id)sender;
 - (IBAction)trackMutationType:(id)sender;
+
+- (IBAction)graphAlleleFrequencySpectra:(id)sender;
+- (IBAction)graphAlleleFrequencyTrajectories:(id)sender;
+- (IBAction)graphAverageTimeToMutationLoss:(id)sender;
+- (IBAction)graphAverageTimeToMutationFixation:(id)sender;
 
 - (IBAction)playOneStep:(id)sender;
 - (IBAction)play:(id)sender;

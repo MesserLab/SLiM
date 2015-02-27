@@ -1,16 +1,36 @@
-set up testing code for validation, check against old version of the code
-switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
-convert input file parsing to flexc++/bisonc++
-could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
-can we use pointer equality to define equality of mutations, or is the current definition important?
-should we use map instead of multimap?  set?  unordered versions, possibly?
-add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
-should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
+command-line tool:
+	set up testing code for validation, check against old version of the code
+	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
+	convert input file parsing to flexc++/bisonc++
+	could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
+	can we use pointer equality to define equality of mutations, or is the current definition important?
+	should we use map instead of multimap?  set?  unordered versions, possibly?
+	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
+	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
+
 SLiMgui work:
+	add a graphing button
+		mutations over time, histogram of allele frequences (within GEtype, muttype)
+		Maybe some sort of visualization of the demographic model?  Not essential, but could be a nice touch.
+		*Allele frequency spectra
+			Histograms with discrete bins corresponding to allele counts and/or frequency bins.
+			Ability to choose to view only a subset of bins would be nice if possible (many people only want to focus on lower or upper tails of distribution).
+			Separated (colored) by either genomic element or selection coefficients (adv./disadv./neut.).
+		*Allele frequency trajectories (time-series) for mutations.
+			Either all or a select subset of them?
+			Again, colored by either genomic element or selection coefficients
+		Plot of the running average survival time of lost mutations.
+			(or maybe a histogram of all survival times?)
+			Again, colored by either genomic element or selection coefficients
+		Plot of the running average time to fixation
+			(or maybe a histogram of all fixation times?)
+			Again, colored by either genomic element or selection coefficients
 	implement the "new event" buttons
+	make possible to open an output file in the gui, to see the state of a cluster sim
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
+	update documentation - TeXShop latex for mac, might need ghostscript as well
 
 changes to mention in docs:
 	changed comment format from / to //

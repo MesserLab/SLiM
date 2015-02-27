@@ -20,6 +20,8 @@
                 <outlet property="genomicElementTypeIDColumn" destination="mYu-Tp-AnJ" id="JiS-2G-IkK"/>
                 <outlet property="genomicElementTypeMutationTypesColumn" destination="HQN-n3-bmZ" id="H2y-BR-Tbk"/>
                 <outlet property="genomicElementTypeTableView" destination="YFd-nW-pee" id="xaz-sG-Q9p"/>
+                <outlet property="graphCommandsButton" destination="jBY-mF-gPl" id="dAJ-ZH-555"/>
+                <outlet property="graphCommandsMenu" destination="QoY-ma-dgb" id="Dpv-Lw-uS6"/>
                 <outlet property="mutTypeDFEParamsColumn" destination="QI1-51-Ixv" id="JJE-du-qEX"/>
                 <outlet property="mutTypeDFETypeColumn" destination="yb0-yM-lTy" id="ULb-9G-ITm"/>
                 <outlet property="mutTypeDominanceColumn" destination="YfC-9j-8Mz" id="ZWT-nB-hCV"/>
@@ -856,6 +858,24 @@
                                             </binding>
                                         </connections>
                                     </button>
+                                    <button toolTip="show a graph" translatesAutoresizingMaskIntoConstraints="NO" id="jBY-mF-gPl" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
+                                        <rect key="frame" x="173" y="524" width="20" height="20"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="20" id="KJG-l7-7ce"/>
+                                            <constraint firstAttribute="width" constant="20" id="yxs-Pk-tdg"/>
+                                        </constraints>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="graph_submenu" imagePosition="overlaps" alignment="center" alternateImage="graph_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="adY-8u-J23">
+                                            <behavior key="behavior" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="Ghv-mX-Qp0">
+                                                <dictionary key="options">
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                        </connections>
+                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="leading" secondItem="CMF-cK-m13" secondAttribute="trailing" constant="3" id="7tm-sU-ZbI"/>
@@ -867,6 +887,8 @@
                                     <constraint firstAttribute="bottom" secondItem="Fql-QB-8ET" secondAttribute="bottom" id="eG1-oE-QGw"/>
                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="ecm-kO-LbN"/>
                                     <constraint firstItem="sTd-Ob-2rT" firstAttribute="leading" secondItem="25p-qC-Ntg" secondAttribute="trailing" constant="20" id="oZk-Pk-Ch9"/>
+                                    <constraint firstItem="jBY-mF-gPl" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="tPS-7E-bbp"/>
+                                    <constraint firstItem="jBY-mF-gPl" firstAttribute="leading" secondItem="sTd-Ob-2rT" secondAttribute="trailing" constant="3" id="wXu-4G-Wu8"/>
                                     <constraint firstAttribute="trailing" secondItem="Fql-QB-8ET" secondAttribute="trailing" id="xcc-xQ-3Xc"/>
                                     <constraint firstItem="CMF-cK-m13" firstAttribute="leading" secondItem="xzw-Z6-mJs" secondAttribute="leading" id="zCT-7f-R20"/>
                                 </constraints>
@@ -1140,6 +1162,7 @@
                         <action selector="outputFixedMutations:" target="-2" id="QMJ-Ks-GMl"/>
                     </connections>
                 </menuItem>
+                <menuItem isSeparatorItem="YES" id="j1X-E0-oUL"/>
                 <menuItem title="Track Mutation Type..." id="j92-Ya-ezD">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
@@ -1409,6 +1432,36 @@
                 <outlet property="parentWindow" destination="HDg-UE-KLh" id="acS-Je-qvY"/>
             </connections>
         </drawer>
+        <menu showsStateColumn="NO" id="QoY-ma-dgb">
+            <items>
+                <menuItem title="Graph Allele Frequency Spectra..." id="nSF-EQ-VGe">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="graphAlleleFrequencySpectra:" target="-2" id="t1v-4X-x4E"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="Graph Allele Frequency Trajectories..." id="ASe-bx-TuV">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="graphAlleleFrequencyTrajectories:" target="-2" id="7MG-kr-erf"/>
+                    </connections>
+                </menuItem>
+                <menuItem isSeparatorItem="YES" id="b9k-cg-lbP"/>
+                <menuItem title="Graph Average Time to Mutation Loss..." id="8Ee-IZ-PpP">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="graphAverageTimeToMutationLoss:" target="-2" id="5gZ-82-mb8"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="Graph Average Time to Mutation Fixation..." id="Waz-s6-S1f">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="graphAverageTimeToMutationFixation:" target="-2" id="Zh6-3L-yKP"/>
+                    </connections>
+                </menuItem>
+            </items>
+            <point key="canvasLocation" x="1361.5" y="824.5"/>
+        </menu>
     </objects>
     <resources>
         <image name="add_subpop" width="72" height="72"/>
@@ -1424,6 +1477,8 @@
         <image name="dump_output_H" width="137" height="137"/>
         <image name="edit_submenu" width="137" height="137"/>
         <image name="edit_submenu_H" width="137" height="137"/>
+        <image name="graph_submenu" width="137" height="137"/>
+        <image name="graph_submenu_H" width="137" height="137"/>
         <image name="open_type_drawer" width="137" height="137"/>
         <image name="open_type_drawer_H" width="137" height="137"/>
         <image name="play" width="133" height="133"/>
