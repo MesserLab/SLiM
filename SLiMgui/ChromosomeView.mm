@@ -321,7 +321,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	double totalGenomeCount = pop.total_genome_count_;
+	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	Genome &mutationRegistry = pop.mutation_registry_;
 	const Mutation **mutations = mutationRegistry.mutations_;
 	int mutationCount = mutationRegistry.mutation_count_;
@@ -329,11 +329,12 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{
 		const Mutation *mutation = mutations[mutIndex];
-		int mutationPosition = mutation->position_ + 1;		// +1 because the back end is 0-based
+		int32_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+		int mutationPosition = mutation->position_ + 1;					// +1 because the back end is 0-based
 		NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		
-		mutationTickRect.size.height = (int)ceil((mutation->reference_count_ / totalGenomeCount) * interiorRect.size.height);
+		mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
 		RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 		[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 		NSRectFill(mutationTickRect);

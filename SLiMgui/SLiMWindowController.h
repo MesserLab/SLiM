@@ -40,6 +40,7 @@
 	BOOL zoomedChromosomeShowsGenomicElements;
 	BOOL zoomedChromosomeShowsMutations;
 	BOOL zoomedChromosomeShowsFixedSubstitutions;
+	BOOL reloadingSubpopTableview, subpopTableviewHasHadPartialSelection;
 	
 	// outlets
 	IBOutlet NSButton *buttonForDrawer;
@@ -99,7 +100,7 @@
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 - (void)setDefaultScriptStringAndInitializeSimulation;
 
-- (Subpopulation *)selectedSubpopulation;
+- (std::vector<Subpopulation*>)selectedSubpopulations;
 
 - (NSColor *)colorForGenomicElementTypeID:(int)elementTypeID;
 

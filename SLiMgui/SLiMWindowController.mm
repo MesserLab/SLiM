@@ -408,7 +408,52 @@ static NSDictionary *mutationTypeAttrs = nil;
 {
 	// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
 	[self updateOutputTextView];
+	
+	// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
+	// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
+	// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
+	// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
+	reloadingSubpopTableview = YES;
 	[subpopTableView reloadData];
+
+	{
+		Population &population = sim->population_;
+		int subpopCount = (int)population.size();
+		auto popIter = population.begin();
+		NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
+		
+		for (int i = 0; i < subpopCount; ++i)
+		{
+			Subpopulation *subpop = popIter->second;
+			BOOL rowSelected = subpop->gui_selected_;
+			
+			// OK, this is a bit tricky.  Suppose we are just starting a simulation; the subpop tableview is empty.  When a subpop gets added, we want to select
+			// it automatically.  If five subpops get added simultaneously, we want to select them all; it would make no sense to select just the first one.  In
+			// fact, if five subpops get added sequentially, we want to add each one in to the selection as it gets added.  This is because the default mode
+			// should be to show all individuals, for all subpops, in the UI.  But now suppose the user selects just one subpop out of two that exist.  Now they
+			// have expressed a deliberate preference to see only that subpop.  As other subpops get added and removed, we should not override that stated
+			// preference.  So once the tableview has had a partial selection, we should abandon our behavior of automatically extending the selection to new
+			// subpops.  The tricky question is: should we ever go back to the old behavior?  I think we should, if and only if the user selects all (>0)
+			// subpops; that indicates a desire to see everything once again (although it could also be interpreted as a specific desire to see only those
+			// subpops, even as others get added later; but that interpretation seems strained to me).
+			if (!subpopTableviewHasHadPartialSelection)
+			{
+				rowSelected = YES;
+				subpop->gui_selected_ = true;	// since we are now selecting this row, we need to let it know that...
+			}
+			
+			if (rowSelected)
+				[indicesToSelect addIndex:i];
+			
+			popIter++;
+		}
+		
+		[subpopTableView selectRowIndexes:indicesToSelect byExtendingSelection:NO];
+	}
+	
+	reloadingSubpopTableview = NO;
+	
+	// Now update our other UI, some of which depends upon the state of subpopTableView 
 	[subpopTableView setNeedsDisplay];
 	[populationView setNeedsDisplay:YES];
 	[chromosomeZoomed setNeedsDisplay:YES];
@@ -514,25 +559,28 @@ static NSDictionary *mutationTypeAttrs = nil;
 	}
 }
 
-- (Subpopulation *)selectedSubpopulation
+- (std::vector<Subpopulation*>)selectedSubpopulations
 {
-	if (!sim)
-		return nullptr;
+	std::vector<Subpopulation*> selectedSubpops;
 	
-	Population &population = sim->population_;
-	int subpopCount = (int)population.size();
-	NSInteger selectedRow = [subpopTableView selectedRow];
-	
-	if ((selectedRow >= 0) && (selectedRow < subpopCount))
+	if (![self invalidSimulation] && sim)
 	{
+		Population &population = sim->population_;
+		int subpopCount = (int)population.size();
 		auto popIter = population.begin();
 		
-		std::advance(popIter, selectedRow);
-		
-		return popIter->second;
+		for (int i = 0; i < subpopCount; ++i)
+		{
+			Subpopulation *subpop = popIter->second;
+			
+			if (subpop->gui_selected_)
+				selectedSubpops.push_back(subpop);
+			
+			popIter++;
+		}
 	}
 	
-	return nullptr;
+	return selectedSubpops;
 }
 
 - (NSColor *)colorForGenomicElementTypeID:(int)elementTypeID
@@ -1210,6 +1258,51 @@ static NSDictionary *mutationTypeAttrs = nil;
 - (BOOL)tableView:(NSTableView *)tableView shouldTrackCell:(NSCell *)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
 	return NO;
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)aNotification
+{
+	if (!invalidSimulation)
+	{
+		NSTableView *aTableView = [aNotification object];
+		
+		if (aTableView == subpopTableView && !reloadingSubpopTableview)		// see comment in -updateAfterTick after reloadingSubpopTableview
+		{
+			Population &population = sim->population_;
+			int subpopCount = (int)population.size();
+			auto popIter = population.begin();
+			int selectedCount = 0;
+			
+			for (int i = 0; i < subpopCount; ++i)
+			{
+				Subpopulation *subpop = popIter->second;
+				BOOL rowSelected = [subpopTableView isRowSelected:i];
+				
+				subpop->gui_selected_ = rowSelected;
+				
+				// remember if we have ever had anything other than a complete selection; see comments in -updateAfterTick
+				if (rowSelected)
+					selectedCount++;
+				else
+					subpopTableviewHasHadPartialSelection = YES;
+				
+				popIter++;
+			}
+			
+			// If every subpop has been selected (and that is more than zero subpops), the user has expressed a desire to go back to showing
+			// all of the subpops, not a subset.  See comment in -updateAfterTick for more on subpopTableviewHasHadPartialSelection.
+			if ((selectedCount == subpopCount) && (subpopCount > 0))
+				subpopTableviewHasHadPartialSelection = NO;
+			
+			// If the selection has changed, that means that the mutation tallies need to be recomputed
+			population.TallyMutationReferences();
+			
+			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
+			// selection changes should not happen often, so we can just always update, I think.
+			[populationView setNeedsDisplay:YES];
+			[chromosomeZoomed setNeedsDisplay:YES];
+		}
+	}
 }
 
 

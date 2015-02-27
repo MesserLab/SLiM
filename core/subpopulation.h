@@ -68,6 +68,11 @@ public:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
 	double x_chromosome_dominance_coeff_ = 1.0;						// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
+	// If we're running inside SLiMgui, we keep track of whether or not we are selected in the table of subpopulations; easiest to keep that information here.
+#ifdef SLIMGUI
+	bool gui_selected_ = false;
+#endif
+	
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction

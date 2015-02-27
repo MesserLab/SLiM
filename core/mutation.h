@@ -46,6 +46,9 @@ public:
 	const int32_t subpop_index_;						// subpopulation in which mutation arose
 	const int32_t generation_;							// generation in which mutation arose
 	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
+#ifdef SLIMGUI
+	mutable int32_t gui_reference_count_;				// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui
+#endif
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
