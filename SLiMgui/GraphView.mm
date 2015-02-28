@@ -1,8 +1,8 @@
 //
-//  PopulationView.h
+//  GraphView.m
 //  SLiM
 //
-//  Created by Ben Haller on 1/21/15.
+//  Created by Ben Haller on 2/27/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -18,9 +18,13 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#import <Cocoa/Cocoa.h>
+#import "GraphView.h"
 
-@interface PopulationView : NSOpenGLView
+
+@implementation GraphView
+
+- (void)drawRect:(NSRect)dirtyRect
 {
 }
+
 @end

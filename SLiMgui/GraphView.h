@@ -1,8 +1,8 @@
 //
-//  PopulationView.h
+//  GraphView.h
 //  SLiM
 //
-//  Created by Ben Haller on 1/21/15.
+//  Created by Ben Haller on 2/27/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -20,7 +20,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface PopulationView : NSOpenGLView
-{
-}
+
+@interface GraphView : NSView
+
 @end
