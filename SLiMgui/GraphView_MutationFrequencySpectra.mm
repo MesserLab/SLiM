@@ -33,8 +33,8 @@
 		[self setXAxisMinorTickInterval:0.1];
 		[self setXAxisMajorTickModulus:2];
 		[self setXAxisTickValuePrecision:1];
-		[self setXAxisLabelString:@"Mutation frequency"];
 		
+		[self setXAxisLabelString:@"Mutation frequency"];
 		[self setYAxisLabelString:@"Proportion of mutations"];
 		
 		[self setShowHorizontalGridLines:YES];
@@ -87,7 +87,7 @@
 		if (mutationBin == binCount)
 			mutationBin = binCount - 1;
 		
-		(spectrum[mutationBin + mutationTypeIndex * binCount])++;	// all bins in sequence for one mutation type, then for the next, etc.
+		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
 	}
 	
 	// return the final tally; note this is a pointer in to our static ivar, and must not be freed!
@@ -107,103 +107,17 @@
 		total += spectrum[i];
 	
 	// plot our histogram bars
-	for (int i = 0; i < binCount; ++i)
-	{
-		double binMinFrequency = i / (double)binCount;
-		double binMaxFrequency = (i + 1) / (double)binCount;
-		double barLeft = [self roundPlotToDeviceX:binMinFrequency withInteriorRect:interiorRect] + 1.5;
-		double barRight = [self roundPlotToDeviceX:binMaxFrequency withInteriorRect:interiorRect] - 1.5;
-		
-		for (int j = 0; j < mutationTypeCount; ++j)
-		{
-			uint32 binValue = spectrum[i + j * binCount];
-			double barBottom = interiorRect.origin.y - 1;
-			double barTop = (binValue == 0 ? interiorRect.origin.y - 1 : [self roundPlotToDeviceY:binValue / (double)total withInteriorRect:interiorRect] + 0.5);
-			NSRect barRect = NSMakeRect(barLeft, barBottom, barRight - barLeft, barTop - barBottom);
-			
-			if (barRect.size.height > 0.0)
-			{
-				// subdivide into sub-bars for each mutation type, if there is more than one
-				if (mutationTypeCount > 1)
-				{
-					double barWidth = barRect.size.width;
-					double subBarWidth = (barWidth - 1) / mutationTypeCount;
-					double subbarLeft = SCREEN_ROUND(barRect.origin.x + j * subBarWidth);
-					double subbarRight = SCREEN_ROUND(barRect.origin.x + (j + 1) * subBarWidth) + 1;
-					
-					barRect.origin.x = subbarLeft;
-					barRect.size.width = subbarRight - subbarLeft;
-				}
-				
-				// fill and fill
-				[[SLiMWindowController colorForIndex:j] set];
-				NSRectFill(barRect);
-				
-				[[NSColor blackColor] set];
-				NSFrameRect(barRect);
-			}
-		}
-	}
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum bufferLength:spectrumBins subBinCount:mutationTypeCount mainBinCount:binCount heightNormalizer:(double)total];
 }
 
 - (NSSize)legendSize
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
-	
-	// If we only have one mutation type, do not show a legend
-	if (mutationTypeCount < 2)
-		return NSZeroSize;
-	
-	const int legendRowHeight = 15;
-	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
-	auto mutationTypeIter = sim->mutation_types_.begin();
-	NSSize legendSize = NSMakeSize(0, legendRowHeight * mutationTypeCount - 6);
-	
-	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
-	{
-		MutationType *mutationType = (*mutationTypeIter).second;
-		NSRect swatchRect = NSMakeRect(0, ((mutationTypeCount - 1) * legendRowHeight) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
-		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
-		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
-		NSSize labelSize = [label size];
-		
-		legendSize.width = MAX(legendSize.width, swatchRect.origin.x + swatchRect.size.width + 5 + labelSize.width);
-		[label release];
-	}
-	
-	//NSLog(@"mutationTypeCount == %d, legendSize == %@", mutationTypeCount, NSStringFromSize(legendSize));
-	return legendSize;
+	return [self mutationTypeLegendSize];	// we use the prefab mutation type legend
 }
 
 - (void)drawLegendInRect:(NSRect)legendRect
 {
-	const int legendRowHeight = 15;
-	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
-	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
-	auto mutationTypeIter = sim->mutation_types_.begin();
-	
-	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
-	{
-		MutationType *mutationType = (*mutationTypeIter).second;
-		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((mutationTypeCount - 1) * legendRowHeight - 3) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
-		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
-		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
-		
-		[[SLiMWindowController colorForIndex:i] set];
-		NSRectFill(swatchRect);
-		
-		[[NSColor blackColor] set];
-		NSFrameRect(swatchRect);
-		
-		[label drawAtPoint:NSMakePoint(swatchRect.origin.x + swatchRect.size.width + 5, swatchRect.origin.y - 2)];
-		[label release];
-	}
-	
-	//NSLog(@"drawLegendInRect: %@", NSStringFromRect(legendRect));
+	[self drawMutationTypeLegendInRect:legendRect];		// we use the prefab mutation type legend
 }
 
 @end

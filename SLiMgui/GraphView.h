@@ -93,7 +93,19 @@
 
 @end
 
+@interface GraphView (PrefabAdditions)
 
+// a prefab legend that shows all of the mutation types, with color swatches and labels
+- (NSSize)mutationTypeLegendSize;
+- (void)drawMutationTypeLegendInRect:(NSRect)legendRect;
+
+// a prefab method to draw simple barplots
+- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount heightNormalizer:(double)heightNormalizer;
+
+// a prefab method to draw grouped barplots
+- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount heightNormalizer:(double)heightNormalizer;
+
+@end
 
 
 

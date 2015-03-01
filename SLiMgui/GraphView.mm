@@ -605,6 +605,113 @@
 @end
 
 
+@implementation GraphView (PrefabAdditions)
+
+- (NSSize)mutationTypeLegendSize
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	SLiMSim *sim = controller->sim;
+	int mutationTypeCount = (int)sim->mutation_types_.size();
+	
+	// If we only have one mutation type, do not show a legend
+	if (mutationTypeCount < 2)
+		return NSZeroSize;
+	
+	const int legendRowHeight = 15;
+	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
+	auto mutationTypeIter = sim->mutation_types_.begin();
+	NSSize legendSize = NSMakeSize(0, legendRowHeight * mutationTypeCount - 6);
+	
+	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
+	{
+		MutationType *mutationType = (*mutationTypeIter).second;
+		NSRect swatchRect = NSMakeRect(0, ((mutationTypeCount - 1) * legendRowHeight) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
+		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
+		NSSize labelSize = [label size];
+		
+		legendSize.width = MAX(legendSize.width, swatchRect.origin.x + swatchRect.size.width + 5 + labelSize.width);
+		[label release];
+	}
+	
+	return legendSize;
+}
+
+- (void)drawMutationTypeLegendInRect:(NSRect)legendRect
+{
+	const int legendRowHeight = 15;
+	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
+	SLiMWindowController *controller = [self slimWindowController];
+	SLiMSim *sim = controller->sim;
+	int mutationTypeCount = (int)sim->mutation_types_.size();
+	auto mutationTypeIter = sim->mutation_types_.begin();
+	
+	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
+	{
+		MutationType *mutationType = (*mutationTypeIter).second;
+		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((mutationTypeCount - 1) * legendRowHeight - 3) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
+		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
+		
+		[[SLiMWindowController colorForIndex:i] set];
+		NSRectFill(swatchRect);
+		
+		[[NSColor blackColor] set];
+		NSFrameRect(swatchRect);
+		
+		[label drawAtPoint:NSMakePoint(swatchRect.origin.x + swatchRect.size.width + 5, swatchRect.origin.y - 2)];
+		[label release];
+	}
+}
+
+- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount heightNormalizer:(double)heightNormalizer
+{
+	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
+	{
+		double binMinFrequency = mainBinIndex / (double)mainBinCount;
+		double binMaxFrequency = (mainBinIndex + 1) / (double)mainBinCount;
+		double barLeft = [self roundPlotToDeviceX:binMinFrequency withInteriorRect:interiorRect] + 1.5;
+		double barRight = [self roundPlotToDeviceX:binMaxFrequency withInteriorRect:interiorRect] - 1.5;
+		
+		for (int subBinIndex = 0; subBinIndex < subBinCount; ++subBinIndex)
+		{
+			int actualBinIndex = subBinIndex + mainBinIndex * subBinCount;
+			uint32 binValue = (actualBinIndex < bufferLength) ? buffer[actualBinIndex] : 0;		// clients are allowed to pass a buffer that is too short; we assume zeros
+			double barBottom = interiorRect.origin.y - 1;
+			double barTop = (binValue == 0 ? interiorRect.origin.y - 1 : [self roundPlotToDeviceY:(binValue / heightNormalizer) withInteriorRect:interiorRect] + 0.5);
+			NSRect barRect = NSMakeRect(barLeft, barBottom, barRight - barLeft, barTop - barBottom);
+			
+			if (barRect.size.height > 0.0)
+			{
+				// subdivide into sub-bars for each mutation type, if there is more than one
+				if (subBinCount > 1)
+				{
+					double barWidth = barRect.size.width;
+					double subBarWidth = (barWidth - 1) / subBinCount;
+					double subbarLeft = SCREEN_ROUND(barRect.origin.x + subBinIndex * subBarWidth);
+					double subbarRight = SCREEN_ROUND(barRect.origin.x + (subBinIndex + 1) * subBarWidth) + 1;
+					
+					barRect.origin.x = subbarLeft;
+					barRect.size.width = subbarRight - subbarLeft;
+				}
+				
+				// fill and fill
+				[[SLiMWindowController colorForIndex:subBinIndex] set];
+				NSRectFill(barRect);
+				
+				[[NSColor blackColor] set];
+				NSFrameRect(barRect);
+			}
+		}
+	}
+}
+
+- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount heightNormalizer:(double)heightNormalizer
+{
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:buffer bufferLength:bufferLength subBinCount:1 mainBinCount:binCount heightNormalizer:heightNormalizer];
+}
+
+@end
 
 
 
