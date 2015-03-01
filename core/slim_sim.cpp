@@ -133,50 +133,61 @@ SLiMSim::~SLiMSim(void)
 
 bool SLiMSim::RunOneGeneration(void)
 {
-	if (simulationValid && (generation_ < time_start_ + time_duration_))
+#ifdef SLIMGUI
+	if (simulationValid)
 	{
-		try
+#endif
+		if (generation_ < time_start_ + time_duration_)
 		{
-			// execute demographic and substructure events in this generation 
-			std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> event_range = events_.equal_range(generation_);
-			
-			for (multimap<const int,Event*>::iterator eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
-				population_.ExecuteEvent(*eventsIterator->second, generation_, chromosome_, *this, &tracked_mutations_);
-			
-			// evolve all subpopulations
-			for (const std::pair<const int,Subpopulation*> &subpop_pair : population_)
-				population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
-			
-			// introduce user-defined mutations
-			std::pair<multimap<const int,const IntroducedMutation*>::iterator,multimap<const int,const IntroducedMutation*>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
-			
-			for (multimap<const int,const IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
-				population_.IntroduceMutation(*introduced_mutations_iter->second);
-			
-			// execute output events
-			std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);
-			
-			for (multimap<const int,Event*>::iterator outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
-				population_.ExecuteEvent(*outputsIterator->second, generation_, chromosome_, *this, &tracked_mutations_);
-			
-			// track particular mutation-types and set s = 0 for partial sweeps when completed
-			if (tracked_mutations_.size() > 0 || partial_sweeps_.size() > 0)
-				population_.TrackMutations(generation_, tracked_mutations_, &partial_sweeps_);
-			
-			// swap generations
-			population_.SwapGenerations(generation_);
-			
-			// advance the generation counter as soon as the generation is done
-			generation_++;
-			return (generation_ < time_start_ + time_duration_);
+#ifdef SLIMGUI
+			try
+			{
+#endif
+				// execute demographic and substructure events in this generation 
+				std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> event_range = events_.equal_range(generation_);
+				
+				for (multimap<const int,Event*>::iterator eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
+					population_.ExecuteEvent(*eventsIterator->second, generation_, chromosome_, *this, &tracked_mutations_);
+				
+				// evolve all subpopulations
+				for (const std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
+				
+				// introduce user-defined mutations
+				std::pair<multimap<const int,const IntroducedMutation*>::iterator,multimap<const int,const IntroducedMutation*>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
+				
+				for (multimap<const int,const IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
+					population_.IntroduceMutation(*introduced_mutations_iter->second);
+				
+				// execute output events
+				std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);
+				
+				for (multimap<const int,Event*>::iterator outputsIterator = output_event_range.first; outputsIterator != output_event_range.second; outputsIterator++)
+					population_.ExecuteEvent(*outputsIterator->second, generation_, chromosome_, *this, &tracked_mutations_);
+				
+				// track particular mutation-types and set s = 0 for partial sweeps when completed
+				if (tracked_mutations_.size() > 0 || partial_sweeps_.size() > 0)
+					population_.TrackMutations(generation_, tracked_mutations_, &partial_sweeps_);
+				
+				// swap generations
+				population_.SwapGenerations(generation_, *this);
+				
+				// advance the generation counter as soon as the generation is done
+				generation_++;
+				return (generation_ < time_start_ + time_duration_);
+#ifdef SLIMGUI
+			}
+			catch (std::runtime_error err)
+			{
+				simulationValid = false;
+				
+				return false;
+			}
+#endif
 		}
-		catch (std::runtime_error err)
-		{
-			simulationValid = false;
-			
-			return false;
-		}
+#ifdef SLIMGUI
 	}
+#endif
 	
 	return false;
 }
