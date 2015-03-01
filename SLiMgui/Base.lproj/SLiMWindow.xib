@@ -1434,10 +1434,10 @@
         </drawer>
         <menu showsStateColumn="NO" id="QoY-ma-dgb">
             <items>
-                <menuItem title="Graph Mutation Frequency Spectra..." id="nSF-EQ-VGe">
+                <menuItem title="Graph Mutation Frequency Spectrum..." id="nSF-EQ-VGe">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
-                        <action selector="graphMutationFrequencySpectra:" target="-2" id="w1f-MV-cD6"/>
+                        <action selector="graphMutationFrequencySpectrum:" target="-2" id="bbc-a2-8IW"/>
                     </connections>
                 </menuItem>
                 <menuItem title="Graph Mutation Frequency Trajectories..." id="ASe-bx-TuV">
@@ -1447,16 +1447,16 @@
                     </connections>
                 </menuItem>
                 <menuItem isSeparatorItem="YES" id="b9k-cg-lbP"/>
-                <menuItem title="Graph Average Time to Mutation Loss..." id="8Ee-IZ-PpP">
+                <menuItem title="Graph Mutation Loss Time Histogram..." id="8Ee-IZ-PpP">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
-                        <action selector="graphAverageTimeToMutationLoss:" target="-2" id="5gZ-82-mb8"/>
+                        <action selector="graphMutationLossTimeHistogram:" target="-2" id="LeH-pF-s22"/>
                     </connections>
                 </menuItem>
-                <menuItem title="Graph Average Time to Mutation Fixation..." id="Waz-s6-S1f">
+                <menuItem title="Graph Mutation Fixation Time Histogram..." id="Waz-s6-S1f">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
-                        <action selector="graphAverageTimeToMutationFixation:" target="-2" id="Zh6-3L-yKP"/>
+                        <action selector="graphMutationFixationTimeHistogram:" target="-2" id="vMf-WV-ZAB"/>
                     </connections>
                 </menuItem>
             </items>

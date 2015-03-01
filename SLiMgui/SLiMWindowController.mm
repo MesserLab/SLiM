@@ -287,10 +287,10 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
-	[graphWindowMutationFreqSpectra close];
+	[graphWindowMutationFreqSpectrum close];
 	[graphWindowMutationFreqTrajectories close];
-	[graphWindowMutationSurvivalTime close];
-	[graphWindowMutationFixationTime close];
+	[graphWindowMutationLossTimeHistogram close];
+	[graphWindowMutationFixationTimeHistogram close];
 
 	[super dealloc];
 }
@@ -507,10 +507,10 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[self updateGenerationCounter];
 	
 	// Update graph windows as well; it is assumed that all graphs need updating every tick
-	[[graphWindowMutationFreqSpectra contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationFreqSpectrum contentView] setNeedsDisplay:YES];
 	[[graphWindowMutationFreqTrajectories contentView] setNeedsDisplay:YES];
-	[[graphWindowMutationSurvivalTime contentView] setNeedsDisplay:YES];
-	[[graphWindowMutationFixationTime contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationLossTimeHistogram contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationFixationTimeHistogram contentView] setNeedsDisplay:YES];
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message
 	[self checkForSimulationTermination];
@@ -694,13 +694,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 	if (sel == @selector(trackMutationType:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
-	if (sel == @selector(graphMutationFrequencySpectra:))
+	if (sel == @selector(graphMutationFrequencySpectrum:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphMutationFrequencyTrajectories:))
 		return !(invalidSimulation);
-	if (sel == @selector(graphAverageTimeToMutationLoss:))
+	if (sel == @selector(graphMutationLossTimeHistogram:))
 		return !(invalidSimulation);
-	if (sel == @selector(graphAverageTimeToMutationFixation:))
+	if (sel == @selector(graphMutationFixationTimeHistogram:))
 		return !(invalidSimulation);
 	
 	if (sel == @selector(checkScriptTextView:))
@@ -903,12 +903,12 @@ static NSDictionary *mutationTypeAttrs = nil;
 	return returnWindow;
 }
 
-- (IBAction)graphMutationFrequencySpectra:(id)sender
+- (IBAction)graphMutationFrequencySpectrum:(id)sender
 {
-	if (!graphWindowMutationFreqSpectra)
-		graphWindowMutationFreqSpectra = [[self graphWindowWithTitle:@"Mutation Frequency Spectra" viewClass:[GraphView_MutationFrequencySpectra class]] retain];
+	if (!graphWindowMutationFreqSpectrum)
+		graphWindowMutationFreqSpectrum = [[self graphWindowWithTitle:@"Mutation Frequency Spectra" viewClass:[GraphView_MutationFrequencySpectra class]] retain];
 	
-	[graphWindowMutationFreqSpectra orderFront:nil];
+	[graphWindowMutationFreqSpectrum orderFront:nil];
 }
 
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender
@@ -919,20 +919,20 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[graphWindowMutationFreqTrajectories orderFront:nil];
 }
 
-- (IBAction)graphAverageTimeToMutationLoss:(id)sender
+- (IBAction)graphMutationLossTimeHistogram:(id)sender
 {
-	if (!graphWindowMutationSurvivalTime)
-		graphWindowMutationSurvivalTime = [[self graphWindowWithTitle:@"Mutation Survival Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+	if (!graphWindowMutationLossTimeHistogram)
+		graphWindowMutationLossTimeHistogram = [[self graphWindowWithTitle:@"Mutation Survival Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
 	
-	[graphWindowMutationSurvivalTime orderFront:nil];
+	[graphWindowMutationLossTimeHistogram orderFront:nil];
 }
 
-- (IBAction)graphAverageTimeToMutationFixation:(id)sender
+- (IBAction)graphMutationFixationTimeHistogram:(id)sender
 {
-	if (!graphWindowMutationFixationTime)
-		graphWindowMutationFixationTime = [[self graphWindowWithTitle:@"Mutation Fixation Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+	if (!graphWindowMutationFixationTimeHistogram)
+		graphWindowMutationFixationTimeHistogram = [[self graphWindowWithTitle:@"Mutation Fixation Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
 	
-	[graphWindowMutationFixationTime orderFront:nil];
+	[graphWindowMutationFixationTimeHistogram orderFront:nil];
 }
 
 - (BOOL)runSimOneGeneration
@@ -1436,29 +1436,29 @@ static NSDictionary *mutationTypeAttrs = nil;
 		//[self setWindow:nil];
 		[self autorelease];
 	}
-	else if (closingWindow == graphWindowMutationFreqSpectra)
+	else if (closingWindow == graphWindowMutationFreqSpectrum)
 	{
-		[graphWindowMutationFreqSpectra autorelease];
-		graphWindowMutationFreqSpectra = nil;
+		[graphWindowMutationFreqSpectrum autorelease];
+		graphWindowMutationFreqSpectrum = nil;
 	}
 	else if (closingWindow == graphWindowMutationFreqTrajectories)
 	{
 		[graphWindowMutationFreqTrajectories autorelease];
 		graphWindowMutationFreqTrajectories = nil;
 	}
-	else if (closingWindow == graphWindowMutationSurvivalTime)
+	else if (closingWindow == graphWindowMutationLossTimeHistogram)
 	{
-		[graphWindowMutationSurvivalTime autorelease];
-		graphWindowMutationSurvivalTime = nil;
+		[graphWindowMutationLossTimeHistogram autorelease];
+		graphWindowMutationLossTimeHistogram = nil;
 	}
-	else if (closingWindow == graphWindowMutationFixationTime)
+	else if (closingWindow == graphWindowMutationFixationTimeHistogram)
 	{
-		[graphWindowMutationFixationTime autorelease];
-		graphWindowMutationFixationTime = nil;
+		[graphWindowMutationFixationTimeHistogram autorelease];
+		graphWindowMutationFixationTimeHistogram = nil;
 	}
 	
 	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement
-	if (!graphWindowMutationFreqSpectra && !graphWindowMutationFreqTrajectories && !graphWindowMutationSurvivalTime && !graphWindowMutationFixationTime)
+	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram)
 		openedGraphCount = 0;
 }
 

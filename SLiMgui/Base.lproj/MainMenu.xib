@@ -338,10 +338,10 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="AeK-kn-cUy"/>
-                            <menuItem title="Graph Mutation Frequency Spectra..." id="o5J-bi-Lxj">
+                            <menuItem title="Graph Mutation Frequency Spectrum..." id="o5J-bi-Lxj">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphMutationFrequencySpectra:" target="-1" id="coc-ES-fud"/>
+                                    <action selector="graphMutationFrequencySpectrum:" target="-1" id="1yT-yi-K9T"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Graph Mutation Frequency Trajectories..." id="sNv-W4-OFs">
@@ -350,16 +350,16 @@
                                     <action selector="graphMutationFrequencyTrajectories:" target="-1" id="gRu-Ta-4Tr"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Average Time to Mutation Loss..." id="j5A-d1-g8g">
+                            <menuItem title="Graph Mutation Loss Time Histogram..." id="j5A-d1-g8g">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphAverageTimeToMutationLoss:" target="-1" id="sCF-Rw-6Eg"/>
+                                    <action selector="graphMutationLossTimeHistogram:" target="-1" id="RqW-If-7gQ"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Average Time to Mutation Fixation..." id="VuN-MA-8hG">
+                            <menuItem title="Graph Mutation Fixation Time Histogram..." id="VuN-MA-8hG">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphAverageTimeToMutationFixation:" target="-1" id="km3-vA-RuG"/>
+                                    <action selector="graphMutationFixationTimeHistogram:" target="-1" id="ctO-9M-Hme"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="0RT-dB-Yr4"/>

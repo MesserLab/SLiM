@@ -112,10 +112,10 @@
 	// Graph window ivars
 	IBOutlet NSWindow *graphWindow;				// outlet for GraphWindow.xib; note this does not stay wired up, it is just used transiently
 	
-	NSWindow *graphWindowMutationFreqSpectra;
+	NSWindow *graphWindowMutationFreqSpectrum;
 	NSWindow *graphWindowMutationFreqTrajectories;
-	NSWindow *graphWindowMutationSurvivalTime;
-	NSWindow *graphWindowMutationFixationTime;
+	NSWindow *graphWindowMutationLossTimeHistogram;
+	NSWindow *graphWindowMutationFixationTimeHistogram;
 		// don't forget to add new graph windows in -dealloc, -updateAfterTick, and -windowWillClose:
 	
 	int openedGraphCount;						// used for new graph window positioning
@@ -166,10 +166,10 @@
 - (IBAction)outputFixedMutations:(id)sender;
 - (IBAction)trackMutationType:(id)sender;
 
-- (IBAction)graphMutationFrequencySpectra:(id)sender;
+- (IBAction)graphMutationFrequencySpectrum:(id)sender;
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender;
-- (IBAction)graphAverageTimeToMutationLoss:(id)sender;
-- (IBAction)graphAverageTimeToMutationFixation:(id)sender;
+- (IBAction)graphMutationLossTimeHistogram:(id)sender;
+- (IBAction)graphMutationFixationTimeHistogram:(id)sender;
 
 - (IBAction)playOneStep:(id)sender;
 - (IBAction)play:(id)sender;
