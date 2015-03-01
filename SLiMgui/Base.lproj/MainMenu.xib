@@ -338,16 +338,16 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="AeK-kn-cUy"/>
-                            <menuItem title="Graph Allele Frequency Spectra..." id="o5J-bi-Lxj">
+                            <menuItem title="Graph Mutation Frequency Spectra..." id="o5J-bi-Lxj">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphAlleleFrequencySpectra:" target="-1" id="xrE-6C-LQz"/>
+                                    <action selector="graphMutationFrequencySpectra:" target="-1" id="coc-ES-fud"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Allele Frequency Trajectories..." id="sNv-W4-OFs">
+                            <menuItem title="Graph Mutation Frequency Trajectories..." id="sNv-W4-OFs">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphAlleleFrequencyTrajectories:" target="-1" id="sDu-pe-hoY"/>
+                                    <action selector="graphMutationFrequencyTrajectories:" target="-1" id="gRu-Ta-4Tr"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Graph Average Time to Mutation Loss..." id="j5A-d1-g8g">

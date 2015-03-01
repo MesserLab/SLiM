@@ -29,6 +29,8 @@
 		986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D21AA1337A0000E138 /* graph_submenu_H.pdf */; };
 		986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D31AA1337A0000E138 /* graph_submenu.pdf */; };
 		986926D91AA140550000E138 /* GraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926D81AA140550000E138 /* GraphView.mm */; };
+		986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 986926DA1AA1429D0000E138 /* GraphWindow.xib */; };
+		986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
 		98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */; };
@@ -148,6 +150,9 @@
 		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
 		986926D71AA140550000E138 /* GraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView.h; sourceTree = "<group>"; };
 		986926D81AA140550000E138 /* GraphView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView.mm; sourceTree = "<group>"; };
+		986926DB1AA1429D0000E138 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphWindow.xib; sourceTree = "<group>"; };
+		986926DD1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencySpectra.h; sourceTree = "<group>"; };
+		986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFrequencySpectra.mm; sourceTree = "<group>"; };
 		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
@@ -325,6 +330,9 @@
 			children = (
 				986926D71AA140550000E138 /* GraphView.h */,
 				986926D81AA140550000E138 /* GraphView.mm */,
+				986926DD1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.h */,
+				986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */,
+				986926DA1AA1429D0000E138 /* GraphWindow.xib */,
 			);
 			name = Graphing;
 			sourceTree = "<group>";
@@ -545,6 +553,7 @@
 				98453F481A75E80F00C058CB /* ScriptSyntaxHelp.txt in Resources */,
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
 				98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */,
+				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
@@ -634,6 +643,7 @@
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
 				98D4C1DA1A6F542C00FFB083 /* introduced_mutation.cpp in Sources */,
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,
+				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */,
 				98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */,
@@ -673,6 +683,14 @@
 				98453F4A1A75E83600C058CB /* Base */,
 			);
 			name = ScriptSyntaxHelp.xib;
+			sourceTree = "<group>";
+		};
+		986926DA1AA1429D0000E138 /* GraphWindow.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				986926DB1AA1429D0000E138 /* Base */,
+			);
+			name = GraphWindow.xib;
 			sourceTree = "<group>";
 		};
 		98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */ = {

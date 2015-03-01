@@ -1434,16 +1434,16 @@
         </drawer>
         <menu showsStateColumn="NO" id="QoY-ma-dgb">
             <items>
-                <menuItem title="Graph Allele Frequency Spectra..." id="nSF-EQ-VGe">
+                <menuItem title="Graph Mutation Frequency Spectra..." id="nSF-EQ-VGe">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
-                        <action selector="graphAlleleFrequencySpectra:" target="-2" id="t1v-4X-x4E"/>
+                        <action selector="graphMutationFrequencySpectra:" target="-2" id="w1f-MV-cD6"/>
                     </connections>
                 </menuItem>
-                <menuItem title="Graph Allele Frequency Trajectories..." id="ASe-bx-TuV">
+                <menuItem title="Graph Mutation Frequency Trajectories..." id="ASe-bx-TuV">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
-                        <action selector="graphAlleleFrequencyTrajectories:" target="-2" id="7MG-kr-erf"/>
+                        <action selector="graphMutationFrequencyTrajectories:" target="-2" id="fQW-Xn-eE7"/>
                     </connections>
                 </menuItem>
                 <menuItem isSeparatorItem="YES" id="b9k-cg-lbP"/>

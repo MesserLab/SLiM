@@ -25,6 +25,7 @@
 #include "slim_sim.h"
 #include "ChromosomeView.h"
 #include "PopulationView.h"
+#include "GraphView.h"
 #include "CocoaExtra.h"
 
 
@@ -107,7 +108,20 @@
 	
 	IBOutlet SLiMMenuButton *genomeCommandsButton;
 	IBOutlet NSMenu *genomeCommandsMenu;
+	
+	// Graph window ivars
+	IBOutlet NSWindow *graphWindow;				// outlet for GraphWindow.xib; note this does not stay wired up, it is just used transiently
+	
+	NSWindow *graphWindowMutationFreqSpectra;
+	NSWindow *graphWindowMutationFreqTrajectories;
+	NSWindow *graphWindowMutationSurvivalTime;
+	NSWindow *graphWindowMutationFixationTime;
+		// don't forget to add new graph windows in -dealloc, -updateAfterTick, and -windowWillClose:
+	
+	int openedGraphCount;						// used for new graph window positioning
 }
+
++ (NSColor *)colorForIndex:(int)index;
 
 + (void)clearColorFromTextView:(NSTextView *)textView;
 + (void)syntaxColorTextView:(NSTextView *)textView;
@@ -152,8 +166,8 @@
 - (IBAction)outputFixedMutations:(id)sender;
 - (IBAction)trackMutationType:(id)sender;
 
-- (IBAction)graphAlleleFrequencySpectra:(id)sender;
-- (IBAction)graphAlleleFrequencyTrajectories:(id)sender;
+- (IBAction)graphMutationFrequencySpectra:(id)sender;
+- (IBAction)graphMutationFrequencyTrajectories:(id)sender;
 - (IBAction)graphAverageTimeToMutationLoss:(id)sender;
 - (IBAction)graphAverageTimeToMutationFixation:(id)sender;
 

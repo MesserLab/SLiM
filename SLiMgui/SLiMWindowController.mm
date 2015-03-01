@@ -20,6 +20,7 @@
 
 #import "SLiMWindowController.h"
 #import "AppDelegate.h"
+#import "GraphView_MutationFrequencySpectra.h"
 
 #include <iostream>
 #include <sstream>
@@ -96,6 +97,27 @@ static NSDictionary *mutationTypeAttrs = nil;
 		genomicElementAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
 	if (!mutationTypeAttrs)
 		mutationTypeAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+}
+
++ (NSColor *)colorForIndex:(int)index
+{
+	static NSColor **colorArray = NULL;
+	
+	if (!colorArray)
+	{
+		colorArray = (NSColor **)malloc(8 * sizeof(NSColor *));
+		
+		colorArray[0] = [[NSColor colorWithCalibratedHue:0.65 saturation:0.65 brightness:1.0 alpha:1.0] retain];
+		colorArray[1] = [[NSColor colorWithCalibratedHue:0.55 saturation:1.0 brightness:1.0 alpha:1.0] retain];
+		colorArray[2] = [[NSColor colorWithCalibratedHue:0.40 saturation:1.0 brightness:0.9 alpha:1.0] retain];
+		colorArray[3] = [[NSColor colorWithCalibratedHue:0.16 saturation:1.0 brightness:1.0 alpha:1.0] retain];
+		colorArray[4] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.65 brightness:1.0 alpha:1.0] retain];
+		colorArray[5] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.65 brightness:1.0 alpha:1.0] retain];
+		colorArray[6] = [[NSColor colorWithCalibratedHue:0.75 saturation:0.55 brightness:1.0 alpha:1.0] retain];
+		colorArray[7] = [[NSColor colorWithCalibratedWhite:0.8 alpha:1.0] retain];
+	}
+	
+	return ((index >= 0) && (index <= 6)) ? colorArray[index] : colorArray[7];
 }
 
 - (id)initWithWindow:(NSWindow *)window
@@ -263,6 +285,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
 	
+	// All graph windows attached to this controller need to be closed, since they refer back to us;
+	// closing them will come back via windowWillClose: and make them release and nil themselves
+	[graphWindowMutationFreqSpectra close];
+	[graphWindowMutationFreqTrajectories close];
+	[graphWindowMutationSurvivalTime close];
+	[graphWindowMutationFixationTime close];
+
 	[super dealloc];
 }
 
@@ -427,7 +456,12 @@ static NSDictionary *mutationTypeAttrs = nil;
 	// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
 	reloadingSubpopTableview = YES;
 	[subpopTableView reloadData];
-
+	
+	if ([self invalidSimulation])
+	{
+		[subpopTableView deselectAll:nil];
+	}
+	else
 	{
 		Population &population = sim->population_;
 		int subpopCount = (int)population.size();
@@ -472,6 +506,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	[self updateGenerationCounter];
 	
+	// Update graph windows as well; it is assumed that all graphs need updating every tick
+	[[graphWindowMutationFreqSpectra contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationFreqTrajectories contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationSurvivalTime contentView] setNeedsDisplay:YES];
+	[[graphWindowMutationFixationTime contentView] setNeedsDisplay:YES];
+	
+	// Check whether the simulation has terminated due to an error; if so, show an error message
 	[self checkForSimulationTermination];
 }
 
@@ -560,18 +601,6 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[self updateAfterTick];
 }
 
-- (void)windowWillClose:(NSNotification *)notification
-{
-	NSWindow *window = [notification object];
-	
-	if (window == [self window])
-	{
-		[window setDelegate:nil];
-		//[self setWindow:nil];
-		[self autorelease];
-	}
-}
-
 - (std::vector<Subpopulation*>)selectedSubpopulations
 {
 	std::vector<Subpopulation*> selectedSubpops;
@@ -608,18 +637,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	{
 		int elementCount = (int)[genomicElementColorRegistry count];
 		
-		switch (elementCount)
-		{
-			case 0: elementColor = [NSColor colorWithCalibratedHue:0.65 saturation:0.65 brightness:1.0 alpha:1.0]; break;
-			case 1: elementColor = [NSColor colorWithCalibratedHue:0.55 saturation:1.0 brightness:1.0 alpha:1.0]; break;
-			case 2: elementColor = [NSColor colorWithCalibratedHue:0.40 saturation:1.0 brightness:0.9 alpha:1.0]; break;
-			case 3: elementColor = [NSColor colorWithCalibratedHue:0.16 saturation:1.0 brightness:1.0 alpha:1.0]; break;
-			case 4: elementColor = [NSColor colorWithCalibratedHue:0.00 saturation:0.65 brightness:1.0 alpha:1.0]; break;
-			case 5: elementColor = [NSColor colorWithCalibratedHue:0.08 saturation:0.65 brightness:1.0 alpha:1.0]; break;
-			case 6: elementColor = [NSColor colorWithCalibratedHue:0.75 saturation:0.55 brightness:1.0 alpha:1.0]; break;
-			default: elementColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0]; break;
-		}
-		
+		elementColor = [SLiMWindowController colorForIndex:elementCount];
 		[genomicElementColorRegistry setObject:elementColor forKey:key];
 	}
 	
@@ -676,9 +694,9 @@ static NSDictionary *mutationTypeAttrs = nil;
 	if (sel == @selector(trackMutationType:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
-	if (sel == @selector(graphAlleleFrequencySpectra:))
+	if (sel == @selector(graphMutationFrequencySpectra:))
 		return !(invalidSimulation);
-	if (sel == @selector(graphAlleleFrequencyTrajectories:))
+	if (sel == @selector(graphMutationFrequencyTrajectories:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphAverageTimeToMutationLoss:))
 		return !(invalidSimulation);
@@ -773,20 +791,148 @@ static NSDictionary *mutationTypeAttrs = nil;
 {
 }
 
-- (IBAction)graphAlleleFrequencySpectra:(id)sender
+- (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame
 {
+	NSArray *screens = [NSScreen screens];
+	NSUInteger nScreens = [screens count];
+	
+	for (int i = 0; i < nScreens; ++i)
+	{
+		NSScreen *screen = [screens objectAtIndex:i];
+		NSRect screenFrame = [screen visibleFrame];
+		
+		if (NSContainsRect(screenFrame, candidateFrame))
+			return YES;
+	}
+	
+	return NO;
 }
 
-- (IBAction)graphAlleleFrequencyTrajectories:(id)sender
+- (void)positionNewGraphWindow:(NSWindow *)window
 {
+	NSRect windowFrame = [window frame];
+	NSRect mainWindowFrame = [[self window] frame];
+	BOOL drawerIsOpen = ([drawer state] == NSDrawerOpenState);
+	int oldOpenedGraphCount = openedGraphCount++;
+	
+	// try along the bottom first
+	{
+		NSRect candidateFrame = windowFrame;
+		
+		candidateFrame.origin.x = mainWindowFrame.origin.x + oldOpenedGraphCount * (windowFrame.size.width + 5);
+		candidateFrame.origin.y = mainWindowFrame.origin.y - (candidateFrame.size.height + 5);
+		
+		if ([self visibleCandidateWindowFrame:candidateFrame])
+		{
+			[window setFrameOrigin:candidateFrame.origin];
+			return;
+		}
+	}
+	
+	// try on the left side
+	{
+		NSRect candidateFrame = windowFrame;
+		
+		candidateFrame.origin.x = mainWindowFrame.origin.x - (candidateFrame.size.width + 5);
+		candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height) - oldOpenedGraphCount * (windowFrame.size.height + 5);
+		
+		if ([self visibleCandidateWindowFrame:candidateFrame])
+		{
+			[window setFrameOrigin:candidateFrame.origin];
+			return;
+		}
+	}
+	
+	// unless the drawer is open, let's try on the right side
+	if (!drawerIsOpen)
+	{
+		NSRect candidateFrame = windowFrame;
+		
+		candidateFrame.origin.x = mainWindowFrame.origin.x + mainWindowFrame.size.width + 5;
+		candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height) - oldOpenedGraphCount * (windowFrame.size.height + 5);
+		
+		if ([self visibleCandidateWindowFrame:candidateFrame])
+		{
+			[window setFrameOrigin:candidateFrame.origin];
+			return;
+		}
+	}
+	
+	// try along the top
+	{
+		NSRect candidateFrame = windowFrame;
+		
+		candidateFrame.origin.x = mainWindowFrame.origin.x + oldOpenedGraphCount * (windowFrame.size.width + 5);
+		candidateFrame.origin.y = mainWindowFrame.origin.y + mainWindowFrame.size.height + 5;
+		
+		if ([self visibleCandidateWindowFrame:candidateFrame])
+		{
+			[window setFrameOrigin:candidateFrame.origin];
+			return;
+		}
+	}
+	
+	// if none of those worked, we just leave the window where it got placed out of the nib
+}
+
+- (NSWindow *)graphWindowWithTitle:(NSString *)windowTitle viewClass:(Class)viewClass
+{
+	[[NSBundle mainBundle] loadNibNamed:@"GraphWindow" owner:self topLevelObjects:NULL];
+	
+	// Set the graph window title
+	[graphWindow setTitle:windowTitle];
+	
+	// We substitute in a GraphView subclass here, in place in place of graphView
+	NSView *oldContentView = [graphWindow contentView];
+	NSRect contentRect = [oldContentView frame];
+	GraphView *graphView = [[viewClass alloc] initWithFrame:contentRect];
+	
+	[graphWindow setContentView:graphView];
+	[graphView release];
+	
+	// Position the graph window prior to showing it
+	[self positionNewGraphWindow:graphWindow];
+	
+	// Set ourselves as the view's SLiMWindowController
+	[graphView setSlimWindowController:self];
+	
+	// We use one nib for all graph types, so we transfer the outlet to a separate ivar
+	NSWindow *returnWindow = graphWindow;
+	
+	graphWindow = nil;
+	return returnWindow;
+}
+
+- (IBAction)graphMutationFrequencySpectra:(id)sender
+{
+	if (!graphWindowMutationFreqSpectra)
+		graphWindowMutationFreqSpectra = [[self graphWindowWithTitle:@"Mutation Frequency Spectra" viewClass:[GraphView_MutationFrequencySpectra class]] retain];
+	
+	[graphWindowMutationFreqSpectra orderFront:nil];
+}
+
+- (IBAction)graphMutationFrequencyTrajectories:(id)sender
+{
+	if (!graphWindowMutationFreqTrajectories)
+		graphWindowMutationFreqTrajectories = [[self graphWindowWithTitle:@"Mutation Frequency Trajectories" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+	
+	[graphWindowMutationFreqTrajectories orderFront:nil];
 }
 
 - (IBAction)graphAverageTimeToMutationLoss:(id)sender
 {
+	if (!graphWindowMutationSurvivalTime)
+		graphWindowMutationSurvivalTime = [[self graphWindowWithTitle:@"Mutation Survival Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+	
+	[graphWindowMutationSurvivalTime orderFront:nil];
 }
 
 - (IBAction)graphAverageTimeToMutationFixation:(id)sender
 {
+	if (!graphWindowMutationFixationTime)
+		graphWindowMutationFixationTime = [[self graphWindowWithTitle:@"Mutation Fixation Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+	
+	[graphWindowMutationFixationTime orderFront:nil];
 }
 
 - (BOOL)runSimOneGeneration
@@ -1273,6 +1419,48 @@ static NSDictionary *mutationTypeAttrs = nil;
 	}];
 }
 
+
+//
+//	NSWindow delegate methods
+//
+#pragma mark NSWindow delegate
+
+- (void)windowWillClose:(NSNotification *)notification
+{
+	// We are the delegate of our own window, and of all of our graph windows, too
+	NSWindow *closingWindow = [notification object];
+	
+	if (closingWindow == [self window])
+	{
+		[closingWindow setDelegate:nil];
+		//[self setWindow:nil];
+		[self autorelease];
+	}
+	else if (closingWindow == graphWindowMutationFreqSpectra)
+	{
+		[graphWindowMutationFreqSpectra autorelease];
+		graphWindowMutationFreqSpectra = nil;
+	}
+	else if (closingWindow == graphWindowMutationFreqTrajectories)
+	{
+		[graphWindowMutationFreqTrajectories autorelease];
+		graphWindowMutationFreqTrajectories = nil;
+	}
+	else if (closingWindow == graphWindowMutationSurvivalTime)
+	{
+		[graphWindowMutationSurvivalTime autorelease];
+		graphWindowMutationSurvivalTime = nil;
+	}
+	else if (closingWindow == graphWindowMutationFixationTime)
+	{
+		[graphWindowMutationFixationTime autorelease];
+		graphWindowMutationFixationTime = nil;
+	}
+	
+	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement
+	if (!graphWindowMutationFreqSpectra && !graphWindowMutationFreqTrajectories && !graphWindowMutationSurvivalTime && !graphWindowMutationFixationTime)
+		openedGraphCount = 0;
+}
 
 //
 //	NSTextView delegate methods

@@ -21,6 +21,134 @@
 #import <Cocoa/Cocoa.h>
 
 
+@class SLiMWindowController;
+
+
+// A quick and dirty macro to enable rounding of coordinates to the nearest pixel only when we are not generating PDF
+// FIXME this ought to be revisited in the light of Retina displays, printing, etc.
+#define SCREEN_ROUND(x)		(generatingPDF ? (x) : round(x))
+
+
 @interface GraphView : NSView
+{
+	BOOL generatingPDF;		// set to YES during a copy: operation, to allow customization
+}
+
+@property (nonatomic, assign) SLiMWindowController *slimWindowController;
+
+@property (nonatomic) BOOL showXAxis;
+@property (nonatomic) BOOL showXAxisTicks;
+@property (nonatomic) double xAxisMin, xAxisMax;
+@property (nonatomic) double xAxisMajorTickInterval, xAxisMinorTickInterval;
+@property (nonatomic) int xAxisMajorTickModulus, xAxisTickValuePrecision;
+@property (nonatomic, retain) NSAttributedString *xAxisLabel;
+
+@property (nonatomic) BOOL showYAxis;
+@property (nonatomic) BOOL showYAxisTicks;
+@property (nonatomic) double yAxisMin, yAxisMax;
+@property (nonatomic) double yAxisMajorTickInterval, yAxisMinorTickInterval;
+@property (nonatomic) int yAxisMajorTickModulus, yAxisTickValuePrecision;
+@property (nonatomic, retain) NSAttributedString *yAxisLabel;
+
+@property (nonatomic) BOOL legendVisible;
+@property (nonatomic) BOOL showHorizontalGridLines;
+@property (nonatomic) BOOL showVerticalGridLines;
+@property (nonatomic) BOOL showFullBox;
+
++ (NSString *)labelFontName;
++ (NSDictionary *)attributesForAxisLabels;
++ (NSDictionary *)attributesForTickLabels;
++ (NSDictionary *)attributesForLegendLabels;
++ (NSColor *)gridLineColor;
+
+- (id)initWithFrame:(NSRect)frameRect;		// designated initializer
+
+- (void)setXAxisLabelString:(NSString *)labelString;
+- (void)setYAxisLabelString:(NSString *)labelString;
+
+- (NSRect)interiorRectForBounds:(NSRect)bounds;
+
+- (double)plotToDeviceX:(double)plotx withInteriorRect:(NSRect)interiorRect;
+- (double)plotToDeviceY:(double)ploty withInteriorRect:(NSRect)interiorRect;
+- (double)roundPlotToDeviceX:(double)plotx withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
+- (double)roundPlotToDeviceY:(double)ploty withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
+
+- (void)drawXAxisTicksWithInteriorRect:(NSRect)interiorRect;
+- (void)drawXAxisWithInteriorRect:(NSRect)interiorRect;
+
+- (void)drawYAxisTicksWithInteriorRect:(NSRect)interiorRect;
+- (void)drawYAxisWithInteriorRect:(NSRect)interiorRect;
+
+- (void)drawVerticalGridLinesWithInteriorRect:(NSRect)interiorRect;
+- (void)drawHorizontalGridLinesWithInteriorRect:(NSRect)interiorRect;
+
+- (void)drawInvalidMessageInRect:(NSRect)rect;
+
+- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller;
+
+- (NSSize)legendSize;
+- (void)drawLegendInRect:(NSRect)legendRect;
+
+- (NSMenu *)menuForEvent:(NSEvent *)theEvent;
 
 @end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
