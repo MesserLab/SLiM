@@ -49,6 +49,22 @@ Population::~Population(void)
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		delete *registry_iter;
+	
+#ifdef SLIMGUI
+	// release malloced storage for SLiMgui statistics collection
+	if (mutationLossTimes)
+	{
+		free(mutationLossTimes);
+		mutationLossTimes = nullptr;
+		mutationLossGenSlots = 0;
+	}
+	if (mutationFixationTimes)
+	{
+		free(mutationFixationTimes);
+		mutationFixationTimes = nullptr;
+		mutationFixationGenSlots = 0;
+	}
+#endif
 }
 
 // add new empty subpopulation p_subpop_id of size p_subpop_size
@@ -1108,13 +1124,13 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 }
 
 // step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations(int p_generation)
+void Population::SwapGenerations(int p_generation, const SLiMSim &p_sim)
 {
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences();
 	
 	// remove any mutations that have been eliminated or have fixed
-	RemoveFixedMutations(p_generation, total_genome_count_);
+	RemoveFixedMutations(p_generation, p_sim);
 	
 	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
 #if DEBUG_MUTATION_ZOMBIES
@@ -1223,13 +1239,47 @@ void Population::TallyMutationReferences(void)
 	}
 	
 	total_genome_count_ = total_genome_count;
+#ifdef SLIMGUI
 	gui_total_genome_count_ = gui_total_genome_count;
+#endif
 }
 
-// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
-void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count)
+#ifdef SLIMGUI
+void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, int p_bin_number, uint32_t **p_buffer, uint32_t *p_bufferBins)
 {
+	uint32_t *buffer = *p_buffer;
+	uint32_t bufferBins = *p_bufferBins;
+	
+	if (p_bin_number >= bufferBins)
+	{
+		int oldEntryCount = bufferBins * p_mutation_type_count;
+		
+		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
+		int newEntryCount = bufferBins * p_mutation_type_count;
+		
+		buffer = (uint32_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
+		
+		// Zero out the new entries; the compiler should be smart enough to optimize this...
+		for (int i = oldEntryCount; i < newEntryCount; ++i)
+			buffer[i] = 0;
+	}
+	
+	// Add a tally to the appropriate bin
+	(buffer[p_mutation_type_index + p_bin_number * p_mutation_type_count])++;
+}
+#endif
+
+// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
+void Population::RemoveFixedMutations(int p_generation, const SLiMSim &p_sim)
+{
+#ifndef SLIMGUI
+	(void)p_sim;	// get rid of the unused parameter warning; this parameter is used only when running in SLiMSim...
+#endif
+	
 	Genome fixed_mutation_accumulator;
+#ifdef SLIMGUI
+	int mutation_type_count = static_cast<int>(p_sim.mutation_types_.size());
+#endif
 	
 	// remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
 	int registry_length = mutation_registry_.size();
@@ -1243,6 +1293,14 @@ void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count
 		{
 #if DEBUG_MUTATIONS
 			SLIM_ERRSTREAM << "Mutation unreferenced, will remove: " << mutation << endl;
+#endif
+
+#ifdef SLIMGUI
+			// If we're running under SLiMgui, make a note of the lifetime of the mutation
+			uint32_t loss_time = p_generation - mutation->generation_;
+			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
+			
+			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutationLossTimes, &mutationLossGenSlots);
 #endif
 			
 			// We have an unreferenced mutation object, so we want to remove it quickly
@@ -1276,10 +1334,18 @@ void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count
 				--i;	// revisit this index
 			}
 		}
-		else if (reference_count == p_total_genome_count)
+		else if (reference_count == total_genome_count_)
 		{
 #if DEBUG_MUTATIONS
 			SLIM_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;
+#endif
+			
+#ifdef SLIMGUI
+			// If we're running under SLiMgui, make a note of the fixation time of the mutation
+			uint32_t fixation_time = p_generation - mutation->generation_;
+			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
+			
+			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutationFixationTimes, &mutationFixationGenSlots);
 #endif
 			
 			// If this mutation was counted in every genome, then it is fixed; log it
@@ -1298,7 +1364,7 @@ void Population::RemoveFixedMutations(int p_generation, int p_total_genome_count
 				
 				// Fixed mutations are removed by looking at refcounts, so fixed_mutation_accumulator is not needed here
 				if (!genome->IsNull())
-					genome->RemoveFixedMutations(p_total_genome_count);
+					genome->RemoveFixedMutations(total_genome_count_);
 			}
 		}
 		
