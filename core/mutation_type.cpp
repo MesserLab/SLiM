@@ -30,8 +30,13 @@ using std::endl;
 using std::string;
 
 
+#ifdef SLIMGUI
+MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<float>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), mutation_type_index_(p_mutation_type_index)
+#else
 MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters) :
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<float>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters)
+#endif
 {
 	static string possible_dfe_types = "fge";
 	

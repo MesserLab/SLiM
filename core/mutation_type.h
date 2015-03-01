@@ -52,10 +52,18 @@ public:
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
+#ifdef SLIMGUI
+	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
+#endif
+	
 	MutationType(const MutationType&) = delete;					// no copying
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
+#ifdef SLIMGUI
+	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
+#else
 	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
+#endif
 	
 	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE
 };

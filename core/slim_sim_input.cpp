@@ -1121,6 +1121,10 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 {
 	string line, sub;
 	
+#ifdef SLIMGUI
+	int mutation_type_index = 0;
+#endif
+	
 	if (!rng_seed_supplied_to_constructor_)
 		rng_seed_ = GenerateSeedFromPIDAndTime();
 	
@@ -1244,7 +1248,13 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 					while (iss >> sub)
 						dfe_parameters.push_back(atof(sub.c_str()));
 					
+#ifdef SLIMGUI
+					MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, mutation_type_index);
+					
+					mutation_type_index++;	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
+#else
 					MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
+#endif
 					
 					mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
 					
