@@ -23,9 +23,9 @@
 
 @implementation GraphView_MutationFrequencySpectra
 
-- (id)initWithFrame:(NSRect)frameRect
+- (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller
 {
-	if (self = [super initWithFrame:frameRect])
+	if (self = [super initWithFrame:frameRect withController:controller])
 	{
 		[self setHistogramBinCount:10];
 		
@@ -107,7 +107,7 @@
 		total += spectrum[i];
 	
 	// plot our histogram bars
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum bufferLength:spectrumBins subBinCount:mutationTypeCount mainBinCount:binCount heightNormalizer:(double)total];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum bufferLength:spectrumBins subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:0.10 heightNormalizer:(double)total];
 }
 
 - (NSSize)legendSize

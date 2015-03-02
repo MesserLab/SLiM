@@ -1123,14 +1123,81 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	}
 }
 
+#ifdef SLIMGUI
+// This method is used to record population statistics that are kept per generation for SLiMgui
+void Population::SurveyPopulation(const SLiMSim &p_sim)
+{
+	// Calculate mean fitness for this generation; this could be done in UpdateFitness() instead but it would be a lot more complicated...
+	double totalFitness = 0.0;
+	int individualCount = 0;
+	
+	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+	{ 
+		Subpopulation *subpop = subpop_pair.second;
+		
+		// and then we calculate the fitnesses of the parents and make lookup tables
+		for (int i = 0; i < subpop->parent_subpop_size_; i++)
+			totalFitness += subpop->FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
+		
+		individualCount += subpop->parent_subpop_size_;
+	}
+	
+	double meanFitness = totalFitness / individualCount;
+	
+	// Add the mean fitness to the population history
+	if (p_sim.generation_ >= fitnessHistoryLength)
+	{
+		int oldHistoryLength = fitnessHistoryLength;
+		
+		fitnessHistoryLength = p_sim.generation_ + 1000;			// give some elbow room for expansion
+		fitnessHistory = (double *)realloc(fitnessHistory, fitnessHistoryLength * sizeof(double));
+		
+		for (int i = oldHistoryLength; i < fitnessHistoryLength; ++i)
+			fitnessHistory[i] = NAN;
+	}
+	
+	fitnessHistory[p_sim.generation_] = meanFitness;
+}
+#endif
+
+#ifdef SLIMGUI
+// This method is used to tally up histogram metrics that are kept per mutation type for SLiMgui
+void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, int p_bin_number, uint32_t **p_buffer, uint32_t *p_bufferBins)
+{
+	uint32_t *buffer = *p_buffer;
+	uint32_t bufferBins = *p_bufferBins;
+	
+	if (p_bin_number >= bufferBins)
+	{
+		int oldEntryCount = bufferBins * p_mutation_type_count;
+		
+		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
+		int newEntryCount = bufferBins * p_mutation_type_count;
+		
+		buffer = (uint32_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
+		
+		// Zero out the new entries; the compiler should be smart enough to optimize this...
+		for (int i = oldEntryCount; i < newEntryCount; ++i)
+			buffer[i] = 0;
+		
+		// Since we reallocated the buffer, we need to set it back through our pointer parameters
+		*p_buffer = buffer;
+		*p_bufferBins = bufferBins;
+	}
+	
+	// Add a tally to the appropriate bin
+	(buffer[p_mutation_type_index + p_bin_number * p_mutation_type_count])++;
+}
+#endif
+
 // step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations(int p_generation, const SLiMSim &p_sim)
+void Population::SwapGenerations(const SLiMSim &p_sim)
 {
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences();
 	
 	// remove any mutations that have been eliminated or have fixed
-	RemoveFixedMutations(p_generation, p_sim);
+	RemoveFixedMutations(p_sim);
 	
 	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
 #if DEBUG_MUTATION_ZOMBIES
@@ -1148,6 +1215,10 @@ void Population::SwapGenerations(int p_generation, const SLiMSim &p_sim)
 		// and then we calculate the fitnesses of the parents and make lookup tables
 		subpop->UpdateFitness(); 
 	}
+	
+#ifdef SLIMGUI
+	SurveyPopulation(p_sim);
+#endif
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
 	child_generation_valid = false;
@@ -1244,38 +1315,9 @@ void Population::TallyMutationReferences(void)
 #endif
 }
 
-#ifdef SLIMGUI
-void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, int p_bin_number, uint32_t **p_buffer, uint32_t *p_bufferBins)
-{
-	uint32_t *buffer = *p_buffer;
-	uint32_t bufferBins = *p_bufferBins;
-	
-	if (p_bin_number >= bufferBins)
-	{
-		int oldEntryCount = bufferBins * p_mutation_type_count;
-		
-		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
-		int newEntryCount = bufferBins * p_mutation_type_count;
-		
-		buffer = (uint32_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
-		
-		// Zero out the new entries; the compiler should be smart enough to optimize this...
-		for (int i = oldEntryCount; i < newEntryCount; ++i)
-			buffer[i] = 0;
-	}
-	
-	// Add a tally to the appropriate bin
-	(buffer[p_mutation_type_index + p_bin_number * p_mutation_type_count])++;
-}
-#endif
-
 // handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
-void Population::RemoveFixedMutations(int p_generation, const SLiMSim &p_sim)
+void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 {
-#ifndef SLIMGUI
-	(void)p_sim;	// get rid of the unused parameter warning; this parameter is used only when running in SLiMSim...
-#endif
-	
 	Genome fixed_mutation_accumulator;
 #ifdef SLIMGUI
 	int mutation_type_count = static_cast<int>(p_sim.mutation_types_.size());
@@ -1297,7 +1339,7 @@ void Population::RemoveFixedMutations(int p_generation, const SLiMSim &p_sim)
 
 #ifdef SLIMGUI
 			// If we're running under SLiMgui, make a note of the lifetime of the mutation
-			uint32_t loss_time = p_generation - mutation->generation_;
+			uint32_t loss_time = p_sim.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutationLossTimes, &mutationLossGenSlots);
@@ -1342,7 +1384,7 @@ void Population::RemoveFixedMutations(int p_generation, const SLiMSim &p_sim)
 			
 #ifdef SLIMGUI
 			// If we're running under SLiMgui, make a note of the fixation time of the mutation
-			uint32_t fixation_time = p_generation - mutation->generation_;
+			uint32_t fixation_time = p_sim.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutationFixationTimes, &mutationFixationGenSlots);
@@ -1369,7 +1411,7 @@ void Population::RemoveFixedMutations(int p_generation, const SLiMSim &p_sim)
 		}
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_generation));
+			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_sim.generation_));
 	}
 }
 

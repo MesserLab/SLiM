@@ -21,6 +21,9 @@
 #import "SLiMWindowController.h"
 #import "AppDelegate.h"
 #import "GraphView_MutationFrequencySpectra.h"
+#import "GraphView_MutationLossTimeHistogram.h"
+#import "GraphView_MutationFixationTimeHistogram.h"
+#import "GraphView_FitnessOverTime.h"
 
 #include <iostream>
 #include <sstream>
@@ -291,6 +294,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[graphWindowMutationFreqTrajectories close];
 	[graphWindowMutationLossTimeHistogram close];
 	[graphWindowMutationFixationTimeHistogram close];
+	[graphWindowFitnessOverTime close];
 
 	[super dealloc];
 }
@@ -511,6 +515,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[[graphWindowMutationFreqTrajectories contentView] setNeedsDisplay:YES];
 	[[graphWindowMutationLossTimeHistogram contentView] setNeedsDisplay:YES];
 	[[graphWindowMutationFixationTimeHistogram contentView] setNeedsDisplay:YES];
+	[[graphWindowFitnessOverTime contentView] setNeedsDisplay:YES];
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message
 	[self checkForSimulationTermination];
@@ -702,6 +707,8 @@ static NSDictionary *mutationTypeAttrs = nil;
 		return !(invalidSimulation);
 	if (sel == @selector(graphMutationFixationTimeHistogram:))
 		return !(invalidSimulation);
+	if (sel == @selector(graphFitnessOverTime:))
+		return !(invalidSimulation);
 	
 	if (sel == @selector(checkScriptTextView:))
 		return !(continuousPlayOn || generationPlayOn);
@@ -885,16 +892,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 	// We substitute in a GraphView subclass here, in place in place of graphView
 	NSView *oldContentView = [graphWindow contentView];
 	NSRect contentRect = [oldContentView frame];
-	GraphView *graphView = [[viewClass alloc] initWithFrame:contentRect];
+	GraphView *graphView = [[viewClass alloc] initWithFrame:contentRect withController:self];
 	
 	[graphWindow setContentView:graphView];
 	[graphView release];
 	
 	// Position the graph window prior to showing it
 	[self positionNewGraphWindow:graphWindow];
-	
-	// Set ourselves as the view's SLiMWindowController
-	[graphView setSlimWindowController:self];
 	
 	// We use one nib for all graph types, so we transfer the outlet to a separate ivar
 	NSWindow *returnWindow = graphWindow;
@@ -906,7 +910,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 - (IBAction)graphMutationFrequencySpectrum:(id)sender
 {
 	if (!graphWindowMutationFreqSpectrum)
-		graphWindowMutationFreqSpectrum = [[self graphWindowWithTitle:@"Mutation Frequency Spectra" viewClass:[GraphView_MutationFrequencySpectra class]] retain];
+		graphWindowMutationFreqSpectrum = [[self graphWindowWithTitle:@"Mutation Frequency Spectrum" viewClass:[GraphView_MutationFrequencySpectra class]] retain];
 	
 	[graphWindowMutationFreqSpectrum orderFront:nil];
 }
@@ -922,7 +926,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 - (IBAction)graphMutationLossTimeHistogram:(id)sender
 {
 	if (!graphWindowMutationLossTimeHistogram)
-		graphWindowMutationLossTimeHistogram = [[self graphWindowWithTitle:@"Mutation Survival Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+		graphWindowMutationLossTimeHistogram = [[self graphWindowWithTitle:@"Mutation Loss Time" viewClass:[GraphView_MutationLossTimeHistogram class]] retain];
 	
 	[graphWindowMutationLossTimeHistogram orderFront:nil];
 }
@@ -930,9 +934,17 @@ static NSDictionary *mutationTypeAttrs = nil;
 - (IBAction)graphMutationFixationTimeHistogram:(id)sender
 {
 	if (!graphWindowMutationFixationTimeHistogram)
-		graphWindowMutationFixationTimeHistogram = [[self graphWindowWithTitle:@"Mutation Fixation Time" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+		graphWindowMutationFixationTimeHistogram = [[self graphWindowWithTitle:@"Mutation Fixation Time" viewClass:[GraphView_MutationFixationTimeHistogram class]] retain];
 	
 	[graphWindowMutationFixationTimeHistogram orderFront:nil];
+}
+
+- (IBAction)graphFitnessOverTime:(id)sender
+{
+	if (!graphWindowFitnessOverTime)
+		graphWindowFitnessOverTime = [[self graphWindowWithTitle:@"Fitness ~ Time" viewClass:[GraphView_FitnessOverTime class]] retain];
+	
+	[graphWindowFitnessOverTime orderFront:nil];
 }
 
 - (BOOL)runSimOneGeneration
@@ -1456,9 +1468,14 @@ static NSDictionary *mutationTypeAttrs = nil;
 		[graphWindowMutationFixationTimeHistogram autorelease];
 		graphWindowMutationFixationTimeHistogram = nil;
 	}
+	else if (closingWindow == graphWindowFitnessOverTime)
+	{
+		[graphWindowFitnessOverTime autorelease];
+		graphWindowFitnessOverTime = nil;
+	}
 	
 	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement
-	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram)
+	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram && !graphWindowFitnessOverTime)
 		openedGraphCount = 0;
 }
 

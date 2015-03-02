@@ -69,10 +69,12 @@
 	return gridColor;
 }
 
-- (id)initWithFrame:(NSRect)frameRect
+- (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller
 {
 	if (self = [super initWithFrame:frameRect])
 	{
+		[self setSlimWindowController:controller];
+		
 		_showXAxis = TRUE;
 		_showXAxisTicks = TRUE;
 		
@@ -222,8 +224,21 @@
 			NSString *labelText = [NSString stringWithFormat:@"%.*f", tickValuePrecision, labelValueForTick];
 			NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:tickAttributes];
 			NSSize labelSize = [attributedLabel size];
+			double labelY = interiorRect.origin.y - (labelSize.height + 4);
 			
-			[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width / 2.0), interiorRect.origin.y - (labelSize.height + 4))];
+			if ([self tweakXAxisTickLabelAlignment])
+			{
+				if (tickValue == axisMin)
+					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - 2.0, labelY)];
+				else if (tickValue == axisMax)
+					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width) + 2.0, labelY)];
+				else
+					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width / 2.0), labelY)];
+			}
+			else
+			{
+				[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width / 2.0), labelY)];
+			}
 			[attributedLabel release];
 		}
 	}
@@ -664,14 +679,14 @@
 	}
 }
 
-- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount heightNormalizer:(double)heightNormalizer
+- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth heightNormalizer:(double)heightNormalizer
 {
 	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
 	{
-		double binMinFrequency = mainBinIndex / (double)mainBinCount;
-		double binMaxFrequency = (mainBinIndex + 1) / (double)mainBinCount;
-		double barLeft = [self roundPlotToDeviceX:binMinFrequency withInteriorRect:interiorRect] + 1.5;
-		double barRight = [self roundPlotToDeviceX:binMaxFrequency withInteriorRect:interiorRect] - 1.5;
+		double binMinValue = mainBinIndex * mainBinWidth + firstBinValue;
+		double binMaxValue = (mainBinIndex + 1) * mainBinWidth + firstBinValue;
+		double barLeft = [self roundPlotToDeviceX:binMinValue withInteriorRect:interiorRect] + 1.5;
+		double barRight = [self roundPlotToDeviceX:binMaxValue withInteriorRect:interiorRect] - 1.5;
 		
 		for (int subBinIndex = 0; subBinIndex < subBinCount; ++subBinIndex)
 		{
@@ -706,9 +721,9 @@
 	}
 }
 
-- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount heightNormalizer:(double)heightNormalizer
+- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount firstBinValue:(double)firstBinValue binWidth:(double)binWidth heightNormalizer:(double)heightNormalizer
 {
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:buffer bufferLength:bufferLength subBinCount:1 mainBinCount:binCount heightNormalizer:heightNormalizer];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:buffer bufferLength:bufferLength subBinCount:1 mainBinCount:binCount firstBinValue:firstBinValue mainBinWidth:binWidth heightNormalizer:heightNormalizer];
 }
 
 @end

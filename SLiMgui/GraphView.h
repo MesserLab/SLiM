@@ -55,13 +55,15 @@
 @property (nonatomic) BOOL showVerticalGridLines;
 @property (nonatomic) BOOL showFullBox;
 
+@property (nonatomic) BOOL tweakXAxisTickLabelAlignment;
+
 + (NSString *)labelFontName;
 + (NSDictionary *)attributesForAxisLabels;
 + (NSDictionary *)attributesForTickLabels;
 + (NSDictionary *)attributesForLegendLabels;
 + (NSColor *)gridLineColor;
 
-- (id)initWithFrame:(NSRect)frameRect;		// designated initializer
+- (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller;		// designated initializer
 
 - (void)setXAxisLabelString:(NSString *)labelString;
 - (void)setYAxisLabelString:(NSString *)labelString;
@@ -100,10 +102,10 @@
 - (void)drawMutationTypeLegendInRect:(NSRect)legendRect;
 
 // a prefab method to draw simple barplots
-- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount heightNormalizer:(double)heightNormalizer;
+- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount firstBinValue:(double)firstBinValue binWidth:(double)binWidth heightNormalizer:(double)heightNormalizer;
 
 // a prefab method to draw grouped barplots
-- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount heightNormalizer:(double)heightNormalizer;
+- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth heightNormalizer:(double)heightNormalizer;
 
 @end
 

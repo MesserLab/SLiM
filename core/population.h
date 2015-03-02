@@ -67,6 +67,8 @@ public:
 	uint32_t mutationLossGenSlots = 0;						// the number of generation-sized slots (with bins per mutation-type) presently allocated
 	uint32_t *mutationFixationTimes = nullptr;				// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
 	uint32_t mutationFixationGenSlots = 0;					// the number of generation-sized slots (with bins per mutation-type) presently allocated
+	double *fitnessHistory = nullptr;						// mean fitness, recorded per generation
+	uint32_t fitnessHistoryLength = 0;						// the number of entries in the fitnessHistory buffer
 #endif
 	
 	Population(const Population&) = delete;					// no copying
@@ -118,13 +120,13 @@ public:
 	void CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-	void SwapGenerations(int p_generation, const SLiMSim &p_sim);
+	void SwapGenerations(const SLiMSim &p_sim);
 	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
 	void TallyMutationReferences(void);
 	
 	// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
-	void RemoveFixedMutations(int p_generation, const SLiMSim &p_sim);
+	void RemoveFixedMutations(const SLiMSim &p_sim);
 	
 	// check the registry for any bad entries (i.e. zombies)
 	void CheckMutationRegistry(void);
@@ -140,6 +142,7 @@ public:
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
+	void SurveyPopulation(const SLiMSim &p_sim);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, int p_bin_number, uint32_t **p_buffer, uint32_t *p_bufferBins);
 #endif
 };

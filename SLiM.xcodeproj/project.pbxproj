@@ -31,6 +31,9 @@
 		986926D91AA140550000E138 /* GraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926D81AA140550000E138 /* GraphView.mm */; };
 		986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 986926DA1AA1429D0000E138 /* GraphWindow.xib */; };
 		986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */; };
+		986926E21AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E11AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm */; };
+		986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E41AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm */; };
+		986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
 		98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */; };
@@ -153,6 +156,12 @@
 		986926DB1AA1429D0000E138 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphWindow.xib; sourceTree = "<group>"; };
 		986926DD1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencySpectra.h; sourceTree = "<group>"; };
 		986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFrequencySpectra.mm; sourceTree = "<group>"; };
+		986926E01AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationLossTimeHistogram.h; sourceTree = "<group>"; };
+		986926E11AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationLossTimeHistogram.mm; sourceTree = "<group>"; };
+		986926E31AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFixationTimeHistogram.h; sourceTree = "<group>"; };
+		986926E41AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFixationTimeHistogram.mm; sourceTree = "<group>"; };
+		986926E61AA40AFF0000E138 /* GraphView_FitnessOverTime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_FitnessOverTime.h; sourceTree = "<group>"; };
+		986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_FitnessOverTime.mm; sourceTree = "<group>"; };
 		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
@@ -332,6 +341,12 @@
 				986926D81AA140550000E138 /* GraphView.mm */,
 				986926DD1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.h */,
 				986926DE1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm */,
+				986926E01AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.h */,
+				986926E11AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm */,
+				986926E31AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.h */,
+				986926E41AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm */,
+				986926E61AA40AFF0000E138 /* GraphView_FitnessOverTime.h */,
+				986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */,
 				986926DA1AA1429D0000E138 /* GraphWindow.xib */,
 			);
 			name = Graphing;
@@ -629,9 +644,11 @@
 				98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */,
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,
 				98D4C1DF1A6F543C00FFB083 /* substitution.cpp in Sources */,
+				986926E21AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm in Sources */,
 				98D4C1D51A6F541A00FFB083 /* slim_sim_input.cpp in Sources */,
 				98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */,
 				98D4C1E31A6F544B00FFB083 /* population.cpp in Sources */,
+				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
 				98D4C1D71A6F542200FFB083 /* event.cpp in Sources */,
@@ -641,6 +658,7 @@
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
+				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				98D4C1DA1A6F542C00FFB083 /* introduced_mutation.cpp in Sources */,
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,

@@ -170,7 +170,7 @@ bool SLiMSim::RunOneGeneration(void)
 					population_.TrackMutations(generation_, tracked_mutations_, &partial_sweeps_);
 				
 				// swap generations
-				population_.SwapGenerations(generation_, *this);
+				population_.SwapGenerations(*this);
 				
 				// advance the generation counter as soon as the generation is done
 				generation_++;

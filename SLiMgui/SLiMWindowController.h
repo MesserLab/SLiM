@@ -116,6 +116,7 @@
 	NSWindow *graphWindowMutationFreqTrajectories;
 	NSWindow *graphWindowMutationLossTimeHistogram;
 	NSWindow *graphWindowMutationFixationTimeHistogram;
+	NSWindow *graphWindowFitnessOverTime;
 		// don't forget to add new graph windows in -dealloc, -updateAfterTick, and -windowWillClose:
 	
 	int openedGraphCount;						// used for new graph window positioning
@@ -170,6 +171,7 @@
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender;
 - (IBAction)graphMutationLossTimeHistogram:(id)sender;
 - (IBAction)graphMutationFixationTimeHistogram:(id)sender;
+- (IBAction)graphFitnessOverTime:(id)sender;
 
 - (IBAction)playOneStep:(id)sender;
 - (IBAction)play:(id)sender;
