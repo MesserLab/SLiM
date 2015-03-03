@@ -23,6 +23,16 @@
 
 @implementation GraphView_FitnessOverTime
 
+- (void)setDefaultYAxisRange
+{
+	[self setYAxisMin:0.9];
+	[self setYAxisMax:1.1];		// dynamic
+	[self setYAxisMajorTickInterval:0.1];
+	[self setYAxisMinorTickInterval:0.02];
+	[self setYAxisMajorTickModulus:5];
+	[self setYAxisTickValuePrecision:1];
+}
+
 - (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
@@ -33,12 +43,7 @@
 		[self setXAxisMajorTickModulus:10];
 		[self setXAxisTickValuePrecision:0];
 		
-		[self setYAxisMin:0.5];
-		[self setYAxisMax:2.0];
-		[self setYAxisMajorTickInterval:0.5];
-		[self setYAxisMinorTickInterval:0.25];
-		[self setYAxisMajorTickModulus:2];
-		[self setYAxisTickValuePrecision:1];
+		[self setDefaultYAxisRange];
 		
 		[self setXAxisLabelString:@"Generation"];
 		[self setYAxisLabelString:@"Fitness (rescaled absolute)"];
@@ -53,6 +58,55 @@
 - (void)dealloc
 {
 	[super dealloc];
+}
+
+- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+{
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	double *history = pop.fitnessHistory;
+	uint32 historyLength = pop.fitnessHistoryLength;
+	double minHistory = INFINITY;
+	double maxHistory = -INFINITY;
+	
+	// find the min and max history value
+	for (int i = 0; i < historyLength; ++i)
+	{
+		double historyEntry = history[i];
+		
+		if (!isnan(historyEntry))
+		{
+			if (historyEntry > maxHistory)
+				maxHistory = historyEntry;
+			if (historyEntry < minHistory)
+				minHistory = historyEntry;
+		}
+	}
+	
+	// set axis range to encompass the data
+	if (!isinf(minHistory) && !isinf(maxHistory))
+	{
+		if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
+		{
+			double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
+			double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
+			
+			[self setYAxisMin:axisMin];
+			[self setYAxisMax:axisMax];
+			[self setYAxisMajorTickInterval:0.5];
+			[self setYAxisMinorTickInterval:0.25];
+			[self setYAxisMajorTickModulus:2];
+			[self setYAxisTickValuePrecision:1];
+		}
+		else
+		{
+			[self setDefaultYAxisRange];
+		}
+	}
+	else
+	{
+		[self setDefaultYAxisRange];
+	}
 }
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller

@@ -75,6 +75,8 @@
 - (double)roundPlotToDeviceX:(double)plotx withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
 - (double)roundPlotToDeviceY:(double)ploty withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
 
+- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller;		// called prior to drawing, to allow dynamic axis rescaling
+
 - (void)drawXAxisTicksWithInteriorRect:(NSRect)interiorRect;
 - (void)drawXAxisWithInteriorRect:(NSRect)interiorRect;
 

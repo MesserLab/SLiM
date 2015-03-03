@@ -193,6 +193,10 @@
 	return SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.height - 1.0) + interiorRect.origin.y) + 0.5;
 }
 
+- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+{
+}
+
 - (void)drawXAxisTicksWithInteriorRect:(NSRect)interiorRect
 {
 	NSDictionary *tickAttributes = [[self class] attributesForTickLabels];
@@ -480,6 +484,8 @@
 	if (![controller invalidSimulation])
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
+		
+		[self rescaleAsNeededWithInteriorRect:interiorRect andController:controller];
 		
 		// Draw grid lines, if requested, and if tick marks are turned on for the corresponding axis
 		if ([self showHorizontalGridLines] && [self showYAxisTicks])
