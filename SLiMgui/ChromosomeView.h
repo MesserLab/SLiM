@@ -33,6 +33,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 
 @interface ChromosomeView : NSView
 {
+@public
 	// Selection
 	BOOL hasSelection;
 	int selectionFirstBase, selectionLastBase;

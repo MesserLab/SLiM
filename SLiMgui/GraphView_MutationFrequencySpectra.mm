@@ -68,6 +68,12 @@
 	for (int i = 0; i < spectrumBins; ++i)
 		spectrum[i] = 0;
 	
+	// get the selected chromosome range; FIXME should this be fixed at graph creation instead?
+	ChromosomeView *chromosome = controller->chromosomeOverview;
+	BOOL hasSelection = chromosome->hasSelection;
+	int selectionFirstBase = chromosome->selectionFirstBase - 1;	// correct from 1-based to 0-based
+	int selectionLastBase = chromosome->selectionLastBase - 1;
+	
 	// tally into our bins
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
@@ -79,6 +85,16 @@
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{
 		const Mutation *mutation = mutations[mutIndex];
+		
+		// if the user has selected a subrange of the chromosome, we will work from that
+		if (hasSelection)
+		{
+			int32_t mutationPosition = mutation->position_;
+			
+			if ((mutationPosition < selectionFirstBase) || (mutationPosition > selectionLastBase))
+				continue;
+		}
+		
 		int32_t mutationRefCount = mutation->reference_count_;
 		double mutationFrequency = mutationRefCount / totalGenomeCount;
 		int mutationBin = (int)floor(mutationFrequency * binCount);
