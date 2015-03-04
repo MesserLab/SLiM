@@ -507,10 +507,10 @@
 		if (!cachingNow)
 		{
 			// Overdraw axes, ticks, and axis labels, if requested
-			if ([self showXAxisTicks])
+			if ([self showXAxis] && [self showXAxisTicks])
 				[self drawXAxisTicksWithInteriorRect:interiorRect];
 			
-			if ([self showYAxisTicks])
+			if ([self showYAxis] && [self showYAxisTicks])
 				[self drawYAxisTicksWithInteriorRect:interiorRect];
 			
 			if ([self showXAxis])
