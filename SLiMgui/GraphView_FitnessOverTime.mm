@@ -126,6 +126,9 @@
 			double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
 			double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
 			
+			if (axisMax < 1.5)
+				axisMax = 1.5;
+			
 			if ((axisMin != [self yAxisMin]) || (axisMax != [self yAxisMax]))
 			{
 				[self setYAxisMin:axisMin];
