@@ -136,6 +136,11 @@
 	[self drawMutationTypeLegendInRect:legendRect];		// we use the prefab mutation type legend
 }
 
+- (void)controllerSelectionChanged
+{
+	[self setNeedsDisplay:YES];
+}
+
 @end
 
 

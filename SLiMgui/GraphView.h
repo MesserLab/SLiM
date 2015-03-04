@@ -31,7 +31,12 @@
 
 @interface GraphView : NSView
 {
-	BOOL generatingPDF;		// set to YES during a copy: operation, to allow customization
+	// set to YES during a copy: operation, to allow customization
+	BOOL generatingPDF;
+	
+	// caching for drawing speed is up to subclasses, if they want to do it, but we provide minimal support in GraphView to make it work smoothly
+	// this flag is to prevent recursion in the drawing code, and to disable drawing of things that don't belong in a cache, such as the legend
+	BOOL cachingNow;
 }
 
 @property (nonatomic, assign) SLiMWindowController *slimWindowController;
@@ -94,6 +99,11 @@
 - (void)drawLegendInRect:(NSRect)legendRect;
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent;
+
+- (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
+- (void)controllerRecycled;				// called by SLiMWindowController when the simulation is recycled, to let the GraphView do whatever re-initialization is needed
+- (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond
+- (void)setNeedsDisplay;				// shorthand for setNeedsDisplay:YES, to allow use of performSelector:
 
 @end
 

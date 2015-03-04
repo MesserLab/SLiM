@@ -264,6 +264,29 @@ static NSDictionary *mutationTypeAttrs = nil;
 	}
 }
 
+- (GraphView *)graphViewForGraphWindow:(NSWindow *)window
+{
+	return (GraphView *)[window contentView];
+}
+
+- (void)sendAllGraphViewsSelector:(SEL)selector
+{
+	[[self graphViewForGraphWindow:graphWindowMutationFreqSpectrum] performSelector:selector];
+	[[self graphViewForGraphWindow:graphWindowMutationFreqTrajectories] performSelector:selector];
+	[[self graphViewForGraphWindow:graphWindowMutationLossTimeHistogram] performSelector:selector];
+	[[self graphViewForGraphWindow:graphWindowMutationFixationTimeHistogram] performSelector:selector];
+	[[self graphViewForGraphWindow:graphWindowFitnessOverTime] performSelector:selector];
+}
+
+- (void)sendAllGraphWindowsSelector:(SEL)selector
+{
+	[graphWindowMutationFreqSpectrum performSelector:selector];
+	[graphWindowMutationFreqTrajectories performSelector:selector];
+	[graphWindowMutationLossTimeHistogram performSelector:selector];
+	[graphWindowMutationFixationTimeHistogram performSelector:selector];
+	[graphWindowFitnessOverTime performSelector:selector];
+}
+
 - (void)dealloc
 {
 	//NSLog(@"[SLiMWindowController dealloc]");
@@ -272,6 +295,8 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
 	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
+	
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
 	[scriptString release];
 	scriptString = nil;
@@ -290,11 +315,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
-	[graphWindowMutationFreqSpectrum close];
-	[graphWindowMutationFreqTrajectories close];
-	[graphWindowMutationLossTimeHistogram close];
-	[graphWindowMutationFixationTimeHistogram close];
-	[graphWindowFitnessOverTime close];
+	[self sendAllGraphWindowsSelector:@selector(close)];
 
 	[super dealloc];
 }
@@ -511,14 +532,15 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[self updateGenerationCounter];
 	
 	// Update graph windows as well; it is assumed that all graphs need updating every tick
-	[[graphWindowMutationFreqSpectrum contentView] setNeedsDisplay:YES];
-	[[graphWindowMutationFreqTrajectories contentView] setNeedsDisplay:YES];
-	[[graphWindowMutationLossTimeHistogram contentView] setNeedsDisplay:YES];
-	[[graphWindowMutationFixationTimeHistogram contentView] setNeedsDisplay:YES];
-	[[graphWindowFitnessOverTime contentView] setNeedsDisplay:YES];
+	[self sendAllGraphViewsSelector:@selector(setNeedsDisplay)];
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message
 	[self checkForSimulationTermination];
+}
+
+- (void)chromosomeSelectionChanged:(NSNotification *)note
+{
+	[self sendAllGraphViewsSelector:@selector(controllerSelectionChanged)];
 }
 
 - (void)windowDidLoad
@@ -587,6 +609,9 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[showGenomicElementsButton setState:(zoomedChromosomeShowsGenomicElements ? NSOnState : NSOffState)];
 	[showMutationsButton setState:(zoomedChromosomeShowsMutations ? NSOnState : NSOffState)];
 	[showFixedSubstitutionsButton setState:(zoomedChromosomeShowsFixedSubstitutions ? NSOnState : NSOffState)];
+	
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:SLiMChromosomeSelectionChangedNotification object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(chromosomeSelectionChanged:) name:SLiMChromosomeSelectionChangedNotification object:chromosomeOverview];
 	
 	// Set up our menu buttons with their menus
 	[outputCommandsButton setMenu:outputCommandsMenu];
@@ -1155,6 +1180,8 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[genomicElementTypeTableView setNeedsDisplay];
 	
 	[chromosomeOverview setNeedsDisplay:YES];
+	
+	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
 }
 
 - (IBAction)playSpeedChanged:(id)sender
@@ -1477,6 +1504,15 @@ static NSDictionary *mutationTypeAttrs = nil;
 	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement
 	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram && !graphWindowFitnessOverTime)
 		openedGraphCount = 0;
+}
+
+- (void)windowDidResize:(NSNotification *)notification
+{
+	NSWindow *resizingWindow = [notification object];
+	NSView *contentView = [resizingWindow contentView];
+
+	if ([contentView isKindOfClass:[GraphView class]])
+		[(GraphView *)contentView graphWindowResized];
 }
 
 //

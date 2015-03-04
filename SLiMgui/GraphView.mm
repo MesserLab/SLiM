@@ -503,25 +503,29 @@
 		
 		[NSGraphicsContext restoreGraphicsState];
 		
-		// Overdraw axes, ticks, and axis labels, if requested
-		if ([self showXAxisTicks])
-			[self drawXAxisTicksWithInteriorRect:interiorRect];
-		
-		if ([self showYAxisTicks])
-			[self drawYAxisTicksWithInteriorRect:interiorRect];
-		
-		if ([self showXAxis])
-			[self drawXAxisWithInteriorRect:interiorRect];
-		
-		if ([self showYAxis])
-			[self drawYAxisWithInteriorRect:interiorRect];
-		
-		if ([self showFullBox])
-			[self drawFullBoxWithInteriorRect:interiorRect];
-		
-		// Overdraw the legend
-		if ([self legendVisible])
-			[self drawLegendInInteriorRect:interiorRect];
+		// If we're caching, skip all overdrawing, since it cannot be cached (it would then appear under new drawing that supplements the cache)
+		if (!cachingNow)
+		{
+			// Overdraw axes, ticks, and axis labels, if requested
+			if ([self showXAxisTicks])
+				[self drawXAxisTicksWithInteriorRect:interiorRect];
+			
+			if ([self showYAxisTicks])
+				[self drawYAxisTicksWithInteriorRect:interiorRect];
+			
+			if ([self showXAxis])
+				[self drawXAxisWithInteriorRect:interiorRect];
+			
+			if ([self showYAxis])
+				[self drawYAxisWithInteriorRect:interiorRect];
+			
+			if ([self showFullBox])
+				[self drawFullBoxWithInteriorRect:interiorRect];
+			
+			// Overdraw the legend
+			if ([self legendVisible])
+				[self drawLegendInInteriorRect:interiorRect];
+		}
 	}
 	else
 	{
@@ -621,6 +625,24 @@
 	}
 	
 	return [menu autorelease];
+}
+
+- (void)graphWindowResized
+{
+}
+
+- (void)controllerRecycled
+{
+	[self setNeedsDisplay:YES];
+}
+
+- (void)controllerSelectionChanged
+{
+}
+
+- (void)setNeedsDisplay
+{
+	[self setNeedsDisplay:YES];
 }
 
 @end
