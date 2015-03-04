@@ -29,6 +29,8 @@
 
 @interface GraphView_FitnessOverTime : GraphView
 {
+	NSImage *drawingCache;
+	int drawingCacheGeneration;
 }
 @end
 
