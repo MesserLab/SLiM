@@ -93,6 +93,7 @@ public:
 	void RunToEnd(void);															// run the simulation to the end
 	
 	// accessors
+	inline int Generation(void) const												{ return generation_; }
 	inline const std::vector<std::string> &InputParameters(void) const				{ return input_parameters_; }
 	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
 	

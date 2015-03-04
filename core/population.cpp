@@ -1408,8 +1408,10 @@ void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 			}
 		}
 		
+		int generation = p_sim.Generation();
+		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), p_sim.generation_));
+			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
 	}
 }
 
