@@ -368,6 +368,12 @@
                                     <action selector="graphFitnessOverTime:" target="-1" id="3yK-hb-PHq"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Graph Population Visualization" id="lup-Ws-ra9">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphPopulationVisualization:" target="-1" id="V3C-y8-2sm"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="0RT-dB-Yr4"/>
                             <menuItem title="Check Script Syntax" keyEquivalent="=" id="iGq-iW-iVU">
                                 <connections>

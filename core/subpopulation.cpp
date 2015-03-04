@@ -173,6 +173,11 @@ Subpopulation::~Subpopulation(void)
 
 void Subpopulation::UpdateFitness()
 {
+#ifdef SLIMGUI
+	// When running under SLiMgui, this function calculates the population mean fitness as a side effect
+	double totalFitness = 0.0;
+#endif
+	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
 	{
@@ -184,7 +189,14 @@ void Subpopulation::UpdateFitness()
 		double A[parent_first_male_index_];
 		
 		for (int i = 0; i < parent_first_male_index_; i++)
-			A[i] = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
+		{
+			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
+			
+			A[i] = fitness;
+#ifdef SLIMGUI
+			totalFitness += fitness;
+#endif
+		}
 		
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, A);
 		
@@ -193,7 +205,14 @@ void Subpopulation::UpdateFitness()
 		double B[num_males];
 		
 		for (int i = 0; i < num_males; i++)
-			B[i] = FitnessOfParentWithGenomeIndices(2 * (i + parent_first_male_index_), 2 * (i + parent_first_male_index_) + 1);
+		{
+			double fitness = FitnessOfParentWithGenomeIndices(2 * (i + parent_first_male_index_), 2 * (i + parent_first_male_index_) + 1);
+			
+			B[i] = fitness;
+#ifdef SLIMGUI
+			totalFitness += fitness;
+#endif
+		}
 		
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, B);
 	}
@@ -204,10 +223,21 @@ void Subpopulation::UpdateFitness()
 		double A[parent_subpop_size_];
 		
 		for (int i = 0; i < parent_subpop_size_; i++)
-			A[i] = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
+		{
+			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
+			
+			A[i] = fitness;
+#ifdef SLIMGUI
+			totalFitness += fitness;
+#endif
+		}
 		
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, A);
 	}
+	
+#ifdef SLIMGUI
+	parental_total_fitness_ = totalFitness;
+#endif
 }
 
 double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2) const

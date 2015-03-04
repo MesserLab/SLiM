@@ -1466,8 +1466,15 @@
                         <action selector="graphFitnessOverTime:" target="-2" id="faq-1c-L7I"/>
                     </connections>
                 </menuItem>
+                <menuItem isSeparatorItem="YES" id="UKb-k9-QkM"/>
+                <menuItem title="Graph Population Visualization" id="fua-cP-IJn">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="graphPopulationVisualization:" target="-2" id="f4v-7h-YUt"/>
+                    </connections>
+                </menuItem>
             </items>
-            <point key="canvasLocation" x="1203.5" y="739.5"/>
+            <point key="canvasLocation" x="841.5" y="662.5"/>
         </menu>
     </objects>
     <resources>

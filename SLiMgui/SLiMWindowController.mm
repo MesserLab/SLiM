@@ -24,6 +24,7 @@
 #import "GraphView_MutationLossTimeHistogram.h"
 #import "GraphView_MutationFixationTimeHistogram.h"
 #import "GraphView_FitnessOverTime.h"
+#import "GraphView_PopulationVisualization.h"
 
 #include <iostream>
 #include <sstream>
@@ -276,6 +277,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[[self graphViewForGraphWindow:graphWindowMutationLossTimeHistogram] performSelector:selector];
 	[[self graphViewForGraphWindow:graphWindowMutationFixationTimeHistogram] performSelector:selector];
 	[[self graphViewForGraphWindow:graphWindowFitnessOverTime] performSelector:selector];
+	[[self graphViewForGraphWindow:graphWindowPopulationVisualization] performSelector:selector];
 }
 
 - (void)sendAllGraphWindowsSelector:(SEL)selector
@@ -285,6 +287,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[graphWindowMutationLossTimeHistogram performSelector:selector];
 	[graphWindowMutationFixationTimeHistogram performSelector:selector];
 	[graphWindowFitnessOverTime performSelector:selector];
+	[graphWindowPopulationVisualization performSelector:selector];
 }
 
 - (void)dealloc
@@ -972,6 +975,14 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[graphWindowFitnessOverTime orderFront:nil];
 }
 
+- (IBAction)graphPopulationVisualization:(id)sender
+{
+	if (!graphWindowPopulationVisualization)
+		graphWindowPopulationVisualization = [[self graphWindowWithTitle:@"Population Visualization" viewClass:[GraphView_PopulationVisualization class]] retain];
+	
+	[graphWindowPopulationVisualization orderFront:nil];
+}
+
 - (BOOL)runSimOneGeneration
 {
 	// This method should always be used when calling out to run the simulation, because it swaps the correct random number
@@ -1500,9 +1511,14 @@ static NSDictionary *mutationTypeAttrs = nil;
 		[graphWindowFitnessOverTime autorelease];
 		graphWindowFitnessOverTime = nil;
 	}
+	else if (closingWindow == graphWindowPopulationVisualization)
+	{
+		[graphWindowPopulationVisualization autorelease];
+		graphWindowPopulationVisualization = nil;
+	}
 	
 	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement
-	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram && !graphWindowFitnessOverTime)
+	if (!graphWindowMutationFreqSpectrum && !graphWindowMutationFreqTrajectories && !graphWindowMutationLossTimeHistogram && !graphWindowMutationFixationTimeHistogram && !graphWindowFitnessOverTime && !graphWindowPopulationVisualization)
 		openedGraphCount = 0;
 }
 

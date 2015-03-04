@@ -199,7 +199,8 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 	if (subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
 		subpop.migrant_fractions_.erase(p_source_subpop_id);
 	
-	subpop.migrant_fractions_.insert(std::pair<const int,double>(p_source_subpop_id, p_migrant_fraction)); 
+	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
+		subpop.migrant_fractions_.insert(std::pair<const int,double>(p_source_subpop_id, p_migrant_fraction)); 
 }
 
 // execute a given event in the population; the event is assumed to be due to trigger
@@ -1127,7 +1128,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 // This method is used to record population statistics that are kept per generation for SLiMgui
 void Population::SurveyPopulation(const SLiMSim &p_sim)
 {
-	// Calculate mean fitness for this generation; this could be done in UpdateFitness() instead but it would be a lot more complicated...
+	// Calculate mean fitness for this generation; this integrates the subpop mean fitness values from UpdateFitness()
 	double totalFitness = 0.0;
 	int individualCount = 0;
 	
@@ -1135,10 +1136,7 @@ void Population::SurveyPopulation(const SLiMSim &p_sim)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
 		
-		// and then we calculate the fitnesses of the parents and make lookup tables
-		for (int i = 0; i < subpop->parent_subpop_size_; i++)
-			totalFitness += subpop->FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1);
-		
+		totalFitness += subpop->parental_total_fitness_;
 		individualCount += subpop->parent_subpop_size_;
 	}
 	
