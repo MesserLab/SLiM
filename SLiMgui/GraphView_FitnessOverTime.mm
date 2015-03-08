@@ -153,10 +153,10 @@
 {
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	int generation = sim->generation_;
+	int completedGenerations = sim->generation_ - 1;
 	
 	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
-	if (!cachingNow && (!drawingCache || ((generation / 1000) > (drawingCacheGeneration / 1000))))
+	if (!cachingNow && (!drawingCache || ((completedGenerations / 1000) > (drawingCacheGeneration / 1000))))
 	{
 		[self invalidateDrawingCache];
 		
@@ -168,7 +168,7 @@
 		[self cacheDisplayInRect:interiorRect toBitmapImageRep:bitmap];
 		drawingCache = [[NSImage alloc] initWithSize:interiorRect.size];
 		[drawingCache addRepresentation:bitmap];
-		drawingCacheGeneration = generation;
+		drawingCacheGeneration = completedGenerations;
 		cachingNow = NO;
 	}
 	
@@ -232,10 +232,10 @@
 	
 	[[NSColor blackColor] set];
 	
-	// If we're caching now, draw all points; otherwise, if we have a cache, draw onl additional points
+	// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
 	int firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
 	
-	for (int i = firstHistoryEntryToDraw; i < historyLength; ++i)
+	for (int i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
 	{
 		double historyEntry = history[i];
 		
@@ -247,6 +247,44 @@
 		}
 	}
 #endif
+}
+
+- (NSString *)stringForDataWithController:(SLiMWindowController *)controller
+{
+	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ generation\n"];
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	int completedGenerations = sim->generation_ - 1;
+	
+	[string appendString:[self dateline]];
+	
+	// Fixation events
+	[string appendString:@"\n\n# Fixation generations:\n"];
+	
+	std::vector<const Substitution*> &substitutions = pop.substitutions_;
+	
+	for (const Substitution *substitution : substitutions)
+	{
+		int fixation_time = substitution->fixation_time_;
+		
+		[string appendFormat:@"%d, ", fixation_time];
+	}
+	
+	// Fitness history
+	[string appendString:@"\n\n# Fitness history:\n"];
+	
+	double *history = pop.fitnessHistory;
+	uint32 historyLength = pop.fitnessHistoryLength;
+	
+	for (int i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+		[string appendFormat:@"%.4f, ", history[i]];
+	
+	[string appendString:@"\n"];
+	
+	// Get rid of extra commas
+	[string replaceOccurrencesOfString:@", \n" withString:@"\n" options:0 range:NSMakeRange(0, [string length])];
+	
+	return string;
 }
 
 @end

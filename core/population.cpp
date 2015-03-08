@@ -1141,20 +1141,21 @@ void Population::SurveyPopulation(const SLiMSim &p_sim)
 	}
 	
 	double meanFitness = totalFitness / individualCount;
+	int historyIndex = p_sim.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
 	// Add the mean fitness to the population history
-	if (p_sim.generation_ >= fitnessHistoryLength)
+	if (historyIndex >= fitnessHistoryLength)
 	{
 		int oldHistoryLength = fitnessHistoryLength;
 		
-		fitnessHistoryLength = p_sim.generation_ + 1000;			// give some elbow room for expansion
+		fitnessHistoryLength = historyIndex + 1000;			// give some elbow room for expansion
 		fitnessHistory = (double *)realloc(fitnessHistory, fitnessHistoryLength * sizeof(double));
 		
 		for (int i = oldHistoryLength; i < fitnessHistoryLength; ++i)
 			fitnessHistory[i] = NAN;
 	}
 	
-	fitnessHistory[p_sim.generation_] = meanFitness;
+	fitnessHistory[historyIndex] = meanFitness;
 }
 #endif
 

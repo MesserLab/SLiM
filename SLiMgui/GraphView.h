@@ -98,6 +98,10 @@
 - (NSSize)legendSize;
 - (void)drawLegendInRect:(NSRect)legendRect;
 
+- (IBAction)copy:(id)sender;
+- (IBAction)copyData:(id)sender;
+- (NSString *)dateline;
+
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent;
 
 - (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
@@ -121,6 +125,11 @@
 
 @end
 
+@interface GraphView (OptionalSubclassMethods)
+
+- (NSString *)stringForDataWithController:(SLiMWindowController *)controller;
+
+@end
 
 
 

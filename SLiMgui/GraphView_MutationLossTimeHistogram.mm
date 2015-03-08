@@ -123,6 +123,41 @@
 	[self drawMutationTypeLegendInRect:legendRect];		// we use the prefab mutation type legend
 }
 
+- (NSString *)stringForDataWithController:(SLiMWindowController *)controller
+{
+	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: Mutation loss time histogram\n"];
+	
+	[string appendString:[self dateline]];
+	[string appendString:@"\n\n"];
+	
+	double *plotData = [self lossTimeDataWithController:controller];
+	int binCount = [self histogramBinCount];
+	SLiMSim *sim = controller->sim;
+	int mutationTypeCount = (int)sim->mutation_types_.size();
+	auto mutationTypeIter = sim->mutation_types_.begin();
+	
+	for (int j = 0; j < mutationTypeCount; ++j, ++mutationTypeIter)
+	{
+		MutationType *mutationType = (*mutationTypeIter).second;
+		
+		[string appendFormat:@"\"m%d\", ", mutationType->mutation_type_id_];
+		
+		for (int i = 0; i < binCount; ++i)
+		{
+			int histIndex = j + i * mutationTypeCount;
+			
+			[string appendFormat:@"%.4f, ", plotData[histIndex]];
+		}
+		
+		[string appendString:@"\n"];
+	}
+	
+	// Get rid of extra commas
+	[string replaceOccurrencesOfString:@", \n" withString:@"\n" options:0 range:NSMakeRange(0, [string length])];
+	
+	return string;
+}
+
 @end
 
 

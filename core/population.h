@@ -67,7 +67,7 @@ public:
 	uint32_t mutationLossGenSlots = 0;						// the number of generation-sized slots (with bins per mutation-type) presently allocated
 	uint32_t *mutationFixationTimes = nullptr;				// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
 	uint32_t mutationFixationGenSlots = 0;					// the number of generation-sized slots (with bins per mutation-type) presently allocated
-	double *fitnessHistory = nullptr;						// mean fitness, recorded per generation
+	double *fitnessHistory = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
 	uint32_t fitnessHistoryLength = 0;						// the number of entries in the fitnessHistory buffer
 #endif
 	

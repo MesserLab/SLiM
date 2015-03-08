@@ -570,6 +570,24 @@
 	generatingPDF = NO;
 }
 
+- (NSString *)dateline
+{
+	NSString *dateString = [NSDateFormatter localizedStringFromDate:[NSDate date] dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
+	
+	return [NSString stringWithFormat:@"# %@", dateString];
+}
+
+- (IBAction)copyData:(id)sender
+{
+	if ([self respondsToSelector:@selector(stringForDataWithController:)])
+	{
+		NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+		
+		[pasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:self];
+		[pasteboard setString:[self stringForDataWithController:[self slimWindowController]] forType:NSStringPboardType];
+	}
+}
+
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
 	SLiMWindowController *controller = [self slimWindowController];
@@ -624,6 +642,14 @@
 		// Copy the graph image
 		{
 			NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Graph" action:@selector(copy:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+		}
+		
+		// Copy the data to the clipboard
+		if ([self respondsToSelector:@selector(stringForDataWithController:)])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Data" action:@selector(copyData:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
 		}
