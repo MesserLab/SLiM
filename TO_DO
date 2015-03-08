@@ -9,9 +9,9 @@ command-line tool:
 
 SLiMgui work:
 	graphing
-		live selection basis for spectrum is good, show selected range in plot somewhere
 		changing axis scale for plots (context menu)
 		copy the numbers behind a graph, in addition to copying the pdf (or save as a CSV)
+	make selection snap to genomic element boundaries, control-click genomic element to select it exactly
 	script syntax help could be more helpful: go into details on each option and what parameters it takes
 	implement the "new event" buttons
 	make possible to open an output file in the gui, to see the state of a cluster sim

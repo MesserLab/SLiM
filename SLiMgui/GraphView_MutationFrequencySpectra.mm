@@ -138,6 +138,29 @@
 	
 	// plot our histogram bars
 	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:0.10];
+	
+	// if we have a limited selection range, overdraw a note about that
+	ChromosomeView *chromosome = controller->chromosomeOverview;
+	BOOL hasSelection = chromosome->hasSelection;
+	
+	if (hasSelection)
+	{
+		int selectionFirstBase = chromosome->selectionFirstBase;
+		int selectionLastBase = chromosome->selectionLastBase;
+		static NSDictionary *attrs = nil;
+		
+		if (!attrs)
+			attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[GraphView labelFontName] size:10], NSFontAttributeName, [NSColor darkGrayColor], NSForegroundColorAttributeName, nil];
+		
+		NSString *labelText = [NSString stringWithFormat:@"%d – %d", selectionFirstBase, selectionLastBase];
+		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];
+		NSSize labelSize = [attributedLabel size];
+		double labelX = interiorRect.origin.y + (interiorRect.size.width - labelSize.width) / 2.0;
+		double labelY = interiorRect.origin.y + interiorRect.size.height - (labelSize.height + 4);
+		
+		[attributedLabel drawAtPoint:NSMakePoint(labelX, labelY)];
+		[attributedLabel release];
+	}
 }
 
 - (NSSize)legendSize
