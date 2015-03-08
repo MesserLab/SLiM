@@ -55,7 +55,6 @@
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
 	uint32 *histogram = controller->sim->population_.mutationFixationTimes;
 	uint32 histogramBins = controller->sim->population_.mutationFixationGenSlots;	// fewer than binCount * mutationTypeCount may exist
-	uint32 total = 0;
 	static double *rebin = NULL;
 	static uint32 rebinBins = 0;
 	uint32 usedRebinBins = binCount * mutationTypeCount;
@@ -81,13 +80,25 @@
 		}
 	}
 	
-	// total up all the bins so we can calculate proportions
-	for (int i = 0; i < usedRebinBins; ++i)
-		total += rebin[i];
-	
-	// normalize to a total height of one
-	for (int i = 0; i < usedRebinBins; ++i)
-		rebin[i] /= total;
+	// normalize within each mutation type
+	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
+	{
+		uint32 total = 0;
+		
+		for (int bin = 0; bin < binCount; ++bin)
+		{
+			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+			
+			total += rebin[binIndex];
+		}
+		
+		for (int bin = 0; bin < binCount; ++bin)
+		{
+			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+			
+			rebin[binIndex] /= (double)total;
+		}
+	}
 	
 	return rebin;
 }

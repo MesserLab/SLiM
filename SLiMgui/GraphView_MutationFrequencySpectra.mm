@@ -54,7 +54,6 @@
 	static double *doubleSpectrum = NULL;	// not used for tallying, to avoid precision issues
 	static uint32 spectrumBins = 0;
 	int binCount = [self histogramBinCount];
-	uint32 total = 0;
 	uint32 usedSpectrumBins = binCount * mutationTypeCount;
 	
 	// allocate our bins
@@ -107,13 +106,25 @@
 		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
 	}
 	
-	// total up all the bins so we can calculate proportions
-	for (int i = 0; i < usedSpectrumBins; ++i)
-		total += spectrum[i];
-	
-	// normalize and convert to doubles
-	for (int i = 0; i < usedSpectrumBins; ++i)
-		doubleSpectrum[i] = spectrum[i] / (double)total;
+	// normalize within each mutation type
+	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
+	{
+		uint32 total = 0;
+		
+		for (int bin = 0; bin < binCount; ++bin)
+		{
+			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+			
+			total += spectrum[binIndex];
+		}
+		
+		for (int bin = 0; bin < binCount; ++bin)
+		{
+			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+			
+			doubleSpectrum[binIndex] = spectrum[binIndex] / (double)total;
+		}
+	}
 	
 	// return the final tally; note this is a pointer in to our static ivar, and must not be freed!
 	return doubleSpectrum;

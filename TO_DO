@@ -9,7 +9,6 @@ command-line tool:
 
 SLiMgui work:
 	graphing
-		mutation frequency spectrum: normalize to a total of 1.0 for each mutation type
 		live selection basis for spectrum is good, show selected range in plot somewhere
 		changing axis scale for plots (context menu)
 		copy the numbers behind a graph, in addition to copying the pdf (or save as a CSV)
