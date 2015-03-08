@@ -49,29 +49,26 @@
 	[super dealloc];
 }
 
-- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+- (double *)fixationTimeDataWithController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
 	uint32 *histogram = controller->sim->population_.mutationFixationTimes;
 	uint32 histogramBins = controller->sim->population_.mutationFixationGenSlots;	// fewer than binCount * mutationTypeCount may exist
 	uint32 total = 0;
-	static uint32 *rebin = NULL;
+	static double *rebin = NULL;
 	static uint32 rebinBins = 0;
-	
-	// total up all the bins so we can calculate proportions
-	for (int i = 0; i < histogramBins; ++i)
-		total += histogram[i];
+	uint32 usedRebinBins = binCount * mutationTypeCount;
 	
 	// re-bin for display; SLiM bins every 10 generations, but right now we want to plot every 100 generations as a bin
-	if (!rebin)
+	if (!rebin || (rebinBins < usedRebinBins))
 	{
-		rebinBins = binCount * mutationTypeCount;
-		rebin = (uint32 *)malloc(rebinBins * sizeof(uint32));
+		rebinBins = usedRebinBins;
+		rebin = (double *)realloc(rebin, rebinBins * sizeof(double));
 	}
 	
-	for (int i = 0; i < rebinBins; ++i)
-		rebin[i] = 0;
+	for (int i = 0; i < usedRebinBins; ++i)
+		rebin[i] = 0.0;
 	
 	for (int i = 0; i < binCount * 10; ++i)
 	{
@@ -84,8 +81,25 @@
 		}
 	}
 	
+	// total up all the bins so we can calculate proportions
+	for (int i = 0; i < usedRebinBins; ++i)
+		total += rebin[i];
+	
+	// normalize to a total height of one
+	for (int i = 0; i < usedRebinBins; ++i)
+		rebin[i] /= total;
+	
+	return rebin;
+}
+
+- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+{
+	double *plotData = [self fixationTimeDataWithController:controller];
+	int binCount = [self histogramBinCount];
+	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
+	
 	// plot our histogram bars
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:rebin bufferLength:rebinBins subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:100.0 heightNormalizer:(double)total];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:plotData subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:100.0];
 }
 
 - (NSSize)legendSize

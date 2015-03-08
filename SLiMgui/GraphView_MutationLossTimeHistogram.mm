@@ -49,22 +49,57 @@
 	[super dealloc];
 }
 
-- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+- (double *)lossTimeDataWithController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
 	uint32 *histogram = controller->sim->population_.mutationLossTimes;
 	uint32 histogramBins = controller->sim->population_.mutationLossGenSlots;	// fewer than binCount * mutationTypeCount may exist
 	uint32 total = 0;
+	static double *rebin = NULL;
+	static uint32 rebinBins = 0;
+	uint32 usedRebinBins = binCount * mutationTypeCount;
+	
+	// re-bin for display; use double, normalize, etc.
+	if (!rebin || (rebinBins < usedRebinBins))
+	{
+		rebinBins = usedRebinBins;
+		rebin = (double *)realloc(rebin, rebinBins * sizeof(double));
+	}
+	
+	for (int i = 0; i < usedRebinBins; ++i)
+		rebin[i] = 0.0;
+	
+	for (int i = 0; i < binCount; ++i)
+	{
+		for (int j = 0; j < mutationTypeCount; ++j)
+		{
+			int histIndex = j + i * mutationTypeCount;
+			
+			if (histIndex < histogramBins)
+				rebin[histIndex] += histogram[histIndex];
+		}
+	}
 	
 	// total up all the bins so we can calculate proportions
-	for (int i = 0; i < histogramBins; ++i)
-		total += histogram[i];
+	for (int i = 0; i < usedRebinBins; ++i)
+		total += rebin[i];
 	
-	//NSLog(@"histogram %p histogramBins %d total %d", histogram, histogramBins, total);
+	// normalize to a total height of one
+	for (int i = 0; i < usedRebinBins; ++i)
+		rebin[i] /= total;
+	
+	return rebin;
+}
+
+- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+{
+	double *plotData = [self lossTimeDataWithController:controller];
+	int binCount = [self histogramBinCount];
+	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
 	
 	// plot our histogram bars
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:histogram bufferLength:histogramBins subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:10.0 heightNormalizer:(double)total];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:plotData subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:10.0];
 }
 
 - (NSSize)legendSize

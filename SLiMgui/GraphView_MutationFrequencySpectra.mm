@@ -48,27 +48,28 @@
 	[super dealloc];
 }
 
-- (uint32 *)mutationFrequencySpectrumWithController:(SLiMWindowController *)controller mutationTypeCount:(int)mutationTypeCount
+- (double *)mutationFrequencySpectrumWithController:(SLiMWindowController *)controller mutationTypeCount:(int)mutationTypeCount
 {
-	static uint32 *spectrum = NULL;
-	static int spectrumBins = 0;
+	static uint32 *spectrum = NULL;			// used for tallying
+	static double *doubleSpectrum = NULL;	// not used for tallying, to avoid precision issues
+	static uint32 spectrumBins = 0;
 	int binCount = [self histogramBinCount];
+	uint32 total = 0;
+	uint32 usedSpectrumBins = binCount * mutationTypeCount;
 	
 	// allocate our bins
-	if (!spectrum || (spectrumBins != binCount * mutationTypeCount))
+	if (!spectrum || (spectrumBins < usedSpectrumBins))
 	{
-		if (spectrum)
-			free(spectrum);
-		
-		spectrumBins = binCount * mutationTypeCount;
-		spectrum = (uint32 *)malloc(spectrumBins * sizeof(uint32));
+		spectrumBins = usedSpectrumBins;
+		spectrum = (uint32 *)realloc(spectrum, spectrumBins * sizeof(uint32));
+		doubleSpectrum = (double *)realloc(doubleSpectrum, spectrumBins * sizeof(double));
 	}
 	
 	// clear our bins
-	for (int i = 0; i < spectrumBins; ++i)
+	for (int i = 0; i < usedSpectrumBins; ++i)
 		spectrum[i] = 0;
 	
-	// get the selected chromosome range; FIXME should this be fixed at graph creation instead?
+	// get the selected chromosome range
 	ChromosomeView *chromosome = controller->chromosomeOverview;
 	BOOL hasSelection = chromosome->hasSelection;
 	int selectionFirstBase = chromosome->selectionFirstBase - 1;	// correct from 1-based to 0-based
@@ -106,24 +107,26 @@
 		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
 	}
 	
+	// total up all the bins so we can calculate proportions
+	for (int i = 0; i < usedSpectrumBins; ++i)
+		total += spectrum[i];
+	
+	// normalize and convert to doubles
+	for (int i = 0; i < usedSpectrumBins; ++i)
+		doubleSpectrum[i] = spectrum[i] / (double)total;
+	
 	// return the final tally; note this is a pointer in to our static ivar, and must not be freed!
-	return spectrum;
+	return doubleSpectrum;
 }
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
-	int spectrumBins = binCount * mutationTypeCount;
-	uint32 *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
-	uint32 total = 0;
-	
-	// total up all the bins so we can calculate proportions
-	for (int i = 0; i < spectrumBins; ++i)
-		total += spectrum[i];
+	double *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
 	// plot our histogram bars
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum bufferLength:spectrumBins subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:0.10 heightNormalizer:(double)total];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:0.10];
 }
 
 - (NSSize)legendSize

@@ -71,11 +71,16 @@
 
 - (void)controllerRecycled
 {
-	[self setDefaultYAxisRange];
-	[self setXAxisMax:[self slimWindowController]->sim->time_duration_];
+	SLiMWindowController *controller = [self slimWindowController];
 	
-	[self invalidateDrawingCache];
-	[self setNeedsDisplay:YES];
+	if (![controller invalidSimulation])
+	{
+		[self setDefaultYAxisRange];
+		[self setXAxisMax:controller->sim->time_duration_];
+		
+		[self invalidateDrawingCache];
+		[self setNeedsDisplay:YES];
+	}
 	
 	[super controllerRecycled];
 }

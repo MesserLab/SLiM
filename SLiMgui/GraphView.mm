@@ -572,59 +572,66 @@
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
-	BOOL hasVisibilityItems = NO;
-	NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
+	SLiMWindowController *controller = [self slimWindowController];
 	
-	// Toggle legend visibility
-	NSSize legendSize = [self legendSize];
-	
-	if ((legendSize.width > 0.0) && (legendSize.height > 0.0))
+	if (![controller invalidSimulation])
 	{
-		NSMenuItem *menuItem = [menu addItemWithTitle:([self legendVisible] ? @"Hide Legend" : @"Show Legend") action:@selector(toggleLegend:) keyEquivalent:@""];
+		BOOL hasVisibilityItems = NO;
+		NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
 		
-		[menuItem setTarget:self];
-		hasVisibilityItems = YES;
+		// Toggle legend visibility
+		NSSize legendSize = [self legendSize];
+		
+		if ((legendSize.width > 0.0) && (legendSize.height > 0.0))
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:([self legendVisible] ? @"Hide Legend" : @"Show Legend") action:@selector(toggleLegend:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			hasVisibilityItems = YES;
+		}
+		
+		// Toggle horizontal grid line visibility
+		if ([self showYAxisTicks])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:([self showHorizontalGridLines] ? @"Hide Horizontal Grid" : @"Show Horizontal Grid") action:@selector(toggleHorizontalGridLines:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			hasVisibilityItems = YES;
+		}
+		
+		// Toggle vertical grid line visibility
+		if ([self showXAxisTicks])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:([self showVerticalGridLines] ? @"Hide Vertical Grid" : @"Show Vertical Grid") action:@selector(toggleVerticalGridLines:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			hasVisibilityItems = YES;
+		}
+		
+		// Toggle box visibility
+		if ([self showXAxis] && [self showYAxis])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:([self showFullBox] ? @"Hide Full Box" : @"Show Full Box") action:@selector(toggleFullBox:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			hasVisibilityItems = YES;
+		}
+		
+		// Add a separator if we had any visibility-toggle menu items above
+		if (hasVisibilityItems)
+			[menu addItem:[NSMenuItem separatorItem]];
+		
+		// Copy the graph image
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Graph" action:@selector(copy:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+		}
+		
+		return [menu autorelease];
 	}
 	
-	// Toggle horizontal grid line visibility
-	if ([self showYAxisTicks])
-	{
-		NSMenuItem *menuItem = [menu addItemWithTitle:([self showHorizontalGridLines] ? @"Hide Horizontal Grid" : @"Show Horizontal Grid") action:@selector(toggleHorizontalGridLines:) keyEquivalent:@""];
-		
-		[menuItem setTarget:self];
-		hasVisibilityItems = YES;
-	}
-	
-	// Toggle vertical grid line visibility
-	if ([self showXAxisTicks])
-	{
-		NSMenuItem *menuItem = [menu addItemWithTitle:([self showVerticalGridLines] ? @"Hide Vertical Grid" : @"Show Vertical Grid") action:@selector(toggleVerticalGridLines:) keyEquivalent:@""];
-		
-		[menuItem setTarget:self];
-		hasVisibilityItems = YES;
-	}
-	
-	// Toggle box visibility
-	if ([self showXAxis] && [self showYAxis])
-	{
-		NSMenuItem *menuItem = [menu addItemWithTitle:([self showFullBox] ? @"Hide Full Box" : @"Show Full Box") action:@selector(toggleFullBox:) keyEquivalent:@""];
-		
-		[menuItem setTarget:self];
-		hasVisibilityItems = YES;
-	}
-	
-	// Add a separator if we had any visibility-toggle menu items above
-	if (hasVisibilityItems)
-		[menu addItem:[NSMenuItem separatorItem]];
-	
-	// Copy the graph image
-	{
-		NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Graph" action:@selector(copy:) keyEquivalent:@""];
-		
-		[menuItem setTarget:self];
-	}
-	
-	return [menu autorelease];
+	return nil;
 }
 
 - (void)graphWindowResized
@@ -707,7 +714,7 @@
 	}
 }
 
-- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth heightNormalizer:(double)heightNormalizer
+- (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(double *)buffer subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth
 {
 	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
 	{
@@ -719,9 +726,9 @@
 		for (int subBinIndex = 0; subBinIndex < subBinCount; ++subBinIndex)
 		{
 			int actualBinIndex = subBinIndex + mainBinIndex * subBinCount;
-			uint32 binValue = (actualBinIndex < bufferLength) ? buffer[actualBinIndex] : 0;		// clients are allowed to pass a buffer that is too short; we assume zeros
+			double binValue = buffer[actualBinIndex];
 			double barBottom = interiorRect.origin.y - 1;
-			double barTop = (binValue == 0 ? interiorRect.origin.y - 1 : [self roundPlotToDeviceY:(binValue / heightNormalizer) withInteriorRect:interiorRect] + 0.5);
+			double barTop = (binValue == 0 ? interiorRect.origin.y - 1 : [self roundPlotToDeviceY:binValue withInteriorRect:interiorRect] + 0.5);
 			NSRect barRect = NSMakeRect(barLeft, barBottom, barRight - barLeft, barTop - barBottom);
 			
 			if (barRect.size.height > 0.0)
@@ -749,9 +756,9 @@
 	}
 }
 
-- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(uint32 *)buffer bufferLength:(int)bufferLength binCount:(int)binCount firstBinValue:(double)firstBinValue binWidth:(double)binWidth heightNormalizer:(double)heightNormalizer
+- (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(double *)buffer binCount:(int)binCount firstBinValue:(double)firstBinValue binWidth:(double)binWidth
 {
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:buffer bufferLength:bufferLength subBinCount:1 mainBinCount:binCount firstBinValue:firstBinValue mainBinWidth:binWidth heightNormalizer:heightNormalizer];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:buffer subBinCount:1 mainBinCount:binCount firstBinValue:firstBinValue mainBinWidth:binWidth];
 }
 
 @end
