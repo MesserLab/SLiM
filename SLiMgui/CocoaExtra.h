@@ -60,7 +60,18 @@
 void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
+// Classes to show a selection index marker when dragging out a selection in a ChromosomeView
+@interface SLiMSelectionView : NSView
+@end
 
+@interface SLiMSelectionMarker : NSPanel
+@property (nonatomic, retain) NSString *label;
+@property (nonatomic) NSPoint tipPoint;
+@property (nonatomic) BOOL isLeftMarker;
+
++ (instancetype)new;	// makes a new marker, not shown; set it up with a label and tip point and then call orderFront:
+
+@end
 
 
 

@@ -20,6 +20,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+#import "CocoaExtra.h"
+
 
 extern NSString *SLiMChromosomeSelectionChangedNotification;
 
@@ -42,6 +44,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	BOOL isTracking;
 	int trackingStartBase, trackingLastBase;
 	int trackingXAdjust;	// to keep the cursor stuck on a knob that is click-dragged
+	SLiMSelectionMarker *startMarker, *endMarker;
 }
 
 @property (nonatomic, retain) ChromosomeView *referenceChromosomeView;		// asked for the range to display

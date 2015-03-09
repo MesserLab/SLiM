@@ -69,11 +69,24 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:[NSDictionary dictionaryWithObject:NSNegateBooleanTransformerName forKey:NSValueTransformerNameBindingOption]];
 }
 
+- (void)removeSelectionMarkers
+{
+	[startMarker close];
+	[startMarker release];
+	startMarker = nil;
+	
+	[endMarker close];
+	[endMarker release];
+	endMarker = nil;
+}
+
 - (void)dealloc
 {
 	[self setReferenceChromosomeView:nil];
 	
 	[self unbind:@"enabled"];
+	
+	[self removeSelectionMarkers];
 	
 	[super dealloc];
 }
@@ -155,9 +168,9 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 
 - (NSRect)rectEncompassingBase:(int)startBase toBase:(int)endBase interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
 {
-	double startFraction = (startBase - (int)displayedRange.location) / (double)(displayedRange.length + 1);
+	double startFraction = (startBase - (int)displayedRange.location) / (double)(displayedRange.length);
 	double leftEdgeDouble = interiorRect.origin.x + startFraction * interiorRect.size.width;
-	double endFraction = (endBase + 1 - (int)displayedRange.location) / (double)(displayedRange.length + 1);
+	double endFraction = (endBase + 1 - (int)displayedRange.location) / (double)(displayedRange.length);
 	double rightEdgeDouble = interiorRect.origin.x + endFraction * interiorRect.size.width;
 	int leftEdge, rightEdge;
 	
@@ -480,6 +493,30 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		// We deal with rounded x-coordinates to make adjusting the click point easier
 		curPoint.x = (int)round(curPoint.x);
 		
+		// Option-clicks just set the selection to the clicked genomic element, no questions asked
+		if ([theEvent modifierFlags] & NSAlternateKeyMask)
+		{
+			if (NSPointInRect(curPoint, contentRect))
+			{
+				int clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];	// this is 1-based
+				NSRange selectionRange = NSMakeRange(0, 0);
+				SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+				Chromosome &chromosome = controller->sim->chromosome_;
+				
+				for (GenomicElement &genomicElement : chromosome)
+				{
+					int startPosition = genomicElement.start_position_ + 1;		// +1 because the back end is 0-based
+					int endPosition = genomicElement.end_position_ + 1;
+					
+					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
+						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);
+				}
+				
+				[self setSelectedRange:selectionRange];
+				return;
+			}
+		}
+		
 		// first check for a hit in one of our selection handles
 		if (hasSelection)
 		{
@@ -531,6 +568,36 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	}
 }
 
+- (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(int)selectionBase isLeft:(BOOL)isLeftMarker
+{
+	BOOL justCreated = NO;
+	
+	// if the marker is not yet created, create it
+	if (!*marker)
+	{
+		*marker = [SLiMSelectionMarker new];
+		justCreated = YES;
+	}
+	
+	// then move the marker to the appropriate position
+	NSRect interiorRect = [self interiorRect];
+	NSRange displayedRange = [self displayedRange];
+	NSRect selectionRect = [self rectEncompassingBase:selectionFirstBase toBase:selectionLastBase interiorRect:interiorRect displayedRange:displayedRange];
+	NSPoint selectionStartTipPoint = NSMakePoint(selectionRect.origin.x, interiorRect.origin.y + interiorRect.size.height - 3);
+	NSPoint selectionEndTipPoint = NSMakePoint(selectionRect.origin.x + selectionRect.size.width - 1, interiorRect.origin.y + interiorRect.size.height - 3);
+	NSPoint tipPoint = (isLeftMarker ? selectionStartTipPoint : selectionEndTipPoint);
+	
+	tipPoint = [self convertPoint:tipPoint toView:nil];
+	tipPoint = [[self window] convertRectToScreen:NSMakeRect(tipPoint.x, tipPoint.y, 0, 0)].origin;
+	
+	[*marker setLabel:[NSString stringWithFormat:@"%d", selectionBase]];
+	[*marker setTipPoint:tipPoint];
+	[*marker setIsLeftMarker:isLeftMarker];
+	
+	if (justCreated)
+		[*marker orderFront:nil];
+}
+
 - (void)_mouseTrackEvent:(NSEvent *)theEvent
 {
 	NSRect interiorRect = [self interiorRect];
@@ -564,6 +631,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 				selectionChanged = YES;
 			
 			hasSelection = NO;
+			
+			[self removeSelectionMarkers];
 		}
 		else
 		{
@@ -571,6 +640,9 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 			hasSelection = YES;
 			selectionFirstBase = trackingLeftBase;
 			selectionLastBase = trackingRightBase;
+			
+			[self setUpMarker:&startMarker atBase:selectionFirstBase isLeft:YES];
+			[self setUpMarker:&endMarker atBase:selectionLastBase isLeft:NO];
 		}
 		
 		if (selectionChanged)
@@ -590,7 +662,10 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 - (void)mouseUp:(NSEvent *)theEvent
 {
 	if ([self isSelectable] && isTracking)
+	{
 		[self _mouseTrackEvent:theEvent];
+		[self removeSelectionMarkers];
+	}
 	
 	isTracking = NO;
 }

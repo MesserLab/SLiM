@@ -379,6 +379,140 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+@implementation SLiMSelectionView
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	static NSDictionary *labelAttrs = nil;
+	
+	if (!labelAttrs)
+		labelAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:@"Times New Roman" size:10], NSFontAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil];
+	
+	NSRect bounds = [self bounds];
+	SLiMSelectionMarker *marker = (SLiMSelectionMarker *)[self window];
+	NSAttributedString *attrLabel = [[NSAttributedString alloc] initWithString:[marker label] attributes:labelAttrs];
+	NSSize labelStringSize = [attrLabel size];
+	NSSize labelSize = NSMakeSize(round(labelStringSize.width + 8.0), round(labelStringSize.height + 1.0));
+	NSRect labelRect = NSMakeRect(bounds.origin.x + round(bounds.size.width / 2.0), bounds.origin.y + bounds.size.height - labelSize.height, labelSize.width, labelSize.height);
+	
+	if ([marker isLeftMarker])
+		labelRect.origin.x -= round(labelSize.width - 1.0);
+	
+	// Frame our whole bounds, for debugging; note that we draw in only a portion of our bounds, and the rest is transparent
+	//[[NSColor blackColor] set];
+	//NSFrameRect(bounds);
+	
+#if 0
+	// Debugging code: frame and fill our label rect without using NSBezierPath
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:1.0 alpha:1.0] set];
+	NSRectFill(labelRect);
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:0.3 alpha:1.0] set];
+	NSFrameRect(labelRect);
+#else
+	// Production code: use NSBezierPath to get a label that has a tag off of it
+	NSBezierPath *bez = [NSBezierPath bezierPath];
+	NSRect ilr = NSInsetRect(labelRect, 0.5, 0.5);	// inset by 0.5 to place us mid-pixel, so stroke looks good
+	const double tagHeight = 5.0;
+	
+	if ([marker isLeftMarker])
+	{
+		// label rect with a diagonal tag down from the right edge
+		[bez moveToPoint:NSMakePoint(ilr.origin.x, ilr.origin.y)];
+		[bez relativeLineToPoint:NSMakePoint(ilr.size.width - tagHeight, 0)];
+		[bez relativeLineToPoint:NSMakePoint(tagHeight, -tagHeight)];
+		[bez relativeLineToPoint:NSMakePoint(0, ilr.size.height + tagHeight)];
+		[bez relativeLineToPoint:NSMakePoint(-ilr.size.width, 0)];
+		[bez closePath];
+	}
+	else
+	{
+		// label rect with a diagonal tag down from the right edge
+		[bez moveToPoint:NSMakePoint(ilr.origin.x + ilr.size.width, ilr.origin.y)];
+		[bez relativeLineToPoint:NSMakePoint(- (ilr.size.width - tagHeight), 0)];
+		[bez relativeLineToPoint:NSMakePoint(-tagHeight, -tagHeight)];
+		[bez relativeLineToPoint:NSMakePoint(0, ilr.size.height + tagHeight)];
+		[bez relativeLineToPoint:NSMakePoint(ilr.size.width, 0)];
+		[bez closePath];
+	}
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:1.0 alpha:1.0] set];
+	[bez fill];
+	
+	[[NSColor blackColor] set];
+	[bez setLineWidth:1.0];
+	[bez stroke];
+#endif
+	
+	[attrLabel drawAtPoint:NSMakePoint(labelRect.origin.x + 4, labelRect.origin.y + 1)];
+	[attrLabel release];
+}
+
+- (BOOL)isOpaque
+{
+	return NO;
+}
+
+@end
+
+@implementation SLiMSelectionMarker
+
+// makes a new marker with no label and no tip point, not shown
++ (instancetype)new
+{
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 150, 20) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];	// 150x20 should suffice, unless we change our font size...
+}
+
+- (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag
+{
+	if (self = [super initWithContentRect:contentRect styleMask:aStyle backing:bufferingType defer:flag])
+	{
+		[self setFloatingPanel:YES];
+		[self setBecomesKeyOnlyIfNeeded:YES];
+		[self setHasShadow:NO];
+		[self setOpaque:NO];
+		[self setBackgroundColor:[NSColor clearColor]];
+		
+		SLiMSelectionView *view = [[SLiMSelectionView alloc] initWithFrame:contentRect];
+		
+		[self setContentView:view];
+		[view release];
+		
+		_tipPoint = NSMakePoint(round(contentRect.origin.x + contentRect.size.width / 2.0), contentRect.origin.y);
+		_label = [@"10000000000" retain];
+	}
+	
+	return self;
+}
+
+- (void)setLabel:(NSString *)label
+{
+	if (![_label isEqualToString:label])
+	{
+		[label retain];
+		[_label release];
+		_label = label;
+		
+		[[self contentView] setNeedsDisplay:YES];
+	}
+}
+
+- (void)setTipPoint:(NSPoint)tipPoint
+{
+	if (!NSEqualPoints(_tipPoint, tipPoint))
+	{
+		NSPoint origin = [self frame].origin;
+		
+		origin.x += (tipPoint.x - _tipPoint.x);
+		origin.y += (tipPoint.y - _tipPoint.y);
+		
+		_tipPoint = tipPoint;
+		
+		[self setFrameOrigin:origin];
+	}
+}
+
+@end
 
 
 
