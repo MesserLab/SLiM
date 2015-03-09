@@ -8,7 +8,6 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 
 SLiMgui work:
-	probably leaking open/save panels since we autorelease them only on OK, not on Cancel
 	graphing: changing axis scale for plots (context menu)
 	implement the "new event" buttons
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg

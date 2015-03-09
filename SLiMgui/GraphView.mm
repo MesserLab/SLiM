@@ -570,6 +570,33 @@
 	generatingPDF = NO;
 }
 
+- (IBAction)saveGraph:(id)sender
+{
+	// We set generatingPDF to allow customization for PDF generation, such as not rounding to pixel values
+	generatingPDF = YES;
+	NSData *pdfData = [self dataWithPDFInsideRect:[self bounds]];
+	generatingPDF = NO;
+	
+	SLiMWindowController *controller = [self slimWindowController];
+	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
+	
+	[sp setTitle:@"Export Graph"];
+	[sp setNameFieldLabel:@"Export As:"];
+	[sp setMessage:@"Export the graph to a file:"];
+	[sp setExtensionHidden:NO];
+	[sp setCanSelectHiddenExtension:NO];
+	[sp setAllowedFileTypes:[NSArray arrayWithObject:@"pdf"]];
+	
+	[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
+		if (result == NSFileHandlingPanelOKButton)
+		{
+			[pdfData writeToURL:[sp URL] atomically:YES];
+			
+			[sp autorelease];
+		}
+	}];
+}
+
 - (NSString *)dateline
 {
 	NSString *dateString = [NSDateFormatter localizedStringFromDate:[NSDate date] dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
@@ -588,11 +615,37 @@
 	}
 }
 
+- (IBAction)saveData:(id)sender
+{
+	if ([self respondsToSelector:@selector(stringForDataWithController:)])
+	{
+		SLiMWindowController *controller = [self slimWindowController];
+		NSString *dataString = [self stringForDataWithController:controller];
+		NSSavePanel *sp = [[NSSavePanel savePanel] retain];
+		
+		[sp setTitle:@"Export Data"];
+		[sp setNameFieldLabel:@"Export As:"];
+		[sp setMessage:@"Export the graph data to a file:"];
+		[sp setExtensionHidden:NO];
+		[sp setCanSelectHiddenExtension:NO];
+		[sp setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+		
+		[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
+			if (result == NSFileHandlingPanelOKButton)
+			{
+				[dataString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
+				
+				[sp autorelease];
+			}
+		}];
+	}
+}
+
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation])
+	if (![controller invalidSimulation] && ![[controller window] attachedSheet])
 	{
 		BOOL hasVisibilityItems = NO;
 		NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
@@ -641,16 +694,26 @@
 		
 		// Copy the graph image
 		{
-			NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Graph" action:@selector(copy:) keyEquivalent:@""];
+			NSMenuItem *menuItem;
 			
+			menuItem = [menu addItemWithTitle:@"Copy Graph" action:@selector(copy:) keyEquivalent:@""];
+			[menuItem setTarget:self];
+			
+			menuItem = [menu addItemWithTitle:@"Export Graph..." action:@selector(saveGraph:) keyEquivalent:@""];
 			[menuItem setTarget:self];
 		}
 		
 		// Copy the data to the clipboard
 		if ([self respondsToSelector:@selector(stringForDataWithController:)])
 		{
-			NSMenuItem *menuItem = [menu addItemWithTitle:@"Copy Data" action:@selector(copyData:) keyEquivalent:@""];
+			NSMenuItem *menuItem;
 			
+			[menu addItem:[NSMenuItem separatorItem]];
+			
+			menuItem = [menu addItemWithTitle:@"Copy Data" action:@selector(copyData:) keyEquivalent:@""];
+			[menuItem setTarget:self];
+			
+			menuItem = [menu addItemWithTitle:@"Export Data..." action:@selector(saveData:) keyEquivalent:@""];
 			[menuItem setTarget:self];
 		}
 		
