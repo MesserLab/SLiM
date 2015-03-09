@@ -224,8 +224,8 @@
 	[transform concat];
 	
 	// test frame
-	[[NSColor blackColor] set];
-	NSFrameRectWithWidth(NSMakeRect(0, 0, 1, 1), 0.002);
+	//[[NSColor blackColor] set];
+	//NSFrameRectWithWidth(NSMakeRect(0, 0, 1, 1), 0.002);
 	
 	if (subpopCount == 1)
 	{

@@ -488,10 +488,10 @@
 		[self rescaleAsNeededWithInteriorRect:interiorRect andController:controller];
 		
 		// Draw grid lines, if requested, and if tick marks are turned on for the corresponding axis
-		if ([self showHorizontalGridLines] && [self showYAxisTicks])
+		if ([self showHorizontalGridLines] && [self showYAxis] && [self showYAxisTicks])
 			[self drawHorizontalGridLinesWithInteriorRect:interiorRect];
 		
-		if ([self showVerticalGridLines] && [self showXAxisTicks])
+		if ([self showVerticalGridLines] && [self showXAxis] && [self showXAxisTicks])
 			[self drawVerticalGridLinesWithInteriorRect:interiorRect];
 		
 		// Draw the interior of the graph; this will be overridden by the subclass
@@ -609,7 +609,7 @@
 		}
 		
 		// Toggle horizontal grid line visibility
-		if ([self showYAxisTicks])
+		if ([self showYAxis] && [self showYAxisTicks])
 		{
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self showHorizontalGridLines] ? @"Hide Horizontal Grid" : @"Show Horizontal Grid") action:@selector(toggleHorizontalGridLines:) keyEquivalent:@""];
 			
@@ -618,7 +618,7 @@
 		}
 		
 		// Toggle vertical grid line visibility
-		if ([self showXAxisTicks])
+		if ([self showXAxis] && [self showXAxisTicks])
 		{
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self showVerticalGridLines] ? @"Hide Vertical Grid" : @"Show Vertical Grid") action:@selector(toggleVerticalGridLines:) keyEquivalent:@""];
 			

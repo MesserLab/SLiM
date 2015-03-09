@@ -8,9 +8,7 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 
 SLiMgui work:
-	graphing
-		changing axis scale for plots (context menu)
-	make selection snap to genomic element boundaries, control-click genomic element to select it exactly
+	graphing: changing axis scale for plots (context menu)
 	script syntax help could be more helpful: go into details on each option and what parameters it takes
 	implement the "new event" buttons
 	make possible to open an output file in the gui, to see the state of a cluster sim
