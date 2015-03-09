@@ -83,14 +83,15 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
 {
-	NSURL *url = [NSURL fileURLWithPath:filename];
-	NSString *scriptString = [NSString stringWithContentsOfURL:url usedEncoding:NULL error:NULL];
+	NSURL *fileURL = [NSURL fileURLWithPath:filename];
+	NSString *scriptString = [NSString stringWithContentsOfURL:fileURL usedEncoding:NULL error:NULL];
 	SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
 	
 	[windowController setScriptStringAndInitializeSimulation:scriptString];
+	[[windowController window] setTitleWithRepresentedFilename:[fileURL path]];
 	[windowController showWindow:nil];
 	
-	[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:url];	// remember this script file in the Recent Documents menu
+	[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:fileURL];	// remember this script file in the Recent Documents menu
 	
 	return YES;
 }
@@ -109,15 +110,17 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	
 	if ([op runModal] == NSFileHandlingPanelOKButton)
 	{
-		NSString *scriptString = [NSString stringWithContentsOfURL:[op URL] usedEncoding:NULL error:NULL];
+		NSURL *fileURL = [op URL];
+		NSString *scriptString = [NSString stringWithContentsOfURL:fileURL usedEncoding:NULL error:NULL];
 		
 		if (scriptString)
 		{
-			[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:[op URL]];	// remember this script file in the Recent Documents menu
+			[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:fileURL];	// remember this script file in the Recent Documents menu
 			
 			SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
 			
 			[windowController setScriptStringAndInitializeSimulation:scriptString];
+			[[windowController window] setTitleWithRepresentedFilename:[fileURL path]];
 			[windowController showWindow:nil];
 		}
 	}

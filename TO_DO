@@ -11,7 +11,6 @@ SLiMgui work:
 	probably leaking open/save panels since we autorelease them only on OK, not on Cancel
 	graphing: changing axis scale for plots (context menu)
 	implement the "new event" buttons
-	when a script is opened, set the window title accordingly
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
