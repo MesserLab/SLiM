@@ -8,9 +8,9 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 
 SLiMgui work:
+	probably leaking open/save panels since we autorelease them only on OK, not on Cancel
 	graphing: changing axis scale for plots (context menu)
 	implement the "new event" buttons
-	make possible to open an output file in the gui, to see the state of a cluster sim
 	when a script is opened, set the window title accordingly
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe

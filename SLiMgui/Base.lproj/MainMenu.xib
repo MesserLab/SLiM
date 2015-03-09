@@ -97,6 +97,13 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="gwe-3i-esM"/>
+                            <menuItem title="Import Population..." keyEquivalent="o" id="Nop-c8-tfu">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="importPopulation:" target="-1" id="9yP-gp-maO"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="7By-NI-6sc"/>
                             <menuItem title="Export Script..." keyEquivalent="s" id="gMO-ZD-eo1">
                                 <connections>
                                     <action selector="exportScript:" target="-1" id="OIF-da-O99"/>

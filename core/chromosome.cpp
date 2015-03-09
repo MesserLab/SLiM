@@ -108,6 +108,7 @@ void Chromosome::InitializeDraws(void)
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
+//	SLIM_OUTSTREAM << "overall_mutation_rate_ == " << overall_mutation_rate_ << std::endl;
 //	SLIM_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
 //	SLIM_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
 //	SLIM_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;

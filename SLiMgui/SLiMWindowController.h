@@ -41,7 +41,7 @@
 	unsigned long int sim_random_bool_bit_buffer;
 
 	// play-related variables
-	BOOL invalidSimulation, continuousPlayOn, generationPlayOn, reachedSimulationEnd;
+	BOOL invalidSimulation, continuousPlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
 	int targetGeneration;
 	NSDate *continuousPlayStartDate;
 	uint64 continuousPlayGenerationsCompleted;
@@ -193,6 +193,8 @@
 - (IBAction)showGenomicElementsButtonToggled:(id)sender;
 - (IBAction)showMutationsButtonToggled:(id)sender;
 - (IBAction)showFixedSubstitutionsButtonToggled:(id)sender;
+
+- (IBAction)importPopulation:(id)sender;		// wired through firstResponder because these are menu items
 
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportOutput:(id)sender;			// wired through firstResponder because these are menu items
