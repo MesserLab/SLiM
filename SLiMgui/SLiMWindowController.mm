@@ -1648,12 +1648,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (void)textDidChange:(NSNotification *)notification
 {
+	NSTextView *textView = (NSTextView *)[notification object];
+	
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-	{
-		NSTextView *textView = (NSTextView *)[notification object];
-		
 		[SLiMWindowController syntaxColorTextView:textView];
-	}
+	
+	if (textView == scriptTextView)
+		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument
 }
 
 //
