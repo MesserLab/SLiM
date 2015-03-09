@@ -219,7 +219,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.sticksoftware.com/"]];
 }
 
-- (IBAction)showScriptSyntaxHelp:(id)sender
+- (void)showScriptSyntaxHelpForSLiMWindowController:(SLiMWindowController *)windowController
 {
 	if (!scriptSyntaxWindow)
 	{
@@ -231,6 +231,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		
 		// The textview is a separate object that needs to be added to the window's content view, because we don't want
 		// it inside a scrollview/clipview, and IB is weird about allowing that...
+		[scriptSyntaxTextView setFrame:[scriptSyntaxWhiteView frame]];
 		[scriptSyntaxWhiteView addSubview:scriptSyntaxTextView];
 		[scriptSyntaxTextView setFrame:NSOffsetRect([scriptSyntaxTextView frame], 0, -5)];
 		
@@ -241,8 +242,26 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		if (scriptString)
 		{
 			[scriptSyntaxTextView setString:scriptString];
-			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:10.0]];
+			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:9.0]];
 			[SLiMWindowController syntaxColorTextView:scriptSyntaxTextView];
+		}
+	}
+	
+	if (([scriptSyntaxWindow occlusionState] & NSWindowOcclusionStateVisible) == 0)
+	{
+		// Position the window on the left side of the simulation window if we can
+		NSRect windowFrame = [scriptSyntaxWindow frame];
+		NSRect mainWindowFrame = [[windowController window] frame];
+		
+		// try on the left side; if that doesn't work, we use the position specified in the nib
+		{
+			NSRect candidateFrame = windowFrame;
+			
+			candidateFrame.origin.x = mainWindowFrame.origin.x - (candidateFrame.size.width + 5);
+			candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height);
+			
+			if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
+				[scriptSyntaxWindow setFrameOrigin:candidateFrame.origin];
 		}
 	}
 	

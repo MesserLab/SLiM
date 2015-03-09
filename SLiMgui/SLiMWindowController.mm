@@ -826,23 +826,6 @@ static NSDictionary *mutationTypeAttrs = nil;
 {
 }
 
-- (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame
-{
-	NSArray *screens = [NSScreen screens];
-	NSUInteger nScreens = [screens count];
-	
-	for (int i = 0; i < nScreens; ++i)
-	{
-		NSScreen *screen = [screens objectAtIndex:i];
-		NSRect screenFrame = [screen visibleFrame];
-		
-		if (NSContainsRect(screenFrame, candidateFrame))
-			return YES;
-	}
-	
-	return NO;
-}
-
 - (void)positionNewGraphWindow:(NSWindow *)window
 {
 	NSRect windowFrame = [window frame];
@@ -857,7 +840,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 		candidateFrame.origin.x = mainWindowFrame.origin.x + oldOpenedGraphCount * (windowFrame.size.width + 5);
 		candidateFrame.origin.y = mainWindowFrame.origin.y - (candidateFrame.size.height + 5);
 		
-		if ([self visibleCandidateWindowFrame:candidateFrame])
+		if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
 		{
 			[window setFrameOrigin:candidateFrame.origin];
 			return;
@@ -871,7 +854,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 		candidateFrame.origin.x = mainWindowFrame.origin.x - (candidateFrame.size.width + 5);
 		candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height) - oldOpenedGraphCount * (windowFrame.size.height + 5);
 		
-		if ([self visibleCandidateWindowFrame:candidateFrame])
+		if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
 		{
 			[window setFrameOrigin:candidateFrame.origin];
 			return;
@@ -886,7 +869,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 		candidateFrame.origin.x = mainWindowFrame.origin.x + mainWindowFrame.size.width + 5;
 		candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height) - oldOpenedGraphCount * (windowFrame.size.height + 5);
 		
-		if ([self visibleCandidateWindowFrame:candidateFrame])
+		if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
 		{
 			[window setFrameOrigin:candidateFrame.origin];
 			return;
@@ -900,7 +883,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 		candidateFrame.origin.x = mainWindowFrame.origin.x + oldOpenedGraphCount * (windowFrame.size.width + 5);
 		candidateFrame.origin.y = mainWindowFrame.origin.y + mainWindowFrame.size.height + 5;
 		
-		if ([self visibleCandidateWindowFrame:candidateFrame])
+		if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
 		{
 			[window setFrameOrigin:candidateFrame.origin];
 			return;
@@ -1309,6 +1292,13 @@ static NSDictionary *mutationTypeAttrs = nil;
 	}
 	
 	[errorDiagnostic release];
+}
+
+- (IBAction)showScriptSyntaxHelp:(id)sender
+{
+	// the AppDelegate manages the syntax help window, since it is a singleton, but it needs to know that we're
+	// the one requesting it, so it can position the window next to us nicely, so we handle the action for it.
+	[(AppDelegate *)[NSApp delegate] showScriptSyntaxHelpForSLiMWindowController:self];
 }
 
 - (IBAction)clearOutputTextView:(id)sender

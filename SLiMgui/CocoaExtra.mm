@@ -515,6 +515,26 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+@implementation NSScreen (SLiMWindowFrames)
+
++ (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame
+{
+	NSArray *screens = [NSScreen screens];
+	NSUInteger nScreens = [screens count];
+	
+	for (int i = 0; i < nScreens; ++i)
+	{
+		NSScreen *screen = [screens objectAtIndex:i];
+		NSRect screenFrame = [screen visibleFrame];
+		
+		if (NSContainsRect(screenFrame, candidateFrame))
+			return YES;
+	}
+	
+	return NO;
+}
+
+@end
 
 
 

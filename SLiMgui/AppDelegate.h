@@ -24,6 +24,7 @@
 
 
 @class SLiMWhiteView;
+@class SLiMWindowController;
 
 
 // User defaults keys
@@ -65,7 +66,8 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 - (IBAction)showMesserLab:(id)sender;
 - (IBAction)showBenHaller:(id)sender;
 - (IBAction)showStickSoftware:(id)sender;
-- (IBAction)showScriptSyntaxHelp:(id)sender;
+
+- (void)showScriptSyntaxHelpForSLiMWindowController:(SLiMWindowController *)windowController;
 
 @end
 

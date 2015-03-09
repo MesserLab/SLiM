@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
     </dependencies>
@@ -16,14 +16,14 @@
         <window title="SLiM Script Syntax" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" utility="YES"/>
             <windowPositionMask key="initialPositionMask" rightStrut="YES"/>
-            <rect key="contentRect" x="2183" y="438" width="330" height="714"/>
+            <rect key="contentRect" x="2183" y="438" width="295" height="778"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
             <view key="contentView" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="330" height="714"/>
+                <rect key="frame" x="0.0" y="0.0" width="295" height="778"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="R2r-sF-llT" userLabel="SLiM White View" customClass="SLiMWhiteView">
-                        <rect key="frame" x="0.0" y="0.0" width="330" height="714"/>
+                        <rect key="frame" x="0.0" y="0.0" width="295" height="778"/>
                     </customView>
                 </subviews>
                 <constraints>
@@ -36,15 +36,15 @@
             <point key="canvasLocation" x="512" y="635.5"/>
         </window>
         <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="panel" allowsNonContiguousLayout="YES" id="bqS-Wh-Qw9">
-            <rect key="frame" x="0.0" y="0.0" width="330" height="713"/>
+            <rect key="frame" x="0.0" y="0.0" width="330" height="714"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
             <size key="minSize" width="330" height="714"/>
-            <size key="maxSize" width="330" height="714"/>
+            <size key="maxSize" width="330" height="778"/>
             <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
             <size key="minSize" width="330" height="714"/>
-            <size key="maxSize" width="330" height="714"/>
-            <point key="canvasLocation" x="927" y="635.5"/>
+            <size key="maxSize" width="330" height="778"/>
+            <point key="canvasLocation" x="927" y="635"/>
         </textView>
     </objects>
 </document>

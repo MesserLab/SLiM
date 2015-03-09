@@ -185,6 +185,7 @@
 - (IBAction)selectionColorSliderChanged:(id)sender;
 
 - (IBAction)checkScriptTextView:(id)sender;
+- (IBAction)showScriptSyntaxHelp:(id)sender;
 - (IBAction)clearOutputTextView:(id)sender;
 - (IBAction)dumpPopulationToOutput:(id)sender;
 

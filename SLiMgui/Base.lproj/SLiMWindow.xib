@@ -738,7 +738,7 @@
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <connections>
-                                            <action selector="showScriptSyntaxHelp:" target="-1" id="bRZ-MY-Oni"/>
+                                            <action selector="showScriptSyntaxHelp:" target="-2" id="yFu-S7-o6H"/>
                                         </connections>
                                     </button>
                                 </subviews>
@@ -1140,7 +1140,7 @@
                 <outlet property="delegate" destination="-2" id="6Gd-nE-pDY"/>
                 <outlet property="initialFirstResponder" destination="N45-af-9rm" id="HpY-hf-Oyx"/>
             </connections>
-            <point key="canvasLocation" x="545" y="411"/>
+            <point key="canvasLocation" x="741" y="413"/>
         </window>
         <menu showsStateColumn="NO" id="wnZ-1m-394">
             <items>

@@ -9,7 +9,6 @@ command-line tool:
 
 SLiMgui work:
 	graphing: changing axis scale for plots (context menu)
-	script syntax help could be more helpful: go into details on each option and what parameters it takes
 	implement the "new event" buttons
 	make possible to open an output file in the gui, to see the state of a cluster sim
 	when a script is opened, set the window title accordingly

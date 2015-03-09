@@ -383,7 +383,7 @@
                             <menuItem title="Show Script Syntax Help" id="Gnw-AH-WxQ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="showScriptSyntaxHelp:" target="Voe-Tx-rLC" id="9En-nO-auY"/>
+                                    <action selector="showScriptSyntaxHelp:" target="-1" id="0D9-D4-g7r"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="Qwc-5x-NYw"/>

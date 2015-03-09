@@ -73,8 +73,10 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 
 @end
 
-
-
+// A category to help us position windows visibly
+@interface NSScreen (SLiMWindowFrames)
++ (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame;
+@end
 
 
 
