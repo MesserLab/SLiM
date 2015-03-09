@@ -38,6 +38,9 @@
 		[self setXAxisLabelString:@"Mutation fixation time"];
 		[self setYAxisLabelString:@"Proportion of fixed mutations"];
 		
+		[self setAllowXAxisUserRescale:NO];
+		[self setAllowYAxisUserRescale:YES];
+		
 		[self setShowHorizontalGridLines:YES];
 	}
 	

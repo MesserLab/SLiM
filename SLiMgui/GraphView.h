@@ -37,11 +37,21 @@
 	// caching for drawing speed is up to subclasses, if they want to do it, but we provide minimal support in GraphView to make it work smoothly
 	// this flag is to prevent recursion in the drawing code, and to disable drawing of things that don't belong in a cache, such as the legend
 	BOOL cachingNow;
+	
+	// GraphAxisRescaleSheet outlets
+	IBOutlet NSWindow *rescaleSheet;
+	IBOutlet NSTextField *rescaleSheetMinTextfield;
+	IBOutlet NSTextField *rescaleSheetMaxTextfield;
+	IBOutlet NSTextField *rescaleSheetMajorIntervalTextfield;
+	IBOutlet NSTextField *rescaleSheetMinorModulusTextfield;
+	IBOutlet NSTextField *rescaleSheetTickPrecisionTextfield;
 }
 
 @property (nonatomic, assign) SLiMWindowController *slimWindowController;
 
 @property (nonatomic) BOOL showXAxis;
+@property (nonatomic) BOOL allowXAxisUserRescale;
+@property (nonatomic) BOOL xAxisIsUserRescaled;
 @property (nonatomic) BOOL showXAxisTicks;
 @property (nonatomic) double xAxisMin, xAxisMax;
 @property (nonatomic) double xAxisMajorTickInterval, xAxisMinorTickInterval;
@@ -49,6 +59,8 @@
 @property (nonatomic, retain) NSAttributedString *xAxisLabel;
 
 @property (nonatomic) BOOL showYAxis;
+@property (nonatomic) BOOL allowYAxisUserRescale;
+@property (nonatomic) BOOL yAxisIsUserRescaled;
 @property (nonatomic) BOOL showYAxisTicks;
 @property (nonatomic) double yAxisMin, yAxisMax;
 @property (nonatomic) double yAxisMajorTickInterval, yAxisMinorTickInterval;
@@ -98,12 +110,20 @@
 - (NSSize)legendSize;
 - (void)drawLegendInRect:(NSRect)legendRect;
 
+- (IBAction)rescaleSheetOK:(id)sender;
+- (IBAction)rescaleSheetCancel:(id)sender;
+- (IBAction)userRescaleXAxis:(id)sender;
+- (IBAction)userRescaleYAxis:(id)sender;
+
 - (IBAction)copy:(id)sender;
+- (IBAction)saveGraph:(id)sender;
 - (IBAction)copyData:(id)sender;
+- (IBAction)saveData:(id)sender;
 - (NSString *)dateline;
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent;
 
+- (void)invalidateDrawingCache;
 - (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
 - (void)controllerRecycled;				// called by SLiMWindowController when the simulation is recycled, to let the GraphView do whatever re-initialization is needed
 - (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond

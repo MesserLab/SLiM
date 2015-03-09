@@ -55,18 +55,14 @@
 		[self setXAxisLabelString:@"Generation"];
 		[self setYAxisLabelString:@"Fitness (rescaled absolute)"];
 		
+		[self setAllowXAxisUserRescale:YES];
+		[self setAllowYAxisUserRescale:YES];
+		
 		[self setShowHorizontalGridLines:YES];
 		[self setTweakXAxisTickLabelAlignment:YES];
 	}
 	
 	return self;
-}
-
-- (void)graphWindowResized
-{
-	[self invalidateDrawingCache];
-	
-	[super graphWindowResized];
 }
 
 - (void)controllerRecycled
@@ -75,10 +71,11 @@
 	
 	if (![controller invalidSimulation])
 	{
-		[self setDefaultYAxisRange];
-		[self setXAxisMax:controller->sim->time_duration_];
+		if (![self yAxisIsUserRescaled])
+			[self setDefaultYAxisRange];
+		if (![self xAxisIsUserRescaled])
+			[self setXAxisMax:controller->sim->time_duration_];
 		
-		[self invalidateDrawingCache];
 		[self setNeedsDisplay:YES];
 	}
 	
@@ -95,55 +92,56 @@
 
 - (void)dealloc
 {
-	[self invalidateDrawingCache];
-	
 	[super dealloc];
 }
 
 - (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
-	double *history = pop.fitnessHistory;
-	uint32 historyLength = pop.fitnessHistoryLength;
-	double minHistory = INFINITY;
-	double maxHistory = -INFINITY;
-	
-	// find the min and max history value
-	for (int i = 0; i < historyLength; ++i)
+	if (![self yAxisIsUserRescaled])
 	{
-		double historyEntry = history[i];
+		SLiMSim *sim = controller->sim;
+		Population &pop = sim->population_;
+		double *history = pop.fitnessHistory;
+		uint32 historyLength = pop.fitnessHistoryLength;
+		double minHistory = INFINITY;
+		double maxHistory = -INFINITY;
 		
-		if (!isnan(historyEntry))
+		// find the min and max history value
+		for (int i = 0; i < historyLength; ++i)
 		{
-			if (historyEntry > maxHistory)
-				maxHistory = historyEntry;
-			if (historyEntry < minHistory)
-				minHistory = historyEntry;
-		}
-	}
-	
-	// set axis range to encompass the data
-	if (!isinf(minHistory) && !isinf(maxHistory))
-	{
-		if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
-		{
-			double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
-			double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
+			double historyEntry = history[i];
 			
-			if (axisMax < 1.5)
-				axisMax = 1.5;
-			
-			if ((axisMin != [self yAxisMin]) || (axisMax != [self yAxisMax]))
+			if (!isnan(historyEntry))
 			{
-				[self setYAxisMin:axisMin];
-				[self setYAxisMax:axisMax];
-				[self setYAxisMajorTickInterval:0.5];
-				[self setYAxisMinorTickInterval:0.25];
-				[self setYAxisMajorTickModulus:2];
-				[self setYAxisTickValuePrecision:1];
+				if (historyEntry > maxHistory)
+					maxHistory = historyEntry;
+				if (historyEntry < minHistory)
+					minHistory = historyEntry;
+			}
+		}
+		
+		// set axis range to encompass the data
+		if (!isinf(minHistory) && !isinf(maxHistory))
+		{
+			if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
+			{
+				double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
+				double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
 				
-				[self invalidateDrawingCache];
+				if (axisMax < 1.5)
+					axisMax = 1.5;
+				
+				if ((axisMin != [self yAxisMin]) || (axisMax != [self yAxisMax]))
+				{
+					[self setYAxisMin:axisMin];
+					[self setYAxisMax:axisMax];
+					[self setYAxisMajorTickInterval:0.5];
+					[self setYAxisMinorTickInterval:0.25];
+					[self setYAxisMajorTickModulus:2];
+					[self setYAxisTickValuePrecision:1];
+					
+					[self invalidateDrawingCache];
+				}
 			}
 		}
 	}

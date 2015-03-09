@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -127,6 +128,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		980DD5191AAE42F900D5B7B8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphAxisRescaleSheet.xib; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -353,6 +355,7 @@
 				986926E91AA6B7480000E138 /* GraphView_PopulationVisualization.h */,
 				986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */,
 				986926DA1AA1429D0000E138 /* GraphWindow.xib */,
+				980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */,
 			);
 			name = Graphing;
 			sourceTree = "<group>";
@@ -574,6 +577,7 @@
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
 				98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */,
 				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
+				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
@@ -693,6 +697,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				980DD5191AAE42F900D5B7B8 /* Base */,
+			);
+			name = GraphAxisRescaleSheet.xib;
+			sourceTree = "<group>";
+		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {
 			isa = PBXVariantGroup;
 			children = (

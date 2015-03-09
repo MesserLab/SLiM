@@ -76,9 +76,11 @@
 		[self setSlimWindowController:controller];
 		
 		_showXAxis = TRUE;
+		_allowXAxisUserRescale = TRUE;
 		_showXAxisTicks = TRUE;
 		
 		_showYAxis = TRUE;
+		_allowYAxisUserRescale = TRUE;
 		_showYAxisTicks = TRUE;
 		
 		_xAxisMin = 0.0;
@@ -110,6 +112,7 @@
 - (void)dealloc
 {
 	//NSLog(@"[GraphView dealloc]");
+	[self invalidateDrawingCache];
 	
 	[_xAxisLabel release];
 	_xAxisLabel = nil;
@@ -558,6 +561,114 @@
 	[self setNeedsDisplay:YES];
 }
 
+- (IBAction)rescaleSheetOK:(id)sender
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSWindow *window = [controller window];
+	
+	// Give our textfields a chance to validate
+	if (![rescaleSheet makeFirstResponder:nil])
+		return;
+	
+	[window endSheet:rescaleSheet returnCode:NSAlertFirstButtonReturn];
+}
+
+- (IBAction)rescaleSheetCancel:(id)sender
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSWindow *window = [controller window];
+	
+	[window endSheet:rescaleSheet returnCode:NSAlertSecondButtonReturn];
+}
+
+- (IBAction)userRescaleXAxis:(id)sender
+{
+	if ([self allowXAxisUserRescale])
+	{
+		SLiMWindowController *controller = [self slimWindowController];
+		NSWindow *window = [controller window];
+		
+		[[NSBundle mainBundle] loadNibNamed:@"GraphAxisRescaleSheet" owner:self topLevelObjects:NULL];
+		[rescaleSheet retain];
+		
+		[rescaleSheetMinTextfield setDoubleValue:[self xAxisMin]];
+		[rescaleSheetMaxTextfield setDoubleValue:[self xAxisMax]];
+		[rescaleSheetMajorIntervalTextfield setDoubleValue:[self xAxisMajorTickInterval]];
+		[rescaleSheetMinorModulusTextfield setIntValue:[self xAxisMajorTickModulus]];
+		[rescaleSheetTickPrecisionTextfield setIntValue:[self xAxisTickValuePrecision]];
+		
+		[window beginSheet:rescaleSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				double newMin = [rescaleSheetMinTextfield doubleValue];
+				double newMax = [rescaleSheetMaxTextfield doubleValue];
+				double newMajorInterval = [rescaleSheetMajorIntervalTextfield doubleValue];
+				int newModulus = [rescaleSheetMinorModulusTextfield intValue];
+				int newPrecision = [rescaleSheetTickPrecisionTextfield intValue];
+				double newMinorInterval = newMajorInterval / newModulus;
+				
+				[self setXAxisMin:newMin];
+				[self setXAxisMax:newMax];
+				[self setXAxisMajorTickInterval:newMajorInterval];
+				[self setXAxisMajorTickModulus:newModulus];
+				[self setXAxisMinorTickInterval:newMinorInterval];
+				[self setXAxisTickValuePrecision:newPrecision];
+				[self setXAxisIsUserRescaled:YES];
+				
+				[self invalidateDrawingCache];
+				[self setNeedsDisplay:YES];
+			}
+			
+			[rescaleSheet autorelease];
+			rescaleSheet = nil;
+		}];
+	}
+}
+
+- (IBAction)userRescaleYAxis:(id)sender
+{
+	if ([self allowYAxisUserRescale])
+	{
+		SLiMWindowController *controller = [self slimWindowController];
+		NSWindow *window = [controller window];
+		
+		[[NSBundle mainBundle] loadNibNamed:@"GraphAxisRescaleSheet" owner:self topLevelObjects:NULL];
+		[rescaleSheet retain];
+		
+		[rescaleSheetMinTextfield setDoubleValue:[self yAxisMin]];
+		[rescaleSheetMaxTextfield setDoubleValue:[self yAxisMax]];
+		[rescaleSheetMajorIntervalTextfield setDoubleValue:[self yAxisMajorTickInterval]];
+		[rescaleSheetMinorModulusTextfield setIntValue:[self yAxisMajorTickModulus]];
+		[rescaleSheetTickPrecisionTextfield setIntValue:[self yAxisTickValuePrecision]];
+		
+		[window beginSheet:rescaleSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				double newMin = [rescaleSheetMinTextfield doubleValue];
+				double newMax = [rescaleSheetMaxTextfield doubleValue];
+				double newMajorInterval = [rescaleSheetMajorIntervalTextfield doubleValue];
+				int newModulus = [rescaleSheetMinorModulusTextfield intValue];
+				int newPrecision = [rescaleSheetTickPrecisionTextfield intValue];
+				double newMinorInterval = newMajorInterval / newModulus;
+				
+				[self setYAxisMin:newMin];
+				[self setYAxisMax:newMax];
+				[self setYAxisMajorTickInterval:newMajorInterval];
+				[self setYAxisMajorTickModulus:newModulus];
+				[self setYAxisMinorTickInterval:newMinorInterval];
+				[self setYAxisTickValuePrecision:newPrecision];
+				[self setYAxisIsUserRescaled:YES];
+				
+				[self invalidateDrawingCache];
+				[self setNeedsDisplay:YES];
+			}
+			
+			[rescaleSheet autorelease];
+			rescaleSheet = nil;
+		}];
+	}
+}
+
 - (IBAction)copy:(id)sender
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
@@ -647,7 +758,7 @@
 	
 	if (![controller invalidSimulation] && ![[controller window] attachedSheet])
 	{
-		BOOL hasVisibilityItems = NO;
+		BOOL addedItems = NO;
 		NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
 		
 		// Toggle legend visibility
@@ -658,7 +769,7 @@
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self legendVisible] ? @"Hide Legend" : @"Show Legend") action:@selector(toggleLegend:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
-			hasVisibilityItems = YES;
+			addedItems = YES;
 		}
 		
 		// Toggle horizontal grid line visibility
@@ -667,7 +778,7 @@
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self showHorizontalGridLines] ? @"Hide Horizontal Grid" : @"Show Horizontal Grid") action:@selector(toggleHorizontalGridLines:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
-			hasVisibilityItems = YES;
+			addedItems = YES;
 		}
 		
 		// Toggle vertical grid line visibility
@@ -676,7 +787,7 @@
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self showVerticalGridLines] ? @"Hide Vertical Grid" : @"Show Vertical Grid") action:@selector(toggleVerticalGridLines:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
-			hasVisibilityItems = YES;
+			addedItems = YES;
 		}
 		
 		// Toggle box visibility
@@ -685,14 +796,38 @@
 			NSMenuItem *menuItem = [menu addItemWithTitle:([self showFullBox] ? @"Hide Full Box" : @"Show Full Box") action:@selector(toggleFullBox:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
-			hasVisibilityItems = YES;
+			addedItems = YES;
 		}
 		
 		// Add a separator if we had any visibility-toggle menu items above
-		if (hasVisibilityItems)
+		if (addedItems)
 			[menu addItem:[NSMenuItem separatorItem]];
+		addedItems = NO;
 		
-		// Copy the graph image
+		// Rescale x axis
+		if ([self showXAxis] && [self showXAxisTicks] && [self allowXAxisUserRescale])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:@"Change X Axis Scale..." action:@selector(userRescaleXAxis:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			addedItems = YES;
+		}
+		
+		// Rescale y axis
+		if ([self showYAxis] && [self showYAxisTicks] && [self allowYAxisUserRescale])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:@"Change Y Axis Scale..." action:@selector(userRescaleYAxis:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			addedItems = YES;
+		}
+		
+		// Add a separator if we had any visibility-toggle menu items above
+		if (addedItems)
+			[menu addItem:[NSMenuItem separatorItem]];
+		addedItems = NO;
+		
+		// Copy/export the graph image
 		{
 			NSMenuItem *menuItem;
 			
@@ -703,7 +838,7 @@
 			[menuItem setTarget:self];
 		}
 		
-		// Copy the data to the clipboard
+		// Copy/export the data to the clipboard
 		if ([self respondsToSelector:@selector(stringForDataWithController:)])
 		{
 			NSMenuItem *menuItem;
@@ -723,12 +858,19 @@
 	return nil;
 }
 
+- (void)invalidateDrawingCache
+{
+	// GraphView has no drawing cache, but it supports the idea of one
+}
+
 - (void)graphWindowResized
 {
+	[self invalidateDrawingCache];
 }
 
 - (void)controllerRecycled
 {
+	[self invalidateDrawingCache];
 	[self setNeedsDisplay:YES];
 }
 

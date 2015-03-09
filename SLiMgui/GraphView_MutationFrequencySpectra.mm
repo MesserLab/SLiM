@@ -37,6 +37,9 @@
 		[self setXAxisLabelString:@"Mutation frequency"];
 		[self setYAxisLabelString:@"Proportion of mutations"];
 		
+		[self setAllowXAxisUserRescale:NO];
+		[self setAllowYAxisUserRescale:YES];
+		
 		[self setShowHorizontalGridLines:YES];
 	}
 	

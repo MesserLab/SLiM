@@ -38,6 +38,9 @@
 		[self setXAxisLabelString:@"Mutation loss time"];
 		[self setYAxisLabelString:@"Proportion of lost mutations"];
 		
+		[self setAllowXAxisUserRescale:NO];
+		[self setAllowYAxisUserRescale:YES];
+		
 		[self setShowHorizontalGridLines:YES];
 	}
 	
