@@ -25,8 +25,11 @@
                 <rect key="frame" x="0.0" y="0.0" width="298" height="262"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vca-7J-W4R">
-                        <rect key="frame" x="18" y="225" width="246" height="17"/>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="vca-7J-W4R">
+                        <rect key="frame" x="18" y="225" width="251" height="17"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="247" id="gRS-iv-dJw"/>
+                        </constraints>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Choose a configuration for the axis:" id="SnA-AW-dLy">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
