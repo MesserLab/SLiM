@@ -192,39 +192,7 @@
 		NSRectFillUsingOperation(substitutionRect, NSCompositeSourceOver);
 	}
 	
-	// Draw the fitness history
-#if 0
-	// line plot
-	NSBezierPath *linePath = [NSBezierPath bezierPath];
-	double *history = pop.fitnessHistory;
-	uint32 historyLength = pop.fitnessHistoryLength;
-	BOOL startedPath = NO;
-	
-	for (int i = 0; i < historyLength; ++i)
-	{
-		double historyEntry = history[i];
-		
-		if (!isnan(historyEntry))
-		{
-			NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
-			
-			if (!startedPath)
-			{
-				[linePath moveToPoint:historyPoint];
-				startedPath = YES;
-			}
-			else
-			{
-				[linePath lineToPoint:historyPoint];
-			}
-		}
-	}
-	
-	[linePath setLineWidth:1.0];
-	[[NSColor blackColor] set];
-	[linePath stroke];
-#else
-	// scatter plot; better suited to caching of the image
+	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	double *history = pop.fitnessHistory;
 	uint32 historyLength = pop.fitnessHistoryLength;
 	
@@ -244,7 +212,6 @@
 			NSRectFill(NSMakeRect(historyPoint.x - 0.5, historyPoint.y - 0.5, 1.0, 1.0));
 		}
 	}
-#endif
 }
 
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
