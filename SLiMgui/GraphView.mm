@@ -878,6 +878,10 @@
 {
 }
 
+- (void)controllerGenerationFinished
+{
+}
+
 - (void)setNeedsDisplay
 {
 	[self setNeedsDisplay:YES];
@@ -900,13 +904,13 @@
 	
 	const int legendRowHeight = 15;
 	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
-	auto mutationTypeIter = sim->mutation_types_.begin();
 	NSSize legendSize = NSMakeSize(0, legendRowHeight * mutationTypeCount - 6);
 	
-	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
+	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
-		NSRect swatchRect = NSMakeRect(0, ((mutationTypeCount - 1) * legendRowHeight) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
+		NSRect swatchRect = NSMakeRect(0, ((mutationTypeCount - 1) * legendRowHeight) - mutationTypeIndex * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
 		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
 		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
 		NSSize labelSize = [label size];
@@ -925,16 +929,16 @@
 	SLiMWindowController *controller = [self slimWindowController];
 	SLiMSim *sim = controller->sim;
 	int mutationTypeCount = (int)sim->mutation_types_.size();
-	auto mutationTypeIter = sim->mutation_types_.begin();
 	
-	for (int i = 0; i < mutationTypeCount; ++i, ++mutationTypeIter)
+	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
-		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((mutationTypeCount - 1) * legendRowHeight - 3) - i * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
+		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((mutationTypeCount - 1) * legendRowHeight - 3) - mutationTypeIndex * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
 		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
 		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
 		
-		[[SLiMWindowController colorForIndex:i] set];
+		[[SLiMWindowController colorForIndex:mutationTypeIndex] set];
 		NSRectFill(swatchRect);
 		
 		[[NSColor blackColor] set];

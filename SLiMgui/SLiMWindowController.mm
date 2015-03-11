@@ -25,6 +25,7 @@
 #import "GraphView_MutationFixationTimeHistogram.h"
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
+#import "GraphView_MutationFrequencyTrajectory.h"
 
 #include <iostream>
 #include <sstream>
@@ -933,7 +934,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender
 {
 	if (!graphWindowMutationFreqTrajectories)
-		graphWindowMutationFreqTrajectories = [[self graphWindowWithTitle:@"Mutation Frequency Trajectories" viewClass:[GraphView class]] retain];	// FIXME wrong view class
+		graphWindowMutationFreqTrajectories = [[self graphWindowWithTitle:@"Mutation Frequency Trajectories" viewClass:[GraphView_MutationFrequencyTrajectory class]] retain];
 	
 	[graphWindowMutationFreqTrajectories orderFront:nil];
 }
@@ -989,6 +990,10 @@ static NSDictionary *mutationTypeAttrs = nil;
 	sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
 	
 	g_rng = nil;
+	
+	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
+	// happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
+	[self sendAllGraphViewsSelector:@selector(controllerGenerationFinished)];
 	
 	return stillRunning;
 }

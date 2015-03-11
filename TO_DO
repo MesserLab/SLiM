@@ -8,7 +8,16 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 
 SLiMgui work:
-	graphing: changing axis scale for plots (context menu)
+	add frequency trajectory plot:
+		in the UI, mostly users just want to follow an individual mutation; has a given mutation entered a given subpopulation yet?
+		use mutation-type; plot one specified type, chosen from a popup; no need for more than one, but can do more than one if I wish
+		really wants to see every mutation within the chosen mutation type
+		the plot does not need to be openable at any point; don't store all info all the time
+		instead, when the plot is opened, start storing the data in the plot, by pulling it from the plot, not by pushing it from slim
+		all lines can be the same color, or each can be a different color; not important
+		choose one subpop at a time from a popup; no need for groups or all
+		lines; identify by the mutation
+		64-bit unique ID to track mutations
 	implement the "new event" buttons
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe

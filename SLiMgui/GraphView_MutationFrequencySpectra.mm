@@ -199,18 +199,18 @@
 	int binCount = [self histogramBinCount];
 	SLiMSim *sim = controller->sim;
 	int mutationTypeCount = (int)sim->mutation_types_.size();
-	auto mutationTypeIter = sim->mutation_types_.begin();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (int j = 0; j < mutationTypeCount; ++j, ++mutationTypeIter)
+	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
+		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
 		[string appendFormat:@"\"m%d\", ", mutationType->mutation_type_id_];
 		
 		for (int i = 0; i < binCount; ++i)
 		{
-			int histIndex = j + i * mutationTypeCount;
+			int histIndex = mutationTypeIndex + i * mutationTypeCount;
 			
 			[string appendFormat:@"%.4f, ", plotData[histIndex]];
 		}

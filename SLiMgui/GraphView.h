@@ -123,10 +123,11 @@
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent;
 
-- (void)invalidateDrawingCache;
+- (void)invalidateDrawingCache;			// GraphView does not keep a drawing cache, but it supports having one; this gets called in situations when such a cache would be invalidated
 - (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
 - (void)controllerRecycled;				// called by SLiMWindowController when the simulation is recycled, to let the GraphView do whatever re-initialization is needed
 - (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond
+- (void)controllerGenerationFinished;	// called by SLiMWindowController when a simulation generation ends, to allow per-generation data gathering; redrawing should not be done here
 - (void)setNeedsDisplay;				// shorthand for setNeedsDisplay:YES, to allow use of performSelector:
 
 @end
