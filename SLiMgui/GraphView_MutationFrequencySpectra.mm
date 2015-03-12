@@ -165,14 +165,9 @@
 	}
 }
 
-- (NSSize)legendSize
+- (NSArray *)legendKey
 {
-	return [self mutationTypeLegendSize];	// we use the prefab mutation type legend
-}
-
-- (void)drawLegendInRect:(NSRect)legendRect
-{
-	[self drawMutationTypeLegendInRect:legendRect];		// we use the prefab mutation type legend
+	return [self mutationTypeLegendKey];	// we use the prefab mutation type legend
 }
 
 - (void)controllerSelectionChanged

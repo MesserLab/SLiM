@@ -116,14 +116,9 @@
 	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:plotData subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:100.0];
 }
 
-- (NSSize)legendSize
+- (NSArray *)legendKey
 {
-	return [self mutationTypeLegendSize];	// we use the prefab mutation type legend
-}
-
-- (void)drawLegendInRect:(NSRect)legendRect
-{
-	[self drawMutationTypeLegendInRect:legendRect];		// we use the prefab mutation type legend
+	return [self mutationTypeLegendKey];	// we use the prefab mutation type legend
 }
 
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller

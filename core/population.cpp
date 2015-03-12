@@ -1317,6 +1317,7 @@ void Population::TallyMutationReferences(void)
 // handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
 void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 {
+	Genome removed_mutation_accumulator;
 	Genome fixed_mutation_accumulator;
 #ifdef SLIMGUI
 	int mutation_type_count = static_cast<int>(p_sim.mutation_types_.size());
@@ -1329,6 +1330,7 @@ void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 	{
 		const Mutation *mutation = mutation_registry_[i];
 		int32_t reference_count = mutation->reference_count_;
+		bool remove_mutation = false;
 		
 		if (reference_count == 0)
 		{
@@ -1344,36 +1346,7 @@ void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutationLossTimes, &mutationLossGenSlots);
 #endif
 			
-			// We have an unreferenced mutation object, so we want to remove it quickly
-			if (i == registry_length - 1)
-			{
-				mutation_registry_.pop_back();
-				
-#if DEBUG_MUTATION_ZOMBIES
-				const_cast<Mutation *>(mutation)->mutation_type_ptr_ = nullptr;		// render lethal
-				mutation->reference_count_ = -1;									// zombie
-#else
-				delete mutation;
-#endif
-				
-				--registry_length;
-			}
-			else
-			{
-				const Mutation *last_mutation = mutation_registry_[registry_length - 1];
-				mutation_registry_[i] = last_mutation;
-				mutation_registry_.pop_back();
-				
-#if DEBUG_MUTATION_ZOMBIES
-				const_cast<Mutation *>(mutation)->mutation_type_ptr_ = nullptr;		// render lethal
-				mutation->reference_count_ = -1;									// zombie
-#else
-				delete mutation;
-#endif
-				
-				--registry_length;
-				--i;	// revisit this index
-			}
+			remove_mutation = true;
 		}
 		else if (reference_count == total_genome_count_)
 		{
@@ -1389,8 +1362,33 @@ void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutationFixationTimes, &mutationFixationGenSlots);
 #endif
 			
-			// If this mutation was counted in every genome, then it is fixed; log it
+			// add the fixed mutation to a vector, to be converted to a Substitution object below
 			fixed_mutation_accumulator.insert_sorted_mutation(mutation);
+			
+			remove_mutation = true;
+		}
+		
+		if (remove_mutation)
+		{
+			// We have an unreferenced mutation object, so we want to remove it quickly
+			if (i == registry_length - 1)
+			{
+				mutation_registry_.pop_back();
+				
+				--registry_length;
+			}
+			else
+			{
+				const Mutation *last_mutation = mutation_registry_[registry_length - 1];
+				mutation_registry_[i] = last_mutation;
+				mutation_registry_.pop_back();
+				
+				--registry_length;
+				--i;	// revisit this index
+			}
+			
+			// We can't delete the mutation yet, because we might need to make a Substitution object from it, so add it to a vector for deletion below
+			removed_mutation_accumulator.push_back(mutation);
 		}
 	}
 	
@@ -1413,6 +1411,22 @@ void Population::RemoveFixedMutations(const SLiMSim &p_sim)
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
+	}
+	
+	// now we can delete (or zombify) removed mutation objects
+	if (removed_mutation_accumulator.size() > 0)
+	{
+		for (int i = 0; i < removed_mutation_accumulator.size(); i++)
+		{
+			const Mutation *mutation = removed_mutation_accumulator[i];
+			
+#if DEBUG_MUTATION_ZOMBIES
+			const_cast<Mutation *>(mutation)->mutation_type_ptr_ = nullptr;		// render lethal
+			mutation->reference_count_ = -1;									// zombie
+#else
+			delete mutation;
+#endif
+		}
 	}
 }
 

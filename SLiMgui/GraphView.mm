@@ -196,7 +196,7 @@
 	return SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.height - 1.0) + interiorRect.origin.y) + 0.5;
 }
 
-- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+- (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
 {
 }
 
@@ -434,13 +434,53 @@
 	NSRectFill(interiorRect);
 }
 
+- (NSArray *)legendKey
+{
+	return nil;
+}
+
 - (NSSize)legendSize
 {
-	return NSZeroSize;
+	NSArray *legendKey = [self legendKey];
+	NSInteger legendEntryCount = [legendKey count];
+	const int legendRowHeight = 15;
+	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
+	__block NSSize legendSize = NSMakeSize(0, legendRowHeight * legendEntryCount - 6);
+	
+	[legendKey enumerateObjectsUsingBlock:^(NSArray *legendEntry, NSUInteger idx, BOOL *stop) {
+		NSString *labelString = [legendEntry objectAtIndex:0];
+		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
+		NSSize labelSize = [label size];
+		
+		legendSize.width = MAX(legendSize.width, 0 + (legendRowHeight - 6) + 5 + labelSize.width);
+		[label release];
+	}];
+	
+	return legendSize;
 }
 
 - (void)drawLegendInRect:(NSRect)legendRect
 {
+	NSArray *legendKey = [self legendKey];
+	NSInteger legendEntryCount = [legendKey count];
+	const int legendRowHeight = 15;
+	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
+	
+	[legendKey enumerateObjectsUsingBlock:^(NSArray *legendEntry, NSUInteger idx, BOOL *stop) {
+		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((legendEntryCount - 1) * legendRowHeight - 3) - idx * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+		NSString *labelString = [legendEntry objectAtIndex:0];
+		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
+		NSColor *entryColor = [legendEntry objectAtIndex:1];
+		
+		[entryColor set];
+		NSRectFill(swatchRect);
+		
+		[[NSColor blackColor] set];
+		NSFrameRect(swatchRect);
+		
+		[label drawAtPoint:NSMakePoint(swatchRect.origin.x + swatchRect.size.width + 5, swatchRect.origin.y - 2)];
+		[label release];
+	}];
 }
 
 - (void)drawLegendInInteriorRect:(NSRect)interiorRect
@@ -488,7 +528,7 @@
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
 		
-		[self rescaleAsNeededWithInteriorRect:interiorRect andController:controller];
+		[self willDrawWithInteriorRect:interiorRect andController:controller];
 		
 		// Draw grid lines, if requested, and if tick marks are turned on for the corresponding axis
 		if ([self showHorizontalGridLines] && [self showYAxis] && [self showYAxisTicks])
@@ -827,6 +867,14 @@
 			[menu addItem:[NSMenuItem separatorItem]];
 		addedItems = NO;
 		
+		// Allow a subclass to introduce menu items here, above the copy/export menu items, which belong at the bottom; we are responsible for adding a separator afterwards if needed
+		NSInteger preSubclassItemCount = [menu numberOfItems];
+		
+		[self subclassAddItemsToMenu:menu forEvent:theEvent];
+		
+		if (preSubclassItemCount != [menu numberOfItems])
+			[menu addItem:[NSMenuItem separatorItem]];
+		
 		// Copy/export the graph image
 		{
 			NSMenuItem *menuItem;
@@ -856,6 +904,10 @@
 	}
 	
 	return nil;
+}
+
+- (void)subclassAddItemsToMenu:(NSMenu *)menu forEvent:(NSEvent *)theEvent
+{
 }
 
 - (void)invalidateDrawingCache
@@ -892,61 +944,33 @@
 
 @implementation GraphView (PrefabAdditions)
 
-- (NSSize)mutationTypeLegendSize
+- (NSArray *)mutationTypeLegendKey
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	SLiMSim *sim = controller->sim;
 	int mutationTypeCount = (int)sim->mutation_types_.size();
 	
-	// If we only have one mutation type, do not show a legend
+	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
-		return NSZeroSize;
+		return nil;
 	
-	const int legendRowHeight = 15;
-	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
-	NSSize legendSize = NSMakeSize(0, legendRowHeight * mutationTypeCount - 6);
+	NSMutableArray *legendKey = [NSMutableArray array];
 	
+	// first we put in placeholders
+	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+		[legendKey addObject:@"placeholder"];
+	
+	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
 	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
-		NSRect swatchRect = NSMakeRect(0, ((mutationTypeCount - 1) * legendRowHeight) - mutationTypeIndex * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
 		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
-		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
-		NSSize labelSize = [label size];
 		
-		legendSize.width = MAX(legendSize.width, swatchRect.origin.x + swatchRect.size.width + 5 + labelSize.width);
-		[label release];
+		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:[NSArray arrayWithObjects:labelString, [SLiMWindowController colorForIndex:mutationTypeIndex], nil]];
 	}
 	
-	return legendSize;
-}
-
-- (void)drawMutationTypeLegendInRect:(NSRect)legendRect
-{
-	const int legendRowHeight = 15;
-	NSDictionary *legendAttrs = [[self class] attributesForLegendLabels];
-	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
-	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
-	{
-		MutationType *mutationType = (*mutationTypeIter).second;
-		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
-		NSRect swatchRect = NSMakeRect(legendRect.origin.x, legendRect.origin.y + ((mutationTypeCount - 1) * legendRowHeight - 3) - mutationTypeIndex * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
-		NSString *labelString = [NSString stringWithFormat:@"m%d", mutationType->mutation_type_id_];
-		NSAttributedString *label = [[NSAttributedString alloc] initWithString:labelString attributes:legendAttrs];
-		
-		[[SLiMWindowController colorForIndex:mutationTypeIndex] set];
-		NSRectFill(swatchRect);
-		
-		[[NSColor blackColor] set];
-		NSFrameRect(swatchRect);
-		
-		[label drawAtPoint:NSMakePoint(swatchRect.origin.x + swatchRect.size.width + 5, swatchRect.origin.y - 2)];
-		[label release];
-	}
+	return legendKey;
 }
 
 - (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(double *)buffer subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth

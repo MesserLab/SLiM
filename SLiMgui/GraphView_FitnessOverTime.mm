@@ -95,7 +95,7 @@
 	[super dealloc];
 }
 
-- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+- (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
 {
 	if (![self yAxisIsUserRescaled])
 	{

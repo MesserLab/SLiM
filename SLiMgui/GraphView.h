@@ -92,7 +92,7 @@
 - (double)roundPlotToDeviceX:(double)plotx withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
 - (double)roundPlotToDeviceY:(double)ploty withInteriorRect:(NSRect)interiorRect;	// rounded off to the nearest midpixel
 
-- (void)rescaleAsNeededWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller;		// called prior to drawing, to allow dynamic axis rescaling
+- (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller;		// called prior to drawing, to allow dynamic axis rescaling and other adjustments
 
 - (void)drawXAxisTicksWithInteriorRect:(NSRect)interiorRect;
 - (void)drawXAxisWithInteriorRect:(NSRect)interiorRect;
@@ -107,8 +107,9 @@
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller;
 
-- (NSSize)legendSize;
-- (void)drawLegendInRect:(NSRect)legendRect;
+- (NSArray *)legendKey;							// subclasses can provide an NSArray of key entries, each an NSArray of an NSString and an NSColor
+- (NSSize)legendSize;							// unless overridden, this calls -legendKey and follows its intructions
+- (void)drawLegendInRect:(NSRect)legendRect;	// unless overridden, this calls -legendKey and follows its intructions
 
 - (IBAction)rescaleSheetOK:(id)sender;
 - (IBAction)rescaleSheetCancel:(id)sender;
@@ -122,6 +123,7 @@
 - (NSString *)dateline;
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent;
+- (void)subclassAddItemsToMenu:(NSMenu *)menu forEvent:(NSEvent *)theEvent;	// subclasses normally add their menu items here so they appear above the copy graph/data menu items
 
 - (void)invalidateDrawingCache;			// GraphView does not keep a drawing cache, but it supports having one; this gets called in situations when such a cache would be invalidated
 - (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
@@ -135,8 +137,7 @@
 @interface GraphView (PrefabAdditions)
 
 // a prefab legend that shows all of the mutation types, with color swatches and labels
-- (NSSize)mutationTypeLegendSize;
-- (void)drawMutationTypeLegendInRect:(NSRect)legendRect;
+- (NSArray *)mutationTypeLegendKey;
 
 // a prefab method to draw simple barplots
 - (void)drawBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(double *)buffer binCount:(int)binCount firstBinValue:(double)firstBinValue binWidth:(double)binWidth;

@@ -47,7 +47,9 @@ public:
 	const int32_t generation_;							// generation in which mutation arose
 	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
 #ifdef SLIMGUI
-	mutable int32_t gui_reference_count_;				// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui
+	const uint64_t mutation_id_;						// a unique id for each mutation, used to track mutations in SLiMgui
+	mutable int32_t gui_reference_count_;				// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
+	mutable int32_t gui_scratch_reference_count;		// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
 	Mutation(const Mutation&) = delete;					// no copying

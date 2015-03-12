@@ -46,6 +46,9 @@ public:
 	int subpop_index_;							// subpopulation in which mutation arose
 	int generation_;							// generation in which mutation arose  
 	int fixation_time_;							// fixation time
+#ifdef SLIMGUI
+	const uint64_t mutation_id_;				// a unique id for each mutation, used to track mutations in SLiMgui
+#endif
 	
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
