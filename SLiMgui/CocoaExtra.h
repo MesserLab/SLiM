@@ -78,6 +78,9 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 + (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame;
 @end
 
+// A subclass to may copy: copy rich text as well as unformatted text
+@interface SLiMSyntaxColoredTextView : NSTextView
+@end
 
 
 

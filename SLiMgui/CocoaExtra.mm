@@ -537,6 +537,23 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+@implementation SLiMSyntaxColoredTextView
+
+// The reason for this subclass is that NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for
+// the user; the user can't change the font, size, etc.  But we still can, and do, programatically to do our syntax formatting.  We want that style information to get copied
+// to the pasteboard, and as far as I can tell this subclass is necessary to make it happen.  Seems kind of lame.
+- (IBAction)copy:(id)sender
+{
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSAttributedString *attrString = [self textStorage];
+	
+	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
+	[pasteboard clearContents];
+	[pasteboard writeObjects:[NSArray arrayWithObject:attrString]];
+}
+
+@end
+
 
 
 
