@@ -233,7 +233,11 @@
 
 - (void)invalidateCachedData
 {
-	//NSLog(@"-invalidateCachedData");
+//	SLiMWindowController *controller = [self slimWindowController];
+//	SLiMSim *sim = controller->sim;
+//	int generation = sim->generation_;
+//	
+//	NSLog(@"-invalidateCachedData called at generation %d", generation);
 	
 	if (frequencyHistoryDict)
 	{
@@ -260,11 +264,28 @@
 	SLiMSim *sim = controller->sim;
 	Population &population = sim->population_;
 	Genome &mutationRegistry = population.mutation_registry_;
+	static BOOL alreadyHere = NO;
 	
 	if (population.child_generation_valid)
 	{
 		NSLog(@"child_generation_valid set in fetchDataForFinishedGeneration");
 		return;
+	}
+	
+	// Check that the subpop we're supposed to be surveying exists; if not, bail.
+	BOOL foundSelectedSubpop = NO;
+	
+	for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
+		if (subpop_pair.first == _selectedSubpopulationID)	// find our chosen subpop
+			foundSelectedSubpop = YES;
+	
+	// Make sure we have a selected subpop if possible.  Our menu might not have been loaded, or our chosen subpop might have vanished.
+	if ((_selectedSubpopulationID == -1) || !foundSelectedSubpop)
+	{
+		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop.  This will call us, so we use a static flag to prevent re-entrancy.
+		alreadyHere = YES;
+		[self addSubpopulationsToMenu];
+		alreadyHere = NO;
 	}
 	
 	if (!frequencyHistoryDict)
