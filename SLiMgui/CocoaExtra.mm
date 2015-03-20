@@ -546,10 +546,12 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	NSAttributedString *attrString = [self textStorage];
+	NSRange selectedRange = [self selectedRange];
+	NSAttributedString *attrStringInRange = [attrString attributedSubstringFromRange:selectedRange];
 	
 	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
 	[pasteboard clearContents];
-	[pasteboard writeObjects:[NSArray arrayWithObject:attrString]];
+	[pasteboard writeObjects:[NSArray arrayWithObject:attrStringInRange]];
 }
 
 @end
