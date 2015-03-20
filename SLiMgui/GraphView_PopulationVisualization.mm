@@ -43,13 +43,14 @@
 {
 	// figure out the right radius, clamped to reasonable limits
 	int subpopSize = subpop->parent_subpop_size_;
+	int clampedSubpopSize = subpopSize;
 	
-	if (subpopSize < 200)
-		subpopSize = 200;
-	if (subpopSize > 10000)
-		subpopSize = 10000;
+	if (clampedSubpopSize < 200)
+		clampedSubpopSize = 200;
+	if (clampedSubpopSize > 10000)
+		clampedSubpopSize = 10000;
 	
-	double subpopRadius = sqrt(subpop->parent_subpop_size_) / 500;	// size 10,000 has radius 0.2
+	double subpopRadius = sqrt(clampedSubpopSize) / 500;	// size 10,000 has radius 0.2
 	
 	// draw the circle
 	NSRect subpopRect = NSMakeRect(center.x - subpopRadius, center.y - subpopRadius, 2.0 * subpopRadius, 2.0 * subpopRadius);
@@ -66,13 +67,14 @@
 	
 	// figure out the right radius, clamped to reasonable limits
 	int subpopSize = subpop->parent_subpop_size_;
+	int clampedSubpopSize = subpopSize;
 	
-	if (subpopSize < 200)
-		subpopSize = 200;
-	if (subpopSize > 10000)
-		subpopSize = 10000;
+	if (clampedSubpopSize < 200)
+		clampedSubpopSize = 200;
+	if (clampedSubpopSize > 10000)
+		clampedSubpopSize = 10000;
 	
-	double subpopRadius = sqrt(subpop->parent_subpop_size_) / 500;	// size 10,000 has radius 0.2
+	double subpopRadius = sqrt(clampedSubpopSize) / 500;	// size 10,000 has radius 0.2
 	subpop->gui_radius = subpopRadius;
 	
 	// calculate the color from the mean fitness of the population
