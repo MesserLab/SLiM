@@ -89,6 +89,16 @@
 	return regex;
 }
 
++ (NSRegularExpression *)regexForFilename
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^[^\0]+$" options:0 error:NULL];		// Unix allows pretty much anything
+	
+	return regex;
+}
+
 + (NSRegularExpression *)regexForScriptSectionHead
 {
 	static NSRegularExpression *regex = nil;
@@ -134,6 +144,19 @@
 		return NO;
 	
 	if (doubleValue > maxValue)
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validFilenameInTextField:(NSTextField *)textfield
+{
+	NSString *stringValue = [textfield stringValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForFilename] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
 		return NO;
 	
 	return YES;

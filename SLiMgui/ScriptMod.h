@@ -63,10 +63,12 @@
 
 + (NSRegularExpression *)regexForInt;
 + (NSRegularExpression *)regexForFloat;
++ (NSRegularExpression *)regexForFilename;
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
++ (BOOL)validFilenameInTextField:(NSTextField *)textfield;
 
 + (NSColor *)validationErrorColor;								// use this for elements such as textfields that can set their background color
 + (NSColor *)validationErrorFilterColor;						// use this for elements that must be tinted using CIFilter
