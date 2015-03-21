@@ -47,11 +47,11 @@
 	validInput = YES;
 	
 	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
-	validInput &= generationValid;
+	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:(generationValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
 	
 	BOOL subpopValid = [subpopPopUpButton isEnabled];
-	validInput &= subpopValid;
+	validInput = validInput && subpopValid;
 	[subpopPopUpButton slimSetTintColor:(subpopValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
