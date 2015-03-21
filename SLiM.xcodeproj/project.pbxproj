@@ -26,6 +26,8 @@
 		9821E2221ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */; };
 		9821E2251ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */; };
 		9821E2281ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */; };
+		9821E22B1ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */; };
+		9821E22E1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -174,6 +176,9 @@
 		9821E2231ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeSexRatio.h; sourceTree = "<group>"; };
 		9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeSexRatio.mm; sourceTree = "<group>"; };
 		9821E2271ABE2AE20036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_ChangeSexRatio.xib; sourceTree = "<group>"; };
+		9821E22A1ABE30220036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_OutputFullPopulation.xib; sourceTree = "<group>"; };
+		9821E22C1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_OutputFullPopulation.h; sourceTree = "<group>"; };
+		9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_OutputFullPopulation.mm; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -345,6 +350,9 @@
 				9821E2231ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.h */,
 				9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */,
 				9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */,
+				9821E22C1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.h */,
+				9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */,
+				9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -657,6 +665,7 @@
 				98D4C1E61A6FD8D600FFB083 /* change_sex_ratio.pdf in Resources */,
 				98D4C1C01A6F537B00FFB083 /* MainMenu.xib in Resources */,
 				98453F481A75E80F00C058CB /* ScriptSyntaxHelp.txt in Resources */,
+				9821E22B1ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib in Resources */,
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
 				98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */,
 				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
@@ -740,6 +749,7 @@
 				98D4C1D61A6F541F00FFB083 /* g_rng.cpp in Sources */,
 				9821E2131ABE17200036EAEA /* ScriptMod_SplitSubpop.mm in Sources */,
 				98D4C1E01A6F544100FFB083 /* partial_sweep.cpp in Sources */,
+				9821E22E1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm in Sources */,
 				986926D91AA140550000E138 /* GraphView.mm in Sources */,
 				98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */,
 				9821E1FC1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm in Sources */,
@@ -865,6 +875,14 @@
 				9821E2271ABE2AE20036EAEA /* Base */,
 			);
 			name = ScriptMod_ChangeSexRatio.xib;
+			sourceTree = "<group>";
+		};
+		9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9821E22A1ABE30220036EAEA /* Base */,
+			);
+			name = ScriptMod_OutputFullPopulation.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {

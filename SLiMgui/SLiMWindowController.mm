@@ -33,6 +33,7 @@
 #import "ScriptMod_ChangeMigration.h"
 #import "ScriptMod_ChangeSelfing.h"
 #import "ScriptMod_ChangeSexRatio.h"
+#import "ScriptMod_OutputFullPopulation.h"
 
 #include <iostream>
 #include <sstream>
@@ -831,6 +832,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)outputFullPopulationState:(id)sender
 {
+	[ScriptMod_OutputFullPopulation runWithController:self];
 }
 
 - (IBAction)outputPopulationSample:(id)sender
