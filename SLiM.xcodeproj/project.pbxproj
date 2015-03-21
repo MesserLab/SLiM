@@ -13,6 +13,7 @@
 		9821E1FC1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E1FB1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm */; };
 		9821E1FF1ABC78550036EAEA /* ScriptModSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E1FD1ABC78550036EAEA /* ScriptModSheet.xib */; };
 		9821E2021ABCA02E0036EAEA /* ScriptMod_ChangeSubpopSize.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2001ABCA02E0036EAEA /* ScriptMod_ChangeSubpopSize.xib */; };
+		9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9821E2031ABDBC300036EAEA /* QuartzCore.framework */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -142,6 +143,7 @@
 		9821E1FB1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeSubpopSize.mm; sourceTree = "<group>"; };
 		9821E1FE1ABC78550036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptModSheet.xib; sourceTree = "<group>"; };
 		9821E2011ABCA02E0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_ChangeSubpopSize.xib; sourceTree = "<group>"; };
+		9821E2031ABDBC300036EAEA /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */,
 				98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */,
 				98D4C2101A716E0E00FFB083 /* WebKit.framework in Frameworks */,
 			);
@@ -422,6 +425,7 @@
 				98D4C1B61A6F537B00FFB083 /* Info.plist */,
 				98D4C1BA1A6F537B00FFB083 /* main.m */,
 				98D4C2151A7187E200FFB083 /* Quartz.framework */,
+				9821E2031ABDBC300036EAEA /* QuartzCore.framework */,
 				98D4C20F1A716E0E00FFB083 /* WebKit.framework */,
 			);
 			name = "Supporting Files";

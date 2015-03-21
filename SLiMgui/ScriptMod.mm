@@ -470,22 +470,63 @@
 - (IBAction)validateControls:(id)sender
 {
 	// if the subclass says it does not need to recycle, hide the warning and set its height constraint to 0, and hide the recycle symbol
+	// we animate these changes, since otherwise the change is rather large and abrupt
+	BOOL animateChanges = [_scriptModSheet isVisible];
+	
 	if (validInput)
 	{
 		if (!needsRecycle && showingRecycleOption)
 		{
-			[_recycleWarning setHidden:YES];
-			[_recycleImageTextField setHidden:YES];
-			[_recycleWarningHeightConstraint setConstant:0.0];
-			[_insertAndExecuteButton setTitle:@"Insert & Execute"];
+			if (animateChanges)
+			{
+				[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+					[context setDuration:0.2];
+					//[context setAllowsImplicitAnimation:YES];
+					
+					// animation code
+					[_recycleWarning.animator setHidden:YES];
+					[_recycleImageTextField.animator setHidden:YES];
+					[_recycleWarningHeightConstraint.animator setConstant:0.0];
+					[_insertAndExecuteButton.animator setTitle:@"Insert & Execute"];
+				} completionHandler:^{
+					// animation completed
+				}];
+			}
+			else
+			{
+				[_recycleWarning setHidden:YES];
+				[_recycleImageTextField setHidden:YES];
+				[_recycleWarningHeightConstraint setConstant:0.0];
+				[_insertAndExecuteButton setTitle:@"Insert & Execute"];
+			}
+			
 			showingRecycleOption = NO;
 		}
 		else if (needsRecycle && !showingRecycleOption)
 		{
-			[_recycleWarning setHidden:NO];
-			[_recycleImageTextField setHidden:NO];
-			[_recycleWarningHeightConstraint setConstant:recycleWarningConstraintHeight];
-			[_insertAndExecuteButton setTitle:@"Insert & Recycle"];
+			if (animateChanges)
+			{
+				[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+					[context setDuration:0.2];
+					//[context setAllowsImplicitAnimation:YES];
+					
+					// animation code
+					[_recycleWarning.animator setHidden:NO];
+					[_recycleImageTextField.animator setHidden:NO];
+					[_recycleWarningHeightConstraint.animator setConstant:recycleWarningConstraintHeight];
+					[_insertAndExecuteButton.animator setTitle:@"Insert & Recycle"];
+				} completionHandler:^{
+					// animation completed
+				}];
+			}
+			else
+			{
+				[_recycleWarning setHidden:NO];
+				[_recycleImageTextField setHidden:NO];
+				[_recycleWarningHeightConstraint setConstant:recycleWarningConstraintHeight];
+				[_insertAndExecuteButton setTitle:@"Insert & Recycle"];
+			}
+			
 			showingRecycleOption = YES;
 		}
 	}

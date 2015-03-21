@@ -23,12 +23,15 @@
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="480" height="421"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
-            <view key="contentView" id="EiT-Mj-1SZ">
+            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="421"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="34a-7k-94q">
-                        <rect key="frame" x="326" y="13" width="140" height="32"/>
+                        <rect key="frame" x="319" y="13" width="147" height="32"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="135" id="PzG-up-fq4"/>
+                        </constraints>
                         <buttonCell key="cell" type="push" title="Insert &amp; Recycle" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="h34-IA-sbs">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -41,7 +44,7 @@ DQ
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0A7-1L-X7y">
-                        <rect key="frame" x="326" y="46" width="140" height="32"/>
+                        <rect key="frame" x="319" y="46" width="147" height="32"/>
                         <buttonCell key="cell" type="push" title="Insert Only" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="gEC-FR-e9M">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -64,7 +67,7 @@ Gw
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nSe-qQ-LLu">
-                        <rect key="frame" x="298" y="12" width="28" height="39"/>
+                        <rect key="frame" x="291" y="12" width="28" height="39"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" enabled="NO" sendsActionOnEndEditing="YES" title="♻️" id="zQ6-Ac-Urr">
                             <font key="font" size="24" name="AppleColorEmoji"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
