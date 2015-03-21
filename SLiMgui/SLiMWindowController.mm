@@ -29,6 +29,7 @@
 #import "ScriptMod_ChangeSubpopSize.h"
 #import "ScriptMod_RemoveSubpop.h"
 #import "ScriptMod_AddSubpop.h"
+#import "ScriptMod_SplitSubpop.h"
 
 #include <iostream>
 #include <sstream>
@@ -787,6 +788,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)buttonSplitSubpop:(id)sender
 {
+	[ScriptMod_SplitSubpop runWithController:self];
 }
 
 - (IBAction)buttonChangeMigrationRates:(id)sender

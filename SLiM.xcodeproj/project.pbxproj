@@ -18,6 +18,8 @@
 		9821E20A1ABE0BEF0036EAEA /* ScriptMod_RemoveSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2081ABE0BEF0036EAEA /* ScriptMod_RemoveSubpop.xib */; };
 		9821E20D1ABE0F0C0036EAEA /* ScriptMod_AddSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E20B1ABE0F0C0036EAEA /* ScriptMod_AddSubpop.xib */; };
 		9821E2101ABE0F2A0036EAEA /* ScriptMod_AddSubpop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E20F1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.mm */; };
+		9821E2131ABE17200036EAEA /* ScriptMod_SplitSubpop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2121ABE17200036EAEA /* ScriptMod_SplitSubpop.mm */; };
+		9821E2161ABE17330036EAEA /* ScriptMod_SplitSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2141ABE17330036EAEA /* ScriptMod_SplitSubpop.xib */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -154,6 +156,9 @@
 		9821E20C1ABE0F0C0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddSubpop.xib; sourceTree = "<group>"; };
 		9821E20E1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddSubpop.h; sourceTree = "<group>"; };
 		9821E20F1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddSubpop.mm; sourceTree = "<group>"; };
+		9821E2111ABE17200036EAEA /* ScriptMod_SplitSubpop.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_SplitSubpop.h; sourceTree = "<group>"; };
+		9821E2121ABE17200036EAEA /* ScriptMod_SplitSubpop.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_SplitSubpop.mm; sourceTree = "<group>"; };
+		9821E2151ABE17330036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_SplitSubpop.xib; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -313,6 +318,9 @@
 				9821E20E1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.h */,
 				9821E20F1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.mm */,
 				9821E20B1ABE0F0C0036EAEA /* ScriptMod_AddSubpop.xib */,
+				9821E2111ABE17200036EAEA /* ScriptMod_SplitSubpop.h */,
+				9821E2121ABE17200036EAEA /* ScriptMod_SplitSubpop.mm */,
+				9821E2141ABE17330036EAEA /* ScriptMod_SplitSubpop.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -634,6 +642,7 @@
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
 				98453F441A75AABE00C058CB /* syntax_help_H.pdf in Resources */,
+				9821E2161ABE17330036EAEA /* ScriptMod_SplitSubpop.xib in Resources */,
 				986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
@@ -701,6 +710,7 @@
 			files = (
 				98D4C1BB1A6F537B00FFB083 /* main.m in Sources */,
 				98D4C1D61A6F541F00FFB083 /* g_rng.cpp in Sources */,
+				9821E2131ABE17200036EAEA /* ScriptMod_SplitSubpop.mm in Sources */,
 				98D4C1E01A6F544100FFB083 /* partial_sweep.cpp in Sources */,
 				986926D91AA140550000E138 /* GraphView.mm in Sources */,
 				98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */,
@@ -793,6 +803,14 @@
 				9821E20C1ABE0F0C0036EAEA /* Base */,
 			);
 			name = ScriptMod_AddSubpop.xib;
+			sourceTree = "<group>";
+		};
+		9821E2141ABE17330036EAEA /* ScriptMod_SplitSubpop.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9821E2151ABE17330036EAEA /* Base */,
+			);
+			name = ScriptMod_SplitSubpop.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {
