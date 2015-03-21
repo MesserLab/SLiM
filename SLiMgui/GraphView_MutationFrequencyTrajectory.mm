@@ -104,40 +104,6 @@
 	[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mutationTypeButton]-6-|" options:0 metrics:nil views:viewsDictionary]];
 }
 
-- (void)sortMenuItemsByTagInPopUpButton:(NSPopUpButton *)popup
-{
-	NSMenu *menu = [popup menu];
-	int nItems = (int)[menu numberOfItems];
-	
-	// completely dumb bubble sort; not worth worrying about
-	do
-	{
-		BOOL foundSwap = NO;
-		
-		for (int i = 0; i < nItems - 1; ++i)
-		{
-			NSMenuItem *firstItem = [menu itemAtIndex:i];
-			NSMenuItem *secondItem = [menu itemAtIndex:i + 1];
-			NSInteger firstTag = [firstItem tag];
-			NSInteger secondTag = [secondItem tag];
-			
-			if (firstTag > secondTag)
-			{
-				[secondItem retain];
-				[menu removeItemAtIndex:i + 1];
-				[menu insertItem:secondItem atIndex:i];
-				[secondItem release];
-				
-				foundSwap = YES;
-			}
-		}
-		
-		if (!foundSwap)
-			break;
-	}
-	while (YES);
-}
-
 - (void)addSubpopulationsToMenu
 {
 	SLiMWindowController *controller = [self slimWindowController];
@@ -167,7 +133,7 @@
 		}
 	}
 	
-	[self sortMenuItemsByTagInPopUpButton:subpopulationButton];
+	[subpopulationButton slimSortMenuItemsByTag];
 	
 	// If it is empty, disable it
 	[subpopulationButton setEnabled:([subpopulationButton numberOfItems] >= 1)];
@@ -214,7 +180,7 @@
 		}
 	}
 	
-	[self sortMenuItemsByTagInPopUpButton:mutationTypeButton];
+	[mutationTypeButton slimSortMenuItemsByTag];
 	
 	// If it is empty, disable it
 	[mutationTypeButton setEnabled:([mutationTypeButton numberOfItems] >= 1)];

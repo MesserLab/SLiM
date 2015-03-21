@@ -557,6 +557,44 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+@implementation NSPopUpButton (SLiMSorting)
+
+- (void)slimSortMenuItemsByTag
+{
+	NSMenu *menu = [self menu];
+	int nItems = (int)[menu numberOfItems];
+	
+	// completely dumb bubble sort; not worth worrying about
+	do
+	{
+		BOOL foundSwap = NO;
+		
+		for (int i = 0; i < nItems - 1; ++i)
+		{
+			NSMenuItem *firstItem = [menu itemAtIndex:i];
+			NSMenuItem *secondItem = [menu itemAtIndex:i + 1];
+			NSInteger firstTag = [firstItem tag];
+			NSInteger secondTag = [secondItem tag];
+			
+			if (firstTag > secondTag)
+			{
+				[secondItem retain];
+				[menu removeItemAtIndex:i + 1];
+				[menu insertItem:secondItem atIndex:i];
+				[secondItem release];
+				
+				foundSwap = YES;
+			}
+		}
+		
+		if (!foundSwap)
+			break;
+	}
+	while (YES);
+}
+
+@end
+
 
 
 

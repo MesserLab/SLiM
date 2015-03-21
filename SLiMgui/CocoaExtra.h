@@ -82,6 +82,10 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @interface SLiMSyntaxColoredTextView : NSTextView
 @end
 
+// A category to add sorting of menus
+@interface NSPopUpButton (SLiMSorting)
+- (void)slimSortMenuItemsByTag;
+@end
 
 
 
