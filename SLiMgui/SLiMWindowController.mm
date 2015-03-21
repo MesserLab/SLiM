@@ -32,6 +32,7 @@
 #import "ScriptMod_SplitSubpop.h"
 #import "ScriptMod_ChangeMigration.h"
 #import "ScriptMod_ChangeSelfing.h"
+#import "ScriptMod_ChangeSexRatio.h"
 
 #include <iostream>
 #include <sstream>
@@ -805,6 +806,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)buttonChangeSexRatio:(id)sender
 {
+	[ScriptMod_ChangeSexRatio runWithController:self];
 }
 
 - (IBAction)addMutationType:(id)sender

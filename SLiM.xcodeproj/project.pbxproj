@@ -24,6 +24,8 @@
 		9821E21C1ABE1D3F0036EAEA /* ScriptMod_ChangeMigration.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E21A1ABE1D3F0036EAEA /* ScriptMod_ChangeMigration.xib */; };
 		9821E21F1ABE27CE0036EAEA /* ScriptMod_ChangeSelfing.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E21D1ABE27CE0036EAEA /* ScriptMod_ChangeSelfing.xib */; };
 		9821E2221ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */; };
+		9821E2251ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */; };
+		9821E2281ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -169,6 +171,9 @@
 		9821E21E1ABE27CE0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_ChangeSelfing.xib; sourceTree = "<group>"; };
 		9821E2201ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeSelfing.h; sourceTree = "<group>"; };
 		9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeSelfing.mm; sourceTree = "<group>"; };
+		9821E2231ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeSexRatio.h; sourceTree = "<group>"; };
+		9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeSexRatio.mm; sourceTree = "<group>"; };
+		9821E2271ABE2AE20036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_ChangeSexRatio.xib; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -337,6 +342,9 @@
 				9821E2201ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.h */,
 				9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */,
 				9821E21D1ABE27CE0036EAEA /* ScriptMod_ChangeSelfing.xib */,
+				9821E2231ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.h */,
+				9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */,
+				9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -637,6 +645,7 @@
 				98D4C1BD1A6F537B00FFB083 /* Images.xcassets in Resources */,
 				98453F4B1A75E83600C058CB /* ScriptSyntaxHelp.xib in Resources */,
 				98D4C1F81A70064800FFB083 /* recycle.pdf in Resources */,
+				9821E2281ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib in Resources */,
 				98D4C2281A71F8AD00FFB083 /* check.pdf in Resources */,
 				98D4C1EE1A6FEAB500FFB083 /* remove_subpop.pdf in Resources */,
 				98453F411A75A12700C058CB /* dump_output.pdf in Resources */,
@@ -762,6 +771,7 @@
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */,
+				9821E2251ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm in Sources */,
 				98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -847,6 +857,14 @@
 				9821E21E1ABE27CE0036EAEA /* Base */,
 			);
 			name = ScriptMod_ChangeSelfing.xib;
+			sourceTree = "<group>";
+		};
+		9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9821E2271ABE2AE20036EAEA /* Base */,
+			);
+			name = ScriptMod_ChangeSexRatio.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {
