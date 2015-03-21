@@ -62,9 +62,12 @@
 // Utility methods for regular expressions, validation, UI configuration, etc. for some common tasks
 
 + (NSRegularExpression *)regexForInt;
++ (NSRegularExpression *)regexForFloat;
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
+
 + (NSColor *)validationErrorColor;								// use this for elements such as textfields that can set their background color
 + (NSColor *)validationErrorFilterColor;						// use this for elements that must be tinted using CIFilter
 

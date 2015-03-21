@@ -79,6 +79,16 @@
 	return regex;
 }
 
++ (NSRegularExpression *)regexForFloat
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^[0-9]+(\\.[0-9]*)?$" options:0 error:NULL];
+	
+	return regex;
+}
+
 + (NSRegularExpression *)regexForScriptSectionHead
 {
 	static NSRegularExpression *regex = nil;
@@ -104,6 +114,26 @@
 		return NO;
 	
 	if (intValue > maxValue)
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue
+{
+	NSString *stringValue = [textfield stringValue];
+	double doubleValue = [textfield doubleValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForFloat] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (doubleValue < minValue)
+		return NO;
+	
+	if (doubleValue > maxValue)
 		return NO;
 	
 	return YES;
