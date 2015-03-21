@@ -27,6 +27,7 @@
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
 #import "ScriptMod_ChangeSubpopSize.h"
+#import "ScriptMod_RemoveSubpop.h"
 
 #include <iostream>
 #include <sstream>
@@ -775,6 +776,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)buttonRemoveSubpop:(id)sender
 {
+	[ScriptMod_RemoveSubpop runWithController:self];
 }
 
 - (IBAction)buttonAddSubpop:(id)sender

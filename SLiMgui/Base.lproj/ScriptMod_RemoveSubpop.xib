@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="ScriptMod_RemoveSubpop">
+            <connections>
+                <outlet property="customViewFromSubclass" destination="c22-O7-iKe" id="s7Y-JH-wAr"/>
+                <outlet property="generationTextField" destination="cTD-YU-teQ" id="Fae-WN-sqf"/>
+                <outlet property="subpopPopUpButton" destination="BlU-kC-voe" id="Mkj-zc-vTL"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
+            <rect key="frame" x="0.0" y="0.0" width="363" height="114"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cXU-20-n64">
+                    <rect key="frame" x="48" y="67" width="149" height="17"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation for removal:" id="Teb-5E-ffj">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
+                    <rect key="frame" x="48" y="30" width="164" height="17"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Subpopulation to remove:" id="RcV-Ss-pQT">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
+                    <rect key="frame" x="218" y="65" width="95" height="22"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="95" id="5cw-Ku-huL"/>
+                    </constraints>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="B2k-1g-UVm">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <outlet property="delegate" destination="-2" id="vnx-QO-T2l"/>
+                    </connections>
+                </textField>
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BlU-kC-voe">
+                    <rect key="frame" x="216" y="24" width="100" height="26"/>
+                    <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="zWb-ks-v7K" id="cyH-24-qrh">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu"/>
+                        <menu key="menu" id="ZVk-uM-lFH">
+                            <items>
+                                <menuItem title="Item 1" state="on" id="zWb-ks-v7K"/>
+                                <menuItem title="Item 2" id="dx0-7u-T8h"/>
+                                <menuItem title="Item 3" id="Stc-jE-1eT"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                </popUpButton>
+            </subviews>
+            <constraints>
+                <constraint firstItem="MNC-OH-9jP" firstAttribute="leading" secondItem="cXU-20-n64" secondAttribute="leading" id="Iwa-jv-2Zf"/>
+                <constraint firstItem="cXU-20-n64" firstAttribute="baseline" secondItem="cTD-YU-teQ" secondAttribute="baseline" id="MLV-gG-702"/>
+                <constraint firstItem="BlU-kC-voe" firstAttribute="leading" secondItem="cTD-YU-teQ" secondAttribute="leading" id="Qzw-sV-SCM"/>
+                <constraint firstItem="BlU-kC-voe" firstAttribute="baseline" secondItem="MNC-OH-9jP" secondAttribute="baseline" id="XuI-kX-Zwc"/>
+                <constraint firstAttribute="bottom" secondItem="MNC-OH-9jP" secondAttribute="bottom" constant="30" id="YZH-V3-CCm"/>
+                <constraint firstAttribute="trailing" secondItem="BlU-kC-voe" secondAttribute="trailing" constant="50" id="dgu-hK-E0N"/>
+                <constraint firstItem="MNC-OH-9jP" firstAttribute="top" secondItem="cXU-20-n64" secondAttribute="bottom" constant="20" id="fMU-Dl-l5F"/>
+                <constraint firstItem="BlU-kC-voe" firstAttribute="leading" secondItem="MNC-OH-9jP" secondAttribute="trailing" constant="8" id="gPx-ei-lIX"/>
+                <constraint firstItem="BlU-kC-voe" firstAttribute="trailing" secondItem="cTD-YU-teQ" secondAttribute="trailing" id="hBC-IA-f2m"/>
+                <constraint firstItem="cXU-20-n64" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="30" id="kud-DO-7qr"/>
+                <constraint firstItem="cXU-20-n64" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="50" id="v6m-nW-NUk"/>
+            </constraints>
+            <point key="canvasLocation" x="956.5" y="697.5"/>
+        </customView>
+    </objects>
+</document>
