@@ -31,6 +31,7 @@
 #import "ScriptMod_AddSubpop.h"
 #import "ScriptMod_SplitSubpop.h"
 #import "ScriptMod_ChangeMigration.h"
+#import "ScriptMod_ChangeSelfing.h"
 
 #include <iostream>
 #include <sstream>
@@ -799,6 +800,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)buttonChangeSelfingRates:(id)sender
 {
+	[ScriptMod_ChangeSelfing runWithController:self];
 }
 
 - (IBAction)buttonChangeSexRatio:(id)sender
