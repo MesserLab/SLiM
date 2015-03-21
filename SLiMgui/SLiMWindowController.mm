@@ -26,6 +26,7 @@
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
+#import "ScriptMod_ChangeSubpopSize.h"
 
 #include <iostream>
 #include <sstream>
@@ -769,6 +770,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)buttonChangeSubpopSize:(id)sender
 {
+	[ScriptMod_ChangeSubpopSize runWithController:self];
 }
 
 - (IBAction)buttonRemoveSubpop:(id)sender
