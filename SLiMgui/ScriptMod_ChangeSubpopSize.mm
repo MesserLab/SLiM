@@ -34,6 +34,7 @@
 
 - (void)configSheetLoaded
 {
+	// set initial control values
 	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
 	[self configureSubpopulationPopup:subpopPopUpButton];
 	[subpopSizeTextField setStringValue:@"1000"];
@@ -46,14 +47,17 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	if (![ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000])
-		validInput = NO;
+	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
+	validInput &= generationValid;
+	[generationTextField setBackgroundColor:(generationValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
 	
-	if (![subpopPopUpButton isEnabled])
-		validInput = NO;
+	BOOL subpopValid = [subpopPopUpButton isEnabled];
+	validInput &= subpopValid;
+	[subpopPopUpButton slimSetTintColor:(subpopValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	if (![ScriptMod validIntValueInTextField:subpopSizeTextField withMin:1 max:1000000000])
-		validInput = NO;
+	BOOL sizeValid = [ScriptMod validIntValueInTextField:subpopSizeTextField withMin:1 max:1000000000];
+	validInput &= sizeValid;
+	[subpopSizeTextField setBackgroundColor:(sizeValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
 	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);

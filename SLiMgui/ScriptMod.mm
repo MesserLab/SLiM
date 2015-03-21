@@ -109,6 +109,26 @@
 	return YES;
 }
 
++ (NSColor *)validationErrorColor
+{
+	static NSColor *color = nil;
+	
+	if (!color)
+		color = [[NSColor colorWithCalibratedHue:0.0 saturation:0.15 brightness:1.0 alpha:1.0] retain];
+	
+	return color;
+}
+
++ (NSColor *)validationErrorFilterColor
+{
+	static NSColor *color = nil;
+	
+	if (!color)
+		color = [[NSColor colorWithCalibratedHue:0.0 saturation:0.4 brightness:1.0 alpha:1.0] retain];
+	
+	return color;
+}
+
 + (void)runWithController:(SLiMWindowController *)windowController
 {
 	ScriptMod *scriptMod = [[[self class] alloc] initWithController:windowController];
@@ -459,8 +479,12 @@
 	
 	[button slimSortMenuItemsByTag];
 	
-	// If it is empty, disable it
-	[button setEnabled:([button numberOfItems] >= 1)];
+	// If it is empty, add an explanatory item and disable it
+	BOOL enabled = ([button numberOfItems] >= 1);
+	
+	[button setEnabled:enabled];
+	if (!enabled)
+		[button addItemWithTitle:@"<none>"];
 	
 	// Fix the selection and then select the chosen subpopulation
 	[button selectItemWithTag:firstTag];

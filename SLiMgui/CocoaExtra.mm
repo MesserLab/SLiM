@@ -595,6 +595,50 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
+@implementation NSPopUpButton (SLiMTinting)
+
+- (void)slimSetTintColor:(NSColor *)tintColor
+{
+	[self setContentFilters:[NSArray array]];
+	
+	if (tintColor)
+	{
+		if (!self.layer)
+			[self setWantsLayer:YES];
+		
+		CIFilter *tintFilter = [CIFilter filterWithName:@"CIColorMatrix"];
+		
+		if (tintFilter)
+		{
+			CGFloat redComponent = [tintColor redComponent];
+			CGFloat greenComponent = [tintColor greenComponent];
+			CGFloat blueComponent = [tintColor blueComponent];
+			
+			//NSLog(@"tintColor: redComponent == %f, greenComponent == %f, blueComponent == %f", redComponent, greenComponent, blueComponent);
+			
+			// The goal is to use CIColorMatrix to multiply color components so that white turns into tintColor; these vectors do that
+			CIVector *rVector = [CIVector vectorWithX:redComponent Y:0.0 Z:0.0 W:0.0];
+			CIVector *gVector = [CIVector vectorWithX:0.0 Y:greenComponent Z:0.0 W:0.0];
+			CIVector *bVector = [CIVector vectorWithX:0.0 Y:0.0 Z:blueComponent W:0.0];
+			
+			[tintFilter setDefaults];
+			[tintFilter setValue:rVector forKey:@"inputRVector"];
+			[tintFilter setValue:gVector forKey:@"inputGVector"];
+			[tintFilter setValue:bVector forKey:@"inputBVector"];
+			
+			[self setContentFilters:[NSArray arrayWithObject:tintFilter]];
+		}
+		else
+		{
+			NSLog(@"could not create [CIFilter filterWithName:@\"CIColorMatrix\"]");
+		}
+	}
+	
+	[self setNeedsDisplay];
+	[self.layer setNeedsDisplay];
+}
+
+@end
 
 
 

@@ -87,6 +87,10 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 - (void)slimSortMenuItemsByTag;
 @end
 
+// A category to add tinting of NSPopUpButton, used in the ScriptMod panels for validation
+@interface NSPopUpButton (SLiMTinting)
+- (void)slimSetTintColor:(NSColor *)tintColor;
+@end
 
 
 

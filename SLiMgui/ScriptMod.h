@@ -65,6 +65,8 @@
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
++ (NSColor *)validationErrorColor;			// use this for elements such as textfields that can set their background color
++ (NSColor *)validationErrorFilterColor;	// use this for elements that must be tinted using CIFilter
 
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a subpopulation
 
