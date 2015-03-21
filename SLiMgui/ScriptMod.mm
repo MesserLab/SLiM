@@ -491,6 +491,39 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
+- (BOOL)isAvailableSubpopID:(int)subpopID
+{
+	if (![controller invalidSimulation])
+	{
+		Population &population = controller->sim->population_;
+		
+		if (population.find(subpopID) != population.end())
+			return NO;
+	}
+	
+	return YES;
+}
+
+- (int)bestAvailableSubpopID
+{
+	int firstUnusedID = 1;
+	
+	if (![controller invalidSimulation])
+	{
+		Population &population = controller->sim->population_;
+		
+		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		{
+			int subpopID = popIter->first;
+			
+			if (subpopID >= firstUnusedID)
+				firstUnusedID = subpopID + 1;
+		}
+	}
+	
+	return firstUnusedID;
+}
+
 - (IBAction)validateControls:(id)sender
 {
 	// if the subclass says it does not need to recycle, hide the warning and set its height constraint to 0, and hide the recycle symbol

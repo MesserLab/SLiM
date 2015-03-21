@@ -65,10 +65,13 @@
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
-+ (NSColor *)validationErrorColor;			// use this for elements such as textfields that can set their background color
-+ (NSColor *)validationErrorFilterColor;	// use this for elements that must be tinted using CIFilter
++ (NSColor *)validationErrorColor;								// use this for elements such as textfields that can set their background color
++ (NSColor *)validationErrorFilterColor;						// use this for elements that must be tinted using CIFilter
 
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a subpopulation
+
+- (BOOL)isAvailableSubpopID:(int)subpopID;						// check that a given ID is currently unused
+- (int)bestAvailableSubpopID;									// return a good unused ID
 
 // These methods are the points where the subclass plugs in to the configuration panel run
 
