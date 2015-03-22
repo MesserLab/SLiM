@@ -36,6 +36,7 @@
 #import "ScriptMod_OutputFullPopulation.h"
 #import "ScriptMod_OutputSubpopSample.h"
 #import "ScriptMod_OutputFixedMutations.h"
+#import "ScriptMod_TrackMutationType.h"
 
 #include <iostream>
 #include <sstream>
@@ -849,6 +850,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)trackMutationType:(id)sender
 {
+	[ScriptMod_TrackMutationType runWithController:self];
 }
 
 - (void)positionNewGraphWindow:(NSWindow *)window
