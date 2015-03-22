@@ -39,6 +39,7 @@
 #import "ScriptMod_TrackMutationType.h"
 #import "ScriptMod_AddMutationType.h"
 #import "ScriptMod_AddGenomicElementType.h"
+#import "ScriptMod_AddGenomicElement.h"
 
 #include <iostream>
 #include <sstream>
@@ -827,6 +828,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)addGenomicElementToChromosome:(id)sender
 {
+	[ScriptMod_AddGenomicElement runWithController:self];
 }
 
 - (IBAction)addRecombinationInterval:(id)sender

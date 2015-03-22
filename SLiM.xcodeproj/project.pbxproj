@@ -38,6 +38,8 @@
 		9821E2461ABE69EA0036EAEA /* ScriptMod_AddMutationType.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2451ABE69EA0036EAEA /* ScriptMod_AddMutationType.mm */; };
 		9821E2491ABF2C930036EAEA /* ScriptMod_AddGenomicElementType.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2471ABF2C930036EAEA /* ScriptMod_AddGenomicElementType.xib */; };
 		9821E24C1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E24B1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.mm */; };
+		9821E24F1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E24D1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib */; };
+		9821E2521ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2511ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -204,6 +206,9 @@
 		9821E2481ABF2C930036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddGenomicElementType.xib; sourceTree = "<group>"; };
 		9821E24A1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddGenomicElementType.h; sourceTree = "<group>"; };
 		9821E24B1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddGenomicElementType.mm; sourceTree = "<group>"; };
+		9821E24E1ABF47100036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddGenomicElement.xib; sourceTree = "<group>"; };
+		9821E2501ABF472D0036EAEA /* ScriptMod_AddGenomicElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddGenomicElement.h; sourceTree = "<group>"; };
+		9821E2511ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddGenomicElement.mm; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -393,6 +398,9 @@
 				9821E24A1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.h */,
 				9821E24B1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.mm */,
 				9821E2471ABF2C930036EAEA /* ScriptMod_AddGenomicElementType.xib */,
+				9821E2501ABF472D0036EAEA /* ScriptMod_AddGenomicElement.h */,
+				9821E2511ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm */,
+				9821E24D1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -710,6 +718,7 @@
 				9821E22B1ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib in Resources */,
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
 				98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */,
+				9821E24F1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib in Resources */,
 				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
 				9821E20A1ABE0BEF0036EAEA /* ScriptMod_RemoveSubpop.xib in Resources */,
 				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
@@ -801,6 +810,7 @@
 				9821E1FC1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm in Sources */,
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,
 				98D4C1DF1A6F543C00FFB083 /* substitution.cpp in Sources */,
+				9821E2521ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm in Sources */,
 				986926E21AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm in Sources */,
 				98D4C1D51A6F541A00FFB083 /* slim_sim_input.cpp in Sources */,
 				98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */,
@@ -973,6 +983,14 @@
 				9821E2481ABF2C930036EAEA /* Base */,
 			);
 			name = ScriptMod_AddGenomicElementType.xib;
+			sourceTree = "<group>";
+		};
+		9821E24D1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9821E24E1ABF47100036EAEA /* Base */,
+			);
+			name = ScriptMod_AddGenomicElement.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {
