@@ -35,6 +35,7 @@
 #import "ScriptMod_ChangeSexRatio.h"
 #import "ScriptMod_OutputFullPopulation.h"
 #import "ScriptMod_OutputSubpopSample.h"
+#import "ScriptMod_OutputFixedMutations.h"
 
 #include <iostream>
 #include <sstream>
@@ -843,6 +844,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)outputFixedMutations:(id)sender
 {
+	[ScriptMod_OutputFixedMutations runWithController:self];
 }
 
 - (IBAction)trackMutationType:(id)sender
