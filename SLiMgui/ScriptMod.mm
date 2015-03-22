@@ -587,13 +587,20 @@
 	return firstUnusedID;
 }
 
-- (void)configureMutationTypePopup:(NSPopUpButton *)button
+- (void)configureMutationTypePopup:(NSPopUpButton *)button addNoneItem:(BOOL)needsNoneItem;
 {
 	NSMenuItem *lastItem;
 	int firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[button removeAllItems];
+	
+	if (needsNoneItem)
+	{
+		[button addItemWithTitle:@"<none>"];
+		lastItem = [button lastItem];
+		[lastItem setTag:-1];
+	}
 	
 	if (![controller invalidSimulation])
 	{
@@ -609,7 +616,7 @@
 			[lastItem setTag:muttypeID];
 			
 			// Remember the first item we add; we will use this item's tag to make a selection if needed
-			if (firstTag == -1)
+			if (!needsNoneItem && (firstTag == -1))
 				firstTag = muttypeID;
 		}
 	}
@@ -624,6 +631,11 @@
 	// Fix the selection and then select the chosen subpopulation
 	[button selectItemWithTag:firstTag];
 	[button synchronizeTitleAndSelectedItem];
+}
+
+- (void)configureMutationTypePopup:(NSPopUpButton *)button
+{
+	[self configureMutationTypePopup:button addNoneItem:NO];
 }
 
 - (BOOL)isAvailableMuttypeID:(int)muttypeID
@@ -650,6 +662,78 @@
 		for (auto muttypeIter = mutationTypes.begin(); muttypeIter != mutationTypes.end(); ++muttypeIter)
 		{
 			int subpopID = muttypeIter->first;
+			
+			if (subpopID >= firstUnusedID)
+				firstUnusedID = subpopID + 1;
+		}
+	}
+	
+	return firstUnusedID;
+}
+
+- (void)configureGenomicElementTypePopup:(NSPopUpButton *)button
+{
+	NSMenuItem *lastItem;
+	int firstTag = -1;
+	
+	// Depopulate and populate the menu
+	[button removeAllItems];
+	
+	if (![controller invalidSimulation])
+	{
+		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		
+		for (auto genomicElementTypeIter = genomicElementTypes.begin(); genomicElementTypeIter != genomicElementTypes.end(); ++genomicElementTypeIter)
+		{
+			int genomicElementTypeID = genomicElementTypeIter->first;
+			NSString *genomicElementTypeString = [NSString stringWithFormat:@"g%d", genomicElementTypeID];
+			
+			[button addItemWithTitle:genomicElementTypeString];
+			lastItem = [button lastItem];
+			[lastItem setTag:genomicElementTypeID];
+			
+			// Remember the first item we add; we will use this item's tag to make a selection if needed
+			if (firstTag == -1)
+				firstTag = genomicElementTypeID;
+		}
+	}
+	
+	// If it is empty, add an explanatory item and disable it
+	BOOL enabled = ([button numberOfItems] >= 1);
+	
+	[button setEnabled:enabled];
+	if (!enabled)
+		[button addItemWithTitle:@"<none>"];
+	
+	// Fix the selection and then select the chosen subpopulation
+	[button selectItemWithTag:firstTag];
+	[button synchronizeTitleAndSelectedItem];
+}
+
+- (BOOL)isAvailableGenomicElementTypeID:(int)genomicElementTypeID
+{
+	if (![controller invalidSimulation])
+	{
+		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		
+		if (genomicElementTypes.find(genomicElementTypeID) != genomicElementTypes.end())
+			return NO;
+	}
+	
+	return YES;
+}
+
+- (int)bestAvailableGenomicElementTypeID
+{
+	int firstUnusedID = 1;
+	
+	if (![controller invalidSimulation])
+	{
+		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		
+		for (auto genomicElementTypeIter = genomicElementTypes.begin(); genomicElementTypeIter != genomicElementTypes.end(); ++genomicElementTypeIter)
+		{
+			int subpopID = genomicElementTypeIter->first;
 			
 			if (subpopID >= firstUnusedID)
 				firstUnusedID = subpopID + 1;

@@ -79,9 +79,14 @@
 - (BOOL)isAvailableSubpopID:(int)subpopID;						// check that a given ID is currently unused
 - (int)bestAvailableSubpopID;									// return a good unused ID
 
+- (void)configureMutationTypePopup:(NSPopUpButton *)button addNoneItem:(BOOL)needsNoneItem;
 - (void)configureMutationTypePopup:(NSPopUpButton *)button;		// set up a standard popup menu to choose a mutation type
 - (BOOL)isAvailableMuttypeID:(int)muttypeID;					// check that a given ID is currently unused
 - (int)bestAvailableMuttypeID;									// return a good unused ID
+
+- (void)configureGenomicElementTypePopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a genomic element type
+- (BOOL)isAvailableGenomicElementTypeID:(int)genomicElementTypeID;	// check that a given ID is currently unused
+- (int)bestAvailableGenomicElementTypeID;							// return a good unused ID
 
 // These methods are the points where the subclass plugs in to the configuration panel run
 
