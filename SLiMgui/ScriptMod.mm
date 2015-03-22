@@ -544,6 +544,45 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
+- (void)configureMutationTypePopup:(NSPopUpButton *)button
+{
+	NSMenuItem *lastItem;
+	int firstTag = -1;
+	
+	// Depopulate and populate the menu
+	[button removeAllItems];
+	
+	if (![controller invalidSimulation])
+	{
+		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
+		
+		for (auto muttypeIter = mutationTypes.begin(); muttypeIter != mutationTypes.end(); ++muttypeIter)
+		{
+			int muttypeID = muttypeIter->first;
+			NSString *muttypeString = [NSString stringWithFormat:@"m%d", muttypeID];
+			
+			[button addItemWithTitle:muttypeString];
+			lastItem = [button lastItem];
+			[lastItem setTag:muttypeID];
+			
+			// Remember the first item we add; we will use this item's tag to make a selection if needed
+			if (firstTag == -1)
+				firstTag = muttypeID;
+		}
+	}
+	
+	// If it is empty, add an explanatory item and disable it
+	BOOL enabled = ([button numberOfItems] >= 1);
+	
+	[button setEnabled:enabled];
+	if (!enabled)
+		[button addItemWithTitle:@"<none>"];
+	
+	// Fix the selection and then select the chosen subpopulation
+	[button selectItemWithTag:firstTag];
+	[button synchronizeTitleAndSelectedItem];
+}
+
 - (BOOL)isAvailableSubpopID:(int)subpopID
 {
 	if (![controller invalidSimulation])

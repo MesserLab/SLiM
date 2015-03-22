@@ -74,6 +74,7 @@
 + (NSColor *)validationErrorFilterColor;						// use this for elements that must be tinted using CIFilter
 
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a subpopulation
+- (void)configureMutationTypePopup:(NSPopUpButton *)button;		// set up a standard popup menu to choose a mutation type
 
 - (BOOL)isAvailableSubpopID:(int)subpopID;						// check that a given ID is currently unused
 - (int)bestAvailableSubpopID;									// return a good unused ID
