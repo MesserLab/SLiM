@@ -810,6 +810,7 @@
 	// if the input is invalid, we need to disable our buttons
 	[_insertOnlyButton setEnabled:validInput];
 	[_insertAndExecuteButton setEnabled:validInput];
+	[_recycleImageTextField setAlphaValue:validInput ? 1.0 : 0.4];
 }
 
 
