@@ -41,6 +41,7 @@
 #import "ScriptMod_AddGenomicElementType.h"
 #import "ScriptMod_AddGenomicElement.h"
 #import "ScriptMod_AddRecombinationRate.h"
+#import "ScriptMod_AddPredeterminedMutation.h"
 
 #include <iostream>
 #include <sstream>
@@ -839,6 +840,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)addPredeterminedMutation:(id)sender
 {
+	[ScriptMod_AddPredeterminedMutation runWithController:self];
 }
 
 - (IBAction)outputFullPopulationState:(id)sender
