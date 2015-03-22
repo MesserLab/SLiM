@@ -32,6 +32,11 @@
 	return @"Output Full Population";
 }
 
+- (NSString *)scriptSectionName
+{
+	return @"#OUTPUT";
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values
