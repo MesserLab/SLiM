@@ -84,7 +84,7 @@
 	static NSRegularExpression *regex = nil;
 	
 	if (!regex)
-		regex = [[NSRegularExpression alloc] initWithPattern:@"^[0-9]+(\\.[0-9]*)?$" options:0 error:NULL];
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^\\-?[0-9]+(\\.[0-9]*)?$" options:0 error:NULL];
 	
 	return regex;
 }
@@ -180,6 +180,16 @@
 		color = [[NSColor colorWithCalibratedHue:0.0 saturation:0.4 brightness:1.0 alpha:1.0] retain];
 	
 	return color;
+}
+
++ (NSColor *)textColorForEnableState:(BOOL)enabled
+{
+	return (enabled ? [NSColor blackColor] : [NSColor grayColor]);
+}
+
++ (NSColor *)backgroundColorForValidationState:(BOOL)valid
+{
+	return (valid ? [NSColor whiteColor] : [ScriptMod validationErrorColor]);
 }
 
 + (void)runWithController:(SLiMWindowController *)windowController
@@ -544,6 +554,39 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
+- (BOOL)isAvailableSubpopID:(int)subpopID
+{
+	if (![controller invalidSimulation])
+	{
+		Population &population = controller->sim->population_;
+		
+		if (population.find(subpopID) != population.end())
+			return NO;
+	}
+	
+	return YES;
+}
+
+- (int)bestAvailableSubpopID
+{
+	int firstUnusedID = 1;
+	
+	if (![controller invalidSimulation])
+	{
+		Population &population = controller->sim->population_;
+		
+		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		{
+			int subpopID = popIter->first;
+			
+			if (subpopID >= firstUnusedID)
+				firstUnusedID = subpopID + 1;
+		}
+	}
+	
+	return firstUnusedID;
+}
+
 - (void)configureMutationTypePopup:(NSPopUpButton *)button
 {
 	NSMenuItem *lastItem;
@@ -583,30 +626,30 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
-- (BOOL)isAvailableSubpopID:(int)subpopID
+- (BOOL)isAvailableMuttypeID:(int)muttypeID
 {
 	if (![controller invalidSimulation])
 	{
-		Population &population = controller->sim->population_;
+		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
-		if (population.find(subpopID) != population.end())
+		if (mutationTypes.find(muttypeID) != mutationTypes.end())
 			return NO;
 	}
 	
 	return YES;
 }
 
-- (int)bestAvailableSubpopID
+- (int)bestAvailableMuttypeID
 {
 	int firstUnusedID = 1;
 	
 	if (![controller invalidSimulation])
 	{
-		Population &population = controller->sim->population_;
+		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
-		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		for (auto muttypeIter = mutationTypes.begin(); muttypeIter != mutationTypes.end(); ++muttypeIter)
 		{
-			int subpopID = popIter->first;
+			int subpopID = muttypeIter->first;
 			
 			if (subpopID >= firstUnusedID)
 				firstUnusedID = subpopID + 1;

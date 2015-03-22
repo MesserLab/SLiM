@@ -72,12 +72,16 @@
 
 + (NSColor *)validationErrorColor;								// use this for elements such as textfields that can set their background color
 + (NSColor *)validationErrorFilterColor;						// use this for elements that must be tinted using CIFilter
++ (NSColor *)textColorForEnableState:(BOOL)enabled;				// used to standardize the color for disabled labels
++ (NSColor *)backgroundColorForValidationState:(BOOL)valid;		// used to standardize textfield background colors used for validation
 
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a subpopulation
-- (void)configureMutationTypePopup:(NSPopUpButton *)button;		// set up a standard popup menu to choose a mutation type
-
 - (BOOL)isAvailableSubpopID:(int)subpopID;						// check that a given ID is currently unused
 - (int)bestAvailableSubpopID;									// return a good unused ID
+
+- (void)configureMutationTypePopup:(NSPopUpButton *)button;		// set up a standard popup menu to choose a mutation type
+- (BOOL)isAvailableMuttypeID:(int)muttypeID;					// check that a given ID is currently unused
+- (int)bestAvailableMuttypeID;									// return a good unused ID
 
 // These methods are the points where the subclass plugs in to the configuration panel run
 
