@@ -53,7 +53,7 @@
 	
 	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
-	[generationTextField setBackgroundColor:(generationValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
+	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
 	BOOL mutationTypeValid = [mutationTypePopUpButton isEnabled];
 	validInput = validInput && mutationTypeValid;

@@ -49,7 +49,7 @@
 	
 	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
-	[generationTextField setBackgroundColor:(generationValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
+	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
 	BOOL subpopValid = [subpopPopUpButton isEnabled];
 	validInput = validInput && subpopValid;
@@ -57,7 +57,7 @@
 	
 	BOOL ratioValid = [ScriptMod validFloatValueInTextField:sexRatioTextField withMin:0.0 max:1.0];
 	validInput = validInput && ratioValid;
-	[sexRatioTextField setBackgroundColor:(ratioValid ? [NSColor whiteColor] : [ScriptMod validationErrorColor])];
+	[sexRatioTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:ratioValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
 	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);
