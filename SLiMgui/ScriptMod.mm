@@ -583,7 +583,7 @@
 	// we animate these changes, since otherwise the change is rather large and abrupt
 	BOOL animateChanges = [_scriptModSheet isVisible];
 	
-	if (validInput)
+	if (validInput || !animateChanges)	// !animateChanges allows the recycle option to adjust optimally before the sheet is visible
 	{
 		if (!needsRecycle && showingRecycleOption)
 		{
