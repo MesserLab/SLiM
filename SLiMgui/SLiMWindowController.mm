@@ -38,6 +38,7 @@
 #import "ScriptMod_OutputFixedMutations.h"
 #import "ScriptMod_TrackMutationType.h"
 #import "ScriptMod_AddMutationType.h"
+#import "ScriptMod_AddGenomicElementType.h"
 
 #include <iostream>
 #include <sstream>
@@ -821,6 +822,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)addGenomicElementType:(id)sender
 {
+	[ScriptMod_AddGenomicElementType runWithController:self];
 }
 
 - (IBAction)addGenomicElementToChromosome:(id)sender
