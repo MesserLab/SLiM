@@ -48,7 +48,7 @@
 	
 	if (sections == nil)
 	{
-		sections = [NSArray arrayWithObjects:
+		sections = [[NSArray alloc] initWithObjects:
 					@"#SEX",
 					@"#MUTATION TYPES",
 					@"#MUTATION RATE",
