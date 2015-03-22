@@ -40,6 +40,7 @@
 #import "ScriptMod_AddMutationType.h"
 #import "ScriptMod_AddGenomicElementType.h"
 #import "ScriptMod_AddGenomicElement.h"
+#import "ScriptMod_AddRecombinationRate.h"
 
 #include <iostream>
 #include <sstream>
@@ -833,6 +834,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)addRecombinationInterval:(id)sender
 {
+	[ScriptMod_AddRecombinationRate runWithController:self];
 }
 
 - (IBAction)addPredeterminedMutation:(id)sender
