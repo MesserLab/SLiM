@@ -28,6 +28,8 @@
 		9821E2281ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */; };
 		9821E22B1ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */; };
 		9821E22E1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */; };
+		9821E2311ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2301ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm */; };
+		9821E2341ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2321ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
@@ -179,6 +181,9 @@
 		9821E22A1ABE30220036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_OutputFullPopulation.xib; sourceTree = "<group>"; };
 		9821E22C1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_OutputFullPopulation.h; sourceTree = "<group>"; };
 		9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_OutputFullPopulation.mm; sourceTree = "<group>"; };
+		9821E22F1ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_OutputSubpopSample.h; sourceTree = "<group>"; };
+		9821E2301ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_OutputSubpopSample.mm; sourceTree = "<group>"; };
+		9821E2331ABE37950036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_OutputSubpopSample.xib; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -353,6 +358,9 @@
 				9821E22C1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.h */,
 				9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */,
 				9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */,
+				9821E22F1ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.h */,
+				9821E2301ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm */,
+				9821E2321ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -673,6 +681,7 @@
 				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
 				9821E20D1ABE0F0C0036EAEA /* ScriptMod_AddSubpop.xib in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
+				9821E2341ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
 				98453F441A75AABE00C058CB /* syntax_help_H.pdf in Resources */,
@@ -751,6 +760,7 @@
 				98D4C1E01A6F544100FFB083 /* partial_sweep.cpp in Sources */,
 				9821E22E1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm in Sources */,
 				986926D91AA140550000E138 /* GraphView.mm in Sources */,
+				9821E2311ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm in Sources */,
 				98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */,
 				9821E1FC1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm in Sources */,
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,
@@ -883,6 +893,14 @@
 				9821E22A1ABE30220036EAEA /* Base */,
 			);
 			name = ScriptMod_OutputFullPopulation.xib;
+			sourceTree = "<group>";
+		};
+		9821E2321ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9821E2331ABE37950036EAEA /* Base */,
+			);
+			name = ScriptMod_OutputSubpopSample.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {

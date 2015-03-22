@@ -34,6 +34,7 @@
 #import "ScriptMod_ChangeSelfing.h"
 #import "ScriptMod_ChangeSexRatio.h"
 #import "ScriptMod_OutputFullPopulation.h"
+#import "ScriptMod_OutputSubpopSample.h"
 
 #include <iostream>
 #include <sstream>
@@ -837,6 +838,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 
 - (IBAction)outputPopulationSample:(id)sender
 {
+	[ScriptMod_OutputSubpopSample runWithController:self];
 }
 
 - (IBAction)outputFixedMutations:(id)sender
