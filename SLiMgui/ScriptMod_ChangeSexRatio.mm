@@ -55,7 +55,7 @@
 	validInput = validInput && subpopValid;
 	[subpopPopUpButton slimSetTintColor:(subpopValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	BOOL ratioValid = [ScriptMod validFloatValueInTextField:sexRatioTextField withMin:0.0 max:1.0];
+	BOOL ratioValid = [ScriptMod validFloatValueInTextField:sexRatioTextField withMin:0.0 max:1.0 excludingMin:YES excludingMax:YES];
 	validInput = validInput && ratioValid;
 	[sexRatioTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:ratioValid]];
 	

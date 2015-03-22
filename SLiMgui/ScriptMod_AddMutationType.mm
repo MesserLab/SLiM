@@ -90,13 +90,13 @@
 	}
 	else if (dfeTag == 1)	// exponential
 	{
-		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:expMeanSelCoeffTextField withMin:0.0 max:999.0];
+		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:expMeanSelCoeffTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && meanCoeffValid;
 		[expMeanSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:meanCoeffValid]];
 	}
 	else if (dfeTag == 2)	// gamma
 	{
-		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:gammaMeanSelCoeffTextField withMin:0.0 max:999.0];
+		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:gammaMeanSelCoeffTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && meanCoeffValid;
 		[gammaMeanSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:meanCoeffValid]];
 		

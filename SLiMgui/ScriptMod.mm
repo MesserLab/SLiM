@@ -131,6 +131,11 @@
 
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue
 {
+	return [self validFloatValueInTextField:textfield withMin:minValue max:maxValue excludingMin:NO excludingMax:NO];
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax
+{
 	NSString *stringValue = [textfield stringValue];
 	double doubleValue = [textfield doubleValue];
 	
@@ -143,7 +148,13 @@
 	if (doubleValue < minValue)
 		return NO;
 	
+	if (excludeMin && (doubleValue == minValue))
+		return NO;
+	
 	if (doubleValue > maxValue)
+		return NO;
+	
+	if (excludeMax && (doubleValue == maxValue))
 		return NO;
 	
 	return YES;
