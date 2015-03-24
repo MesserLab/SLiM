@@ -37,6 +37,11 @@
 	return @"#RECOMBINATION RATE";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod scientificIntSortingGrepPattern];
+}
+
 - (int)lastDefinedRecombinationPosition
 {
 	std::vector<int> &endPositions = controller->sim->chromosome_.recombination_end_positions_;
@@ -67,12 +72,12 @@
 - (IBAction)validateControls:(id)sender
 {
 	int lastDefinedPosition = [self lastDefinedRecombinationPosition];
-	int endPosition = [intervalEndPositionTextField intValue];
+	int endPosition = (int)[intervalEndPositionTextField doubleValue];		// handle scientific notation
 	
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL endValid = [ScriptMod validIntValueInTextField:intervalEndPositionTextField withMin:1 max:1000000000];
+	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:intervalEndPositionTextField withMin:1 max:1000000000];
 	endValid = endValid && (!endValid || (endPosition > lastDefinedPosition));
 	validInput = validInput && endValid;
 	[intervalEndPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];
@@ -90,7 +95,7 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
-	int endPosition = [intervalEndPositionTextField intValue];
+	NSString *endPosition = [intervalEndPositionTextField stringValue];
 	NSString *rateString = [recombinationRateTextField stringValue];
 	
 	if (executeNow)
@@ -99,7 +104,7 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
-	return [NSString stringWithFormat:@"%d %@", endPosition, rateString];
+	return [NSString stringWithFormat:@"%@ %@", endPosition, rateString];
 }
 
 @end

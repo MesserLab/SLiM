@@ -37,6 +37,11 @@
 	return @"#OUTPUT";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod scientificIntSortingGrepPattern];
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -57,7 +62,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
@@ -70,7 +75,7 @@
 	[sampleSizeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sizeValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);
+	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
@@ -78,7 +83,8 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
-	int targetGeneration = [generationTextField intValue];
+	NSString *targetGeneration = [generationTextField stringValue];
+	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	int populationID = (int)[subpopPopUpButton selectedTag];
 	int sampleSize = [sampleSizeTextField intValue];
 	int sampledSexTag = (int)[sampledSexMatrix selectedTag];
@@ -111,11 +117,11 @@
 			
 			Event *new_event_ptr = new Event('R', event_parameters);
 			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGeneration, new_event_ptr));
+			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
 		}
 	}
 	
-	NSString *scriptLine = [NSString stringWithFormat:@"%d R p%d %d", targetGeneration, populationID, sampleSize];
+	NSString *scriptLine = [NSString stringWithFormat:@"%@ R p%d %d", targetGeneration, populationID, sampleSize];
 	
 	if (sampledSexTag == 1)
 		scriptLine = [scriptLine stringByAppendingString:@" M"];

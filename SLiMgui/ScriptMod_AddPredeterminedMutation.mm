@@ -37,6 +37,11 @@
 	return @"#PREDETERMINED MUTATIONS";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod scientificIntSortingGrepPattern];
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -57,7 +62,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
@@ -65,7 +70,7 @@
 	validInput = validInput && mutationTypeValid;
 	[mutationTypePopUpButton slimSetTintColor:(mutationTypeValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	BOOL positionValid = [ScriptMod validIntValueInTextField:positionTextField withMin:1 max:1000000000];
+	BOOL positionValid = [ScriptMod validIntWithScientificNotationValueInTextField:positionTextField withMin:1 max:1000000000];
 	validInput = validInput && positionValid;
 	[positionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:positionValid]];
 	
@@ -99,7 +104,7 @@
 	}
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);
+	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
@@ -107,9 +112,11 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
-	int targetGeneration = [generationTextField intValue];
+	NSString *targetGeneration = [generationTextField stringValue];
+	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	int mutationTypeID = (int)[mutationTypePopUpButton selectedTag];
-	int position = [positionTextField intValue];
+	NSString *position = [positionTextField stringValue];
+	int positionInt = (int)[position doubleValue];
 	int subpopulationID = (int)[subpopPopUpButton selectedTag];
 	int nHomozygotes = [numHomozygotesTextField intValue];
 	int nHeterozygotes = [numHeterozygotesTextField intValue];
@@ -128,13 +135,13 @@
 			// add it to the queue
 			auto found_muttype_pair = controller->sim->mutation_types_.find(mutationTypeID);
 			const MutationType *mutation_type_ptr = found_muttype_pair->second;
-			const IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, position, subpopulationID, targetGeneration, nHomozygotes, nHeterozygotes);
+			const IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, positionInt, subpopulationID, targetGenerationInt, nHomozygotes, nHeterozygotes);
 			
-			controller->sim->introduced_mutations_.insert(std::pair<const int,const IntroducedMutation*>(targetGeneration, new_introduced_mutation));
+			controller->sim->introduced_mutations_.insert(std::pair<const int,const IntroducedMutation*>(targetGenerationInt, new_introduced_mutation));
 			
 			if (partialSweep)
 			{
-				const PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, position, atof([terminateFreq cStringUsingEncoding:NSASCIIStringEncoding]));
+				const PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, positionInt, atof([terminateFreq cStringUsingEncoding:NSASCIIStringEncoding]));
 				
 				controller->sim->partial_sweeps_.push_back(new_partial_sweep);
 			}
@@ -142,9 +149,9 @@
 	}
 	
 	if (partialSweep)
-		return [NSString stringWithFormat:@"%d m%d %d p%d %d %d P %@", targetGeneration, mutationTypeID, position, subpopulationID, nHomozygotes, nHeterozygotes, terminateFreq];
+		return [NSString stringWithFormat:@"%@ m%d %@ p%d %d %d P %@", targetGeneration, mutationTypeID, position, subpopulationID, nHomozygotes, nHeterozygotes, terminateFreq];
 	else
-		return [NSString stringWithFormat:@"%d m%d %d p%d %d %d", targetGeneration, mutationTypeID, position, subpopulationID, nHomozygotes, nHeterozygotes];
+		return [NSString stringWithFormat:@"%@ m%d %@ p%d %d %d", targetGeneration, mutationTypeID, position, subpopulationID, nHomozygotes, nHeterozygotes];
 }
 
 @end

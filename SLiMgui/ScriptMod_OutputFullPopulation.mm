@@ -37,6 +37,11 @@
 	return @"#OUTPUT";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod scientificIntSortingGrepPattern];
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -51,7 +56,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
@@ -60,7 +65,7 @@
 	[filenameTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:filenameValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);
+	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
@@ -68,7 +73,8 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
-	int targetGeneration = [generationTextField intValue];
+	NSString *targetGeneration = [generationTextField stringValue];
+	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	NSString *filename = [filenameTextField stringValue];
 	
 	if (executeNow)
@@ -89,14 +95,14 @@
 			
 			Event *new_event_ptr = new Event('A', event_parameters);
 			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGeneration, new_event_ptr));
+			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
 		}
 	}
 	
 	if ([filename length])
-		return [NSString stringWithFormat:@"%d A %@", targetGeneration, filename];
+		return [NSString stringWithFormat:@"%@ A %@", targetGeneration, filename];
 	else
-		return [NSString stringWithFormat:@"%d A", targetGeneration];
+		return [NSString stringWithFormat:@"%@ A", targetGeneration];
 }
 
 @end

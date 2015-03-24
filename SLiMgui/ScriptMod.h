@@ -62,12 +62,14 @@
 // Utility methods for regular expressions, validation, UI configuration, etc. for some common tasks
 
 + (NSRegularExpression *)regexForInt;
++ (NSRegularExpression *)regexForIntWithScientificNotation;
 + (NSRegularExpression *)regexForFloat;
 + (NSRegularExpression *)regexForFloatWithScientificNotation;
 + (NSRegularExpression *)regexForFilename;
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
++ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax;
 + (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
@@ -92,6 +94,10 @@
 - (BOOL)isAvailableGenomicElementTypeID:(int)genomicElementTypeID;	// check that a given ID is currently unused
 - (int)bestAvailableGenomicElementTypeID;							// return a good unused ID
 
++ (NSString *)identifierSortingGrepPattern;
++ (NSString *)intSortingGrepPattern;
++ (NSString *)scientificIntSortingGrepPattern;
+
 // These methods are the points where the subclass plugs in to the configuration panel run
 
 - (void)configSheetLoaded;										// the sheet is loaded but not yet shown; subclasses should set values for controls, etc.
@@ -103,7 +109,7 @@
 - (NSString *)nibName;											// the name of the nib file for the configuration sheet; defaults to the name of the subclass
 - (NSString *)scriptSectionName;								// the name of the script section where the new script line will be inserted; defaults to "#DEMOGRAPHY AND STRUCTURE"
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow;			// the script string to be inserted, based upon the configuration panel run
-- (NSString *)sortingGrepPattern;								// a grep pattern that extracts a number used to determine the right insertion point for the new script line; defaults to a number at the start of the line
+- (NSString *)sortingGrepPattern;								// a grep pattern that extracts a number used to determine the right insertion point for the new script line; no default
 
 @end
 

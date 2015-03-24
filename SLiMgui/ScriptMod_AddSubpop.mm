@@ -32,6 +32,11 @@
 	return @"Add Subpopulation";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod scientificIntSortingGrepPattern];
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -47,7 +52,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
@@ -55,12 +60,12 @@
 	validInput = validInput && subpopValid;
 	[subpopTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:subpopValid]];
 	
-	BOOL sizeValid = [ScriptMod validIntValueInTextField:subpopSizeTextField withMin:1 max:1000000000];
+	BOOL sizeValid = [ScriptMod validIntWithScientificNotationValueInTextField:subpopSizeTextField withMin:1 max:1000000000];
 	validInput = validInput && sizeValid;
 	[subpopSizeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sizeValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ([generationTextField intValue] < controller->sim->generation_);
+	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
@@ -68,9 +73,10 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
-	int targetGeneration = [generationTextField intValue];
+	NSString *targetGeneration = [generationTextField stringValue];
+	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	int populationID = [subpopTextField intValue];
-	int newSize = [subpopSizeTextField intValue];
+	NSString *newSize = [subpopSizeTextField stringValue];
 	
 	if (executeNow)
 	{
@@ -83,7 +89,7 @@
 		{
 			// insert the event into the simulation's event map
 			NSString *param1 = [NSString stringWithFormat:@"p%d", populationID];
-			NSString *param2 = [NSString stringWithFormat:@"%d", newSize];
+			NSString *param2 = newSize;
 			std::vector<std::string> event_parameters;
 			
 			event_parameters.push_back(std::string([param1 UTF8String]));
@@ -91,11 +97,11 @@
 			
 			Event *new_event_ptr = new Event('P', event_parameters);
 			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGeneration, new_event_ptr));
+			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
 		}
 	}
 	
-	return [NSString stringWithFormat:@"%d P p%d %d", targetGeneration, populationID, newSize];
+	return [NSString stringWithFormat:@"%@ P p%d %@", targetGeneration, populationID, newSize];
 }
 
 @end

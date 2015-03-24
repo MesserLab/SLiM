@@ -37,6 +37,11 @@
 	return @"#GENOMIC ELEMENT TYPES";
 }
 
+- (NSString *)sortingGrepPattern
+{
+	return [ScriptMod identifierSortingGrepPattern];
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values

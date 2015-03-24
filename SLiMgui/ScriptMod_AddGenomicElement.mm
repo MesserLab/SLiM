@@ -39,7 +39,7 @@
 
 - (NSString *)sortingGrepPattern
 {
-	return @"^[a-z]?[0-9]+ ([0-9]+) .*$";		// sort by start position
+	return @"^[a-z]?[0-9]+ ((?:[0-9]+)(?:e[0-9]+)?) .*$";		// sort by start position
 }
 
 - (void)configSheetLoaded
@@ -74,14 +74,14 @@
 	validInput = validInput && genomicElementTypeValid;
 	[genomicElementTypePopUpButton slimSetTintColor:(genomicElementTypeValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	int startPosition = [startPositionTextField intValue];
-	int endPosition = [endPositionTextField intValue];
+	int startPosition = (int)[startPositionTextField doubleValue];	// handle scientific notation
+	int endPosition = (int)[endPositionTextField doubleValue];		// handle scientific notation
 	
-	BOOL startValid = [ScriptMod validIntValueInTextField:startPositionTextField withMin:1 max:1000000000];
+	BOOL startValid = [ScriptMod validIntWithScientificNotationValueInTextField:startPositionTextField withMin:1 max:1000000000];
 	validInput = validInput && startValid;
 	[startPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:startValid]];
 	
-	BOOL endValid = [ScriptMod validIntValueInTextField:endPositionTextField withMin:1 max:1000000000];
+	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:endPositionTextField withMin:1 max:1000000000];
 	endValid = endValid && (!startValid || !endValid || (startPosition <= endPosition));		// no inverted ranges
 	validInput = validInput && endValid;
 	[endPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];
@@ -96,8 +96,8 @@
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow
 {
 	int genomicElementTypeID = (int)[genomicElementTypePopUpButton selectedTag];
-	int startPosition = [startPositionTextField intValue];
-	int endPosition = [endPositionTextField intValue];
+	NSString *startPosition = [startPositionTextField stringValue];
+	NSString *endPosition = [endPositionTextField stringValue];
 	
 	if (executeNow)
 	{
@@ -105,7 +105,7 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
-	return [NSString stringWithFormat:@"g%d %d %d", genomicElementTypeID, startPosition, endPosition];
+	return [NSString stringWithFormat:@"g%d %@ %@", genomicElementTypeID, startPosition, endPosition];
 }
 
 @end

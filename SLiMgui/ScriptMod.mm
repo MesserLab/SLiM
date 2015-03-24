@@ -79,6 +79,16 @@
 	return regex;
 }
 
++ (NSRegularExpression *)regexForIntWithScientificNotation
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^[0-9]+(e[0-9]+)?$" options:0 error:NULL];
+	
+	return regex;
+}
+
 + (NSRegularExpression *)regexForFloat
 {
 	static NSRegularExpression *regex = nil;
@@ -119,6 +129,21 @@
 	return regex;
 }
 
++ (NSString *)identifierSortingGrepPattern
+{
+	return @"^[a-z]([0-9]+) .*$";					// matches lines starting with things like p3 or m2, and extracts the number
+}
+
++ (NSString *)intSortingGrepPattern
+{
+	return @"^([0-9]+) .*$";						// matches lines starting with things like 1500, and extracts the number
+}
+
++ (NSString *)scientificIntSortingGrepPattern
+{
+	return @"^((?:[0-9]+)(?:e[0-9]+)?) .*$";		// matches lines starting with things like 1500, and extracts the number
+}
+
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue
 {
 	NSString *stringValue = [textfield stringValue];
@@ -128,6 +153,26 @@
 		return NO;
 	
 	if ([[ScriptMod regexForInt] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (intValue < minValue)
+		return NO;
+	
+	if (intValue > maxValue)
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue
+{
+	NSString *stringValue = [textfield stringValue];
+	int intValue = (int)[textfield doubleValue];		// go through -doubleValue to get scientific notation
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForIntWithScientificNotation] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
 		return NO;
 	
 	if (intValue < minValue)
@@ -466,7 +511,7 @@
 	
 	if (insertionMatch)
 	{
-		int insertionPriority = [[lineToInsert substringWithRange:[insertionMatch rangeAtIndex:1]] intValue];		// extracted sort priority
+		int insertionPriority = (int)[[lineToInsert substringWithRange:[insertionMatch rangeAtIndex:1]] doubleValue];		// extracted sort priority
 		
 		for (insertionIndex = firstLineIndex + 1; insertionIndex <= lastLineIndex; ++insertionIndex)
 		{
@@ -475,7 +520,7 @@
 			
 			if (lineMatch)
 			{
-				int linePriority = [[line substringWithRange:[lineMatch rangeAtIndex:1]] intValue];		// extracted sort priority
+				int linePriority = (int)[[line substringWithRange:[lineMatch rangeAtIndex:1]] doubleValue];		// extracted sort priority
 				
 				if (linePriority <= insertionPriority)
 					bestInsertionIndex = insertionIndex + 1;
@@ -892,7 +937,9 @@
 
 - (NSString *)sortingGrepPattern
 {
-	return @"^[a-z]?([0-9]+) .*$";		// matches lines starting with things like 1500, p3, m2, and extracts the number
+	NSLog(@"-[ScriptMod sortingGrepPattern] reached, indicates a subclass error");
+	
+	return nil;
 }
 
 //
