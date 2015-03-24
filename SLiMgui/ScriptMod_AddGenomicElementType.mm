@@ -82,7 +82,7 @@
 	[mutationType1ProportionLabel setTextColor:[ScriptMod textColorForEnableState:mutationType1PopupEnabled]];
 	[mutationType1ProportionTextField setEnabled:mutationType1PopupEnabled];
 	
-	BOOL mutationType1ProportionValid = [ScriptMod validFloatValueInTextField:mutationType1ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
+	BOOL mutationType1ProportionValid = [ScriptMod validFloatWithScientificNotationValueInTextField:mutationType1ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
 	validInput = validInput && mutationType1ProportionValid;
 	[mutationType1ProportionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:mutationType1ProportionValid]];
 	
@@ -97,7 +97,7 @@
 	
 	if (mutationType2PopupEnabled)
 	{
-		BOOL mutationType2ProportionValid = [ScriptMod validFloatValueInTextField:mutationType2ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
+		BOOL mutationType2ProportionValid = [ScriptMod validFloatWithScientificNotationValueInTextField:mutationType2ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && mutationType2ProportionValid;
 		[mutationType2ProportionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:mutationType2ProportionValid]];
 	}
@@ -113,7 +113,7 @@
 	
 	if (mutationType3PopupEnabled)
 	{
-		BOOL mutationType3ProportionValid = [ScriptMod validFloatValueInTextField:mutationType3ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
+		BOOL mutationType3ProportionValid = [ScriptMod validFloatWithScientificNotationValueInTextField:mutationType3ProportionTextField withMin:0.0 max:1000000.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && mutationType3ProportionValid;
 		[mutationType3ProportionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:mutationType3ProportionValid]];
 	}

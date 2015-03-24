@@ -93,7 +93,7 @@
 	
 	if (partialSweepEnabled)
 	{
-		BOOL frequencyValid = [ScriptMod validFloatValueInTextField:terminateFrequencyTextField withMin:0.0 max:1.0];
+		BOOL frequencyValid = [ScriptMod validFloatWithScientificNotationValueInTextField:terminateFrequencyTextField withMin:0.0 max:1.0];
 		validInput = validInput && frequencyValid;
 		[terminateFrequencyTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:frequencyValid]];
 	}

@@ -8,7 +8,7 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 
 SLiMgui work:
-	float-valued textfields in ScriptMods should allow scientific notation where appropriate
+	int-valued textfields in ScriptMods should allow scientific notation where appropriate
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9

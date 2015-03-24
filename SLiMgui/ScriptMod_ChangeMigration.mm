@@ -70,7 +70,7 @@
 	validInput = validInput && sourceSubpopValid;
 	[sourceSubpopPopUpButton slimSetTintColor:(sourceSubpopValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	BOOL rateValid = [ScriptMod validFloatValueInTextField:migrationRateTextField withMin:0.0 max:1.0];
+	BOOL rateValid = [ScriptMod validFloatWithScientificNotationValueInTextField:migrationRateTextField withMin:0.0 max:1.0];
 	validInput = validInput && rateValid;
 	[migrationRateTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:rateValid]];
 	

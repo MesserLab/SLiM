@@ -89,6 +89,16 @@
 	return regex;
 }
 
++ (NSRegularExpression *)regexForFloatWithScientificNotation
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^\\-?[0-9]+(\\.[0-9]*)?(e\\-?[0-9]+)?$" options:0 error:NULL];
+	
+	return regex;
+}
+
 + (NSRegularExpression *)regexForFilename
 {
 	static NSRegularExpression *regex = nil;
@@ -143,6 +153,37 @@
 		return NO;
 	
 	if ([[ScriptMod regexForFloat] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (doubleValue < minValue)
+		return NO;
+	
+	if (excludeMin && (doubleValue == minValue))
+		return NO;
+	
+	if (doubleValue > maxValue)
+		return NO;
+	
+	if (excludeMax && (doubleValue == maxValue))
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue
+{
+	return [self validFloatWithScientificNotationValueInTextField:textfield withMin:minValue max:maxValue excludingMin:NO excludingMax:NO];
+}
+
++ (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax
+{
+	NSString *stringValue = [textfield stringValue];
+	double doubleValue = [textfield doubleValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForFloatWithScientificNotation] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
 		return NO;
 	
 	if (doubleValue < minValue)

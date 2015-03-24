@@ -55,7 +55,7 @@
 	validInput = validInput && subpopValid;
 	[subpopPopUpButton slimSetTintColor:(subpopValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	BOOL rateValid = [ScriptMod validFloatValueInTextField:selfingRateTextField withMin:0.0 max:1.0];
+	BOOL rateValid = [ScriptMod validFloatWithScientificNotationValueInTextField:selfingRateTextField withMin:0.0 max:1.0];
 	validInput = validInput && rateValid;
 	[selfingRateTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:rateValid]];
 	

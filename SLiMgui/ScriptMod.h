@@ -63,12 +63,15 @@
 
 + (NSRegularExpression *)regexForInt;
 + (NSRegularExpression *)regexForFloat;
++ (NSRegularExpression *)regexForFloatWithScientificNotation;
 + (NSRegularExpression *)regexForFilename;
 + (NSRegularExpression *)regexForScriptSectionHead;
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax;
++ (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
++ (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax;
 + (BOOL)validFilenameInTextField:(NSTextField *)textfield;
 
 + (NSColor *)validationErrorColor;								// use this for elements such as textfields that can set their background color

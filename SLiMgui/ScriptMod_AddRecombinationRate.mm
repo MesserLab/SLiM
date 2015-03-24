@@ -77,7 +77,7 @@
 	validInput = validInput && endValid;
 	[intervalEndPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];
 	
-	BOOL rateValid = [ScriptMod validFloatValueInTextField:recombinationRateTextField withMin:0.0 max:1.0];
+	BOOL rateValid = [ScriptMod validFloatWithScientificNotationValueInTextField:recombinationRateTextField withMin:0.0 max:1.0];
 	validInput = validInput && rateValid;
 	[recombinationRateTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:rateValid]];
 	
