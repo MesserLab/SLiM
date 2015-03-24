@@ -1214,6 +1214,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[genomicElementTypeTableView reloadData];
 	[genomicElementTypeTableView setNeedsDisplay];
 	
+	[chromosomeOverview setSelectedRange:NSMakeRange(0, 0)];
 	[chromosomeOverview setNeedsDisplay:YES];
 	
 	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
