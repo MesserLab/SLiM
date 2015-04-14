@@ -140,32 +140,29 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolHost &p_symbols)
 
 SymbolTable::SymbolTable(void)
 {
+	SetConstantForMember("T", new ScriptValue_Logical(true));
+	SetConstantForMember("F", new ScriptValue_Logical(false));
+	SetConstantForMember("NULL", new ScriptValue_NULL());
+	SetConstantForMember("PI", new ScriptValue_Float(M_PI));
+	SetConstantForMember("E", new ScriptValue_Float(M_E));
+	SetConstantForMember("INF", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
+	SetConstantForMember("NAN", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()));
 }
 
 SymbolTable::~SymbolTable(void)
 {
-	for (auto symbol_entry : symbols_)
+	for (auto symbol_entry : constants_)
+		delete symbol_entry.second;
+	for (auto symbol_entry : variables_)
 		delete symbol_entry.second;
 }
 
 std::vector<std::string> SymbolTable::ReadOnlyMembers(void) const
 {
-	static std::vector<std::string> members;
-	static bool been_here = false;
+	std::vector<std::string> members;
 	
-	// put hard-coded constants at the top of the list
-	if (!been_here)
-	{
-		members.push_back("T");
-		members.push_back("F");
-		members.push_back("NULL");
-		members.push_back("PI");
-		members.push_back("E");
-		members.push_back("INF");
-		members.push_back("NAN");
-		
-		been_here = true;
-	}
+	for(auto symbol_pair : constants_)
+		members.push_back(symbol_pair.first);
 	
 	return members;
 }
@@ -174,7 +171,7 @@ std::vector<std::string> SymbolTable::ReadWriteMembers(void) const
 {
 	std::vector<std::string> members;
 	
-	for(auto symbol_pair : symbols_)
+	for(auto symbol_pair : variables_)
 		members.push_back(symbol_pair.first);
 	
 	return members;
@@ -198,18 +195,20 @@ ScriptValue *SymbolTable::GetValueForMember(const std::string &p_member_name) co
 	ScriptValue *result = nullptr;
 	
 	// first look in our constants
-	if (p_member_name.compare("T") == 0)	return new ScriptValue_Logical(true);
-	if (p_member_name.compare("F") == 0)	return new ScriptValue_Logical(false);
-	if (p_member_name.compare("NULL") == 0)	return new ScriptValue_NULL();
-	if (p_member_name.compare("PI") == 0)	return new ScriptValue_Float(M_PI);
-	if (p_member_name.compare("E") == 0)	return new ScriptValue_Float(M_E);
-	if (p_member_name.compare("INF") == 0)	return new ScriptValue_Float(std::numeric_limits<double>::infinity());
-	if (p_member_name.compare("NAN") == 0)	return new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN());
+	auto constant_iter = constants_.find(p_member_name);
 	
-	// failing that, check in our symbols table
-	auto value_iter = symbols_.find(p_member_name);
-	
-	result = (value_iter == symbols_.end()) ? nullptr : (*value_iter).second;
+	if (constant_iter != constants_.end())
+	{
+		// got a hit; extract it from the iterator and the map pair
+		result = (*constant_iter).second;
+	}
+	else
+	{
+		// no hit; check in our variables
+		auto variable_iter = variables_.find(p_member_name);
+		
+		result = (variable_iter == variables_.end()) ? nullptr : (*variable_iter).second;
+	}
 	
 	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
@@ -219,11 +218,11 @@ ScriptValue *SymbolTable::GetValueForMember(const std::string &p_member_name) co
 
 void SymbolTable::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	// check that we're not trying to overwrite a constant; probably a bit slow unfortunately...
-	std::vector<std::string> read_only_names = ReadOnlyMembers();
+	// check that we're not trying to overwrite a constant
+	auto constant_iter = constants_.find(p_member_name);
 	
-	if (std::find(read_only_names.begin(), read_only_names.end(), p_member_name) != read_only_names.end())
-		SLIM_TERMINATION << "ERROR (SetValueForMember): Identifier " << p_member_name << " is a constant." << endl << slim_terminate();
+	if (constant_iter != constants_.end())
+		SLIM_TERMINATION << "ERROR (SetValueForMember): Identifier '" << p_member_name << "' is a constant." << endl << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -244,7 +243,45 @@ void SymbolTable::SetValueForMember(const std::string &p_member_name, ScriptValu
 	}
 	
 	// and now set the value in the symbol table
-	symbols_[p_member_name] = p_value;
+	variables_[p_member_name] = p_value;
+	
+	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
+}
+
+void SymbolTable::SetConstantForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	// check that we're not trying to overwrite a constant
+	auto constant_iter = constants_.find(p_member_name);
+	
+	if (constant_iter != constants_.end())
+		SLIM_TERMINATION << "ERROR (SetConstantForMember): Identifier '" << p_member_name << "' is already a constant." << endl << slim_terminate();
+	
+	// check that we're not trying to overwrite a variable; if you want to define a constant, you have to get there first
+	auto variable_iter = variables_.find(p_member_name);
+	
+	if (variable_iter != variables_.end())
+		SLIM_TERMINATION << "ERROR (SetConstantForMember): Identifier '" << p_member_name << "' is already a variable." << endl << slim_terminate();
+	
+	// get a version of the value that is suitable for insertion into the symbol table
+	if (p_value->InSymbolTable())
+	{
+		// if it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue
+		p_value = p_value->CopyValues();
+	}
+	else if (p_value->Invisible())
+	{
+		// if it's invisible, then we need to copy it, since the original needs to stay invisible to make sure it displays correctly
+		// it might be possible to set the invisible flag directly instead, since assignment returns NULL; could revisit this...
+		p_value = p_value->CopyValues();
+	}
+	else
+	{
+		// otherwise, we set the symbol table flag so the pointer won't be deleted or reused by anybody else
+		p_value->SetInSymbolTable(true);
+	}
+	
+	// and now set the value in the symbol table
+	constants_[p_member_name] = p_value;
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }

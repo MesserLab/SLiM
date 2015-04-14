@@ -113,7 +113,8 @@ class SymbolTable : public SymbolHost
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	std::map<const std::string, ScriptValue*> symbols_;
+	std::map<const std::string, ScriptValue*> constants_;
+	std::map<const std::string, ScriptValue*> variables_;
 	
 public:
 	
@@ -131,6 +132,9 @@ public:
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
 	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
 	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	// SymbolTable supports setting constants, which is not in the SymbolHost API for now...
+	virtual void SetConstantForMember(const std::string &p_member_name, ScriptValue *p_value);
 };
 
 
