@@ -86,7 +86,7 @@ std::string ScriptInterpreter::ExecutionOutput(void)
 	return execution_output_.str();
 }
 
-const SymbolTable &ScriptInterpreter::BorrowSymbolTable(void)
+SymbolTable &ScriptInterpreter::BorrowSymbolTable(void)
 {
 	return *global_symbols_;
 }
@@ -119,8 +119,11 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << endl << slim_terminate();
 	}
 	
-	// send the result of execution to our output stream
-	if (!result->Invisible())
+	// EvaluateScriptBlock() does not send the result of execution to the output stream; EvaluateInterpreterBlock() does,
+	// because it is for interactive use, but EvaluateScriptBlock() is for use in SLiM itself, and so interactive output
+	// is undesirable.  Script that wants to generate output can always use print().
+	
+	/*if (!result->Invisible())
 	{
 		auto position = execution_output_.tellp();
 		execution_output_ << *result;
@@ -128,7 +131,7 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 		// ScriptValue does not put an endl on the stream, so if it emitted any output, add an endl
 		if (position != execution_output_.tellp())
 			execution_output_ << endl;
-	}
+	}*/
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "EvaluateScriptBlock() : return == " << *result << "\n";

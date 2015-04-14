@@ -75,7 +75,7 @@ public:
 	
 	std::string ExecutionOutput(void);
 	
-	const SymbolTable &BorrowSymbolTable(void);		// the returned pointer is owned by the interpreter, borrowed by the caller
+	SymbolTable &BorrowSymbolTable(void);			// the returned pointer is owned by the interpreter, borrowed by the caller
 	SymbolTable *YieldSymbolTable(void);			// the returned pointer is owned by the caller, and the receiver nulls out its symbol table pointer
 	
 	// Evaluation methods; the caller owns the returned ScriptValue object
