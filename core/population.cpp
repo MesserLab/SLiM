@@ -430,7 +430,7 @@ void Population::ExecuteScript(const Script *p_script, int p_generation, const C
 	// Set up global symbols for things that live within SLiM
 	SymbolTable &global_symbols = interpreter.BorrowSymbolTable();
 	
-	global_symbols.SetValueForMember("generation", new ScriptValue_Int(p_generation));
+	global_symbols.SetConstantForMember("generation", new ScriptValue_Int(p_generation));
 	
 	// Interpret the script; the result from the interpretation is not used for anything
 	ScriptValue *result = interpreter.EvaluateScriptBlock();
