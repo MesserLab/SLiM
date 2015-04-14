@@ -79,7 +79,7 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 	}
 	catch (std::runtime_error err)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during EvaluateScriptBlock(): " << GetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during EvaluateInterpreterBlock(): " << GetTrimmedRaiseMessage() << endl;
 		return;
 	}
 	
@@ -125,7 +125,7 @@ void AssertScriptRaise(string p_script_string)
 		
 		interpreter.EvaluateInterpreterBlock();
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateScriptBlock()." << endl;
+		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateInterpreterBlock()." << endl;
 	}
 	catch (std::runtime_error err)
 	{
