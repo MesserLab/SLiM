@@ -93,6 +93,7 @@ FunctionMap BuiltInFunctionMap(void)
 	// data inspection/manipulation functions
 	 
 	RegisterSignature(map, FunctionSignature("print",		FunctionIdentifier::printFunction,		ScriptValueType::kValueNULL, false, 1, type_unspecified));
+	RegisterSignature(map, FunctionSignature("cat",			FunctionIdentifier::catFunction,		ScriptValueType::kValueNULL, false, 1, type_unspecified));
 	RegisterSignature(map, FunctionSignature("size",		FunctionIdentifier::sizeFunction,		ScriptValueType::kValueInt, false, 1, type_1any));
 	
 	 /*
@@ -396,6 +397,17 @@ ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_
 			
 		case FunctionIdentifier::printFunction:
 			p_output_stream << *arg1_value << endl;
+			result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+			break;
+			
+		case FunctionIdentifier::catFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			{
+				if (value_index > 0)
+					p_output_stream << " ";
+				
+				p_output_stream << arg1_value->StringAtIndex(value_index);
+			}
 			result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 			break;
 			

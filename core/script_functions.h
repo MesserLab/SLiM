@@ -47,6 +47,7 @@ enum class FunctionIdentifier {
 	
 	// data inspection/manipulation functions
 	printFunction,
+	catFunction,
 	sizeFunction,
 	strFunction,
 	sumFunction,
