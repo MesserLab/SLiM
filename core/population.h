@@ -38,6 +38,7 @@
 #include "chromosome.h"
 #include "polymorphism.h"
 #include "event.h"
+#include "script.h"
 #include "introduced_mutation.h"
 #include "partial_sweep.h"
 #include "slim_global.h"
@@ -106,6 +107,9 @@ public:
 	
 	// execute a given event in the population; the event is assumed to be due to trigger
 	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim, std::vector<MutationType*> *p_tracked_mutations);
+	
+	// execute a script event in the population; the script is assumed to be due to trigger
+	void ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim);
 	
 	// introduce a user-defined mutation
 	void IntroduceMutation(const IntroducedMutation &p_introduced_mutation);

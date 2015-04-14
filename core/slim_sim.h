@@ -38,9 +38,7 @@
 #include "population.h"
 #include "chromosome.h"
 #include "event.h"
-
-
-extern int gLineNumberOfParseError;	// set by CheckInputFile() and used by SLiMgui
+#include "script.h"
 
 
 class SLiMSim
@@ -65,6 +63,7 @@ private:
 	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
 	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
+	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
 	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
 	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
 	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)

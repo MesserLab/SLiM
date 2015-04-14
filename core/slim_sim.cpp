@@ -19,6 +19,7 @@
 
 
 #include "slim_sim.h"
+#include "script_test.h"
 
 #include <iostream>
 #include <fstream>
@@ -118,6 +119,9 @@ SLiMSim::~SLiMSim(void)
 	for (auto output_event : outputs_)
 		delete output_event.second;
 	
+	for (auto script_event : scripts_)
+		delete script_event;
+	
 	for (auto introduced_mutation : introduced_mutations_)
 		delete introduced_mutation.second;
 	
@@ -158,6 +162,13 @@ bool SLiMSim::RunOneGeneration(void)
 				
 				for (multimap<const int,const IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
 					population_.IntroduceMutation(*introduced_mutations_iter->second);
+				
+				// execute script events
+				for (auto script_event : scripts_)
+				{
+					if ((generation_ >= script_event->generation_start_) && (generation_ <= script_event->generation_end_))
+						population_.ExecuteScript(script_event, generation_, chromosome_, *this);
+				}
 				
 				// execute output events
 				std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);

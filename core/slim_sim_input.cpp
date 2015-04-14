@@ -1,5 +1,5 @@
 //
-//  input_parsing.cpp
+//  slim_sim_input.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
@@ -26,7 +26,9 @@
 #include <sstream>
 
 #include "slim_global.h"
+#include "script.h"
 #include <malloc/malloc.h>		// for malloc_size(), for debugging; can be removed
+#include <stdexcept>
 
 
 using std::endl;
@@ -56,7 +58,9 @@ enum class InputErrorType {
 	kInvalidGeneConversion,
 	kInvalidSex,
 	kSexNotDeclared,
-	kSexDeclaredLate
+	kSexDeclaredLate,
+	kUnbalancedScript,
+	kInvalidScript
 };
 
 // an enumeration of possible expectations regarding the presence of an end-of-file in EatSubstringWithPrefixAndCharactersAtEOF
@@ -66,9 +70,6 @@ enum class EOFExpectation
 	kNoEOF = 0,
 	kEOF = 1
 };
-
-// set by CheckInputFile() and used by SLiMgui
-int gLineNumberOfParseError = 0;
 
 
 // get one line of input, sanitizing by removing comments and whitespace
@@ -109,7 +110,7 @@ std::string InputError(InputErrorType p_error_type, string p_line)
 	switch (p_error_type)
 	{
 		case InputErrorType::kNoPopulationDefined:
-			input_error_stream << "No population to simulate:" << endl;
+			input_error_stream << "No population to simulate; #DEMOGRAPHY AND STRUCTURE missing or malformed" << endl;
 			break;
 			
 		case InputErrorType::kUnknownParameter:
@@ -279,6 +280,20 @@ std::string InputError(InputErrorType p_error_type, string p_line)
 		case InputErrorType::kSexDeclaredLate:
 			input_error_stream << "#SEX was declared too late; it must occur before subpopulations are added or read in." << endl;
 			break;
+			
+		case InputErrorType::kUnbalancedScript:
+			input_error_stream << "Unbalanced script definition (no matching brace '}' found): " << p_line << endl;
+			break;
+			
+		case InputErrorType::kInvalidScript:
+			input_error_stream << "Invalid script specification: " << p_line << endl << endl;
+			input_error_stream << "Required syntax:" << endl << endl;
+			input_error_stream << "#SCRIPT" << endl;
+			input_error_stream << "<time> [- <time-end>] { ... }" << endl << endl;
+			input_error_stream << "Example:" << endl << endl;
+			input_error_stream << "#SCRIPT" << endl;
+			input_error_stream << "100 - 500 { printAll() }" << endl;
+			break;
 	}
 	
 #ifndef SLIMGUI
@@ -357,8 +372,12 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 	
 	string line, sub;
 	
-	gLineNumberOfParseError = 0;	// SLiMgui uses this to better report parse errors; reset it to zero here
+	// Reset error position indicators used by SLiMgui
+	gLineNumberOfParseError = 0;
+	gCharacterStartOfParseError = -1;
+	gCharacterEndOfParseError = -1;
 	
+	// Loop through lines
 	while (!infile.eof())
 	{
 		if (line.find('#') != string::npos) 
@@ -860,6 +879,132 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 				continue;
 			}
 			
+			#pragma mark Check:SCRIPT
+			if (line.find("SCRIPT") != string::npos)
+			{
+				do
+				{
+					if (infile.eof())
+						break;
+					
+					int last_read_line_start =  (int)infile.tellg();	// taken before reading the line
+					
+					GetInputLine(infile, line);
+					gLineNumberOfParseError++;
+					
+					if (line.find('#') != string::npos) break;
+					if (line.length() == 0) continue;
+					
+					istringstream iss(line);
+					iss >> sub;
+					
+					good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// time
+					
+					if (sub.compare("-") == 0)
+					{
+						// we are being given an end time, so scan that
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "-", EOFExpectation::kNoEOF);							// dash
+						good = good && EatSubstringWithCharactersAtEOF(iss, sub, "1234567890e", EOFExpectation::kNoEOF);						// end time
+					}
+					
+					if (good && (sub.compare("{") == 0))
+					{
+						// Now we need to scan over the whole script string, paying attention to brace balancing and comments.
+						// We don't do this with the usual istringstream operators, because we want to get the whole thing as
+						// a single string and tokenize and parse it ourselves.  If we reach the EOF we generate an error.
+						int start_brace_position = (int)line.find('{');
+#ifdef SLIMGUI
+						int start_character_index = last_read_line_start + start_brace_position;
+#endif
+						string script_string, script_string_line = line.substr(start_brace_position);		// start at the opening brace
+						int braceCount = 0;
+						
+						do
+						{
+							// Remember this line as part of our script string
+							if (script_string.length() > 0)
+								script_string.append("\n");
+							script_string.append(script_string_line);
+							
+							// Scan for braces and comments
+							int line_length = (int)script_string_line.length();
+							
+							for (int char_index = 0; char_index < line_length; ++char_index)
+							{
+								int character = script_string_line[char_index];
+								
+								// if we have a // comment, we stop scanning characters in this line
+								if ((character == '/') && ((char_index + 1) < line_length) && (script_string_line[char_index + 1] == '/'))
+										break;
+								
+								// if we are outside all blocks and are not at the first character, then nothing except whitespace is legal
+								if ((braceCount == 0) && (char_index > 0) && (character != ' ') && (character != '\t'))
+								{
+									good = false;
+									break;
+								}
+								
+								// apart from those conditions, all we need to do is count braces
+								if (character == '{')
+									++braceCount;
+								else if (character == '}')
+									--braceCount;
+							}
+							
+							// If we are balanced down to zero braces, then we're done
+							if ((braceCount == 0) || !good)
+								break;
+							
+							// If we are out of input lines but did not reach braceCount==0, then the script string was unbalanced
+							if (infile.eof())
+								return InputError(InputErrorType::kUnbalancedScript, line);
+							
+							// Otherwise, get the next line; note we don't use GetInputLine, to preserve comments and whitespace
+							last_read_line_start =  (int)infile.tellg();	// taken before reading the line
+							getline(infile, line);
+							script_string_line = line;
+							gLineNumberOfParseError++;
+						}
+						while (true);
+						
+#ifdef SLIMGUI
+						// Create the Script object, so that its syntax gets checked.  This also happens in InitializeFromFile();
+						// but when running under SLiMgui we want it to happen during a check, too.
+						Script *new_script = new Script(1, 1, script_string, start_character_index);
+						
+						try {
+							new_script->Tokenize();
+							new_script->ParseScriptBlockToAST();
+						}
+						catch (std::runtime_error err)
+						{
+							// Tokenizing and parsing can throw an exception, but we don't want CheckInputFile() to throw since
+							// SLiMgui is not prepared for that; so we catch and return the error string, as SLiMgui expects.
+							std::string terminationMessage = gSLiMTermination.str();
+							
+							gSLiMTermination.clear();
+							gSLiMTermination.str("");
+							
+							return terminationMessage;
+						}
+						
+						// dispose of the script, since we used it only to do a syntax check
+						delete new_script;
+#endif
+					}
+					else
+					{
+						// We're in an unhappy place, apparently; let's generate an error
+						good = false;
+					}
+					
+					if (!good)
+						return InputError(InputErrorType::kInvalidScript, line);
+				} while (true);
+				
+				continue;
+			}
+			
 			return InputError(InputErrorType::kUnknownParameter, line);
 		}
 		else
@@ -912,6 +1057,11 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 		SLIM_OUTSTREAM << "   num_subpopulations == " << num_subpopulations << endl;
 		SLIM_OUTSTREAM << "   num_sex_declarations == " << num_sex_declarations << endl;
 	}
+	
+	// Reset error position indicators used by SLiMgui
+	gLineNumberOfParseError = 0;
+	gCharacterStartOfParseError = -1;
+	gCharacterEndOfParseError = -1;
 	
 	return std::string();
 }
@@ -1131,6 +1281,12 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "InitializeFromFile():" << endl;
 	
+	// Reset error position indicators used by SLiMgui
+	gLineNumberOfParseError = 0;
+	gCharacterStartOfParseError = -1;
+	gCharacterEndOfParseError = -1;
+	
+	// Loop though lines
 	while (!infile.eof())
 	{
 		if (line.find('#') != string::npos) 
@@ -1671,12 +1827,127 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 				
 				continue;
 			}
+			
+			#pragma mark Initialize:SCRIPT
+			if (line.find("SCRIPT") != string::npos)
+			{
+				input_parameters_.push_back("#SCRIPT");
+				
+				do
+				{
+					if (infile.eof())
+						break;
+					GetInputLine(infile, line);
+					
+					if (line.find('#') != string::npos) break;
+					if (line.length() == 0) continue;
+					input_parameters_.push_back(line);
+					
+					// FORMAT: time [- <end-time>] { ... }
+					istringstream iss(line);
+					
+					iss >> sub;
+					int generation_start = static_cast<int>(atof(sub.c_str()));
+					int generation_end = generation_start;
+					
+					iss >> sub;
+					if (sub.compare("-") == 0)
+					{
+						// we are being given an end time, so scan that
+						iss >> sub;
+						generation_end = static_cast<int>(atof(sub.c_str()));
+						iss >> sub;
+					}
+					
+					if (generation_end < generation_start)
+						SLIM_TERMINATION << "ERROR (Initialize): generation range " << generation_start << " - " << generation_end << " inverted" << endl << slim_terminate();
+					
+					// Now scan the script string, considering comments and balancing braces
+					int start_brace_position = (int)line.find('{');
+					int start_character_index = (int)infile.tellg() - (int)line.length() + start_brace_position;
+					string script_string, script_string_line = line.substr(start_brace_position);		// start at the opening brace
+					int braceCount = 0;
+					
+					do
+					{
+						// Remember this line as part of our script string
+						if (script_string.length() > 0)
+							script_string.append("\n");
+						script_string.append(script_string_line);
+						
+						// Scan for braces and comments
+						int line_length = (int)script_string_line.length();
+						
+						for (int char_index = 0; char_index < line_length; ++char_index)
+						{
+							int character = script_string_line[char_index];
+							
+							// if we have a // comment, we stop scanning characters in this line
+							if ((character == '/') && ((char_index + 1) < line_length) && (script_string_line[char_index + 1] == '/'))
+								break;
+							
+							// apart from that condition, all we need to do is count braces
+							if (character == '{')
+								++braceCount;
+							else if (character == '}')
+								--braceCount;
+						}
+						
+						// If we are balanced down to zero braces, then we're done
+						if (braceCount == 0)
+							break;
+						
+						// Otherwise, get the next line; note we don't use GetInputLine, to preserve comments and whitespace
+						getline(infile, line);
+						script_string_line = line;
+						input_parameters_.push_back(script_string_line);
+					}
+					while (true);
+					
+					// Create the Script object and register it in the simulation
+					Script *new_script = new Script(generation_start, generation_end, script_string, start_character_index);
+					
+#ifdef SLIMGUI
+					// When running under SLiMgui, tokenization and parsing happens also in CheckInputFile, and will log then if
+					// logging is requested.  To prevent logging twice, we therefore suppress logging here when in SLiMgui.
+					bool savedLogTokens = gSLiMScriptLogTokens;
+					bool savedLogAST = gSLiMScriptLogAST;
+					bool savedLogEvaluation = gSLiMScriptLogEvaluation;
+					
+					gSLiMScriptLogTokens = false;
+					gSLiMScriptLogAST = false;
+					gSLiMScriptLogEvaluation = false;
+#endif
+					
+					new_script->Tokenize();
+					new_script->ParseScriptBlockToAST();
+
+#ifdef SLIMGUI
+					// Restore the original values
+					gSLiMScriptLogTokens = savedLogTokens;
+					gSLiMScriptLogAST = savedLogAST;
+					gSLiMScriptLogEvaluation = savedLogEvaluation;
+#endif
+					
+					scripts_.push_back(new_script);
+					
+					if (DEBUG_INPUT)
+						SLIM_OUTSTREAM << "   #SCRIPT: " << generation_start << " to " << generation_end << ": \n[" << script_string << "]" << endl;
+				} while (true);
+				
+				continue;
+			}
 		}
 		else
 		{
 			GetInputLine(infile, line);
 		}
 	}
+	
+	// Reset error position indicators used by SLiMgui
+	gLineNumberOfParseError = 0;
+	gCharacterStartOfParseError = -1;
+	gCharacterEndOfParseError = -1;
 	
 	// initialize rng
 	InitializeRNGFromSeed(rng_seed_);

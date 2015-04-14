@@ -75,6 +75,9 @@ public:
 
 std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator);	// note this returns void, not std::ostream&; that is deliberate
 
+// Get the message from the last raise out of gSLiMTermination, optionally with newlines trimmed from the ends
+std::string GetTrimmedRaiseMessage(void);
+std::string GetUntrimmedRaiseMessage(void);
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex

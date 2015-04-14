@@ -25,6 +25,8 @@
 
 #include "slim_sim.h"
 #include "slim_global.h"
+#include "script.h"
+#include "script_interpreter.h"
 
 
 using std::endl;
@@ -416,6 +418,25 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 			break;
 		}
 	}
+}
+
+// execute a script event in the population; the script is assumed to be due to trigger
+void Population::ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim)
+{
+#pragma unused(p_generation, p_chromosome, p_sim)
+	ScriptInterpreter interpreter(*p_script);
+	ScriptValue *result = interpreter.EvaluateScriptBlock();
+	
+//	SLIM_OUTSTREAM << p_generation << " : ";
+//	
+//	if (result)
+//		result->Print(SLIM_OUTSTREAM);
+//	else
+//		SLIM_OUTSTREAM << "NULL script result!";
+//	
+//	SLIM_OUTSTREAM << endl;
+	
+	delete result;
 }
 
 // introduce a user-defined mutation

@@ -197,7 +197,6 @@ void print_stacktrace(FILE *out, unsigned int max_frames)
 	fflush(out);
 }
 
-
 std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator)
 {
 	p_out.flush();
@@ -222,6 +221,38 @@ std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator
 	return p_out;
 }
 
+std::string GetTrimmedRaiseMessage(void)
+{
+#ifdef SLIMGUI
+	std::string terminationMessage = gSLiMTermination.str();
+	
+	gSLiMTermination.clear();
+	gSLiMTermination.str("");
+	
+	// trim off newlines at the end of the raise string
+	size_t endpos = terminationMessage.find_last_not_of("\n\r");
+	if (std::string::npos != endpos)
+		terminationMessage = terminationMessage.substr(0, endpos + 1);
+	
+	return terminationMessage;
+#else
+	return "";
+#endif
+}
+
+std::string GetUntrimmedRaiseMessage(void)
+{
+#ifdef SLIMGUI
+	std::string terminationMessage = gSLiMTermination.str();
+	
+	gSLiMTermination.clear();
+	gSLiMTermination.str("");
+	
+	return terminationMessage;
+#else
+	return "";
+#endif
+}
 
 
 

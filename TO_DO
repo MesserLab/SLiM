@@ -6,19 +6,25 @@ command-line tool:
 	should we use map instead of multimap?  set?  unordered versions, possibly?
 	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
+	should be using strtod, strtol, etc. in all code instead of atoi, atof
+
+SLiMscript:
+	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
+	
+	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
+	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
+	make it possible to drive a graph from script
+	
+SLiMscribe:
+	remove File menu or convert to a document-based model
+	syntax coloring based on tokenization
+	autoindent based on the parse tree? or just on heuristics?  the latter probably...
 
 SLiMgui work:
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
 	update documentation - TeXShop latex for mac, might need ghostscript as well
-
-convert input file parsing to flexc++/bisonc++
-	add expression evaluation
-	add scripting language
-	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
-	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
-	make it possible to drive a graph from script
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -40,6 +46,7 @@ changes to mention in docs:
 	fix to zero out gene_conversion_fraction_; in version 1.8 gene conversion might have turned on without being requested (see my email to Philipp); added Chromosome constructor to fix this
 	more than one mutation with a negative fitness could result in a positive fitness, since the two negatives would multiply to make a positive; fixed in a revision to 1.8, and in 2.0
 	predetermined mutations doc says you can specify a selection coefficient and dominance coefficient, but you can't; doc error, apparently
+	addition of SLiMscript, SLiMscribe
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim

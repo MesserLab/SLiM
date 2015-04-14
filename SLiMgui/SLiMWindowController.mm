@@ -159,6 +159,40 @@ static NSDictionary *mutationTypeAttrs = nil;
 	return self;
 }
 
+- (void)selectErrorRange
+{
+	if ((gCharacterStartOfParseError >= 0) && (gCharacterEndOfParseError >= gCharacterStartOfParseError))
+	{
+		[scriptTextView setSelectedRange:NSMakeRange(gCharacterStartOfParseError, gCharacterEndOfParseError - gCharacterStartOfParseError + 1)];
+	}
+	else if (gLineNumberOfParseError > 0)
+	{
+		NSString *currentScriptString = [scriptTextView string];
+		
+		// Find the range for the line number where the error occurred; maybe there is a better way to do this...
+		NSArray *lines = [currentScriptString componentsSeparatedByString:@"\n"];
+		int i, precedingLinesLength = 0;
+		NSRange lineRange = NSMakeRange(NSNotFound, NSNotFound);
+		
+		for (i = 0; i < [lines count]; ++i)
+		{
+			NSString *line = [lines objectAtIndex:i];
+			
+			if (i == gLineNumberOfParseError - 1)	// gLineNumberOfParseError is 1-based
+			{
+				lineRange.location = precedingLinesLength;
+				lineRange.length = [line length];
+				break;
+			}
+			
+			precedingLinesLength += [line length] + 1;
+		}
+		
+		[scriptTextView setSelectedRange:lineRange];
+		[scriptTextView scrollRangeToVisible:lineRange];
+	}
+}
+
 - (void)showTerminationMessage:(NSString *)terminationMessage
 {
 	NSAlert *alert = [[NSAlert alloc] init];
@@ -169,6 +203,9 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[alert addButtonWithTitle:@"OK"];
 	
 	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; [terminationMessage autorelease]; }];
+	
+	// Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
+	[self selectErrorRange];
 }
 
 - (void)checkForSimulationTermination
@@ -605,6 +642,10 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[outputTextView setGrammarCheckingEnabled:NO];
 	[outputTextView turnOffLigatures:nil];
 
+	// Fix text container insets to look a bit nicer; {0,0} by default
+	[scriptTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
+	[outputTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
+	
 	// Set the script textview to show its string, with correct formatting
 	[scriptTextView setString:scriptString];
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
@@ -1288,26 +1329,7 @@ static NSDictionary *mutationTypeAttrs = nil;
 		
 		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
 		
-		// Find the range for the line number where the error occurred; maybe there is a better way to do this...
-		NSArray *lines = [currentScriptString componentsSeparatedByString:@"\n"];
-		int i, precedingLinesLength = 0;
-		NSRange lineRange = NSMakeRange(NSNotFound, NSNotFound);
-		
-		for (i = 0; i < [lines count]; ++i)
-		{
-			NSString *line = [lines objectAtIndex:i];
-			
-			if (i == gLineNumberOfParseError - 1)	// gLineNumberOfParseError is 1-based
-			{
-				lineRange.location = precedingLinesLength;
-				lineRange.length = [line length];
-				break;
-			}
-			
-			precedingLinesLength += [line length] + 1;
-		}
-		
-		[scriptTextView setSelectedRange:lineRange];
+		[self selectErrorRange];
 	}
 	else
 	{
