@@ -182,6 +182,7 @@ public:
 	virtual double FloatAtIndex(int p_idx) const;
 	
 	void PushLogical(bool p_logical);
+	virtual void SetLogicalAtIndex(const int p_idx, bool p_logical);
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);

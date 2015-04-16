@@ -392,6 +392,11 @@ void ScriptValue_Logical::PushLogical(bool p_logical)
 	values_.push_back(p_logical);
 }
 
+void ScriptValue_Logical::SetLogicalAtIndex(const int p_idx, bool p_logical)
+{
+	values_.at(p_idx) = p_logical;
+}
+
 ScriptValue *ScriptValue_Logical::GetValueAtIndex(const int p_idx) const
 {
 	return new ScriptValue_Logical(values_.at(p_idx));
