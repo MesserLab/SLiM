@@ -66,8 +66,8 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 		case TokenType::kTokenMod:			p_outstream << "%";				break;
 		case TokenType::kTokenMult:			p_outstream << "*";				break;
 		case TokenType::kTokenExp:			p_outstream << "^";				break;
-		case TokenType::kTokenAnd:			p_outstream << "&&";			break;
-		case TokenType::kTokenOr:			p_outstream << "||";			break;
+		case TokenType::kTokenAnd:			p_outstream << "&";				break;
+		case TokenType::kTokenOr:			p_outstream << "|";				break;
 		case TokenType::kTokenDiv:			p_outstream << "/";				break;
 		case TokenType::kTokenComment:		p_outstream << "COMMENT";		break;
 		case TokenType::kTokenAssign:		p_outstream << "=";				break;
@@ -304,10 +304,8 @@ void Script::Tokenize(void)
 			case '*': token_type = TokenType::kTokenMult; break;
 			case '^': token_type = TokenType::kTokenExp; break;
 			case '%': token_type = TokenType::kTokenMod; break;
-				
-			// cases that require lookahead due to being multicharacter but unambiguous: &&, ||
-			case '&': if (ch2 == '&') { token_type = TokenType::kTokenAnd; token_end++; } break;
-			case '|': if (ch2 == '|') { token_type = TokenType::kTokenOr; token_end++; } break;
+			case '&': token_type = TokenType::kTokenAnd; break;
+			case '|': token_type = TokenType::kTokenOr; break;
 			
 			// cases that require lookahead due to ambiguity: =, <, >, !, /
 			case '=':

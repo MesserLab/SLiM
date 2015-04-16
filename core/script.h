@@ -65,8 +65,8 @@ enum class TokenType {
 	kTokenMult,			// *		multiplication operator
 	kTokenExp,			// ^		exponentiation operator
 	
-	kTokenAnd,			// &&		boolean AND
-	kTokenOr,			// ||		boolean OR
+	kTokenAnd,			// &		boolean AND
+	kTokenOr,			// |		boolean OR
 	
 	kTokenDiv,			// /		division operator
 	kTokenComment,		// //		comment

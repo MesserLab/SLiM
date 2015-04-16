@@ -1480,7 +1480,8 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_And): internal error (expected 2+ children)." << endl << slim_terminate();
 	
-	bool result_bool = true;
+	ScriptValue_Logical *result = nullptr;
+	int result_count = 0;
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
@@ -1490,32 +1491,72 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
 		{
 			if (!child_result->InSymbolTable()) delete child_result;
+			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&&' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << endl << slim_terminate();
 		}
 		
-		if (child_result->Count() == 1)
+		int child_count = child_result->Count();
+		
+		if (!result)
 		{
-			bool child_bool = child_result->LogicalAtIndex(0);
+			// if this is our first operand, we just clone it and move on to the next operand
+			result = new ScriptValue_Logical();
+			result_count = child_count;
 			
-			if (!child_bool)
-			{
-				result_bool = false;
-				break;
-			}
+			for (int value_index = 0; value_index < child_count; ++value_index)
+				result->PushLogical(child_result->LogicalAtIndex(value_index));
+			
+			continue;
 		}
 		else
 		{
-			if (!child_result->InSymbolTable()) delete child_result;
+			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
+			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+			{
+				if (!child_result->InSymbolTable()) delete child_result;
+				if (!result->InSymbolTable()) delete result;
+				
+				SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << endl << slim_terminate();
+			}
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_And): the '&&' operator requires operands of size() == 1." << endl << slim_terminate();
+			if (child_count == 1)
+			{
+				// if child_bool is T, it has no effect on result; if it is F, it turns result to all F
+				bool child_bool = child_result->LogicalAtIndex(0);
+				
+				if (!child_bool)
+					for (int value_index = 0; value_index < result_count; ++value_index)
+						result->SetLogicalAtIndex(value_index, false);
+			}
+			else if (result_count == 1)
+			{
+				// we had a one-length result vector, but now we need to upscale it to match child_result
+				bool result_bool = result->LogicalAtIndex(0);
+				
+				if (!result->InSymbolTable()) delete result;
+				result = new ScriptValue_Logical();
+				result_count = child_count;
+				
+				if (result_bool)
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(child_result->LogicalAtIndex(value_index));
+				else
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(false);
+			}
+			else
+			{
+				// result and child_result are both != 1 length, so we match them one to one, and if child_result is F we turn result to F
+				for (int value_index = 0; value_index < result_count; ++value_index)
+					if (!child_result->LogicalAtIndex(value_index))
+						result->SetLogicalAtIndex(value_index, false);
+			}
 		}
 		
 		// free our operand
 		if (!child_result->InSymbolTable()) delete child_result;
 	}
-	
-	ScriptValue *result = new ScriptValue_Logical(result_bool);
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_And() : return == " << *result << "\n";
@@ -1531,7 +1572,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Or): internal error (expected 2+ children)." << endl << slim_terminate();
 	
-	bool result_bool = false;
+	ScriptValue_Logical *result = nullptr;
+	int result_count = 0;
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
@@ -1541,32 +1583,70 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
 		{
 			if (!child_result->InSymbolTable()) delete child_result;
+			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '||' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << endl << slim_terminate();
 		}
 		
-		if (child_result->Count() == 1)
+		int child_count = child_result->Count();
+		
+		if (!result)
 		{
-			bool child_bool = child_result->LogicalAtIndex(0);
+			// if this is our first operand, we just clone it and move on to the next operand
+			result = new ScriptValue_Logical();
+			result_count = child_count;
 			
-			if (child_bool)
-			{
-				result_bool = true;
-				break;
-			}
+			for (int value_index = 0; value_index < child_count; ++value_index)
+				result->PushLogical(child_result->LogicalAtIndex(value_index));
 		}
 		else
 		{
-			if (!child_result->InSymbolTable()) delete child_result;
+			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
+			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+			{
+				if (!child_result->InSymbolTable()) delete child_result;
+				if (!result->InSymbolTable()) delete result;
+				
+				SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << endl << slim_terminate();
+			}
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Or): the '||' operator requires operands of size() == 1." << endl << slim_terminate();
+			if (child_count == 1)
+			{
+				// if child_bool is F, it has no effect on result; if it is T, it turns result to all T
+				bool child_bool = child_result->LogicalAtIndex(0);
+				
+				if (child_bool)
+					for (int value_index = 0; value_index < result_count; ++value_index)
+						result->SetLogicalAtIndex(value_index, true);
+			}
+			else if (result_count == 1)
+			{
+				// we had a one-length result vector, but now we need to upscale it to match child_result
+				bool result_bool = result->LogicalAtIndex(0);
+				
+				if (!result->InSymbolTable()) delete result;
+				result = new ScriptValue_Logical();
+				result_count = child_count;
+				
+				if (result_bool)
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(true);
+				else
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(child_result->LogicalAtIndex(value_index));
+			}
+			else
+			{
+				// result and child_result are both != 1 length, so we match them one to one, and if child_result is T we turn result to T
+				for (int value_index = 0; value_index < result_count; ++value_index)
+					if (child_result->LogicalAtIndex(value_index))
+						result->SetLogicalAtIndex(value_index, true);
+			}
 		}
 		
 		// free our operand
 		if (!child_result->InSymbolTable()) delete child_result;
 	}
-	
-	ScriptValue *result = new ScriptValue_Logical(result_bool);
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Or() : return == " << *result << "\n";
