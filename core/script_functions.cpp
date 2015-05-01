@@ -19,6 +19,7 @@
 
 
 #include "script_functions.h"
+#include "script_pathproxy.h"
 
 #include "math.h"
 
@@ -144,7 +145,7 @@ FunctionMap BuiltInFunctionMap(void)
 	RegisterSignature(map, FunctionSignature("version",		FunctionIdentifier::versionFunction,	ScriptValueType::kValueNULL, false, 0, type_unspecified));
 	RegisterSignature(map, FunctionSignature("license",		FunctionIdentifier::licenseFunction,	ScriptValueType::kValueNULL, false, 0, type_unspecified));
 	RegisterSignature(map, FunctionSignature("help",		FunctionIdentifier::helpFunction,		ScriptValueType::kValueNULL, false, 0, type_unspecified));
-	RegisterSignature(map, FunctionSignature("ls",			FunctionIdentifier::lsFunction,			ScriptValueType::kValueNULL, true, 0, type_unspecified));
+	RegisterSignature(map, FunctionSignature("ls",			FunctionIdentifier::lsFunction,			ScriptValueType::kValueNULL, false, 0, type_unspecified));
 	
 	// proxy instantiation
 	
@@ -159,6 +160,49 @@ FunctionMap gBuiltInFunctionMap = BuiltInFunctionMap();
 //
 //	Executing function calls
 //
+
+void CheckArgumentsAgainstSignature(std::string const &p_call_type, FunctionSignature const &p_signature, std::vector<ScriptValue*> const &p_arguments)
+{
+	// Check the number of arguments supplied
+	int n_args = (int)p_arguments.size();
+	
+	if (p_signature.uses_var_args_)
+	{
+		if (n_args < p_signature.minimum_arg_count_)
+			SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): " << p_call_type << " " << p_signature.function_name_ << "() requires at least " << p_signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
+	}
+	else
+	{
+		if (n_args != p_signature.minimum_arg_count_)
+			SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): " << p_call_type << " " << p_signature.function_name_ << "() requires " << p_signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
+	}
+	
+	// Check the types of all arguments specified in the signature
+	for (int arg_index = 0; arg_index < p_signature.arg_types_.size(); ++arg_index)
+	{
+		ScriptValueMask type_mask = p_signature.arg_types_[arg_index];
+		ScriptValueType arg_type = p_arguments[arg_index]->Type();
+		
+		if (type_mask != ScriptValueMask::kMaskAny)
+		{
+			bool type_ok = true;
+			uint32_t uint_mask = static_cast<uint32_t>(type_mask);		// the static_casts are annoying but I like scoped enums
+			
+			switch (arg_type)
+			{
+				case ScriptValueType::kValueNULL:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskNULL)); break;
+				case ScriptValueType::kValueLogical:	type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskLogical)); break;
+				case ScriptValueType::kValueString:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskString)); break;
+				case ScriptValueType::kValueInt:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskInt)); break;
+				case ScriptValueType::kValueFloat:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskFloat)); break;
+				case ScriptValueType::kValueProxy:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskProxy)); break;
+			}
+			
+			if (!type_ok)
+				SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): argument " << arg_index << " cannot be type " << arg_type << " for " << p_call_type << " " << p_signature.function_name_ << "()." << endl << slim_terminate();
+		}
+	}
+}
 
 ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
 {
@@ -293,9 +337,11 @@ ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_argu
 	return result;
 }
 
-ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *result = nullptr;
+	
+	// Get the function signature and check our arguments against it
 	auto signature_iter = gBuiltInFunctionMap.find(p_function_name);
 	
 	if (signature_iter == gBuiltInFunctionMap.end())
@@ -303,46 +349,7 @@ ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_
 	
 	FunctionSignature &signature = signature_iter->second;
 	
-	// Check the number of arguments supplied
-	int n_args = (int)p_arguments.size();
-	
-	if (signature.uses_var_args_)
-	{
-		if (n_args < signature.minimum_arg_count_)
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function " << p_function_name << "() requires at least " << signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
-	}
-	else
-	{
-		if (n_args != signature.minimum_arg_count_)
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function " << p_function_name << "() requires " << signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
-	}
-	
-	// Check the types of all arguments specified in the signature
-	for (int arg_index = 0; arg_index < signature.arg_types_.size(); ++arg_index)
-	{
-		ScriptValueMask type_mask = signature.arg_types_[arg_index];
-		ScriptValueType arg_type = p_arguments[arg_index]->Type();
-		
-		if (type_mask != ScriptValueMask::kMaskAny)
-		{
-			bool type_ok = true;
-			uint32_t uint_mask = static_cast<uint32_t>(type_mask);		// the static_casts are annoying but I like scoped enums
-			
-			switch (arg_type)
-			{
-				case ScriptValueType::kValueNULL:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskNULL)); break;
-				case ScriptValueType::kValueLogical:	type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskLogical)); break;
-				case ScriptValueType::kValueString:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskString)); break;
-				case ScriptValueType::kValueInt:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskInt)); break;
-				case ScriptValueType::kValueFloat:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskFloat)); break;
-				case ScriptValueType::kValueProxy:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskProxy)); break;
-			}
-			
-			if (!type_ok)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): argument " << arg_index << " cannot be type " << arg_type << " for function " << p_function_name << "()." << endl << slim_terminate();
-		}
-	}
-	
+	CheckArgumentsAgainstSignature("function", signature, p_arguments);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_Logical *logical_result = nullptr;
@@ -361,6 +368,7 @@ ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_
 	}
 	
 	// Prefetch arguments to allow greater brevity in the code below
+	int n_args = (int)p_arguments.size();
 	ScriptValue *arg1_value = (n_args >= 1) ? p_arguments[0] : nullptr;
 	ScriptValueType arg1_type = (n_args >= 1) ? arg1_value->Type() : ScriptValueType::kValueNULL;
 	int arg1_count = (n_args >= 1) ? arg1_value->Count() : 0;
@@ -587,23 +595,7 @@ ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_
 			break;
 			
 		case FunctionIdentifier::lsFunction:
-			if (n_args > 1)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function " << p_function_name << "() requires 0 or 1 arguments." << endl << slim_terminate();
-			
-			if (n_args == 1)
-			{
-				if (arg1_type != ScriptValueType::kValueProxy)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function " << p_function_name << "() requires an object argument." << endl << slim_terminate();
-				if (arg1_count != 1)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function " << p_function_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
-				
-				p_output_stream << *(SymbolHost *)arg1_value;
-			}
-			else
-			{
-				p_output_stream << p_interpreter.BorrowSymbolTable();
-			}
-			
+			p_output_stream << p_interpreter.BorrowSymbolTable();
 			result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 			break;
 			
@@ -636,6 +628,24 @@ ScriptValue *ExecuteFunctionCall(string p_function_name, vector<ScriptValue*> p_
 	
 	return result;
 }
+
+ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	ScriptValue *result = nullptr;
+	
+	// Get the function signature and check our arguments against it
+	CheckArgumentsAgainstSignature("method", method_object->SignatureForMethod(p_method_name), p_arguments);
+	
+	// Make the method call
+	result = method_object->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	
+	return result;
+}
+
+
+
+
+
 
 
 

@@ -7,8 +7,10 @@ command-line tool:
 	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 	should be using strtod, strtol, etc. in all code instead of atoi, atof
+	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
 
 SLiMscript:
+	revamp function signatures: support a richer signature specification including counts and optional parameters, build incrementally with i()-type calls
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)

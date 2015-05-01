@@ -31,7 +31,11 @@
 #include <iostream>
 
 
-ScriptValue *ExecuteFunctionCall(std::string p_function_name, std::vector<ScriptValue*> p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+void CheckArgumentsAgainstSignature(std::string const &p_call_type, FunctionSignature const &p_signature, std::vector<ScriptValue*> const &p_arguments);
+
+ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+
+ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 
 
 // A numeric identifier for a function once its name has been looked up; just for efficiency, to allow switch()

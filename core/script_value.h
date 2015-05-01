@@ -36,6 +36,8 @@
 
 
 class ScriptValue;
+struct FunctionSignature;
+class ScriptInterpreter;
 
 
 // all of these types are vectors of the stated type; all objects in SLiMScript are vectors
@@ -47,7 +49,7 @@ enum class ScriptValueType {
 	kValueFloat,		// (double-precision) floats
 	kValueString,		// strings
 	
-	kValueProxy			// proxy objects: these represent built-in struct-type objects with member components
+	kValueProxy			// proxy objects: these represent built-in objects with member variables and methods
 };
 
 enum class ScriptValueMask : uint32_t {
@@ -319,29 +321,11 @@ public:
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
-};
-
-class ScriptValue_PathProxy : public ScriptValue_Proxy
-{
-private:
-	std::string base_path_;
 	
-public:
-	ScriptValue_PathProxy(const ScriptValue_PathProxy &p_original) = delete;		// can copy-construct
-	ScriptValue_PathProxy& operator=(const ScriptValue_PathProxy&) = delete;	// no copying
-	
-	ScriptValue_PathProxy(void);
-	explicit ScriptValue_PathProxy(std::string p_base_path);
-	
-	std::string ProxyType(void) const;
-	
-	virtual ScriptValue *CopyValues(void) const;
-	virtual ScriptValue *NewMatchingType(void) const;
-	
-	virtual std::vector<std::string> ReadOnlyMembers(void) const;
-	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	// Method support; defined only on ScriptValue_Proxy, not ScriptValue or SymbolHost
+	virtual std::vector<std::string> Methods(void) const;
+	virtual FunctionSignature SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 
 

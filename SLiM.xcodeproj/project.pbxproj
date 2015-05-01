@@ -111,6 +111,9 @@
 		986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */; };
 		986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
+		989790DA1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */; };
+		989790DB1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */; };
+		989790DC1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
 		98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */; };
 		98D4C1BB1A6F537B00FFB083 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1BA1A6F537B00FFB083 /* main.m */; };
@@ -341,6 +344,8 @@
 		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
+		989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = script_pathproxy.cpp; path = core/script_pathproxy.cpp; sourceTree = "<group>"; };
+		989790D91AF3D0E100C6B14C /* script_pathproxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = script_pathproxy.h; path = core/script_pathproxy.h; sourceTree = "<group>"; };
 		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
 		9898172E1A59750300F7417C /* slim_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_global.h; sourceTree = "<group>"; };
 		98D4C1B31A6F537B00FFB083 /* SLiMgui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SLiMgui.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -604,6 +609,8 @@
 				9857249A1AD08A810047C223 /* script_interpreter.cpp */,
 				985724A01AD34B740047C223 /* script_functions.h */,
 				9857249F1AD34B740047C223 /* script_functions.cpp */,
+				989790D91AF3D0E100C6B14C /* script_pathproxy.h */,
+				989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */,
 				985724A81AD4551C0047C223 /* script_test.h */,
 				985724A71AD4551C0047C223 /* script_test.cpp */,
 			);
@@ -1059,6 +1066,7 @@
 				985724A11AD34B740047C223 /* script_functions.cpp in Sources */,
 				98E9A6A51A3CD595000AD4FC /* partial_sweep.cpp in Sources */,
 				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
+				989790DA1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
 				98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */,
 				98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */,
@@ -1081,6 +1089,7 @@
 				985724D41AD47F980047C223 /* slim_global.cpp in Sources */,
 				985724B51AD478630047C223 /* AppDelegate.mm in Sources */,
 				985724E71AD622880047C223 /* ConsoleTextView.m in Sources */,
+				989790DC1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */,
 				985724D11AD479010047C223 /* script_interpreter.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1097,6 +1106,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				989790DB1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */,
 				981BAC6B1ACC6E8B0005BE94 /* script.cpp in Sources */,
 				9821E2221ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm in Sources */,
 				98D4C1BB1A6F537B00FFB083 /* main.m in Sources */,

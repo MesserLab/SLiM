@@ -18,14 +18,8 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "script_value.h"
+#include "script_functions.h"
 #include "slim_global.h"
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
 
 
 using std::string;
@@ -919,144 +913,65 @@ void ScriptValue_Proxy::PushValueFromIndexOfScriptValue(int p_idx, const ScriptV
 	SLIM_TERMINATION << "ERROR: ScriptValue_Proxy does not support the subscript operator ('[]')." << endl << slim_terminate();
 }
 
-
-//
-//	ScriptValue_PathProxy
-//
-#pragma mark ScriptValue_PathProxy
-
-ScriptValue_PathProxy::ScriptValue_PathProxy(void) : base_path_("~")
+std::vector<std::string> ScriptValue_Proxy::Methods(void) const
 {
-}
-
-ScriptValue_PathProxy::ScriptValue_PathProxy(std::string p_base_path) : base_path_(p_base_path)
-{
-}
-
-std::string ScriptValue_PathProxy::ProxyType(void) const
-{
-	return "Path";
-}
-
-ScriptValue *ScriptValue_PathProxy::CopyValues(void) const
-{
-	return new ScriptValue_PathProxy(base_path_);
-}
-
-ScriptValue *ScriptValue_PathProxy::NewMatchingType(void) const
-{
-	return new ScriptValue_PathProxy(base_path_);
-}
-
-std::vector<std::string> ScriptValue_PathProxy::ReadOnlyMembers(void) const
-{
-	static std::vector<std::string> members;
-	static bool been_here = false;
+	std::vector<std::string> methods;
 	
-	// put hard-coded constants at the top of the list
-	if (!been_here)
+	methods.push_back("ls");
+	methods.push_back("methods");
+	
+	return methods;
+}
+
+FunctionSignature ScriptValue_Proxy::SignatureForMethod(std::string const &p_method_name) const
+{
+	vector<ScriptValueMask> type_unspecified;
+	
+	if (p_method_name.compare("ls") == 0)
 	{
-		members.push_back("files");
-		
-		been_here = true;
+		return FunctionSignature("ls", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
 	}
-	
-	return members;
-}
-
-std::vector<std::string> ScriptValue_PathProxy::ReadWriteMembers(void) const
-{
-	static std::vector<std::string> members;
-	static bool been_here = false;
-	
-	// put hard-coded constants at the top of the list
-	if (!been_here)
+	else if (p_method_name.compare("methods") == 0)
 	{
-		members.push_back("path");
-		
-		been_here = true;
-	}
-	
-	return members;
-}
-
-ScriptValue *ScriptValue_PathProxy::GetValueForMember(const std::string &p_member_name) const
-{
-	if (p_member_name.compare("path") == 0)
-		return new ScriptValue_String(base_path_);
-	
-	if (p_member_name.compare("files") == 0)
-	{
-		string path = base_path_;
-		
-		// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
-		if ((path.length() > 0) && (path.at(0) == '~'))
-		{
-			const char *homedir;
-			
-			if ((homedir = getenv("HOME")) == NULL)
-				homedir = getpwuid(getuid())->pw_dir;
-			
-			if (strlen(homedir))
-				path.replace(0, 1, homedir);
-		}
-		
-		// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
-		// I'm not sure if it works on Windows... sigh...
-		DIR *dp;
-		struct dirent *ep;
-		
-		dp = opendir(path.c_str());
-		
-		if (dp != NULL)
-		{
-			ScriptValue_String *return_string = new ScriptValue_String();
-			
-			while ((ep = readdir(dp)))
-				return_string->PushString(ep->d_name);
-
-			(void)closedir(dp);
-			
-			return return_string;
-		}
-		else
-		{
-			// would be nice to emit an error message, but at present we don't have access to the stream...
-			//p_output_stream << "Path " << path << " could not be opened." << endl;
-			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
-		}
-	}
-	
-	// FIXME could return superclass call, and the superclass could implement ls
-
-	SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::GetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
-	
-	return nullptr;
-}
-
-void ScriptValue_PathProxy::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
-{
-	ScriptValueType value_type = p_value->Type();
-	int value_count = p_value->Count();
-	
-	if (p_member_name.compare("path") == 0)
-	{
-		if (value_type != ScriptValueType::kValueString)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): type mismatch in assignment to member 'directory'." << endl << slim_terminate();
-		if (value_count != 1)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): value of size() == 1 expected in assignment to member 'directory'." << endl << slim_terminate();
-		
-		base_path_ = p_value->StringAtIndex(0);
-	}
-	else if (p_member_name.compare("files") == 0)
-	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): member '" << p_member_name << "' is read-only." << endl << slim_terminate();
+		return FunctionSignature("methods", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	
+		return FunctionSignature("", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
 	}
 }
+
+ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	if (p_method_name.compare("ls") == 0)
+	{
+		p_output_stream << *(SymbolHost *)this;
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else if (p_method_name.compare("methods") == 0)
+	{
+		std::vector<std::string> method_names = Methods();
+		
+		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
+		{
+			const std::string method_name = *method_name_iter;
+			
+			p_output_stream << method_name << "(" << ")" << endl;
+		}
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+}
+
 
 
 

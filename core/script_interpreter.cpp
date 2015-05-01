@@ -548,48 +548,88 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	
 	// We do not evaluate the function name node (our first child) to get a function object; there is no such type in
 	// SLiMScript for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
-	// node is not an identifier, then at present it is illegal; functions are only globals, not methods, for now.
+	// node is an identifier, it is a function call; if it is a dot operator, it is a method call; other constructs
+	// are illegal since expressions cannot evaluate to function objects, there being no function objects in SLiMscript.
 	ScriptASTNode *function_name_node = p_node->children_[0];
 	TokenType function_name_token_type = function_name_node->token_->token_type_;
 	
+	string function_name;
+	ScriptValue_Proxy *method_object = nullptr;
+	
 	if (function_name_token_type == TokenType::kTokenIdentifier)
 	{
-		string function_name = function_name_node->token_->token_string_;
-		vector<ScriptValue*> arguments;
+		// OK, we have <identifier>(...); that's a well-formed function call
+		function_name = function_name_node->token_->token_string_;
+	}
+	else if (function_name_token_type == TokenType::kTokenDot)
+	{
+		if (function_name_node->children_.size() != 2)
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
 		
-		// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
-		for (auto child_iter = p_node->children_.begin() + 1; child_iter != p_node->children_.end(); ++child_iter)
+		ScriptValue *first_child_value = EvaluateNode(function_name_node->children_[0]);
+		ScriptValueType first_child_type = first_child_value->Type();
+		
+		if (first_child_type != ScriptValueType::kValueProxy)
 		{
-			ScriptASTNode *child = *child_iter;
+			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
-			if (child->token_->token_type_ == TokenType::kTokenComma)
-			{
-				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-				for (auto arg_list_iter = child->children_.begin(); arg_list_iter != child->children_.end(); ++arg_list_iter)
-					arguments.push_back(EvaluateNode(*arg_list_iter));
-			}
-			else
-			{
-				// all other children get evaluated, and the results added to the arguments vector
-				arguments.push_back(EvaluateNode(child));
-			}
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
 		}
 		
-		// We offload the actual work to ExecuteFunctionCall() to keep things simple here
-		result = ExecuteFunctionCall(function_name, arguments, execution_output_, *this);
+		ScriptASTNode *second_child_node = function_name_node->children_[1];
 		
-		// And now we can free the arguments
-		for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
+		if (second_child_node->token_->token_type_ != TokenType::kTokenIdentifier)
 		{
-			ScriptValue *arg = *arg_iter;
+			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
-			if (!arg->InSymbolTable()) delete arg;
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
 		}
+		
+		// OK, we have <proxy type>.<identifier>(...); that's a well-formed method call
+		function_name = second_child_node->token_->token_string_;
+		method_object = static_cast<ScriptValue_Proxy *>(first_child_value);	// guaranteed by the Type() call above
 	}
 	else
 	{
 		SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << endl << slim_terminate();
 	}
+	
+	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
+	vector<ScriptValue*> arguments;
+	
+	for (auto child_iter = p_node->children_.begin() + 1; child_iter != p_node->children_.end(); ++child_iter)
+	{
+		ScriptASTNode *child = *child_iter;
+		
+		if (child->token_->token_type_ == TokenType::kTokenComma)
+		{
+			// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
+			for (auto arg_list_iter = child->children_.begin(); arg_list_iter != child->children_.end(); ++arg_list_iter)
+				arguments.push_back(EvaluateNode(*arg_list_iter));
+		}
+		else
+		{
+			// all other children get evaluated, and the results added to the arguments vector
+			arguments.push_back(EvaluateNode(child));
+		}
+	}
+	
+	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
+	if (method_object)
+		result = ExecuteMethodCall(method_object, function_name, arguments, execution_output_, *this);
+	else
+		result = ExecuteFunctionCall(function_name, arguments, execution_output_, *this);
+	
+	// And now we can free the arguments
+	for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
+	{
+		ScriptValue *arg = *arg_iter;
+		
+		if (!arg->InSymbolTable()) delete arg;
+	}
+	
+	// And if it was a method call, we can free the method object now, too
+	if (method_object && !method_object->InSymbolTable()) delete method_object;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_FunctionCall() : return == " << *result << "\n";
@@ -1698,8 +1738,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 	
 	ScriptASTNode *lvalue_child = p_node->children_[0];
 	
-	// an lvalue is needed to assign into; for right now, we require an identifier, although that isn't quite right
-	// since we should also be able to assign into a subscript, a member of a class, etc.; we need a concept of lvalue references
+	// an lvalue is needed to assign into; unlike in most situations, we don't want to actually resolve the reference now
 	LValueReference *lvalue_ref = Evaluate_LValueReference(lvalue_child);
 	if (!lvalue_ref)
 		SLIM_TERMINATION << "ERROR (Evaluate_Assign): the '=' operator requires an lvalue for its left operand." << endl << slim_terminate();
