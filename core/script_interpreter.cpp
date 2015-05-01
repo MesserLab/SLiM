@@ -796,8 +796,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		
 		result = first_child_value;
 		
-		// free our operands
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		// don't free our operand, because result points to it
 	}
 	else
 	{
