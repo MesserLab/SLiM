@@ -27,14 +27,21 @@
 #define __SLiM__script_functions__
 
 #include "script_interpreter.h"
+#include "script_value.h"
 
 #include <iostream>
 
 
-void CheckArgumentsAgainstSignature(std::string const &p_call_type, FunctionSignature const &p_signature, std::vector<ScriptValue*> const &p_arguments);
+// Registering functions in the function map, a fast lookup to get function signatures
+typedef std::pair<std::string, const FunctionSignature*> FunctionMapPair;
+typedef std::map<std::string, const FunctionSignature*> FunctionMap;
 
+void RegisterSignature(FunctionMap &p_map, const FunctionSignature *p_signature);
+FunctionMap BuiltInFunctionMap(void);
+
+
+// Calling functions and methods, after arguments have been validated
 ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-
 ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 
 
@@ -116,28 +123,78 @@ enum class FunctionIdentifier {
 	PathFunction
 };
 
-struct FunctionSignature {
+
+// FunctionSignature is used to represent the return type and argument types of a function or method, for shared runtime type checking
+class FunctionSignature
+{
+public:
 	std::string function_name_;
 	FunctionIdentifier function_id_;
 	ScriptValueType return_type_;					// if kValueNULL, no assumptions are made about the return type
-	bool uses_var_args_;							// if true, the function accepts a variable number of arguments
-	int minimum_arg_count_;							// if var_args_function == false, this is also the maximum arg count
-	std::vector<ScriptValueMask> arg_types_;		// the expected types for each argument, as a mask
 	
-	FunctionSignature(std::string p_function_name,
-					  FunctionIdentifier p_function_id,
-					  ScriptValueType p_return_type,
-					  bool p_uses_var_args_,
-					  int p_minimum_arg_count,
-					  std::vector<ScriptValueMask> p_arg_types);
+	std::vector<ScriptValueMask> arg_masks_;		// the expected types for each argument, as a mask
+	
+	bool has_optional_args_ = false;				// if true, at least one optional argument has been added
+	bool has_ellipsis_ = false;						// if true, the function accepts arbitrary varargs after the specified arguments
+	
+	FunctionSignature(const FunctionSignature&) = delete;					// no copying
+	FunctionSignature& operator=(const FunctionSignature&) = delete;		// no copying
+	FunctionSignature(void) = delete;										// no null construction
+	
+	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueType p_return_type);
+	
+	FunctionSignature *AddArg(ScriptValueMask p_arg_mask);
+	FunctionSignature *AddEllipsis();
+	
+	// vanilla type-specified arguments
+	FunctionSignature *AddLogical();
+	FunctionSignature *AddInt();
+	FunctionSignature *AddFloat();
+	FunctionSignature *AddString();
+	FunctionSignature *AddProxy();
+	FunctionSignature *AddNumeric();
+	FunctionSignature *AddLogicalEquiv();
+	FunctionSignature *AddAnyBase();
+	FunctionSignature *AddAny();
+	
+	// optional arguments
+	FunctionSignature *AddLogical_O();
+	FunctionSignature *AddInt_O();
+	FunctionSignature *AddFloat_O();
+	FunctionSignature *AddString_O();
+	FunctionSignature *AddProxy_O();
+	FunctionSignature *AddNumeric_O();
+	FunctionSignature *AddLogicalEquiv_O();
+	FunctionSignature *AddAnyBase_O();
+	FunctionSignature *AddAny_O();
+	
+	// singleton arguments (i.e. required to have a size of exactly 1)
+	FunctionSignature *AddLogical_S();
+	FunctionSignature *AddInt_S();
+	FunctionSignature *AddFloat_S();
+	FunctionSignature *AddString_S();
+	FunctionSignature *AddProxy_S();
+	FunctionSignature *AddNumeric_S();
+	FunctionSignature *AddLogicalEquiv_S();
+	FunctionSignature *AddAnyBase_S();
+	FunctionSignature *AddAny_S();
+	
+	// optional singleton arguments
+	FunctionSignature *AddLogical_OS();
+	FunctionSignature *AddInt_OS();
+	FunctionSignature *AddFloat_OS();
+	FunctionSignature *AddString_OS();
+	FunctionSignature *AddProxy_OS();
+	FunctionSignature *AddNumeric_OS();
+	FunctionSignature *AddLogicalEquiv_OS();
+	FunctionSignature *AddAnyBase_OS();
+	FunctionSignature *AddAny_OS();
+	
+	// check an argument list; p_call_type should be "function" or "method", for error output only
+	void CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const;
 };
 
-
-typedef std::pair<std::string, FunctionSignature> FunctionMapPair;
-typedef std::map<std::string, FunctionSignature> FunctionMap;
-
-void RegisterSignature(FunctionMap &p_map, FunctionSignature p_signature);
-FunctionMap BuiltInFunctionMap(void);
+std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature);
 
 
 #endif /* defined(__SLiM__script_functions__) */

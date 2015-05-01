@@ -52,7 +52,7 @@ enum class ScriptValueType {
 	kValueProxy			// proxy objects: these represent built-in objects with member variables and methods
 };
 
-enum class ScriptValueMask : uint32_t {
+enum ScriptValueMask : uint32_t {
 	kMaskNone =				0x00000000,
 	kMaskNULL =				0x00000001,
 	kMaskLogical =			0x00000002,
@@ -60,6 +60,10 @@ enum class ScriptValueMask : uint32_t {
 	kMaskFloat =			0x00000008,
 	kMaskString =			0x00000010,
 	kMaskProxy =			0x00000020,
+	
+	kMaskOptional =			0x80000000,
+	kMaskSingleton =		0x40000000,
+	kMaskOptSingleton =		(kMaskOptional | kMaskSingleton),
 	
 	kMaskNumeric =			(kMaskInt | kMaskFloat),														// integer or float
 	kMaskLogicalEquiv =		(kMaskLogical | kMaskInt | kMaskFloat),											// logical, integer, or float: boolean-compatible
@@ -324,7 +328,7 @@ public:
 	
 	// Method support; defined only on ScriptValue_Proxy, not ScriptValue or SymbolHost
 	virtual std::vector<std::string> Methods(void) const;
-	virtual FunctionSignature SignatureForMethod(std::string const &p_method_name) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 

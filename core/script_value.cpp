@@ -923,24 +923,25 @@ std::vector<std::string> ScriptValue_Proxy::Methods(void) const
 	return methods;
 }
 
-FunctionSignature ScriptValue_Proxy::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_Proxy::SignatureForMethod(std::string const &p_method_name) const
 {
-	vector<ScriptValueMask> type_unspecified;
+	// Signatures are all preallocated, for speed
+	static FunctionSignature *lsSig = nullptr;
+	static FunctionSignature *methodsSig = nullptr;
+	
+	if (!lsSig)
+	{
+		lsSig = (new FunctionSignature("ls", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL));
+		methodsSig = (new FunctionSignature("methods", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL));
+	}
 	
 	if (p_method_name.compare("ls") == 0)
-	{
-		return FunctionSignature("ls", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
-	}
+		return lsSig;
 	else if (p_method_name.compare("methods") == 0)
-	{
-		return FunctionSignature("methods", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
-	}
-	else
-	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		return methodsSig;
 	
-		return FunctionSignature("", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 0, type_unspecified);
-	}
+	SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	return new FunctionSignature("", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL);
 }
 
 ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
@@ -958,8 +959,9 @@ ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, 
 		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
 		{
 			const std::string method_name = *method_name_iter;
+			const FunctionSignature *method_signature = SignatureForMethod(method_name);
 			
-			p_output_stream << method_name << "(" << ")" << endl;
+			p_output_stream << *method_signature << endl;
 		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();

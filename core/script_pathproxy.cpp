@@ -180,15 +180,22 @@ std::vector<std::string> ScriptValue_PathProxy::Methods(void) const
 	return methods;
 }
 
-FunctionSignature ScriptValue_PathProxy::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_PathProxy::SignatureForMethod(std::string const &p_method_name) const
 {
-	vector<ScriptValueMask> type_1string(1, ScriptValueMask::kMaskString);
-	vector<ScriptValueMask> type_2string(2, ScriptValueMask::kMaskString);
+	// Signatures are all preallocated, for speed
+	static FunctionSignature *readFileSig = nullptr;
+	static FunctionSignature *writeFileSig = nullptr;
+	
+	if (!readFileSig)
+	{
+		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueString))->AddString();
+		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL))->AddString()->AddString();
+	}
 	
 	if (p_method_name.compare("readFile") == 0)
-		return FunctionSignature("readFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueString, false, 1, type_1string);
+		return readFileSig;
 	else if (p_method_name.compare("writeFile") == 0)
-		return FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL, false, 2, type_2string);
+		return writeFileSig;
 	else
 		return ScriptValue_Proxy::SignatureForMethod(p_method_name);
 }

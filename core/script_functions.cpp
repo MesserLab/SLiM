@@ -43,19 +43,9 @@ ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_argu
 //	Construct our built-in function map
 //
 
-FunctionSignature::FunctionSignature(std::string p_function_name,
-									 FunctionIdentifier p_function_id,
-									 ScriptValueType p_return_type,
-									 bool p_uses_var_args_,
-									 int p_minimum_arg_count,
-									 std::vector<ScriptValueMask> p_arg_types) :
-function_name_(p_function_name), function_id_(p_function_id), return_type_(p_return_type), uses_var_args_(p_uses_var_args_), minimum_arg_count_(p_minimum_arg_count), arg_types_(p_arg_types)
+void RegisterSignature(FunctionMap &p_map, const FunctionSignature *p_signature)
 {
-}
-
-void RegisterSignature(FunctionMap &p_map, FunctionSignature p_signature)
-{
-	p_map.insert(FunctionMapPair(p_signature.function_name_, p_signature));
+	p_map.insert(FunctionMapPair(p_signature->function_name_, p_signature));
 }
 
 FunctionMap BuiltInFunctionMap(void)
@@ -63,39 +53,20 @@ FunctionMap BuiltInFunctionMap(void)
 	FunctionMap map;
 	
 	
-	// construct some shorthands
-	
-	vector<ScriptValueMask> type_unspecified;
-	
-	vector<ScriptValueMask> type_1numeric(1, ScriptValueMask::kMaskNumeric);
-	vector<ScriptValueMask> type_2numeric(2, ScriptValueMask::kMaskNumeric);
-	vector<ScriptValueMask> type_3numeric(3, ScriptValueMask::kMaskNumeric);
-	
-	vector<ScriptValueMask> type_1string(1, ScriptValueMask::kMaskString);
-	
-	vector<ScriptValueMask> type_1any(1, ScriptValueMask::kMaskAny);
-	vector<ScriptValueMask> type_2any(2, ScriptValueMask::kMaskAny);
-	vector<ScriptValueMask> type_3any(3, ScriptValueMask::kMaskAny);
-	
-	vector<ScriptValueMask> type_any_int;
-	type_any_int.push_back(ScriptValueMask::kMaskAny);
-	type_any_int.push_back(ScriptValueMask::kMaskInt);
-	
-	
 	// data construction functions
 	
-	RegisterSignature(map, FunctionSignature("rep",			FunctionIdentifier::repFunction,		ScriptValueType::kValueNULL, false, 2, type_any_int));
-	RegisterSignature(map, FunctionSignature("repEach",		FunctionIdentifier::repEachFunction,	ScriptValueType::kValueNULL, false, 2, type_any_int));
-	RegisterSignature(map, FunctionSignature("seq",			FunctionIdentifier::seqFunction,		ScriptValueType::kValueNULL, false, 3, type_3numeric));
-	RegisterSignature(map, FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	ScriptValueType::kValueInt, false, 1, type_1any));
-	RegisterSignature(map, FunctionSignature("c",			FunctionIdentifier::cFunction,			ScriptValueType::kValueNULL, true, 0, type_unspecified));
+	RegisterSignature(map, (new FunctionSignature("rep",		FunctionIdentifier::repFunction,		ScriptValueType::kValueNULL))->AddAny()->AddInt());
+	RegisterSignature(map, (new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	ScriptValueType::kValueNULL))->AddAny()->AddInt());
+	RegisterSignature(map, (new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		ScriptValueType::kValueNULL))->AddNumeric()->AddNumeric()->AddNumeric_O());
+	RegisterSignature(map, (new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	ScriptValueType::kValueInt))->AddAny());
+	RegisterSignature(map, (new FunctionSignature("c",			FunctionIdentifier::cFunction,			ScriptValueType::kValueNULL))->AddEllipsis());
 	
 	
 	// data inspection/manipulation functions
 	 
-	RegisterSignature(map, FunctionSignature("print",		FunctionIdentifier::printFunction,		ScriptValueType::kValueNULL, false, 1, type_unspecified));
-	RegisterSignature(map, FunctionSignature("cat",			FunctionIdentifier::catFunction,		ScriptValueType::kValueNULL, false, 1, type_unspecified));
-	RegisterSignature(map, FunctionSignature("size",		FunctionIdentifier::sizeFunction,		ScriptValueType::kValueInt, false, 1, type_1any));
+	RegisterSignature(map, (new FunctionSignature("print",		FunctionIdentifier::printFunction,		ScriptValueType::kValueNULL))->AddAny());
+	RegisterSignature(map, (new FunctionSignature("cat",		FunctionIdentifier::catFunction,		ScriptValueType::kValueNULL))->AddAny());
+	RegisterSignature(map, (new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		ScriptValueType::kValueInt))->AddAny());
 	
 	 /*
 	strFunction,
@@ -109,7 +80,7 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// data class testing/coercion functions
 	 
-	RegisterSignature(map, FunctionSignature("class",		FunctionIdentifier::classFunction,		ScriptValueType::kValueString, false, 1, type_1any));
+	RegisterSignature(map, (new FunctionSignature("class",		FunctionIdentifier::classFunction,		ScriptValueType::kValueString))->AddAny());
 	/*
 	isLogicalFunction,
 	isStringFunction,
@@ -123,33 +94,33 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// math functions
 	
-	RegisterSignature(map, FunctionSignature("acos",		FunctionIdentifier::acosFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("asin",		FunctionIdentifier::asinFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("atan",		FunctionIdentifier::atanFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("cos",			FunctionIdentifier::cosFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("sin",			FunctionIdentifier::sinFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("tan",			FunctionIdentifier::tanFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("exp",			FunctionIdentifier::expFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("log",			FunctionIdentifier::logFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("log10",		FunctionIdentifier::log10Function,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("log2",		FunctionIdentifier::log2Function,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("floor",		FunctionIdentifier::floorFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("round",		FunctionIdentifier::roundFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		ScriptValueType::kValueFloat, false, 1, type_1numeric));
-	RegisterSignature(map, FunctionSignature("abs",			FunctionIdentifier::absFunction,		ScriptValueType::kValueNULL, false, 1, type_1numeric));
+	RegisterSignature(map, (new FunctionSignature("acos",		FunctionIdentifier::acosFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("asin",		FunctionIdentifier::asinFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("atan",		FunctionIdentifier::atanFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("cos",		FunctionIdentifier::cosFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("sin",		FunctionIdentifier::sinFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("tan",		FunctionIdentifier::tanFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("exp",		FunctionIdentifier::expFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("log",		FunctionIdentifier::logFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("log10",		FunctionIdentifier::log10Function,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("log2",		FunctionIdentifier::log2Function,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("round",		FunctionIdentifier::roundFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		ScriptValueType::kValueFloat))->AddNumeric());
+	RegisterSignature(map, (new FunctionSignature("abs",		FunctionIdentifier::absFunction,		ScriptValueType::kValueNULL))->AddNumeric());
 	
 	// bookkeeping functions
 
-	RegisterSignature(map, FunctionSignature("version",		FunctionIdentifier::versionFunction,	ScriptValueType::kValueNULL, false, 0, type_unspecified));
-	RegisterSignature(map, FunctionSignature("license",		FunctionIdentifier::licenseFunction,	ScriptValueType::kValueNULL, false, 0, type_unspecified));
-	RegisterSignature(map, FunctionSignature("help",		FunctionIdentifier::helpFunction,		ScriptValueType::kValueNULL, false, 0, type_unspecified));
-	RegisterSignature(map, FunctionSignature("ls",			FunctionIdentifier::lsFunction,			ScriptValueType::kValueNULL, false, 0, type_unspecified));
+	RegisterSignature(map, (new FunctionSignature("version",	FunctionIdentifier::versionFunction,	ScriptValueType::kValueNULL)));
+	RegisterSignature(map, (new FunctionSignature("license",	FunctionIdentifier::licenseFunction,	ScriptValueType::kValueNULL)));
+	RegisterSignature(map, (new FunctionSignature("help",		FunctionIdentifier::helpFunction,		ScriptValueType::kValueNULL))->AddString_OS());
+	RegisterSignature(map, (new FunctionSignature("ls",			FunctionIdentifier::lsFunction,			ScriptValueType::kValueNULL)));
 	
 	// proxy instantiation
 	
-	RegisterSignature(map, FunctionSignature("Path",		FunctionIdentifier::PathFunction,		ScriptValueType::kValueProxy, true, 0, type_unspecified));
+	RegisterSignature(map, (new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		ScriptValueType::kValueProxy))->AddString_OS());
 	
 	return map;
 }
@@ -160,49 +131,6 @@ FunctionMap gBuiltInFunctionMap = BuiltInFunctionMap();
 //
 //	Executing function calls
 //
-
-void CheckArgumentsAgainstSignature(std::string const &p_call_type, FunctionSignature const &p_signature, std::vector<ScriptValue*> const &p_arguments)
-{
-	// Check the number of arguments supplied
-	int n_args = (int)p_arguments.size();
-	
-	if (p_signature.uses_var_args_)
-	{
-		if (n_args < p_signature.minimum_arg_count_)
-			SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): " << p_call_type << " " << p_signature.function_name_ << "() requires at least " << p_signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
-	}
-	else
-	{
-		if (n_args != p_signature.minimum_arg_count_)
-			SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): " << p_call_type << " " << p_signature.function_name_ << "() requires " << p_signature.minimum_arg_count_ << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
-	}
-	
-	// Check the types of all arguments specified in the signature
-	for (int arg_index = 0; arg_index < p_signature.arg_types_.size(); ++arg_index)
-	{
-		ScriptValueMask type_mask = p_signature.arg_types_[arg_index];
-		ScriptValueType arg_type = p_arguments[arg_index]->Type();
-		
-		if (type_mask != ScriptValueMask::kMaskAny)
-		{
-			bool type_ok = true;
-			uint32_t uint_mask = static_cast<uint32_t>(type_mask);		// the static_casts are annoying but I like scoped enums
-			
-			switch (arg_type)
-			{
-				case ScriptValueType::kValueNULL:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskNULL)); break;
-				case ScriptValueType::kValueLogical:	type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskLogical)); break;
-				case ScriptValueType::kValueString:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskString)); break;
-				case ScriptValueType::kValueInt:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskInt)); break;
-				case ScriptValueType::kValueFloat:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskFloat)); break;
-				case ScriptValueType::kValueProxy:		type_ok = !!(uint_mask & static_cast<uint32_t>(ScriptValueMask::kMaskProxy)); break;
-			}
-			
-			if (!type_ok)
-				SLIM_TERMINATION << "ERROR (CheckArgumentsAgainstSignature): argument " << arg_index << " cannot be type " << arg_type << " for " << p_call_type << " " << p_signature.function_name_ << "()." << endl << slim_terminate();
-		}
-	}
-}
 
 ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
 {
@@ -347,9 +275,9 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 	if (signature_iter == gBuiltInFunctionMap.end())
 		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << endl << slim_terminate();
 	
-	FunctionSignature &signature = signature_iter->second;
+	const FunctionSignature *signature = signature_iter->second;
 	
-	CheckArgumentsAgainstSignature("function", signature, p_arguments);
+	signature->CheckArguments("function", p_arguments);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_Logical *logical_result = nullptr;
@@ -357,7 +285,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 	ScriptValue_Int *int_result = nullptr;
 	ScriptValue_String *string_result = nullptr;
 	
-	switch (signature.return_type_)
+	switch (signature->return_type_)
 	{
 		case ScriptValueType::kValueNULL:		break;		// no assumptions made
 		case ScriptValueType::kValueLogical:	logical_result = new ScriptValue_Logical();		result = logical_result;	break;
@@ -384,7 +312,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 	*/
 	
 	// Now we look up the function again and actually execute it
-	switch (signature.function_id_)
+	switch (signature->function_id_)
 	{
 		case FunctionIdentifier::kNoFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): internal logic error." << endl << slim_terminate();
@@ -394,6 +322,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			
 		case FunctionIdentifier::repFunction:			result = Execute_rep(p_function_name, p_arguments);	break;
 		case FunctionIdentifier::repEachFunction:		result = Execute_repEach(p_function_name, p_arguments);	break;
+			
 		case FunctionIdentifier::seqFunction:
 		case FunctionIdentifier::seqAlongFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
@@ -634,7 +563,9 @@ ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string con
 	ScriptValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	CheckArgumentsAgainstSignature("method", method_object->SignatureForMethod(p_method_name), p_arguments);
+	const FunctionSignature *method_signature = method_object->SignatureForMethod(p_method_name);
+	
+	method_signature->CheckArguments("method", p_arguments);
 	
 	// Make the method call
 	result = method_object->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
@@ -643,6 +574,219 @@ ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string con
 }
 
 
+//
+//	FunctionSignature
+//
+#pragma mark FunctionSignature
+
+FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueType p_return_type) :
+function_name_(p_function_name), function_id_(p_function_id), return_type_(p_return_type)
+{
+}
+
+FunctionSignature *FunctionSignature::AddArg(ScriptValueMask p_arg_mask)
+{
+	bool is_optional = (((uint32_t)p_arg_mask & (uint32_t)ScriptValueMask::kMaskOptional) == (uint32_t)ScriptValueMask::kMaskOptional);
+	
+	if (has_optional_args_ && !is_optional)
+		SLIM_TERMINATION << "ERROR (FunctionSignature::AddArg): cannot add a required argument after an optional argument has been added." << endl << slim_terminate();
+	
+	if (has_ellipsis_)
+		SLIM_TERMINATION << "ERROR (FunctionSignature::AddArg): cannot add an argument after an ellipsis." << endl << slim_terminate();
+	
+	arg_masks_.push_back(p_arg_mask);
+	
+	if (is_optional)
+		has_optional_args_ = true;
+	
+	return this;
+}
+
+FunctionSignature *FunctionSignature::AddEllipsis()
+{
+	if (has_optional_args_)
+		SLIM_TERMINATION << "ERROR (FunctionSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << endl << slim_terminate();
+	
+	if (has_ellipsis_)
+		SLIM_TERMINATION << "ERROR (FunctionSignature::AddEllipsis): cannot add more than one ellipsis." << endl << slim_terminate();
+	
+	has_ellipsis_ = true;
+	
+	return this;
+}
+
+FunctionSignature *FunctionSignature::AddLogical()			{ return AddArg(ScriptValueMask::kMaskLogical); }
+FunctionSignature *FunctionSignature::AddInt()				{ return AddArg(ScriptValueMask::kMaskInt); }
+FunctionSignature *FunctionSignature::AddFloat()			{ return AddArg(ScriptValueMask::kMaskFloat); }
+FunctionSignature *FunctionSignature::AddString()			{ return AddArg(ScriptValueMask::kMaskString); }
+FunctionSignature *FunctionSignature::AddProxy()			{ return AddArg(ScriptValueMask::kMaskProxy); }
+FunctionSignature *FunctionSignature::AddNumeric()			{ return AddArg(ScriptValueMask::kMaskNumeric); }
+FunctionSignature *FunctionSignature::AddLogicalEquiv()		{ return AddArg(ScriptValueMask::kMaskLogicalEquiv); }
+FunctionSignature *FunctionSignature::AddAnyBase()			{ return AddArg(ScriptValueMask::kMaskAnyBase); }
+FunctionSignature *FunctionSignature::AddAny()				{ return AddArg(ScriptValueMask::kMaskAny); }
+
+FunctionSignature *FunctionSignature::AddLogical_O()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogical | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddInt_O()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskInt | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddFloat_O()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskFloat | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddString_O()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskString | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddProxy_O()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskProxy | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddNumeric_O()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskNumeric | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddLogicalEquiv_O()	{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogicalEquiv | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddAnyBase_O()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAnyBase | ScriptValueMask::kMaskOptional)); }
+FunctionSignature *FunctionSignature::AddAny_O()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAny | ScriptValueMask::kMaskOptional)); }
+
+FunctionSignature *FunctionSignature::AddLogical_S()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogical | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddInt_S()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskInt | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddFloat_S()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskFloat | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddString_S()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskString | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddProxy_S()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskProxy | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddNumeric_S()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskNumeric | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddLogicalEquiv_S()	{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogicalEquiv | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddAnyBase_S()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAnyBase | ScriptValueMask::kMaskSingleton)); }
+FunctionSignature *FunctionSignature::AddAny_S()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAny | ScriptValueMask::kMaskSingleton)); }
+
+FunctionSignature *FunctionSignature::AddLogical_OS()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogical | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddInt_OS()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskInt | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddFloat_OS()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskFloat | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddString_OS()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskString | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddProxy_OS()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskProxy | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddNumeric_OS()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskNumeric | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddLogicalEquiv_OS()	{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskLogicalEquiv | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddAnyBase_OS()		{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAnyBase | ScriptValueMask::kMaskOptSingleton)); }
+FunctionSignature *FunctionSignature::AddAny_OS()			{ return AddArg(ScriptValueMask(ScriptValueMask::kMaskAny | ScriptValueMask::kMaskOptSingleton)); }
+
+void FunctionSignature::CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const
+{
+	// Check the number of arguments supplied
+	int n_args = (int)p_arguments.size();
+	
+	if (!has_ellipsis_)
+	{
+		if (n_args > arg_masks_.size())
+			SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): " << p_call_type << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), " << n_args << " supplied." << endl << slim_terminate();
+	}
+	
+	// Check the types of all arguments specified in the signature
+	for (int arg_index = 0; arg_index < arg_masks_.size(); ++arg_index)
+	{
+		uint32_t type_mask = static_cast<uint32_t>(arg_masks_[arg_index]);		// the static_casts are annoying but I like scoped enums
+		bool is_optional = false;
+		bool requires_singleton = false;
+		
+		if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskOptional))
+		{
+			is_optional = true;
+			type_mask = type_mask - static_cast<uint32_t>(ScriptValueMask::kMaskOptional);
+		}
+		
+		if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskSingleton))
+		{
+			requires_singleton = true;
+			type_mask = type_mask - static_cast<uint32_t>(ScriptValueMask::kMaskSingleton);
+		}
+		
+		// if no argument was passed for this slot, it needs to be an optional slot
+		if (n_args <= arg_index)
+		{
+			if (is_optional)
+				break;			// all the rest of the arguments must be optional, so we're done checking
+			else
+				SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): missing required argument for " << p_call_type << " " << function_name_ << "()." << endl << slim_terminate();
+		}
+		
+		// an argument was passed, so check its type
+		ScriptValueType arg_type = p_arguments[arg_index]->Type();
+		
+		if (type_mask != static_cast<uint32_t>(ScriptValueMask::kMaskAny))
+		{
+			bool type_ok = true;
+			
+			switch (arg_type)
+			{
+				case ScriptValueType::kValueNULL:		type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskNULL)); break;
+				case ScriptValueType::kValueLogical:	type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskLogical)); break;
+				case ScriptValueType::kValueString:		type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskString)); break;
+				case ScriptValueType::kValueInt:		type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskInt)); break;
+				case ScriptValueType::kValueFloat:		type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskFloat)); break;
+				case ScriptValueType::kValueProxy:		type_ok = !!(type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskProxy)); break;
+			}
+			
+			if (!type_ok)
+				SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): argument " << arg_index + 1 << " cannot be type " << arg_type << " for " << p_call_type << " " << function_name_ << "()." << endl << slim_terminate();
+		}
+	}
+}
+
+std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature)
+{
+	ScriptValueType ret_type = p_signature.return_type_;
+	
+	if (ret_type == ScriptValueType::kValueNULL)
+		p_outstream << "- (void)" << p_signature.function_name_ << "(";
+	else
+		p_outstream << "- (" << p_signature.return_type_ << ")" << p_signature.function_name_ << "(";
+	
+	int arg_mask_count = (int)p_signature.arg_masks_.size();
+	
+	if (arg_mask_count == 0)
+	{
+		p_outstream << "void";
+	}
+	else
+	{
+		for (int arg_index = 0; arg_index < arg_mask_count; ++arg_index)
+		{
+			uint32_t type_mask = static_cast<uint32_t>(p_signature.arg_masks_[arg_index]);		// the static_casts are annoying but I like scoped enums
+			bool is_optional = false;
+			bool requires_singleton = false;
+			
+			if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskOptional))
+			{
+				is_optional = true;
+				type_mask = type_mask - static_cast<uint32_t>(ScriptValueMask::kMaskOptional);
+			}
+			
+			if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskSingleton))
+			{
+				requires_singleton = true;
+				type_mask = type_mask - static_cast<uint32_t>(ScriptValueMask::kMaskSingleton);
+			}
+			
+			if (arg_index > 0)
+				p_outstream << ", ";
+			
+			if (is_optional)
+				p_outstream << "[";
+			
+			if (type_mask == static_cast<uint32_t>(ScriptValueMask::kMaskAny))
+			{
+				p_outstream << "*";
+			}
+			else
+			{
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskNULL)) p_outstream << "N";
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskLogical)) p_outstream << "l";
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskString)) p_outstream << "s";
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskInt)) p_outstream << "i";
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskFloat)) p_outstream << "f";
+				if (type_mask & static_cast<uint32_t>(ScriptValueMask::kMaskProxy)) p_outstream << "o";
+			}
+			
+			if (requires_singleton)
+				p_outstream << "$";
+			
+			if (is_optional)
+				p_outstream << "]";
+		}
+	}
+	
+	if (p_signature.has_ellipsis_)
+		p_outstream << ((arg_mask_count > 0) ? ", ..." : "...");
+	
+	p_outstream << ")";
+	
+	return p_outstream;
+}
 
 
 
