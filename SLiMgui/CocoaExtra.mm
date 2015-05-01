@@ -303,7 +303,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 - (void)fixMenu
 {
-	NSMenu *menu = [self menu];
+	NSMenu *menu = [self slimMenu];
 	NSDictionary *itemAttrs = [NSDictionary dictionaryWithObject:[NSFont systemFontOfSize:12.0] forKey:NSFontAttributeName];
 	
 	for (int i = 0; i < [menu numberOfItems]; ++i)
@@ -329,7 +329,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		[self highlight:YES];
 		
 		[self fixMenu];
-		[[self menu] popUpMenuPositioningItem:nil atLocation:NSMakePoint(bounds.size.width * 0.80 - 1, bounds.size.height * 0.80 + 1) inView:self];
+		[[self slimMenu] popUpMenuPositioningItem:nil atLocation:NSMakePoint(bounds.size.width * 0.80 - 1, bounds.size.height * 0.80 + 1) inView:self];
 		
 		[self highlight:NO];
 	}

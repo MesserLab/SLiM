@@ -676,9 +676,9 @@ static NSDictionary *mutationTypeAttrs = nil;
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(chromosomeSelectionChanged:) name:SLiMChromosomeSelectionChangedNotification object:chromosomeOverview];
 	
 	// Set up our menu buttons with their menus
-	[outputCommandsButton setMenu:outputCommandsMenu];
-	[graphCommandsButton setMenu:graphCommandsMenu];
-	[genomeCommandsButton setMenu:genomeCommandsMenu];
+	[outputCommandsButton setSlimMenu:outputCommandsMenu];
+	[graphCommandsButton setSlimMenu:graphCommandsMenu];
+	[genomeCommandsButton setSlimMenu:genomeCommandsMenu];
 	
 	// Configure our drawer
 	[drawer setMinContentSize:NSMakeSize(280, 570)];

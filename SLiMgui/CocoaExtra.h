@@ -50,7 +50,7 @@
 
 // A button that runs a pop-up menu when clicked
 @interface SLiMMenuButton : NSButton
-@property (nonatomic, retain) NSMenu *menu;
+@property (nonatomic, retain) NSMenu *slimMenu;
 @end
 
 // A cell that draws a color swatch, used in the genomic element type tableview; note it is a subclass of NSTextFieldCell only for IB convenience...
