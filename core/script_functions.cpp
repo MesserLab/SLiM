@@ -37,6 +37,7 @@ using std::ostream;
 ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments);
 ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments);
 ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_arguments);
+ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments);
 
 
 //
@@ -55,9 +56,9 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// data construction functions
 	
-	RegisterSignature(map, (new FunctionSignature("rep",		FunctionIdentifier::repFunction,		ScriptValueType::kValueNULL))->AddAny()->AddInt());
+	RegisterSignature(map, (new FunctionSignature("rep",		FunctionIdentifier::repFunction,		ScriptValueType::kValueNULL))->AddAny()->AddInt_S());
 	RegisterSignature(map, (new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	ScriptValueType::kValueNULL))->AddAny()->AddInt());
-	RegisterSignature(map, (new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		ScriptValueType::kValueNULL))->AddNumeric()->AddNumeric()->AddNumeric_O());
+	RegisterSignature(map, (new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		ScriptValueType::kValueNULL))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
 	RegisterSignature(map, (new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	ScriptValueType::kValueInt))->AddAny());
 	RegisterSignature(map, (new FunctionSignature("c",			FunctionIdentifier::cFunction,			ScriptValueType::kValueNULL))->AddEllipsis());
 	
@@ -73,9 +74,13 @@ FunctionMap BuiltInFunctionMap(void)
 	sumFunction,
 	prodFunction,
 	meanFunction,
-	sdFunction,
-	revFunction,
-	sortFunction,
+	sdFunction,*/
+	
+	RegisterSignature(map, (new FunctionSignature("rev",		FunctionIdentifier::revFunction,		ScriptValueType::kValueNULL))->AddAny());
+
+	
+	
+	/*sortFunction,
 	*/
 	
 	// data class testing/coercion functions
@@ -265,6 +270,66 @@ ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_argu
 	return result;
 }
 
+ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments)
+{
+	ScriptValue *result = nullptr;
+	ScriptValue *arg1_value = p_arguments[0];
+	ScriptValueType arg1_type = arg1_value->Type();
+	ScriptValue *arg2_value = p_arguments[1];
+	ScriptValueType arg2_type = arg2_value->Type();
+	ScriptValue *arg3_value = ((p_arguments.size() == 3) ? p_arguments[2] : nullptr);
+	ScriptValueType arg3_type = (arg3_value ? arg3_value->Type() : ScriptValueType::kValueInt);
+	
+	if ((arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat) || (arg3_type == ScriptValueType::kValueFloat))
+	{
+		// float return case
+		ScriptValue_Float *float_result = new ScriptValue_Float();
+		result = float_result;
+		
+		double first_value = arg1_value->FloatAtIndex(0);
+		double second_value = arg2_value->FloatAtIndex(0);
+		double default_by = ((first_value < second_value) ? 1 : -1);
+		double by_value = (arg3_value ? arg3_value->FloatAtIndex(0) : default_by);
+		
+		if (by_value == 0.0)
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires by argument != 0." << endl << slim_terminate();
+		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " incorrect sign of by argument." << endl << slim_terminate();
+		
+		if (by_value > 0)
+			for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+				float_result->PushFloat(seq_value);
+		else
+			for (double seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+				float_result->PushFloat(seq_value);
+	}
+	else
+	{
+		// int return case
+		ScriptValue_Int *int_result = new ScriptValue_Int();
+		result = int_result;
+		
+		int64_t first_value = arg1_value->IntAtIndex(0);
+		int64_t second_value = arg2_value->IntAtIndex(0);
+		int64_t default_by = ((first_value < second_value) ? 1 : -1);
+		int64_t by_value = (arg3_value ? arg3_value->IntAtIndex(0) : default_by);
+		
+		if (by_value == 0)
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires by argument != 0." << endl << slim_terminate();
+		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " incorrect sign of by argument." << endl << slim_terminate();
+		
+		if (by_value > 0)
+			for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+				int_result->PushInt(seq_value);
+		else
+			for (int64_t seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+				int_result->PushInt(seq_value);
+	}
+	
+	return result;
+}
+
 ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *result = nullptr;
@@ -322,8 +387,8 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			
 		case FunctionIdentifier::repFunction:			result = Execute_rep(p_function_name, p_arguments);	break;
 		case FunctionIdentifier::repEachFunction:		result = Execute_repEach(p_function_name, p_arguments);	break;
+		case FunctionIdentifier::seqFunction:			result = Execute_seq(p_function_name, p_arguments);	break;
 			
-		case FunctionIdentifier::seqFunction:
 		case FunctionIdentifier::seqAlongFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
 			break;
@@ -363,7 +428,16 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 		case FunctionIdentifier::whichFunction:
 		case FunctionIdentifier::meanFunction:
 		case FunctionIdentifier::sdFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
 		case FunctionIdentifier::revFunction:
+			result = arg1_value->NewMatchingType();
+
+			for (int value_index = arg1_count - 1; value_index >= 0; --value_index)
+				result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
+			break;
+			
 		case FunctionIdentifier::sortFunction:
 		case FunctionIdentifier::anyFunction:
 		case FunctionIdentifier::allFunction:
