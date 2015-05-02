@@ -108,7 +108,7 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	[scriptWindow makeFirstResponder:outputTextView];
 }
 
-- (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString addOptionalSemicolon:(BOOL)addSemicolon
+- (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString addOptionalSemicolon:(BOOL)addSemicolon
 {
 	string script_string([scriptString UTF8String]);
 	Script script(1, 1, script_string, 0);
@@ -116,7 +116,8 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	string output;
 	
 	// Tokenize
-	try {
+	try
+	{
 		script.Tokenize();
 		
 		// Add a semicolon if needed; this allows input like "6+7" in the console
@@ -134,11 +135,13 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	}
 	catch (std::runtime_error err)
 	{
-		return [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		return nil;
 	}
 	
 	// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
-	try {
+	try
+	{
 		script.ParseInterpreterBlockToAST();
 		
 		if (parseString)
@@ -152,20 +155,21 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	}
 	catch (std::runtime_error err)
 	{
-		return [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		return nil;
 	}
 	
 	// Interpret the parsed block
 	ScriptInterpreter interpreter(script, global_symbols);		// give the interpreter the symbol table
 	global_symbols = nullptr;
 	
-	try {
+	try
+	{
 		if (executionString)
 			interpreter.SetShouldLogExecution(true);
 		
 		result = interpreter.EvaluateInterpreterBlock();
 		output = interpreter.ExecutionOutput();
-		
 		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back
 		
 		if (executionString)
@@ -173,9 +177,12 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	}
 	catch (std::runtime_error err)
 	{
+		output = interpreter.ExecutionOutput();
 		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back despite the raise
 		
-		return [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		
+		return [NSString stringWithUTF8String:output.c_str()];
 	}
 	
 	return [NSString stringWithUTF8String:output.c_str()];
@@ -184,7 +191,7 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 - (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon
 {
 	NSTextStorage *ts = [outputTextView textStorage];
-	NSString *tokenString = nil, *parseString = nil, *executionString = nil;
+	NSString *tokenString = nil, *parseString = nil, *executionString = nil, *errorString = nil;
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	BOOL showTokens = [defaults boolForKey:defaultsShowTokensKey];
 	BOOL showParse = [defaults boolForKey:defaultsShowParseKey];
@@ -194,21 +201,16 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 									  tokenString:(showTokens ? &tokenString : NULL)
 									  parseString:(showParse ? &parseString : NULL)
 								  executionString:(showExecution ? &executionString : NULL)
+									  errorString:&errorString
 							 addOptionalSemicolon:addSemicolon];
 	
 	// make the attributed strings we will append
-	NSDictionary *outAttrDict = ([result hasPrefix:@"ERROR"] ? [ConsoleTextView errorAttrs] : [ConsoleTextView outputAttrs]);
 	NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[ConsoleTextView inputAttrs]];
-	NSAttributedString *outputString2 = [[NSAttributedString alloc] initWithString:result attributes:outAttrDict];
-	
-	NSAttributedString *tokenAttrString = nil, *parseAttrString = nil, *executionAttrString = nil;
-	
-	if (tokenString)
-		tokenAttrString = [[NSAttributedString alloc] initWithString:tokenString attributes:[ConsoleTextView tokensAttrs]];
-	if (parseString)
-		parseAttrString = [[NSAttributedString alloc] initWithString:parseString attributes:[ConsoleTextView parseAttrs]];
-	if (executionString)
-		executionAttrString = [[NSAttributedString alloc] initWithString:executionString attributes:[ConsoleTextView executionAttrs]];
+	NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[ConsoleTextView outputAttrs]] : nil);
+	NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[ConsoleTextView errorAttrs]] : nil);
+	NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[ConsoleTextView tokensAttrs]] : nil);
+	NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[ConsoleTextView parseAttrs]] : nil);
+	NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[ConsoleTextView executionAttrs]] : nil);;
 	
 	// do the editing
 	[ts beginEditing];
@@ -220,21 +222,26 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:tokenAttrString];
 		[outputTextView appendSpacer];
 	}
-	
 	if (parseAttrString)
 	{
 		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:parseAttrString];
 		[outputTextView appendSpacer];
 	}
-	
 	if (executionAttrString)
 	{
 		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:executionAttrString];
 		[outputTextView appendSpacer];
 	}
-	
-	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString2];
-	[outputTextView appendSpacer];
+	if ([outputString2 length])
+	{
+		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString2];
+		[outputTextView appendSpacer];
+	}
+	if (errorAttrString)
+	{
+		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorAttrString];
+		[outputTextView appendSpacer];
+	}
 	
 	[ts endEditing];
 	
@@ -244,6 +251,7 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	[parseAttrString release];
 	[executionAttrString release];
 	[outputString2 release];
+	[errorAttrString release];
 	
 	// and show a new prompt
 	[outputTextView showPrompt];
