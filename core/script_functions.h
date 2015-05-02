@@ -112,6 +112,7 @@ enum class FunctionIdentifier {
 	truncFunction,
 	
 	// bookkeeping functions
+	stopFunction,
 	versionFunction,
 	licenseFunction,
 	helpFunction,

@@ -118,6 +118,7 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// bookkeeping functions
 
+	RegisterSignature(map, (new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
 	RegisterSignature(map, (new FunctionSignature("version",	FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
 	RegisterSignature(map, (new FunctionSignature("license",	FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
 	RegisterSignature(map, (new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
@@ -582,6 +583,13 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			break;
 			
 			// bookkeeping functions
+			
+		case FunctionIdentifier::stopFunction:
+			if (arg1_value)
+				p_output_stream << arg1_value->StringAtIndex(0) << endl;
+			
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called by user code." << endl << slim_terminate();
+			break;
 			
 		case FunctionIdentifier::versionFunction:
 			string_result->PushString("SLiMscript version 2.0a1");
