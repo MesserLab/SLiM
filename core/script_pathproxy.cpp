@@ -188,8 +188,8 @@ const FunctionSignature *ScriptValue_PathProxy::SignatureForMethod(std::string c
 	
 	if (!readFileSig)
 	{
-		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueString))->AddString();
-		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL))->AddString()->AddString();
+		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->AddString_S();
+		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->AddString_S()->AddString();
 	}
 	
 	if (p_method_name.compare("readFile") == 0)

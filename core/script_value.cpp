@@ -46,17 +46,48 @@ string StringForScriptValueType(const ScriptValueType p_type)
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueType p_type)
 {
-	switch (p_type)
-	{
-		case ScriptValueType::kValueNULL:		p_outstream << "NULL";		break;
-		case ScriptValueType::kValueLogical:	p_outstream << "logical";	break;
-		case ScriptValueType::kValueString:		p_outstream << "string";	break;
-		case ScriptValueType::kValueInt:		p_outstream << "integer";	break;
-		case ScriptValueType::kValueFloat:		p_outstream << "float";		break;
-		case ScriptValueType::kValueProxy:		p_outstream << "object";	break;
-	}
+	p_outstream << StringForScriptValueType(p_type);
 	
 	return p_outstream;
+}
+
+std::string StringForScriptValueMask(const ScriptValueMask p_mask)
+{
+	std::string out_string;
+	bool is_optional = !!(p_mask & kScriptValueMaskOptional);
+	bool requires_singleton = !!(p_mask & kScriptValueMaskSingleton);
+	ScriptValueMask type_mask = p_mask & kScriptValueMaskFlagStrip;
+	
+	if (is_optional)
+		out_string += "[";
+	
+	if (type_mask == kScriptValueMaskNone)			out_string += "?";
+	else if (type_mask == kScriptValueMaskAny)		out_string += "*";
+	else if (type_mask == kScriptValueMaskAnyBase)	out_string += "+";
+	else if (type_mask == kScriptValueMaskNULL)		out_string += "void";
+	else if (type_mask == kScriptValueMaskLogical)	out_string += "logical";
+	else if (type_mask == kScriptValueMaskString)	out_string += "string";
+	else if (type_mask == kScriptValueMaskInt)		out_string += "integer";
+	else if (type_mask == kScriptValueMaskFloat)	out_string += "float";
+	else if (type_mask == kScriptValueMaskProxy)	out_string += "object";
+	else if (type_mask == kScriptValueMaskNumeric)	out_string += "numeric";
+	else
+	{
+		if (type_mask & kScriptValueMaskNULL)		out_string += "N";
+		if (type_mask & kScriptValueMaskLogical)	out_string += "l";
+		if (type_mask & kScriptValueMaskInt)		out_string += "i";
+		if (type_mask & kScriptValueMaskFloat)		out_string += "f";
+		if (type_mask & kScriptValueMaskString)		out_string += "s";
+		if (type_mask & kScriptValueMaskProxy)		out_string += "o";
+	}
+	
+	if (requires_singleton)
+		out_string += "$";
+	
+	if (is_optional)
+		out_string += "]";
+	
+	return out_string;
 }
 
 // returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if >, with full type promotion
@@ -918,7 +949,7 @@ std::vector<std::string> ScriptValue_Proxy::Methods(void) const
 	std::vector<std::string> methods;
 	
 	methods.push_back("ls");
-	methods.push_back("methods");
+	methods.push_back("method");
 	
 	return methods;
 }
@@ -931,38 +962,50 @@ const FunctionSignature *ScriptValue_Proxy::SignatureForMethod(std::string const
 	
 	if (!lsSig)
 	{
-		lsSig = (new FunctionSignature("ls", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL));
-		methodsSig = (new FunctionSignature("methods", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL));
+		lsSig = (new FunctionSignature("ls", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL));
+		methodsSig = (new FunctionSignature("method", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->AddString_OS();
 	}
 	
 	if (p_method_name.compare("ls") == 0)
 		return lsSig;
-	else if (p_method_name.compare("methods") == 0)
+	else if (p_method_name.compare("method") == 0)
 		return methodsSig;
 	
 	SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
-	return new FunctionSignature("", FunctionIdentifier::kNoFunction, ScriptValueType::kValueNULL);
+	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
 ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
+#pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare("ls") == 0)
 	{
 		p_output_stream << *(SymbolHost *)this;
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
-	else if (p_method_name.compare("methods") == 0)
+	else if (p_method_name.compare("method") == 0)
 	{
+		bool has_match_string = (p_arguments.size() == 1);
+		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> method_names = Methods();
+		bool signature_found = false;
 		
 		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
 		{
 			const std::string method_name = *method_name_iter;
+			
+			if (has_match_string && (method_name.compare(match_string) != 0))
+				continue;
+			
 			const FunctionSignature *method_signature = SignatureForMethod(method_name);
 			
 			p_output_stream << *method_signature << endl;
+			signature_found = true;
 		}
+		
+		if (has_match_string && !signature_found)
+			p_output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}

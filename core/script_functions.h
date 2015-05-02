@@ -116,6 +116,7 @@ enum class FunctionIdentifier {
 	licenseFunction,
 	helpFunction,
 	lsFunction,
+	functionFunction,
 	dateFunction,
 	timeFunction,
 	
@@ -130,7 +131,7 @@ class FunctionSignature
 public:
 	std::string function_name_;
 	FunctionIdentifier function_id_;
-	ScriptValueType return_type_;					// if kValueNULL, no assumptions are made about the return type
+	ScriptValueMask return_mask_;					// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
 	
 	std::vector<ScriptValueMask> arg_masks_;		// the expected types for each argument, as a mask
 	
@@ -141,7 +142,7 @@ public:
 	FunctionSignature& operator=(const FunctionSignature&) = delete;		// no copying
 	FunctionSignature(void) = delete;										// no null construction
 	
-	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueType p_return_type);
+	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask);
 	
 	FunctionSignature *AddArg(ScriptValueMask p_arg_mask);
 	FunctionSignature *AddEllipsis();
@@ -192,6 +193,9 @@ public:
 	
 	// check an argument list; p_call_type should be "function" or "method", for error output only
 	void CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const;
+	
+	// check a return value; p_call_type should be "function" or "method", for error output only
+	void CheckReturn(std::string const &p_call_type, ScriptValue *p_result) const;
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature);

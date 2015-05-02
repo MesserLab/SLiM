@@ -40,10 +40,13 @@ struct FunctionSignature;
 class ScriptInterpreter;
 
 
-// all of these types are vectors of the stated type; all objects in SLiMScript are vectors
-// the order of these types is in type-promotion order from lowest to highest
-enum class ScriptValueType {
+// ScriptValueType is an enum of the possible types for ScriptValue objects.  Note that all of these types are vectors of the stated
+// type; all objects in SLiMScript are vectors.  The order of these types is in type-promotion order, from lowest to highest, except
+// that NULL never gets promoted to any other type, and nothing ever gets promoted to proxy (object) type.
+enum class ScriptValueType
+{
 	kValueNULL = 0,		// special NULL value
+	
 	kValueLogical,		// logicals (bools)
 	kValueInt,			// (64-bit) integers
 	kValueFloat,		// (double-precision) floats
@@ -52,34 +55,35 @@ enum class ScriptValueType {
 	kValueProxy			// proxy objects: these represent built-in objects with member variables and methods
 };
 
-enum ScriptValueMask : uint32_t {
-	kMaskNone =				0x00000000,
-	kMaskNULL =				0x00000001,
-	kMaskLogical =			0x00000002,
-	kMaskInt =				0x00000004,
-	kMaskFloat =			0x00000008,
-	kMaskString =			0x00000010,
-	kMaskProxy =			0x00000020,
-	
-	kMaskOptional =			0x80000000,
-	kMaskSingleton =		0x40000000,
-	kMaskOptSingleton =		(kMaskOptional | kMaskSingleton),
-	
-	kMaskNumeric =			(kMaskInt | kMaskFloat),														// integer or float
-	kMaskLogicalEquiv =		(kMaskLogical | kMaskInt | kMaskFloat),											// logical, integer, or float: boolean-compatible
-	kMaskAnyBase =			(kMaskNULL | kMaskLogical | kMaskString | kMaskInt | kMaskFloat),				// any type except proxy
-	kMaskAny =				(kMaskNULL | kMaskLogical | kMaskString | kMaskInt | kMaskFloat | kMaskProxy)	// any type including proxy
-};
-
-
-//
-//	Associated functions
-//
+std::string StringForScriptValueType(const ScriptValueType p_type);
+std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueType p_type);
 
 int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptValue *p_value2, int p_index2);
 
-std::string StringForScriptValueType(const ScriptValueType p_type);
-std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueType p_type);
+
+// ScriptValueMask is a uint32_t used as a bit mask to identify permitted types for ScriptValue objects (arguments, returns)
+typedef uint32_t ScriptValueMask;
+
+const ScriptValueMask kScriptValueMaskNone =			0x00000000;
+const ScriptValueMask kScriptValueMaskNULL =			0x00000001;
+const ScriptValueMask kScriptValueMaskLogical =			0x00000002;
+const ScriptValueMask kScriptValueMaskInt =				0x00000004;
+const ScriptValueMask kScriptValueMaskFloat =			0x00000008;
+const ScriptValueMask kScriptValueMaskString =			0x00000010;
+const ScriptValueMask kScriptValueMaskProxy =			0x00000020;
+	
+const ScriptValueMask kScriptValueMaskOptional =		0x80000000;
+const ScriptValueMask kScriptValueMaskSingleton =		0x40000000;
+const ScriptValueMask kScriptValueMaskOptSingleton =	(kScriptValueMaskOptional | kScriptValueMaskSingleton);
+const ScriptValueMask kScriptValueMaskFlagStrip =		0x3FFFFFFF;
+	
+const ScriptValueMask kScriptValueMaskNumeric =			(kScriptValueMaskInt | kScriptValueMaskFloat);										// integer or float
+const ScriptValueMask kScriptValueMaskLogicalEquiv =	(kScriptValueMaskLogical | kScriptValueMaskInt | kScriptValueMaskFloat);			// logical, integer, or float
+const ScriptValueMask kScriptValueMaskAnyBase =			(kScriptValueMaskNULL | kScriptValueMaskLogicalEquiv | kScriptValueMaskString);		// any type except proxy
+const ScriptValueMask kScriptValueMaskAny =				(kScriptValueMaskAnyBase | kScriptValueMaskProxy);									// any type including proxy
+
+std::string StringForScriptValueMask(const ScriptValueMask p_mask);
+//std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueMask p_mask);	// can't do this since ScriptValueMask is just uint32_t
 
 
 // A class representing a value resulting from script evaluation.  SLiMScript is quite dynamically typed;
