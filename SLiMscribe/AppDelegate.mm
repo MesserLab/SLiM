@@ -40,6 +40,24 @@ NSString *defaultsShowTokensKey = @"ShowTokens";
 NSString *defaultsShowParseKey = @"ShowParse";
 NSString *defaultsShowExecutionKey = @"ShowExecution";
 
+static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
+										"#MUTATION TYPES\n"
+										"m1 0.5 f 0.0 // neutral\n\n"
+										"#MUTATION RATE\n"
+										"1e-7\n\n"
+										"#GENOMIC ELEMENT TYPES\n"
+										"g1 m1 1.0 // only one type comprising the neutral mutations\n\n"
+										"#CHROMOSOME ORGANIZATION\n"
+										"g1 1 100000 // uniform chromosome of length 100 kb\n\n"
+										"#RECOMBINATION RATE\n"
+										"100000 1e-8\n\n"
+										"#GENERATIONS\n"
+										"10\n\n"
+										"#DEMOGRAPHY AND STRUCTURE\n"
+										"1 P p1 500 // one population of 500 individuals\n\n"
+										"#SCRIPT\n"
+										"10 { stop(\"SLiMscribe halt\"); }\n";
+
 
 @implementation AppDelegate
 
@@ -62,8 +80,62 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	[super dealloc];
 }
 
+- (void)launchSimulation
+{
+	delete sim;
+	sim = nullptr;
+	
+	std::istringstream infile([defaultScriptString UTF8String]);
+	
+	try
+	{
+		sim = new SLiMSim(infile);
+		
+		if (sim)
+			sim->RunToEnd();
+	}
+	catch (std::runtime_error)
+	{
+		// We want to catch a SLiMscript raise here, so that the simulation is frozen at the stage when scripts would normally be executed.
+		std::string terminationMessage = gSLiMTermination.str();
+		NSString *terminationString = nil;
+		
+		if (!terminationMessage.empty())
+		{
+			const char *cstr = terminationMessage.c_str();
+			
+			terminationString = [NSString stringWithUTF8String:cstr];
+			
+			gSLiMTermination.clear();
+			gSLiMTermination.str("");
+			
+			//NSLog(@"%@", str);
+		}
+		
+		if ([terminationString isEqualToString:@"ERROR (ExecuteFunctionCall): stop() called.\n"])
+		{
+			NSLog(@"SLiM simulation constructed and halted correctly; SLiM services are available.");
+			return;
+		}
+		else
+		{
+			NSLog(@"SLiM simulation halted unexpectedly: %@", terminationString);
+			// drop through to exit below
+		}
+	}
+	
+	// If we reach here, we did not get the script raise we want, which is a problem.
+	NSLog(@"SLiM simulation did not halt correctly; SLiM services will not be available.");
+	
+	delete sim;
+	sim = nullptr;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+	// Instantiate a simulation
+	[self launchSimulation];
+	
 	// Run startup tests, if enabled
 	RunSLiMScriptTests();
 	
@@ -162,6 +234,9 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 	// Interpret the parsed block
 	ScriptInterpreter interpreter(script, global_symbols);		// give the interpreter the symbol table
 	global_symbols = nullptr;
+	
+	if (sim)
+		sim->InjectIntoInterpreter(interpreter);
 	
 	try
 	{

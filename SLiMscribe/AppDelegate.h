@@ -24,6 +24,7 @@
 #include "script.h"
 #include "script_value.h"
 #include "script_interpreter.h"
+#include "slim_sim.h"
 
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, ConsoleTextViewDelegate>
@@ -34,6 +35,7 @@
 	
 	// Interpreter logistical support
 	SymbolTable *global_symbols;
+	SLiMSim *sim;
 }
 
 @property (retain) IBOutlet NSWindow *scriptWindow;
