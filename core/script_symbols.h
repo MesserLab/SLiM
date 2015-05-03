@@ -135,6 +135,9 @@ public:
 	
 	// SymbolTable supports setting constants, which is not in the SymbolHost API for now...
 	virtual void SetConstantForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	// SymbolTable also supports removing variables and constants, which other SymbolHosts don't support
+	virtual void RemoveValueForMember(const std::string &p_member_name);
 };
 
 

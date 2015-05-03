@@ -286,7 +286,36 @@ void SymbolTable::SetConstantForMember(const std::string &p_member_name, ScriptV
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
-
+void SymbolTable::RemoveValueForMember(const std::string &p_member_name)
+{
+	{
+		auto constant_iter = constants_.find(p_member_name);
+		
+		if (constant_iter != constants_.end())
+		{
+			ScriptValue *value = constant_iter->second;
+			
+			constants_.erase(constant_iter);
+			
+			value->SetInSymbolTable(false);
+			delete value;
+		}
+	}
+	
+	{
+		auto variables_iter = variables_.find(p_member_name);
+		
+		if (variables_iter != variables_.end())
+		{
+			ScriptValue *value = variables_iter->second;
+			
+			variables_.erase(variables_iter);
+			
+			value->SetInSymbolTable(false);
+			delete value;
+		}
+	}
+}
 
 
 
