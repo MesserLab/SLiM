@@ -115,6 +115,22 @@
 		989790DB1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */; };
 		989790DC1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathproxy.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
+		98AC15E91AF55CBE0096F15D /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
+		98AC15EA1AF55CBE0096F15D /* slim_sim_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AF1A3CD633000AD4FC /* slim_sim_input.cpp */; };
+		98AC15EB1AF55CBE0096F15D /* g_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */; };
+		98AC15EC1AF55CBE0096F15D /* event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68B1A3CD4B7000AD4FC /* event.cpp */; };
+		98AC15ED1AF55CBE0096F15D /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
+		98AC15EE1AF55CBE0096F15D /* mutation_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */; };
+		98AC15EF1AF55CBE0096F15D /* introduced_mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A01A3CD587000AD4FC /* introduced_mutation.cpp */; };
+		98AC15F01AF55CBE0096F15D /* genomic_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */; };
+		98AC15F11AF55CBE0096F15D /* genomic_element_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6941A3CD51A000AD4FC /* genomic_element_type.cpp */; };
+		98AC15F21AF55CBE0096F15D /* chromosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6971A3CD52A000AD4FC /* chromosome.cpp */; };
+		98AC15F31AF55CBE0096F15D /* polymorphism.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */; };
+		98AC15F41AF55CBE0096F15D /* substitution.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69D1A3CD551000AD4FC /* substitution.cpp */; };
+		98AC15F51AF55CBE0096F15D /* partial_sweep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A31A3CD595000AD4FC /* partial_sweep.cpp */; };
+		98AC15F61AF55CBE0096F15D /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98AC15F71AF55CBE0096F15D /* subpopulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */; };
+		98AC15F81AF55CBE0096F15D /* population.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AC1A3CD5D3000AD4FC /* population.cpp */; };
 		98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */; };
 		98D4C1BB1A6F537B00FFB083 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1BA1A6F537B00FFB083 /* main.m */; };
 		98D4C1BD1A6F537B00FFB083 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C1BC1A6F537B00FFB083 /* Images.xcassets */; };
@@ -1080,16 +1096,32 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98AC15EA1AF55CBE0096F15D /* slim_sim_input.cpp in Sources */,
+				98AC15F71AF55CBE0096F15D /* subpopulation.cpp in Sources */,
 				985724D21AD479010047C223 /* script_functions.cpp in Sources */,
+				98AC15F41AF55CBE0096F15D /* substitution.cpp in Sources */,
 				985724CF1AD479010047C223 /* script.cpp in Sources */,
 				98EFE6311ADB611100CBEC78 /* script_symbols.cpp in Sources */,
+				98AC15EC1AF55CBE0096F15D /* event.cpp in Sources */,
+				98AC15EF1AF55CBE0096F15D /* introduced_mutation.cpp in Sources */,
 				985724B71AD478630047C223 /* main.m in Sources */,
 				985724D01AD479010047C223 /* script_value.cpp in Sources */,
 				985724D31AD479010047C223 /* script_test.cpp in Sources */,
+				98AC15F81AF55CBE0096F15D /* population.cpp in Sources */,
+				98AC15EE1AF55CBE0096F15D /* mutation_type.cpp in Sources */,
 				985724D41AD47F980047C223 /* slim_global.cpp in Sources */,
 				985724B51AD478630047C223 /* AppDelegate.mm in Sources */,
 				985724E71AD622880047C223 /* ConsoleTextView.m in Sources */,
+				98AC15F21AF55CBE0096F15D /* chromosome.cpp in Sources */,
 				989790DC1AF3D0E100C6B14C /* script_pathproxy.cpp in Sources */,
+				98AC15EB1AF55CBE0096F15D /* g_rng.cpp in Sources */,
+				98AC15E91AF55CBE0096F15D /* slim_sim.cpp in Sources */,
+				98AC15F51AF55CBE0096F15D /* partial_sweep.cpp in Sources */,
+				98AC15F01AF55CBE0096F15D /* genomic_element.cpp in Sources */,
+				98AC15F31AF55CBE0096F15D /* polymorphism.cpp in Sources */,
+				98AC15F11AF55CBE0096F15D /* genomic_element_type.cpp in Sources */,
+				98AC15F61AF55CBE0096F15D /* genome.cpp in Sources */,
+				98AC15ED1AF55CBE0096F15D /* mutation.cpp in Sources */,
 				985724D11AD479010047C223 /* script_interpreter.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1531,7 +1563,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					"SLIMGUI=1",
+					"SLIMSCRIBE=1",
 				);
 				GCC_WARN_UNUSED_PARAMETER = NO;
 				GCC_WARN_UNUSED_VALUE = NO;
@@ -1547,7 +1579,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = "SLIMGUI=1";
+				GCC_PREPROCESSOR_DEFINITIONS = "SLIMSCRIBE=1";
 				GCC_WARN_UNUSED_PARAMETER = NO;
 				GCC_WARN_UNUSED_VALUE = NO;
 				INFOPLIST_FILE = SLiMscribe/Info.plist;

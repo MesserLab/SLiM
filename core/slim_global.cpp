@@ -28,7 +28,7 @@
 
 
 // Stuff that changes depending on whether we're building inside SLiMgui or as a standalone tool
-#ifdef SLIMGUI
+#if defined(SLIMGUI) || defined(SLIMSCRIBE)
 
 std::ostringstream gSLiMOut;
 std::ostringstream gSLiMTermination;
@@ -209,7 +209,7 @@ std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator
 			print_stacktrace(stderr);
 	}
 	
-#if SLIMGUI
+#if defined(SLIMGUI) || defined(SLIMSCRIBE)
 	// In SLiMgui, slim_terminate() throws an exception that gets caught by SLiMSim.  That invalidates the simulation object, and
 	// causes SLiMgui to display an error message and ends the simulation run, but it does not terminate the app.
 	throw std::runtime_error("A runtime error occurred in SLiM");
@@ -223,7 +223,7 @@ std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator
 
 std::string GetTrimmedRaiseMessage(void)
 {
-#ifdef SLIMGUI
+#if defined(SLIMGUI) || defined(SLIMSCRIBE)
 	std::string terminationMessage = gSLiMTermination.str();
 	
 	gSLiMTermination.clear();
@@ -242,7 +242,7 @@ std::string GetTrimmedRaiseMessage(void)
 
 std::string GetUntrimmedRaiseMessage(void)
 {
-#ifdef SLIMGUI
+#if defined(SLIMGUI) || defined(SLIMSCRIBE)
 	std::string terminationMessage = gSLiMTermination.str();
 	
 	gSLiMTermination.clear();

@@ -34,7 +34,7 @@
 // If we're running inside SLiMgui, we use a global ostringstream to capture all output to both the output and error streams.
 // This stream gets emptied out after every call out to SLiMSim, so a single stream can be safely used by all of the SLiMSim
 // instances running inside SLiMgui (because we do not multithread).  We also have a special stream for termination messages.
-#ifdef SLIMGUI
+#if defined(SLIMGUI) || defined(SLIMSCRIBE)
 
 extern std::ostringstream gSLiMOut;
 extern std::ostringstream gSLiMTermination;
