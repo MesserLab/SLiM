@@ -72,6 +72,8 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 	try {
 		ScriptInterpreter interpreter(script);
 		
+		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
+		
 		result = interpreter.EvaluateInterpreterBlock();
 		
 		// We have to copy the result; it lives in the interpreter's symbol table, which will be deleted when we leave this local scope
@@ -122,6 +124,8 @@ void AssertScriptRaise(string p_script_string)
 		script.ParseInterpreterBlockToAST();
 		
 		ScriptInterpreter interpreter(script);
+		
+		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		
 		interpreter.EvaluateInterpreterBlock();
 		

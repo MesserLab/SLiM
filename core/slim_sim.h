@@ -39,6 +39,10 @@
 #include "chromosome.h"
 #include "event.h"
 #include "script.h"
+#include "script_functions.h"
+
+
+class ScriptInterpreter;
 
 
 class SLiMSim
@@ -75,6 +79,9 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
+	// SLiMscript function signatures
+	FunctionSignature *simFunctionSig = nullptr;
+	
 	// private initialization methods
 	static std::string CheckInputFile(std::istream &infile);						// check an input file for correctness and exit with a good error message if there is a problem
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
@@ -87,6 +94,10 @@ public:
 	SLiMSim(std::istream &infile, int *p_override_seed_ptr = nullptr);				// construct a SLiMSim from an input stream, with an optional RNG seed value
 	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
 	~SLiMSim(void);																	// destructor
+	
+	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter);					// add SLiM constructs to a SLiMscript interpreter instance
 	
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end

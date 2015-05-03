@@ -422,15 +422,12 @@ void Population::ExecuteEvent(const Event &p_event, int p_generation, const Chro
 }
 
 // execute a script event in the population; the script is assumed to be due to trigger
-void Population::ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim)
+void Population::ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, SLiMSim &p_sim)
 {
 #pragma unused(p_generation, p_chromosome, p_sim)
 	ScriptInterpreter interpreter(*p_script);
 	
-	// Set up global symbols for things that live within SLiM
-	SymbolTable &global_symbols = interpreter.BorrowSymbolTable();
-	
-	global_symbols.SetConstantForMember("generation", new ScriptValue_Int(p_generation));
+	p_sim.InjectIntoInterpreter(interpreter);
 	
 	// Interpret the script; the result from the interpretation is not used for anything
 	ScriptValue *result = interpreter.EvaluateScriptBlock();

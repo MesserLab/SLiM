@@ -34,6 +34,12 @@
 #include "script.h"
 #include "script_value.h"
 #include "mutation.h"
+#include "script_functions.h"
+
+
+// typedefs used to set up our map table of FunctionSignature objects
+typedef std::pair<std::string, const FunctionSignature*> FunctionMapPair;
+typedef std::map<std::string, const FunctionSignature*> FunctionMap;
 
 
 // A class representing a script interpretation context with all associated symbol table state
@@ -44,6 +50,7 @@ class ScriptInterpreter
 private:
 	const Script &script_;							// not owned
 	SymbolTable *global_symbols_ = nullptr;			// OWNED POINTERS: identifiers to ScriptValues
+	FunctionMap function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
 	
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
@@ -116,6 +123,13 @@ public:
 	ScriptValue *Evaluate_For(const ScriptASTNode *p_node);
 	ScriptValue *Evaluate_Next(const ScriptASTNode *p_node);
 	ScriptValue *Evaluate_Break(const ScriptASTNode *p_node);
+	
+	// Function and method dispatch/execution; these are implemented in script_functions.cpp
+	void RegisterSignature(const FunctionSignature *p_signature);
+	void RegisterBuiltInFunctions(void);
+	
+	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
 };
 
 

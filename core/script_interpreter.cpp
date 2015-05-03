@@ -52,12 +52,16 @@ using std::ostream;
 ScriptInterpreter::ScriptInterpreter(const Script &p_script) : script_(p_script)
 {
 	global_symbols_ = new SymbolTable();
+	
+	RegisterBuiltInFunctions();
 }
 
 ScriptInterpreter::ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols) : script_(p_script), global_symbols_(p_symbols)
 {
 	if (!global_symbols_)
 		global_symbols_ = new SymbolTable();
+	
+	RegisterBuiltInFunctions();
 }
 
 ScriptInterpreter::~ScriptInterpreter(void)
@@ -616,9 +620,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	
 	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 	if (method_object)
-		result = ExecuteMethodCall(method_object, function_name, arguments, execution_output_, *this);
+		result = ExecuteMethodCall(method_object, function_name, arguments, execution_output_);
 	else
-		result = ExecuteFunctionCall(function_name, arguments, execution_output_, *this);
+		result = ExecuteFunctionCall(function_name, arguments, execution_output_);
 	
 	// And now we can free the arguments
 	for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)

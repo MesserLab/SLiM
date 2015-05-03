@@ -32,22 +32,10 @@
 #include <iostream>
 
 
-// Registering functions in the function map, a fast lookup to get function signatures
-typedef std::pair<std::string, const FunctionSignature*> FunctionMapPair;
-typedef std::map<std::string, const FunctionSignature*> FunctionMap;
-
-void RegisterSignature(FunctionMap &p_map, const FunctionSignature *p_signature);
-FunctionMap BuiltInFunctionMap(void);
-
-
-// Calling functions and methods, after arguments have been validated
-ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-
-
 // A numeric identifier for a function once its name has been looked up; just for efficiency, to allow switch()
 enum class FunctionIdentifier {
 	kNoFunction = 0,
+	kDelegatedFunction,		// implemented through a delegate, such as SLiM
 	
 	// data construction functions
 	repFunction,
@@ -125,6 +113,11 @@ enum class FunctionIdentifier {
 	PathFunction
 };
 
+// Functions that are built into SLiMscript are handled internally.  However, it is also possible for external agents to register their own
+// functions with SLiMscript; this is how SLiM gets its functions into SLiMscript.  This registration is done with a delegate object and
+// a delegate function pointer (NOT a pointer to method).  This is the prototype for a function implementation delegate.  The function
+// pointed to will be called, and passed the delegate object along with other parameters for the function call.
+typedef ScriptValue *(*SLiMDelegateFunctionPtr)(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 
 // FunctionSignature is used to represent the return type and argument types of a function or method, for shared runtime type checking
 class FunctionSignature
@@ -133,17 +126,21 @@ public:
 	std::string function_name_;
 	FunctionIdentifier function_id_;
 	ScriptValueMask return_mask_;					// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
-	
 	std::vector<ScriptValueMask> arg_masks_;		// the expected types for each argument, as a mask
-	
 	bool has_optional_args_ = false;				// if true, at least one optional argument has been added
 	bool has_ellipsis_ = false;						// if true, the function accepts arbitrary varargs after the specified arguments
+	
+	// ivars related to delegated function implementations
+	SLiMDelegateFunctionPtr delegate_function_ = nullptr;
+	void *delegate_object_ = nullptr;
+	std::string delegate_name_;
 	
 	FunctionSignature(const FunctionSignature&) = delete;					// no copying
 	FunctionSignature& operator=(const FunctionSignature&) = delete;		// no copying
 	FunctionSignature(void) = delete;										// no null construction
 	
 	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask);
+	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name);
 	
 	FunctionSignature *AddArg(ScriptValueMask p_arg_mask);
 	FunctionSignature *AddEllipsis();

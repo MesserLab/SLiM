@@ -109,7 +109,7 @@ public:
 	void ExecuteEvent(const Event &p_event, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim, std::vector<MutationType*> *p_tracked_mutations);
 	
 	// execute a script event in the population; the script is assumed to be due to trigger
-	void ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, const SLiMSim &p_sim);
+	void ExecuteScript(const Script *p_script, int p_generation, const Chromosome &p_chromosome, SLiMSim &p_sim);
 	
 	// introduce a user-defined mutation
 	void IntroduceMutation(const IntroducedMutation &p_introduced_mutation);

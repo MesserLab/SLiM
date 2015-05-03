@@ -20,6 +20,7 @@
 
 #include "script_functions.h"
 #include "script_pathproxy.h"
+#include "script_interpreter.h"
 
 #include "math.h"
 
@@ -44,30 +45,27 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 //	Construct our built-in function map
 //
 
-void RegisterSignature(FunctionMap &p_map, const FunctionSignature *p_signature)
+void ScriptInterpreter::RegisterSignature(const FunctionSignature *p_signature)
 {
-	p_map.insert(FunctionMapPair(p_signature->function_name_, p_signature));
+	function_map_.insert(FunctionMapPair(p_signature->function_name_, p_signature));
 }
 
-FunctionMap BuiltInFunctionMap(void)
+void ScriptInterpreter::RegisterBuiltInFunctions(void)
 {
-	FunctionMap map;
-	
-	
 	// data construction functions
 	
-	RegisterSignature(map, (new FunctionSignature("rep",		FunctionIdentifier::repFunction,		kScriptValueMaskAnyBase))->AddAnyBase()->AddInt_S());
-	RegisterSignature(map, (new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	kScriptValueMaskAnyBase))->AddAnyBase()->AddInt());
-	RegisterSignature(map, (new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
-	RegisterSignature(map, (new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
-	RegisterSignature(map, (new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAnyBase))->AddEllipsis());
+	RegisterSignature((new FunctionSignature("rep",		FunctionIdentifier::repFunction,		kScriptValueMaskAnyBase))->AddAnyBase()->AddInt_S());
+	RegisterSignature((new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	kScriptValueMaskAnyBase))->AddAnyBase()->AddInt());
+	RegisterSignature((new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
+	RegisterSignature((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
+	RegisterSignature((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAnyBase))->AddEllipsis());
 	
 	
 	// data inspection/manipulation functions
 	 
-	RegisterSignature(map, (new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
-	RegisterSignature(map, (new FunctionSignature("cat",		FunctionIdentifier::catFunction,		kScriptValueMaskNULL))->AddAny());
-	RegisterSignature(map, (new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
+	RegisterSignature((new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
+	RegisterSignature((new FunctionSignature("cat",		FunctionIdentifier::catFunction,		kScriptValueMaskNULL))->AddAny());
+	RegisterSignature((new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
 	
 	/*
 	strFunction,
@@ -77,7 +75,7 @@ FunctionMap BuiltInFunctionMap(void)
 	sdFunction,
 	*/
 	
-	RegisterSignature(map, (new FunctionSignature("rev",		FunctionIdentifier::revFunction,		kScriptValueMaskAnyBase))->AddAnyBase());
+	RegisterSignature((new FunctionSignature("rev",		FunctionIdentifier::revFunction,		kScriptValueMaskAnyBase))->AddAnyBase());
 	
 	/*
 	sortFunction,
@@ -85,7 +83,7 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// data class testing/coercion functions
 	 
-	RegisterSignature(map, (new FunctionSignature("class",		FunctionIdentifier::classFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
+	RegisterSignature((new FunctionSignature("class",		FunctionIdentifier::classFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
 	/*
 	isLogicalFunction,
 	isStringFunction,
@@ -99,40 +97,36 @@ FunctionMap BuiltInFunctionMap(void)
 	
 	// math functions
 	
-	RegisterSignature(map, (new FunctionSignature("acos",		FunctionIdentifier::acosFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("asin",		FunctionIdentifier::asinFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("atan",		FunctionIdentifier::atanFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("cos",		FunctionIdentifier::cosFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("sin",		FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("tan",		FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("exp",		FunctionIdentifier::expFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("log",		FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("log10",		FunctionIdentifier::log10Function,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("log2",		FunctionIdentifier::log2Function,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("round",		FunctionIdentifier::roundFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature(map, (new FunctionSignature("abs",		FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
+	RegisterSignature((new FunctionSignature("acos",		FunctionIdentifier::acosFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("asin",		FunctionIdentifier::asinFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("atan",		FunctionIdentifier::atanFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("cos",		FunctionIdentifier::cosFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("sin",		FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("tan",		FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("exp",		FunctionIdentifier::expFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("log",		FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("log10",		FunctionIdentifier::log10Function,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("log2",		FunctionIdentifier::log2Function,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("round",		FunctionIdentifier::roundFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("abs",		FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
 	
 	// bookkeeping functions
 
-	RegisterSignature(map, (new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
-	RegisterSignature(map, (new FunctionSignature("version",	FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
-	RegisterSignature(map, (new FunctionSignature("license",	FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
-	RegisterSignature(map, (new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
-	RegisterSignature(map, (new FunctionSignature("ls",			FunctionIdentifier::lsFunction,			kScriptValueMaskNULL)));
-	RegisterSignature(map, (new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
+	RegisterSignature((new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
+	RegisterSignature((new FunctionSignature("version",	FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
+	RegisterSignature((new FunctionSignature("license",	FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
+	RegisterSignature((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
+	RegisterSignature((new FunctionSignature("ls",			FunctionIdentifier::lsFunction,			kScriptValueMaskNULL)));
+	RegisterSignature((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
 	
 	// proxy instantiation
 	
-	RegisterSignature(map, (new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskProxy | kScriptValueMaskSingleton))->AddString_OS());
-	
-	return map;
+	RegisterSignature((new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskProxy | kScriptValueMaskSingleton))->AddString_OS());
 }
-
-FunctionMap gBuiltInFunctionMap = BuiltInFunctionMap();
 
 
 //
@@ -329,14 +323,14 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 	return result;
 }
 
-ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_function_name, vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
 {
 	ScriptValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	auto signature_iter = gBuiltInFunctionMap.find(p_function_name);
+	auto signature_iter = function_map_.find(p_function_name);
 	
-	if (signature_iter == gBuiltInFunctionMap.end())
+	if (signature_iter == function_map_.end())
 		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << endl << slim_terminate();
 	
 	const FunctionSignature *signature = signature_iter->second;
@@ -399,6 +393,10 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 	{
 		case FunctionIdentifier::kNoFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): internal logic error." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::kDelegatedFunction:
+			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, p_output_stream, *this);
 			break;
 			
 			// data construction functions
@@ -588,7 +586,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			if (arg1_value)
 				p_output_stream << arg1_value->StringAtIndex(0) << endl;
 			
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called by user code." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << endl << slim_terminate();
 			break;
 			
 		case FunctionIdentifier::versionFunction:
@@ -618,7 +616,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			break;
 			
 		case FunctionIdentifier::lsFunction:
-			p_output_stream << p_interpreter.BorrowSymbolTable();
+			p_output_stream << *global_symbols_;
 			break;
 		
 		case FunctionIdentifier::functionFunction:
@@ -626,7 +624,7 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			string match_string = (arg1_value ? arg1_value->StringAtIndex(0) : "");
 			bool signature_found = false;
 			
-			for (auto functionPairIter = gBuiltInFunctionMap.begin(); functionPairIter != gBuiltInFunctionMap.end(); ++functionPairIter)
+			for (auto functionPairIter = function_map_.begin(); functionPairIter != function_map_.end(); ++functionPairIter)
 			{
 				const FunctionSignature *iter_signature = functionPairIter->second;
 				
@@ -658,13 +656,20 @@ ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, vector<Scri
 			break;
 	}
 	
+	// Deallocate any unused result pointers
+	if (null_result && (null_result != result)) delete null_result;
+	if (logical_result && (logical_result != result)) delete logical_result;
+	if (float_result && (float_result != result)) delete float_result;
+	if (int_result && (int_result != result)) delete int_result;
+	if (string_result && (string_result != result)) delete string_result;
+	
 	// Check the return value against the signature
 	signature->CheckReturn("function", result);
 	
 	return result;
 }
 
-ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
 {
 	ScriptValue *result = nullptr;
 	
@@ -674,7 +679,7 @@ ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string con
 	method_signature->CheckArguments("method", p_arguments);
 	
 	// Make the method call
-	result = method_object->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	result = method_object->ExecuteMethod(p_method_name, p_arguments, p_output_stream, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn("method", result);
@@ -690,6 +695,11 @@ ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string con
 
 FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask) :
 function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask)
+{
+}
+
+FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name) :
+function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
 {
 }
 
@@ -872,6 +882,10 @@ std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_s
 		p_outstream << ((arg_mask_count > 0) ? ", ..." : "...");
 	
 	p_outstream << ")";
+	
+	// if the function is provided by a delegate, show the delegate's name
+	if (p_signature.delegate_name_.length())
+		p_outstream << " <" << p_signature.delegate_name_ << ">";
 	
 	return p_outstream;
 }

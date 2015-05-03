@@ -25,6 +25,9 @@
 #include <fstream>
 #include <stdexcept>
 
+// SLiMscript headers for InjectIntoInterpreter()
+#include "script_interpreter.h"
+
 
 using std::multimap;
 
@@ -133,6 +136,47 @@ SLiMSim::~SLiMSim(void)
 	
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
+	
+	// We should not have any interpreter instances that still refer to us
+	delete simFunctionSig;
+}
+
+// a static member function is used as a funnel, so that we can get a pointer to function for it
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
+	
+	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_output_stream, p_interpreter);
+}
+
+// the static member function calls this member function; now we're completely in context and can execute the function
+ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	if (p_function_name.compare("Sim") == 0)
+	{
+		p_output_stream << "This is Sim()!" << std::endl;
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	return nullptr;
+}
+
+void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
+{
+	// Set up global symbols for things that live within SLiM
+	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
+	
+	// A constant for quick reference; we have to remove it each time because you can't overwrite a constant value
+	global_symbols.RemoveValueForMember("generation");
+	global_symbols.SetConstantForMember("generation", new ScriptValue_Int(generation_));
+	
+	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
+	if (!simFunctionSig)
+	{
+		simFunctionSig = new FunctionSignature("Sim", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM");
+	}
+	
+	p_interpreter.RegisterSignature(simFunctionSig);
 }
 
 bool SLiMSim::RunOneGeneration(void)
