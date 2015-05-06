@@ -41,6 +41,9 @@
 typedef std::pair<std::string, const FunctionSignature*> FunctionMapPair;
 typedef std::map<std::string, const FunctionSignature*> FunctionMap;
 
+// utility functions
+bool TypeCheckAssignmentOfValueIntoValue(ScriptValue *base_value, ScriptValue *destination_value);	// codifies what promotions can occur in assignment
+
 
 // A class representing a script interpretation context with all associated symbol table state
 class ScriptInterpreter
@@ -89,7 +92,9 @@ public:
 	ScriptValue *EvaluateScriptBlock(void);			// the starting point for script blocks in SLiM simulations, which require braces
 	ScriptValue *EvaluateInterpreterBlock(void);	// the starting point for executed blocks in SLiMscript, which do not require braces
 	
-	LValueReference *Evaluate_LValueReference(const ScriptASTNode *p_node);
+	void _ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, std::string *p_member_name_ptr, std::vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node);
+	void _AssignRValueToLValue(ScriptValue *rvalue, const ScriptASTNode *p_lvalue_node);
+	
 	ScriptValue *EvaluateNode(const ScriptASTNode *p_node);
 	
 	ScriptValue *Evaluate_NullStatement(const ScriptASTNode *p_node);
@@ -129,7 +134,7 @@ public:
 	void RegisterBuiltInFunctions(void);
 	
 	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
-	ScriptValue *ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
 };
 
 

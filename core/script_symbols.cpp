@@ -34,119 +34,19 @@ using std::ostream;
 
 
 //
-//	LValueReference
-//
-#pragma mark LValueReference
-
-LValueReference::LValueReference(SymbolHost *p_symbol_host) : symbol_host_(p_symbol_host)
-{
-}
-
-LValueReference::~LValueReference(void)
-{
-}
-
-
-//
-//	LValueMemberReference
-//
-#pragma mark LValueMemberReference
-
-LValueMemberReference::LValueMemberReference(SymbolHost *p_symbol_host, std::string p_member_identifier) :
-LValueReference(p_symbol_host), member_identifier_(p_member_identifier)
-{
-}
-
-LValueMemberReference::~LValueMemberReference(void)
-{
-}
-
-void LValueMemberReference::SetLValueToValue(ScriptValue *p_rvalue) const
-{
-	symbol_host_->SetValueForMember(member_identifier_, p_rvalue);
-}
-
-
-//
-//	LValueSubscriptReference
-//
-#pragma mark LValueSubscriptReference
-
-LValueSubscriptReference::LValueSubscriptReference(SymbolHost *p_symbol_host, int p_subscript_index) :
-LValueReference(p_symbol_host), subscript_index_(p_subscript_index)
-{
-}
-
-LValueSubscriptReference::~LValueSubscriptReference(void)
-{
-}
-
-void LValueSubscriptReference::SetLValueToValue(ScriptValue *p_rvalue) const
-{
-	symbol_host_->SetValueAtIndex(subscript_index_, p_rvalue);
-}
-
-
-//
-//	SymbolHost
-//
-#pragma mark SymbolHost
-
-SymbolHost::~SymbolHost(void)
-{
-}
-
-void SymbolHost::Print(std::ostream &p_outstream) const
-{
-	std::vector<std::string> read_only_member_names = ReadOnlyMembers();
-	std::vector<std::string> read_write_member_names = ReadWriteMembers();
-	
-	for (auto member_name_iter = read_only_member_names.begin(); member_name_iter != read_only_member_names.end(); ++member_name_iter)
-	{
-		const std::string member_name = *member_name_iter;
-		ScriptValue *member_value = GetValueForMember(member_name);
-		int member_count = member_value->Count();
-		
-		if (member_count <= 1)
-			p_outstream << member_name << " => (" << member_value->Type() << ") " << *member_value << endl;
-		else
-			p_outstream << member_name << " => (" << member_value->Type() << ") (" << member_count << " values)" << endl;
-	}
-	for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
-	{
-		const std::string member_name = *member_name_iter;
-		ScriptValue *member_value = GetValueForMember(member_name);
-		int member_count = member_value->Count();
-		
-		if (member_count <= 1)
-			p_outstream << member_name << " -> (" << member_value->Type() << ") " << *member_value << endl;
-		else
-			p_outstream << member_name << " -> (" << member_value->Type() << ") (" << member_count << " values)" << endl;
-	}
-}
-
-std::ostream &operator<<(std::ostream &p_outstream, const SymbolHost &p_symbols)
-{
-	p_symbols.Print(p_outstream);
-	
-	return p_outstream;
-}
-
-
-//
 //	SymbolTable
 //
 #pragma mark SymbolTable
 
 SymbolTable::SymbolTable(void)
 {
-	SetConstantForMember("T", new ScriptValue_Logical(true));
-	SetConstantForMember("F", new ScriptValue_Logical(false));
-	SetConstantForMember("NULL", new ScriptValue_NULL());
-	SetConstantForMember("PI", new ScriptValue_Float(M_PI));
-	SetConstantForMember("E", new ScriptValue_Float(M_E));
-	SetConstantForMember("INF", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
-	SetConstantForMember("NAN", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()));
+	SetConstantForSymbol("T", new ScriptValue_Logical(true));
+	SetConstantForSymbol("F", new ScriptValue_Logical(false));
+	SetConstantForSymbol("NULL", new ScriptValue_NULL());
+	SetConstantForSymbol("PI", new ScriptValue_Float(M_PI));
+	SetConstantForSymbol("E", new ScriptValue_Float(M_E));
+	SetConstantForSymbol("INF", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
+	SetConstantForSymbol("NAN", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()));
 }
 
 SymbolTable::~SymbolTable(void)
@@ -157,45 +57,32 @@ SymbolTable::~SymbolTable(void)
 		delete symbol_entry.second;
 }
 
-std::vector<std::string> SymbolTable::ReadOnlyMembers(void) const
+std::vector<std::string> SymbolTable::ReadOnlySymbols(void) const
 {
-	std::vector<std::string> members;
+	std::vector<std::string> symbols;
 	
 	for(auto symbol_pair : constants_)
-		members.push_back(symbol_pair.first);
+		symbols.push_back(symbol_pair.first);
 	
-	return members;
+	return symbols;
 }
 
-std::vector<std::string> SymbolTable::ReadWriteMembers(void) const
+std::vector<std::string> SymbolTable::ReadWriteSymbols(void) const
 {
-	std::vector<std::string> members;
+	std::vector<std::string> symbols;
 	
 	for(auto symbol_pair : variables_)
-		members.push_back(symbol_pair.first);
+		symbols.push_back(symbol_pair.first);
 	
-	return members;
+	return symbols;
 }
 
-ScriptValue *SymbolTable::GetValueAtIndex(const int p_idx) const
-{
-#pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR (GetValueAtIndex): Subscripting of the global namespace is not allowed." << endl << slim_terminate();
-	return nullptr;
-}
-
-void SymbolTable::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
-{
-#pragma unused(p_idx, p_value)
-	SLIM_TERMINATION << "ERROR (GetValueAtIndex): Subscripting of the global namespace is not allowed." << endl << slim_terminate();
-}
-
-ScriptValue *SymbolTable::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *SymbolTable::GetValueForSymbol(const std::string &p_symbol_name) const
 {
 	ScriptValue *result = nullptr;
 	
 	// first look in our constants
-	auto constant_iter = constants_.find(p_member_name);
+	auto constant_iter = constants_.find(p_symbol_name);
 	
 	if (constant_iter != constants_.end())
 	{
@@ -205,24 +92,28 @@ ScriptValue *SymbolTable::GetValueForMember(const std::string &p_member_name) co
 	else
 	{
 		// no hit; check in our variables
-		auto variable_iter = variables_.find(p_member_name);
+		auto variable_iter = variables_.find(p_symbol_name);
 		
-		result = (variable_iter == variables_.end()) ? nullptr : (*variable_iter).second;
+		if (variable_iter != variables_.end())
+			result = (*variable_iter).second;
 	}
 	
 	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
+	if (!result)
+		SLIM_TERMINATION << "ERROR (SymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << endl << slim_terminate();
+	
 	return result;
 }
 
-void SymbolTable::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
 {
 	// check that we're not trying to overwrite a constant
-	auto constant_iter = constants_.find(p_member_name);
+	auto constant_iter = constants_.find(p_symbol_name);
 	
 	if (constant_iter != constants_.end())
-		SLIM_TERMINATION << "ERROR (SetValueForMember): Identifier '" << p_member_name << "' is a constant." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << endl << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -236,31 +127,29 @@ void SymbolTable::SetValueForMember(const std::string &p_member_name, ScriptValu
 		// it might be possible to set the invisible flag directly instead, since assignment returns NULL; could revisit this...
 		p_value = p_value->CopyValues();
 	}
-	else
-	{
-		// otherwise, we set the symbol table flag so the pointer won't be deleted or reused by anybody else
-		p_value->SetInSymbolTable(true);
-	}
+	
+	// we set the symbol table flag so the pointer won't be deleted or reused by anybody else
+	p_value->SetInSymbolTable(true);
 	
 	// and now set the value in the symbol table
-	variables_[p_member_name] = p_value;
+	variables_[p_symbol_name] = p_value;
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
-void SymbolTable::SetConstantForMember(const std::string &p_member_name, ScriptValue *p_value)
+void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
 {
 	// check that we're not trying to overwrite a constant
-	auto constant_iter = constants_.find(p_member_name);
+	auto constant_iter = constants_.find(p_symbol_name);
 	
 	if (constant_iter != constants_.end())
-		SLIM_TERMINATION << "ERROR (SetConstantForMember): Identifier '" << p_member_name << "' is already a constant." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << endl << slim_terminate();
 	
 	// check that we're not trying to overwrite a variable; if you want to define a constant, you have to get there first
-	auto variable_iter = variables_.find(p_member_name);
+	auto variable_iter = variables_.find(p_symbol_name);
 	
 	if (variable_iter != variables_.end())
-		SLIM_TERMINATION << "ERROR (SetConstantForMember): Identifier '" << p_member_name << "' is already a variable." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << endl << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -274,36 +163,39 @@ void SymbolTable::SetConstantForMember(const std::string &p_member_name, ScriptV
 		// it might be possible to set the invisible flag directly instead, since assignment returns NULL; could revisit this...
 		p_value = p_value->CopyValues();
 	}
-	else
-	{
-		// otherwise, we set the symbol table flag so the pointer won't be deleted or reused by anybody else
-		p_value->SetInSymbolTable(true);
-	}
+	
+	// we set the symbol table flag so the pointer won't be deleted or reused by anybody else
+	p_value->SetInSymbolTable(true);
 	
 	// and now set the value in the symbol table
-	constants_[p_member_name] = p_value;
+	constants_[p_symbol_name] = p_value;
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
-void SymbolTable::RemoveValueForMember(const std::string &p_member_name)
+void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant)
 {
 	{
-		auto constant_iter = constants_.find(p_member_name);
+		auto constant_iter = constants_.find(p_symbol_name);
 		
 		if (constant_iter != constants_.end())
 		{
-			ScriptValue *value = constant_iter->second;
-			
-			constants_.erase(constant_iter);
-			
-			value->SetInSymbolTable(false);
-			delete value;
+			if (remove_constant)
+			{
+				ScriptValue *value = constant_iter->second;
+				
+				constants_.erase(constant_iter);
+				
+				value->SetInSymbolTable(false);
+				delete value;
+			}
+			else
+				SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << endl << slim_terminate();
 		}
 	}
 	
 	{
-		auto variables_iter = variables_.find(p_member_name);
+		auto variables_iter = variables_.find(p_symbol_name);
 		
 		if (variables_iter != variables_.end())
 		{
@@ -317,6 +209,36 @@ void SymbolTable::RemoveValueForMember(const std::string &p_member_name)
 	}
 }
 
+std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols)
+{
+	std::vector<std::string> read_only_symbol_names = p_symbols.ReadOnlySymbols();
+	std::vector<std::string> read_write_symbol_names = p_symbols.ReadWriteSymbols();
+	
+	for (auto symbol_name_iter = read_only_symbol_names.begin(); symbol_name_iter != read_only_symbol_names.end(); ++symbol_name_iter)
+	{
+		const std::string symbol_name = *symbol_name_iter;
+		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
+		int symbol_count = symbol_value->Count();
+		
+		if (symbol_count <= 1)
+			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *symbol_value << endl;
+		else
+			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") (" << symbol_count << " values)" << endl;
+	}
+	for (auto symbol_name_iter = read_write_symbol_names.begin(); symbol_name_iter != read_write_symbol_names.end(); ++symbol_name_iter)
+	{
+		const std::string symbol_name = *symbol_name_iter;
+		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
+		int symbol_count = symbol_value->Count();
+		
+		if (symbol_count <= 1)
+			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *symbol_value << endl;
+		else
+			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") (" << symbol_count << " values)" << endl;
+	}
+	
+	return p_outstream;
+}
 
 
 

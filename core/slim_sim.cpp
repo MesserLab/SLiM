@@ -167,8 +167,8 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
 	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
 	
 	// A constant for quick reference; we have to remove it each time because you can't overwrite a constant value
-	global_symbols.RemoveValueForMember("generation");
-	global_symbols.SetConstantForMember("generation", new ScriptValue_Int(generation_));
+	global_symbols.RemoveValueForSymbol("generation", true);
+	global_symbols.SetConstantForSymbol("generation", new ScriptValue_Int(generation_));
 	
 	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
 	if (!simFunctionSig)

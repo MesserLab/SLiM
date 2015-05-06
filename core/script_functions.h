@@ -32,6 +32,10 @@
 #include <iostream>
 
 
+// Utility functions usable by everybody
+ScriptValue *ConcatenateScriptValues(std::string p_function_name, std::vector<ScriptValue*> p_arguments);
+
+
 // A numeric identifier for a function once its name has been looked up; just for efficiency, to allow switch()
 enum class FunctionIdentifier {
 	kNoFunction = 0,
@@ -105,11 +109,12 @@ enum class FunctionIdentifier {
 	licenseFunction,
 	helpFunction,
 	lsFunction,
+	rmFunction,
 	functionFunction,
 	dateFunction,
 	timeFunction,
 	
-	// proxy instantiation
+	// object instantiation
 	PathFunction
 };
 
@@ -150,7 +155,7 @@ public:
 	FunctionSignature *AddInt();
 	FunctionSignature *AddFloat();
 	FunctionSignature *AddString();
-	FunctionSignature *AddProxy();
+	FunctionSignature *AddObject();
 	FunctionSignature *AddNumeric();
 	FunctionSignature *AddLogicalEquiv();
 	FunctionSignature *AddAnyBase();
@@ -161,7 +166,7 @@ public:
 	FunctionSignature *AddInt_O();
 	FunctionSignature *AddFloat_O();
 	FunctionSignature *AddString_O();
-	FunctionSignature *AddProxy_O();
+	FunctionSignature *AddObject_O();
 	FunctionSignature *AddNumeric_O();
 	FunctionSignature *AddLogicalEquiv_O();
 	FunctionSignature *AddAnyBase_O();
@@ -172,7 +177,7 @@ public:
 	FunctionSignature *AddInt_S();
 	FunctionSignature *AddFloat_S();
 	FunctionSignature *AddString_S();
-	FunctionSignature *AddProxy_S();
+	FunctionSignature *AddObject_S();
 	FunctionSignature *AddNumeric_S();
 	FunctionSignature *AddLogicalEquiv_S();
 	FunctionSignature *AddAnyBase_S();
@@ -183,7 +188,7 @@ public:
 	FunctionSignature *AddInt_OS();
 	FunctionSignature *AddFloat_OS();
 	FunctionSignature *AddString_OS();
-	FunctionSignature *AddProxy_OS();
+	FunctionSignature *AddObject_OS();
 	FunctionSignature *AddNumeric_OS();
 	FunctionSignature *AddLogicalEquiv_OS();
 	FunctionSignature *AddAnyBase_OS();

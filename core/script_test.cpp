@@ -261,7 +261,38 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float(10,9,8,7,6));
 	AssertScriptSuccess("rev(c(T,T,T,F));", new ScriptValue_Logical(false, true, true, true));
 
-
+	// tests for the = operator (especially in conjunction with the [] operator)
+	AssertScriptSuccess("x = 5; x;", new ScriptValue_Int(5));
+	AssertScriptSuccess("x = 1:5; x;", new ScriptValue_Int(1, 2, 3, 4, 5));
+	AssertScriptSuccess("x = 1:5; x[x % 2 == 1] = 10; x;", new ScriptValue_Int(10, 2, 10, 4, 10));
+	AssertScriptSuccess("x = 1:5; x[x % 2 == 1][1:2] = 10; x;", new ScriptValue_Int(1, 2, 10, 4, 10));
+	AssertScriptSuccess("x = 1:5; x[1:3*2 - 2] = 10; x;", new ScriptValue_Int(10, 2, 10, 4, 10));
+	AssertScriptSuccess("x = 1:5; x[1:3*2 - 2][0:1] = 10; x;", new ScriptValue_Int(10, 2, 10, 4, 5));
+	AssertScriptSuccess("x = 1:5; x[x % 2 == 1] = 11:13; x;", new ScriptValue_Int(11, 2, 12, 4, 13));
+	AssertScriptSuccess("x = 1:5; x[x % 2 == 1][1:2] = 11:12; x;", new ScriptValue_Int(1, 2, 11, 4, 12));
+	AssertScriptSuccess("x = 1:5; x[1:3*2 - 2] = 11:13; x;", new ScriptValue_Int(11, 2, 12, 4, 13));
+	AssertScriptSuccess("x = 1:5; x[1:3*2 - 2][0:1] = 11:12; x;", new ScriptValue_Int(11, 2, 12, 4, 5));
+	AssertScriptRaise("x = 1:5; x[1:3*2 - 2][0:1] = 11:13; x;");
+	AssertScriptRaise("x = 1:5; x[NULL] = NULL; x;");
+	AssertScriptSuccess("x = 1:5; x[NULL] = 10; x;", new ScriptValue_Int(1, 2, 3, 4, 5)); // assigns 10 to no indices, perfectly legal
+	AssertScriptRaise("x = 1:5; x[3] = NULL; x;");
+	AssertScriptSuccess("x = 1.0:5; x[3] = 1; x;", new ScriptValue_Float(1, 2, 3, 1, 5));
+	AssertScriptSuccess("x = c(\"a\", \"b\", \"c\"); x[1] = 1; x;", new ScriptValue_String("a", "1", "c"));
+	AssertScriptRaise("x = 1:5; x[3] = 1.5; x;");
+	AssertScriptRaise("x = 1:5; x[3] = \"foo\"; x;");
+	
+	// tests for the = operator (especially in conjunction with the . operator)
+	AssertScriptSuccess("x=Path(); x.path;", new ScriptValue_String("~"));
+	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path;", new ScriptValue_String("~", "~", "~", "~"));
+	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z[3].path=\"foo\"; z.path;", new ScriptValue_String("~", "foo", "~", "foo"));
+	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path[3]=\"bar\"; z.path;", new ScriptValue_String("~", "bar", "~", "bar"));
+	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z[c(1,0)].path=c(\"a\",\"b\"); z.path;", new ScriptValue_String("b", "a", "b", "a"));
+	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path[c(1,0)]=c(\"c\",\"d\"); z.path;", new ScriptValue_String("d", "c", "d", "c"));
+	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[3].path=73; z.path;");
+	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[3]=73; z.path;");
+	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2:3].path=73; z.path;");
+	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[2:3]=73; z.path;");
+	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2]=73; z.path;");
 }
 
 

@@ -39,20 +39,23 @@ class ScriptValue;
 struct FunctionSignature;
 class ScriptInterpreter;
 
+class ScriptObjectElement;	// the value type for ScriptValue_Object; defined at the bottom of this file
+
+
 
 // ScriptValueType is an enum of the possible types for ScriptValue objects.  Note that all of these types are vectors of the stated
 // type; all objects in SLiMScript are vectors.  The order of these types is in type-promotion order, from lowest to highest, except
-// that NULL never gets promoted to any other type, and nothing ever gets promoted to proxy (object) type.
+// that NULL never gets promoted to any other type, and nothing ever gets promoted to object type.
 enum class ScriptValueType
 {
-	kValueNULL = 0,		// special NULL value
+	kValueNULL = 0,		// special NULL type; this cannot be mixed with other types or promoted to other types
 	
 	kValueLogical,		// logicals (bools)
 	kValueInt,			// (64-bit) integers
 	kValueFloat,		// (double-precision) floats
 	kValueString,		// strings
 	
-	kValueProxy			// proxy objects: these represent built-in objects with member variables and methods
+	kValueObject		// a vector of ScriptObjectElement objects: these represent built-in objects with member variables and methods
 };
 
 std::string StringForScriptValueType(const ScriptValueType p_type);
@@ -70,7 +73,7 @@ const ScriptValueMask kScriptValueMaskLogical =			0x00000002;
 const ScriptValueMask kScriptValueMaskInt =				0x00000004;
 const ScriptValueMask kScriptValueMaskFloat =			0x00000008;
 const ScriptValueMask kScriptValueMaskString =			0x00000010;
-const ScriptValueMask kScriptValueMaskProxy =			0x00000020;
+const ScriptValueMask kScriptValueMaskObject =			0x00000020;
 	
 const ScriptValueMask kScriptValueMaskOptional =		0x80000000;
 const ScriptValueMask kScriptValueMaskSingleton =		0x40000000;
@@ -79,8 +82,8 @@ const ScriptValueMask kScriptValueMaskFlagStrip =		0x3FFFFFFF;
 	
 const ScriptValueMask kScriptValueMaskNumeric =			(kScriptValueMaskInt | kScriptValueMaskFloat);										// integer or float
 const ScriptValueMask kScriptValueMaskLogicalEquiv =	(kScriptValueMaskLogical | kScriptValueMaskInt | kScriptValueMaskFloat);			// logical, integer, or float
-const ScriptValueMask kScriptValueMaskAnyBase =			(kScriptValueMaskNULL | kScriptValueMaskLogicalEquiv | kScriptValueMaskString);		// any type except proxy
-const ScriptValueMask kScriptValueMaskAny =				(kScriptValueMaskAnyBase | kScriptValueMaskProxy);									// any type including proxy
+const ScriptValueMask kScriptValueMaskAnyBase =			(kScriptValueMaskNULL | kScriptValueMaskLogicalEquiv | kScriptValueMaskString);		// any type except object
+const ScriptValueMask kScriptValueMaskAny =				(kScriptValueMaskAnyBase | kScriptValueMaskObject);									// any type including object
 
 std::string StringForScriptValueMask(const ScriptValueMask p_mask);
 //std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueMask p_mask);	// can't do this since ScriptValueMask is just uint32_t
@@ -88,7 +91,7 @@ std::string StringForScriptValueMask(const ScriptValueMask p_mask);
 
 // A class representing a value resulting from script evaluation.  SLiMScript is quite dynamically typed;
 // problems cause runtime exceptions.  ScriptValue is the abstract base class for all value classes.
-class ScriptValue : public SymbolHost
+class ScriptValue
 {
 	//	This class has its assignment operator disabled, to prevent accidental copying.
 private:
@@ -117,21 +120,16 @@ public:
 	bool InSymbolTable(void) const;
 	ScriptValue *SetInSymbolTable(bool p_in_symbol_table);
 	
-	// basic subscript access from SymbolHost; still abstract here since we want to force subclasses to define this
+	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value) = 0;
-	
-	// basic member access from SymbolHost; defined here to raise with an error message
-	virtual std::vector<std::string> ReadOnlyMembers(void) const;
-	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
 	
 	// fetching individual values; these convert type if necessary, and (base class behavior) raise if impossible
 	virtual bool LogicalAtIndex(int p_idx) const;
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
 	virtual double FloatAtIndex(int p_idx) const;
+	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const;
 	
 	// methods to allow type-agnostic manipulation of ScriptValues
 	virtual ScriptValue *CopyValues(void) const = 0;			// a deep copy of the receiver with in_symbol_table_ == invisible_ == false
@@ -313,27 +311,97 @@ public:
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 };
 
-class ScriptValue_Proxy : public ScriptValue
+class ScriptValue_Object : public ScriptValue
 {
-public:
-	ScriptValue_Proxy(const ScriptValue_Proxy &p_original) = delete;		// can copy-construct
-	ScriptValue_Proxy& operator=(const ScriptValue_Proxy&) = delete;	// no copying
+private:
+	std::vector<ScriptObjectElement *> values_;		// Whether these are owned or not depends on ScriptObjectElement::ExternallyOwned(); see below
 	
-	ScriptValue_Proxy(void) = default;
+public:
+	ScriptValue_Object(const ScriptValue_Object &p_original);				// can copy-construct, but it is not the default constructor since we need to deep copy
+	ScriptValue_Object& operator=(const ScriptValue_Object&) = delete;		// no copying
+	
+	ScriptValue_Object(void);
+	explicit ScriptValue_Object(ScriptObjectElement *p_element1);
+	virtual ~ScriptValue_Object(void);
 	
 	virtual ScriptValueType Type(void) const;
+	virtual std::string ElementType(void) const;
 	virtual int Count(void) const;
-	virtual std::string ProxyType(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const;
+	void PushElement(ScriptObjectElement *p_element);
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual ScriptValue *CopyValues(void) const;
+	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	
-	// Method support; defined only on ScriptValue_Proxy, not ScriptValue or SymbolHost
+	// Method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
+	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+};
+
+
+// This is the value type of which ScriptValue_Object is a vector, just as double is the value type of which
+// ScriptValue_Float is a vector.  ScriptValue_Object is just a bag; this class is the abstract base class of
+// the things that can be contained in that bag.  This class defines the methods that can be used by an
+// instance of ScriptValue_Object; ScriptValue_Object just forwards such things on to this class.
+// ScriptObjectElement obeys sharing semantics; many ScriptValue_Objects can refer to the same element, and
+// ScriptObjectElement never copies itself.  To manage its lifetime, refcounting is used.  Externally-owned
+// objects (such as from SLiM) do not use this refcount, since their lifetime is defined externally, but
+// internally-owned objects (such as Path) use the refcount and delete themselves when they are done.
+class ScriptObjectElement
+{
+public:
+	ScriptObjectElement(const ScriptObjectElement &p_original) = delete;		// can copy-construct
+	ScriptObjectElement& operator=(const ScriptObjectElement&) = delete;		// no copying
+	
+	ScriptObjectElement(void);
+	virtual ~ScriptObjectElement(void);
+	
+	virtual std::string ElementType(void) const = 0;
+	
+	// refcounting; virtual no-ops here (for externally-owned objects), implemented in ScriptObjectElementInternal
+	virtual ScriptObjectElement *Retain(void);
+	virtual ScriptObjectElement *Release(void);
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+};
+
+std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element);
+
+
+class ScriptObjectElementInternal : public ScriptObjectElement
+{
+private:
+	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
+	
+public:
+	ScriptObjectElementInternal(const ScriptObjectElementInternal &p_original) = delete;		// can copy-construct
+	ScriptObjectElementInternal& operator=(const ScriptObjectElementInternal&) = delete;		// no copying
+	
+	ScriptObjectElementInternal(void);
+	virtual ~ScriptObjectElementInternal(void);
+	
+	virtual ScriptObjectElement *Retain(void);
+	virtual ScriptObjectElement *Release(void);
 };
 
 

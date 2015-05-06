@@ -19,7 +19,7 @@
 
 
 #include "script_functions.h"
-#include "script_pathproxy.h"
+#include "script_pathelement.h"
 #include "script_interpreter.h"
 
 #include "math.h"
@@ -54,11 +54,11 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 {
 	// data construction functions
 	
-	RegisterSignature((new FunctionSignature("rep",		FunctionIdentifier::repFunction,		kScriptValueMaskAnyBase))->AddAnyBase()->AddInt_S());
-	RegisterSignature((new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	kScriptValueMaskAnyBase))->AddAnyBase()->AddInt());
+	RegisterSignature((new FunctionSignature("rep",		FunctionIdentifier::repFunction,		kScriptValueMaskAny))->AddAny()->AddInt_S());
+	RegisterSignature((new FunctionSignature("repEach",	FunctionIdentifier::repEachFunction,	kScriptValueMaskAny))->AddAny()->AddInt());
 	RegisterSignature((new FunctionSignature("seq",		FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
 	RegisterSignature((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
-	RegisterSignature((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAnyBase))->AddEllipsis());
+	RegisterSignature((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAny))->AddEllipsis());
 	
 	
 	// data inspection/manipulation functions
@@ -75,7 +75,7 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 	sdFunction,
 	*/
 	
-	RegisterSignature((new FunctionSignature("rev",		FunctionIdentifier::revFunction,		kScriptValueMaskAnyBase))->AddAnyBase());
+	RegisterSignature((new FunctionSignature("rev",		FunctionIdentifier::revFunction,		kScriptValueMaskAny))->AddAny());
 	
 	/*
 	sortFunction,
@@ -100,11 +100,11 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 	RegisterSignature((new FunctionSignature("acos",		FunctionIdentifier::acosFunction,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("asin",		FunctionIdentifier::asinFunction,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("atan",		FunctionIdentifier::atanFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("cos",		FunctionIdentifier::cosFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("sin",		FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("tan",		FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("exp",		FunctionIdentifier::expFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("log",		FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("cos",			FunctionIdentifier::cosFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("sin",			FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("tan",			FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("exp",			FunctionIdentifier::expFunction,		kScriptValueMaskFloat))->AddNumeric());
+	RegisterSignature((new FunctionSignature("log",			FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("log10",		FunctionIdentifier::log10Function,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("log2",		FunctionIdentifier::log2Function,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
@@ -112,20 +112,21 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 	RegisterSignature((new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("round",		FunctionIdentifier::roundFunction,		kScriptValueMaskFloat))->AddNumeric());
 	RegisterSignature((new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		kScriptValueMaskFloat))->AddNumeric());
-	RegisterSignature((new FunctionSignature("abs",		FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
+	RegisterSignature((new FunctionSignature("abs",			FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
 	
 	// bookkeeping functions
 
 	RegisterSignature((new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
-	RegisterSignature((new FunctionSignature("version",	FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
-	RegisterSignature((new FunctionSignature("license",	FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
+	RegisterSignature((new FunctionSignature("version",		FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
+	RegisterSignature((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
 	RegisterSignature((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
 	RegisterSignature((new FunctionSignature("ls",			FunctionIdentifier::lsFunction,			kScriptValueMaskNULL)));
+	RegisterSignature((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
 	RegisterSignature((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
 	
-	// proxy instantiation
+	// object instantiation
 	
-	RegisterSignature((new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskProxy | kScriptValueMaskSingleton))->AddString_OS());
+	RegisterSignature((new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskObject | kScriptValueMaskSingleton))->AddString_OS());
 }
 
 
@@ -133,10 +134,12 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 //	Executing function calls
 //
 
-ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
+ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*> p_arguments)
 {
 #pragma unused(p_function_name)
 	ScriptValueType highest_type = ScriptValueType::kValueNULL;
+	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
+	string element_type;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
 	for (ScriptValue *arg_value : p_arguments)
@@ -145,11 +148,41 @@ ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
 		
 		if (arg_type > highest_type)
 			highest_type = arg_type;
+		
+		if (!arg_value->Invisible())
+			all_invisible = false;
+		
+		if (arg_type == ScriptValueType::kValueObject)
+		{
+			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
+			{
+				string this_element_type = static_cast<ScriptValue_Object *>(arg_value)->ElementType();
+				
+				if (element_type.length() == 0)
+				{
+					// we haven't seen a (non-empty) object type yet, so remember what type we're dealing with
+					element_type = this_element_type;
+				}
+				else
+				{
+					// we've already seen a object type, so check that this one is the same type
+					if (element_type.compare(this_element_type) != 0)
+						SLIM_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << endl << slim_terminate();
+				}
+			}
+			
+			has_object_type = true;
+		}
+		else
+			has_nonobject_type = true;
 	}
 	
-	// If we've got nothing but NULL, then return NULL
+	if (has_object_type && has_nonobject_type)
+		SLIM_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << endl << slim_terminate();
+	
+	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == ScriptValueType::kValueNULL)
-		return new ScriptValue_NULL();
+		return (all_invisible ? ScriptValue_NULL::ScriptValue_NULL_Invisible() : new ScriptValue_NULL());
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
 	if (highest_type == ScriptValueType::kValueLogical)
@@ -196,12 +229,27 @@ ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
 		
 		return result;
 	}
+	else if (has_object_type)
+	{
+		ScriptValue_Object *result = new ScriptValue_Object();
+		
+		for (ScriptValue *arg_value : p_arguments)
+			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
+				result->PushElement(arg_value->ElementAtIndex(value_index));
+		
+		return result;
+	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (Execute_c): type '" << highest_type << "' cannot be used with c()." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateScriptValues()." << endl << slim_terminate();
 	}
 	
 	return nullptr;
+}
+
+ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
+{
+	return ConcatenateScriptValues(p_function_name, p_arguments);
 }
 
 ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments)
@@ -618,7 +666,23 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 		case FunctionIdentifier::lsFunction:
 			p_output_stream << *global_symbols_;
 			break;
-		
+			
+		case FunctionIdentifier::rmFunction:
+		{
+			vector<string> symbols_to_remove;
+			
+			if (n_args == 0)
+				symbols_to_remove = global_symbols_->ReadWriteSymbols();
+			else
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					symbols_to_remove.push_back(arg1_value->StringAtIndex(value_index));
+			
+			for (string symbol : symbols_to_remove)
+				global_symbols_->RemoveValueForSymbol(symbol, false);
+			
+			break;
+		}
+			
 		case FunctionIdentifier::functionFunction:
 		{
 			string match_string = (arg1_value ? arg1_value->StringAtIndex(0) : "");
@@ -646,13 +710,12 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
 			break;
 			
-			// proxy instantiation
+			// object instantiation
 			
 		case FunctionIdentifier::PathFunction:
-			if (n_args == 1)
-				result = new ScriptValue_PathProxy(arg1_value->StringAtIndex(0));
-			else
-				result = new ScriptValue_PathProxy();
+			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg1_value->StringAtIndex(0))) : (new Script_PathElement());
+			result = new ScriptValue_Object(pathElement);
+			pathElement->Release();
 			break;
 	}
 	
@@ -669,7 +732,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Proxy *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
 {
 	ScriptValue *result = nullptr;
 	
@@ -738,7 +801,7 @@ FunctionSignature *FunctionSignature::AddLogical()			{ return AddArg(kScriptValu
 FunctionSignature *FunctionSignature::AddInt()				{ return AddArg(kScriptValueMaskInt); }
 FunctionSignature *FunctionSignature::AddFloat()			{ return AddArg(kScriptValueMaskFloat); }
 FunctionSignature *FunctionSignature::AddString()			{ return AddArg(kScriptValueMaskString); }
-FunctionSignature *FunctionSignature::AddProxy()			{ return AddArg(kScriptValueMaskProxy); }
+FunctionSignature *FunctionSignature::AddObject()			{ return AddArg(kScriptValueMaskObject); }
 FunctionSignature *FunctionSignature::AddNumeric()			{ return AddArg(kScriptValueMaskNumeric); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv()		{ return AddArg(kScriptValueMaskLogicalEquiv); }
 FunctionSignature *FunctionSignature::AddAnyBase()			{ return AddArg(kScriptValueMaskAnyBase); }
@@ -748,7 +811,7 @@ FunctionSignature *FunctionSignature::AddLogical_O()		{ return AddArg(kScriptVal
 FunctionSignature *FunctionSignature::AddInt_O()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskOptional); }
 FunctionSignature *FunctionSignature::AddFloat_O()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskOptional); }
 FunctionSignature *FunctionSignature::AddString_O()			{ return AddArg(kScriptValueMaskString | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddProxy_O()			{ return AddArg(kScriptValueMaskProxy | kScriptValueMaskOptional); }
+FunctionSignature *FunctionSignature::AddObject_O()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskOptional); }
 FunctionSignature *FunctionSignature::AddNumeric_O()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptional); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv_O()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptional); }
 FunctionSignature *FunctionSignature::AddAnyBase_O()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskOptional); }
@@ -758,7 +821,7 @@ FunctionSignature *FunctionSignature::AddLogical_S()		{ return AddArg(kScriptVal
 FunctionSignature *FunctionSignature::AddInt_S()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskSingleton); }
 FunctionSignature *FunctionSignature::AddFloat_S()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskSingleton); }
 FunctionSignature *FunctionSignature::AddString_S()			{ return AddArg(kScriptValueMaskString | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddProxy_S()			{ return AddArg(kScriptValueMaskProxy | kScriptValueMaskSingleton); }
+FunctionSignature *FunctionSignature::AddObject_S()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskSingleton); }
 FunctionSignature *FunctionSignature::AddNumeric_S()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskSingleton); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv_S()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskSingleton); }
 FunctionSignature *FunctionSignature::AddAnyBase_S()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskSingleton); }
@@ -768,7 +831,7 @@ FunctionSignature *FunctionSignature::AddLogical_OS()		{ return AddArg(kScriptVa
 FunctionSignature *FunctionSignature::AddInt_OS()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskOptSingleton); }
 FunctionSignature *FunctionSignature::AddFloat_OS()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskOptSingleton); }
 FunctionSignature *FunctionSignature::AddString_OS()		{ return AddArg(kScriptValueMaskString | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddProxy_OS()			{ return AddArg(kScriptValueMaskProxy | kScriptValueMaskOptSingleton); }
+FunctionSignature *FunctionSignature::AddObject_OS()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskOptSingleton); }
 FunctionSignature *FunctionSignature::AddNumeric_OS()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptSingleton); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv_OS()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptSingleton); }
 FunctionSignature *FunctionSignature::AddAnyBase_OS()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskOptSingleton); }
@@ -818,7 +881,7 @@ void FunctionSignature::CheckArguments(std::string const &p_call_type, std::vect
 				case ScriptValueType::kValueString:		type_ok = !!(type_mask & kScriptValueMaskString);	break;
 				case ScriptValueType::kValueInt:		type_ok = !!(type_mask & kScriptValueMaskInt);		break;
 				case ScriptValueType::kValueFloat:		type_ok = !!(type_mask & kScriptValueMaskFloat);	break;
-				case ScriptValueType::kValueProxy:		type_ok = !!(type_mask & kScriptValueMaskProxy);	break;
+				case ScriptValueType::kValueObject:		type_ok = !!(type_mask & kScriptValueMaskObject);	break;
 			}
 			
 			if (!type_ok)
@@ -842,7 +905,7 @@ void FunctionSignature::CheckReturn(std::string const &p_call_type, ScriptValue 
 		case ScriptValueType::kValueInt:		return_type_ok = !!(retmask & kScriptValueMaskInt);		break;
 		case ScriptValueType::kValueFloat:		return_type_ok = !!(retmask & kScriptValueMaskFloat);		break;
 		case ScriptValueType::kValueString:		return_type_ok = !!(retmask & kScriptValueMaskString);	break;
-		case ScriptValueType::kValueProxy:		return_type_ok = !!(retmask & kScriptValueMaskProxy);		break;
+		case ScriptValueType::kValueObject:		return_type_ok = !!(retmask & kScriptValueMaskObject);		break;
 	}
 	
 	if (!return_type_ok)

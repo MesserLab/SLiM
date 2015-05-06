@@ -1,5 +1,5 @@
 //
-//  script_pathproxy.h
+//  script_pathelement.h
 //  SLiM
 //
 //  Created by Ben Haller on 5/1/15.
@@ -19,35 +19,36 @@
 
 /*
  
- The class ScriptValue_PathProxy is a proxy value class (i.e. a SLiMscript object class) that encapsulates the idea of a
+ The class Script_PathElement is an object value class (i.e. a value class for ScriptValue_Object) that encapsulates a
  filesystem directory.  It is quite primitive; you can list contents, read a file, or white a file.  That functionality
  may be useful in itself, but the main purpose is as a proof of concept for SLiMscript's support of proxies, including
- instance variables, method calls, and instantiation.  SLiM's scriptability is based upon proxy objects like this.
+ instance variables, method calls, and instantiation.  SLiM's scriptability is based upon element objects like this.
  
  */
 
-#ifndef __SLiM__script_pathproxy__
-#define __SLiM__script_pathproxy__
+#ifndef __SLiM__script_pathelement__
+#define __SLiM__script_pathelement__
 
 #include "script_value.h"
 
 
-class ScriptValue_PathProxy : public ScriptValue_Proxy
+class Script_PathElement : public ScriptObjectElementInternal
 {
 private:
 	std::string base_path_;
 	
 public:
-	ScriptValue_PathProxy(const ScriptValue_PathProxy &p_original) = delete;		// can copy-construct
-	ScriptValue_PathProxy& operator=(const ScriptValue_PathProxy&) = delete;	// no copying
+	Script_PathElement(const Script_PathElement &p_original) = delete;		// can copy-construct
+	Script_PathElement& operator=(const Script_PathElement&) = delete;	// no copying
 	
-	ScriptValue_PathProxy(void);
-	explicit ScriptValue_PathProxy(std::string p_base_path);
+	Script_PathElement(void);
+	explicit Script_PathElement(std::string p_base_path);
 	
-	std::string ProxyType(void) const;
+	virtual std::string ElementType(void) const;
 	
-	virtual ScriptValue *CopyValues(void) const;
-	virtual ScriptValue *NewMatchingType(void) const;
+	virtual bool ExternallyOwned(void) const;
+	virtual ScriptObjectElement *ScriptCopy(void);
+	virtual void ScriptDelete(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
@@ -62,7 +63,7 @@ public:
 };
 
 
-#endif /* defined(__SLiM__script_pathproxy__) */
+#endif /* defined(__SLiM__script_pathelement__) */
 
 
 

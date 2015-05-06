@@ -40,7 +40,7 @@ string StringForScriptValueType(const ScriptValueType p_type)
 		case ScriptValueType::kValueString:		return "string";
 		case ScriptValueType::kValueInt:		return "integer";
 		case ScriptValueType::kValueFloat:		return "float";
-		case ScriptValueType::kValueProxy:		return "object";
+		case ScriptValueType::kValueObject:		return "object";
 	}
 }
 
@@ -69,7 +69,7 @@ std::string StringForScriptValueMask(const ScriptValueMask p_mask)
 	else if (type_mask == kScriptValueMaskString)	out_string += "string";
 	else if (type_mask == kScriptValueMaskInt)		out_string += "integer";
 	else if (type_mask == kScriptValueMaskFloat)	out_string += "float";
-	else if (type_mask == kScriptValueMaskProxy)	out_string += "object";
+	else if (type_mask == kScriptValueMaskObject)	out_string += "object";
 	else if (type_mask == kScriptValueMaskNumeric)	out_string += "numeric";
 	else
 	{
@@ -78,7 +78,7 @@ std::string StringForScriptValueMask(const ScriptValueMask p_mask)
 		if (type_mask & kScriptValueMaskInt)		out_string += "i";
 		if (type_mask & kScriptValueMaskFloat)		out_string += "f";
 		if (type_mask & kScriptValueMaskString)		out_string += "s";
-		if (type_mask & kScriptValueMaskProxy)		out_string += "o";
+		if (type_mask & kScriptValueMaskObject)		out_string += "o";
 	}
 	
 	if (requires_singleton)
@@ -97,7 +97,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	ScriptValueType type2 = p_value2->Type();
 	
 	if ((type1 == ScriptValueType::kValueNULL) || (type2 == ScriptValueType::kValueNULL))
-		SLIM_TERMINATION << "ERROR (CompareScriptValues): called with a NULL argument." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison with NULL is illegal." << endl << slim_terminate();
 	
 	// string is the highest type, so we promote to string if either operand is a string
 	if ((type1 == ScriptValueType::kValueString) || (type2 == ScriptValueType::kValueString))
@@ -136,6 +136,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	}
 	
 	// that's the end of the road; we should never reach this point
+	SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison involving type " << type1 << " and type " << type2 << " is undefined." << endl << slim_terminate();
 	return 0;
 }
 
@@ -174,29 +175,6 @@ ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 	return this;
 }
 
-std::vector<std::string> ScriptValue::ReadOnlyMembers(void) const
-{
-	return std::vector<std::string>();
-}
-
-std::vector<std::string> ScriptValue::ReadWriteMembers(void) const
-{
-	return std::vector<std::string>();
-}
-
-ScriptValue *ScriptValue::GetValueForMember(const std::string &p_member_name) const
-{
-#pragma unused(p_member_name)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " does not support the member operator ('.')." << endl << slim_terminate();
-	return nullptr;
-}
-
-void ScriptValue::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
-{
-#pragma unused(p_member_name, p_value)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " does not support the member operator ('.')." << endl << slim_terminate();
-}
-
 bool ScriptValue::LogicalAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
@@ -223,6 +201,13 @@ double ScriptValue::FloatAtIndex(int p_idx) const
 #pragma unused(p_idx)
 	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type float." << endl << slim_terminate();
 	return 0.0;
+}
+
+ScriptObjectElement *ScriptValue::ElementAtIndex(int p_idx) const
+{
+#pragma unused(p_idx)
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type object." << endl << slim_terminate();
+	return nullptr;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptValue &p_value)
@@ -906,45 +891,308 @@ void ScriptValue_Float::PushValueFromIndexOfScriptValue(int p_idx, const ScriptV
 
 
 //
-//	ScriptValue_Proxy
+//	ScriptValue_Object
 //
-#pragma mark ScriptValue_Proxy
+#pragma mark ScriptValue_Object
 
-ScriptValueType ScriptValue_Proxy::Type(void) const
+ScriptValue_Object::ScriptValue_Object(const ScriptValue_Object &p_original)
 {
-	return ScriptValueType::kValueProxy;
+	for (auto value : p_original.values_)
+		values_.push_back(value->Retain());
 }
 
-int ScriptValue_Proxy::Count(void) const
+ScriptValue_Object::ScriptValue_Object(void)
 {
-	return 1;
 }
 
-void ScriptValue_Proxy::Print(std::ostream &p_ostream) const
+ScriptValue_Object::ScriptValue_Object(ScriptObjectElement *p_element1)
 {
-	p_ostream << "<object: " << ProxyType() << ">";
+	values_.push_back(p_element1->Retain());
 }
 
-ScriptValue *ScriptValue_Proxy::GetValueAtIndex(const int p_idx) const
+ScriptValue_Object::~ScriptValue_Object(void)
 {
-#pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: ScriptValue_Proxy does not support the subscript operator ('[]')." << endl << slim_terminate();
+	if (values_.size() != 0)
+	{
+		for (auto value : values_)
+			value->Release();
+	}
+}
+
+ScriptValueType ScriptValue_Object::Type(void) const
+{
+	return ScriptValueType::kValueObject;
+}
+
+std::string ScriptValue_Object::ElementType(void) const
+{
+	if (values_.size() == 0)
+		return "undefined";
+	else
+		return values_[0]->ElementType();
+}
+
+int ScriptValue_Object::Count(void) const
+{
+	return (int)values_.size();
+}
+
+void ScriptValue_Object::Print(std::ostream &p_ostream) const
+{
+	if (values_.size() == 0)
+	{
+		p_ostream << "object(0)";
+	}
+	else
+	{
+		bool first = true;
+		
+		for (ScriptObjectElement *value : values_)
+		{
+			if (first)
+				first = false;
+			else
+				p_ostream << ' ';
+			
+			p_ostream << *value;
+		}
+	}
+}
+
+ScriptObjectElement *ScriptValue_Object::ElementAtIndex(int p_idx) const
+{
+	return values_.at(p_idx);
+}
+
+void ScriptValue_Object::PushElement(ScriptObjectElement *p_element)
+{
+	if ((values_.size() > 0) && (ElementType().compare(p_element->ElementType()) != 0))
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushElement): the type of an object cannot be changed." << endl << slim_terminate();
+	else
+		values_.push_back(p_element->Retain());
+}
+
+ScriptValue *ScriptValue_Object::GetValueAtIndex(const int p_idx) const
+{
+	return new ScriptValue_Object(values_.at(p_idx));
+}
+
+void ScriptValue_Object::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+{
+	if ((p_idx < 0) || (p_idx >= values_.size()))
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+	
+	// can't change the type of element object we collect
+	if ((values_.size() > 0) && (ElementType().compare(p_value->ElementAtIndex(0)->ElementType()) != 0))
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): the type of an object cannot be changed." << endl << slim_terminate();
+	
+	values_.at(p_idx)->Release();
+	values_.at(p_idx) = p_value->ElementAtIndex(0)->Retain();
+}
+
+std::vector<std::string> ScriptValue_Object::ReadOnlyMembers(void) const
+{
+	if (values_.size() == 0)
+		return std::vector<std::string>();
+	else
+		return values_[0]->ReadOnlyMembers();
+}
+
+std::vector<std::string> ScriptValue_Object::ReadWriteMembers(void) const
+{
+	if (values_.size() == 0)
+		return std::vector<std::string>();
+	else
+		return values_[0]->ReadWriteMembers();
+}
+
+ScriptValue *ScriptValue_Object::GetValueForMember(const std::string &p_member_name) const
+{
+	if (values_.size() == 0)
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else
+	{
+		// get the value from all members and collect the results
+		std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
+		bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
+		vector<ScriptValue*> results;
+		
+		for (auto value : values_)
+		{
+			ScriptValue *temp_result = value->GetValueForMember(p_member_name);
+			
+			if (!is_constant_member && (temp_result->Count() != 1))
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << endl << slim_terminate();
+			
+			results.push_back(temp_result);
+		}
+		
+		// concatenate the results using Execute_c(); we pass our own name as p_function_name, which just makes errors be in our name
+		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::GetValueForMember", results);
+		
+		// Now we just need to dispose of our temporary ScriptValues
+		for (ScriptValue *temp_value : results)
+			delete temp_value;
+		
+		return result;
+	}
+}
+
+void ScriptValue_Object::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (values_.size() == 0)
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	}
+	else
+	{
+		int p_value_count = p_value->Count();
+		
+		if (p_value_count == 1)
+		{
+			// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
+			for (auto value : values_)
+				value->SetValueForMember(p_member_name, p_value);
+		}
+		else if (p_value_count == Count())
+		{
+			// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
+			for (int value_idx = 0; value_idx < p_value_count; value_idx++)
+			{
+				ScriptValue *temp_rvalue = p_value->GetValueAtIndex(value_idx);
+				
+				values_[value_idx]->SetValueForMember(p_member_name, temp_rvalue);
+				
+				delete temp_rvalue;
+			}
+		}
+		else
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
+	}
+}
+
+ScriptValue *ScriptValue_Object::CopyValues(void) const
+{
+	return new ScriptValue_Object(*this);
+}
+
+ScriptValue *ScriptValue_Object::NewMatchingType(void) const
+{
+	return new ScriptValue_Object;
+}
+
+void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+{
+	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
+	{
+		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << endl << slim_terminate();
+		else
+			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
+	}
+	else
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+}
+
+std::vector<std::string> ScriptValue_Object::Methods(void) const
+{
+	if (values_.size() == 0)
+		return std::vector<std::string>();
+	else
+		return values_[0]->Methods();
+}
+
+const FunctionSignature *ScriptValue_Object::SignatureForMethod(std::string const &p_method_name) const
+{
+	if (values_.size() == 0)
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		
+		return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
+	}
+	else
+		return values_[0]->SignatureForMethod(p_method_name);
+}
+
+ScriptValue *ScriptValue_Object::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	if (values_.size() == 0)
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else
+	{
+		// call the method on all members and collect the results
+		vector<ScriptValue*> results;
+		
+		for (auto value : values_)
+			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter));
+		
+		// concatenate the results using Execute_c(); we pass our own name as p_function_name, which just makes errors be in our name
+		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::ExecuteMethod", results);
+		
+		// Now we just need to dispose of our temporary ScriptValues
+		for (ScriptValue *temp_value : results)
+			delete temp_value;
+		
+		return result;
+	}
+}
+
+
+//
+//	ScriptObjectElement
+//
+#pragma mark ScriptObjectElement
+
+ScriptObjectElement::ScriptObjectElement(void)
+{
+}
+
+ScriptObjectElement::~ScriptObjectElement(void)
+{
+}
+
+ScriptObjectElement *ScriptObjectElement::Retain(void)
+{
+	// no-op; our lifetime is controlled externally
+	return this;
+}
+
+ScriptObjectElement *ScriptObjectElement::Release(void)
+{
+	// no-op; our lifetime is controlled externally
+	return this;
+}
+
+std::vector<std::string> ScriptObjectElement::ReadOnlyMembers(void) const
+{
+	return std::vector<std::string>();	// no read-only members
+}
+
+std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
+{
+	return std::vector<std::string>();	// no read-write members
+}
+
+ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name) const
+{
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 	return nullptr;
 }
 
-void ScriptValue_Proxy::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-#pragma unused(p_idx, p_value)
-	SLIM_TERMINATION << "ERROR: ScriptValue_Proxy does not support the subscript operator ('[]')." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 }
 
-void ScriptValue_Proxy::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
-{
-#pragma unused(p_idx, p_source_script_value)
-	SLIM_TERMINATION << "ERROR: ScriptValue_Proxy does not support the subscript operator ('[]')." << endl << slim_terminate();
-}
-
-std::vector<std::string> ScriptValue_Proxy::Methods(void) const
+std::vector<std::string> ScriptObjectElement::Methods(void) const
 {
 	std::vector<std::string> methods;
 	
@@ -954,7 +1202,7 @@ std::vector<std::string> ScriptValue_Proxy::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *ScriptValue_Proxy::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string const &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *lsSig = nullptr;
@@ -971,16 +1219,40 @@ const FunctionSignature *ScriptValue_Proxy::SignatureForMethod(std::string const
 	else if (p_method_name.compare("method") == 0)
 		return methodsSig;
 	
-	SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
-ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare("ls") == 0)
 	{
-		p_output_stream << *(SymbolHost *)this;
+		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
+		std::vector<std::string> read_write_member_names = ReadWriteMembers();
+		
+		for (auto member_name_iter = read_only_member_names.begin(); member_name_iter != read_only_member_names.end(); ++member_name_iter)
+		{
+			const std::string member_name = *member_name_iter;
+			ScriptValue *member_value = GetValueForMember(member_name);
+			int member_count = member_value->Count();
+			
+			if (member_count <= 1)
+				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *member_value << endl;
+			else
+				p_output_stream << member_name << " => (" << member_value->Type() << ") (" << member_count << " values)" << endl;
+		}
+		for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
+		{
+			const std::string member_name = *member_name_iter;
+			ScriptValue *member_value = GetValueForMember(member_name);
+			int member_count = member_value->Count();
+			
+			if (member_count <= 1)
+				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *member_value << endl;
+			else
+				p_output_stream << member_name << " -> (" << member_value->Type() << ") (" << member_count << " values)" << endl;
+		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1011,15 +1283,62 @@ ScriptValue *ScriptValue_Proxy::ExecuteMethod(std::string const &p_method_name, 
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Proxy::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
-
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
 }
 
+std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)
+{
+	p_outstream << "instance(" << p_element.ElementType() << ")";
+	
+	return p_outstream;
+}
 
 
+//
+//	ScriptObjectElementInternal
+//
+#pragma mark ScriptObjectElementInternal
 
+ScriptObjectElementInternal::ScriptObjectElementInternal(void)
+{
+//	std::cerr << "ScriptObjectElementInternal::ScriptObjectElementInternal allocated " << this << " with refcount == 1" << endl;
+//	print_stacktrace(stderr, 10);
+}
+
+ScriptObjectElementInternal::~ScriptObjectElementInternal(void)
+{
+//	std::cerr << "ScriptObjectElementInternal::~ScriptObjectElementInternal deallocated " << this << endl;
+//	print_stacktrace(stderr, 10);
+}
+
+ScriptObjectElement *ScriptObjectElementInternal::Retain(void)
+{
+	refcount_++;
+	
+//	std::cerr << "ScriptObjectElementInternal::Retain for " << this << ", new refcount == " << refcount_ << endl;
+//	print_stacktrace(stderr, 10);
+	
+	return this;
+}
+
+ScriptObjectElement *ScriptObjectElementInternal::Release(void)
+{
+	refcount_--;
+	
+//	std::cerr << "ScriptObjectElementInternal::Release for " << this << ", new refcount == " << refcount_ << endl;
+//	print_stacktrace(stderr, 10);
+	
+	if (refcount_ == 0)
+	{
+		delete this;
+		return nullptr;
+	}
+	
+	return this;
+}
 
 
 

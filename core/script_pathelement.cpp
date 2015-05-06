@@ -1,12 +1,12 @@
 //
-//  script_pathproxy.cpp
+//  script_pathelement.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 5/1/15.
 //  Copyright (c) 2015 Messer Lab, http://messerlab.org/software/. All rights reserved.
 //
 
-#include "script_pathproxy.h"
+#include "script_pathelement.h"
 #include "script_functions.h"
 #include "slim_global.h"
 
@@ -26,66 +26,57 @@ using std::endl;
 
 
 //
-//	ScriptValue_PathProxy
+//	Script_PathElement
 //
-#pragma mark ScriptValue_PathProxy
+#pragma mark Script_PathElement
 
-ScriptValue_PathProxy::ScriptValue_PathProxy(void) : base_path_("~")
+Script_PathElement::Script_PathElement(void) : base_path_("~")
 {
 }
 
-ScriptValue_PathProxy::ScriptValue_PathProxy(std::string p_base_path) : base_path_(p_base_path)
+Script_PathElement::Script_PathElement(std::string p_base_path) : base_path_(p_base_path)
 {
 }
 
-std::string ScriptValue_PathProxy::ProxyType(void) const
+std::string Script_PathElement::ElementType(void) const
 {
 	return "Path";
 }
 
-ScriptValue *ScriptValue_PathProxy::CopyValues(void) const
+bool Script_PathElement::ExternallyOwned(void) const
 {
-	return new ScriptValue_PathProxy(base_path_);
+	return false;
 }
 
-ScriptValue *ScriptValue_PathProxy::NewMatchingType(void) const
+ScriptObjectElement *Script_PathElement::ScriptCopy(void)
 {
-	return new ScriptValue_PathProxy(base_path_);
+	return new Script_PathElement(base_path_);
 }
 
-std::vector<std::string> ScriptValue_PathProxy::ReadOnlyMembers(void) const
+void Script_PathElement::ScriptDelete(void) const
 {
-	static std::vector<std::string> members;
-	static bool been_here = false;
+	delete this;
+}
+
+std::vector<std::string> Script_PathElement::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> members;
 	
-	// put hard-coded constants at the top of the list
-	if (!been_here)
-	{
-		members.push_back("files");
-		
-		been_here = true;
-	}
+	members.push_back("files");
 	
 	return members;
 }
 
-std::vector<std::string> ScriptValue_PathProxy::ReadWriteMembers(void) const
+std::vector<std::string> Script_PathElement::ReadWriteMembers(void) const
 {
-	static std::vector<std::string> members;
-	static bool been_here = false;
+	std::vector<std::string> members;
 	
-	// put hard-coded constants at the top of the list
-	if (!been_here)
-	{
-		members.push_back("path");
-		
-		been_here = true;
-	}
+	members.push_back("path");
 	
 	return members;
 }
 
-std::string ScriptValue_PathProxy::ResolvedBasePath(void) const
+std::string Script_PathElement::ResolvedBasePath(void) const
 {
 	string path = base_path_;
 	
@@ -104,7 +95,7 @@ std::string ScriptValue_PathProxy::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *ScriptValue_PathProxy::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name) const
 {
 	if (p_member_name.compare("path") == 0)
 		return new ScriptValue_String(base_path_);
@@ -141,12 +132,12 @@ ScriptValue *ScriptValue_PathProxy::GetValueForMember(const std::string &p_membe
 	
 	// FIXME could return superclass call, and the superclass could implement ls
 	
-	SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::GetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (Script_PathElement::GetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
 	
 	return nullptr;
 }
 
-void ScriptValue_PathProxy::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+void Script_PathElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
 	ScriptValueType value_type = p_value->Type();
 	int value_count = p_value->Count();
@@ -154,25 +145,25 @@ void ScriptValue_PathProxy::SetValueForMember(const std::string &p_member_name, 
 	if (p_member_name.compare("path") == 0)
 	{
 		if (value_type != ScriptValueType::kValueString)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): type mismatch in assignment to member 'directory'." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): type mismatch in assignment to member 'path'." << endl << slim_terminate();
 		if (value_count != 1)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): value of size() == 1 expected in assignment to member 'directory'." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << endl << slim_terminate();
 		
 		base_path_ = p_value->StringAtIndex(0);
 	}
 	else if (p_member_name.compare("files") == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): member '" << p_member_name << "' is read-only." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): member '" << p_member_name << "' is read-only." << endl << slim_terminate();
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::SetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
 	}
 }
 
-std::vector<std::string> ScriptValue_PathProxy::Methods(void) const
+std::vector<std::string> Script_PathElement::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptValue_Proxy::Methods();
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
 	methods.push_back("readFile");
 	methods.push_back("writeFile");
@@ -180,7 +171,7 @@ std::vector<std::string> ScriptValue_PathProxy::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *ScriptValue_PathProxy::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *Script_PathElement::SignatureForMethod(std::string const &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *readFileSig = nullptr;
@@ -197,10 +188,10 @@ const FunctionSignature *ScriptValue_PathProxy::SignatureForMethod(std::string c
 	else if (p_method_name.compare("writeFile") == 0)
 		return writeFileSig;
 	else
-		return ScriptValue_Proxy::SignatureForMethod(p_method_name);
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_PathProxy::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 	if (p_method_name.compare("readFile") == 0)
 	{
@@ -209,7 +200,7 @@ ScriptValue *ScriptValue_PathProxy::ExecuteMethod(std::string const &p_method_na
 		int arg1_count = arg1_value->Count();
 		
 		if (arg1_count != 1)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
 		
 		string filename = arg1_value->StringAtIndex(0);
 		string file_path = ResolvedBasePath() + "/" + filename;
@@ -245,7 +236,7 @@ ScriptValue *ScriptValue_PathProxy::ExecuteMethod(std::string const &p_method_na
 		int arg1_count = arg1_value->Count();
 		
 		if (arg1_count != 1)
-			SLIM_TERMINATION << "ERROR (ScriptValue_PathProxy::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
 		
 		string filename = arg1_value->StringAtIndex(0);
 		string file_path = ResolvedBasePath() + "/" + filename;
@@ -260,7 +251,7 @@ ScriptValue *ScriptValue_PathProxy::ExecuteMethod(std::string const &p_method_na
 		if (!file_stream.is_open())
 		{
 			// Not a fatal error, just a warning log
-			p_output_stream << "WARNING (ScriptValue_PathProxy::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
+			p_output_stream << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
 			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 		}
 		
@@ -275,14 +266,14 @@ ScriptValue *ScriptValue_PathProxy::ExecuteMethod(std::string const &p_method_na
 		if (file_stream.bad())
 		{
 			// Not a fatal error, just a warning log
-			p_output_stream << "WARNING (ScriptValue_PathProxy::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
+			p_output_stream << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
 		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
 	else
 	{
-		return ScriptValue_Proxy::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 	}
 }
 

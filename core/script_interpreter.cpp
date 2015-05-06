@@ -44,6 +44,46 @@ using std::ostream;
 // off for now, let it leak, and perhaps migrate to std::unique_ptr later, rather than trying to protect every EvaluateNode() call.
 
 
+bool TypeCheckAssignmentOfValueIntoValue(ScriptValue *base_value, ScriptValue *dest_value)
+{
+	ScriptValueType base_type = base_value->Type();
+	ScriptValueType dest_type = dest_value->Type();
+	bool base_is_object = (base_type == ScriptValueType::kValueObject);
+	bool dest_is_object = (dest_type == ScriptValueType::kValueObject);
+	
+	if (base_is_object && dest_is_object)
+	{
+		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
+		string base_element_type = static_cast<ScriptValue_Object *>(base_value)->ElementType();
+		string dest_element_type = static_cast<ScriptValue_Object *>(dest_value)->ElementType();
+		bool base_is_typeless = (base_element_type.length() == 0);
+		bool dest_is_typeless = (dest_element_type.length() == 0);
+		
+		if (base_is_typeless || dest_is_typeless)
+			return true;
+		
+		return (base_element_type.compare(dest_element_type) == 0);
+	}
+	else if (base_is_object || dest_is_object)
+	{
+		// objects cannot be mixed with non-objects
+		return false;
+	}
+	
+	// identical types are always compatible, apart from object types handled above
+	if (base_type == dest_type)
+		return true;
+	
+	// NULL cannot be assigned into other things; this is a difference from R, because NULL cannot be represented as a value in other types
+	// (it is its own type, not a value within types).
+	if (base_type == ScriptValueType::kValueNULL)
+		return false;
+	
+	// otherwise, we follow the promotion order defined in ScriptValueType
+	return (dest_type > base_type);
+}
+
+
 //
 //	ScriptInterpreter
 //
@@ -195,21 +235,161 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 	return result;
 }
 
-// This is a special version of EvaluateNode() used specifically for getting an lvalue reference without evaluating it.
-// For example, to perform "x = 5", we don't want to fetch the current value of x; instead we want to figure out what
-// symbol table "x" lives in, and then tell that symbol table to set identifier "x" to 5.  So we need to evaluate the
-// left-hand side of the expression with the goal of getting a symbol table reference, not a value.  This would be
-// simpler if we just had a "symbol" object that contained the value; then we could treat lvalues and rvalues in the
-// same way.  But we don't; instead we have particular subclasses of ScriptValue, and we even have C++ objects that
-// are wrapped by proxy ScriptValue objects, so we have to handle lvalues differently from rvalues.  I think.
-LValueReference *ScriptInterpreter::Evaluate_LValueReference(const ScriptASTNode *p_node)
+// A subscript has been encountered as the top-level operation on the left-hand side of an assignment – x[5] = y, x.foo[5] = y, or more
+// complex cases like x[3:10].foo[2:5][1:2] = y.  The job of this function is to determine the identity of the symbol host (x, x, and
+// x[3:10], respectively), the name of the member within the symbol host (none, foo, and foo, respectively), and the indices of the final
+// subscript operation (5, 5, and {3,4}, respectively), and return them to the caller, who will assign into those subscripts.  Note that
+// complex cases work only because of several other aspects of SLiMscript.  Notably, subscripting of an object creates a new object, but
+// the new object refers to the same elements as the parent object, by pointer; this means that x[5].foo = y works, because x[5] refers to
+// the same element, by pointer, as x does.  If SLiMscript did not have these shared-value semantics, assignment would be much trickier,
+// since SLiMscript cannot use a symbol table to store values, in general (since many values accessible through script are stored in
+// private representations kept by external classes in SLiM).  In other words, assignment relies upon the fact that a temporary object
+// constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
+// assigning into the temporary also assigns into the original.
+void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, string *p_member_name_ptr, vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node)
 {
-	TokenType token_type = p_node->token_->token_type_;
+	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
+	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
+	TokenType token_type = p_parent_node->token_->token_type_;
+	
+	switch (token_type)
+	{
+		case TokenType::kTokenLBracket:
+		{
+			if (p_parent_node->children_.size() != 2)
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '[' node)." << endl << slim_terminate();
+			
+			ScriptASTNode *left_operand = p_parent_node->children_[0];
+			ScriptASTNode *right_operand = p_parent_node->children_[1];
+			
+			vector<int> base_indices;
+			
+			// Recurse to find the symbol host and member name that we are ultimately subscripting off of
+			_ProcessSubscriptAssignment(p_base_value_ptr, p_member_name_ptr, &base_indices, left_operand);
+			
+			// Find out which indices we're supposed to use within our base vector
+			ScriptValue *second_child_value = EvaluateNode(right_operand);
+			ScriptValueType second_child_type = second_child_value->Type();
+			
+			if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat) && (second_child_type != ScriptValueType::kValueLogical) && (second_child_type != ScriptValueType::kValueNULL))
+			{
+				if (!second_child_value->InSymbolTable()) delete second_child_value;
+				
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << endl << slim_terminate();
+			}
+			
+			int second_child_count = second_child_value->Count();
+			
+			if (second_child_type == ScriptValueType::kValueLogical)
+			{
+				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
+				if (second_child_count != base_indices.size())
+				{
+					if (!second_child_value->InSymbolTable()) delete second_child_value;
+					
+					SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << endl << slim_terminate();
+				}
+				
+				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+				{
+					bool bool_value = second_child_value->LogicalAtIndex(value_idx);
+					
+					if (bool_value)
+						p_indices_ptr->push_back(base_indices[value_idx]);
+				}
+			}
+			else if ((second_child_type == ScriptValueType::kValueInt) || (second_child_type == ScriptValueType::kValueFloat))
+			{
+				// A numeric vector can be of any length; each number selects the index at that index in base_indices
+				int base_indices_count =  (int)base_indices.size();
+				
+				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+				{
+					int64_t index_value = second_child_value->IntAtIndex(value_idx);
+					
+					if ((index_value < 0) || (index_value >= base_indices_count))
+					{
+						if (!second_child_value->InSymbolTable()) delete second_child_value;
+						
+						SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << endl << slim_terminate();
+					}
+					else
+						p_indices_ptr->push_back(base_indices[index_value]);
+				}
+			}
+			else if (second_child_type == ScriptValueType::kValueNULL)
+			{
+				// A NULL index selects no values; this will likely cause a raise downstream, but that is not our problem, it's legal syntax
+				base_indices.clear();
+				*p_indices_ptr = base_indices;
+			}
+			
+			break;
+		}
+		case TokenType::kTokenDot:
+		{
+			if (p_parent_node->children_.size() != 2)
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
+			
+			ScriptASTNode *left_operand = p_parent_node->children_[0];
+			ScriptASTNode *right_operand = p_parent_node->children_[1];
+			
+			ScriptValue *first_child_value = EvaluateNode(left_operand);
+			ScriptValueType first_child_type = first_child_value->Type();
+			
+			if (first_child_type != ScriptValueType::kValueObject)
+			{
+				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+			}
+			
+			if (right_operand->token_->token_type_ != TokenType::kTokenIdentifier)
+			{
+				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+			}
+			
+			*p_base_value_ptr = first_child_value;
+			*p_member_name_ptr = right_operand->token_->token_string_;
+			
+			int number_of_elements = first_child_value->Count();	// member operations are guaranteed to produce one value per element
+			
+			for (int element_idx = 0; element_idx < number_of_elements; element_idx++)
+				p_indices_ptr->push_back(element_idx);
+			
+			break;
+		}
+		case TokenType::kTokenIdentifier:
+		{
+			if (p_parent_node->children_.size() != 0)
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << endl << slim_terminate();
+			
+			ScriptValue *identifier_value = global_symbols_->GetValueForSymbol(p_parent_node->token_->token_string_);
+			*p_base_value_ptr = identifier_value;
+			
+			int number_of_elements = identifier_value->Count();	// this value is already defined, so this is fast
+			
+			for (int element_idx = 0; element_idx < number_of_elements; element_idx++)
+				p_indices_ptr->push_back(element_idx);
+			
+			break;
+		}
+		default:
+			SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): Unexpected node token type " << token_type << "; lvalue required." << endl << slim_terminate();
+			break;
+	}
+}
+
+void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptASTNode *p_lvalue_node)
+{
+	TokenType token_type = p_lvalue_node->token_->token_type_;
 	
 	if (logging_execution_)
 	{
-		execution_log_ << IndentString(execution_log_indent_) << "Evaluate_LValueReference() : token ";
-		p_node->PrintToken(execution_log_);
+		execution_log_ << IndentString(execution_log_indent_) << "_AssignRValueToLValue() : lvalue token ";
+		p_lvalue_node->PrintToken(execution_log_);
 		execution_log_ << "\n";
 	}
 	
@@ -217,84 +397,130 @@ LValueReference *ScriptInterpreter::Evaluate_LValueReference(const ScriptASTNode
 	{
 		case TokenType::kTokenLBracket:
 		{
-			if (p_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): internal error (expected 2 children for '[' node)." << endl << slim_terminate();
+			if (p_lvalue_node->children_.size() != 2)
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << endl << slim_terminate();
 			
-			ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
-			ScriptValueType first_child_type = first_child_value->Type();
+			ScriptValue *base_value;
+			string member_name;
+			vector<int> indices;
 			
-			if (first_child_type == ScriptValueType::kValueNULL)
+			_ProcessSubscriptAssignment(&base_value, &member_name, &indices, p_lvalue_node);
+			
+			int index_count = (int)indices.size();
+			int rvalue_count = rvalue->Count();
+			
+			if (rvalue_count == 1)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): operand type " << first_child_type << " is not supported by the '[]' operator." << endl << slim_terminate();
+				if (member_name.length() == 0)
+				{
+					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
+						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << endl << slim_terminate();
+					
+					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
+					for (int value_idx = 0; value_idx < index_count; value_idx++)
+						base_value->SetValueAtIndex(indices[value_idx], rvalue);
+				}
+				else
+				{
+					// we have a multiplex assignment of one value to (maybe) more than one index in a member of a symbol host: x.foo[5:10] = 10
+					// here we use the guarantee that the member operator returns one result per element, and that elements following sharing semantics,
+					// to rearrange this assignment from host.member[indices] = rvalue to host[indices].member = rvalue; this must be equivalent!
+					for (int value_idx = 0; value_idx < index_count; value_idx++)
+					{
+						ScriptValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx]);
+						
+						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
+							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
+						
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMember(member_name, rvalue);
+						
+						delete temp_lvalue;
+					}
+				}
+			}
+			else if (index_count == rvalue_count)
+			{
+				if (member_name.length() == 0)
+				{
+					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
+						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << endl << slim_terminate();
+					
+					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
+					for (int value_idx = 0; value_idx < index_count; value_idx++)
+					{
+						ScriptValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx);
+						
+						base_value->SetValueAtIndex(indices[value_idx], temp_rvalue);
+						delete temp_rvalue;
+					}
+				}
+				else
+				{
+					// we have a one-to-one assignment of values to indices in a member of a symbol host: x.foo[5:10] = 5:10
+					// as above, we rearrange this assignment from host.member[indices1] = rvalue[indices2] to host[indices1].member = rvalue[indices2]
+					for (int value_idx = 0; value_idx < index_count; value_idx++)
+					{
+						ScriptValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx]);
+						ScriptValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx);
+						
+						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
+							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
+						
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMember(member_name, temp_rvalue);
+						
+						delete temp_lvalue;
+						delete temp_rvalue;
+					}
+				}
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
 			}
 			
-			ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
-			ScriptValueType second_child_type = second_child_value->Type();
-			
-			if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat) && (second_child_type != ScriptValueType::kValueLogical) && (second_child_type != ScriptValueType::kValueNULL))
-			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
-				
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): index operand type " << second_child_type << " is not supported by the '[]' operator." << endl << slim_terminate();
-			}
-			
-			int second_child_count = second_child_value->Count();
-			
-			if (second_child_count != 1)
-			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
-				
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): index operand for the '[]' operator must have size() == 1." << endl << slim_terminate();
-			}
-			
-			// OK, we have <legal type>[<single numeric>]; we can work with that
-			return new LValueSubscriptReference(first_child_value, (int)second_child_value->IntAtIndex(0));
+			break;
 		}
 		case TokenType::kTokenDot:
 		{
-			if (p_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
+			if (p_lvalue_node->children_.size() != 2)
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
 			
-			ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
+			ScriptValue *first_child_value = EvaluateNode(p_lvalue_node->children_[0]);
 			ScriptValueType first_child_type = first_child_value->Type();
 			
-			if (first_child_type != ScriptValueType::kValueProxy)
+			if (first_child_type != ScriptValueType::kValueObject)
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
 			}
 			
-			ScriptASTNode *second_child_node = p_node->children_[1];
+			ScriptASTNode *second_child_node = p_lvalue_node->children_[1];
 			
 			if (second_child_node->token_->token_type_ != TokenType::kTokenIdentifier)
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
 			}
 			
-			// OK, we have <proxy type>.<identifier>; we can work with that
-			return new LValueMemberReference(first_child_value, second_child_node->token_->token_string_);
+			// OK, we have <object type>.<identifier>; we can work with that
+			static_cast<ScriptValue_Object *>(first_child_value)->SetValueForMember(second_child_node->token_->token_string_, rvalue);
+			break;
 		}
 		case TokenType::kTokenIdentifier:
 		{
-			if (p_node->children_.size() != 0)
-				SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): internal error (expected 0 children for identifier node)." << endl << slim_terminate();
+			if (p_lvalue_node->children_.size() != 0)
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 0 children for identifier node)." << endl << slim_terminate();
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			return new LValueMemberReference(global_symbols_, p_node->token_->token_string_);
+			global_symbols_->SetValueForSymbol(p_lvalue_node->token_->token_string_, rvalue);
+			break;
 		}
 		default:
-			SLIM_TERMINATION << "ERROR (Evaluate_LValueReference): Unexpected node token type " << token_type << "; lvalue required." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): Unexpected node token type " << token_type << "; lvalue required." << endl << slim_terminate();
 			break;
 	}
-	
-	return nullptr;
 }
 
 ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
@@ -558,7 +784,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	TokenType function_name_token_type = function_name_node->token_->token_type_;
 	
 	string function_name;
-	ScriptValue_Proxy *method_object = nullptr;
+	ScriptValue_Object *method_object = nullptr;
 	
 	if (function_name_token_type == TokenType::kTokenIdentifier)
 	{
@@ -573,7 +799,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		ScriptValue *first_child_value = EvaluateNode(function_name_node->children_[0]);
 		ScriptValueType first_child_type = first_child_value->Type();
 		
-		if (first_child_type != ScriptValueType::kValueProxy)
+		if (first_child_type != ScriptValueType::kValueObject)
 		{
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
@@ -589,9 +815,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
 		}
 		
-		// OK, we have <proxy type>.<identifier>(...); that's a well-formed method call
+		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 		function_name = second_child_node->token_->token_string_;
-		method_object = static_cast<ScriptValue_Proxy *>(first_child_value);	// guaranteed by the Type() call above
+		method_object = static_cast<ScriptValue_Object *>(first_child_value);	// guaranteed by the Type() call above
 	}
 	else
 	{
@@ -692,7 +918,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!result->InSymbolTable()) delete result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that both operands have the same size()." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << endl << slim_terminate();
 				}
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -748,7 +974,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValueType first_child_type = first_child_value->Type();
 	
-	if (first_child_type != ScriptValueType::kValueProxy)
+	if (first_child_type != ScriptValueType::kValueObject)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		
@@ -764,10 +990,15 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
 	}
 	
-	result = first_child_value->GetValueForMember(second_child_node->token_->token_string_);
+	string member_name = second_child_node->token_->token_string_;
+	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMember(member_name);
 	
 	// free our operand
 	if (!first_child_value->InSymbolTable()) delete first_child_value;
+	
+	// check result; this should never happen, since GetValueForMember should check
+	if (!result)
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << member_name << "." << endl << slim_terminate();
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";
@@ -1739,24 +1970,17 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Assign): internal error (expected 2 children)." << endl << slim_terminate();
 	
-	ScriptASTNode *lvalue_child = p_node->children_[0];
+	ScriptASTNode *lvalue_node = p_node->children_[0];
+	ScriptValue *rvalue = EvaluateNode(p_node->children_[1]);
 	
-	// an lvalue is needed to assign into; unlike in most situations, we don't want to actually resolve the reference now
-	LValueReference *lvalue_ref = Evaluate_LValueReference(lvalue_child);
-	if (!lvalue_ref)
-		SLIM_TERMINATION << "ERROR (Evaluate_Assign): the '=' operator requires an lvalue for its left operand." << endl << slim_terminate();
-	
-	ScriptValue *r_value = EvaluateNode(p_node->children_[1]);
-	
-	// replace the existing value or set a new value
-	lvalue_ref->SetLValueToValue(r_value);
+	_AssignRValueToLValue(rvalue, lvalue_node);		// disposes of rvalue somehow
 	
 	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
 	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
-	// free our operands; note r_value is now owned by whoever lvalue_ref gave it to, so don't free it here!
-	delete lvalue_ref;
+	// free our operand
+	if (!rvalue->InSymbolTable()) delete rvalue;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Assign() : return == " << *result << "\n";
@@ -2233,8 +2457,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << endl << slim_terminate();
 	
 	string identifier_string = p_node->token_->token_string_;
-	ScriptValue *result = global_symbols_->GetValueForMember(identifier_string);
+	ScriptValue *result = global_symbols_->GetValueForSymbol(identifier_string);
 	
+	// check result; this should never happen, since GetValueForSymbol should check
 	if (!result)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): undefined identifier " << identifier_string << "." << endl << slim_terminate();
 	
@@ -2425,7 +2650,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		// set the index variable to the range value and then throw the range value away
 		ScriptValue *range_value_at_index = range_value->GetValueAtIndex(range_index);
 		
-		global_symbols_->SetValueForMember(identifier_name, range_value_at_index);
+		global_symbols_->SetValueForSymbol(identifier_name, range_value_at_index);
 		
 		if (!range_value_at_index->InSymbolTable()) delete range_value_at_index;
 		
