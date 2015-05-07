@@ -458,7 +458,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			break;
 			
 		case FunctionIdentifier::cFunction:				result = Execute_c(p_function_name, p_arguments); break;
-			
+
+		case FunctionIdentifier::integerFunction:
+		case FunctionIdentifier::floatFunction:
+		case FunctionIdentifier::logicalFunction:
+		case FunctionIdentifier::stringFunction:
+		case FunctionIdentifier::objectFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+
 			// data inspection/manipulation functions
 			
 		case FunctionIdentifier::printFunction:
@@ -481,7 +489,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			
 		case FunctionIdentifier::strFunction:
 		case FunctionIdentifier::sumFunction:
-		case FunctionIdentifier::prodFunction:
+		case FunctionIdentifier::productFunction:
 		case FunctionIdentifier::rangeFunction:
 		case FunctionIdentifier::minFunction:
 		case FunctionIdentifier::maxFunction:
@@ -503,6 +511,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 		case FunctionIdentifier::sortFunction:
 		case FunctionIdentifier::anyFunction:
 		case FunctionIdentifier::allFunction:
+		case FunctionIdentifier::ifelseFunction:
 		case FunctionIdentifier::strsplitFunction:
 		case FunctionIdentifier::pasteFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
@@ -525,6 +534,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 		case FunctionIdentifier::asFloatFunction:
 		case FunctionIdentifier::isFiniteFunction:
 		case FunctionIdentifier::isNaNFunction:
+		case FunctionIdentifier::isNULLFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
 			break;
 			

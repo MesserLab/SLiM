@@ -47,6 +47,11 @@ enum class FunctionIdentifier {
 	seqFunction,
 	seqAlongFunction,
 	cFunction,
+	floatFunction,
+	integerFunction,
+	logicalFunction,
+	stringFunction,
+	objectFunction,
 	
 	// data inspection/manipulation functions
 	printFunction,
@@ -54,7 +59,7 @@ enum class FunctionIdentifier {
 	sizeFunction,
 	strFunction,
 	sumFunction,
-	prodFunction,
+	productFunction,
 	rangeFunction,
 	minFunction,
 	maxFunction,
@@ -67,6 +72,7 @@ enum class FunctionIdentifier {
 	sortFunction,
 	anyFunction,
 	allFunction,
+	ifelseFunction,
 	strsplitFunction,
 	pasteFunction,
 	
@@ -83,6 +89,7 @@ enum class FunctionIdentifier {
 	asFloatFunction,
 	isFiniteFunction,
 	isNaNFunction,
+	isNULLFunction,
 	
 	// math functions, all implemented using the standard C++ function of the same name
 	acosFunction,
