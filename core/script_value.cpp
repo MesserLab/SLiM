@@ -1189,6 +1189,7 @@ ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_
 
 void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
+#pragma unused(p_value)
 	SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 }
 
