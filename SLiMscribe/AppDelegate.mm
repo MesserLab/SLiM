@@ -19,6 +19,7 @@
 
 
 #import "AppDelegate.h"
+#import "CocoaExtra.h"
 #include "script_functions.h"
 #include "script_test.h"
 
@@ -163,9 +164,12 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[outputTextView setGrammarCheckingEnabled:NO];
 	[outputTextView turnOffLigatures:nil];
 	
-	// Fix textview fonts
+	// Fix textview fonts and typing attributes
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
+	
+	[scriptTextView setTypingAttributes:[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:nil]];
+	[outputTextView setTypingAttributes:[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:nil]];
 	
 	// Fix text container insets to look a bit nicer; {0,0} by default
 	[scriptTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
@@ -404,17 +408,15 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 {
 	NSTextStorage *ts = [outputTextView textStorage];
 	NSString *fullScriptString = [scriptTextView string];
-	NSArray *scriptLines = [fullScriptString componentsSeparatedByString:@"\n"];
-	NSString *scriptString = [scriptLines componentsJoinedByString:@"\n  "];	// add spaces the match the prompt indent
-	NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:scriptString attributes:[ConsoleTextView inputAttrs]];
+	NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:fullScriptString attributes:[ConsoleTextView inputAttrs]];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
 	[ts beginEditing];
 	[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
 	[ts endEditing];
 	
-	[outputTextView registerNewHistoryItem:scriptString];
-	[self executeScriptString:scriptString addOptionalSemicolon:NO];
+	[outputTextView registerNewHistoryItem:fullScriptString];
+	[self executeScriptString:fullScriptString addOptionalSemicolon:NO];
 }
 
 - (IBAction)executeSelection:(id)sender

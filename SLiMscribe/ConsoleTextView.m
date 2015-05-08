@@ -19,6 +19,7 @@
 
 
 #import "ConsoleTextView.h"
+#import "CocoaExtra.h"
 
 
 static NSDictionary *promptAttrs = nil;
@@ -35,19 +36,19 @@ static NSDictionary *executionAttrs = nil;
 + (void)initialize
 {
 	if (!promptAttrs)
-		promptAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		promptAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]] retain];
 	if (!inputAttrs)
-		inputAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		inputAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]] retain];
 	if (!outputAttrs)
-		outputAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		outputAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0]] retain];
 	if (!errorAttrs)
-		errorAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		errorAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]] retain];
 	if (!tokensAttrs)
-		tokensAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		tokensAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0]] retain];
 	if (!parseAttrs)
-		parseAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		parseAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]] retain];
 	if (!executionAttrs)
-		executionAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:11.0], NSFontAttributeName, nil];
+		executionAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]] retain];
 }
 
 + (NSDictionary *)promptAttrs { return promptAttrs; }

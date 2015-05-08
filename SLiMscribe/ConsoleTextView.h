@@ -19,9 +19,10 @@
 
 
 #import <Cocoa/Cocoa.h>
+#import "CocoaExtra.h"
 
 
-@interface ConsoleTextView : NSTextView
+@interface ConsoleTextView : SLiMSyntaxColoredTextView
 {
 @public
 	NSRange lastPromptRange;

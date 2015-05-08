@@ -115,6 +115,7 @@
 		989790DB1AF3D0E100C6B14C /* script_pathelement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathelement.cpp */; };
 		989790DC1AF3D0E100C6B14C /* script_pathelement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathelement.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
+		98A8F0571AFD72FB00DBC26A /* CocoaExtra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C21B1A718EFD00FFB083 /* CocoaExtra.mm */; };
 		98AC15E91AF55CBE0096F15D /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		98AC15EA1AF55CBE0096F15D /* slim_sim_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AF1A3CD633000AD4FC /* slim_sim_input.cpp */; };
 		98AC15EB1AF55CBE0096F15D /* g_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* g_rng.cpp */; };
@@ -1114,6 +1115,7 @@
 				985724E71AD622880047C223 /* ConsoleTextView.m in Sources */,
 				98AC15F21AF55CBE0096F15D /* chromosome.cpp in Sources */,
 				989790DC1AF3D0E100C6B14C /* script_pathelement.cpp in Sources */,
+				98A8F0571AFD72FB00DBC26A /* CocoaExtra.mm in Sources */,
 				98AC15EB1AF55CBE0096F15D /* g_rng.cpp in Sources */,
 				98AC15E91AF55CBE0096F15D /* slim_sim.cpp in Sources */,
 				98AC15F51AF55CBE0096F15D /* partial_sweep.cpp in Sources */,

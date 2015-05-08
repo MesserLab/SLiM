@@ -21,8 +21,18 @@
 #import <Cocoa/Cocoa.h>
 
 
-@class SLiMWindowController;
+// A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
+@interface SLiMSyntaxColoredTextView : NSTextView
++ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
+@end
 
+
+//
+//	The rest of this file is live only in SLiMgui, not in SLiMscribe
+//
+#ifdef SLIMGUI
+
+@class SLiMWindowController;
 
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
 @interface SLiMTableView : NSTableView
@@ -78,10 +88,6 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 + (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame;
 @end
 
-// A subclass to may copy: copy rich text as well as unformatted text
-@interface SLiMSyntaxColoredTextView : NSTextView
-@end
-
 // A category to add sorting of menus
 @interface NSPopUpButton (SLiMSorting)
 - (void)slimSortMenuItemsByTag;
@@ -92,6 +98,7 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 - (void)slimSetTintColor:(NSColor *)tintColor;
 @end
 
+#endif	// def SLIMGUI
 
 
 

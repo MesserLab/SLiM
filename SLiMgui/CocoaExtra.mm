@@ -19,6 +19,105 @@
 
 
 #import "CocoaExtra.h"
+
+
+@implementation SLiMSyntaxColoredTextView
+
+// produce standard text attributes including our font (Menlo 11), tab stops (every three spaces), and font colors for syntax coloring
++ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor
+{
+	static NSFont *menlo11Font = nil;
+	static NSMutableParagraphStyle *paragraphStyle = nil;
+	
+	if (!menlo11Font)
+		menlo11Font = [[NSFont fontWithName:@"Menlo" size:11.0] retain];
+	
+	if (!paragraphStyle)
+	{
+		paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+		
+		CGFloat tabInterval = [menlo11Font maximumAdvancement].width * 3;
+		NSMutableArray *tabs = [NSMutableArray array];
+		
+		[paragraphStyle setDefaultTabInterval:tabInterval];
+		
+		for (int tabStop = 1; tabStop <= 20; ++tabStop)
+			[tabs addObject:[[NSTextTab alloc] initWithTextAlignment:NSLeftTextAlignment location:tabInterval * tabStop options:nil]];
+		
+		[paragraphStyle setTabStops:tabs];
+	}
+	
+	if (textColor)
+		return [NSDictionary dictionaryWithObjectsAndKeys:textColor, NSForegroundColorAttributeName, menlo11Font, NSFontAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
+	else
+		return [NSDictionary dictionaryWithObjectsAndKeys:menlo11Font, NSFontAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
+}
+
+// handle autoindent by matching the whitespace beginning the current line
+- (void)insertNewline:(id)sender
+{
+	NSString *textString = [self string];
+	NSUInteger selectionStart = [self selectedRange].location;
+	NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
+	NSCharacterSet *whitespaceChars = [NSCharacterSet whitespaceCharacterSet];
+	
+	// start at the start of the selection and move backwards to the beginning of the line
+	NSUInteger lineStart = selectionStart;
+	
+	while (lineStart > 0)
+	{
+		unichar ch = [textString characterAtIndex:lineStart - 1];
+		
+		if ([newlineChars characterIsMember:ch])
+			break;
+		
+		--lineStart;
+	}
+	
+	// now we're either at the beginning of the content, or the beginning of the line; now find the end of the whitespace there, up to where we started
+	NSUInteger whitespaceEnd = lineStart;
+	
+	while (whitespaceEnd < selectionStart)
+	{
+		unichar ch = [textString characterAtIndex:whitespaceEnd];
+		
+		if (![whitespaceChars characterIsMember:ch])
+			break;
+		
+		++whitespaceEnd;
+	}
+	
+	// now we have the range of the leading whitespace; copy that, call super to insert the newline, and then paste in the whitespace
+	NSRange whitespaceRange = NSMakeRange(lineStart, whitespaceEnd - lineStart);
+	NSString *whitespaceString = [textString substringWithRange:whitespaceRange];
+	
+	[super insertNewline:sender];
+	[self insertText:whitespaceString];
+}
+
+// NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for the user; the
+// user can't change the font, size, etc.  But we still can, and do, programatically to do our syntax formatting.  We want that style information to get
+// copied to the pasteboard, and as far as I can tell this subclass is necessary to make it happen.  Seems kind of lame.
+- (IBAction)copy:(id)sender
+{
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSAttributedString *attrString = [self textStorage];
+	NSRange selectedRange = [self selectedRange];
+	NSAttributedString *attrStringInRange = [attrString attributedSubstringFromRange:selectedRange];
+	
+	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
+	[pasteboard clearContents];
+	[pasteboard writeObjects:[NSArray arrayWithObject:attrStringInRange]];
+}
+
+@end
+
+
+//
+//	The rest of this file is live only in SLiMgui, not in SLiMscribe
+//
+#ifdef SLIMGUI
+
 #import "AppDelegate.h"
 
 
@@ -537,26 +636,6 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
-@implementation SLiMSyntaxColoredTextView
-
-// The reason for this subclass is that NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for
-// the user; the user can't change the font, size, etc.  But we still can, and do, programatically to do our syntax formatting.  We want that style information to get copied
-// to the pasteboard, and as far as I can tell this subclass is necessary to make it happen.  Seems kind of lame.
-- (IBAction)copy:(id)sender
-{
-	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-	NSAttributedString *attrString = [self textStorage];
-	NSRange selectedRange = [self selectedRange];
-	NSAttributedString *attrStringInRange = [attrString attributedSubstringFromRange:selectedRange];
-	
-	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
-	[pasteboard clearContents];
-	[pasteboard writeObjects:[NSArray arrayWithObject:attrStringInRange]];
-}
-
-@end
-
-
 @implementation NSPopUpButton (SLiMSorting)
 
 - (void)slimSortMenuItemsByTag
@@ -640,7 +719,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
-
+#endif	// def SLIMGUI
 
 
 
