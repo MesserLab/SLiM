@@ -223,7 +223,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 		if (symbol_count <= 1)
 			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
-			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") (" << symbol_count << " values)" << endl;
+		{
+			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
+			
+			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *first_value << " ... (" << symbol_count << " values)" << endl;
+			if (!first_value->InSymbolTable()) delete first_value;
+		}
+		
+		if (!symbol_value->InSymbolTable()) delete symbol_value;
 	}
 	for (auto symbol_name_iter = read_write_symbol_names.begin(); symbol_name_iter != read_write_symbol_names.end(); ++symbol_name_iter)
 	{
@@ -234,7 +241,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 		if (symbol_count <= 1)
 			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
-			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") (" << symbol_count << " values)" << endl;
+		{
+			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
+			
+			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *first_value << " ... (" << symbol_count << " values)" << endl;
+			if (!first_value->InSymbolTable()) delete first_value;
+		}
+		
+		if (!symbol_value->InSymbolTable()) delete symbol_value;
 	}
 	
 	return p_outstream;

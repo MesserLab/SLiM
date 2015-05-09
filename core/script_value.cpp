@@ -1241,7 +1241,14 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			if (member_count <= 1)
 				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *member_value << endl;
 			else
-				p_output_stream << member_name << " => (" << member_value->Type() << ") (" << member_count << " values)" << endl;
+			{
+				ScriptValue *first_value = member_value->GetValueAtIndex(0);
+				
+				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *first_value << " ... (" << member_count << " values)" << endl;
+				if (!first_value->InSymbolTable()) delete first_value;
+			}
+			
+			if (!member_value->InSymbolTable()) delete member_value;
 		}
 		for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
 		{
@@ -1252,7 +1259,14 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			if (member_count <= 1)
 				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *member_value << endl;
 			else
-				p_output_stream << member_name << " -> (" << member_value->Type() << ") (" << member_count << " values)" << endl;
+			{
+				ScriptValue *first_value = member_value->GetValueAtIndex(0);
+				
+				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *first_value << " ... (" << member_count << " values)" << endl;
+				if (!first_value->InSymbolTable()) delete first_value;
+			}
+			
+			if (!member_value->InSymbolTable()) delete member_value;
 		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
@@ -1290,9 +1304,39 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	}
 }
 
+void ScriptObjectElement::ConstantSetError(const std::string &p_method_name, const std::string &p_member_name)
+{
+	SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
+}
+
+void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask)
+{
+	uint32_t typemask = p_type_mask;
+	bool type_ok = true;
+	
+	switch (p_value->Type())
+	{
+		case ScriptValueType::kValueNULL:		type_ok = !!(typemask & kScriptValueMaskNULL);		break;
+		case ScriptValueType::kValueLogical:	type_ok = !!(typemask & kScriptValueMaskLogical);	break;
+		case ScriptValueType::kValueInt:		type_ok = !!(typemask & kScriptValueMaskInt);		break;
+		case ScriptValueType::kValueFloat:		type_ok = !!(typemask & kScriptValueMaskFloat);		break;
+		case ScriptValueType::kValueString:		type_ok = !!(typemask & kScriptValueMaskString);	break;
+		case ScriptValueType::kValueObject:		type_ok = !!(typemask & kScriptValueMaskObject);	break;
+	}
+	
+	if (!type_ok)
+		SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
+}
+
+void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range)
+{
+	if (!p_in_range)
+		SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)
 {
-	p_outstream << "instance(" << p_element.ElementType() << ")";
+	p_outstream << "element(" << p_element.ElementType() << ")";
 	
 	return p_outstream;
 }

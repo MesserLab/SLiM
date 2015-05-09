@@ -383,6 +383,11 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	
+	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
+	void ConstantSetError(const std::string &p_method_name, const std::string &p_member_name);
+	void TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask);
+	void RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element);
