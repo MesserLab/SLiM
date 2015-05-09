@@ -141,44 +141,6 @@ SLiMSim::~SLiMSim(void)
 	delete simFunctionSig;
 }
 
-// a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
-{
-	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
-	
-	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_output_stream, p_interpreter);
-}
-
-// the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
-{
-	if (p_function_name.compare("Sim") == 0)
-	{
-		p_output_stream << "This is Sim()!" << std::endl;
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
-	}
-	
-	return nullptr;
-}
-
-void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
-{
-	// Set up global symbols for things that live within SLiM
-	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
-	
-	// A constant for quick reference; we have to remove it each time because you can't overwrite a constant value
-	global_symbols.RemoveValueForSymbol("generation", true);
-	global_symbols.SetConstantForSymbol("generation", new ScriptValue_Int(generation_));
-	
-	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
-	if (!simFunctionSig)
-	{
-		simFunctionSig = new FunctionSignature("Sim", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM");
-	}
-	
-	p_interpreter.RegisterSignature(simFunctionSig);
-}
-
 bool SLiMSim::RunOneGeneration(void)
 {
 #ifdef SLIMGUI
@@ -254,8 +216,193 @@ void SLiMSim::RunToEnd(void)
 }
 
 
+//
+//	SLiMscript support
+//
 
+// a static member function is used as a funnel, so that we can get a pointer to function for it
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
+	
+	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_output_stream, p_interpreter);
+}
 
+// the static member function calls this member function; now we're completely in context and can execute the function
+ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	// a test function, for proof of concept; not registered below at present
+	if (p_function_name.compare("Sim") == 0)
+	{
+		p_output_stream << "This is Sim()!" << std::endl;
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	return nullptr;
+}
+
+void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
+{
+	// Set up global symbols for things that live within SLiM
+	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
+	
+	// A constant for quick reference; we have to remove it each time because you can't overwrite a constant value
+	global_symbols.RemoveValueForSymbol("sim", true);
+	global_symbols.SetConstantForSymbol("sim", new ScriptValue_Object(this));
+	
+	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
+	if (!simFunctionSig)
+	{
+		simFunctionSig = new FunctionSignature("Sim", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM");
+	}
+	
+	//p_interpreter.RegisterSignature(simFunctionSig);
+}
+
+std::string SLiMSim::ElementType(void) const
+{
+	return "SLiMSim";
+}
+
+std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("chromosomeType");		// modeled_chromosome_type_
+	constants.push_back("parameters");			// input_parameters_
+	constants.push_back("sexEnabled");			// sex_enabled_
+	constants.push_back("start");				// time_start_
+	
+	return constants;
+}
+
+std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	if (sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+		variables.push_back("dominanceX");		// x_chromosome_dominance_coeff_; defined only when we're modeling sex chromosomes
+	variables.push_back("duration");			// time_duration_
+	variables.push_back("generation");			// generation_
+	variables.push_back("randomSeed");			// rng_seed_
+	
+	return variables;
+}
+
+ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name) const
+{
+	// constants
+	if (p_member_name.compare("chromosomeType") == 0)
+	{
+		switch (modeled_chromosome_type_)
+		{
+			case GenomeType::kAutosome:		return new ScriptValue_String("autosome");
+			case GenomeType::kXChromosome:	return new ScriptValue_String("x chromosome");
+			case GenomeType::kYChromosome:	return new ScriptValue_String("y chromosome");
+		}
+	}
+	if (p_member_name.compare("parameters") == 0)
+	{
+		ScriptValue_String *params = new ScriptValue_String();
+		
+		for (std::string param : input_parameters_)
+			params->PushString(param);
+		
+		return params;
+	}
+	if (p_member_name.compare("sexEnabled") == 0)
+		return new ScriptValue_Logical(sex_enabled_);
+	if (p_member_name.compare("start") == 0)
+		return new ScriptValue_Int(time_start_);
+	
+	// variables
+	if ((p_member_name.compare("dominanceX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+		return new ScriptValue_Float(x_chromosome_dominance_coeff_);
+	if (p_member_name.compare("duration") == 0)
+		return new ScriptValue_Int(time_duration_);
+	if (p_member_name.compare("generation") == 0)
+		return new ScriptValue_Int(generation_);
+	if (p_member_name.compare("randomSeed") == 0)
+		return new ScriptValue_Int(rng_seed_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_member_name.compare("generationDuration") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+		
+		int64_t value = p_value->IntAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, (value > 0) && (value <= 1000000000));
+		
+		time_duration_ = (int)value;
+		return;
+	}
+	
+	if (p_member_name.compare("generation") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+		
+		int64_t value = p_value->IntAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, (value >= time_start_) && (value <= time_start_ + time_duration_));
+		
+		generation_ = (int)value;
+		return;
+	}
+	
+	if ((p_member_name.compare("dominanceX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+		
+		double value = p_value->FloatAtIndex(0);
+		
+		x_chromosome_dominance_coeff_ = value;
+		return;
+	}
+	
+	if (p_member_name.compare("randomSeed") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+		
+		int64_t value = p_value->IntAtIndex(0);
+		
+		rng_seed_ = (int)value;
+		
+		// Reseed generator; see InitializeRNGFromSeed()
+		gsl_rng_set(g_rng, static_cast<long>(rng_seed_));
+		g_random_bool_bit_counter = 0;
+		g_random_bool_bit_buffer = 0;
+		
+		return;
+	}
+	
+	// Check for constants that the user should not try to set
+	if ((p_member_name.compare("generationStart") == 0) ||
+		(p_member_name.compare("sexEnabled") == 0) ||
+		(p_member_name.compare("chromosomeType") == 0))
+		ConstantSetError(__func__, p_member_name);
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> SLiMSim::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	return methods;
+}
+
+const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
 
 
 

@@ -45,7 +45,7 @@
 class ScriptInterpreter;
 
 
-class SLiMSim
+class SLiMSim : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -95,10 +95,6 @@ public:
 	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
 	~SLiMSim(void);																	// destructor
 	
-	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter);					// add SLiM constructs to a SLiMscript interpreter instance
-	
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end
 	
@@ -110,6 +106,25 @@ public:
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
+	
+	//
+	// SLiMscript support
+	//
+	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	
+	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter);					// add SLiM constructs to a SLiMscript interpreter instance
+	
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 
 

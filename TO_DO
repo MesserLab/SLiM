@@ -10,6 +10,8 @@ command-line tool:
 	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
 
 SLiMscript:
+	add randomUniform() function, randomLogical() function
+	add ability to change the separator for cat – optional parameter
 	implement SLiM object elements
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	for Erich: implement unimplemented functions
