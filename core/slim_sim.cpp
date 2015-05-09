@@ -301,19 +301,12 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		switch (modeled_chromosome_type_)
 		{
 			case GenomeType::kAutosome:		return new ScriptValue_String("autosome");
-			case GenomeType::kXChromosome:	return new ScriptValue_String("x chromosome");
-			case GenomeType::kYChromosome:	return new ScriptValue_String("y chromosome");
+			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
+			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
 		}
 	}
 	if (p_member_name.compare("parameters") == 0)
-	{
-		ScriptValue_String *params = new ScriptValue_String();
-		
-		for (auto param : input_parameters_)
-			params->PushString(param);
-		
-		return params;
-	}
+		return new ScriptValue_String(input_parameters_);
 	if (p_member_name.compare("sexEnabled") == 0)
 		return new ScriptValue_Logical(sex_enabled_);
 	if (p_member_name.compare("start") == 0)

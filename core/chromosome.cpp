@@ -217,23 +217,9 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare("overallRecombinationRate") == 0)
 		return new ScriptValue_Float(overall_recombination_rate_);
 	if (p_member_name.compare("recombinationEndPositions") == 0)
-	{
-		ScriptValue_Int *positions = new ScriptValue_Int();
-		
-		for (auto position : recombination_end_positions_)
-			positions->PushInt(position);
-		
-		return positions;
-	}
+		return new ScriptValue_Int(recombination_end_positions_);
 	if (p_member_name.compare("recombinationRates") == 0)
-	{
-		ScriptValue_Float *rates = new ScriptValue_Float();
-		
-		for (auto rate : recombination_rates_)
-			rates->PushFloat(rate);
-		
-		return rates;
-	}
+		return new ScriptValue_Float(recombination_rates_);
 	
 	// variables
 	if (p_member_name.compare("geneConversionFraction") == 0)

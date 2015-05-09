@@ -296,6 +296,11 @@ ScriptValue_Logical::ScriptValue_Logical(void)
 {
 }
 
+ScriptValue_Logical::ScriptValue_Logical(std::vector<bool> p_boolvec)
+{
+	values_ = p_boolvec;
+}
+
 ScriptValue_Logical::ScriptValue_Logical(bool p_bool1)
 {
 	values_.push_back(p_bool1);
@@ -448,6 +453,11 @@ ScriptValue_String::ScriptValue_String(void)
 {
 }
 
+ScriptValue_String::ScriptValue_String(std::vector<std::string> p_stringvec)
+{
+	values_ = p_stringvec;
+}
+
 ScriptValue_String::ScriptValue_String(std::string p_string1)
 {
 	values_.push_back(p_string1);
@@ -593,6 +603,17 @@ void ScriptValue_String::PushValueFromIndexOfScriptValue(int p_idx, const Script
 
 ScriptValue_Int::ScriptValue_Int(void)
 {
+}
+
+ScriptValue_Int::ScriptValue_Int(std::vector<int> p_intvec)
+{
+	for (auto intval : p_intvec)
+		values_.push_back(intval);
+}
+
+ScriptValue_Int::ScriptValue_Int(std::vector<int64_t> p_intvec)
+{
+	values_ = p_intvec;
 }
 
 ScriptValue_Int::ScriptValue_Int(int64_t p_int1)
@@ -745,6 +766,11 @@ void ScriptValue_Int::PushValueFromIndexOfScriptValue(int p_idx, const ScriptVal
 
 ScriptValue_Float::ScriptValue_Float(void)
 {
+}
+
+ScriptValue_Float::ScriptValue_Float(std::vector<double> p_doublevec)
+{
+	values_ = p_doublevec;
 }
 
 ScriptValue_Float::ScriptValue_Float(double p_float1)
@@ -903,6 +929,11 @@ ScriptValue_Object::ScriptValue_Object(const ScriptValue_Object &p_original)
 
 ScriptValue_Object::ScriptValue_Object(void)
 {
+}
+
+ScriptValue_Object::ScriptValue_Object(std::vector<ScriptObjectElement *> p_elementvec)
+{
+	values_ = p_elementvec;
 }
 
 ScriptValue_Object::ScriptValue_Object(ScriptObjectElement *p_element1)
