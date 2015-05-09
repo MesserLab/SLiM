@@ -219,6 +219,7 @@ void SLiMSim::RunToEnd(void)
 //
 //	SLiMscript support
 //
+#pragma mark SLiMscript support
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
 ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
@@ -268,6 +269,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
+	constants.push_back("chromosome");			// chromosome_
 	constants.push_back("chromosomeType");		// modeled_chromosome_type_
 	constants.push_back("parameters");			// input_parameters_
 	constants.push_back("sexEnabled");			// sex_enabled_
@@ -289,9 +291,11 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
+	if (p_member_name.compare("chromosome") == 0)
+		return new ScriptValue_Object(&chromosome_);
 	if (p_member_name.compare("chromosomeType") == 0)
 	{
 		switch (modeled_chromosome_type_)
@@ -305,7 +309,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name) const
 	{
 		ScriptValue_String *params = new ScriptValue_String();
 		
-		for (std::string param : input_parameters_)
+		for (auto param : input_parameters_)
 			params->PushString(param);
 		
 		return params;
@@ -381,6 +385,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 	// Check for constants that the user should not try to set
 	if ((p_member_name.compare("generationStart") == 0) ||
 		(p_member_name.compare("sexEnabled") == 0) ||
+		(p_member_name.compare("chromosome") == 0) ||
 		(p_member_name.compare("chromosomeType") == 0))
 		ConstantSetError(__func__, p_member_name);
 	
@@ -404,7 +409,17 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-
+/*
+	Population population_;															// the population, which contains sub-populations
+	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
+	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
+	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
+	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
+	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
+	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
+*/
 
 
 

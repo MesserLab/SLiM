@@ -95,7 +95,7 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name)
 {
 	if (p_member_name.compare("path") == 0)
 		return new ScriptValue_String(base_path_);

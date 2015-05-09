@@ -39,6 +39,7 @@
 #include "chromosome.h"
 #include "event.h"
 #include "script.h"
+#include "script_value.h"
 #include "script_functions.h"
 
 
@@ -119,7 +120,7 @@ public:
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
 	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;

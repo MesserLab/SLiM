@@ -1181,7 +1181,7 @@ std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
 	return std::vector<std::string>();	// no read-write members
 }
 
-ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name)
 {
 	SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 	return nullptr;

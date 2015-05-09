@@ -176,6 +176,141 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 }
 
 
+//
+// SLiMscript support
+//
+#pragma mark SLiMscript support
+
+std::string Chromosome::ElementType(void) const
+{
+	return "Chromosome";
+}
+
+std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("lastPosition");					// length_
+	constants.push_back("overallRecombinationRate");		// overall_recombination_rate_
+	constants.push_back("recombinationEndPositions");		// recombination_end_positions_
+	constants.push_back("recombinationRates");				// recombination_rates_
+	
+	return constants;
+}
+
+std::vector<std::string> Chromosome::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	variables.push_back("geneConversionFraction");			// gene_conversion_fraction_
+	variables.push_back("geneConversionMeanLength");		// gene_conversion_avg_length_
+	variables.push_back("overallMutationRate");				// overall_mutation_rate_
+	
+	return variables;
+}
+
+ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("lastPosition") == 0)
+		return new ScriptValue_Int(length_);
+	if (p_member_name.compare("overallRecombinationRate") == 0)
+		return new ScriptValue_Float(overall_recombination_rate_);
+	if (p_member_name.compare("recombinationEndPositions") == 0)
+	{
+		ScriptValue_Int *positions = new ScriptValue_Int();
+		
+		for (auto position : recombination_end_positions_)
+			positions->PushInt(position);
+		
+		return positions;
+	}
+	if (p_member_name.compare("recombinationRates") == 0)
+	{
+		ScriptValue_Float *rates = new ScriptValue_Float();
+		
+		for (auto rate : recombination_rates_)
+			rates->PushFloat(rate);
+		
+		return rates;
+	}
+	
+	// variables
+	if (p_member_name.compare("geneConversionFraction") == 0)
+		return new ScriptValue_Float(gene_conversion_fraction_);
+	if (p_member_name.compare("geneConversionMeanLength") == 0)
+		return new ScriptValue_Float(gene_conversion_avg_length_);
+	if (p_member_name.compare("overallMutationRate") == 0)
+		return new ScriptValue_Float(overall_mutation_rate_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_member_name.compare("geneConversionFraction") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+		
+		double value = p_value->FloatAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
+		
+		gene_conversion_fraction_ = value;
+		return;
+	}
+	
+	if (p_member_name.compare("geneConversionMeanLength") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+		
+		double value = p_value->FloatAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, value >= 0);
+		
+		gene_conversion_avg_length_ = value;
+		return;
+	}
+	
+	if (p_member_name.compare("overallMutationRate") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskFloat);
+		
+		double value = p_value->FloatAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
+		
+		overall_mutation_rate_ = value;
+		return;
+	}
+	
+	// Check for constants that the user should not try to set
+	if ((p_member_name.compare("lastPosition") == 0) ||
+		(p_member_name.compare("recombinationEndPositions") == 0) ||
+		(p_member_name.compare("recombinationRates") == 0) ||
+		(p_member_name.compare("overallRecombinationRate") == 0))
+		ConstantSetError(__func__, p_member_name);
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> Chromosome::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	// setRecombination(positions, rates)
+	
+	return methods;
+}
+
+const FunctionSignature *Chromosome::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
+
+
 
 
 
