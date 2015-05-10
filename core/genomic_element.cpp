@@ -82,6 +82,70 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 }
 
 
+#ifndef SLIMCORE
+//
+// SLiMscript support
+//
+std::string GenomicElement::ElementType(void) const
+{
+	return "GenomicElement";
+}
+
+std::vector<std::string> GenomicElement::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("genomicElementType");		// genomic_element_type_ptr_
+	constants.push_back("startPosition");			// start_position_
+	constants.push_back("endPosition");				// end_position_
+	
+	return constants;
+}
+
+std::vector<std::string> GenomicElement::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	return variables;
+}
+
+ScriptValue *GenomicElement::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("genomicElementType") == 0)
+		return new ScriptValue_Object(genomic_element_type_ptr_);
+	if (p_member_name.compare("startPosition") == 0)
+		return new ScriptValue_Int(start_position_);
+	if (p_member_name.compare("endPosition") == 0)
+		return new ScriptValue_Int(end_position_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void GenomicElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> GenomicElement::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	return methods;
+}
+
+const FunctionSignature *GenomicElement::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
+
+#endif	// #ifndef SLIMCORE
+
 
 
 

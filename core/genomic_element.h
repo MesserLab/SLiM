@@ -32,8 +32,15 @@
 
 #include "genomic_element_type.h"
 
+#ifndef SLIMCORE
+#include "script_value.h"
+#endif
+
 
 class GenomicElement
+#ifndef SLIMCORE
+						: public ScriptObjectElement
+#endif
 {
 	// This class has a restricted copying policy; see below
 	
@@ -59,6 +66,22 @@ public:
 	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
 	GenomicElement(SLIMCONST GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
+	
+#ifndef SLIMCORE
+	//
+	// SLiMscript support
+	//
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 // support stream output of GenomicElement, for debugging
