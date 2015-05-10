@@ -44,20 +44,21 @@ NSString *defaultsShowExecutionKey = @"ShowExecution";
 static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 										"#MUTATION TYPES\n"
 										"m1 0.5 f 0.0 // neutral\n\n"
+										"m2 0.5 f 0.1 // adaptive\n\n"
 										"#MUTATION RATE\n"
 										"1e-7\n\n"
 										"#GENOMIC ELEMENT TYPES\n"
-										"g1 m1 1.0 // only one type comprising the neutral mutations\n\n"
+										"g1 m1 0.9 m2 0.1 // mostly neutral, some adaptive\n\n"
 										"#CHROMOSOME ORGANIZATION\n"
 										"g1 1 100000 // uniform chromosome of length 100 kb\n\n"
 										"#RECOMBINATION RATE\n"
 										"100000 1e-8\n\n"
 										"#GENERATIONS\n"
-										"10\n\n"
+										"1000\n\n"
 										"#DEMOGRAPHY AND STRUCTURE\n"
 										"1 P p1 500 // one population of 500 individuals\n\n"
 										"#SCRIPT\n"
-										"10 { stop(\"SLiMscribe halt\"); }\n";
+										"1000 { stop(\"SLiMscribe halt\"); }\n";
 
 
 @implementation AppDelegate
