@@ -326,6 +326,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	constants.push_back("chromosome");			// chromosome_
 	constants.push_back("chromosomeType");		// modeled_chromosome_type_
 	constants.push_back("genomicElementTypes");	// genomic_element_types_
+	constants.push_back("mutations");			// population_.mutation_registry_
 	constants.push_back("mutationTypes");		// mutation_types_
 	constants.push_back("parameters");			// input_parameters_
 	constants.push_back("populations");			// population_
@@ -369,6 +370,17 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
 			vec->PushElement(ge_type->second);
+		
+		return vec;
+	}
+	if (p_member_name.compare("mutations") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		Genome &mutation_registry = population_.mutation_registry_;
+		int mutation_count = mutation_registry.size();
+		
+		for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+			vec->PushElement(mutation_registry[mut_index]);
 		
 		return vec;
 	}
