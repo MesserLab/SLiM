@@ -33,8 +33,15 @@
 #include "mutation_type.h"
 #include "slim_global.h"
 
+#ifndef SLIMCORE
+#include "script_value.h"
+#endif
+
 
 class Mutation
+#ifndef SLIMCORE
+				: public ScriptObjectElement
+#endif
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -42,7 +49,7 @@ public:
 	
 	SLIMCONST MutationType *mutation_type_ptr_;			// mutation type identifier
 	const int32_t position_;							// position on the chromosome
-	const float selection_coeff_;						// selection coefficient
+	SLIMCONST float selection_coeff_;					// selection coefficient – SLIMCONST because it may be changed in script
 	const int32_t subpop_index_;						// subpopulation in which mutation arose
 	const int32_t generation_;							// generation in which mutation arose
 	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
@@ -60,6 +67,22 @@ public:
 #if DEBUG_MUTATIONS
 	~Mutation();										// destructor, if we are debugging
 #endif
+	
+#ifndef SLIMCORE
+	//
+	// SLiMscript support
+	//
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 // true if M1 has an earlier (smaller) position than M2
