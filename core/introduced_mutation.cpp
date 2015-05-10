@@ -21,7 +21,7 @@
 #include "introduced_mutation.h"
 
 
-IntroducedMutation::IntroducedMutation(const MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes) :
+IntroducedMutation::IntroducedMutation(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, int p_subpop_index, int p_generation, int p_num_homozygotes, int p_num_heterozygotes) :
 	Mutation(p_mutation_type_ptr, p_position, 0.0, p_subpop_index, p_generation), num_homozygotes_(p_num_homozygotes), num_heterozygotes_(p_num_heterozygotes)
 {
 }

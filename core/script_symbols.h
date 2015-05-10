@@ -20,6 +20,10 @@
 #ifndef __SLiM__script_symbols__
 #define __SLiM__script_symbols__
 
+#ifdef SLIMCORE
+#error This header should not be included when building the slimcore target
+#endif
+
 #include <iostream>
 #include <vector>
 #include <string>

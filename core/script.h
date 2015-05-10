@@ -27,6 +27,9 @@
 #ifndef __SLiM__script__
 #define __SLiM__script__
 
+#ifdef SLIMCORE
+#error This header should not be included when building the slimcore target
+#endif
 
 #include <vector>
 #include <string>
@@ -36,11 +39,6 @@
 extern bool gSLiMScriptLogTokens;
 extern bool gSLiMScriptLogAST;
 extern bool gSLiMScriptLogEvaluation;
-
-// ways of designating the part of the input file that caused an error; set by CheckInputFile() and
-// used by SLiMgui character range will be used in preference to a line number, if both are supplied
-extern int gLineNumberOfParseError;									// one-based
-extern int gCharacterStartOfParseError, gCharacterEndOfParseError;	// zero-based
 
 
 // An enumeration for all token types, whether real or virtual

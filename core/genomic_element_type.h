@@ -33,12 +33,19 @@
 #include <vector>
 #include <iostream>
 
+#include "slim_global.h"
 #include "g_rng.h"
 #include "mutation_type.h"
+
+#ifndef SLIMCORE
 #include "script_value.h"
+#endif
 
 
-class GenomicElementType : public ScriptObjectElement
+class GenomicElementType
+#ifndef SLIMCORE
+							: public ScriptObjectElement
+#endif
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -58,8 +65,9 @@ public:
 	GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	~GenomicElementType(void);
 	
-	const MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
+	SLIMCONST MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
 	
+#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -73,6 +81,7 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 // support stream output of GenomicElementType, for debugging

@@ -257,8 +257,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 	{
 		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
 		const Genome *genome = genome1->IsNull() ? genome2 : genome1;
-		const Mutation **genome_iter = genome->begin_pointer();
-		const Mutation **genome_max = genome->end_pointer();
+		SLIMCONST Mutation **genome_iter = genome->begin_pointer();
+		SLIMCONST Mutation **genome_max = genome->end_pointer();
 		
 		if (genome->GenomeType() == GenomeType::kXChromosome)
 		{
@@ -304,11 +304,11 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 	else
 	{
 		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const Mutation **genome1_iter = genome1->begin_pointer();
-		const Mutation **genome2_iter = genome2->begin_pointer();
+		SLIMCONST Mutation **genome1_iter = genome1->begin_pointer();
+		SLIMCONST Mutation **genome2_iter = genome2->begin_pointer();
 		
-		const Mutation **genome1_max = genome1->end_pointer();
-		const Mutation **genome2_max = genome2->end_pointer();
+		SLIMCONST Mutation **genome1_max = genome1->end_pointer();
+		SLIMCONST Mutation **genome2_max = genome2->end_pointer();
 		
 		// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -366,7 +366,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 				{
 					// Look for homozygosity: genome1_iter_position == genome2_iter_position
 					int position = genome1_iter_position;
-					const Mutation **genome1_start = genome1_iter;
+					SLIMCONST Mutation **genome1_start = genome1_iter;
 					
 					// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 					do
@@ -375,8 +375,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 						
 						if (selection_coeff != 0.0f)
 						{
-							const MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
-							const Mutation **genome2_matchscan = genome2_iter; 
+							SLIMCONST MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
+							SLIMCONST Mutation **genome2_matchscan = genome2_iter; 
 							bool homozygous = false;
 							
 							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -424,8 +424,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 						
 						if (selection_coeff != 0.0f)
 						{
-							const MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
-							const Mutation **genome1_matchscan = genome1_start; 
+							SLIMCONST MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
+							SLIMCONST Mutation **genome1_matchscan = genome1_start; 
 							bool homozygous = false;
 							
 							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
@@ -531,6 +531,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 }
 
+#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -641,6 +642,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	std::vector<Genome> child_genomes_;				// all genomes in the child generation; each individual gets two genomes, males are XY (not YX)
 */
 
+#endif	// #ifndef SLIMCORE
 
 
 

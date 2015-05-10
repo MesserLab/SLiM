@@ -26,7 +26,11 @@
 #include <sstream>
 
 #include "slim_global.h"
+
+#ifndef SLIMCORE
 #include "script.h"
+#endif
+
 #include <malloc/malloc.h>		// for malloc_size(), for debugging; can be removed
 #include <stdexcept>
 
@@ -879,6 +883,7 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 				continue;
 			}
 			
+#ifndef SLIMCORE
 			#pragma mark Check:SCRIPT
 			if (line.find("SCRIPT") != string::npos)
 			{
@@ -1004,6 +1009,7 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 				
 				continue;
 			}
+#endif // #ifndef SLIMCORE
 			
 			return InputError(InputErrorType::kUnknownParameter, line);
 		}
@@ -1068,7 +1074,7 @@ std::string SLiMSim::CheckInputFile(std::istream &infile)
 
 void SLiMSim::InitializePopulationFromFile(const char *p_file)
 {
-	std::map<int,const Mutation*> mutations;
+	std::map<int,SLIMCONST Mutation*> mutations;
 	string line, sub; 
 	ifstream infile(p_file);
 	
@@ -1162,13 +1168,13 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		if (found_muttype_pair == mutation_types_.end()) 
 			SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << endl << slim_terminate();
 		
-		const MutationType *mutation_type_ptr = found_muttype_pair->second;
+		SLIMCONST MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		// construct the new mutation
-		const Mutation *new_mutation = new Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		SLIMCONST Mutation *new_mutation = new Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations.insert(std::pair<const int,const Mutation*>(mutation_id, new_mutation));
+		mutations.insert(std::pair<const int,SLIMCONST Mutation*>(mutation_id, new_mutation));
 		population_.mutation_registry_.push_back(new_mutation);
 	}
 	
@@ -1254,7 +1260,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 				if (found_mut_pair == mutations.end()) 
 					SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << endl << slim_terminate();
 				
-				const Mutation *mutation = found_mut_pair->second;
+				SLIMCONST Mutation *mutation = found_mut_pair->second;
 				
 				genome.push_back(mutation);
 			}
@@ -1507,7 +1513,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 					if (found_getype_pair == genomic_element_types_.end())
 						SLIM_TERMINATION << "ERROR (Initialize): genomic element type m" << genomic_element_type << " not defined" << endl << slim_terminate();
 					
-					const GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
+					SLIMCONST GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
 					GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
 					
 					bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
@@ -1743,11 +1749,11 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 					if (found_muttype_pair == mutation_types_.end())
 						SLIM_TERMINATION << "ERROR (Initialize): mutation type m" << mutation_type_id << " not defined" << endl << slim_terminate();
 					
-					const MutationType *mutation_type_ptr = found_muttype_pair->second;
+					SLIMCONST MutationType *mutation_type_ptr = found_muttype_pair->second;
 					
-					const IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
+					SLIMCONST IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, position, subpop_index, generation, num_AA, num_Aa);
 					
-					introduced_mutations_.insert(std::pair<const int,const IntroducedMutation*>(generation, new_introduced_mutation));
+					introduced_mutations_.insert(std::pair<const int,SLIMCONST IntroducedMutation*>(generation, new_introduced_mutation));
 					
 					if (DEBUG_INPUT)
 						SLIM_OUTSTREAM << "   #PREDETERMINED MUTATIONS: generation " << generation << " " << *new_introduced_mutation << endl;
@@ -1758,7 +1764,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 						{
 							iss >> sub;
 							double target_prevalence = atof(sub.c_str());
-							const PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, position, target_prevalence);
+							SLIMCONST PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, position, target_prevalence);
 							
 							partial_sweeps_.push_back(new_partial_sweep);
 							
@@ -1828,6 +1834,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 				continue;
 			}
 			
+#ifndef SLIMCORE
 			#pragma mark Initialize:SCRIPT
 			if (line.find("SCRIPT") != string::npos)
 			{
@@ -1937,6 +1944,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 				
 				continue;
 			}
+#endif // #ifndef SLIMCORE
 		}
 		else
 		{

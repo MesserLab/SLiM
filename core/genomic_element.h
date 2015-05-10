@@ -43,7 +43,7 @@ private:
 	
 public:
 	
-	const GenomicElementType *genomic_element_type_ptr_;				// pointer to the type of genomic element this is
+	SLIMCONST GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
 	int start_position_;												// the start position of the element
 	int end_position_;													// the end position of the element
 	
@@ -58,7 +58,7 @@ public:
 	GenomicElement(void) = delete;										// no null construction
 	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
-	GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
+	GenomicElement(SLIMCONST GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
 };
 
 // support stream output of GenomicElement, for debugging

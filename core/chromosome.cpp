@@ -131,7 +131,7 @@ Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) cons
 	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
-	const MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
+	SLIMCONST MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
@@ -176,6 +176,7 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 }
 
 
+#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -296,6 +297,7 @@ ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::ve
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
+#endif	// #ifndef SLIMCORE
 
 
 

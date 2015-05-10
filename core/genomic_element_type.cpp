@@ -50,7 +50,7 @@ GenomicElementType::~GenomicElementType(void)
 		gsl_ran_discrete_free(lookup_mutation_type);
 }
 
-const MutationType *GenomicElementType::DrawMutationType() const
+SLIMCONST MutationType *GenomicElementType::DrawMutationType() const
 {
 	return mutation_type_ptrs_[gsl_ran_discrete(g_rng, lookup_mutation_type)];
 }
@@ -104,6 +104,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	return p_outstream;
 }
 
+#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -178,6 +179,7 @@ ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name,
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
+#endif	// #ifndef SLIMCORE
 
 
 

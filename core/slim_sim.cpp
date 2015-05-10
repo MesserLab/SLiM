@@ -19,14 +19,18 @@
 
 
 #include "slim_sim.h"
+
+#ifndef SLIMCORE
 #include "script_test.h"
+#endif
 
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
 
-// SLiMscript headers for InjectIntoInterpreter()
+#ifndef SLIMCORE
 #include "script_interpreter.h"
+#endif
 
 
 using std::multimap;
@@ -122,9 +126,6 @@ SLiMSim::~SLiMSim(void)
 	for (auto output_event : outputs_)
 		delete output_event.second;
 	
-	for (auto script_event : scripts_)
-		delete script_event;
-	
 	for (auto introduced_mutation : introduced_mutations_)
 		delete introduced_mutation.second;
 	
@@ -137,8 +138,13 @@ SLiMSim::~SLiMSim(void)
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
 	
+#ifndef SLIMCORE
+	for (auto script_event : scripts_)
+		delete script_event;
+	
 	// We should not have any interpreter instances that still refer to us
 	delete simFunctionSig;
+#endif
 }
 
 bool SLiMSim::RunOneGeneration(void)
@@ -164,17 +170,19 @@ bool SLiMSim::RunOneGeneration(void)
 					population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
 				
 				// introduce user-defined mutations
-				std::pair<multimap<const int,const IntroducedMutation*>::iterator,multimap<const int,const IntroducedMutation*>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
+				std::pair<multimap<const int,SLIMCONST IntroducedMutation*>::iterator,multimap<const int,SLIMCONST IntroducedMutation*>::iterator> introd_mut_range = introduced_mutations_.equal_range(generation_);
 				
-				for (multimap<const int,const IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
+				for (multimap<const int,SLIMCONST IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
 					population_.IntroduceMutation(*introduced_mutations_iter->second);
 				
+#ifndef SLIMCORE
 				// execute script events
 				for (auto script_event : scripts_)
 				{
 					if ((generation_ >= script_event->generation_start_) && (generation_ <= script_event->generation_end_))
 						population_.ExecuteScript(script_event, generation_, chromosome_, *this);
 				}
+#endif
 				
 				// execute output events
 				std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);
@@ -216,6 +224,7 @@ void SLiMSim::RunToEnd(void)
 }
 
 
+#ifndef SLIMCORE
 //
 //	SLiMscript support
 //
@@ -490,6 +499,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
 */
 
+#endif	// #ifndef SLIMCORE
 
 
 

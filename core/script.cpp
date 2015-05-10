@@ -39,10 +39,6 @@ bool gSLiMScriptLogTokens = false;
 bool gSLiMScriptLogAST = false;
 bool gSLiMScriptLogEvaluation = false;
 
-// set by CheckInputFile() and used by SLiMgui
-int gLineNumberOfParseError = 0;										// one-based
-int gCharacterStartOfParseError = -1, gCharacterEndOfParseError = -1;	// zero-based
-
 
 std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type)
 {

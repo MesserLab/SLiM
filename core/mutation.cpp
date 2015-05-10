@@ -28,10 +28,10 @@ uint64_t g_next_mutation_id = 0;
 
 #ifdef SLIMGUI
 // In SLiMgui, the mutation_id_ gets initialized here, from the global counter g_next_mutation_id
-Mutation::Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
+Mutation::Mutation(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<float>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(g_next_mutation_id++)
 #else
-Mutation::Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
+Mutation::Mutation(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
 	mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<float>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation)
 #endif
 {

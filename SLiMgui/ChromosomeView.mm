@@ -316,7 +316,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	std::vector<const Substitution*> &substitutions = pop.substitutions_;
+	std::vector<SLIMCONST Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
@@ -348,7 +348,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	Genome &mutationRegistry = pop.mutation_registry_;
-	const Mutation **mutations = mutationRegistry.mutations_;
+	SLIMCONST Mutation **mutations = mutationRegistry.mutations_;
 	int mutationCount = mutationRegistry.mutation_count_;
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)

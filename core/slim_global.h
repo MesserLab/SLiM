@@ -31,6 +31,29 @@
 #include <sstream>
 
 
+// We have a target called slimcore that defines a preprocessor symbol SLIMCORE.  This target is not intended for end-user
+// use.  It builds a version of the slim command-line tool that has everything related to SLiMscript stripped out of it.
+// The purpose of this is primarily to allow const-ness to be expressed, and tested at compile time, in a buildable target.
+// Unfortunately, SLiMscript's lack of a concept of const-ness necessarily infects the rest of SLiM; things that should be
+// marked as const cannot be, because they are made visible in SLiMscript and thus a non-const pointer to them needs to be
+// available.  Rather than handling this by casting away the const-ness of the pointers, I have chosen to make the original
+// pointers non-const – but to have this slimcore target in which they are still declared const.  Incidental benefits of
+// this approach are that every place where SLiM interacts with SLiMscript is clearly marked with #ifndef SLIMCORE, and
+// so the changes made for scriptability are very clear.  Here we define a few helpful things that make building slim vs.
+// slimcore a bit simpler.
+#ifdef SLIMCORE
+
+// in slimcore, SLIMCONST really means const
+#define SLIMCONST const
+
+#else
+
+// in slim, SLIMCONST means nothing
+#define SLIMCONST
+
+#endif
+
+
 // If we're running inside SLiMgui, we use a global ostringstream to capture all output to both the output and error streams.
 // This stream gets emptied out after every call out to SLiMSim, so a single stream can be safely used by all of the SLiMSim
 // instances running inside SLiMgui (because we do not multithread).  We also have a special stream for termination messages.
@@ -49,6 +72,12 @@ extern std::ostringstream gSLiMTermination;
 #define SLIM_TERMINATION	(std::cerr)
 
 #endif
+
+
+// ways of designating the part of the input file that caused an error; set by CheckInputFile() and
+// used by SLiMgui character range will be used in preference to a line number, if both are supplied
+extern int gLineNumberOfParseError;									// one-based
+extern int gCharacterStartOfParseError, gCharacterEndOfParseError;	// zero-based
 
 
 // Debugging #defines that can be turned on

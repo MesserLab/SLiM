@@ -29,6 +29,10 @@
 #ifndef __SLiM__script_pathelement__
 #define __SLiM__script_pathelement__
 
+#ifdef SLIMCORE
+#error This header should not be included when building the slimcore target
+#endif
+
 #include "script_value.h"
 
 

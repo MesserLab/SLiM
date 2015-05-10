@@ -49,7 +49,7 @@ private:
 	
 	int mutation_count_ = 0;							// the number of entries presently in mutations_
 	int mutation_capacity_ = 0;							// the capacity of mutations_
-	const Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
+	SLIMCONST Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
@@ -91,7 +91,7 @@ public:
 	
 	void RemoveFixedMutations(int p_fixed_count);						// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
 	
-	inline const Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	inline SLIMCONST Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -100,7 +100,7 @@ public:
 		return mutations_[index];
 	}
 	
-	inline const Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline SLIMCONST Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -137,7 +137,7 @@ public:
 			--mutation_count_;
 	}
 	
-	inline void push_back(const Mutation *p_mutation)
+	inline void push_back(SLIMCONST Mutation *p_mutation)
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -148,12 +148,12 @@ public:
 			if (!mutation_capacity_)
 			{
 				mutation_capacity_ = 16;		// start with room for 16 pointers; the hope is that for many simulations this will avoid realloc entirely
-				mutations_ = (const Mutation **)malloc(16 * sizeof(Mutation*));
+				mutations_ = (SLIMCONST Mutation **)malloc(16 * sizeof(Mutation*));
 			}
 			else
 			{
 				mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-				mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 			}
 		}
 		
@@ -163,7 +163,7 @@ public:
 		++mutation_count_;
 	}
 	
-	inline void insert_sorted_mutation(const Mutation *p_mutation)
+	inline void insert_sorted_mutation(SLIMCONST Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
 		push_back(p_mutation);
@@ -173,8 +173,8 @@ public:
 			return;
 		
 		// then find the proper position for it
-		const Mutation **sort_position = begin_pointer();
-		const Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
+		SLIMCONST Mutation **sort_position = begin_pointer();
+		SLIMCONST Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
 		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
 			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
@@ -191,7 +191,7 @@ public:
 		*sort_position = p_mutation;
 	}
 	
-	inline void insert_sorted_mutation_if_unique(const Mutation *p_mutation)
+	inline void insert_sorted_mutation_if_unique(SLIMCONST Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
 		push_back(p_mutation);
@@ -201,8 +201,8 @@ public:
 			return;
 		
 		// then find the proper position for it
-		const Mutation **sort_position = begin_pointer();
-		const Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
+		SLIMCONST Mutation **sort_position = begin_pointer();
+		SLIMCONST Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
 		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
 		{
@@ -241,7 +241,7 @@ public:
 		if (source_mutation_count > mutation_capacity_)
 		{
 			mutation_capacity_ = p_source_genome.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 		}
 		
 		// then copy all pointers from the source to ourselves
@@ -253,7 +253,7 @@ public:
 		is_null_genome_ = p_source_genome.is_null_genome_;
 	}
 	
-	inline const Mutation **begin_pointer(void) const
+	inline SLIMCONST Mutation **begin_pointer(void) const
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -262,7 +262,7 @@ public:
 		return mutations_;
 	}
 	
-	inline const Mutation **end_pointer(void) const
+	inline SLIMCONST Mutation **end_pointer(void) const
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -271,7 +271,7 @@ public:
 		return mutations_ + mutation_count_;
 	}
 	
-	inline const Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
+	inline SLIMCONST Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
 	{
 #ifdef DEBUG
 		if (is_null_genome_)

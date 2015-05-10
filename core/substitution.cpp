@@ -25,10 +25,10 @@
 
 #ifdef SLIMGUI
 // In SLiMgui, the mutation_id_ gets initialized here, from the mutation
-Substitution::Substitution(const Mutation &p_mutation, int p_fixation_time) :
+Substitution::Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time) :
 mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_time_(p_fixation_time), mutation_id_(p_mutation.mutation_id_)
 #else
-Substitution::Substitution(const Mutation &p_mutation, int p_fixation_time) :
+Substitution::Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time) :
 	mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_time_(p_fixation_time)
 #endif
 {

@@ -51,9 +51,9 @@ void Genome::RemoveFixedMutations(int p_fixed_count)
 		NullGenomeAccessError();
 #endif
 	
-	const Mutation **genome_iter = begin_pointer();
-	const Mutation **genome_backfill_iter = begin_pointer();
-	const Mutation **genome_max = end_pointer();
+	SLIMCONST Mutation **genome_iter = begin_pointer();
+	SLIMCONST Mutation **genome_backfill_iter = begin_pointer();
+	SLIMCONST Mutation **genome_max = end_pointer();
 	
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed (copy it backward to the backfill pointer)
 	while (genome_iter != genome_max)
@@ -100,7 +100,7 @@ Genome::Genome(const Genome &p_original)
 	if (source_mutation_count > mutation_capacity_)
 	{
 		mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-		mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+		mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 	}
 	
 	// then copy all pointers from the source to ourselves
@@ -131,7 +131,7 @@ Genome& Genome::operator= (const Genome& p_original)
 		if (source_mutation_count > mutation_capacity_)
 		{
 			mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (const Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 		}
 		
 		// then copy all pointers from the source to ourselves

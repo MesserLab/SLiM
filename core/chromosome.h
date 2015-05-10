@@ -38,10 +38,15 @@
 #include "genomic_element_type.h"
 #include "g_rng.h"
 
+#ifndef SLIMCORE
 #include "script_value.h"
+#endif
 
 
-class Chromosome : public std::vector<GenomicElement>, public ScriptObjectElement
+class Chromosome : public std::vector<GenomicElement>
+#ifndef SLIMCORE
+														, public ScriptObjectElement
+#endif
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -81,6 +86,7 @@ public:
 	vector<int> DrawBreakpoints(const int p_num_breakpoints) const;			// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
 	
+#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -94,6 +100,7 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 // draw the number of mutations that occur, based on the overall mutation rate

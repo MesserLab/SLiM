@@ -33,6 +33,10 @@
 #import "mutation.h"
 #import "chromosome.h"
 
+#ifndef SLIMCORE
+#include "script_value.h"
+#endif
+
 
 class Substitution
 {
@@ -40,7 +44,7 @@ class Substitution
 
 public:
 	
-	const MutationType *mutation_type_ptr_;		// mutation type identifier
+	SLIMCONST MutationType *mutation_type_ptr_;	// mutation type identifier
 	int position_;								// position
 	float selection_coeff_;						// selection coefficient
 	int subpop_index_;							// subpopulation in which mutation arose
@@ -53,7 +57,7 @@ public:
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
-	Substitution(const Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
+	Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print(std::ostream &p_out) const;
 };

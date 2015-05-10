@@ -25,7 +25,7 @@
 bool GenomicElement::s_log_copy_and_assign_ = true;
 
 
-GenomicElement::GenomicElement(const GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position) :
+GenomicElement::GenomicElement(SLIMCONST GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position) :
 	genomic_element_type_ptr_(p_genomic_element_type_ptr), start_position_(p_start_position), end_position_(p_end_position)
 {
 }

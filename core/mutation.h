@@ -40,7 +40,7 @@ class Mutation
 
 public:
 	
-	const MutationType *mutation_type_ptr_;				// mutation type identifier
+	SLIMCONST MutationType *mutation_type_ptr_;			// mutation type identifier
 	const int32_t position_;							// position on the chromosome
 	const float selection_coeff_;						// selection coefficient
 	const int32_t subpop_index_;						// subpopulation in which mutation arose
@@ -55,7 +55,7 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(const MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
+	Mutation(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 	
 #if DEBUG_MUTATIONS
 	~Mutation();										// destructor, if we are debugging

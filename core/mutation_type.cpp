@@ -86,6 +86,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 	return p_outstream;
 }
 
+#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -171,6 +172,7 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
+#endif	// #ifndef SLIMCORE
 
 
 

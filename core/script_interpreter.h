@@ -27,14 +27,21 @@
 #ifndef __SLiM__script_interpreter__
 #define __SLiM__script_interpreter__
 
+#ifdef SLIMCORE
+#error This header should not be included when building the slimcore target
+#endif
+
 #include <vector>
 #include <string>
 #include <map>
 
+#include "mutation.h"
+
+#ifndef SLIMCORE
 #include "script.h"
 #include "script_value.h"
-#include "mutation.h"
 #include "script_functions.h"
+#endif
 
 
 // typedefs used to set up our map table of FunctionSignature objects

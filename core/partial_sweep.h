@@ -30,6 +30,7 @@
 
 #include <iostream>
 
+#include "slim_global.h"
 #include "mutation_type.h"
 
 
@@ -39,14 +40,14 @@ class PartialSweep
 
 public:
 	
-	const MutationType *mutation_type_ptr_;		// the mutation type of the partial sweep locus
+	SLIMCONST MutationType *mutation_type_ptr_;	// the mutation type of the partial sweep locus
 	int position_;								// the position of the partial sweep locus
 	double target_prevalence_;					// the target prevalence at which the partial sweep becomes neutral
 	
 	PartialSweep(const PartialSweep&) = delete;
 	PartialSweep& operator=(const PartialSweep&) = delete;
 	PartialSweep(void) = delete;										// no null construction
-	PartialSweep(const MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence);
+	PartialSweep(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, double p_target_prevalence);
 };
 
 // support stream output of PartialSweep, for debugging

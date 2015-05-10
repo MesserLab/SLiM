@@ -38,15 +38,21 @@
 #include "population.h"
 #include "chromosome.h"
 #include "event.h"
+
+#ifndef SLIMCORE
 #include "script.h"
 #include "script_value.h"
 #include "script_functions.h"
+#endif
 
 
 class ScriptInterpreter;
 
 
-class SLiMSim : public ScriptObjectElement
+class SLiMSim
+#ifndef SLIMCORE
+				: public ScriptObjectElement
+#endif
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -68,9 +74,8 @@ private:
 	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
 	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
-	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
-	std::multimap<const int,const IntroducedMutation*> introduced_mutations_;		// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
-	std::vector<const PartialSweep*> partial_sweeps_;								// OWNED POINTERS: mutations undergoing partial sweeps
+	std::multimap<const int,SLIMCONST IntroducedMutation*> introduced_mutations_;	// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
+	std::vector<SLIMCONST PartialSweep*> partial_sweeps_;							// OWNED POINTERS: mutations undergoing partial sweeps
 	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
 	int rng_seed_ = 0;																// random number generator seed
 	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
@@ -80,8 +85,10 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-	// SLiMscript function signatures
-	FunctionSignature *simFunctionSig = nullptr;
+#ifndef SLIMCORE
+	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
+	FunctionSignature *simFunctionSig = nullptr;									// OWNED POINTERS: SLiMscript function signatures
+#endif
 	
 	// private initialization methods
 	static std::string CheckInputFile(std::istream &infile);						// check an input file for correctness and exit with a good error message if there is a problem
@@ -108,6 +115,7 @@ public:
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	
+#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -126,6 +134,7 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 

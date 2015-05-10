@@ -26,6 +26,9 @@
 #ifndef __SLiM__script_test__
 #define __SLiM__script_test__
 
+#ifdef SLIMCORE
+#error This header should not be included when building the slimcore target
+#endif
 
 #include <string>
 

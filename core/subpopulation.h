@@ -36,10 +36,16 @@
 #include "g_rng.h"
 #include "genome.h"
 #include "chromosome.h"
+
+#ifndef SLIMCORE
 #include "script_value.h"
+#endif
 
 
-class Subpopulation : public ScriptObjectElement
+class Subpopulation
+#ifndef SLIMCORE
+					: public ScriptObjectElement
+#endif
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -96,6 +102,7 @@ public:
 	double FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	
+#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -109,6 +116,7 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 

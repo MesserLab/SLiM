@@ -175,7 +175,7 @@
 		[drawingCache drawInRect:interiorRect];
 	
 	// Draw fixation events
-	std::vector<const Substitution*> &substitutions = pop.substitutions_;
+	std::vector<SLIMCONST Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
@@ -226,7 +226,7 @@
 	// Fixation events
 	[string appendString:@"\n\n# Fixation generations:\n"];
 	
-	std::vector<const Substitution*> &substitutions = pop.substitutions_;
+	std::vector<SLIMCONST Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{

@@ -27,6 +27,11 @@
 #include <stdexcept>
 
 
+// set by CheckInputFile() and used by SLiMgui
+int gLineNumberOfParseError = 0;										// one-based
+int gCharacterStartOfParseError = -1, gCharacterEndOfParseError = -1;	// zero-based
+
+
 // Stuff that changes depending on whether we're building inside SLiMgui or as a standalone tool
 #if defined(SLIMGUI) || defined(SLIMSCRIBE)
 
