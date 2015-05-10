@@ -125,7 +125,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 #endif
 }
 
-Subpopulation::Subpopulation(int p_subpop_size) : parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+Subpopulation::Subpopulation(int p_subpopulation_id, int p_subpop_size) : subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
 {
 	GenerateChildrenToFit(true);
 	
@@ -139,8 +139,8 @@ Subpopulation::Subpopulation(int p_subpop_size) : parent_subpop_size_(p_subpop_s
 }
 
 // SEX ONLY
-Subpopulation::Subpopulation(int p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
-	sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
+Subpopulation::Subpopulation(int p_subpopulation_id, int p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
+	subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
 {
 	GenerateChildrenToFit(true);
 	
@@ -544,6 +544,7 @@ std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
+	constants.push_back("id");								// subpopulation_id_
 	constants.push_back("childGenomes");					// child_genomes_
 	constants.push_back("immigrantSubpopIDs");				// migrant_fractions_
 	constants.push_back("immigrantSubpopFractions");		// migrant_fractions_
@@ -565,6 +566,8 @@ std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
+	if (p_member_name.compare("id") == 0)
+		return new ScriptValue_Int(subpopulation_id_);
 	if (p_member_name.compare("childGenomes") == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();

@@ -85,9 +85,9 @@ void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, d
 	Subpopulation *new_subpop = nullptr;
 	
 	if (p_sim.SexEnabled())
-		new_subpop = new Subpopulation(p_subpop_size, p_initial_sex_ratio, p_sim.ModeledChromosomeType(), p_sim.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size, p_initial_sex_ratio, p_sim.ModeledChromosomeType(), p_sim.XDominanceCoefficient());	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(p_subpop_size);
+		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size);
 	
 	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
 }
@@ -104,9 +104,9 @@ void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsig
 	Subpopulation *new_subpop = nullptr;
  
 	if (p_sim.SexEnabled())
-		new_subpop = new Subpopulation(p_subpop_size, p_initial_sex_ratio, p_sim.ModeledChromosomeType(), p_sim.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size, p_initial_sex_ratio, p_sim.ModeledChromosomeType(), p_sim.XDominanceCoefficient());	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(p_subpop_size);
+		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size);
 	
 	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
 	

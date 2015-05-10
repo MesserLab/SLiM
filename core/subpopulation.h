@@ -57,6 +57,7 @@ private:
 	
 public:
 	
+	int subpopulation_id_;							// the id by which this subpopulation is indexed in the Population
 	double selfing_fraction_ = 0.0;					// selfing fraction
 	std::map<int,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per generation
 	
@@ -84,8 +85,8 @@ public:
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction
-	explicit Subpopulation(int p_subpop_size);														// construct with a population size
-	Subpopulation(int p_subpop_size, double p_sex_ratio,
+	Subpopulation(int p_subpopulation_id, int p_subpop_size);										// construct with a population size
+	Subpopulation(int p_subpopulation_id, int p_subpop_size, double p_sex_ratio,
 				  GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
