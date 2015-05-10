@@ -33,7 +33,7 @@
 #include <iostream>
 
 
-class IntroducedMutation : public Mutation
+class IntroducedMutation : public Mutation	// inherits from ScriptObjectElement indirectly
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

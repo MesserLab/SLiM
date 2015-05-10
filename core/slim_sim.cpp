@@ -502,7 +502,8 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 }
 
 /*
-	Population population_;															// the population, which contains sub-populations
+	Not presently accessible:
+ 
 	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
 	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
 	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
