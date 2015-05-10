@@ -251,6 +251,21 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
 	global_symbols.RemoveValueForSymbol("sim", true);
 	global_symbols.SetConstantForSymbol("sim", new ScriptValue_Object(this));
 	
+	// Add constants for our genomic element types
+	for (auto getype_pair : genomic_element_types_)
+	{
+		GenomicElementType *getype_type = getype_pair.second;
+		int id = getype_type->genomic_element_type_id_;
+		std::ostringstream getype_stream;
+		
+		getype_stream << "g" << id;
+		
+		std::string getype_string = getype_stream.str();
+		
+		global_symbols.RemoveValueForSymbol(getype_string, true);
+		global_symbols.SetConstantForSymbol(getype_string, new ScriptValue_Object(getype_type));
+	}
+	
 	// Add constants for our mutation types
 	for (auto mut_type_pair : mutation_types_)
 	{
@@ -286,6 +301,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	
 	constants.push_back("chromosome");			// chromosome_
 	constants.push_back("chromosomeType");		// modeled_chromosome_type_
+	constants.push_back("genomicElementTypes");	// genomic_element_types_
 	constants.push_back("mutationTypes");		// mutation_types_
 	constants.push_back("parameters");			// input_parameters_
 	constants.push_back("sexEnabled");			// sex_enabled_
@@ -320,6 +336,15 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
 			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
 		}
+	}
+	if (p_member_name.compare("genomicElementTypes") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
+			vec->PushElement(ge_type->second);
+		
+		return vec;
 	}
 	if (p_member_name.compare("mutationTypes") == 0)
 	{
@@ -404,6 +429,8 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 	if ((p_member_name.compare("generationStart") == 0) ||
 		(p_member_name.compare("sexEnabled") == 0) ||
 		(p_member_name.compare("chromosome") == 0) ||
+		(p_member_name.compare("genomicElementTypes") == 0) ||
+		(p_member_name.compare("mutationTypes") == 0) ||
 		(p_member_name.compare("chromosomeType") == 0))
 		ConstantSetError(__func__, p_member_name);
 	
@@ -429,8 +456,6 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 
 /*
 	Population population_;															// the population, which contains sub-populations
-	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
 	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
 	std::vector<Script*> scripts_;													// OWNED POINTERS: script events

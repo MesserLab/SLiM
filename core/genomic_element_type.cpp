@@ -21,6 +21,7 @@
 #include "genomic_element_type.h"
 
 #include "slim_global.h"
+#include "mutation_type.h"
 
 
 GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
@@ -103,6 +104,79 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	return p_outstream;
 }
 
+//
+// SLiMscript support
+//
+std::string GenomicElementType::ElementType(void) const
+{
+	return "GenomicElementType";
+}
+
+std::vector<std::string> GenomicElementType::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("id");						// genomic_element_type_id_
+	constants.push_back("mutationTypes");			// mutation_type_ptrs_
+	constants.push_back("mutationFractions");		// mutation_fractions_
+	
+	return constants;
+}
+
+std::vector<std::string> GenomicElementType::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	return variables;
+}
+
+ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("id") == 0)
+		return new ScriptValue_Int(genomic_element_type_id_);
+	if (p_member_name.compare("mutationTypes") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
+			vec->PushElement(*mut_type);
+		
+		return vec;
+	}
+	if (p_member_name.compare("mutationFractions") == 0)
+		return new ScriptValue_Float(mutation_fractions_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void GenomicElementType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	// Check for constants that the user should not try to set
+	if ((p_member_name.compare("id") == 0) ||
+		(p_member_name.compare("mutationTypes") == 0) ||
+		(p_member_name.compare("mutationFractions") == 0))
+		ConstantSetError(__func__, p_member_name);
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> GenomicElementType::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	return methods;
+}
+
+const FunctionSignature *GenomicElementType::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
 
 
 
