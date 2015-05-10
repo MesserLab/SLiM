@@ -432,7 +432,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
 							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
 						
-						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMember(member_name, rvalue);
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, rvalue);
 						
 						delete temp_lvalue;
 					}
@@ -466,7 +466,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
 							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
 						
-						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMember(member_name, temp_rvalue);
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, temp_rvalue);
 						
 						delete temp_lvalue;
 						delete temp_rvalue;
@@ -505,7 +505,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<ScriptValue_Object *>(first_child_value)->SetValueForMember(second_child_node->token_->token_string_, rvalue);
+			static_cast<ScriptValue_Object *>(first_child_value)->SetValueForMemberOfElements(second_child_node->token_->token_string_, rvalue);
 			break;
 		}
 		case TokenType::kTokenIdentifier:
@@ -991,7 +991,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	}
 	
 	string member_name = second_child_node->token_->token_string_;
-	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMember(member_name);
+	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_name);
 	
 	// free our operand
 	if (!first_child_value->InSymbolTable()) delete first_child_value;

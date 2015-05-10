@@ -1021,7 +1021,30 @@ void ScriptValue_Object::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 	values_.at(p_idx) = p_value->ElementAtIndex(0)->Retain();
 }
 
-std::vector<std::string> ScriptValue_Object::ReadOnlyMembers(void) const
+ScriptValue *ScriptValue_Object::CopyValues(void) const
+{
+	return new ScriptValue_Object(*this);
+}
+
+ScriptValue *ScriptValue_Object::NewMatchingType(void) const
+{
+	return new ScriptValue_Object;
+}
+
+void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+{
+	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
+	{
+		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << endl << slim_terminate();
+		else
+			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
+	}
+	else
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+}
+
+std::vector<std::string> ScriptValue_Object::ReadOnlyMembersOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1029,7 +1052,7 @@ std::vector<std::string> ScriptValue_Object::ReadOnlyMembers(void) const
 		return values_[0]->ReadOnlyMembers();
 }
 
-std::vector<std::string> ScriptValue_Object::ReadWriteMembers(void) const
+std::vector<std::string> ScriptValue_Object::ReadWriteMembersOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1037,11 +1060,11 @@ std::vector<std::string> ScriptValue_Object::ReadWriteMembers(void) const
 		return values_[0]->ReadWriteMembers();
 }
 
-ScriptValue *ScriptValue_Object::GetValueForMember(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &p_member_name) const
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1057,13 +1080,13 @@ ScriptValue *ScriptValue_Object::GetValueForMember(const std::string &p_member_n
 			ScriptValue *temp_result = value->GetValueForMember(p_member_name);
 			
 			if (!is_constant_member && (temp_result->Count() != 1))
-				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << endl << slim_terminate();
 			
 			results.push_back(temp_result);
 		}
 		
 		// concatenate the results using Execute_c(); we pass our own name as p_function_name, which just makes errors be in our name
-		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::GetValueForMember", results);
+		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::GetValueForMemberOfElements", results);
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
@@ -1073,11 +1096,11 @@ ScriptValue *ScriptValue_Object::GetValueForMember(const std::string &p_member_n
 	}
 }
 
-void ScriptValue_Object::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 	}
 	else
 	{
@@ -1102,34 +1125,11 @@ void ScriptValue_Object::SetValueForMember(const std::string &p_member_name, Scr
 			}
 		}
 		else
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
 	}
 }
 
-ScriptValue *ScriptValue_Object::CopyValues(void) const
-{
-	return new ScriptValue_Object(*this);
-}
-
-ScriptValue *ScriptValue_Object::NewMatchingType(void) const
-{
-	return new ScriptValue_Object;
-}
-
-void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
-{
-	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
-	{
-		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << endl << slim_terminate();
-		else
-			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
-	}
-	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
-}
-
-std::vector<std::string> ScriptValue_Object::Methods(void) const
+std::vector<std::string> ScriptValue_Object::MethodsOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1137,11 +1137,11 @@ std::vector<std::string> ScriptValue_Object::Methods(void) const
 		return values_[0]->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::string const &p_method_name) const
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 		
 		return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
@@ -1149,11 +1149,29 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethod(std::string cons
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << endl << slim_terminate();
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else
+	{
+		// call the method on one member only, since it is a class method
+		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		
+		return result;
+	}
+}
+
+ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	if (values_.size() == 0)
+	{
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << endl << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1214,22 +1232,23 @@ std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
 
 ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name)
 {
-	SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 	return nullptr;
 }
 
 void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
 #pragma unused(p_value)
-	SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 }
 
 std::vector<std::string> ScriptObjectElement::Methods(void) const
 {
 	std::vector<std::string> methods;
 	
-	methods.push_back("ls");
 	methods.push_back("method");
+	methods.push_back("property");
+	methods.push_back("str");
 	
 	return methods;
 }
@@ -1237,28 +1256,32 @@ std::vector<std::string> ScriptObjectElement::Methods(void) const
 const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string const &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
-	static FunctionSignature *lsSig = nullptr;
+	static FunctionSignature *strSig = nullptr;
+	static FunctionSignature *propertySig = nullptr;
 	static FunctionSignature *methodsSig = nullptr;
 	
-	if (!lsSig)
+	if (!strSig)
 	{
-		lsSig = (new FunctionSignature("ls", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL));
-		methodsSig = (new FunctionSignature("method", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->AddString_OS();
+		methodsSig = (new FunctionSignature("method", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
+		propertySig = (new FunctionSignature("property", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
+		strSig = (new FunctionSignature("str", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
 	}
 	
-	if (p_method_name.compare("ls") == 0)
-		return lsSig;
-	else if (p_method_name.compare("method") == 0)
+	if (p_method_name.compare("method") == 0)
 		return methodsSig;
+	else if (p_method_name.compare("property") == 0)
+		return propertySig;
+	else if (p_method_name.compare("str") == 0)
+		return strSig;
 	
-	SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
 ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
-	if (p_method_name.compare("ls") == 0)
+	if (p_method_name.compare("str") == 0)		// instance method
 	{
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
@@ -1302,7 +1325,49 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
-	else if (p_method_name.compare("method") == 0)
+	else if (p_method_name.compare("property") == 0)		// class method
+	{
+		bool has_match_string = (p_arguments.size() == 1);
+		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
+		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
+		std::vector<std::string> read_write_member_names = ReadWriteMembers();
+		bool signature_found = false;
+		
+		for (auto member_name_iter = read_only_member_names.begin(); member_name_iter != read_only_member_names.end(); ++member_name_iter)
+		{
+			const std::string member_name = *member_name_iter;
+			
+			if (has_match_string && (member_name.compare(match_string) != 0))
+				continue;
+			
+			ScriptValue *member_value = GetValueForMember(member_name);
+
+			p_output_stream << member_name << " => (" << member_value->Type() << ") " << endl;
+			
+			if (!member_value->InSymbolTable()) delete member_value;
+			signature_found = true;
+		}
+		for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
+		{
+			const std::string member_name = *member_name_iter;
+			
+			if (has_match_string && (member_name.compare(match_string) != 0))
+				continue;
+			
+			ScriptValue *member_value = GetValueForMember(member_name);
+			
+			p_output_stream << member_name << " -> (" << member_value->Type() << ") " << endl;
+			
+			if (!member_value->InSymbolTable()) delete member_value;
+			signature_found = true;
+		}
+		
+		if (has_match_string && !signature_found)
+			p_output_stream << "No property found for \"" << match_string << "\"." << endl;
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	else if (p_method_name.compare("method") == 0)		// class method
 	{
 		bool has_match_string = (p_arguments.size() == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
@@ -1329,7 +1394,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1337,7 +1402,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 
 void ScriptObjectElement::ConstantSetError(const std::string &p_method_name, const std::string &p_member_name)
 {
-	SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::ConstantSetError from " << ElementType() << "::" << p_method_name << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
 }
 
 void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask)
@@ -1356,13 +1421,13 @@ void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const
 	}
 	
 	if (!type_ok)
-		SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue from " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
 }
 
 void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range)
 {
 	if (!p_in_range)
-		SLIM_TERMINATION << "ERROR (" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue from" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)

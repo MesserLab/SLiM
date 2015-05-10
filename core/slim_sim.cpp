@@ -331,6 +331,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	constants.push_back("populations");			// population_
 	constants.push_back("sexEnabled");			// sex_enabled_
 	constants.push_back("start");				// time_start_
+	constants.push_back("substitutions");		// population_.substitutions_
 	
 	return constants;
 }
@@ -395,6 +396,15 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		return new ScriptValue_Logical(sex_enabled_);
 	if (p_member_name.compare("start") == 0)
 		return new ScriptValue_Int(time_start_);
+	if (p_member_name.compare("substitutions") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
+			vec->PushElement(*sub_iter);
+		
+		return vec;
+	}
 	
 	// variables
 	if ((p_member_name.compare("dominanceCoeffX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))

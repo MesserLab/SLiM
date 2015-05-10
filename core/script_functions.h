@@ -119,7 +119,7 @@ enum class FunctionIdentifier {
 	versionFunction,
 	licenseFunction,
 	helpFunction,
-	lsFunction,
+	globalsFunction,
 	rmFunction,
 	functionFunction,
 	dateFunction,
@@ -143,6 +143,8 @@ public:
 	FunctionIdentifier function_id_;
 	ScriptValueMask return_mask_;					// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
 	std::vector<ScriptValueMask> arg_masks_;		// the expected types for each argument, as a mask
+	bool is_class_method = false;					// if true, the function is a class method and so will not be multiplexed
+	bool is_instance_method = false;				// if true, the function is an instance method (affects operator << only, right now)
 	bool has_optional_args_ = false;				// if true, at least one optional argument has been added
 	bool has_ellipsis_ = false;						// if true, the function accepts arbitrary varargs after the specified arguments
 	
@@ -157,6 +159,9 @@ public:
 	
 	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask);
 	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name);
+	
+	FunctionSignature *SetClassMethod();
+	FunctionSignature *SetInstanceMethod();
 	
 	FunctionSignature *AddArg(ScriptValueMask p_arg_mask);
 	FunctionSignature *AddEllipsis();

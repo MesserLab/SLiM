@@ -347,20 +347,21 @@ public:
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	
-	virtual std::vector<std::string> ReadOnlyMembers(void) const;
-	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name) const;
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
-	
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	
-	// Method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
+	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
-	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	std::vector<std::string> ReadOnlyMembersOfElements(void) const;
+	std::vector<std::string> ReadWriteMembersOfElements(void) const;
+	ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
+	void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
+	
+	std::vector<std::string> MethodsOfElements(void) const;
+	const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
+	ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 
 

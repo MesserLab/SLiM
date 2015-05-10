@@ -120,7 +120,7 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 	RegisterSignature((new FunctionSignature("version",		FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
 	RegisterSignature((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
 	RegisterSignature((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
-	RegisterSignature((new FunctionSignature("ls",			FunctionIdentifier::lsFunction,			kScriptValueMaskNULL)));
+	RegisterSignature((new FunctionSignature("globals",		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
 	RegisterSignature((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
 	RegisterSignature((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
 	
@@ -382,6 +382,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << endl << slim_terminate();
 	
 	const FunctionSignature *signature = signature_iter->second;
+	bool class_method = signature->is_class_method;
+	bool instance_method = signature->is_instance_method;
+	
+	if (class_method || instance_method)
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << endl << slim_terminate();
 	
 	signature->CheckArguments("function", p_arguments);
 	
@@ -673,7 +678,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			p_output_stream << "Help for SLiMscript is currently unimplemented." << endl;
 			break;
 			
-		case FunctionIdentifier::lsFunction:
+		case FunctionIdentifier::globalsFunction:
 			p_output_stream << *global_symbols_;
 			break;
 			
@@ -747,12 +752,22 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 	ScriptValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	const FunctionSignature *method_signature = method_object->SignatureForMethod(p_method_name);
+	const FunctionSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_name);
+	bool class_method = method_signature->is_class_method;
+	bool instance_method = method_signature->is_instance_method;
+	
+	if (!class_method && !instance_method)
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is not designated as a class method or instance method." << endl << slim_terminate();
+	if (class_method && instance_method)
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << endl << slim_terminate();
 	
 	method_signature->CheckArguments("method", p_arguments);
 	
 	// Make the method call
-	result = method_object->ExecuteMethod(p_method_name, p_arguments, p_output_stream, *this);
+	if (class_method)
+		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, p_output_stream, *this);
+	else
+		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, p_output_stream, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn("method", result);
@@ -774,6 +789,18 @@ function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_ret
 FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name) :
 function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
 {
+}
+
+FunctionSignature *FunctionSignature::SetClassMethod()
+{
+	is_class_method = true;
+	return this;
+}
+
+FunctionSignature *FunctionSignature::SetInstanceMethod()
+{
+	is_instance_method = true;
+	return this;
 }
 
 FunctionSignature *FunctionSignature::AddArg(ScriptValueMask p_arg_mask)
@@ -929,7 +956,12 @@ void FunctionSignature::CheckReturn(std::string const &p_call_type, ScriptValue 
 
 std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature)
 {
-	p_outstream << "- (" << StringForScriptValueMask(p_signature.return_mask_) << ")" << p_signature.function_name_ << "(";
+	if (p_signature.is_class_method)
+		p_outstream << "+ ";
+	else if (p_signature.is_instance_method)
+		p_outstream << "- ";
+	
+	p_outstream << "(" << StringForScriptValueMask(p_signature.return_mask_) << ")" << p_signature.function_name_ << "(";
 	
 	int arg_mask_count = (int)p_signature.arg_masks_.size();
 	
