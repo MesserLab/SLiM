@@ -115,13 +115,6 @@ void Mutation::SetValueForMember(const std::string &p_member_name, ScriptValue *
 		return;
 	}
 	
-	// Check for constants that the user should not try to set
-	if ((p_member_name.compare("mutationType") == 0) ||
-		(p_member_name.compare("position") == 0) ||
-		(p_member_name.compare("subpopID") == 0) ||
-		(p_member_name.compare("originGeneration") == 0))
-		ConstantSetError(__func__, p_member_name);
-	
 	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 

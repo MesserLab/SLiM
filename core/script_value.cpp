@@ -1232,14 +1232,40 @@ std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
 
 ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name)
 {
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	// Check whether getting a constant failed due to a bad subclass implementation
+	std::vector<std::string> constants = ReadOnlyMembers();
+	
+	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-only member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+	
+	// Check whether getting a variable failed due to a bad subclass implementation
+	std::vector<std::string> variables = ReadWriteMembers();
+	
+	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-write member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+	
+	// Otherwise, we have an unrecognized member, so throw
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 	return nullptr;
 }
 
 void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
 #pragma unused(p_value)
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
+	std::vector<std::string> constants = ReadOnlyMembers();
+	
+	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
+	
+	// Check whether setting a variable failed due to a bad subclass implementation
+	std::vector<std::string> variables = ReadWriteMembers();
+	
+	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+	
+	// Otherwise, we have an unrecognized member, so throw
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
 }
 
 std::vector<std::string> ScriptObjectElement::Methods(void) const
@@ -1274,7 +1300,14 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	else if (p_method_name.compare("str") == 0)
 		return strSig;
 	
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	// Check whether the method signature request failed due to a bad subclass implementation
+	std::vector<std::string> methods = Methods();
+	
+	if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << p_method_name << " was not provided by subclass." << endl << slim_terminate();
+	
+	// Otherwise, we have an unrecognized method, so throw
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
@@ -1394,15 +1427,17 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		// Check whether the method call failed due to a bad subclass implementation
+		std::vector<std::string> methods = Methods();
+		
+		if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << p_method_name << " was not handled by subclass." << endl << slim_terminate();
+		
+		// Otherwise, we have an unrecognized method, so throw
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
-}
-
-void ScriptObjectElement::ConstantSetError(const std::string &p_method_name, const std::string &p_member_name)
-{
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::ConstantSetError from " << ElementType() << "::" << p_method_name << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
 }
 
 void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask)
@@ -1421,13 +1456,13 @@ void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const
 	}
 	
 	if (!type_ok)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue from " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
 }
 
 void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range)
 {
 	if (!p_in_range)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue from" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)

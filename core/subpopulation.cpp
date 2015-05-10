@@ -607,13 +607,6 @@ void Subpopulation::SetValueForMember(const std::string &p_member_name, ScriptVa
 		return;
 	}
 	
-	// Check for constants that the user should not try to set
-	if ((p_member_name.compare("immigrantSubpopIDs") == 0) ||
-		(p_member_name.compare("sexRatio") == 0) ||
-		(p_member_name.compare("size") == 0) ||
-		(p_member_name.compare("immigrantSubpopFractions") == 0))
-		ConstantSetError(__func__, p_member_name);
-	
 	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 

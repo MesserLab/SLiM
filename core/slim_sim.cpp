@@ -481,16 +481,6 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	// Check for constants that the user should not try to set
-	if ((p_member_name.compare("generationStart") == 0) ||
-		(p_member_name.compare("sexEnabled") == 0) ||
-		(p_member_name.compare("chromosome") == 0) ||
-		(p_member_name.compare("genomicElementTypes") == 0) ||
-		(p_member_name.compare("mutationTypes") == 0) ||
-		(p_member_name.compare("populations") == 0) ||
-		(p_member_name.compare("chromosomeType") == 0))
-		ConstantSetError(__func__, p_member_name);
-	
 	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 

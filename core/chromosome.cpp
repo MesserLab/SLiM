@@ -268,13 +268,6 @@ void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue
 		return;
 	}
 	
-	// Check for constants that the user should not try to set
-	if ((p_member_name.compare("lastPosition") == 0) ||
-		(p_member_name.compare("recombinationEndPositions") == 0) ||
-		(p_member_name.compare("recombinationRates") == 0) ||
-		(p_member_name.compare("overallRecombinationRate") == 0))
-		ConstantSetError(__func__, p_member_name);
-	
 	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 

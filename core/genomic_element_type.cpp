@@ -153,12 +153,6 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 
 void GenomicElementType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	// Check for constants that the user should not try to set
-	if ((p_member_name.compare("id") == 0) ||
-		(p_member_name.compare("mutationTypes") == 0) ||
-		(p_member_name.compare("mutationFractions") == 0))
-		ConstantSetError(__func__, p_member_name);
-	
 	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 
