@@ -191,6 +191,7 @@ std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
+	constants.push_back("genomicElements");					// this
 	constants.push_back("lastPosition");					// length_
 	constants.push_back("overallRecombinationRate");		// overall_recombination_rate_
 	constants.push_back("recombinationEndPositions");		// recombination_end_positions_
@@ -213,6 +214,15 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
+	if (p_member_name.compare("genomicElements") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
+			vec->PushElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
+		
+		return vec;
+	}
 	if (p_member_name.compare("lastPosition") == 0)
 		return new ScriptValue_Int(length_);
 	if (p_member_name.compare("overallRecombinationRate") == 0)
