@@ -158,6 +158,94 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 #endif
 
 
+#ifndef SLIMCORE
+//
+// SLiMscript support
+//
+std::string Genome::ElementType(void) const
+{
+	return "Genome";
+}
+
+std::vector<std::string> Genome::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("genomeType");			// genome_type_
+	constants.push_back("isNullGenome");		// is_null_genome_
+	constants.push_back("mutations");			// mutations_
+	
+	return constants;
+}
+
+std::vector<std::string> Genome::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	return variables;
+}
+
+ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("genomeType") == 0)
+	{
+		switch (genome_type_)
+		{
+			case GenomeType::kAutosome:		return new ScriptValue_String("autosome");
+			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
+			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
+		}
+	}
+	if (p_member_name.compare("isNullGenome") == 0)
+		return new ScriptValue_Logical(is_null_genome_);
+	if (p_member_name.compare("mutations") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		if (!is_null_genome_)
+			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
+				vec->PushElement(mutations_[mut_index]);
+		
+		return vec;
+	}
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void Genome::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> Genome::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	return methods;
+}
+
+const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
+
+/*
+	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
+	bool is_null_genome_ = false;						// if true, this genome is a meaningless placeholder (often a Y chromosome)
+	
+	int mutation_count_ = 0;							// the number of entries presently in mutations_
+	int mutation_capacity_ = 0;							// the capacity of mutations_
+	SLIMCONST Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
+*/
+
+#endif	// #ifndef SLIMCORE
+
 
 
 

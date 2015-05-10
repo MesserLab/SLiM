@@ -33,8 +33,15 @@
 #include "mutation.h"
 #include "slim_global.h"
 
+#ifndef SLIMCORE
+#include "script_value.h"
+#endif
+
 
 class Genome
+#ifndef SLIMCORE
+				: public ScriptObjectElement
+#endif
 {
 	// This class has a restricted copying policy; see below
 
@@ -279,6 +286,22 @@ public:
 #endif
 		return *(mutations_ + (mutation_count_ - 1));
 	}
+	
+#ifndef SLIMCORE
+	//
+	// SLiMscript support
+	//
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+#endif	// #ifndef SLIMCORE
 };
 
 #endif /* defined(__SLiM__genome__) */
