@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <gsl/gsl_randist.h>
+#include <sstream>
 
 #include "mutation_type.h"
 #include "g_rng.h"
@@ -85,7 +86,90 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 	return p_outstream;
 }
 
+//
+// SLiMscript support
+//
+std::string MutationType::ElementType(void) const
+{
+	return "MutationType";
+}
 
+std::vector<std::string> MutationType::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("id");						// mutation_type_id_
+	constants.push_back("distributionType");		// dfe_type_
+	constants.push_back("distributionParams");		// dfe_parameters_
+	
+	return constants;
+}
+
+std::vector<std::string> MutationType::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	variables.push_back("dominanceCoeff");		// dominance_coeff_
+	
+	return variables;
+}
+
+ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("id") == 0)
+		return new ScriptValue_Int(mutation_type_id_);
+	if (p_member_name.compare("distributionType") == 0)
+		return new ScriptValue_String(std::string(1, dfe_type_));
+	if (p_member_name.compare("distributionParams") == 0)
+		return new ScriptValue_Float(dfe_parameters_);
+	
+	// variables
+	if (p_member_name.compare("dominanceCoeff") == 0)
+		return new ScriptValue_Float(dominance_coeff_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void MutationType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_member_name.compare("dominanceCoeff") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+		
+		double value = p_value->FloatAtIndex(0);
+		
+		dominance_coeff_ = (int)value;
+		return;
+	}
+	
+	// Check for constants that the user should not try to set
+	if ((p_member_name.compare("id") == 0) ||
+		(p_member_name.compare("distributionType") == 0) ||
+		(p_member_name.compare("distributionParams") == 0))
+		ConstantSetError(__func__, p_member_name);
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> MutationType::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	// setDistribution()
+	
+	return methods;
+}
+
+const FunctionSignature *MutationType::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
 
 
 

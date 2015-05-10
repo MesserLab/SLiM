@@ -251,6 +251,21 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
 	global_symbols.RemoveValueForSymbol("sim", true);
 	global_symbols.SetConstantForSymbol("sim", new ScriptValue_Object(this));
 	
+	// Add constants for our mutation types
+	for (auto mut_type_pair : mutation_types_)
+	{
+		MutationType *mut_type = mut_type_pair.second;
+		int id = mut_type->mutation_type_id_;
+		std::ostringstream mut_type_stream;
+		
+		mut_type_stream << "m" << id;
+		
+		std::string mut_type_string = mut_type_stream.str();
+		
+		global_symbols.RemoveValueForSymbol(mut_type_string, true);
+		global_symbols.SetConstantForSymbol(mut_type_string, new ScriptValue_Object(mut_type));
+	}
+	
 	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
 	if (!simFunctionSig)
 	{
@@ -271,6 +286,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	
 	constants.push_back("chromosome");			// chromosome_
 	constants.push_back("chromosomeType");		// modeled_chromosome_type_
+	constants.push_back("mutationTypes");		// mutation_types_
 	constants.push_back("parameters");			// input_parameters_
 	constants.push_back("sexEnabled");			// sex_enabled_
 	constants.push_back("start");				// time_start_
@@ -283,7 +299,7 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
 	if (sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
-		variables.push_back("dominanceX");		// x_chromosome_dominance_coeff_; defined only when we're modeling sex chromosomes
+		variables.push_back("dominanceCoeffX");		// x_chromosome_dominance_coeff_; defined only when we're modeling sex chromosomes
 	variables.push_back("duration");			// time_duration_
 	variables.push_back("generation");			// generation_
 	variables.push_back("randomSeed");			// rng_seed_
@@ -305,6 +321,15 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
 		}
 	}
+	if (p_member_name.compare("mutationTypes") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
+			vec->PushElement(mutation_type->second);
+		
+		return vec;
+	}
 	if (p_member_name.compare("parameters") == 0)
 		return new ScriptValue_String(input_parameters_);
 	if (p_member_name.compare("sexEnabled") == 0)
@@ -313,7 +338,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		return new ScriptValue_Int(time_start_);
 	
 	// variables
-	if ((p_member_name.compare("dominanceX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+	if ((p_member_name.compare("dominanceCoeffX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
 		return new ScriptValue_Float(x_chromosome_dominance_coeff_);
 	if (p_member_name.compare("duration") == 0)
 		return new ScriptValue_Int(time_duration_);
@@ -349,7 +374,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	if ((p_member_name.compare("dominanceX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+	if ((p_member_name.compare("dominanceCoeffX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		

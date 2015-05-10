@@ -32,8 +32,10 @@
 #include <vector>
 #include <string>
 
+#include "script_value.h"
 
-class MutationType
+
+class MutationType : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -66,6 +68,20 @@ public:
 #endif
 	
 	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE
+	
+	//
+	// SLiMscript support
+	//
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 
 // support stream output of MutationType, for debugging
