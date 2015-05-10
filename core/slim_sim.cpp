@@ -281,6 +281,21 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter)
 		global_symbols.SetConstantForSymbol(mut_type_string, new ScriptValue_Object(mut_type));
 	}
 	
+	// Add constants for our mutation types
+	for (auto pop_pair : population_)
+	{
+		Subpopulation *subpop = pop_pair.second;
+		int id = pop_pair.first;
+		std::ostringstream subpop_stream;
+		
+		subpop_stream << "p" << id;
+		
+		std::string subpop_string = subpop_stream.str();
+		
+		global_symbols.RemoveValueForSymbol(subpop_string, true);
+		global_symbols.SetConstantForSymbol(subpop_string, new ScriptValue_Object(subpop));
+	}
+	
 	// Add our functions to the interpreter's function map; we allocate our own FunctionSignature objects since they point to us
 	if (!simFunctionSig)
 	{
@@ -304,6 +319,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	constants.push_back("genomicElementTypes");	// genomic_element_types_
 	constants.push_back("mutationTypes");		// mutation_types_
 	constants.push_back("parameters");			// input_parameters_
+	constants.push_back("populations");			// population_
 	constants.push_back("sexEnabled");			// sex_enabled_
 	constants.push_back("start");				// time_start_
 	
@@ -357,6 +373,15 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare("parameters") == 0)
 		return new ScriptValue_String(input_parameters_);
+	if (p_member_name.compare("populations") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto pop = population_.begin(); pop != population_.end(); ++pop)
+			vec->PushElement(pop->second);
+		
+		return vec;
+	}
 	if (p_member_name.compare("sexEnabled") == 0)
 		return new ScriptValue_Logical(sex_enabled_);
 	if (p_member_name.compare("start") == 0)
@@ -431,6 +456,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		(p_member_name.compare("chromosome") == 0) ||
 		(p_member_name.compare("genomicElementTypes") == 0) ||
 		(p_member_name.compare("mutationTypes") == 0) ||
+		(p_member_name.compare("populations") == 0) ||
 		(p_member_name.compare("chromosomeType") == 0))
 		ConstantSetError(__func__, p_member_name);
 	

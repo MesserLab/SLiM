@@ -36,9 +36,10 @@
 #include "g_rng.h"
 #include "genome.h"
 #include "chromosome.h"
+#include "script_value.h"
 
 
-class Subpopulation
+class Subpopulation : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -94,6 +95,20 @@ public:
 	void UpdateFitness(void);																		// update the fitness lookup table based upon current mutations
 	double FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
+	
+	//
+	// SLiMscript support
+	//
+	virtual std::string ElementType(void) const;
+	
+	virtual std::vector<std::string> ReadOnlyMembers(void) const;
+	virtual std::vector<std::string> ReadWriteMembers(void) const;
+	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
+	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> Methods(void) const;
+	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 };
 
 

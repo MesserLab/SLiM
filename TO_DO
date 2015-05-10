@@ -10,6 +10,7 @@ command-line tool:
 	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
 
 SLiMscript:
+	Subpopulation does not keep its own ID the way other classes do
 	add randomUniform() function, randomLogical() function
 	add ability to change the separator for cat – optional parameter
 	implement SLiM object elements

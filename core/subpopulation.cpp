@@ -531,7 +531,115 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 }
 
+//
+// SLiMscript support
+//
+std::string Subpopulation::ElementType(void) const
+{
+	return "Subpopulation";
+}
 
+std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
+{
+	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	
+	constants.push_back("immigrantSubpopIDs");				// migrant_fractions_
+	constants.push_back("immigrantSubpopFractions");		// migrant_fractions_
+	constants.push_back("sexRatio");						// child_sex_ratio_
+	constants.push_back("size");							// child_subpop_size_
+	
+	return constants;
+}
+
+std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
+{
+	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	
+	variables.push_back("selfingFraction");					// selfing_fraction_
+	
+	return variables;
+}
+
+ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
+{
+	// constants
+	if (p_member_name.compare("immigrantSubpopIDs") == 0)
+	{
+		ScriptValue_Int *vec = new ScriptValue_Int();
+		
+		for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
+			vec->PushInt(migrant_pair->first);
+		
+		return vec;
+	}
+	if (p_member_name.compare("immigrantSubpopFractions") == 0)
+	{
+		ScriptValue_Float *vec = new ScriptValue_Float();
+		
+		for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
+			vec->PushFloat(migrant_pair->second);
+		
+		return vec;
+	}
+	if (p_member_name.compare("sexRatio") == 0)
+		return new ScriptValue_Float(child_sex_ratio_);
+	if (p_member_name.compare("size") == 0)
+		return new ScriptValue_Int(child_subpop_size_);
+	
+	// variables
+	if (p_member_name.compare("selfingFraction") == 0)
+		return new ScriptValue_Float(selfing_fraction_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void Subpopulation::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_member_name.compare("selfingFraction") == 0)
+	{
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+		
+		double value = p_value->FloatAtIndex(0);
+		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
+		
+		selfing_fraction_ = (int)value;
+		return;
+	}
+	
+	// Check for constants that the user should not try to set
+	if ((p_member_name.compare("immigrantSubpopIDs") == 0) ||
+		(p_member_name.compare("sexRatio") == 0) ||
+		(p_member_name.compare("size") == 0) ||
+		(p_member_name.compare("immigrantSubpopFractions") == 0))
+		ConstantSetError(__func__, p_member_name);
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> Subpopulation::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	// setMigration(subpopIDs, fractions)
+	// sexSexRatio(ration)
+	// setSize(size)
+	
+	return methods;
+}
+
+const FunctionSignature *Subpopulation::SignatureForMethod(std::string const &p_method_name) const
+{
+	return ScriptObjectElement::SignatureForMethod(p_method_name);
+}
+
+ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+{
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+}
+
+/*
+	std::vector<Genome> child_genomes_;				// all genomes in the child generation; each individual gets two genomes, males are XY (not YX)
+*/
 
 
 
