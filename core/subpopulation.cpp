@@ -544,6 +544,7 @@ std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
+	constants.push_back("childGenomes");					// child_genomes_
 	constants.push_back("immigrantSubpopIDs");				// migrant_fractions_
 	constants.push_back("immigrantSubpopFractions");		// migrant_fractions_
 	constants.push_back("sexRatio");						// child_sex_ratio_
@@ -564,6 +565,15 @@ std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
+	if (p_member_name.compare("childGenomes") == 0)
+	{
+		ScriptValue_Object *vec = new ScriptValue_Object();
+		
+		for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
+			vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+		
+		return vec;
+	}
 	if (p_member_name.compare("immigrantSubpopIDs") == 0)
 	{
 		ScriptValue_Int *vec = new ScriptValue_Int();
