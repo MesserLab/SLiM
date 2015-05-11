@@ -703,6 +703,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			string match_string = (arg1_value ? arg1_value->StringAtIndex(0) : "");
 			bool signature_found = false;
 			
+			// function_map_ is already alphebetized since maps keep sorted order
 			for (auto functionPairIter = function_map_.begin(); functionPairIter != function_map_.end(); ++functionPairIter)
 			{
 				const FunctionSignature *iter_signature = functionPairIter->second;

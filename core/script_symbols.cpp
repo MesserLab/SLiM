@@ -213,40 +213,27 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 {
 	std::vector<std::string> read_only_symbol_names = p_symbols.ReadOnlySymbols();
 	std::vector<std::string> read_write_symbol_names = p_symbols.ReadWriteSymbols();
+	std::vector<std::string> symbol_names;
 	
-	for (auto symbol_name_iter = read_only_symbol_names.begin(); symbol_name_iter != read_only_symbol_names.end(); ++symbol_name_iter)
+	symbol_names.insert(symbol_names.end(), read_only_symbol_names.begin(), read_only_symbol_names.end());
+	symbol_names.insert(symbol_names.end(), read_write_symbol_names.begin(), read_write_symbol_names.end());
+	std::sort(symbol_names.begin(), symbol_names.end());
+	
+	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
 		const std::string symbol_name = *symbol_name_iter;
 		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
+		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		
 		if (symbol_count <= 2)
-			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *symbol_value << endl;
+			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
 		{
 			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
 			ScriptValue *second_value = symbol_value->GetValueAtIndex(1);
 			
-			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
-			if (!first_value->InSymbolTable()) delete first_value;
-		}
-		
-		if (!symbol_value->InSymbolTable()) delete symbol_value;
-	}
-	for (auto symbol_name_iter = read_write_symbol_names.begin(); symbol_name_iter != read_write_symbol_names.end(); ++symbol_name_iter)
-	{
-		const std::string symbol_name = *symbol_name_iter;
-		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
-		int symbol_count = symbol_value->Count();
-		
-		if (symbol_count <= 2)
-			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *symbol_value << endl;
-		else
-		{
-			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
-			ScriptValue *second_value = symbol_value->GetValueAtIndex(1);
-			
-			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
+			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
 			if (!first_value->InSymbolTable()) delete first_value;
 		}
 		

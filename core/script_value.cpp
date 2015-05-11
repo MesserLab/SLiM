@@ -1334,44 +1334,29 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
+		std::vector<std::string> member_names;
 		
-		for (auto member_name_iter = read_only_member_names.begin(); member_name_iter != read_only_member_names.end(); ++member_name_iter)
+		member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
+		member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
+		std::sort(member_names.begin(), member_names.end());
+		
+		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
 		{
 			const std::string member_name = *member_name_iter;
 			ScriptValue *member_value = GetValueForMember(member_name);
 			int member_count = member_value->Count();
+			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
 			p_output_stream << "\t";
 			
 			if (member_count <= 2)
-				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *member_value << endl;
+				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
 			else
 			{
 				ScriptValue *first_value = member_value->GetValueAtIndex(0);
 				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
-				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
-				if (!first_value->InSymbolTable()) delete first_value;
-			}
-			
-			if (!member_value->InSymbolTable()) delete member_value;
-		}
-		for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
-		{
-			const std::string member_name = *member_name_iter;
-			ScriptValue *member_value = GetValueForMember(member_name);
-			int member_count = member_value->Count();
-			
-			p_output_stream << "\t";
-			
-			if (member_count <= 2)
-				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *member_value << endl;
-			else
-			{
-				ScriptValue *first_value = member_value->GetValueAtIndex(0);
-				ScriptValue *second_value = member_value->GetValueAtIndex(1);
-				
-				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				if (!first_value->InSymbolTable()) delete first_value;
 			}
 			
@@ -1386,9 +1371,14 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
+		std::vector<std::string> member_names;
 		bool signature_found = false;
 		
-		for (auto member_name_iter = read_only_member_names.begin(); member_name_iter != read_only_member_names.end(); ++member_name_iter)
+		member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
+		member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
+		std::sort(member_names.begin(), member_names.end());
+		
+		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
 		{
 			const std::string member_name = *member_name_iter;
 			
@@ -1396,22 +1386,9 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 				continue;
 			
 			ScriptValue *member_value = GetValueForMember(member_name);
-
-			p_output_stream << member_name << " => (" << member_value->Type() << ") " << endl;
+			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			if (!member_value->InSymbolTable()) delete member_value;
-			signature_found = true;
-		}
-		for (auto member_name_iter = read_write_member_names.begin(); member_name_iter != read_write_member_names.end(); ++member_name_iter)
-		{
-			const std::string member_name = *member_name_iter;
-			
-			if (has_match_string && (member_name.compare(match_string) != 0))
-				continue;
-			
-			ScriptValue *member_value = GetValueForMember(member_name);
-			
-			p_output_stream << member_name << " -> (" << member_value->Type() << ") " << endl;
+			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << endl;
 			
 			if (!member_value->InSymbolTable()) delete member_value;
 			signature_found = true;
@@ -1428,6 +1405,8 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> method_names = Methods();
 		bool signature_found = false;
+		
+		std::sort(method_names.begin(), method_names.end());
 		
 		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
 		{
