@@ -99,6 +99,15 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	if ((type1 == ScriptValueType::kValueNULL) || (type2 == ScriptValueType::kValueNULL))
 		SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison with NULL is illegal." << endl << slim_terminate();
 	
+	// comparing one object to another is legal, but objects cannot be compared to other types
+	if ((type1 == ScriptValueType::kValueObject) && (type2 == ScriptValueType::kValueObject))
+	{
+		ScriptObjectElement *element1 = p_value1->ElementAtIndex(p_index1);
+		ScriptObjectElement *element2 = p_value2->ElementAtIndex(p_index2);
+		
+		return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
+	}
+	
 	// string is the highest type, so we promote to string if either operand is a string
 	if ((type1 == ScriptValueType::kValueString) || (type2 == ScriptValueType::kValueString))
 	{

@@ -2073,6 +2073,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator cannot be used with type object." << endl << slim_terminate();
+	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
@@ -2141,6 +2144,9 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 	
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
+	
+	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<=' operator cannot be used with type object." << endl << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
@@ -2211,6 +2217,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>' operator cannot be used with type object." << endl << slim_terminate();
+	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
@@ -2279,6 +2288,9 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 	
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
+	
+	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>=' operator cannot be used with type object." << endl << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
