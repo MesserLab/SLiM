@@ -319,11 +319,6 @@ std::string SLiMSim::ElementType(void) const
 	return "SLiMSim";
 }
 
-void SLiMSim::Print(std::ostream &p_ostream) const
-{
-	p_ostream << ElementType() << "<" << generation_ << ">";
-}
-
 std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
