@@ -95,6 +95,11 @@ std::string MutationType::ElementType(void) const
 	return "MutationType";
 }
 
+void MutationType::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<m" << mutation_type_id_ << ">";
+}
+
 std::vector<std::string> MutationType::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();

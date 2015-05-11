@@ -383,6 +383,7 @@ public:
 	virtual ~ScriptObjectElement(void);
 	
 	virtual std::string ElementType(void) const = 0;
+	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
 	
 	// refcounting; virtual no-ops here (for externally-owned objects), implemented in ScriptObjectElementInternal
 	virtual ScriptObjectElement *Retain(void);

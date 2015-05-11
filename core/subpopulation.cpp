@@ -540,6 +540,11 @@ std::string Subpopulation::ElementType(void) const
 	return "Subpopulation";
 }
 
+void Subpopulation::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<p" << subpopulation_id_ << ">";
+}
+
 std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();

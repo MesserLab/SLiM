@@ -113,6 +113,11 @@ std::string GenomicElementType::ElementType(void) const
 	return "GenomicElementType";
 }
 
+void GenomicElementType::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<g" << genomic_element_type_id_ << ">";
+}
+
 std::vector<std::string> GenomicElementType::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();

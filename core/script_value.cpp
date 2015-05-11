@@ -1208,6 +1208,11 @@ ScriptObjectElement::~ScriptObjectElement(void)
 {
 }
 
+void ScriptObjectElement::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType();
+}
+
 ScriptObjectElement *ScriptObjectElement::Retain(void)
 {
 	// no-op; our lifetime is controlled externally
@@ -1316,6 +1321,8 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare("str") == 0)		// instance method
 	{
+		p_output_stream << ElementType() << ":" << endl;
+		
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
 		
@@ -1325,13 +1332,16 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			ScriptValue *member_value = GetValueForMember(member_name);
 			int member_count = member_value->Count();
 			
-			if (member_count <= 1)
+			p_output_stream << "\t";
+			
+			if (member_count <= 2)
 				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *member_value << endl;
 			else
 			{
 				ScriptValue *first_value = member_value->GetValueAtIndex(0);
+				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
-				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *first_value << " ... (" << member_count << " values)" << endl;
+				p_output_stream << member_name << " => (" << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				if (!first_value->InSymbolTable()) delete first_value;
 			}
 			
@@ -1343,13 +1353,16 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			ScriptValue *member_value = GetValueForMember(member_name);
 			int member_count = member_value->Count();
 			
-			if (member_count <= 1)
+			p_output_stream << "\t";
+			
+			if (member_count <= 2)
 				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *member_value << endl;
 			else
 			{
 				ScriptValue *first_value = member_value->GetValueAtIndex(0);
+				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
-				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *first_value << " ... (" << member_count << " values)" << endl;
+				p_output_stream << member_name << " -> (" << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				if (!first_value->InSymbolTable()) delete first_value;
 			}
 			
@@ -1467,7 +1480,7 @@ void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, cons
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)
 {
-	p_outstream << "element(" << p_element.ElementType() << ")";
+	p_element.Print(p_outstream);	// get dynamic dispatch
 	
 	return p_outstream;
 }

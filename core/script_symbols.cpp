@@ -220,13 +220,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
 		
-		if (symbol_count <= 1)
+		if (symbol_count <= 2)
 			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
 		{
 			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
+			ScriptValue *second_value = symbol_value->GetValueAtIndex(1);
 			
-			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *first_value << " ... (" << symbol_count << " values)" << endl;
+			p_outstream << symbol_name << " => (" << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
 			if (!first_value->InSymbolTable()) delete first_value;
 		}
 		
@@ -238,13 +239,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
 		
-		if (symbol_count <= 1)
+		if (symbol_count <= 2)
 			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
 		{
 			ScriptValue *first_value = symbol_value->GetValueAtIndex(0);
+			ScriptValue *second_value = symbol_value->GetValueAtIndex(1);
 			
-			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *first_value << " ... (" << symbol_count << " values)" << endl;
+			p_outstream << symbol_name << " -> (" << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
 			if (!first_value->InSymbolTable()) delete first_value;
 		}
 		

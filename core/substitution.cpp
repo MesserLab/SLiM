@@ -48,6 +48,11 @@ std::string Substitution::ElementType(void) const
 	return "Substitution";
 }
 
+void Substitution::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<" << selection_coeff_ << ">";
+}
+
 std::vector<std::string> Substitution::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();

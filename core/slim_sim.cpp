@@ -319,6 +319,11 @@ std::string SLiMSim::ElementType(void) const
 	return "SLiMSim";
 }
 
+void SLiMSim::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<" << generation_ << ">";
+}
+
 std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
@@ -329,7 +334,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	constants.push_back("mutations");			// population_.mutation_registry_
 	constants.push_back("mutationTypes");		// mutation_types_
 	constants.push_back("parameters");			// input_parameters_
-	constants.push_back("populations");			// population_
+	constants.push_back("subpopulations");		// population_
 	constants.push_back("sexEnabled");			// sex_enabled_
 	constants.push_back("start");				// time_start_
 	constants.push_back("substitutions");		// population_.substitutions_
@@ -359,7 +364,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	{
 		switch (modeled_chromosome_type_)
 		{
-			case GenomeType::kAutosome:		return new ScriptValue_String("autosome");
+			case GenomeType::kAutosome:		return new ScriptValue_String("Autosome");
 			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
 			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
 		}
@@ -395,7 +400,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare("parameters") == 0)
 		return new ScriptValue_String(input_parameters_);
-	if (p_member_name.compare("populations") == 0)
+	if (p_member_name.compare("subpopulations") == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		

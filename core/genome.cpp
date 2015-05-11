@@ -167,6 +167,23 @@ std::string Genome::ElementType(void) const
 	return "Genome";
 }
 
+void Genome::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<";
+	
+	switch (genome_type_)
+	{
+		case GenomeType::kAutosome:		p_ostream << "A"; break;
+		case GenomeType::kXChromosome:	p_ostream << "X"; break;
+		case GenomeType::kYChromosome:	p_ostream << "Y"; break;
+	}
+	
+	if (is_null_genome_)
+		p_ostream << ":null>";
+	else
+		p_ostream << ":" << mutation_count_ << ">";
+}
+
 std::vector<std::string> Genome::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
@@ -192,7 +209,7 @@ ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
 	{
 		switch (genome_type_)
 		{
-			case GenomeType::kAutosome:		return new ScriptValue_String("autosome");
+			case GenomeType::kAutosome:		return new ScriptValue_String("Autosome");
 			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
 			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
 		}

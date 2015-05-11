@@ -63,6 +63,11 @@ std::string Mutation::ElementType(void) const
 	return "Mutation";
 }
 
+void Mutation::Print(std::ostream &p_ostream) const
+{
+	p_ostream << ElementType() << "<" << selection_coeff_ << ">";
+}
+
 std::vector<std::string> Mutation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
