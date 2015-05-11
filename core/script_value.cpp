@@ -1388,7 +1388,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			ScriptValue *member_value = GetValueForMember(member_name);
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << endl;
+			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
 			
 			if (!member_value->InSymbolTable()) delete member_value;
 			signature_found = true;
