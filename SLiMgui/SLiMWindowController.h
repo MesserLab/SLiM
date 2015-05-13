@@ -82,8 +82,8 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
-	IBOutlet NSTextView *scriptTextView;
-	IBOutlet NSTextView *outputTextView;
+	IBOutlet SLiMSyntaxColoredTextView *scriptTextView;
+	IBOutlet SLiMSyntaxColoredTextView *outputTextView;
 	
 	IBOutlet NSTableView *subpopTableView;
 	IBOutlet NSTableColumn *subpopIDColumn;
@@ -124,9 +124,6 @@
 }
 
 + (NSColor *)colorForIndex:(int)index;
-
-+ (void)clearColorFromTextView:(NSTextView *)textView;
-+ (void)syntaxColorTextView:(NSTextView *)textView;
 
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 - (void)setDefaultScriptStringAndInitializeSimulation;

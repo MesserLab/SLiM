@@ -285,17 +285,17 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightScriptKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightScriptKey])
-				[SLiMWindowController syntaxColorTextView:scriptTextView];
+				[scriptTextView syntaxColorForSLiMInput];
 			else
-				[SLiMWindowController clearColorFromTextView:scriptTextView];
+				[scriptTextView clearSyntaxColoring];
 		}
 		
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightOutputKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightOutputKey])
-				[SLiMWindowController syntaxColorTextView:outputTextView];
+				[outputTextView syntaxColorForSLiMInput];
 			else
-				[SLiMWindowController clearColorFromTextView:outputTextView];
+				[outputTextView clearSyntaxColoring];
 		}
 	}
 }
@@ -358,15 +358,6 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[super dealloc];
 }
 
-+ (void)clearColorFromTextView:(NSTextView *)textView
-{
-	NSTextStorage *textStorage = [textView textStorage];
-	
-	[textStorage beginEditing];
-	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
-	[textStorage endEditing];
-}
-
 - (void)updateOutputTextView
 {
 	std::string newOutput = gSLiMOut.str();
@@ -381,7 +372,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
 		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
-			[SLiMWindowController syntaxColorTextView:outputTextView];
+			[outputTextView syntaxColorForSLiMInput];
 		
 		// if the user was scrolled to the bottom, we keep them there; otherwise, we let them stay where they were
 		if (scrolledToBottom)
@@ -524,7 +515,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[scriptTextView setString:scriptString];
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[SLiMWindowController syntaxColorTextView:scriptTextView];
+		[scriptTextView syntaxColorForSLiMInput];
 	
 	// Set up our chromosome views to show the proper stuff
 	[chromosomeOverview setReferenceChromosomeView:nil];
@@ -1585,7 +1576,12 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	NSTextView *textView = (NSTextView *)[notification object];
 	
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[SLiMWindowController syntaxColorTextView:textView];
+	{
+		if (textView == scriptTextView)
+			[scriptTextView syntaxColorForSLiMInput];
+		else if (textView == outputTextView)
+			[outputTextView syntaxColorForSLiMInput];
+	}
 	
 	if (textView == scriptTextView)
 		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument

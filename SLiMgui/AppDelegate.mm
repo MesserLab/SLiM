@@ -246,7 +246,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		{
 			[scriptSyntaxTextView setString:scriptString];
 			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:9.0]];
-			[SLiMWindowController syntaxColorTextView:scriptSyntaxTextView];
+			[scriptSyntaxTextView syntaxColorForSLiMInput];
 		}
 	}
 	

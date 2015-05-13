@@ -28,6 +28,7 @@
 - (IBAction)shiftSelectionRight:(id)sender;
 - (void)syntaxColorForSLiMScript;
 - (void)syntaxColorForSLiMInput;
+- (void)clearSyntaxColoring;
 @end
 
 

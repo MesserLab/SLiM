@@ -479,6 +479,14 @@
 	[textStorage endEditing];
 }
 
+- (void)clearSyntaxColoring
+{
+	NSTextStorage *textStorage = [self textStorage];
+	
+	[textStorage beginEditing];
+	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
+	[textStorage endEditing];
+}
 
 @end
 

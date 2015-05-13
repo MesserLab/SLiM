@@ -25,6 +25,7 @@
 
 @class SLiMWhiteView;
 @class SLiMWindowController;
+@class SLiMSyntaxColoredTextView;
 
 
 // User defaults keys
@@ -51,7 +52,7 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 	// Script Syntax Help
 	IBOutlet NSWindow *scriptSyntaxWindow;
 	IBOutlet SLiMWhiteView *scriptSyntaxWhiteView;
-	IBOutlet NSTextView *scriptSyntaxTextView;
+	IBOutlet SLiMSyntaxColoredTextView *scriptSyntaxTextView;
 }
 
 - (IBAction)newDocument:(id)sender;
