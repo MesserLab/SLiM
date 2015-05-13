@@ -177,7 +177,7 @@ public:
 	
 	~Script(void);												// destructor
 	
-	void Tokenize(void);										// generate token stream from script string
+	void Tokenize(bool p_keep_nonsignificant = false);			// generate token stream from script string
 	void AddOptionalSemicolon(void);							// add a semicolon to unterminated input like "6+7" so it works in the console
 	
 	void ParseScriptBlockToAST(void);							// generate AST from token stream for a script block ( { statement* } EOF )
@@ -185,6 +185,8 @@ public:
 	
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;
+	
+	inline const std::vector<ScriptToken *> &Tokens(void) { return token_stream_; }
 	
 	const ScriptASTNode *AST(void) const;
 	

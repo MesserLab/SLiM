@@ -258,7 +258,7 @@ Script::~Script(void)
 	delete parse_root_;
 }
 
-void Script::Tokenize(void)
+void Script::Tokenize(bool p_keep_nonsignificant)
 {
 	// delete all existing tokens, AST, etc.
 	for (auto token : token_stream_)
@@ -321,7 +321,15 @@ void Script::Tokenize(void)
 				else { token_type = TokenType::kTokenNot; }
 				break;
 			case '/':	// // or /
-				if (ch2 == '/') { token_type = TokenType::kTokenComment; token_end = (int)script_string_.find_first_of("\n\r", token_start) - 1; skip = true; }
+				if (ch2 == '/') {
+					token_type = TokenType::kTokenComment;
+					auto newline_pos = script_string_.find_first_of("\n\r", token_start);
+					if (newline_pos == string::npos)
+						token_end = len - 1;
+					else
+						token_end = (int)newline_pos - 1;
+					skip = true;
+				}
 				else { token_type = TokenType::kTokenDiv; }
 				break;
 			
@@ -490,7 +498,7 @@ void Script::Tokenize(void)
 		}
 		
 		// if skip == true, we just discard the token and continue, as for whitespace and comments
-		if (!skip)
+		if (p_keep_nonsignificant || !skip)
 		{
 			// construct the token string from the range, if it has not already been set; the exception is
 			// string tokens, which may be zero length at this point, and are already set up
