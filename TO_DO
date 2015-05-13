@@ -22,7 +22,6 @@ SLiMscript:
 	
 SLiMscribe:
 	add code completion for sequences of identifiers, dot operators, etc.
-	expose the dummy SLiM script in the Prefs panel, to provide access to a user-chosen simulation for testing out script ideas
 	remove File menu or convert to a document-based model
 
 SLiMgui work:

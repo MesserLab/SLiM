@@ -40,15 +40,15 @@ using std::ostream;
 NSString *defaultsShowTokensKey = @"ShowTokens";
 NSString *defaultsShowParseKey = @"ShowParse";
 NSString *defaultsShowExecutionKey = @"ShowExecution";
+NSString *defaultsSLiMScriptKey = @"SLiMScript";
 
 static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 										"#MUTATION TYPES\n"
 										"m1 0.5 f 0.0 // neutral\n\n"
-										"m2 0.5 f 0.1 // adaptive\n\n"
 										"#MUTATION RATE\n"
 										"1e-7\n\n"
 										"#GENOMIC ELEMENT TYPES\n"
-										"g1 m1 0.9 m2 0.1 // mostly neutral, some adaptive\n\n"
+										"g1 m1 1.0 // only one type comprising the neutral mutations\n\n"
 										"#CHROMOSOME ORGANIZATION\n"
 										"g1 1 100000 // uniform chromosome of length 100 kb\n\n"
 										"#RECOMBINATION RATE\n"
@@ -56,14 +56,14 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 										"#GENERATIONS\n"
 										"1000\n\n"
 										"#DEMOGRAPHY AND STRUCTURE\n"
-										"1 P p1 500 // one population of 500 individuals\n\n"
+										"1 P p1 100 // one population of 100 individuals\n\n"
 										"#SCRIPT\n"
 										"1000 { stop(\"SLiMscribe halt\"); }\n";
 
 
 @implementation AppDelegate
 
-@synthesize scriptWindow, mainSplitView, scriptTextView, outputTextView;
+@synthesize scriptWindow, mainSplitView, scriptTextView, outputTextView, launchSLiMScriptTextView;
 
 + (void)initialize
 {
@@ -71,6 +71,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 															 [NSNumber numberWithBool:NO], defaultsShowTokensKey,
 															 [NSNumber numberWithBool:NO], defaultsShowParseKey,
 															 [NSNumber numberWithBool:NO], defaultsShowExecutionKey,
+															 defaultScriptString, defaultsSLiMScriptKey,
 															 nil]];
 }
 
@@ -82,12 +83,14 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[super dealloc];
 }
 
-- (void)launchSimulation
+- (NSString *)launchSimulationWithScript:(NSString *)scriptString
 {
+	NSString *terminationString = nil;
+	
 	delete sim;
 	sim = nullptr;
 	
-	std::istringstream infile([defaultScriptString UTF8String]);
+	std::istringstream infile([scriptString UTF8String]);
 	
 	try
 	{
@@ -100,7 +103,6 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	{
 		// We want to catch a SLiMscript raise here, so that the simulation is frozen at the stage when scripts would normally be executed.
 		std::string terminationMessage = gSLiMTermination.str();
-		NSString *terminationString = nil;
 		
 		if (!terminationMessage.empty())
 		{
@@ -117,7 +119,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		if ([terminationString isEqualToString:@"ERROR (ExecuteFunctionCall): stop() called.\n"])
 		{
 			NSLog(@"SLiM simulation constructed and halted correctly; SLiM services are available.");
-			return;
+			return terminationString;
 		}
 		else
 		{
@@ -131,12 +133,18 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	
 	delete sim;
 	sim = nullptr;
+	
+	return terminationString;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	// Instantiate a simulation
-	[self launchSimulation];
+	// Get our launch script string and instantiate a simulation
+	NSString *launchScript = [[NSUserDefaults standardUserDefaults] stringForKey:defaultsSLiMScriptKey];
+	
+	[launchSLiMScriptTextView setString:launchScript];
+	
+	NSString *terminationString = [self launchSimulationWithScript:launchScript];
 	
 	// Run startup tests, if enabled
 	RunSLiMScriptTests();
@@ -168,9 +176,13 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	// Fix textview fonts and typing attributes
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
+	[launchSLiMScriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	
 	[scriptTextView setTypingAttributes:[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:nil]];
 	[outputTextView setTypingAttributes:[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:nil]];
+	[launchSLiMScriptTextView setTypingAttributes:[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:nil]];
+	
+	[launchSLiMScriptTextView syntaxColorForSLiMInput];
 	
 	// Fix text container insets to look a bit nicer; {0,0} by default
 	[scriptTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
@@ -178,6 +190,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	
 	// Show a welcome message
 	[outputTextView showWelcomeMessage];
+	[outputTextView showSimulationLaunchSuccess:(sim != nullptr) errorMessage:terminationString];
 	
 	// And show our prompt
 	[outputTextView showPrompt];
@@ -525,109 +538,24 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	}
 }
 
-// Check whether a token string is a special identifier like "pX", "gX", or "mX"
-- (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
-{
-	int len = (int)token_string.length();
-	
-	if (len >= 2)
-	{
-		unichar first_ch = token_string[0];
-		
-		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
-		{
-			for (int ch_index = 1; ch_index < len; ++ch_index)
-			{
-				unichar idx_ch = token_string[ch_index];
-				
-				if ((idx_ch < '0') || (idx_ch > '9'))
-					return NO;
-			}
-			
-			return YES;
-		}
-	}
-	
-	return NO;
-}
-
 - (void)textDidChange:(NSNotification *)notification
 {
 	NSTextView *textView = (NSTextView *)[notification object];
 	
+	// Syntax color the script string
 	if (textView == scriptTextView)
 	{
-		// Construct a Script object from the current script string
-		NSString *scriptString = [scriptTextView string];
-		string script_string([scriptString UTF8String]);
-		Script script(1, 1, script_string, 0);
+		[scriptTextView syntaxColorForSLiMScript];
+	}
+	
+	// Syntax color the input file string and save it to our defaults
+	if (textView == launchSLiMScriptTextView)
+	{
+		NSString *scriptString = [launchSLiMScriptTextView string];
 		
-		// Tokenize
-		try
-		{
-			script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
-		}
-		catch (std::runtime_error err)
-		{
-			// if we get a raise, we just use as many tokens as we got
-			//NSString *errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
-			//NSLog(@"raise during syntax coloring tokenization: %@", errorString);
-		}
+		[[NSUserDefaults standardUserDefaults] setObject:scriptString forKey:defaultsSLiMScriptKey];
 		
-		// Set up our shared colors
-		static NSColor *numberLiteralColor = nil;
-		static NSColor *stringLiteralColor = nil;
-		static NSColor *commentColor = nil;
-		static NSColor *identifierColor = nil;
-		static NSColor *keywordColor = nil;
-		
-		if (!numberLiteralColor)
-		{
-			numberLiteralColor = [[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0] retain];
-			stringLiteralColor = [[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0] retain];
-			commentColor = [[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0] retain];
-			identifierColor = [[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0] retain];
-			keywordColor = [[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] retain];
-		}
-		
-		// Syntax color!
-		NSTextStorage *ts = [scriptTextView textStorage];
-		
-		[ts beginEditing];
-		
-		[ts removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [ts length])];
-		
-		for (ScriptToken *token : script.Tokens())
-		{
-			NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
-			
-			if (token->token_type_ == TokenType::kTokenNumber)
-				[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
-			if (token->token_type_ == TokenType::kTokenString)
-				[ts addAttribute:NSForegroundColorAttributeName value:stringLiteralColor range:tokenRange];
-			if (token->token_type_ == TokenType::kTokenComment)
-				[ts addAttribute:NSForegroundColorAttributeName value:commentColor range:tokenRange];
-			if (token->token_type_ > TokenType::kFirstIdentifierLikeToken)
-				[ts addAttribute:NSForegroundColorAttributeName value:keywordColor range:tokenRange];
-			if (token->token_type_ == TokenType::kTokenIdentifier)
-			{
-				// most identifiers are left as black; only special ones get colored
-				const std::string &token_string = token->token_string_;
-				
-				if ((token_string.compare("T") == 0) ||
-					(token_string.compare("F") == 0) ||
-					(token_string.compare("E") == 0) ||
-					(token_string.compare("PI") == 0) ||
-					(token_string.compare("INF") == 0) ||
-					(token_string.compare("NAN") == 0) ||
-					(token_string.compare("NULL") == 0) ||
-					(token_string.compare("sim") == 0) ||
-					[self tokenStringIsSpecialIdentifier:token_string])
-					[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
-			}
-		}
-		
-		[ts endEditing];
+		[launchSLiMScriptTextView syntaxColorForSLiMInput];
 	}
 }
 

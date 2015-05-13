@@ -238,6 +238,34 @@ static NSDictionary *executionAttrs = nil;
 	[welcomeString5 release];
 }
 
+- (void)showSimulationLaunchSuccess:(BOOL)simLaunchSuccess errorMessage:(NSString *)errorMessage
+{
+	NSTextStorage *ts = [self textStorage];
+	
+	NSAttributedString *launchString;
+	NSAttributedString *errorString = nil;
+	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
+	
+	if (simLaunchSuccess)
+		launchString = [[NSAttributedString alloc] initWithString:@"SLiM launched and halted; SLiM services are available.\n" attributes:outputAttrs];
+	else
+		launchString = [[NSAttributedString alloc] initWithString:@"SLiM failed to launch and halt:\n\n" attributes:errorAttrs];
+	
+	if (!simLaunchSuccess && errorMessage)
+		errorString = [[NSAttributedString alloc] initWithString:errorMessage attributes:errorAttrs];
+	
+	[ts beginEditing];
+	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:launchString];
+	if (errorString)
+		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorString];
+	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:dividerString];
+	[ts endEditing];
+	
+	[launchString release];
+	[errorString release];
+	[dividerString release];
+}
+
 - (void)showPrompt
 {
 	NSTextStorage *ts = [self textStorage];

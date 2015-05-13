@@ -38,9 +38,11 @@
 	SLiMSim *sim;
 }
 
+@property (retain) IBOutlet SLiMSyntaxColoredTextView *launchSLiMScriptTextView;
+
 @property (retain) IBOutlet NSWindow *scriptWindow;
 @property (retain) IBOutlet NSSplitView *mainSplitView;
-@property (retain) IBOutlet NSTextView *scriptTextView;
+@property (retain) IBOutlet SLiMSyntaxColoredTextView *scriptTextView;
 @property (retain) IBOutlet ConsoleTextView *outputTextView;
 
 - (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon;

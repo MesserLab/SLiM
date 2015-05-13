@@ -26,6 +26,8 @@
 + (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
 - (IBAction)shiftSelectionLeft:(id)sender;
 - (IBAction)shiftSelectionRight:(id)sender;
+- (void)syntaxColorForSLiMScript;
+- (void)syntaxColorForSLiMInput;
 @end
 
 

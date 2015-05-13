@@ -43,6 +43,7 @@
 - (NSUInteger)promptRangeEnd;
 
 - (void)showWelcomeMessage;
+- (void)showSimulationLaunchSuccess:(BOOL)simLaunchSuccess errorMessage:(NSString *)errorMessage;
 - (void)showPrompt;
 - (void)appendSpacer;
 

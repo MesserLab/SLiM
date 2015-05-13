@@ -72,12 +72,6 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 										"10000 R p1 10\n"
 										"10000 F // output fixed mutations";
 
-static NSDictionary *poundDirectiveAttrs = nil;
-static NSDictionary *commentAttrs = nil;
-static NSDictionary *subpopAttrs = nil;
-static NSDictionary *genomicElementAttrs = nil;
-static NSDictionary *mutationTypeAttrs = nil;
-
 
 @implementation SLiMWindowController
 
@@ -105,20 +99,6 @@ static NSDictionary *mutationTypeAttrs = nil;
 //	Core class methods
 //
 #pragma mark Core class methods
-
-+ (void)initialize
-{
-	if (!poundDirectiveAttrs)
-		poundDirectiveAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-	if (!commentAttrs)
-		commentAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-	if (!subpopAttrs)
-		subpopAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-	if (!genomicElementAttrs)
-		genomicElementAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-	if (!mutationTypeAttrs)
-		mutationTypeAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-}
 
 + (NSColor *)colorForIndex:(int)index
 {
@@ -384,112 +364,6 @@ static NSDictionary *mutationTypeAttrs = nil;
 	
 	[textStorage beginEditing];
 	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
-	[textStorage endEditing];
-}
-
-+ (void)syntaxColorTextView:(NSTextView *)textView
-{
-	NSTextStorage *textStorage = [textView textStorage];
-	NSString *string = [textView string];
-	NSArray *lines = [string componentsSeparatedByString:@"\n"];
-	int lineCount = (int)[lines count];
-	int stringPosition = 0;
-	
-	[textStorage beginEditing];
-	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
-	
-	for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
-	{
-		NSString *line = [lines objectAtIndex:lineIndex];
-		NSRange lineRange = NSMakeRange(stringPosition, (int)[line length]);
-		int nextStringPosition = (int)(stringPosition + lineRange.length + 1);			// +1 for the newline
-		
-		if (lineRange.length)
-		{
-			//NSLog(@"lineIndex %d, lineRange == %@", lineIndex, NSStringFromRange(lineRange));
-			
-			// find comments and color and remove them
-			NSRange commentRange = [line rangeOfString:@"//"];
-			
-			if ((commentRange.location != NSNotFound) && (commentRange.length == 2))
-			{
-				int commentLength = (int)(lineRange.length - commentRange.location);
-				
-				[textStorage addAttributes:commentAttrs range:NSMakeRange(lineRange.location + commentRange.location, commentLength)];
-				
-				lineRange.length -= commentLength;
-				line = [line substringToIndex:commentRange.location];
-			}
-			
-			// if anything is left...
-			if (lineRange.length)
-			{
-				// remove leading whitespace
-				do {
-					NSRange leadingWhitespaceRange = [line rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet] options:NSAnchoredSearch];
-					
-					if (leadingWhitespaceRange.location == NSNotFound || leadingWhitespaceRange.length == 0)
-						break;
-					
-					lineRange.location += leadingWhitespaceRange.length;
-					lineRange.length -= leadingWhitespaceRange.length;
-					line = [line substringFromIndex:leadingWhitespaceRange.length];
-				} while (YES);
-				
-				// remove trailing whitespace
-				do {
-					NSRange trailingWhitespaceRange = [line rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet] options:NSAnchoredSearch | NSBackwardsSearch];
-					
-					if (trailingWhitespaceRange.location == NSNotFound || trailingWhitespaceRange.length == 0)
-						break;
-					
-					lineRange.length -= trailingWhitespaceRange.length;
-					line = [line substringToIndex:trailingWhitespaceRange.location];
-				} while (YES);
-				
-				// if anything is left...
-				if (lineRange.length)
-				{
-					// find pound directives and color them
-					if ([line characterAtIndex:0] == '#')
-						[textStorage addAttributes:poundDirectiveAttrs range:lineRange];
-					else
-					{
-						NSRange scanRange = NSMakeRange(0, lineRange.length);
-						
-						do {
-							NSRange tokenRange = [line rangeOfString:@"\\b[pgm][0-9]+\\b" options:NSRegularExpressionSearch range:scanRange];
-							
-							if (tokenRange.location == NSNotFound || tokenRange.length == 0)
-								break;
-							
-							NSString *substring = [line substringWithRange:tokenRange];
-							NSDictionary *syntaxAttrs = nil;
-							
-							if ([substring characterAtIndex:0] == 'p')
-								syntaxAttrs = subpopAttrs;
-							else if ([substring characterAtIndex:0] == 'g')
-								syntaxAttrs = genomicElementAttrs;
-							else if ([substring characterAtIndex:0] == 'm')
-								syntaxAttrs = mutationTypeAttrs;
-							
-							if (syntaxAttrs)
-								[textStorage addAttributes:syntaxAttrs range:NSMakeRange(tokenRange.location + lineRange.location, tokenRange.length)];
-							
-							scanRange.length = (scanRange.location + scanRange.length) - (tokenRange.location + tokenRange.length);
-							scanRange.location = (tokenRange.location + tokenRange.length);
-							
-							if (scanRange.length < 2)
-								break;
-						} while (YES);
-					}
-				}
-			}
-		}
-		
-		stringPosition = nextStringPosition;
-	}
-	
 	[textStorage endEditing];
 }
 

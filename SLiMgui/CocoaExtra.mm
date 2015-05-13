@@ -20,6 +20,10 @@
 
 #import "CocoaExtra.h"
 
+#include "script.h"
+
+#include <stdexcept>
+
 
 @implementation SLiMSyntaxColoredTextView
 
@@ -250,6 +254,231 @@
 		NSBeep();
 	}
 }
+
+// Check whether a token string is a special identifier like "pX", "gX", or "mX"
+- (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+{
+	int len = (int)token_string.length();
+	
+	if (len >= 2)
+	{
+		unichar first_ch = token_string[0];
+		
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
+		{
+			for (int ch_index = 1; ch_index < len; ++ch_index)
+			{
+				unichar idx_ch = token_string[ch_index];
+				
+				if ((idx_ch < '0') || (idx_ch > '9'))
+					return NO;
+			}
+			
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
+- (void)syntaxColorForSLiMScript
+{
+	// Construct a Script object from the current script string
+	NSString *scriptString = [self string];
+	std::string script_string([scriptString UTF8String]);
+	Script script(1, 1, script_string, 0);
+	
+	// Tokenize
+	try
+	{
+		script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
+	}
+	catch (std::runtime_error err)
+	{
+		// if we get a raise, we just use as many tokens as we got
+		//NSString *errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		//NSLog(@"raise during syntax coloring tokenization: %@", errorString);
+	}
+	
+	// Set up our shared colors
+	static NSColor *numberLiteralColor = nil;
+	static NSColor *stringLiteralColor = nil;
+	static NSColor *commentColor = nil;
+	static NSColor *identifierColor = nil;
+	static NSColor *keywordColor = nil;
+	
+	if (!numberLiteralColor)
+	{
+		numberLiteralColor = [[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0] retain];
+		stringLiteralColor = [[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0] retain];
+		commentColor = [[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0] retain];
+		identifierColor = [[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0] retain];
+		keywordColor = [[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] retain];
+	}
+	
+	// Syntax color!
+	NSTextStorage *ts = [self textStorage];
+	
+	[ts beginEditing];
+	
+	[ts removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [ts length])];
+	
+	for (ScriptToken *token : script.Tokens())
+	{
+		NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
+		
+		if (token->token_type_ == TokenType::kTokenNumber)
+			[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
+		if (token->token_type_ == TokenType::kTokenString)
+			[ts addAttribute:NSForegroundColorAttributeName value:stringLiteralColor range:tokenRange];
+		if (token->token_type_ == TokenType::kTokenComment)
+			[ts addAttribute:NSForegroundColorAttributeName value:commentColor range:tokenRange];
+		if (token->token_type_ > TokenType::kFirstIdentifierLikeToken)
+			[ts addAttribute:NSForegroundColorAttributeName value:keywordColor range:tokenRange];
+		if (token->token_type_ == TokenType::kTokenIdentifier)
+		{
+			// most identifiers are left as black; only special ones get colored
+			const std::string &token_string = token->token_string_;
+			
+			if ((token_string.compare("T") == 0) ||
+				(token_string.compare("F") == 0) ||
+				(token_string.compare("E") == 0) ||
+				(token_string.compare("PI") == 0) ||
+				(token_string.compare("INF") == 0) ||
+				(token_string.compare("NAN") == 0) ||
+				(token_string.compare("NULL") == 0) ||
+				(token_string.compare("sim") == 0) ||
+				[self tokenStringIsSpecialIdentifier:token_string])
+				[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+		}
+	}
+	
+	[ts endEditing];
+}
+
+- (void)syntaxColorForSLiMInput
+{
+	NSTextStorage *textStorage = [self textStorage];
+	NSString *string = [self string];
+	NSArray *lines = [string componentsSeparatedByString:@"\n"];
+	int lineCount = (int)[lines count];
+	int stringPosition = 0;
+	
+	// Set up our shared attributes
+	static NSDictionary *poundDirectiveAttrs = nil;
+	static NSDictionary *commentAttrs = nil;
+	static NSDictionary *subpopAttrs = nil;
+	static NSDictionary *genomicElementAttrs = nil;
+	static NSDictionary *mutationTypeAttrs = nil;
+	
+	if (!poundDirectiveAttrs)
+	{
+		poundDirectiveAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+		commentAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+		subpopAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+		genomicElementAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+		mutationTypeAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+	}
+	
+	// And then tokenize and color
+	[textStorage beginEditing];
+	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
+	
+	for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
+	{
+		NSString *line = [lines objectAtIndex:lineIndex];
+		NSRange lineRange = NSMakeRange(stringPosition, (int)[line length]);
+		int nextStringPosition = (int)(stringPosition + lineRange.length + 1);			// +1 for the newline
+		
+		if (lineRange.length)
+		{
+			//NSLog(@"lineIndex %d, lineRange == %@", lineIndex, NSStringFromRange(lineRange));
+			
+			// find comments and color and remove them
+			NSRange commentRange = [line rangeOfString:@"//"];
+			
+			if ((commentRange.location != NSNotFound) && (commentRange.length == 2))
+			{
+				int commentLength = (int)(lineRange.length - commentRange.location);
+				
+				[textStorage addAttributes:commentAttrs range:NSMakeRange(lineRange.location + commentRange.location, commentLength)];
+				
+				lineRange.length -= commentLength;
+				line = [line substringToIndex:commentRange.location];
+			}
+			
+			// if anything is left...
+			if (lineRange.length)
+			{
+				// remove leading whitespace
+				do {
+					NSRange leadingWhitespaceRange = [line rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet] options:NSAnchoredSearch];
+					
+					if (leadingWhitespaceRange.location == NSNotFound || leadingWhitespaceRange.length == 0)
+						break;
+					
+					lineRange.location += leadingWhitespaceRange.length;
+					lineRange.length -= leadingWhitespaceRange.length;
+					line = [line substringFromIndex:leadingWhitespaceRange.length];
+				} while (YES);
+				
+				// remove trailing whitespace
+				do {
+					NSRange trailingWhitespaceRange = [line rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet] options:NSAnchoredSearch | NSBackwardsSearch];
+					
+					if (trailingWhitespaceRange.location == NSNotFound || trailingWhitespaceRange.length == 0)
+						break;
+					
+					lineRange.length -= trailingWhitespaceRange.length;
+					line = [line substringToIndex:trailingWhitespaceRange.location];
+				} while (YES);
+				
+				// if anything is left...
+				if (lineRange.length)
+				{
+					// find pound directives and color them
+					if ([line characterAtIndex:0] == '#')
+						[textStorage addAttributes:poundDirectiveAttrs range:lineRange];
+					else
+					{
+						NSRange scanRange = NSMakeRange(0, lineRange.length);
+						
+						do {
+							NSRange tokenRange = [line rangeOfString:@"\\b[pgm][0-9]+\\b" options:NSRegularExpressionSearch range:scanRange];
+							
+							if (tokenRange.location == NSNotFound || tokenRange.length == 0)
+								break;
+							
+							NSString *substring = [line substringWithRange:tokenRange];
+							NSDictionary *syntaxAttrs = nil;
+							
+							if ([substring characterAtIndex:0] == 'p')
+								syntaxAttrs = subpopAttrs;
+							else if ([substring characterAtIndex:0] == 'g')
+								syntaxAttrs = genomicElementAttrs;
+							else if ([substring characterAtIndex:0] == 'm')
+								syntaxAttrs = mutationTypeAttrs;
+							
+							if (syntaxAttrs)
+								[textStorage addAttributes:syntaxAttrs range:NSMakeRange(tokenRange.location + lineRange.location, tokenRange.length)];
+							
+							scanRange.length = (scanRange.location + scanRange.length) - (tokenRange.location + tokenRange.length);
+							scanRange.location = (tokenRange.location + tokenRange.length);
+							
+							if (scanRange.length < 2)
+								break;
+						} while (YES);
+					}
+				}
+			}
+		}
+		
+		stringPosition = nextStringPosition;
+	}
+	
+	[textStorage endEditing];
+}
+
 
 @end
 
