@@ -110,6 +110,147 @@
 	[pasteboard writeObjects:[NSArray arrayWithObject:attrStringInRange]];
 }
 
+- (IBAction)shiftSelectionLeft:(id)sender
+{
+	if ([self isEditable])
+	{
+		NSTextStorage *ts = [self textStorage];
+		NSMutableString *scriptString = [[self string] mutableCopy];
+		int scriptLength = (int)[scriptString length];
+		NSRange selectedRange = [self selectedRange];
+		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
+		NSUInteger scanPosition;
+		
+		// start at the start of the selection and scan backwards over non-newline text until we hit a newline or the start of the file
+		scanPosition = selectedRange.location;
+		
+		while (scanPosition > 0)
+		{
+			if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition - 1]])
+				break;
+			
+			--scanPosition;
+		}
+		
+		// ok, we're at the start of the line that the selection starts on; start removing tabs
+		[ts beginEditing];
+		
+		while ((scanPosition == selectedRange.location) || (scanPosition < selectedRange.location + selectedRange.length))
+		{
+			// if we are at the very end of the script string, then we have hit the end and we're done
+			if (scanPosition == scriptLength)
+				break;
+			
+			// insert a tab at the start of this line and adjust our selection
+			if ([scriptString characterAtIndex:scanPosition] == '\t')
+			{
+				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 1) withString:@""];
+				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 1) withString:@""];
+				scriptLength--;
+				
+				if (scanPosition < selectedRange.location)
+					selectedRange.location--;
+				else
+					selectedRange.length--;
+			}
+			
+			// now scan forward to the end of this line
+			while (scanPosition < scriptLength)
+			{
+				if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// and then scan forward to the beginning of the next line
+			while (scanPosition < scriptLength)
+			{
+				if (![newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+		}
+		
+		[ts endEditing];
+		[self setSelectedRange:selectedRange];
+	}
+	else
+	{
+		NSBeep();
+	}
+}
+
+- (IBAction)shiftSelectionRight:(id)sender
+{
+	if ([self isEditable])
+	{
+		NSTextStorage *ts = [self textStorage];
+		NSMutableString *scriptString = [[self string] mutableCopy];
+		int scriptLength = (int)[scriptString length];
+		NSRange selectedRange = [self selectedRange];
+		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
+		NSUInteger scanPosition;
+		
+		// start at the start of the selection and scan backwards over non-newline text until we hit a newline or the start of the file
+		scanPosition = selectedRange.location;
+		
+		while (scanPosition > 0)
+		{
+			if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition - 1]])
+				break;
+			
+			--scanPosition;
+		}
+		
+		// ok, we're at the start of the line that the selection starts on; start inserting tabs
+		[ts beginEditing];
+		
+		while ((scanPosition == selectedRange.location) || (scanPosition < selectedRange.location + selectedRange.length))
+		{
+			// insert a tab at the start of this line and adjust our selection
+			[ts replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"\t"];
+			[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"\t"];
+			scriptLength++;
+			
+			if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
+				selectedRange.location++;
+			else
+				selectedRange.length++;
+			
+			// now scan forward to the end of this line
+			while (scanPosition < scriptLength)
+			{
+				if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// and then scan forward to the beginning of the next line
+			while (scanPosition < scriptLength)
+			{
+				if (![newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// if we are at the very end of the script string, then we have hit the end and we're done
+			if (scanPosition == scriptLength)
+				break;
+		}
+		
+		[ts endEditing];
+		[self setSelectedRange:selectedRange];
+	}
+	else
+	{
+		NSBeep();
+	}
+}
+
 @end
 
 

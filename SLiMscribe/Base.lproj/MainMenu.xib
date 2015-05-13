@@ -241,6 +241,17 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="Ag7-ud-N8J"/>
+                            <menuItem title="Shift Left" keyEquivalent="[" id="7fU-LO-jP2">
+                                <connections>
+                                    <action selector="shiftSelectionLeft:" target="-1" id="kmf-It-iLJ"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Shift Right" keyEquivalent="]" id="yAi-3e-02u">
+                                <connections>
+                                    <action selector="shiftSelectionRight:" target="-1" id="4jm-Ja-yAY"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

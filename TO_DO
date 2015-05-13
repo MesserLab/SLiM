@@ -22,7 +22,6 @@ SLiMscript:
 	
 SLiMscribe:
 	add code completion for sequences of identifiers, dot operators, etc.
-	add command-right-bracket and command-left-bracket for indenting code with tabs
 	expose the dummy SLiM script in the Prefs panel, to provide access to a user-chosen simulation for testing out script ideas
 	remove File menu or convert to a document-based model
 	syntax coloring based on tokenization

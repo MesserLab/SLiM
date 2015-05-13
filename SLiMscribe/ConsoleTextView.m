@@ -314,6 +314,16 @@ static NSDictionary *executionAttrs = nil;
 	[self setSelectedRange:selectedRange];
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	if ((sel == @selector(shiftSelectionLeft:)) || (sel == @selector(shiftSelectionRight:)))
+		return NO;
+	
+	return [super validateMenuItem:menuItem];
+}
+
 @end
 
 

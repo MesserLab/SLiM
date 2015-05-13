@@ -24,6 +24,8 @@
 // A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
 @interface SLiMSyntaxColoredTextView : NSTextView
 + (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
+- (IBAction)shiftSelectionLeft:(id)sender;
+- (IBAction)shiftSelectionRight:(id)sender;
 @end
 
 
