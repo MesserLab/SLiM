@@ -424,32 +424,63 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 {
 	NSTextStorage *ts = [outputTextView textStorage];
 	NSString *fullScriptString = [scriptTextView string];
-	NSArray *scriptLines = [fullScriptString componentsSeparatedByString:@"\n"];
+	NSUInteger scriptLength = [fullScriptString length];
 	NSRange selectedRange = [scriptTextView selectedRange];
-	NSMutableArray *selectedLines = [NSMutableArray array];
-	NSUInteger lengthSoFar = 0;
+	NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
+	NSRange executionRange = selectedRange;	// indices of the first and last characters to execute
 	
-	for (NSString *line in scriptLines)
+	// start at the start of the selection and move backwards to the beginning of the line
+	while (executionRange.location > 0)
 	{
-		NSUInteger lineLength = [line length];
-		NSRange lineRange = NSMakeRange(lengthSoFar, lineLength);
+		unichar ch = [fullScriptString characterAtIndex:executionRange.location - 1];
 		
-		if ((selectedRange.location <= lineRange.location + lineRange.length) && (selectedRange.location + selectedRange.length >= lineRange.location))
-			[selectedLines addObject:line];
+		if ([newlineChars characterIsMember:ch])
+			break;
 		
-		lengthSoFar += lineLength + 1;
+		--executionRange.location;
+		++executionRange.length;
 	}
 	
-	NSString *scriptString = [selectedLines componentsJoinedByString:@"\n  "];	// add spaces the match the prompt indent
-	NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:scriptString attributes:[ConsoleTextView inputAttrs]];
-	NSUInteger promptEnd = [outputTextView promptRangeEnd];
+	// now move the end of the selection backwards to remove any newlines from the end of the range to execute
+	while (executionRange.length > 0)
+	{
+		unichar ch = [fullScriptString characterAtIndex:executionRange.location + executionRange.length - 1];
+		
+		if (![newlineChars characterIsMember:ch])
+			break;
+		
+		--executionRange.length;
+	}
 	
-	[ts beginEditing];
-	[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
-	[ts endEditing];
+	// now move the end of the selection forwards to the end of the line, not including the newline
+	while (executionRange.location + executionRange.length < scriptLength)
+	{
+		unichar ch = [fullScriptString characterAtIndex:executionRange.location + executionRange.length];
+		
+		if ([newlineChars characterIsMember:ch])
+			break;
+		
+		++executionRange.length;
+	}
 	
-	[outputTextView registerNewHistoryItem:scriptString];
-	[self executeScriptString:scriptString addOptionalSemicolon:NO];
+	// now execute the range we have found
+	if (executionRange.length > 0)
+	{
+		NSString *scriptString = [fullScriptString substringWithRange:executionRange];
+		NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:scriptString attributes:[ConsoleTextView inputAttrs]];
+		NSUInteger promptEnd = [outputTextView promptRangeEnd];
+		
+		[ts beginEditing];
+		[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
+		[ts endEditing];
+		
+		[outputTextView registerNewHistoryItem:scriptString];
+		[self executeScriptString:scriptString addOptionalSemicolon:NO];
+	}
+	else
+	{
+		NSBeep();
+	}
 }
 
 

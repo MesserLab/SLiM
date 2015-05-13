@@ -12,17 +12,16 @@ command-line tool:
 SLiMscript:
 	add randomUniform() function, randomLogical() function – or runif(), rbinom()?
 	add ability to change the separator for cat – optional parameter
-	implement SLiM object elements
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	for Erich: implement unimplemented functions
 	
+	implement SLiM object element methods to support common tasks
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 	make it possible to drive a graph from script
 	
 SLiMscribe:
 	add code completion for sequences of identifiers, dot operators, etc.
-	seems to be a bug with selecting a range and executing; the wrong lines get executed
 	add command-right-bracket and command-left-bracket for indenting code with tabs
 	expose the dummy SLiM script in the Prefs panel, to provide access to a user-chosen simulation for testing out script ideas
 	remove File menu or convert to a document-based model
