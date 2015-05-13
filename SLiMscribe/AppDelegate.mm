@@ -525,6 +525,112 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	}
 }
 
+// Check whether a token string is a special identifier like "pX", "gX", or "mX"
+- (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+{
+	int len = (int)token_string.length();
+	
+	if (len >= 2)
+	{
+		unichar first_ch = token_string[0];
+		
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
+		{
+			for (int ch_index = 1; ch_index < len; ++ch_index)
+			{
+				unichar idx_ch = token_string[ch_index];
+				
+				if ((idx_ch < '0') || (idx_ch > '9'))
+					return NO;
+			}
+			
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
+- (void)textDidChange:(NSNotification *)notification
+{
+	NSTextView *textView = (NSTextView *)[notification object];
+	
+	if (textView == scriptTextView)
+	{
+		// Construct a Script object from the current script string
+		NSString *scriptString = [scriptTextView string];
+		string script_string([scriptString UTF8String]);
+		Script script(1, 1, script_string, 0);
+		
+		// Tokenize
+		try
+		{
+			script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
+		}
+		catch (std::runtime_error err)
+		{
+			// if we get a raise, we just use as many tokens as we got
+			//NSString *errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+			//NSLog(@"raise during syntax coloring tokenization: %@", errorString);
+		}
+		
+		// Set up our shared colors
+		static NSColor *numberLiteralColor = nil;
+		static NSColor *stringLiteralColor = nil;
+		static NSColor *commentColor = nil;
+		static NSColor *identifierColor = nil;
+		static NSColor *keywordColor = nil;
+		
+		if (!numberLiteralColor)
+		{
+			numberLiteralColor = [[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0] retain];
+			stringLiteralColor = [[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0] retain];
+			commentColor = [[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0] retain];
+			identifierColor = [[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0] retain];
+			keywordColor = [[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] retain];
+		}
+		
+		// Syntax color!
+		NSTextStorage *ts = [scriptTextView textStorage];
+		
+		[ts beginEditing];
+		
+		[ts removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [ts length])];
+		
+		for (ScriptToken *token : script.Tokens())
+		{
+			NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
+			
+			if (token->token_type_ == TokenType::kTokenNumber)
+				[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
+			if (token->token_type_ == TokenType::kTokenString)
+				[ts addAttribute:NSForegroundColorAttributeName value:stringLiteralColor range:tokenRange];
+			if (token->token_type_ == TokenType::kTokenComment)
+				[ts addAttribute:NSForegroundColorAttributeName value:commentColor range:tokenRange];
+			if (token->token_type_ > TokenType::kFirstIdentifierLikeToken)
+				[ts addAttribute:NSForegroundColorAttributeName value:keywordColor range:tokenRange];
+			if (token->token_type_ == TokenType::kTokenIdentifier)
+			{
+				// most identifiers are left as black; only special ones get colored
+				const std::string &token_string = token->token_string_;
+				
+				if ((token_string.compare("T") == 0) ||
+					(token_string.compare("F") == 0) ||
+					(token_string.compare("E") == 0) ||
+					(token_string.compare("PI") == 0) ||
+					(token_string.compare("INF") == 0) ||
+					(token_string.compare("NAN") == 0) ||
+					(token_string.compare("NULL") == 0) ||
+					(token_string.compare("sim") == 0) ||
+					[self tokenStringIsSpecialIdentifier:token_string])
+					[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+			}
+		}
+		
+		[ts endEditing];
+	}
+}
+
 
 //
 //	NSWindow delegate methods
