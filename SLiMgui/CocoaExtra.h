@@ -31,6 +31,11 @@
 - (void)clearSyntaxColoring;
 @end
 
+@protocol SLiMSyntaxColoredTextViewDelegate <NSObject>
+@optional
+- (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange;
+@end
+
 
 //
 //	The rest of this file is live only in SLiMgui, not in SLiMscribe

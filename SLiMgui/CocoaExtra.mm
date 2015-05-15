@@ -488,6 +488,18 @@
 	[textStorage endEditing];
 }
 
+// add delegation of the -rangeForUserCompletion method so SLiMscribe can handle completion all by itself
+
+- (NSRange)rangeForUserCompletion
+{
+	NSRange range = [super rangeForUserCompletion];
+	
+	if ([[self delegate] respondsToSelector:@selector(textView:rangeForUserCompletion:)])
+		range = [(id <SLiMSyntaxColoredTextViewDelegate>)[self delegate] textView:self rangeForUserCompletion:range];
+	
+	return range;
+}
+
 @end
 
 
