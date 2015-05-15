@@ -82,6 +82,7 @@ enum class FunctionIdentifier {
 	
 	// data type testing/coercion functions
 	typeFunction,
+	elementFunction,
 	isLogicalFunction,
 	isStringFunction,
 	isIntegerFunction,

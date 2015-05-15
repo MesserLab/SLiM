@@ -84,6 +84,7 @@ void ScriptInterpreter::RegisterBuiltInFunctions(void)
 	// data class testing/coercion functions
 	 
 	RegisterSignature((new FunctionSignature("type",		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
+	RegisterSignature((new FunctionSignature("element",		FunctionIdentifier::elementFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
 	/*
 	isLogicalFunction,
 	isStringFunction,
@@ -526,6 +527,13 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			
 		case FunctionIdentifier::typeFunction:
 			string_result->PushString(StringForScriptValueType(arg1_value->Type()));
+			break;
+			
+		case FunctionIdentifier::elementFunction:
+			if (arg1_value->Type() == ScriptValueType::kValueObject)
+				string_result->PushString(((ScriptValue_Object *)arg1_value)->ElementType());
+			else
+				string_result->PushString(StringForScriptValueType(arg1_value->Type()));
 			break;
 			
 		case FunctionIdentifier::isLogicalFunction:
