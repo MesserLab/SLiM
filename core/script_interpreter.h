@@ -137,6 +137,7 @@ public:
 	ScriptValue *Evaluate_Break(const ScriptASTNode *p_node);
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
+	static std::vector<const FunctionSignature *> &BuiltInFunctions(void);
 	void RegisterSignature(const FunctionSignature *p_signature);
 	void RegisterBuiltInFunctions(void);
 	

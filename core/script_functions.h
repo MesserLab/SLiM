@@ -222,6 +222,7 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature);
+bool CompareFunctionSignatures(const FunctionSignature *i, const FunctionSignature *j);
 
 
 #endif /* defined(__SLiM__script_functions__) */
