@@ -195,6 +195,15 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	// And show our prompt
 	[outputTextView showPrompt];
 	
+	// Execute a null statement to get our symbols set up, for code completion etc.
+	NSString *errorString = nil;
+	
+	[self _executeScriptString:@";" tokenString:NULL parseString:NULL executionString:NULL errorString:&errorString addOptionalSemicolon:NO];
+	
+	if (errorString)
+		NSLog(@"Error in initial SLiMscript launch: %@", errorString);
+	
+	// OK, everything is set up, so make the script window visible
 	[scriptWindow makeFirstResponder:outputTextView];
 }
 
@@ -557,6 +566,192 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		
 		[launchSLiMScriptTextView syntaxColorForSLiMInput];
 	}
+}
+
+- (NSArray *)globalCompletions
+{
+	NSMutableArray *globals = [NSMutableArray array];
+	
+	// First, a sorted list of globals
+	for (std::string symbol_name : global_symbols->ReadOnlySymbols())
+		[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	
+	for (std::string symbol_name : global_symbols->ReadWriteSymbols())
+		[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	
+	[globals sortUsingSelector:@selector(compare:)];
+	
+	// Next, a sorted list of functions, with () appended
+	for (const FunctionSignature *sig : ScriptInterpreter::BuiltInFunctions())
+	{
+		NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
+		
+		[globals addObject:[functionName stringByAppendingString:@"()"]];
+	}
+	
+	return globals;
+}
+
+- (NSArray *)completionsForTokenStream:(const std::vector<ScriptToken *> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
+{
+	return nil;
+}
+
+// one funnel for all completion work, since we use the same pattern to answer both questions...
+- (void)_completionHandlerForTextView:(NSTextView *)textView rangeForCompletion:(NSRange *)baseRange completions:(NSArray **)completions
+{
+	if ((textView == scriptTextView) || (textView == outputTextView))
+	{
+		NSString *scriptString = [textView string];
+		NSRange selection = [textView selectedRange];	// ignore charRange and work from the selection
+		NSUInteger rangeOffset = 0;
+		
+		// correct the script string to have only what is entered after the prompt
+		if (textView == outputTextView)
+		{
+			rangeOffset = [outputTextView promptRangeEnd];
+			scriptString = [scriptString substringFromIndex:rangeOffset];
+			selection.location -= rangeOffset;
+			selection.length -= rangeOffset;
+		}
+		
+		NSUInteger selStart = selection.location;
+		
+		if (selStart != NSNotFound)
+		{
+			// Get the substring up to the start of the selection; that is the range relevant for completion
+			NSString *scriptSubstring = [scriptString substringToIndex:selStart];
+			std::string script_string([scriptSubstring UTF8String]);
+			Script script(1, 1, script_string, 0);
+			
+			// Tokenize
+			try
+			{
+				script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
+			}
+			catch (std::runtime_error err)
+			{
+				// if we get a raise, we just use as many tokens as we got
+			}
+			
+			auto tokens = script.Tokens();
+			int lastTokenIndex = (int)tokens.size() - 1;
+			BOOL endedCleanly = NO, lastTokenInterrupted = NO;
+			
+			// if we ended with an EOF, that means we did not have a raise and there should be no untokenizable range at the end
+			if ((lastTokenIndex >= 0) && (tokens[lastTokenIndex]->token_type_ == TokenType::kTokenEOF))
+			{
+				--lastTokenIndex;
+				endedCleanly = YES;
+			}
+			
+			// if we ended with whitespace or a comment, the previous token cannot be extended
+			while (lastTokenIndex >= 0) {
+				ScriptToken *token = tokens[lastTokenIndex];
+				
+				if ((token->token_type_ != TokenType::kTokenWhitespace) && (token->token_type_ != TokenType::kTokenComment))
+					break;
+				
+				--lastTokenIndex;
+				lastTokenInterrupted = YES;
+			}
+			
+			// now diagnose what range we want to use as a basis for completion
+			if (!endedCleanly)
+			{
+				// the selection is at the end of an untokenizable range; we might be in the middle of a string or a comment,
+				// or there might be a tokenization error upstream of us.  let's not try to guess what the situation is.
+				if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+				if (completions) *completions = nil;
+				return;
+			}
+			else if (lastTokenInterrupted)
+			{
+				if (lastTokenIndex < 0)
+				{
+					// We're at the end of nothing but initial whitespace and comments; offer insertion-point completions
+					if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+					if (completions) *completions = [self globalCompletions];
+					return;
+				}
+				
+				ScriptToken *token = tokens[lastTokenIndex];
+				
+				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
+				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
+				if ((token->token_type_ == TokenType::kTokenNumber) || (token->token_type_ == TokenType::kTokenString) || (token->token_type_ == TokenType::kTokenRParen) || (token->token_type_ == TokenType::kTokenRBracket) || (token->token_type_ == TokenType::kTokenIdentifier) || (token->token_type_ == TokenType::kTokenIf) || (token->token_type_ == TokenType::kTokenWhile) || (token->token_type_ == TokenType::kTokenFor) || (token->token_type_ == TokenType::kTokenNext) || (token->token_type_ == TokenType::kTokenBreak))
+				{
+					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+					if (completions) *completions = nil;
+					return;
+				}
+				
+				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:!lastTokenInterrupted];
+				return;
+			}
+			else
+			{
+				if (lastTokenIndex < 0)
+				{
+					// We're at the very beginning of the script; offer insertion-point completions
+					if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+					if (completions) *completions = [self globalCompletions];
+					return;
+				}
+				
+				// the last token was not interrupted, so we can offer completions of it if we want to.
+				ScriptToken *token = tokens[lastTokenIndex];
+				NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
+				
+				if (token->token_type_ >= TokenType::kTokenIdentifier)
+				{
+					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
+					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:!lastTokenInterrupted];
+					return;
+				}
+				
+				if ((token->token_type_ == TokenType::kTokenNumber) || (token->token_type_ == TokenType::kTokenString) || (token->token_type_ == TokenType::kTokenRParen) || (token->token_type_ == TokenType::kTokenRBracket))
+				{
+					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+					if (completions) *completions = nil;
+					return;
+				}
+				
+				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO];
+				return;
+			}
+		}
+	}
+}
+
+- (NSArray *)textView:(NSTextView *)textView completions:(NSArray *)words forPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index
+{
+	if ((textView == scriptTextView) || (textView == outputTextView))
+	{
+		NSArray *completions = nil;
+		
+		[self _completionHandlerForTextView:textView rangeForCompletion:NULL completions:&completions];
+		
+		return completions;
+	}
+	
+	return words;
+}
+
+- (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange
+{
+	if ((textView == scriptTextView) || (textView == outputTextView))
+	{
+		NSRange baseRange = NSMakeRange(NSNotFound, 0);
+		
+		[self _completionHandlerForTextView:textView rangeForCompletion:&baseRange completions:NULL];
+		
+		return baseRange;
+	}
+	
+	return suggestedRange;
 }
 
 
