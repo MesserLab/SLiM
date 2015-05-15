@@ -80,8 +80,8 @@ enum class FunctionIdentifier {
 	strsplitFunction,
 	pasteFunction,
 	
-	// data class testing/coercion functions
-	classFunction,
+	// data type testing/coercion functions
+	typeFunction,
 	isLogicalFunction,
 	isStringFunction,
 	isIntegerFunction,

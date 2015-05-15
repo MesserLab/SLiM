@@ -8,6 +8,7 @@ command-line tool:
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 	should be using strtod, strtol, etc. in all code instead of atoi, atof
 	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
+	add support for rules as discussed with Philipp: modify the fitness calculation with a call out to SLiMscript
 
 SLiMscript:
 	add randomUniform() function, randomLogical() function – or runif(), rbinom()?
@@ -18,7 +19,7 @@ SLiMscript:
 	implement SLiM object element methods to support common tasks
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
-	make it possible to drive a graph from script
+	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
 SLiMscribe:
 	add code completion for sequences of identifiers, dot operators, etc.
