@@ -11,7 +11,6 @@ command-line tool:
 	add support for rules as discussed with Philipp: modify the fitness calculation with a call out to SLiMscript
 
 SLiMscript:
-	add randomUniform() function, randomLogical() function – or runif(), rbinom()?
 	add ability to change the separator for cat – optional parameter
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	for Erich: implement unimplemented functions

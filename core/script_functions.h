@@ -56,6 +56,9 @@ enum class FunctionIdentifier {
 	logicalFunction,
 	stringFunction,
 	objectFunction,
+	rbinomFunction,
+	rpoisFunction,
+	runifFunction,
 	
 	// data inspection/manipulation functions
 	printFunction,
