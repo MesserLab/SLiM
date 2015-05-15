@@ -232,6 +232,80 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("-T;");
 	AssertScriptSuccess("3-4-5;", new ScriptValue_Int(-6));
 	
+    // tests for the * operator
+    AssertScriptSuccess("1*1;", new ScriptValue_Int(1));
+    AssertScriptSuccess("1*-1;", new ScriptValue_Int(-1));
+    AssertScriptSuccess("(0:2)*10;", new ScriptValue_Int(0, 10, 20));
+    AssertScriptSuccess("10*(0:2);", new ScriptValue_Int(0, 10, 20));
+    AssertScriptSuccess("(15:13)*(0:2);", new ScriptValue_Int(0, 14, 26));
+    AssertScriptRaise("(15:12)*(0:2);");
+    AssertScriptRaise("NULL*(0:2);");		// FIXME should this be an error?
+    AssertScriptSuccess("1*1.0;", new ScriptValue_Float(1));
+    AssertScriptSuccess("1.0*1;", new ScriptValue_Float(1));
+    AssertScriptSuccess("1.0*-1.0;", new ScriptValue_Float(-1));
+    AssertScriptSuccess("(0:2.0)*10;", new ScriptValue_Float(0, 10, 20));
+    AssertScriptSuccess("10.0*(0:2);", new ScriptValue_Float(0, 10, 20));
+    AssertScriptSuccess("(15.0:13)*(0:2.0);", new ScriptValue_Float(0, 14, 26));
+    AssertScriptRaise("(15:12.0)*(0:2);");
+    AssertScriptRaise("NULL*(0:2.0);");		// FIXME should this be an error?
+    AssertScriptRaise("\"foo\"*5;");
+    AssertScriptRaise("T*F;");
+    AssertScriptRaise("T*T;");
+    AssertScriptRaise("F*F;");
+    AssertScriptRaise("*5;");
+    AssertScriptRaise("*5.0;");
+    AssertScriptRaise("*\"foo\";");
+    AssertScriptRaise("*T;");
+    AssertScriptSuccess("3*4*5;", new ScriptValue_Int(60));
+    
+    // test for the / operator
+    AssertScriptSuccess("1/1;", new ScriptValue_Int(1));
+    AssertScriptSuccess("1/-1;", new ScriptValue_Int(-1));
+    AssertScriptSuccess("(0:2)/10;", new ScriptValue_Int(0, 0, 0));
+    AssertScriptRaise("(15:12)/(0:2);");
+    AssertScriptRaise("NULL/(0:2);");		// FIXME should this be an error?
+    AssertScriptSuccess("1/1.0;", new ScriptValue_Float(1));
+    AssertScriptSuccess("1.0/1;", new ScriptValue_Float(1));
+    AssertScriptSuccess("1.0/-1.0;", new ScriptValue_Float(-1));
+    AssertScriptSuccess("(0:2.0)/10;", new ScriptValue_Float(0, 0.1, 0.2));
+    AssertScriptSuccess("10.0/(0:2);", new ScriptValue_Float(0, 10, 5));        // FIXME should this be an error?
+    AssertScriptSuccess("(15.0:13)/(0:2.0);", new ScriptValue_Float(0, 14, 6));     // FIXME should this be an error?
+    AssertScriptRaise("(15:12.0)/(0:2);");
+    AssertScriptRaise("NULL/(0:2.0);");		// FIXME should this be an error?
+    AssertScriptRaise("\"foo\"/5;");
+    AssertScriptRaise("T/F;");
+    AssertScriptRaise("T/T;");
+    AssertScriptRaise("F/F;");
+    AssertScriptRaise("/5;");
+    AssertScriptRaise("/5.0;");
+    AssertScriptRaise("/\"foo\";");
+    AssertScriptRaise("/T;");
+    AssertScriptSuccess("3/4/5;", new ScriptValue_Int(0));
+    
+    // test for the % operator
+    AssertScriptSuccess("1%1;", new ScriptValue_Int(0));
+    AssertScriptSuccess("1%-1;", new ScriptValue_Int(0));
+    AssertScriptSuccess("(0:2)%10;", new ScriptValue_Int(0, 1, 2));
+    AssertScriptRaise("(15:12)%(0:2);");
+    AssertScriptRaise("NULL%(0:2);");       // FIXME should this be an error?
+    AssertScriptSuccess("1%1.0;", new ScriptValue_Float(0));
+    AssertScriptSuccess("1.0%1;", new ScriptValue_Float(0));
+    AssertScriptSuccess("1.0%-1.0;", new ScriptValue_Float(0));
+    AssertScriptSuccess("(0:2.0)%10;", new ScriptValue_Float(0, 1, 2));
+    AssertScriptSuccess("10.0%(0:2);", new ScriptValue_Float(0, 10, 5));        //FIXME should this be an error?
+    AssertScriptSuccess("(15.0:13)%(0:2.0);", new ScriptValue_Float(0, 14, 6));     //FIXME should this be an error?
+    AssertScriptRaise("(15:12.0)%(0:2);");
+    AssertScriptRaise("NULL%(0:2.0);");		// FIXME should this be an error?
+    AssertScriptRaise("\"foo\"%5;");
+    AssertScriptRaise("T%F;");
+    AssertScriptRaise("T%T;");
+    AssertScriptRaise("F%F;");
+    AssertScriptRaise("%5;");
+    AssertScriptRaise("%5.0;");
+    AssertScriptRaise("%\"foo\";");
+    AssertScriptRaise("%T;");
+    AssertScriptSuccess("3%4%5;", new ScriptValue_Int(3));
+    
 	// test the seq() function
 	AssertScriptSuccess("seq(1, 5);", new ScriptValue_Int(1, 2, 3, 4, 5));
 	AssertScriptSuccess("seq(5, 1);", new ScriptValue_Int(5, 4, 3, 2, 1));
@@ -293,6 +367,9 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2:3].path=73; z.path;");
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[2:3]=73; z.path;");
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2]=73; z.path;");
+    
+    // check divide by zero
+    AssertScriptRaise("6/0;");
 }
 
 
