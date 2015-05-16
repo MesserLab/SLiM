@@ -568,7 +568,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	}
 }
 
-- (NSArray *)globalCompletions
+- (NSMutableArray *)globalCompletionsIncludingStatements:(BOOL)includeStatements
 {
 	NSMutableArray *globals = [NSMutableArray array];
 	
@@ -589,11 +589,148 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		[globals addObject:[functionName stringByAppendingString:@"()"]];
 	}
 	
+	// Finally, provide language keywords as an option if requested
+	if (includeStatements)
+	{
+		[globals addObject:@"break"];
+		[globals addObject:@"do"];
+		[globals addObject:@"else"];
+		[globals addObject:@"for"];
+		[globals addObject:@"if"];
+		[globals addObject:@"in"];
+		[globals addObject:@"next"];
+		[globals addObject:@"while"];
+	}
+	
 	return globals;
+}
+
+- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<ScriptToken *> &)tokens
+{
+	return nil;		// FIXME
 }
 
 - (NSArray *)completionsForTokenStream:(const std::vector<ScriptToken *> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
 {
+	// What completions we offer depends on the token stream
+	ScriptToken *token = tokens[lastTokenIndex];
+	TokenType token_type = token->token_type_;
+	
+	switch (token_type)
+	{
+		case TokenType::kTokenNone:
+		case TokenType::kTokenEOF:
+		case TokenType::kTokenWhitespace:
+		case TokenType::kTokenComment:
+		case TokenType::kTokenInterpreterBlock:
+		case TokenType::kFirstIdentifierLikeToken:
+			// These should never be hit
+			return nil;
+			
+		case TokenType::kTokenIdentifier:
+		case TokenType::kTokenIf:
+		case TokenType::kTokenElse:
+		case TokenType::kTokenDo:
+		case TokenType::kTokenWhile:
+		case TokenType::kTokenFor:
+		case TokenType::kTokenIn:
+		case TokenType::kTokenNext:
+		case TokenType::kTokenBreak:
+			if (canExtend)
+			{
+				NSMutableArray *completions = nil;
+				
+				// This is the tricky case, because the identifier we're extending could be the end of a key path like foo.bar[5:8].ba...
+				// We need to move backwards from the current token until we find or fail to find a dot token; if we see a dot we're in
+				// a key path, otherwise we're in the global context and should filter from those candidates
+				for (int previousTokenIndex = lastTokenIndex - 1; previousTokenIndex >= 0; --previousTokenIndex)
+				{
+					ScriptToken *previous_token = tokens[previousTokenIndex];
+					TokenType previous_token_type = previous_token->token_type_;
+					
+					// if the token we're on is skippable, continue backwards
+					if ((previous_token_type == TokenType::kTokenWhitespace) || (previous_token_type == TokenType::kTokenComment))
+						continue;
+					
+					// if the token we're on is a dot, we are indeed at the end of a key path, and can fetch the completions for it
+					if (previous_token_type == TokenType::kTokenDot)
+					{
+						completions = [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens];
+						break;
+					}
+					
+					// if we see a semicolon or brace, we are in a completely global context
+					if ((previous_token_type == TokenType::kTokenSemicolon) || (previous_token_type == TokenType::kTokenLBrace) || (previous_token_type == TokenType::kTokenRBrace))
+					{
+						completions = [self globalCompletionsIncludingStatements:YES];
+						break;
+					}
+					
+					// if we see any other token, we are not in a key path; let's assume we're following an operator
+					completions = [self globalCompletionsIncludingStatements:NO];
+					break;
+				}
+				
+				// If we ran out of tokens, we're at the beginning of the file and so in the global context
+				if (!completions)
+					completions = [self globalCompletionsIncludingStatements:YES];
+				
+				// Now we have an array of possible completions; we just need to remove those that don't start with our existing prefix
+				NSString *baseString = [NSString stringWithUTF8String:token->token_string_.c_str()];
+				
+				for (int completionIndex = (int)[completions count] - 1; completionIndex >= 0; --completionIndex)
+				{
+					if (![[completions objectAtIndex:completionIndex] hasPrefix:baseString])
+						[completions removeObjectAtIndex:completionIndex];
+				}
+				
+				return completions;
+			}
+			
+			// If the previous token was an identifier and we can't extend it, the next thing probably needs to be an operator or something
+			return nil;
+			
+		case TokenType::kTokenNumber:
+		case TokenType::kTokenString:
+		case TokenType::kTokenRParen:
+		case TokenType::kTokenRBracket:
+			// We don't have anything to suggest after such tokens; the next thing will need to be an operator, semicolon, etc.
+			return nil;
+			
+		case TokenType::kTokenDot:
+			// This is the other tricky case, because we're being asked to extend a key path like foo.bar[5:8].
+			return [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens];
+			
+		case TokenType::kTokenSemicolon:
+		case TokenType::kTokenLBrace:
+		case TokenType::kTokenRBrace:
+			// We are in the global context and anything goes, including a new statement
+			return [self globalCompletionsIncludingStatements:YES];
+			
+		case TokenType::kTokenColon:
+		case TokenType::kTokenComma:
+		case TokenType::kTokenLParen:
+		case TokenType::kTokenLBracket:
+		case TokenType::kTokenPlus:
+		case TokenType::kTokenMinus:
+		case TokenType::kTokenMod:
+		case TokenType::kTokenMult:
+		case TokenType::kTokenExp:
+		case TokenType::kTokenAnd:
+		case TokenType::kTokenOr:
+		case TokenType::kTokenDiv:
+		case TokenType::kTokenAssign:
+		case TokenType::kTokenEq:
+		case TokenType::kTokenLt:
+		case TokenType::kTokenLtEq:
+		case TokenType::kTokenGt:
+		case TokenType::kTokenGtEq:
+		case TokenType::kTokenNot:
+		case TokenType::kTokenNotEq:
+			// We are following an operator, so globals are OK but new statements are not
+			return [self globalCompletionsIncludingStatements:NO];
+	}
+	
 	return nil;
 }
 
@@ -671,15 +808,16 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				{
 					// We're at the end of nothing but initial whitespace and comments; offer insertion-point completions
 					if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-					if (completions) *completions = [self globalCompletions];
+					if (completions) *completions = [self globalCompletionsIncludingStatements:YES];
 					return;
 				}
 				
 				ScriptToken *token = tokens[lastTokenIndex];
+				TokenType token_type = token->token_type_;
 				
 				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-				if ((token->token_type_ == TokenType::kTokenNumber) || (token->token_type_ == TokenType::kTokenString) || (token->token_type_ == TokenType::kTokenRParen) || (token->token_type_ == TokenType::kTokenRBracket) || (token->token_type_ == TokenType::kTokenIdentifier) || (token->token_type_ == TokenType::kTokenIf) || (token->token_type_ == TokenType::kTokenWhile) || (token->token_type_ == TokenType::kTokenFor) || (token->token_type_ == TokenType::kTokenNext) || (token->token_type_ == TokenType::kTokenBreak))
+				if ((token_type == TokenType::kTokenNumber) || (token_type == TokenType::kTokenString) || (token_type == TokenType::kTokenRParen) || (token_type == TokenType::kTokenRBracket) || (token_type == TokenType::kTokenIdentifier) || (token_type == TokenType::kTokenIf) || (token_type == TokenType::kTokenWhile) || (token_type == TokenType::kTokenFor) || (token_type == TokenType::kTokenNext) || (token_type == TokenType::kTokenBreak))
 				{
 					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 					if (completions) *completions = nil;
@@ -687,7 +825,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				}
 				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:!lastTokenInterrupted];
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO];
 				return;
 			}
 			else
@@ -696,7 +834,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				{
 					// We're at the very beginning of the script; offer insertion-point completions
 					if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-					if (completions) *completions = [self globalCompletions];
+					if (completions) *completions = [self globalCompletionsIncludingStatements:YES];
 					return;
 				}
 				
@@ -707,7 +845,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				if (token->token_type_ >= TokenType::kTokenIdentifier)
 				{
 					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
-					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:!lastTokenInterrupted];
+					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES];
 					return;
 				}
 				
