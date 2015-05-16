@@ -19,6 +19,7 @@
 
 
 #include "script_functions.h"
+#include "script_functionsignature.h"
 #include "script_pathelement.h"
 #include "script_interpreter.h"
 
@@ -35,7 +36,6 @@ using std::istream;
 using std::ostream;
 
 
-ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments);
 ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments);
 ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_arguments);
 ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments);
@@ -54,95 +54,129 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 	{
 		signatures = new vector<const FunctionSignature *>;
 		
-		// data construction functions
+		// ************************************************************************************
+		//
+		//	math functions
+		//
 		
-		signatures->push_back((new FunctionSignature("rep",			FunctionIdentifier::repFunction,		kScriptValueMaskAny))->AddAny()->AddInt_S());
-		signatures->push_back((new FunctionSignature("repEach",		FunctionIdentifier::repEachFunction,	kScriptValueMaskAny))->AddAny()->AddInt());
-		signatures->push_back((new FunctionSignature("seq",			FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
-		signatures->push_back((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
-		signatures->push_back((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAny))->AddEllipsis());
-		signatures->push_back((new FunctionSignature("integer",		FunctionIdentifier::integerFunction,	kScriptValueMaskInt))->AddInt_S());
-		signatures->push_back((new FunctionSignature("float",		FunctionIdentifier::floatFunction,		kScriptValueMaskFloat))->AddInt_S());
-		signatures->push_back((new FunctionSignature("logical",		FunctionIdentifier::logicalFunction,	kScriptValueMaskLogical))->AddInt_S());
-		signatures->push_back((new FunctionSignature("string",		FunctionIdentifier::stringFunction,		kScriptValueMaskString))->AddInt_S());
-		signatures->push_back((new FunctionSignature("object",		FunctionIdentifier::objectFunction,		kScriptValueMaskObject)));
-
-		
-		// data inspection/manipulation functions
-		
-		signatures->push_back((new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
-		signatures->push_back((new FunctionSignature("cat",			FunctionIdentifier::catFunction,		kScriptValueMaskNULL))->AddAny());
-		signatures->push_back((new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
-		signatures->push_back((new FunctionSignature("which",		FunctionIdentifier::whichFunction,		kScriptValueMaskInt))->AddLogical());
-		signatures->push_back((new FunctionSignature("any",			FunctionIdentifier::anyFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
-		signatures->push_back((new FunctionSignature("all",			FunctionIdentifier::allFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
-		
-		/*
-		 strFunction,
-		 sumFunction,
-		 prodFunction,
-		 sdFunction,
-		 */
-		
-		signatures->push_back((new FunctionSignature("rev",			FunctionIdentifier::revFunction,		kScriptValueMaskAny))->AddAny());
-		signatures->push_back((new FunctionSignature("mean",		FunctionIdentifier::meanFunction,		kScriptValueMaskFloat))->AddNumeric());
-
-		
-		/*
-		 sortFunction,
-		 */
-		
-		// data class testing/coercion functions
-		
-		signatures->push_back((new FunctionSignature("type",		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
-		signatures->push_back((new FunctionSignature("element",		FunctionIdentifier::elementFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
-		signatures->push_back((new FunctionSignature("isLogical",	FunctionIdentifier::isLogicalFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
-		signatures->push_back((new FunctionSignature("asLogical",	FunctionIdentifier::asLogicalFunction,		kScriptValueMaskLogical))->AddAny());
-
-		
-		/*
-		 isLogicalFunction,
-		 isStringFunction,
-		 isIntegerFunction,
-		 isFloatFunction,
-		 asLogicalFunction,
-		 asStringFunction,
-		 asIntegerFunction,
-		 asFloatFunction,
-		 */
-		
-		// math functions
-		
+		signatures->push_back((new FunctionSignature("abs",			FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
 		signatures->push_back((new FunctionSignature("acos",		FunctionIdentifier::acosFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("asin",		FunctionIdentifier::asinFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("atan",		FunctionIdentifier::atanFunction,		kScriptValueMaskFloat))->AddNumeric());
+		// atan2
+		signatures->push_back((new FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("cos",			FunctionIdentifier::cosFunction,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("sin",			FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("tan",			FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("exp",			FunctionIdentifier::expFunction,		kScriptValueMaskFloat))->AddNumeric());
+		signatures->push_back((new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		kScriptValueMaskFloat))->AddNumeric());
+		// isFinite
+		// isNaN
 		signatures->push_back((new FunctionSignature("log",			FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("log10",		FunctionIdentifier::log10Function,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("log2",		FunctionIdentifier::log2Function,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("ceil",		FunctionIdentifier::ceilFunction,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("floor",		FunctionIdentifier::floorFunction,		kScriptValueMaskFloat))->AddNumeric());
+		// product
 		signatures->push_back((new FunctionSignature("round",		FunctionIdentifier::roundFunction,		kScriptValueMaskFloat))->AddNumeric());
+		signatures->push_back((new FunctionSignature("sin",			FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
+		signatures->push_back((new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
+		// sum
+		signatures->push_back((new FunctionSignature("tan",			FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		kScriptValueMaskFloat))->AddNumeric());
-		signatures->push_back((new FunctionSignature("abs",			FunctionIdentifier::absFunction,		kScriptValueMaskNumeric))->AddNumeric());
 		
-		// bookkeeping functions
 		
-		signatures->push_back((new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
-		signatures->push_back((new FunctionSignature("version",		FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
-		signatures->push_back((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
-		signatures->push_back((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
-		signatures->push_back((new FunctionSignature("globals",		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
-		signatures->push_back((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
+		// ************************************************************************************
+		//
+		//	summary statistics functions
+		//
+		
+		// max
+		signatures->push_back((new FunctionSignature("mean",		FunctionIdentifier::meanFunction,		kScriptValueMaskFloat))->AddNumeric());
+		// min
+		// range
+		// sd
+		
+		
+		// ************************************************************************************
+		//
+		//	vector construction functions
+		//
+		
+		signatures->push_back((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAny))->AddEllipsis());
+		signatures->push_back((new FunctionSignature("float",		FunctionIdentifier::floatFunction,		kScriptValueMaskFloat))->AddInt_S());
+		signatures->push_back((new FunctionSignature("integer",		FunctionIdentifier::integerFunction,	kScriptValueMaskInt))->AddInt_S());
+		signatures->push_back((new FunctionSignature("logical",		FunctionIdentifier::logicalFunction,	kScriptValueMaskLogical))->AddInt_S());
+		signatures->push_back((new FunctionSignature("object",		FunctionIdentifier::objectFunction,		kScriptValueMaskObject)));
+		// rbinom
+		signatures->push_back((new FunctionSignature("rep",			FunctionIdentifier::repFunction,		kScriptValueMaskAny))->AddAny()->AddInt_S());
+		signatures->push_back((new FunctionSignature("repEach",		FunctionIdentifier::repEachFunction,	kScriptValueMaskAny))->AddAny()->AddInt());
+		// rpois
+		// runif
+		signatures->push_back((new FunctionSignature("seq",			FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
+		signatures->push_back((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
+		signatures->push_back((new FunctionSignature("string",		FunctionIdentifier::stringFunction,		kScriptValueMaskString))->AddInt_S());
+		
+		
+		// ************************************************************************************
+		//
+		//	value inspection/manipulation functions
+		//
+		
+		signatures->push_back((new FunctionSignature("all",			FunctionIdentifier::allFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
+		signatures->push_back((new FunctionSignature("any",			FunctionIdentifier::anyFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
+		signatures->push_back((new FunctionSignature("cat",			FunctionIdentifier::catFunction,		kScriptValueMaskNULL))->AddAny());
+		// ifelse
+		// paste
+		signatures->push_back((new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
+		signatures->push_back((new FunctionSignature("rev",			FunctionIdentifier::revFunction,		kScriptValueMaskAny))->AddAny());
+		signatures->push_back((new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
+		// sort
+		// str
+		// strsplit
+		signatures->push_back((new FunctionSignature("which",		FunctionIdentifier::whichFunction,		kScriptValueMaskInt))->AddLogical());
+		// whichMax
+		// whichMin
+		
+		
+		// ************************************************************************************
+		//
+		//	value type testing/coercion functions
+		//
+		
+		// asFloat
+		// asInteger
+		signatures->push_back((new FunctionSignature("asLogical",	FunctionIdentifier::asLogicalFunction,	kScriptValueMaskLogical))->AddAny());
+		// asString
+		signatures->push_back((new FunctionSignature("element",		FunctionIdentifier::elementFunction,	kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
+		// isFloat
+		// isInteger
+		signatures->push_back((new FunctionSignature("isLogical",	FunctionIdentifier::isLogicalFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
+		// isNULL
+		// isObject
+		// isString
+		signatures->push_back((new FunctionSignature("type",		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
+		
+		
+		// ************************************************************************************
+		//
+		//	bookkeeping functions
+		//
+		
+		// date
 		signatures->push_back((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
+		signatures->push_back((new FunctionSignature("globals",		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
+		signatures->push_back((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
+		signatures->push_back((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
+		signatures->push_back((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
+		signatures->push_back((new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
+		// time
+		signatures->push_back((new FunctionSignature("version",		FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
 		
-		// object instantiation
+		
+		// ************************************************************************************
+		//
+		//	object instantiation
+		//
 		
 		signatures->push_back((new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskObject | kScriptValueMaskSingleton))->AddString_OS());
+		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
 		std::sort(signatures->begin(), signatures->end(), CompareFunctionSignatures);
@@ -282,11 +316,6 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	return nullptr;
 }
 
-ScriptValue *Execute_c(string p_function_name, vector<ScriptValue*> p_arguments)
-{
-	return ConcatenateScriptValues(p_function_name, p_arguments);
-}
-
 ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments)
 {
 #pragma unused(p_function_name)
@@ -406,7 +435,7 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_function_name, vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
+ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, vector<ScriptValue*> const &p_arguments, ostream &p_output_stream)
 {
 	ScriptValue *result = nullptr;
 	
@@ -487,223 +516,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, p_output_stream, *this);
 			break;
 			
-			// data construction functions
 			
-		case FunctionIdentifier::repFunction:			result = Execute_rep(p_function_name, p_arguments);	break;
-		case FunctionIdentifier::repEachFunction:		result = Execute_repEach(p_function_name, p_arguments);	break;
-		case FunctionIdentifier::seqFunction:			result = Execute_seq(p_function_name, p_arguments);	break;
-		case FunctionIdentifier::seqAlongFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				int_result->PushInt(value_index);
-			break;
-		case FunctionIdentifier::cFunction:				result = Execute_c(p_function_name, p_arguments); break;
-
-		case FunctionIdentifier::integerFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
-				int_result->PushInt(0);
-			break;
-		case FunctionIdentifier::floatFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
-				float_result->PushFloat(0.0);
-			break;
-		case FunctionIdentifier::logicalFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
-				logical_result->PushLogical(false);
-			break;
-		case FunctionIdentifier::stringFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
-				string_result->PushString("");
-			break;
-		case FunctionIdentifier::objectFunction:
-			result = new ScriptValue_Object();
-			break;
-		case FunctionIdentifier::rbinomFunction:
-		case FunctionIdentifier::rpoisFunction:
-		case FunctionIdentifier::runifFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-
-			// data inspection/manipulation functions
-			
-		case FunctionIdentifier::printFunction:
-			p_output_stream << *arg1_value << endl;
-			break;
-			
-		case FunctionIdentifier::catFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-			{
-				if (value_index > 0)
-					p_output_stream << " ";
-				
-				p_output_stream << arg1_value->StringAtIndex(value_index);
-			}
-			break;
-			
-		case FunctionIdentifier::sizeFunction:
-			int_result->PushInt(arg1_value->Count());
-			break;
-			
-		case FunctionIdentifier::strFunction:
-		case FunctionIdentifier::sumFunction:
-		case FunctionIdentifier::productFunction:
-		case FunctionIdentifier::rangeFunction:
-		case FunctionIdentifier::minFunction:
-		case FunctionIdentifier::maxFunction:
-		case FunctionIdentifier::whichMinFunction:
-		case FunctionIdentifier::whichMaxFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-		case FunctionIdentifier::whichFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (arg1_value->LogicalAtIndex(value_index))
-					int_result->PushInt(value_index);
-			break;
-			
-		case FunctionIdentifier::meanFunction:
-		{
-			double sum = 0;
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				sum += arg1_value->FloatAtIndex(value_index);
-			float_result->PushFloat(sum / arg1_count);
-			break;
-		}
-		case FunctionIdentifier::sdFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-		case FunctionIdentifier::revFunction:
-			result = arg1_value->NewMatchingType();
-
-			for (int value_index = arg1_count - 1; value_index >= 0; --value_index)
-				result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
-			break;
-			
-		case FunctionIdentifier::sortFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-		case FunctionIdentifier::anyFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (arg1_value->LogicalAtIndex(value_index))
-				{
-					logical_result->PushLogical(true);
-					break;
-				}
-			if (logical_result->Count() == 0)
-				logical_result->PushLogical(false);
-			break;
-		case FunctionIdentifier::allFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (!arg1_value->LogicalAtIndex(value_index))
-				{
-					logical_result->PushLogical(false);
-					break;
-				}
-			if (logical_result->Count() == 0)
-				logical_result->PushLogical(true);
-			break;
-		case FunctionIdentifier::ifelseFunction:
-		case FunctionIdentifier::strsplitFunction:
-		case FunctionIdentifier::pasteFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-			// data class testing/coercion functions
-			
-		case FunctionIdentifier::typeFunction:
-			string_result->PushString(StringForScriptValueType(arg1_value->Type()));
-			break;
-			
-		case FunctionIdentifier::elementFunction:
-			if (arg1_value->Type() == ScriptValueType::kValueObject)
-				string_result->PushString(((ScriptValue_Object *)arg1_value)->ElementType());
-			else
-				string_result->PushString(StringForScriptValueType(arg1_value->Type()));
-			break;
-			
-		case FunctionIdentifier::isLogicalFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueLogical);
-			break;
-		case FunctionIdentifier::isStringFunction:
-		case FunctionIdentifier::isIntegerFunction:
-		case FunctionIdentifier::isFloatFunction:
-		case FunctionIdentifier::isObjectFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-		case FunctionIdentifier::asLogicalFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				logical_result->PushLogical(arg1_value->LogicalAtIndex(value_index));
-			break;
-		case FunctionIdentifier::asStringFunction:
-		case FunctionIdentifier::asIntegerFunction:
-		case FunctionIdentifier::asFloatFunction:
-		case FunctionIdentifier::isFiniteFunction:
-		case FunctionIdentifier::isNaNFunction:
-		case FunctionIdentifier::isNULLFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-			// math functions, all implemented using the standard C++ function of the same name
-			
-		case FunctionIdentifier::acosFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(acos(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::asinFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(asin(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::atanFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(atan(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::atan2Function:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
-			
-		case FunctionIdentifier::cosFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(cos(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::sinFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(sin(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::tanFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(tan(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::expFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(exp(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::logFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::log10Function:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log10(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::log2Function:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log2(arg1_value->FloatAtIndex(value_index)));
-			break;
-			
-		case FunctionIdentifier::sqrtFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(sqrt(arg1_value->FloatAtIndex(value_index)));
-			break;
+		// ************************************************************************************
+		//
+		//	math functions
+		//
 			
 		case FunctionIdentifier::absFunction:
 			if (arg1_type == ScriptValueType::kValueInt)
@@ -724,9 +541,38 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			}
 			break;
 			
+		case FunctionIdentifier::acosFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(acos(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::asinFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(asin(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::atanFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(atan(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::atan2Function:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
 		case FunctionIdentifier::ceilFunction:
 			for (int value_index = 0; value_index < arg1_count; ++value_index)
 				float_result->PushFloat(ceil(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::cosFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(cos(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::expFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(exp(arg1_value->FloatAtIndex(value_index)));
 			break;
 			
 		case FunctionIdentifier::floorFunction:
@@ -734,9 +580,55 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 				float_result->PushFloat(floor(arg1_value->FloatAtIndex(value_index)));
 			break;
 			
+		case FunctionIdentifier::isFiniteFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::isNaNFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::logFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(log(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::log10Function:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(log10(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::log2Function:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(log2(arg1_value->FloatAtIndex(value_index)));
+			break;
+
+		case FunctionIdentifier::productFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::sumFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+
 		case FunctionIdentifier::roundFunction:
 			for (int value_index = 0; value_index < arg1_count; ++value_index)
 				float_result->PushFloat(round(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::sinFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(sin(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::sqrtFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(sqrt(arg1_value->FloatAtIndex(value_index)));
+			break;
+			
+		case FunctionIdentifier::tanFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				float_result->PushFloat(tan(arg1_value->FloatAtIndex(value_index)));
 			break;
 			
 		case FunctionIdentifier::truncFunction:
@@ -744,60 +636,254 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 				float_result->PushFloat(trunc(arg1_value->FloatAtIndex(value_index)));
 			break;
 			
-			// bookkeeping functions
 			
-		case FunctionIdentifier::stopFunction:
-			if (arg1_value)
-				p_output_stream << arg1_value->StringAtIndex(0) << endl;
+		// ************************************************************************************
+		//
+		//	summary statistics functions
+		//
 			
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << endl << slim_terminate();
+		case FunctionIdentifier::maxFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
 			break;
 			
-		case FunctionIdentifier::versionFunction:
-			string_result->PushString("SLiMscript version 2.0a1");
-			break;
-			
-		case FunctionIdentifier::licenseFunction:
-			p_output_stream << "SLiM is free software: you can redistribute it and/or" << endl;
-			p_output_stream << "modify it under the terms of the GNU General Public" << endl;
-			p_output_stream << "License as published by the Free Software Foundation," << endl;
-			p_output_stream << "either version 3 of the License, or (at your option)" << endl;
-			p_output_stream << "any later version." << endl << endl;
-			
-			p_output_stream << "SLiM is distributed in the hope that it will be" << endl;
-			p_output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << endl;
-			p_output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << endl;
-			p_output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << endl;
-			p_output_stream << "License for more details." << endl << endl;
-			
-			p_output_stream << "You should have received a copy of the GNU General" << endl;
-			p_output_stream << "Public License along with SLiM.  If not, see" << endl;
-			p_output_stream << "<http://www.gnu.org/licenses/>." << endl;
-			break;
-			
-		case FunctionIdentifier::helpFunction:
-			p_output_stream << "Help for SLiMscript is currently unimplemented." << endl;
-			break;
-			
-		case FunctionIdentifier::globalsFunction:
-			p_output_stream << *global_symbols_;
-			break;
-			
-		case FunctionIdentifier::rmFunction:
+		case FunctionIdentifier::meanFunction:
 		{
-			vector<string> symbols_to_remove;
-			
-			if (n_args == 0)
-				symbols_to_remove = global_symbols_->ReadWriteSymbols();
-			else
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					symbols_to_remove.push_back(arg1_value->StringAtIndex(value_index));
-			
-			for (string symbol : symbols_to_remove)
-				global_symbols_->RemoveValueForSymbol(symbol, false);
-			
+			double sum = 0;
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				sum += arg1_value->FloatAtIndex(value_index);
+			float_result->PushFloat(sum / arg1_count);
 			break;
 		}
+			
+		case FunctionIdentifier::minFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::rangeFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::sdFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+			
+		// ************************************************************************************
+		//
+		//	vector construction functions
+		//
+			
+		case FunctionIdentifier::cFunction:
+			result = ConcatenateScriptValues(p_function_name, p_arguments);
+			break;
+			
+		case FunctionIdentifier::floatFunction:
+			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+				float_result->PushFloat(0.0);
+			break;
+			
+		case FunctionIdentifier::integerFunction:
+			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+				int_result->PushInt(0);
+			break;
+			
+		case FunctionIdentifier::logicalFunction:
+			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+				logical_result->PushLogical(false);
+			break;
+			
+		case FunctionIdentifier::objectFunction:
+			result = new ScriptValue_Object();
+			break;
+			
+		case FunctionIdentifier::rbinomFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::repFunction:
+			result = Execute_rep(p_function_name, p_arguments);
+			break;
+			
+		case FunctionIdentifier::repEachFunction:
+			result = Execute_repEach(p_function_name, p_arguments);
+			break;
+			
+		case FunctionIdentifier::rpoisFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::runifFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::seqFunction:
+			result = Execute_seq(p_function_name, p_arguments);
+			break;
+			
+		case FunctionIdentifier::seqAlongFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				int_result->PushInt(value_index);
+			break;
+
+		case FunctionIdentifier::stringFunction:
+			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+				string_result->PushString("");
+			break;
+			
+
+		// ************************************************************************************
+		//
+		//	value inspection/manipulation functions
+		//
+			
+		case FunctionIdentifier::allFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (!arg1_value->LogicalAtIndex(value_index))
+				{
+					logical_result->PushLogical(false);
+					break;
+				}
+			if (logical_result->Count() == 0)
+				logical_result->PushLogical(true);
+			break;
+			
+		case FunctionIdentifier::anyFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (arg1_value->LogicalAtIndex(value_index))
+				{
+					logical_result->PushLogical(true);
+					break;
+				}
+			if (logical_result->Count() == 0)
+				logical_result->PushLogical(false);
+			break;
+			
+		case FunctionIdentifier::catFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			{
+				if (value_index > 0)
+					p_output_stream << " ";
+				
+				p_output_stream << arg1_value->StringAtIndex(value_index);
+			}
+			break;
+			
+		case FunctionIdentifier::ifelseFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::pasteFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::printFunction:
+			p_output_stream << *arg1_value << endl;
+			break;
+			
+		case FunctionIdentifier::revFunction:
+			result = arg1_value->NewMatchingType();
+			
+			for (int value_index = arg1_count - 1; value_index >= 0; --value_index)
+				result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
+			break;
+			
+		case FunctionIdentifier::sizeFunction:
+			int_result->PushInt(arg1_value->Count());
+			break;
+			
+		case FunctionIdentifier::sortFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::strFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::strsplitFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::whichFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (arg1_value->LogicalAtIndex(value_index))
+					int_result->PushInt(value_index);
+			break;
+			
+		case FunctionIdentifier::whichMaxFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::whichMinFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+			
+		// ************************************************************************************
+		//
+		//	value type testing/coercion functions
+		//
+			
+		case FunctionIdentifier::asFloatFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::asIntegerFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::asLogicalFunction:
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				logical_result->PushLogical(arg1_value->LogicalAtIndex(value_index));
+			break;
+			
+		case FunctionIdentifier::asStringFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::elementFunction:
+			if (arg1_value->Type() == ScriptValueType::kValueObject)
+				string_result->PushString(((ScriptValue_Object *)arg1_value)->ElementType());
+			else
+				string_result->PushString(StringForScriptValueType(arg1_value->Type()));
+			break;
+			
+		case FunctionIdentifier::isFloatFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::isIntegerFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::isLogicalFunction:
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueLogical);
+			break;
+			
+		case FunctionIdentifier::isNULLFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::isObjectFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::isStringFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
+			
+		case FunctionIdentifier::typeFunction:
+			string_result->PushString(StringForScriptValueType(arg1_value->Type()));
+			break;
+			
+			
+		// ************************************************************************************
+		//
+		//	bookkeeping functions
+		//
+			
+		case FunctionIdentifier::dateFunction:
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			break;
 			
 		case FunctionIdentifier::functionFunction:
 		{
@@ -822,12 +908,68 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 			break;
 		}
 			
-		case FunctionIdentifier::dateFunction:
+		case FunctionIdentifier::globalsFunction:
+			p_output_stream << *global_symbols_;
+			break;
+			
+		case FunctionIdentifier::helpFunction:
+			p_output_stream << "Help for SLiMscript is currently unimplemented." << endl;
+			break;
+			
+		case FunctionIdentifier::licenseFunction:
+			p_output_stream << "SLiM is free software: you can redistribute it and/or" << endl;
+			p_output_stream << "modify it under the terms of the GNU General Public" << endl;
+			p_output_stream << "License as published by the Free Software Foundation," << endl;
+			p_output_stream << "either version 3 of the License, or (at your option)" << endl;
+			p_output_stream << "any later version." << endl << endl;
+			
+			p_output_stream << "SLiM is distributed in the hope that it will be" << endl;
+			p_output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << endl;
+			p_output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << endl;
+			p_output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << endl;
+			p_output_stream << "License for more details." << endl << endl;
+			
+			p_output_stream << "You should have received a copy of the GNU General" << endl;
+			p_output_stream << "Public License along with SLiM.  If not, see" << endl;
+			p_output_stream << "<http://www.gnu.org/licenses/>." << endl;
+			break;
+			
+		case FunctionIdentifier::rmFunction:
+		{
+			vector<string> symbols_to_remove;
+			
+			if (n_args == 0)
+				symbols_to_remove = global_symbols_->ReadWriteSymbols();
+			else
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					symbols_to_remove.push_back(arg1_value->StringAtIndex(value_index));
+			
+			for (string symbol : symbols_to_remove)
+				global_symbols_->RemoveValueForSymbol(symbol, false);
+			
+			break;
+		}
+			
+		case FunctionIdentifier::stopFunction:
+			if (arg1_value)
+				p_output_stream << arg1_value->StringAtIndex(0) << endl;
+			
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << endl << slim_terminate();
+			break;
+			
 		case FunctionIdentifier::timeFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
 			break;
 			
-			// object instantiation
+		case FunctionIdentifier::versionFunction:
+			string_result->PushString("SLiMscript version 2.0a1");
+			break;
+			
+			
+		// ************************************************************************************
+		//
+		//	object instantiation
+		//
 			
 		case FunctionIdentifier::PathFunction:
 			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg1_value->StringAtIndex(0))) : (new Script_PathElement());
@@ -849,7 +991,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(std::string const &p_functio
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, vector<ScriptValue*> const &p_arguments, ostream &p_output_stream)
 {
 	ScriptValue *result = nullptr;
 	
@@ -878,229 +1020,6 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 }
 
 
-//
-//	FunctionSignature
-//
-#pragma mark FunctionSignature
-
-FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask) :
-function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask)
-{
-}
-
-FunctionSignature::FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name) :
-function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
-{
-}
-
-FunctionSignature *FunctionSignature::SetClassMethod()
-{
-	is_class_method = true;
-	return this;
-}
-
-FunctionSignature *FunctionSignature::SetInstanceMethod()
-{
-	is_instance_method = true;
-	return this;
-}
-
-FunctionSignature *FunctionSignature::AddArg(ScriptValueMask p_arg_mask)
-{
-	bool is_optional = !!(p_arg_mask & kScriptValueMaskOptional);
-	
-	if (has_optional_args_ && !is_optional)
-		SLIM_TERMINATION << "ERROR (FunctionSignature::AddArg): cannot add a required argument after an optional argument has been added." << endl << slim_terminate();
-	
-	if (has_ellipsis_)
-		SLIM_TERMINATION << "ERROR (FunctionSignature::AddArg): cannot add an argument after an ellipsis." << endl << slim_terminate();
-	
-	arg_masks_.push_back(p_arg_mask);
-	
-	if (is_optional)
-		has_optional_args_ = true;
-	
-	return this;
-}
-
-FunctionSignature *FunctionSignature::AddEllipsis()
-{
-	if (has_optional_args_)
-		SLIM_TERMINATION << "ERROR (FunctionSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << endl << slim_terminate();
-	
-	if (has_ellipsis_)
-		SLIM_TERMINATION << "ERROR (FunctionSignature::AddEllipsis): cannot add more than one ellipsis." << endl << slim_terminate();
-	
-	has_ellipsis_ = true;
-	
-	return this;
-}
-
-FunctionSignature *FunctionSignature::AddLogical()			{ return AddArg(kScriptValueMaskLogical); }
-FunctionSignature *FunctionSignature::AddInt()				{ return AddArg(kScriptValueMaskInt); }
-FunctionSignature *FunctionSignature::AddFloat()			{ return AddArg(kScriptValueMaskFloat); }
-FunctionSignature *FunctionSignature::AddString()			{ return AddArg(kScriptValueMaskString); }
-FunctionSignature *FunctionSignature::AddObject()			{ return AddArg(kScriptValueMaskObject); }
-FunctionSignature *FunctionSignature::AddNumeric()			{ return AddArg(kScriptValueMaskNumeric); }
-FunctionSignature *FunctionSignature::AddLogicalEquiv()		{ return AddArg(kScriptValueMaskLogicalEquiv); }
-FunctionSignature *FunctionSignature::AddAnyBase()			{ return AddArg(kScriptValueMaskAnyBase); }
-FunctionSignature *FunctionSignature::AddAny()				{ return AddArg(kScriptValueMaskAny); }
-
-FunctionSignature *FunctionSignature::AddLogical_O()		{ return AddArg(kScriptValueMaskLogical | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddInt_O()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddFloat_O()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddString_O()			{ return AddArg(kScriptValueMaskString | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddObject_O()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddNumeric_O()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddLogicalEquiv_O()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddAnyBase_O()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskOptional); }
-FunctionSignature *FunctionSignature::AddAny_O()			{ return AddArg(kScriptValueMaskAny | kScriptValueMaskOptional); }
-
-FunctionSignature *FunctionSignature::AddLogical_S()		{ return AddArg(kScriptValueMaskLogical | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddInt_S()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddFloat_S()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddString_S()			{ return AddArg(kScriptValueMaskString | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddObject_S()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddNumeric_S()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddLogicalEquiv_S()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddAnyBase_S()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskSingleton); }
-FunctionSignature *FunctionSignature::AddAny_S()			{ return AddArg(kScriptValueMaskAny | kScriptValueMaskSingleton); }
-
-FunctionSignature *FunctionSignature::AddLogical_OS()		{ return AddArg(kScriptValueMaskLogical | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddInt_OS()			{ return AddArg(kScriptValueMaskInt | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddFloat_OS()			{ return AddArg(kScriptValueMaskFloat | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddString_OS()		{ return AddArg(kScriptValueMaskString | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddObject_OS()			{ return AddArg(kScriptValueMaskObject | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddNumeric_OS()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddLogicalEquiv_OS()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddAnyBase_OS()		{ return AddArg(kScriptValueMaskAnyBase | kScriptValueMaskOptSingleton); }
-FunctionSignature *FunctionSignature::AddAny_OS()			{ return AddArg(kScriptValueMaskAny | kScriptValueMaskOptSingleton); }
-
-void FunctionSignature::CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const
-{
-	// Check the number of arguments supplied
-	int n_args = (int)p_arguments.size();
-	
-	if (!has_ellipsis_)
-	{
-		if (n_args > arg_masks_.size())
-			SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): " << p_call_type << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << n_args << " are supplied." << endl << slim_terminate();
-	}
-	
-	// Check the types of all arguments specified in the signature
-	for (int arg_index = 0; arg_index < arg_masks_.size(); ++arg_index)
-	{
-		ScriptValueMask type_mask = arg_masks_[arg_index];		// the static_casts are annoying but I like scoped enums
-		bool is_optional = !!(type_mask & kScriptValueMaskOptional);
-		bool requires_singleton = !!(type_mask & kScriptValueMaskSingleton);
-		
-		type_mask &= kScriptValueMaskFlagStrip;
-		
-		// if no argument was passed for this slot, it needs to be an optional slot
-		if (n_args <= arg_index)
-		{
-			if (is_optional)
-				break;			// all the rest of the arguments must be optional, so we're done checking
-			else
-				SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): missing required argument for " << p_call_type << " " << function_name_ << "()." << endl << slim_terminate();
-		}
-		
-		// an argument was passed, so check its type
-		ScriptValue *argument = p_arguments[arg_index];
-		ScriptValueType arg_type = argument->Type();
-		
-		if (type_mask != kScriptValueMaskAny)
-		{
-			bool type_ok = true;
-			
-			switch (arg_type)
-			{
-				case ScriptValueType::kValueNULL:		type_ok = !!(type_mask & kScriptValueMaskNULL);		break;
-				case ScriptValueType::kValueLogical:	type_ok = !!(type_mask & kScriptValueMaskLogical);	break;
-				case ScriptValueType::kValueString:		type_ok = !!(type_mask & kScriptValueMaskString);	break;
-				case ScriptValueType::kValueInt:		type_ok = !!(type_mask & kScriptValueMaskInt);		break;
-				case ScriptValueType::kValueFloat:		type_ok = !!(type_mask & kScriptValueMaskFloat);	break;
-				case ScriptValueType::kValueObject:		type_ok = !!(type_mask & kScriptValueMaskObject);	break;
-			}
-			
-			if (!type_ok)
-				SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): argument " << arg_index + 1 << " cannot be type " << arg_type << " for " << p_call_type << " " << function_name_ << "()." << endl << slim_terminate();
-			
-			if (requires_singleton && (argument->Count() != 1))
-				SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): argument " << arg_index + 1 << " must be a singleton (size() == 1) for " << p_call_type << " " << function_name_ << "(), but size() == " << argument->Count() << "." << endl << slim_terminate();
-		}
-	}
-}
-
-void FunctionSignature::CheckReturn(std::string const &p_call_type, ScriptValue *p_result) const
-{
-	uint32_t retmask = return_mask_;
-	bool return_type_ok = true;
-	
-	switch (p_result->Type())
-	{
-		case ScriptValueType::kValueNULL:		return_type_ok = !!(retmask & kScriptValueMaskNULL);		break;
-		case ScriptValueType::kValueLogical:	return_type_ok = !!(retmask & kScriptValueMaskLogical);	break;
-		case ScriptValueType::kValueInt:		return_type_ok = !!(retmask & kScriptValueMaskInt);		break;
-		case ScriptValueType::kValueFloat:		return_type_ok = !!(retmask & kScriptValueMaskFloat);		break;
-		case ScriptValueType::kValueString:		return_type_ok = !!(retmask & kScriptValueMaskString);	break;
-		case ScriptValueType::kValueObject:		return_type_ok = !!(retmask & kScriptValueMaskObject);		break;
-	}
-	
-	if (!return_type_ok)
-		SLIM_TERMINATION << "ERROR (FunctionSignature::CheckReturn): internal error: return value cannot be type " << p_result->Type() << " for " << p_call_type << " " << function_name_ << "()." << endl << slim_terminate();
-	
-	bool return_is_singleton = !!(retmask & kScriptValueMaskSingleton);
-	
-	if (return_is_singleton && (p_result->Count() != 1))
-		SLIM_TERMINATION << "ERROR (FunctionSignature::CheckReturn): internal error: return value must be a singleton (size() == 1) for " << p_call_type << " " << function_name_ << "(), but size() == " << p_result->Count() << endl << slim_terminate();
-}
-
-std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature)
-{
-	if (p_signature.is_class_method)
-		p_outstream << "+ ";
-	else if (p_signature.is_instance_method)
-		p_outstream << "- ";
-	
-	p_outstream << "(" << StringForScriptValueMask(p_signature.return_mask_) << ")" << p_signature.function_name_ << "(";
-	
-	int arg_mask_count = (int)p_signature.arg_masks_.size();
-	
-	if (arg_mask_count == 0)
-	{
-		if (!p_signature.has_ellipsis_)
-			p_outstream << "void";
-	}
-	else
-	{
-		for (int arg_index = 0; arg_index < arg_mask_count; ++arg_index)
-		{
-			ScriptValueMask type_mask = p_signature.arg_masks_[arg_index];
-			
-			if (arg_index > 0)
-				p_outstream << ", ";
-			
-			p_outstream << StringForScriptValueMask(type_mask);
-		}
-	}
-	
-	if (p_signature.has_ellipsis_)
-		p_outstream << ((arg_mask_count > 0) ? ", ..." : "...");
-	
-	p_outstream << ")";
-	
-	// if the function is provided by a delegate, show the delegate's name
-	if (p_signature.delegate_name_.length())
-		p_outstream << " <" << p_signature.delegate_name_ << ">";
-	
-	return p_outstream;
-}
-
-bool CompareFunctionSignatures(const FunctionSignature *i, const FunctionSignature *j)
-{
-	return (i->function_name_ < j->function_name_);
-}
 
 
 

@@ -19,6 +19,7 @@
 
 #include "script_value.h"
 #include "script_functions.h"
+#include "script_functionsignature.h"
 #include "slim_global.h"
 
 
@@ -1094,7 +1095,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 			results.push_back(temp_result);
 		}
 		
-		// concatenate the results using Execute_c(); we pass our own name as p_function_name, which just makes errors be in our name
+		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
 		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::GetValueForMemberOfElements", results);
 		
 		// Now we just need to dispose of our temporary ScriptValues
@@ -1192,7 +1193,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 		for (auto value : values_)
 			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter));
 		
-		// concatenate the results using Execute_c(); we pass our own name as p_function_name, which just makes errors be in our name
+		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
 		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::ExecuteMethod", results);
 		
 		// Now we just need to dispose of our temporary ScriptValues

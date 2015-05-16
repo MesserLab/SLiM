@@ -20,16 +20,14 @@
 
 #include "slim_sim.h"
 
-#ifndef SLIMCORE
-#include "script_test.h"
-#endif
-
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
 
 #ifndef SLIMCORE
+#include "script_test.h"
 #include "script_interpreter.h"
+#include "script_functionsignature.h"
 #endif
 
 
