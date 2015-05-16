@@ -21,6 +21,7 @@
 #import "AppDelegate.h"
 #import "CocoaExtra.h"
 #include "script_functions.h"
+#include "script_functionsignature.h"
 #include "script_test.h"
 
 #include <stdexcept>

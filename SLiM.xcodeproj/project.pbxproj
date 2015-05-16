@@ -110,6 +110,9 @@
 		986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E41AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm */; };
 		986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */; };
 		986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */; };
+		986D73E81B07E89E007FBB70 /* script_functionsignature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* script_functionsignature.cpp */; };
+		986D73E91B07E89E007FBB70 /* script_functionsignature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* script_functionsignature.cpp */; };
+		986D73EA1B07E89E007FBB70 /* script_functionsignature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* script_functionsignature.cpp */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		989790DA1AF3D0E100C6B14C /* script_pathelement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathelement.cpp */; };
 		989790DB1AF3D0E100C6B14C /* script_pathelement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* script_pathelement.cpp */; };
@@ -385,6 +388,8 @@
 		986926E71AA40AFF0000E138 /* GraphView_FitnessOverTime.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_FitnessOverTime.mm; sourceTree = "<group>"; };
 		986926E91AA6B7480000E138 /* GraphView_PopulationVisualization.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_PopulationVisualization.h; sourceTree = "<group>"; };
 		986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_PopulationVisualization.mm; sourceTree = "<group>"; };
+		986D73E61B07E89E007FBB70 /* script_functionsignature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = script_functionsignature.cpp; path = core/script_functionsignature.cpp; sourceTree = "<group>"; };
+		986D73E71B07E89E007FBB70 /* script_functionsignature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = script_functionsignature.h; path = core/script_functionsignature.h; sourceTree = "<group>"; };
 		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
@@ -658,12 +663,14 @@
 				98EFE62D1ADB611100CBEC78 /* script_symbols.cpp */,
 				985724A41AD435310047C223 /* script_value.h */,
 				985724A31AD435310047C223 /* script_value.cpp */,
-				985724A01AD34B740047C223 /* script_functions.h */,
-				9857249F1AD34B740047C223 /* script_functions.cpp */,
 				989790D91AF3D0E100C6B14C /* script_pathelement.h */,
 				989790D81AF3D0E100C6B14C /* script_pathelement.cpp */,
+				986D73E71B07E89E007FBB70 /* script_functionsignature.h */,
+				986D73E61B07E89E007FBB70 /* script_functionsignature.cpp */,
 				9857249B1AD08A810047C223 /* script_interpreter.h */,
 				9857249A1AD08A810047C223 /* script_interpreter.cpp */,
+				985724A01AD34B740047C223 /* script_functions.h */,
+				9857249F1AD34B740047C223 /* script_functions.cpp */,
 				985724A81AD4551C0047C223 /* script_test.h */,
 				985724A71AD4551C0047C223 /* script_test.cpp */,
 			);
@@ -1120,6 +1127,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				98EFE62F1ADB611100CBEC78 /* script_symbols.cpp in Sources */,
+				986D73E81B07E89E007FBB70 /* script_functionsignature.cpp in Sources */,
 				98E9A68D1A3CD4B7000AD4FC /* event.cpp in Sources */,
 				98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */,
 				98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */,
@@ -1156,6 +1164,7 @@
 				985724D21AD479010047C223 /* script_functions.cpp in Sources */,
 				98AC15F41AF55CBE0096F15D /* substitution.cpp in Sources */,
 				985724CF1AD479010047C223 /* script.cpp in Sources */,
+				986D73EA1B07E89E007FBB70 /* script_functionsignature.cpp in Sources */,
 				98EFE6311ADB611100CBEC78 /* script_symbols.cpp in Sources */,
 				98AC15EC1AF55CBE0096F15D /* event.cpp in Sources */,
 				98AC15EF1AF55CBE0096F15D /* introduced_mutation.cpp in Sources */,
@@ -1259,6 +1268,7 @@
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
 				9821E23A1ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.mm in Sources */,
+				986D73E91B07E89E007FBB70 /* script_functionsignature.cpp in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
 				980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */,
 				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,

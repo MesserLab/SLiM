@@ -19,6 +19,7 @@
 
 #include "script_value.h"
 #include "script_functions.h"
+#include "script_functionsignature.h"
 #include "slim_global.h"
 
 

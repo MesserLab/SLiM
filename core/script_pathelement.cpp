@@ -8,6 +8,7 @@
 
 #include "script_pathelement.h"
 #include "script_functions.h"
+#include "script_functionsignature.h"
 #include "slim_global.h"
 
 #include <stdio.h>
