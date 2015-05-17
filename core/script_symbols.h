@@ -53,6 +53,7 @@ public:
 	virtual std::vector<std::string> ReadOnlySymbols(void) const;
 	virtual std::vector<std::string> ReadWriteSymbols(void) const;
 	virtual ScriptValue *GetValueForSymbol(const std::string &p_symbol_name) const;
+	virtual ScriptValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
 	virtual void SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
 	virtual void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
 	virtual void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);

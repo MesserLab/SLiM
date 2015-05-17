@@ -1106,6 +1106,32 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 	}
 }
 
+// This somewhat odd method returns one "representative" ScriptValue for the given property, by calling the first element in the
+// object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
+// that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
+// but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
+ScriptValue *ScriptValue_Object::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
+{
+	if (values_.size())
+	{
+		// check that the member is defined before we call our elements
+		std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
+		
+		if (std::find(constant_members.begin(), constant_members.end(), p_member_name) == constant_members.end())
+		{
+			std::vector<std::string> variable_members = values_[0]->ReadWriteMembers();
+			
+			if (std::find(variable_members.begin(), variable_members.end(), p_member_name) == variable_members.end())
+				return nullptr;
+		}
+		
+		// get a value from the first element and return it; we only need to return one representative value
+		return values_[0]->GetValueForMember(p_member_name);
+	}
+	
+	return nullptr;
+}
+
 void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
 {
 	if (values_.size() == 0)
