@@ -526,6 +526,9 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	parent_sex_ratio_ = child_sex_ratio_;
 	parent_first_male_index_ = child_first_male_index_;
 	
+	// mark the child generation as invalid, until it is generated
+	child_generation_valid = false;
+	
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
@@ -550,11 +553,12 @@ std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
 	constants.push_back("id");								// subpopulation_id_
-	constants.push_back("childGenomes");					// child_genomes_
+	constants.push_back("firstMaleIndex");					// parent_first_male_index_ / child_first_male_index_
+	constants.push_back("genomes");							// parent_genomes_ / child_genomes_
 	constants.push_back("immigrantSubpopIDs");				// migrant_fractions_
 	constants.push_back("immigrantSubpopFractions");		// migrant_fractions_
-	constants.push_back("sexRatio");						// child_sex_ratio_
-	constants.push_back("size");							// child_subpop_size_
+	constants.push_back("sexRatio");						// parent_sex_ratio_ / child_sex_ratio_
+	constants.push_back("size");							// parent_subpop_size_ / child_subpop_size_
 	
 	return constants;
 }
@@ -573,12 +577,18 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 	// constants
 	if (p_member_name.compare("id") == 0)
 		return new ScriptValue_Int(subpopulation_id_);
-	if (p_member_name.compare("childGenomes") == 0)
+	if (p_member_name.compare("firstMaleIndex") == 0)
+		return new ScriptValue_Int(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
+	if (p_member_name.compare("genomes") == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
-		for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-			vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+		if (child_generation_valid)
+			for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
+				vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+		else
+			for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
+				vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
 		
 		return vec;
 	}
@@ -601,9 +611,9 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 		return vec;
 	}
 	if (p_member_name.compare("sexRatio") == 0)
-		return new ScriptValue_Float(child_sex_ratio_);
+		return new ScriptValue_Float(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
 	if (p_member_name.compare("size") == 0)
-		return new ScriptValue_Int(child_subpop_size_);
+		return new ScriptValue_Int(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 	
 	// variables
 	if (p_member_name.compare("selfingFraction") == 0)

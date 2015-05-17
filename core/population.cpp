@@ -89,6 +89,8 @@ void Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, d
 	else
 		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size);
 	
+	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
+	
 	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
 }
 
@@ -107,6 +109,8 @@ void Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsig
 		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size, p_initial_sex_ratio, p_sim.ModeledChromosomeType(), p_sim.XDominanceCoefficient());	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(p_subpop_id, p_subpop_size);
+	
+	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
 	
 	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
 	
@@ -785,6 +789,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	}
 	
 	child_generation_valid = true;
+	subpop.child_generation_valid = true;
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
@@ -1228,24 +1233,20 @@ void Population::SwapGenerations(const SLiMSim &p_sim)
 	CheckMutationRegistry();
 #endif
 	
-	// make children the new parents and update fitnesses
+	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
 	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
-	{ 
-		Subpopulation *subpop = subpop_pair.second;
-		
-		// the children become the parents
-		subpop->SwapChildAndParentGenomes();
-		
-		// and then we calculate the fitnesses of the parents and make lookup tables
-		subpop->UpdateFitness(); 
-	}
+		subpop_pair.second->SwapChildAndParentGenomes();
+	
+	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
+	child_generation_valid = false;
+	
+	// calculate the fitnesses of the parents and make lookup tables
+	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+		subpop_pair.second->UpdateFitness(); 
 	
 #ifdef SLIMGUI
 	SurveyPopulation(p_sim);
 #endif
-	
-	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
-	child_generation_valid = false;
 }
 
 // count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
