@@ -21,7 +21,6 @@ SLiMscript:
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
 SLiMscribe:
-	add code completion for sequences of identifiers, dot operators, etc.
 	remove File menu or convert to a document-based model
 
 SLiMgui work:

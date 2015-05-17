@@ -163,6 +163,15 @@ bool SLiMSim::RunOneGeneration(void)
 				for (multimap<const int,Event*>::iterator eventsIterator = event_range.first; eventsIterator != event_range.second; eventsIterator++)
 					population_.ExecuteEvent(*eventsIterator->second, generation_, chromosome_, *this, &tracked_mutations_);
 				
+#ifndef SLIMCORE
+				// execute script events
+				for (auto script_event : scripts_)
+				{
+					if ((generation_ >= script_event->generation_start_) && (generation_ <= script_event->generation_end_))
+						population_.ExecuteScript(script_event, generation_, chromosome_, *this);
+				}
+#endif
+				
 				// evolve all subpopulations
 				for (const std::pair<const int,Subpopulation*> &subpop_pair : population_)
 					population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
@@ -172,15 +181,6 @@ bool SLiMSim::RunOneGeneration(void)
 				
 				for (multimap<const int,SLIMCONST IntroducedMutation*>::iterator introduced_mutations_iter = introd_mut_range.first; introduced_mutations_iter != introd_mut_range.second; introduced_mutations_iter++)
 					population_.IntroduceMutation(*introduced_mutations_iter->second);
-				
-#ifndef SLIMCORE
-				// execute script events
-				for (auto script_event : scripts_)
-				{
-					if ((generation_ >= script_event->generation_start_) && (generation_ <= script_event->generation_end_))
-						population_.ExecuteScript(script_event, generation_, chromosome_, *this);
-				}
-#endif
 				
 				// execute output events
 				std::pair<multimap<const int,Event*>::iterator,multimap<const int,Event*>::iterator> output_event_range = outputs_.equal_range(generation_);
