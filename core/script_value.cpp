@@ -114,8 +114,9 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	{
 		string string1 = p_value1->StringAtIndex(p_index1);
 		string string2 = p_value2->StringAtIndex(p_index2);
+		int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
 		
-		return string1.compare(string2);
+		return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
 	}
 	
 	// float is the next highest type, so we promote to float if either operand is a float
