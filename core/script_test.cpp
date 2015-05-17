@@ -44,12 +44,18 @@ using std::ostream;
 void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result);
 void AssertScriptRaise(string p_script_string);
 
+// Keeping records of test success / failure
+static int gTestSuccessCount = 0;
+static int gTestFailureCount = 0;
+
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 {
 	Script script(1, 1, p_script_string, 0);
 	ScriptValue *result = nullptr;
+	
+	gTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
 	try {
 		script.Tokenize();
@@ -111,6 +117,9 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 		}
 	}
 	
+	gTestFailureCount--;	// correct for our assumption of failure above
+	gTestSuccessCount++;
+	
 	std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : \e[32mSUCCESS\e[0m" << endl;
 }
 
@@ -129,10 +138,14 @@ void AssertScriptRaise(string p_script_string)
 		
 		interpreter.EvaluateInterpreterBlock();
 		
+		gTestFailureCount--;
+		
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateInterpreterBlock()." << endl;
 	}
 	catch (std::runtime_error err)
 	{
+		gTestSuccessCount++;
+		
 		std::cerr << p_script_string << " == (expected raise) " << GetTrimmedRaiseMessage() << " : \e[32mSUCCESS\e[0m" << endl;
 		return;
 	}
@@ -140,6 +153,10 @@ void AssertScriptRaise(string p_script_string)
 
 void RunSLiMScriptTests(void)
 {
+	// Reset error counts
+	gTestSuccessCount = 0;
+	gTestFailureCount = 0;
+	
 	// test literals, built-in identifiers, and tokenization
 	AssertScriptSuccess("3;", new ScriptValue_Int(3));
 	AssertScriptSuccess("3e2;", new ScriptValue_Int(300));
@@ -151,6 +168,11 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("T;", new ScriptValue_Logical(true));
 	AssertScriptSuccess("F;", new ScriptValue_Logical(false));
 	AssertScriptRaise("$foo;");
+	
+	// ************************************************************************************
+	//
+	//	Operator tests
+	//
 	
 	// test vector-to-singleton comparisons for integers
 	AssertScriptSuccess("rep(1:3, 2) == 2;", new ScriptValue_Logical(false, true, false, false, true, false));
@@ -268,8 +290,8 @@ void RunSLiMScriptTests(void)
     AssertScriptSuccess("1.0/1;", new ScriptValue_Float(1));
     AssertScriptSuccess("1.0/-1.0;", new ScriptValue_Float(-1));
     AssertScriptSuccess("(0:2.0)/10;", new ScriptValue_Float(0, 0.1, 0.2));
-    AssertScriptSuccess("10.0/(0:2);", new ScriptValue_Float(0, 10, 5));        // FIXME should this be an error?
-    AssertScriptSuccess("(15.0:13)/(0:2.0);", new ScriptValue_Float(0, 14, 6));     // FIXME should this be an error?
+    AssertScriptSuccess("10.0/(0:2);", new ScriptValue_Float(std::numeric_limits<double>::infinity(), 10, 5));
+    AssertScriptSuccess("(15.0:13)/(0:2.0);", new ScriptValue_Float(std::numeric_limits<double>::infinity(), 14, 6.5));
     AssertScriptRaise("(15:12.0)/(0:2);");
     AssertScriptRaise("NULL/(0:2.0);");		// FIXME should this be an error?
     AssertScriptRaise("\"foo\"/5;");
@@ -292,8 +314,8 @@ void RunSLiMScriptTests(void)
     AssertScriptSuccess("1.0%1;", new ScriptValue_Float(0));
     AssertScriptSuccess("1.0%-1.0;", new ScriptValue_Float(0));
     AssertScriptSuccess("(0:2.0)%10;", new ScriptValue_Float(0, 1, 2));
-    AssertScriptSuccess("10.0%(0:2);", new ScriptValue_Float(0, 10, 5));        //FIXME should this be an error?
-    AssertScriptSuccess("(15.0:13)%(0:2.0);", new ScriptValue_Float(0, 14, 6));     //FIXME should this be an error?
+    AssertScriptSuccess("10.0%(0:4);", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN(), 0, 0, 1, 2));
+    AssertScriptSuccess("(15.0:13)%(0:2.0);", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN(), 0, 1));
     AssertScriptRaise("(15:12.0)%(0:2);");
     AssertScriptRaise("NULL%(0:2.0);");		// FIXME should this be an error?
     AssertScriptRaise("\"foo\"%5;");
@@ -305,35 +327,6 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("%\"foo\";");
     AssertScriptRaise("%T;");
     AssertScriptSuccess("3%4%5;", new ScriptValue_Int(3));
-    
-	// test the seq() function
-	AssertScriptSuccess("seq(1, 5);", new ScriptValue_Int(1, 2, 3, 4, 5));
-	AssertScriptSuccess("seq(5, 1);", new ScriptValue_Int(5, 4, 3, 2, 1));
-	AssertScriptSuccess("seq(1.1, 5);", new ScriptValue_Float(1.1, 2.1, 3.1, 4.1));
-	AssertScriptSuccess("seq(1, 5.1);", new ScriptValue_Float(1, 2, 3, 4, 5));
-	AssertScriptSuccess("seq(1, 10, 2);", new ScriptValue_Int(1, 3, 5, 7, 9));
-	AssertScriptRaise("seq(1, 10, -2);");
-	AssertScriptSuccess("seq(10, 1, -2);", new ScriptValue_Int(10, 8, 6, 4, 2));
-	AssertScriptSuccess("(seq(1, 2, 0.2) - c(1, 1.2, 1.4, 1.6, 1.8, 2.0)) < 0.000000001;", new ScriptValue_Logical(true, true, true, true, true, true));
-	AssertScriptRaise("seq(1, 2, -0.2);");
-	AssertScriptSuccess("(seq(2, 1, -0.2) - c(2.0, 1.8, 1.6, 1.4, 1.2, 1)) < 0.000000001;", new ScriptValue_Logical(true, true, true, true, true, true));
-	AssertScriptRaise("seq(\"foo\", 2, 1);");
-	AssertScriptRaise("seq(1, \"foo\", 2);");
-	AssertScriptRaise("seq(2, 1, \"foo\");");
-	AssertScriptRaise("seq(T, 2, 1);");
-	AssertScriptRaise("seq(1, T, 2);");
-	AssertScriptRaise("seq(2, 1, T);");
-	// FIXME test with NULL
-	
-	// test for the rev() function
-	AssertScriptSuccess("rev(6:10);", new ScriptValue_Int(10,9,8,7,6));
-	AssertScriptSuccess("rev(-(6:10));", new ScriptValue_Int(-10,-9,-8,-7,-6));
-	AssertScriptSuccess("rev(c(\"foo\",\"bar\",\"baz\"));", new ScriptValue_String("baz","bar","foo"));
-	AssertScriptSuccess("rev(-1);", new ScriptValue_Int(-1));
-	AssertScriptSuccess("rev(1.0);", new ScriptValue_Float(1));
-	AssertScriptSuccess("rev(\"foo\");", new ScriptValue_String("foo"));
-	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float(10,9,8,7,6));
-	AssertScriptSuccess("rev(c(T,T,T,F));", new ScriptValue_Logical(false, true, true, true));
 
 	// tests for the = operator (especially in conjunction with the [] operator)
 	AssertScriptSuccess("x = 5; x;", new ScriptValue_Int(5));
@@ -367,9 +360,121 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2:3].path=73; z.path;");
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[2:3]=73; z.path;");
 	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2]=73; z.path;");
-    
+	
+	// tests for the > operator
+	AssertScriptSuccess("T > F;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("F > T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T > -5;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("-5 > T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T > 5;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("5 > T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T > -5.0;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("-5.0 > T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T > 5.0;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("5.0 > T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T > \"FOO\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("\"FOO\" > T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T > \"XYZZY\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("\"XYZZY\" > T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("5 > -10;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("-10 > 5;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("5.0 > -10;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("-10 > 5.0;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("5 > -10.0;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("-10.0 > 5;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("\"foo\" > \"bar\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("\"bar\" > \"foo\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("120 > \"10\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("10 > \"120\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("120 > \"15\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("15 > \"120\";", new ScriptValue_Logical(true));
+	AssertScriptRaise("Path() > 5");
+	AssertScriptRaise("5 > Path()");
+	AssertScriptSuccess("NULL > 5;", new ScriptValue_Logical());
+	AssertScriptSuccess("NULL > 5.0;", new ScriptValue_Logical());
+	AssertScriptSuccess("NULL > \"foo\";", new ScriptValue_Logical());
+	AssertScriptSuccess("5 > NULL;", new ScriptValue_Logical());
+	AssertScriptSuccess("5.0 > NULL;", new ScriptValue_Logical());
+	AssertScriptSuccess("\"foo\" > NULL;", new ScriptValue_Logical());
+	
+	// tests for the < operator
+	AssertScriptSuccess("T < F;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("F < T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T < -5;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("-5 < T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T < 5;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("5 < T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T < -5.0;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("-5.0 < T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T < 5.0;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("5.0 < T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("T < \"FOO\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("\"FOO\" < T;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("T < \"XYZZY\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("\"XYZZY\" < T;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("5 < -10;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("-10 < 5;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("5.0 < -10;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("-10 < 5.0;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("5 < -10.0;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("-10.0 < 5;", new ScriptValue_Logical(true));
+	AssertScriptSuccess("\"foo\" < \"bar\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("\"bar\" < \"foo\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("120 < \"10\";", new ScriptValue_Logical(false));
+	AssertScriptSuccess("10 < \"120\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("120 < \"15\";", new ScriptValue_Logical(true));
+	AssertScriptSuccess("15 < \"120\";", new ScriptValue_Logical(false));
+	AssertScriptRaise("Path() < 5");
+	AssertScriptRaise("5 < Path()");
+	AssertScriptSuccess("NULL < 5;", new ScriptValue_Logical());
+	AssertScriptSuccess("NULL < 5.0;", new ScriptValue_Logical());
+	AssertScriptSuccess("NULL < \"foo\";", new ScriptValue_Logical());
+	AssertScriptSuccess("5 < NULL;", new ScriptValue_Logical());
+	AssertScriptSuccess("5.0 < NULL;", new ScriptValue_Logical());
+	AssertScriptSuccess("\"foo\" < NULL;", new ScriptValue_Logical());
+	
     // check divide by zero
     AssertScriptRaise("6/0;");
+	
+	// ************************************************************************************
+	//
+	//	Function tests
+	//
+	
+	// test the seq() function
+	AssertScriptSuccess("seq(1, 5);", new ScriptValue_Int(1, 2, 3, 4, 5));
+	AssertScriptSuccess("seq(5, 1);", new ScriptValue_Int(5, 4, 3, 2, 1));
+	AssertScriptSuccess("seq(1.1, 5);", new ScriptValue_Float(1.1, 2.1, 3.1, 4.1));
+	AssertScriptSuccess("seq(1, 5.1);", new ScriptValue_Float(1, 2, 3, 4, 5));
+	AssertScriptSuccess("seq(1, 10, 2);", new ScriptValue_Int(1, 3, 5, 7, 9));
+	AssertScriptRaise("seq(1, 10, -2);");
+	AssertScriptSuccess("seq(10, 1, -2);", new ScriptValue_Int(10, 8, 6, 4, 2));
+	AssertScriptSuccess("(seq(1, 2, 0.2) - c(1, 1.2, 1.4, 1.6, 1.8, 2.0)) < 0.000000001;", new ScriptValue_Logical(true, true, true, true, true, true));
+	AssertScriptRaise("seq(1, 2, -0.2);");
+	AssertScriptSuccess("(seq(2, 1, -0.2) - c(2.0, 1.8, 1.6, 1.4, 1.2, 1)) < 0.000000001;", new ScriptValue_Logical(true, true, true, true, true, true));
+	AssertScriptRaise("seq(\"foo\", 2, 1);");
+	AssertScriptRaise("seq(1, \"foo\", 2);");
+	AssertScriptRaise("seq(2, 1, \"foo\");");
+	AssertScriptRaise("seq(T, 2, 1);");
+	AssertScriptRaise("seq(1, T, 2);");
+	AssertScriptRaise("seq(2, 1, T);");
+	// FIXME test with NULL
+	
+	// test for the rev() function
+	AssertScriptSuccess("rev(6:10);", new ScriptValue_Int(10,9,8,7,6));
+	AssertScriptSuccess("rev(-(6:10));", new ScriptValue_Int(-10,-9,-8,-7,-6));
+	AssertScriptSuccess("rev(c(\"foo\",\"bar\",\"baz\"));", new ScriptValue_String("baz","bar","foo"));
+	AssertScriptSuccess("rev(-1);", new ScriptValue_Int(-1));
+	AssertScriptSuccess("rev(1.0);", new ScriptValue_Float(1));
+	AssertScriptSuccess("rev(\"foo\");", new ScriptValue_String("foo"));
+	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float(10,9,8,7,6));
+	AssertScriptSuccess("rev(c(T,T,T,F));", new ScriptValue_Logical(false, true, true, true));
+	
+	// print a summary of test results
+	std::cerr << endl;
+	if (gTestFailureCount)
+		std::cerr << "\e[31mFAILURE\e[0m count: " << gTestFailureCount << endl;
+	std::cerr << "\e[32mSUCCESS\e[0m count: " << gTestSuccessCount << endl;
 }
 
 
