@@ -107,6 +107,30 @@ ScriptValue *SymbolTable::GetValueForSymbol(const std::string &p_symbol_name) co
 	return result;
 }
 
+ScriptValue *SymbolTable::GetValueOrNullForSymbol(const std::string &p_symbol_name) const
+{
+	ScriptValue *result = nullptr;
+	
+	// first look in our constants
+	auto constant_iter = constants_.find(p_symbol_name);
+	
+	if (constant_iter != constants_.end())
+	{
+		// got a hit; extract it from the iterator and the map pair
+		result = (*constant_iter).second;
+	}
+	else
+	{
+		// no hit; check in our variables
+		auto variable_iter = variables_.find(p_symbol_name);
+		
+		if (variable_iter != variables_.end())
+			result = (*variable_iter).second;
+	}
+	
+	return result;
+}
+
 void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
 {
 	// check that we're not trying to overwrite a constant

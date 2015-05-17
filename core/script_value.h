@@ -356,6 +356,7 @@ public:
 	std::vector<std::string> ReadOnlyMembersOfElements(void) const;
 	std::vector<std::string> ReadWriteMembersOfElements(void) const;
 	ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
+	ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
 	void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
 	
 	std::vector<std::string> MethodsOfElements(void) const;

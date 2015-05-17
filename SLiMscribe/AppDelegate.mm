@@ -608,7 +608,155 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 
 - (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<ScriptToken *> &)tokens
 {
-	return nil;		// FIXME
+	ScriptToken *token = tokens[lastDotTokenIndex];
+	TokenType token_type = token->token_type_;
+	
+	if (token_type != TokenType::kTokenDot)
+	{
+		NSLog(@"***** completionsForKeyPathEndingInTokenIndex... called for non-kTokenDot token!");
+		return nil;
+	}
+	
+	// OK, we've got a key path ending in a dot, and we want to return a list of completions that would work for that key path.
+	// We'll trace backward, adding identifiers to a vector to build up the chain of references.  If we hit a bracket, we'll
+	// skip back over everything inside it, since subsetting does not change the type; we just need to balance brackets.  If we
+	// hit a parenthesis, we give up.  If we hit other things – a semicolon, a comma, a brace – that terminates the key path chain.
+	vector<string> identifiers;
+	int bracketCount = 0;
+	BOOL lastTokenWasDot = YES;
+	
+	for (int tokenIndex = lastDotTokenIndex - 1; tokenIndex >= 0; --tokenIndex)
+	{
+		token = tokens[tokenIndex];
+		token_type = token->token_type_;
+		
+		// skip backward over whitespace and comments; they make no difference to us
+		if ((token_type == TokenType::kTokenWhitespace) || (token_type == TokenType::kTokenComment))
+			continue;
+		
+		if (bracketCount)
+		{
+			// If we're inside a bracketed stretch, all we do is balance brackets and run backward.  We don't even clear lastTokenWasDot,
+			// because a []. sequence puts us in the same situation as having just seen a dot – we're still waiting for an identifier.
+			if (token_type == TokenType::kTokenRBracket)
+			{
+				bracketCount++;
+				continue;
+			}
+			if (token_type == TokenType::kTokenLBracket)
+			{
+				bracketCount--;
+				continue;
+			}
+			
+			// Check for tokens that simply make no sense, and bail
+			if ((token_type == TokenType::kTokenLBrace) || (token_type == TokenType::kTokenRBrace) || (token_type == TokenType::kTokenSemicolon) || (token_type >= TokenType::kFirstIdentifierLikeToken))
+				return nil;
+			
+			continue;
+		}
+		
+		if (!lastTokenWasDot)
+		{
+			// We just saw an identifier, so the only thing that can continue the key path is a dot
+			if (token_type == TokenType::kTokenDot)
+			{
+				lastTokenWasDot = YES;
+				continue;
+			}
+			
+			// the key path has terminated at some non-key-path token, so we're done tracing it
+			break;
+		}
+		
+		// OK, the last token was a dot (or a subset preceding a dot).  We're looking for an identifier, but we're willing
+		// to get distracted by a subset sequence, since that does not change the type.  Anything else does not make sense.
+		// (A method call or function call is possible, actually, but we're not presently equipped to handle them.  The problem
+		// is that we don't want to actually call the method/function to get a ScriptValue*, because such calls are heavyweight
+		// and can have side effects, but without calling the method/function we have no way to get an instance of the type
+		// that it would return.  We need the concept of Class objects, but C++ does not do that.  I miss Objective-C.  I'm not
+		// sure how to solve this, really; it would require us to have some kind of artificial Class-object-like thing that
+		// would know the properties and methods for a given ScriptObjectElement class.  Big distortion to the architecture.
+		// So for now, we just don't trace back through method/function calls, which sucks.  FIXME)
+		if (token_type == TokenType::kTokenIdentifier)
+		{
+			lastTokenWasDot = NO;
+			identifiers.push_back(token->token_string_);
+			continue;
+		}
+		else if (token_type == TokenType::kTokenRBracket)
+		{
+			bracketCount++;
+			continue;
+		}
+		
+		// This makes no sense, so bail
+		return nil;
+	}
+	
+	// If we were in the middle of tracing the key path when the loop ended, then something is wrong, bail.
+	if (lastTokenWasDot || bracketCount)
+		return nil;
+	
+	// OK, we've got an identifier chain in identifiers, in reverse order.  We want to start at the beginning of the key path,
+	// and follow it forward through the properties in the chain to arrive at the final type.
+	int key_path_index = (int)identifiers.size() - 1;
+	string identifier_name = identifiers[key_path_index];
+	
+	ScriptValue *key_path_value = (global_symbols ? global_symbols->GetValueOrNullForSymbol(identifier_name) : nullptr);
+	
+	if (!key_path_value)
+		return nil;			// unknown symbol at the root, so we have no idea what's going on
+	if (key_path_value->Type() != ScriptValueType::kValueObject)
+	{
+		if (!key_path_value->InSymbolTable()) delete key_path_value;
+		return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
+	}
+	
+	while (--key_path_index >= 0)
+	{
+		identifier_name = identifiers[key_path_index];
+		
+		ScriptValue *property_value = ((ScriptValue_Object *)key_path_value)->GetRepresentativeValueOrNullForMemberOfElements(identifier_name);
+		
+		if (!key_path_value->InSymbolTable()) delete key_path_value;
+		key_path_value = property_value;
+		
+		if (!key_path_value)
+			return nil;			// unknown symbol at the root, so we have no idea what's going on
+		if (key_path_value->Type() != ScriptValueType::kValueObject)
+		{
+			if (!key_path_value->InSymbolTable()) delete key_path_value;
+			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
+		}
+	}
+	
+	// OK, we've now got a ScriptValue object that represents the end of the line; the final dot is off of this object.
+	// So we want to extract all of its properties and methods, and return them all as candidates.
+	NSMutableArray *candidates = [NSMutableArray array];
+	ScriptValue_Object *terminus = ((ScriptValue_Object *)key_path_value);
+	
+	// First, a sorted list of globals
+	for (std::string symbol_name : terminus->ReadOnlyMembersOfElements())
+		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	
+	for (std::string symbol_name : terminus->ReadWriteMembersOfElements())
+		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	
+	[candidates sortUsingSelector:@selector(compare:)];
+	
+	// Next, a sorted list of functions, with () appended
+	for (string method_name : terminus->MethodsOfElements())
+	{
+		NSString *methodName = [NSString stringWithUTF8String:method_name.c_str()];
+		
+		[candidates addObject:[methodName stringByAppendingString:@"()"]];
+	}
+	
+	// Dispose of our terminus
+	if (!terminus->InSymbolTable()) delete terminus;
+	
+	return candidates;
 }
 
 - (NSArray *)completionsForTokenStream:(const std::vector<ScriptToken *> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
@@ -656,7 +804,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 					// if the token we're on is a dot, we are indeed at the end of a key path, and can fetch the completions for it
 					if (previous_token_type == TokenType::kTokenDot)
 					{
-						completions = [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens];
+						completions = [self completionsForKeyPathEndingInTokenIndex:previousTokenIndex ofTokenStream:tokens];
 						break;
 					}
 					
