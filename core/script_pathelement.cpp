@@ -63,8 +63,6 @@ std::vector<std::string> Script_PathElement::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> members;
 	
-	members.push_back("files");
-	
 	return members;
 }
 
@@ -75,6 +73,68 @@ std::vector<std::string> Script_PathElement::ReadWriteMembers(void) const
 	members.push_back("path");
 	
 	return members;
+}
+
+ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name)
+{
+	if (p_member_name.compare("path") == 0)
+		return new ScriptValue_String(base_path_);
+	
+	return ScriptObjectElement::GetValueForMember(p_member_name);
+}
+
+void Script_PathElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_member_name.compare("path") == 0)
+	{
+		ScriptValueType value_type = p_value->Type();
+		int value_count = p_value->Count();
+		
+		if (value_type != ScriptValueType::kValueString)
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): type mismatch in assignment to member 'path'." << endl << slim_terminate();
+		if (value_count != 1)
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << endl << slim_terminate();
+		
+		base_path_ = p_value->StringAtIndex(0);
+		return;
+	}
+	
+	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+std::vector<std::string> Script_PathElement::Methods(void) const
+{
+	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	
+	methods.push_back("files");
+	methods.push_back("readFile");
+	methods.push_back("writeFile");
+	
+	return methods;
+}
+
+const FunctionSignature *Script_PathElement::SignatureForMethod(std::string const &p_method_name) const
+{
+	// Signatures are all preallocated, for speed
+	static FunctionSignature *filesSig = nullptr;
+	static FunctionSignature *readFileSig = nullptr;
+	static FunctionSignature *writeFileSig = nullptr;
+	
+	if (!filesSig)
+	{
+		filesSig = (new FunctionSignature("files", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod();
+		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod()->AddString_S();
+		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddString();
+	}
+	
+	if (p_method_name.compare("files") == 0)
+		return filesSig;
+	else if (p_method_name.compare("readFile") == 0)
+		return readFileSig;
+	else if (p_method_name.compare("writeFile") == 0)
+		return writeFileSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 std::string Script_PathElement::ResolvedBasePath(void) const
@@ -96,12 +156,9 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name)
+ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	if (p_member_name.compare("path") == 0)
-		return new ScriptValue_String(base_path_);
-	
-	if (p_member_name.compare("files") == 0)
+	if (p_method_name.compare("files") == 0)
 	{
 		string path = ResolvedBasePath();
 		
@@ -131,69 +188,6 @@ ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_n
 		}
 	}
 	
-	// FIXME could return superclass call, and the superclass could implement ls
-	
-	SLIM_TERMINATION << "ERROR (Script_PathElement::GetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
-	
-	return nullptr;
-}
-
-void Script_PathElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
-{
-	ScriptValueType value_type = p_value->Type();
-	int value_count = p_value->Count();
-	
-	if (p_member_name.compare("path") == 0)
-	{
-		if (value_type != ScriptValueType::kValueString)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): type mismatch in assignment to member 'path'." << endl << slim_terminate();
-		if (value_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << endl << slim_terminate();
-		
-		base_path_ = p_value->StringAtIndex(0);
-	}
-	else if (p_member_name.compare("files") == 0)
-	{
-		SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): member '" << p_member_name << "' is read-only." << endl << slim_terminate();
-	}
-	else
-	{
-		SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): no member '" << p_member_name << "'." << endl << slim_terminate();
-	}
-}
-
-std::vector<std::string> Script_PathElement::Methods(void) const
-{
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
-	
-	methods.push_back("readFile");
-	methods.push_back("writeFile");
-	
-	return methods;
-}
-
-const FunctionSignature *Script_PathElement::SignatureForMethod(std::string const &p_method_name) const
-{
-	// Signatures are all preallocated, for speed
-	static FunctionSignature *readFileSig = nullptr;
-	static FunctionSignature *writeFileSig = nullptr;
-	
-	if (!readFileSig)
-	{
-		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->AddString_S();
-		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->AddString_S()->AddString();
-	}
-	
-	if (p_method_name.compare("readFile") == 0)
-		return readFileSig;
-	else if (p_method_name.compare("writeFile") == 0)
-		return writeFileSig;
-	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
-}
-
-ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
-{
 	if (p_method_name.compare("readFile") == 0)
 	{
 		// the first argument is the filename
