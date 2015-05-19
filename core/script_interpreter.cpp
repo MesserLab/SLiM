@@ -1327,6 +1327,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
 	}
 	
+	/*
+	// I've decided to make division perform float division always; wanting integer division is rare, and providing it as the default is error-prone.  If
+	// people want integer division, they will need to do float division and then use floor() and asInteger().  Alternatively, we could provide a separate
+	// operator for integer division, as R does.  However, the definition of integer division is tricky and contested; best to let people do their own.
+	// This decision applies also to modulo, for consistency.
+	
 	if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 	{
 		// integer modulo has to check for division by zero and throw, otherwise we crash
@@ -1390,6 +1396,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		result = int_result;
 	}
 	else
+	*/
 	{
 		// floating-point modulo by zero is safe; it will produce an NaN, following IEEE as implemented by C++
 		ScriptValue_Float *float_result = new ScriptValue_Float();
@@ -1573,6 +1580,11 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
 	}
 	
+	/*
+	// I've decided to make division perform float division always; wanting integer division is rare, and providing it as the default is error-prone.  If
+	// people want integer division, they will need to do float division and then use floor() and asInteger().  Alternatively, we could provide a separate
+	// operator for integer division, as R does.  However, the definition of integer division is tricky and contested; best to let people do their own.
+	 
 	if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 	{
 		// integer division has to check for division by zero and throw, otherwise we crash
@@ -1636,6 +1648,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		result = int_result;
 	}
 	else
+	*/
 	{
 		// floating-point division by zero is safe; it will produce an infinity, following IEEE as implemented by C++
 		ScriptValue_Float *float_result = new ScriptValue_Float();
