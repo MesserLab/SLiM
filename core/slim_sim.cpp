@@ -339,8 +339,7 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
-	if (sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
-		variables.push_back("dominanceCoeffX");		// x_chromosome_dominance_coeff_; defined only when we're modeling sex chromosomes
+	variables.push_back("dominanceCoeffX");		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
 	variables.push_back("duration");			// time_duration_
 	variables.push_back("generation");			// generation_
 	variables.push_back("randomSeed");			// rng_seed_
@@ -417,7 +416,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	
 	// variables
-	if ((p_member_name.compare("dominanceCoeffX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+	if (p_member_name.compare("dominanceCoeffX") == 0)
 		return new ScriptValue_Float(x_chromosome_dominance_coeff_);
 	if (p_member_name.compare("duration") == 0)
 		return new ScriptValue_Int(time_duration_);
@@ -453,8 +452,11 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	if ((p_member_name.compare("dominanceCoeffX") == 0) && sex_enabled_ && (modeled_chromosome_type_ == GenomeType::kXChromosome))
+	if (p_member_name.compare("dominanceCoeffX") == 0)
 	{
+		if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
+			SLIM_TERMINATION << "ERROR (SLiMSim::SetValueForMember): attempt to set member dominanceCoeffX when not simulating an X chromosome." << std::endl << slim_terminate();
+		
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
 		double value = p_value->FloatAtIndex(0);
