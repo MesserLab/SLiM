@@ -600,6 +600,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		[globals addObject:@"if"];
 		[globals addObject:@"in"];
 		[globals addObject:@"next"];
+		[globals addObject:@"return"];
 		[globals addObject:@"while"];
 	}
 	
@@ -785,6 +786,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		case TokenType::kTokenIn:
 		case TokenType::kTokenNext:
 		case TokenType::kTokenBreak:
+		case TokenType::kTokenReturn:
 			if (canExtend)
 			{
 				NSMutableArray *completions = nil;
@@ -966,7 +968,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				
 				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-				if ((token_type == TokenType::kTokenNumber) || (token_type == TokenType::kTokenString) || (token_type == TokenType::kTokenRParen) || (token_type == TokenType::kTokenRBracket) || (token_type == TokenType::kTokenIdentifier) || (token_type == TokenType::kTokenIf) || (token_type == TokenType::kTokenWhile) || (token_type == TokenType::kTokenFor) || (token_type == TokenType::kTokenNext) || (token_type == TokenType::kTokenBreak))
+				if ((token_type == TokenType::kTokenNumber) || (token_type == TokenType::kTokenString) || (token_type == TokenType::kTokenRParen) || (token_type == TokenType::kTokenRBracket) || (token_type == TokenType::kTokenIdentifier) || (token_type == TokenType::kTokenIf) || (token_type == TokenType::kTokenWhile) || (token_type == TokenType::kTokenFor) || (token_type == TokenType::kTokenNext) || (token_type == TokenType::kTokenBreak) || (token_type == TokenType::kTokenReturn))
 				{
 					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 					if (completions) *completions = nil;

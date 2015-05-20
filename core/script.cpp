@@ -85,6 +85,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 		case TokenType::kTokenIn:			p_outstream << "in";			break;
 		case TokenType::kTokenNext:			p_outstream << "next";			break;
 		case TokenType::kTokenBreak:		p_outstream << "break";			break;
+		case TokenType::kTokenReturn:		p_outstream << "return";		break;
 			
 		case TokenType::kTokenInterpreterBlock:		p_outstream << "$>";	break;
 		case TokenType::kFirstIdentifierLikeToken:	p_outstream << "???";	break;
@@ -516,6 +517,7 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 				else if (token_string.compare("in") == 0) token_type = TokenType::kTokenIn;
 				else if (token_string.compare("next") == 0) token_type = TokenType::kTokenNext;
 				else if (token_string.compare("break") == 0) token_type = TokenType::kTokenBreak;
+				else if (token_string.compare("return") == 0) token_type = TokenType::kTokenReturn;
 				
 				if (token_type > TokenType::kFirstIdentifierLikeToken)
 					token_string = "<" + token_string + ">";
@@ -672,7 +674,7 @@ ScriptASTNode *Script::Parse_Statement(void)
 		return Parse_WhileStatement();
 	else if (current_token_type_ == TokenType::kTokenFor)
 		return Parse_ForStatement();
-	else if ((current_token_type_ == TokenType::kTokenNext) || (current_token_type_ == TokenType::kTokenBreak))
+	else if ((current_token_type_ == TokenType::kTokenNext) || (current_token_type_ == TokenType::kTokenBreak) || (current_token_type_ == TokenType::kTokenReturn))
 		return Parse_JumpStatement();
 	else
 		return Parse_ExprStatement();
@@ -689,7 +691,7 @@ ScriptASTNode *Script::Parse_ExprStatement(void)
 	}
 	else
 	{
-		node = Parse_Expr();
+		node = Parse_AssignmentExpr();
 		Match(TokenType::kTokenSemicolon, "expression statement");
 	}
 	
@@ -782,17 +784,37 @@ ScriptASTNode *Script::Parse_JumpStatement(void)
 {
 	ScriptASTNode *node;
 	
-	node = new ScriptASTNode(current_token_);
-	Consume();
-	
-	Match(TokenType::kTokenSemicolon, "next/break statement");
+	if ((current_token_type_ == TokenType::kTokenNext) || (current_token_type_ == TokenType::kTokenBreak))
+	{
+		node = new ScriptASTNode(current_token_);
+		Consume();
+		
+		Match(TokenType::kTokenSemicolon, "next/break statement");
+	}
+	else if (current_token_type_ == TokenType::kTokenReturn)
+	{
+		node = new ScriptASTNode(current_token_);
+		Consume();
+		
+		if (current_token_type_ == TokenType::kTokenSemicolon)
+		{
+			Match(TokenType::kTokenSemicolon, "return statement");
+		}
+		else
+		{
+			ScriptASTNode *value_expr = Parse_Expr();
+			Match(TokenType::kTokenSemicolon, "return statement");
+			
+			node->AddChild(value_expr);
+		}
+	}
 	
 	return node;
 }
 
 ScriptASTNode *Script::Parse_Expr(void)
 {
-	return Parse_AssignmentExpr();
+	return Parse_LogicalOrExpr();
 }
 
 ScriptASTNode *Script::Parse_AssignmentExpr(void)

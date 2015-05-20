@@ -95,7 +95,8 @@ enum class TokenType {
 	kTokenFor,			// for		loop over set
 	kTokenIn,			// in		loop over set
 	kTokenNext,			// next		loop jump to end
-	kTokenBreak			// break	loop jump to completion
+	kTokenBreak,		// break	loop jump to completion
+	kTokenReturn		// return	return a value from the enclosing block
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type);

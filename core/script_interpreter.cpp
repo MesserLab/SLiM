@@ -163,6 +163,10 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << endl << slim_terminate();
 	}
 	
+	// handle a return statement; we're at the top level, so there's not much to do
+	if (return_statement_hit_)
+		return_statement_hit_ = false;
+	
 	// EvaluateScriptBlock() does not send the result of execution to the output stream; EvaluateInterpreterBlock() does,
 	// because it is for interactive use, but EvaluateScriptBlock() is for use in SLiM itself, and so interactive output
 	// is undesirable.  Script that wants to generate output can always use print().
@@ -222,6 +226,13 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 			// ScriptValue does not put an endl on the stream, so if it emitted any output, add an endl
 			if (position != execution_output_.tellp())
 				execution_output_ << endl;
+		}
+		
+		// handle a return statement; we're at the top level, so there's not much to do except stop execution
+		if (return_statement_hit_)
+		{
+			return_statement_hit_ = false;
+			break;
 		}
 	}
 	
@@ -568,6 +579,7 @@ ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
 		case TokenType::kTokenFor:			result = Evaluate_For(p_node);					break;
 		case TokenType::kTokenNext:			result = Evaluate_Next(p_node);					break;
 		case TokenType::kTokenBreak:		result = Evaluate_Break(p_node);				break;
+		case TokenType::kTokenReturn:		result = Evaluate_Return(p_node);				break;
 		default:
 			SLIM_TERMINATION << "ERROR (EvaluateNode): Unexpected node token type " << token_type << "." << endl << slim_terminate();
 			break;
@@ -609,8 +621,8 @@ ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *
 		
 		result = EvaluateNode(child_node);
 		
-		// a next or break makes us exit immediately, out to the (presumably enclosing) loop evaluator
-		if (next_statement_hit_ || break_statement_hit_)
+		// a next, break, or return makes us exit immediately, out to the (presumably enclosing) loop evaluator
+		if (next_statement_hit_ || break_statement_hit_ || return_statement_hit_)
 			break;
 	}
 	
@@ -2550,11 +2562,21 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Do): internal error (expected 2 children)." << endl << slim_terminate();
 	
+	ScriptValue *result = nullptr;
+	
 	do
 	{
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
 		ScriptValue *statement_value = EvaluateNode(p_node->children_[0]);
 		
+		// if a return statement has occurred, we pass the return value outward
+		if (return_statement_hit_)
+		{
+			result = statement_value;
+			break;
+		}
+		
+		// otherwise, discard the return value
 		if (!statement_value->InSymbolTable()) delete statement_value;
 		
 		// handle next and break statements
@@ -2589,7 +2611,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 	}
 	while (true);
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	if (!result)
+		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Do() : return == " << *result << "\n";
@@ -2604,6 +2627,8 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_While): internal error (expected 2 children)." << endl << slim_terminate();
+	
+	ScriptValue *result = nullptr;
 	
 	while (true)
 	{
@@ -2630,6 +2655,14 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
 		ScriptValue *statement_value = EvaluateNode(p_node->children_[1]);
 		
+		// if a return statement has occurred, we pass the return value outward
+		if (return_statement_hit_)
+		{
+			result = statement_value;
+			break;
+		}
+		
+		// otherwise, discard the return value
 		if (!statement_value->InSymbolTable()) delete statement_value;
 		
 		// handle next and break statements
@@ -2643,7 +2676,8 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		}
 	}
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	if (!result)
+		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_While() : return == " << *result << "\n";
@@ -2669,6 +2703,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 	string identifier_name = identifier_child->token_->token_string_;
 	ScriptValue *range_value = EvaluateNode(p_node->children_[1]);
 	int range_count = range_value->Count();
+	ScriptValue *result = nullptr;
 	
 	for (int range_index = 0; range_index < range_count; ++range_index)
 	{
@@ -2682,6 +2717,14 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		// execute the for loop's statement by evaluating its node; evaluation values get thrown away
 		ScriptValue *statement_value = EvaluateNode(p_node->children_[2]);
 		
+		// if a return statement has occurred, we pass the return value outward
+		if (return_statement_hit_)
+		{
+			result = statement_value;
+			break;
+		}
+		
+		// otherwise, discard the return value
 		if (!statement_value->InSymbolTable()) delete statement_value;
 		
 		// handle next and break statements
@@ -2695,7 +2738,8 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		}
 	}
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	if (!result)
+		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	// free our range operand
 	if (!range_value->InSymbolTable()) delete range_value;
@@ -2744,6 +2788,31 @@ ScriptValue *ScriptInterpreter::Evaluate_Break(const ScriptASTNode *p_node)
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Break() : return == " << *result << "\n";
+	
+	return result;
+}
+
+ScriptValue *ScriptInterpreter::Evaluate_Return(const ScriptASTNode *p_node)
+{
+#pragma unused(p_node)
+	if (logging_execution_)
+		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Return() entered\n";
+	
+	if (p_node->children_.size() > 1)
+		SLIM_TERMINATION << "ERROR (Evaluate_Return): internal error (expected 0 or 1 children)." << endl << slim_terminate();
+	
+	// set a flag in the interpreter, which will be seen by the eval methods and will cause them to return up to the top-level block immediately
+	return_statement_hit_ = true;
+	
+	ScriptValue *result = nullptr;
+	
+	if (p_node->children_.size() == 0)
+		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();	// default return value
+	else
+		result = EvaluateNode(p_node->children_[0]);
+	
+	if (logging_execution_)
+		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Return() : return == " << *result << "\n";
 	
 	return result;
 }

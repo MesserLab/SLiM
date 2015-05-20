@@ -65,6 +65,7 @@ private:
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
 	bool break_statement_hit_ = false;
+	bool return_statement_hit_ = false;
 	
 	// flags and streams for execution logging – a trace of the DFS of the parse tree
 	bool logging_execution_ = false;
@@ -135,6 +136,7 @@ public:
 	ScriptValue *Evaluate_For(const ScriptASTNode *p_node);
 	ScriptValue *Evaluate_Next(const ScriptASTNode *p_node);
 	ScriptValue *Evaluate_Break(const ScriptASTNode *p_node);
+	ScriptValue *Evaluate_Return(const ScriptASTNode *p_node);
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const FunctionSignature *> &BuiltInFunctions(void);
