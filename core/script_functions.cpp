@@ -140,10 +140,10 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		//	value type testing/coercion functions
 		//
 		
-		// asFloat
-		// asInteger
+		signatures->push_back((new FunctionSignature("asFloat",     FunctionIdentifier::asFloatFunction,	kScriptValueMaskFloat))->AddAny());
+		signatures->push_back((new FunctionSignature("asInteger",	FunctionIdentifier::asIntegerFunction,	kScriptValueMaskInt))->AddAny());
 		signatures->push_back((new FunctionSignature("asLogical",	FunctionIdentifier::asLogicalFunction,	kScriptValueMaskLogical))->AddAny());
-		// asString
+		signatures->push_back((new FunctionSignature("asString",	FunctionIdentifier::asStringFunction,	kScriptValueMaskString))->AddAny());
 		signatures->push_back((new FunctionSignature("element",		FunctionIdentifier::elementFunction,	kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
 		// isFloat
 		// isInteger
@@ -824,12 +824,14 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		//
 			
 		case FunctionIdentifier::asFloatFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
+            for (int value_index = 0; value_index < arg1_count; ++value_index)
+                float_result->PushFloat(arg1_value->FloatAtIndex(value_index));
+            break;
 			
 		case FunctionIdentifier::asIntegerFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
+            for (int value_index = 0; value_index < arg1_count; ++value_index)
+                int_result->PushInt(arg1_value->IntAtIndex(value_index));
+            break;
 			
 		case FunctionIdentifier::asLogicalFunction:
 			for (int value_index = 0; value_index < arg1_count; ++value_index)
@@ -837,8 +839,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 			
 		case FunctionIdentifier::asStringFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
-			break;
+            for (int value_index = 0; value_index < arg1_count; ++value_index)
+                string_result->PushString(arg1_value->StringAtIndex(value_index));
+            break;
 			
 		case FunctionIdentifier::elementFunction:
 			if (arg1_value->Type() == ScriptValueType::kValueObject)

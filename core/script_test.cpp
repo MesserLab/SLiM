@@ -281,9 +281,9 @@ void RunSLiMScriptTests(void)
     AssertScriptSuccess("3*4*5;", new ScriptValue_Int(60));
     
     // test for the / operator
-    AssertScriptSuccess("1/1;", new ScriptValue_Int(1));
-    AssertScriptSuccess("1/-1;", new ScriptValue_Int(-1));
-    AssertScriptSuccess("(0:2)/10;", new ScriptValue_Int(0, 0, 0));
+    AssertScriptSuccess("1/1;", new ScriptValue_Float(1));
+    AssertScriptSuccess("1/-1;", new ScriptValue_Float(-1));
+    AssertScriptSuccess("(0:2)/10;", new ScriptValue_Float(0, 0.1, 0.2));
     AssertScriptRaise("(15:12)/(0:2);");
     AssertScriptRaise("NULL/(0:2);");		// FIXME should this be an error?
     AssertScriptSuccess("1/1.0;", new ScriptValue_Float(1));
@@ -302,12 +302,12 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("/5.0;");
     AssertScriptRaise("/\"foo\";");
     AssertScriptRaise("/T;");
-    AssertScriptSuccess("3/4/5;", new ScriptValue_Int(0));
+    AssertScriptSuccess("3/4/5;", new ScriptValue_Float(0));
     
     // test for the % operator
-    AssertScriptSuccess("1%1;", new ScriptValue_Int(0));
-    AssertScriptSuccess("1%-1;", new ScriptValue_Int(0));
-    AssertScriptSuccess("(0:2)%10;", new ScriptValue_Int(0, 1, 2));
+    AssertScriptSuccess("1%1;", new ScriptValue_Float(0));
+    AssertScriptSuccess("1%-1;", new ScriptValue_Float(0));
+    AssertScriptSuccess("(0:2)%10;", new ScriptValue_Float(0, 1, 2));
     AssertScriptRaise("(15:12)%(0:2);");
     AssertScriptRaise("NULL%(0:2);");       // FIXME should this be an error?
     AssertScriptSuccess("1%1.0;", new ScriptValue_Float(0));
@@ -434,7 +434,7 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("\"foo\" < NULL;", new ScriptValue_Logical());
 	
     // check divide by zero
-    AssertScriptRaise("6/0;");
+    AssertScriptRaise("6/0;"); // FIXME should this be an error?
 	
 	// ************************************************************************************
 	//
@@ -470,13 +470,38 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float(10,9,8,7,6));
 	AssertScriptSuccess("rev(c(T,T,T,F));", new ScriptValue_Logical(false, true, true, true));
 	
-	// print a summary of test results
-	std::cerr << endl;
-	if (gTestFailureCount)
-		std::cerr << "\e[31mFAILURE\e[0m count: " << gTestFailureCount << endl;
-	std::cerr << "\e[32mSUCCESS\e[0m count: " << gTestSuccessCount << endl;
+    // tests for the asFloat() function
+    AssertScriptSuccess("asFloat(-1:3);", new ScriptValue_Float(-1,0,1,2,3));
+    AssertScriptSuccess("asFloat(-1.0:3);", new ScriptValue_Float(-1,0,1,2,3));
+    AssertScriptSuccess("asFloat(c(T,F,T,F));", new ScriptValue_Float(1,0,1,0));
+    AssertScriptSuccess("asFloat(c(\"1\",\"2\",\"3\"));", new ScriptValue_Float(1,2,3));
+    AssertScriptSuccess("asFloat(\"foo\");", new ScriptValue_Float(0)); // FIXME should this be an error?
+    
+    // tests for the asInteger() function
+    AssertScriptSuccess("asInteger(-1:3);", new ScriptValue_Int(-1,0,1,2,3));
+    AssertScriptSuccess("asInteger(-1.0:3);", new ScriptValue_Int(-1,0,1,2,3));
+    AssertScriptSuccess("asInteger(c(T,F,T,F));", new ScriptValue_Int(1,0,1,0));
+    AssertScriptSuccess("asInteger(c(\"1\",\"2\",\"3\"));", new ScriptValue_Int(1,2,3));
+    AssertScriptSuccess("asInteger(\"foo\");", new ScriptValue_Int(0)); // FIXME should this be an error?
+    
+    // tests for the asLogical() function
+    AssertScriptSuccess("asLogical(-1:3);", new ScriptValue_Logical(true,false,true,true,true));
+    AssertScriptSuccess("asLogical(-1.0:3);", new ScriptValue_Logical(true,false,true,true,true));
+    AssertScriptSuccess("asLogical(c(T,F,T,F));", new ScriptValue_Logical(true,false,true,false));
+    AssertScriptSuccess("asLogical(c(\"foo\",\"bar\",\"\"));", new ScriptValue_Logical(true,true,false));
+    
+    // tests for the asString() function
+    AssertScriptSuccess("asString(-1:3);", new ScriptValue_String("-1","0","1","2","3"));
+    AssertScriptSuccess("asString(-1.0:3);", new ScriptValue_String("-1","0","1","2","3"));
+    AssertScriptSuccess("asString(c(T,F,T,F));", new ScriptValue_String("T","F","T","F"));
+    AssertScriptSuccess("asString(c(\"1\",\"2\",\"3\"));", new ScriptValue_String("1","2","3"));
+    
+    // print a summary of test results
+    std::cerr << endl;
+    if (gTestFailureCount)
+        std::cerr << "\e[31mFAILURE\e[0m count: " << gTestFailureCount << endl;
+    std::cerr << "\e[32mSUCCESS\e[0m count: " << gTestSuccessCount << endl;
 }
-
 
 
 
