@@ -138,7 +138,7 @@ void AssertScriptRaise(string p_script_string)
 		
 		interpreter.EvaluateInterpreterBlock();
 		
-		gTestFailureCount--;
+		gTestFailureCount++;
 		
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateInterpreterBlock()." << endl;
 	}
@@ -302,7 +302,7 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("/5.0;");
     AssertScriptRaise("/\"foo\";");
     AssertScriptRaise("/T;");
-    AssertScriptSuccess("3/4/5;", new ScriptValue_Float(0));
+    AssertScriptSuccess("3/4/5;", new ScriptValue_Float(0.15));
     
     // test for the % operator
     AssertScriptSuccess("1%1;", new ScriptValue_Float(0));
@@ -326,7 +326,7 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("%5.0;");
     AssertScriptRaise("%\"foo\";");
     AssertScriptRaise("%T;");
-    AssertScriptSuccess("3%4%5;", new ScriptValue_Int(3));
+    AssertScriptSuccess("3%4%5;", new ScriptValue_Float(3));
 
 	// tests for the = operator (especially in conjunction with the [] operator)
 	AssertScriptSuccess("x = 5; x;", new ScriptValue_Int(5));
@@ -434,7 +434,7 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("\"foo\" < NULL;", new ScriptValue_Logical());
 	
     // check divide by zero
-    AssertScriptRaise("6/0;"); // FIXME should this be an error?
+    AssertScriptSuccess("6/0;", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
 	
 	// ************************************************************************************
 	//
