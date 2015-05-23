@@ -14,6 +14,7 @@ SLiMscript:
 	add ability to change the separator for cat – optional parameter
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	for Erich: implement unimplemented functions
+	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
 	
 	implement SLiM object element methods to support common tasks
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)

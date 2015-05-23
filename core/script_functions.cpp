@@ -73,11 +73,11 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("log",			FunctionIdentifier::logFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("log10",		FunctionIdentifier::log10Function,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("log2",		FunctionIdentifier::log2Function,		kScriptValueMaskFloat))->AddNumeric());
-		// product
+		signatures->push_back((new FunctionSignature("product",		FunctionIdentifier::productFunction,	kScriptValueMaskNumeric | kScriptValueMaskSingleton))->AddNumeric());
 		signatures->push_back((new FunctionSignature("round",		FunctionIdentifier::roundFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("sin",			FunctionIdentifier::sinFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("sqrt",		FunctionIdentifier::sqrtFunction,		kScriptValueMaskFloat))->AddNumeric());
-		// sum
+		signatures->push_back((new FunctionSignature("sum",			FunctionIdentifier::sumFunction,		kScriptValueMaskNumeric | kScriptValueMaskSingleton))->AddNumeric());
 		signatures->push_back((new FunctionSignature("tan",			FunctionIdentifier::tanFunction,		kScriptValueMaskFloat))->AddNumeric());
 		signatures->push_back((new FunctionSignature("trunc",		FunctionIdentifier::truncFunction,		kScriptValueMaskFloat))->AddNumeric());
 		
@@ -87,11 +87,11 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		//	summary statistics functions
 		//
 		
-		// max
+		signatures->push_back((new FunctionSignature("max",			FunctionIdentifier::maxFunction,		kScriptValueMaskNumeric | kScriptValueMaskSingleton))->AddNumeric());
 		signatures->push_back((new FunctionSignature("mean",		FunctionIdentifier::meanFunction,		kScriptValueMaskFloat))->AddNumeric());
-		// min
-		// range
-		// sd
+		signatures->push_back((new FunctionSignature("min",			FunctionIdentifier::minFunction,		kScriptValueMaskNumeric | kScriptValueMaskSingleton))->AddNumeric());
+		signatures->push_back((new FunctionSignature("range",		FunctionIdentifier::rangeFunction,		kScriptValueMaskNumeric))->AddNumeric());
+		signatures->push_back((new FunctionSignature("sd",			FunctionIdentifier::sdFunction,			kScriptValueMaskFloat | kScriptValueMaskSingleton))->AddNumeric());
 		
 		
 		// ************************************************************************************
@@ -122,16 +122,16 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("all",			FunctionIdentifier::allFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
 		signatures->push_back((new FunctionSignature("any",			FunctionIdentifier::anyFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddLogical());
 		signatures->push_back((new FunctionSignature("cat",			FunctionIdentifier::catFunction,		kScriptValueMaskNULL))->AddAny());
-		// ifelse
+		signatures->push_back((new FunctionSignature("ifelse",		FunctionIdentifier::ifelseFunction,		kScriptValueMaskAny))->AddLogical()->AddAny()->AddAny());
 		// paste
 		signatures->push_back((new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
 		signatures->push_back((new FunctionSignature("rev",			FunctionIdentifier::revFunction,		kScriptValueMaskAny))->AddAny());
 		signatures->push_back((new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
-		// sort
+		// sort  std::sort()
 		// str
 		// strsplit
 		signatures->push_back((new FunctionSignature("which",		FunctionIdentifier::whichFunction,		kScriptValueMaskInt))->AddLogical());
-		// whichMax
+		// whichMax - why does R return only the first??
 		// whichMin
 		
 		
@@ -145,12 +145,12 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("asLogical",	FunctionIdentifier::asLogicalFunction,	kScriptValueMaskLogical))->AddAny());
 		signatures->push_back((new FunctionSignature("asString",	FunctionIdentifier::asStringFunction,	kScriptValueMaskString))->AddAny());
 		signatures->push_back((new FunctionSignature("element",		FunctionIdentifier::elementFunction,	kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
-		// isFloat
-		// isInteger
+		signatures->push_back((new FunctionSignature("isFloat",		FunctionIdentifier::isFloatFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
+		signatures->push_back((new FunctionSignature("isInteger",	FunctionIdentifier::isIntegerFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
 		signatures->push_back((new FunctionSignature("isLogical",	FunctionIdentifier::isLogicalFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
-		// isNULL
-		// isObject
-		// isString
+		signatures->push_back((new FunctionSignature("isNULL",		FunctionIdentifier::isNULLFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
+		signatures->push_back((new FunctionSignature("isObject",	FunctionIdentifier::isObjectFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
+		signatures->push_back((new FunctionSignature("isString",	FunctionIdentifier::isStringFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
 		signatures->push_back((new FunctionSignature("type",		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
 		
 		
@@ -604,11 +604,74 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 
 		case FunctionIdentifier::productFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			if (arg1_type == ScriptValueType::kValueInt)
+			{
+				int_result = new ScriptValue_Int();
+				result = int_result;
+				
+				int64_t product = 1;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				{
+					int64_t old_product = product;
+					int64_t temp = arg1_value->IntAtIndex(value_index);
+					
+					product *= arg1_value->IntAtIndex(value_index);
+					
+					// raise on overflow; test after doing the multiplication
+					if (product / temp != old_product)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << endl << slim_terminate();
+				}
+				
+				int_result->PushInt(product);
+			}
+			else if (arg1_type == ScriptValueType::kValueFloat)
+			{
+				float_result = new ScriptValue_Float();
+				result = float_result;
+				
+				double product = 1;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					product *= arg1_value->FloatAtIndex(value_index);
+				
+				float_result->PushFloat(product);
+			}
 			break;
 			
 		case FunctionIdentifier::sumFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			if (arg1_type == ScriptValueType::kValueInt)
+			{
+				int_result = new ScriptValue_Int();
+				result = int_result;
+				
+				int64_t sum = 0;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				{
+					int64_t temp = arg1_value->IntAtIndex(value_index);
+					
+					// raise on overflow; test prior to doing the addition
+					if (((temp > 0) && (sum > INT64_MAX - temp)) || ((temp < 0) && (sum < INT64_MIN - temp)))
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << endl << slim_terminate();
+					
+					sum += arg1_value->IntAtIndex(value_index);
+				}
+				
+				int_result->PushInt(sum);
+			}
+			else if (arg1_type == ScriptValueType::kValueFloat)
+			{
+				float_result = new ScriptValue_Float();
+				result = float_result;
+				
+				double sum = 0;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					sum += arg1_value->FloatAtIndex(value_index);
+				
+				float_result->PushFloat(sum);
+			}
 			break;
 
 		case FunctionIdentifier::roundFunction:
@@ -643,7 +706,38 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		//
 			
 		case FunctionIdentifier::maxFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			if (arg1_count == 0)
+			{
+				result = new ScriptValue_NULL();
+			}
+			else if (arg1_type == ScriptValueType::kValueInt)
+			{
+				int_result = new ScriptValue_Int();
+				result = int_result;
+				
+				int64_t max = arg1_value->IntAtIndex(0);
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					int64_t temp = arg1_value->IntAtIndex(value_index);
+					if (max < temp)
+						max = temp;
+				}
+				int_result->PushInt(max);
+			}
+			else if (arg1_type == ScriptValueType::kValueFloat)
+			{
+				float_result = new ScriptValue_Float();
+				result = float_result;
+				
+				double max = arg1_value->FloatAtIndex(0);
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					double temp = arg1_value->FloatAtIndex(value_index);
+					if (max < temp)
+						max = temp;
+				}
+				float_result->PushFloat(max);
+			}
 			break;
 			
 		case FunctionIdentifier::meanFunction:
@@ -656,17 +750,112 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 		case FunctionIdentifier::minFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			if (arg1_count == 0)
+			{
+				result = new ScriptValue_NULL();
+			}
+			else if (arg1_type == ScriptValueType::kValueInt)
+			{
+				int_result = new ScriptValue_Int();
+				result = int_result;
+				
+				int64_t min = arg1_value->IntAtIndex(0);
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					int64_t temp = arg1_value->IntAtIndex(value_index);
+					if (min > temp)
+						min = temp;
+				}
+				int_result->PushInt(min);
+			}
+			else if (arg1_type == ScriptValueType::kValueFloat)
+			{
+				float_result = new ScriptValue_Float();
+				result = float_result;
+				
+				double min = arg1_value->FloatAtIndex(0);
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					double temp = arg1_value->FloatAtIndex(value_index);
+					if (min > temp)
+						min = temp;
+				}
+				float_result->PushFloat(min);
+			}
 			break;
 			
 		case FunctionIdentifier::rangeFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			if (arg1_count == 0)
+			{
+				result = new ScriptValue_NULL();
+			}
+			else if (arg1_type == ScriptValueType::kValueInt)
+			{
+				int_result = new ScriptValue_Int();
+				result = int_result;
+				
+				int64_t max = arg1_value->IntAtIndex(0);
+				int64_t min = max;
+
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					int64_t temp = arg1_value->IntAtIndex(value_index);
+					if (max < temp)
+						max = temp;
+					else if (min > temp)
+						min = temp;
+				}
+				int_result->PushInt(min);
+				int_result->PushInt(max);
+			}
+			else if (arg1_type == ScriptValueType::kValueFloat)
+			{
+				float_result = new ScriptValue_Float();
+				result = float_result;
+				
+				double max = arg1_value->FloatAtIndex(0);
+				double min = max;
+
+				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				{
+					double temp = arg1_value->FloatAtIndex(value_index);
+					if (max < temp)
+						max = temp;
+					else if (min > temp)
+						min = temp;
+				}
+				float_result->PushFloat(min);
+				float_result->PushFloat(max);
+			}
 			break;
 			
 		case FunctionIdentifier::sdFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+		{
+			if (arg1_count > 1)
+			{
+				double mean = 0;
+				double sd = 0;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					mean += arg1_value->FloatAtIndex(value_index);
+				
+				mean /= arg1_count;
+				
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				{
+					double temp = (arg1_value->FloatAtIndex(value_index) - mean);
+					sd += temp * temp;
+				}
+				
+				sd = sqrt(sd / (arg1_count - 1));
+				float_result->PushFloat(sd);
+			}
+			else
+			{
+				result = new ScriptValue_NULL();
+			}
 			break;
-			
+		}
 			
 		// ************************************************************************************
 		//
@@ -769,8 +958,31 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 			
 		case FunctionIdentifier::ifelseFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+		{
+			ScriptValue *arg2_value = p_arguments[1];
+			ScriptValueType arg2_type = arg2_value->Type();
+			int arg2_count = arg2_value->Count();
+			
+			ScriptValue *arg3_value = p_arguments[2];
+			ScriptValueType arg3_type = arg3_value->Type();
+			int arg3_count = arg3_value->Count();
+			
+			if (arg1_count != arg2_count || arg1_count != arg3_count)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments of equal length." << endl << slim_terminate();
+			if (arg2_type != arg3_type)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << endl << slim_terminate();
+				
+			result = arg2_value->NewMatchingType();
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			{
+				if (arg1_value->LogicalAtIndex(value_index))
+					result->PushValueFromIndexOfScriptValue(value_index, arg2_value);
+				else
+					result->PushValueFromIndexOfScriptValue(value_index, arg3_value);
+			}
 			break;
+		}
 			
 		case FunctionIdentifier::pasteFunction:
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
@@ -851,11 +1063,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 			
 		case FunctionIdentifier::isFloatFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueFloat);
 			break;
 			
 		case FunctionIdentifier::isIntegerFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueInt);
 			break;
 			
 		case FunctionIdentifier::isLogicalFunction:
@@ -863,15 +1075,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 			
 		case FunctionIdentifier::isNULLFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueNULL);
 			break;
 			
 		case FunctionIdentifier::isObjectFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueObject);
 			break;
 			
 		case FunctionIdentifier::isStringFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function unimplemented." << endl << slim_terminate();
+			logical_result->PushLogical(arg1_type == ScriptValueType::kValueString);
 			break;
 			
 		case FunctionIdentifier::typeFunction:

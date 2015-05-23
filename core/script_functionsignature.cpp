@@ -188,7 +188,12 @@ void FunctionSignature::CheckReturn(string const &p_call_type, ScriptValue *p_re
 	
 	switch (p_result->Type())
 	{
-		case ScriptValueType::kValueNULL:		return_type_ok = !!(retmask & kScriptValueMaskNULL);		break;
+		case ScriptValueType::kValueNULL:
+			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
+			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
+			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
+			// since we also don't want to do the singleton check below (since it would raise too).
+			return;
 		case ScriptValueType::kValueLogical:	return_type_ok = !!(retmask & kScriptValueMaskLogical);	break;
 		case ScriptValueType::kValueInt:		return_type_ok = !!(retmask & kScriptValueMaskInt);		break;
 		case ScriptValueType::kValueFloat:		return_type_ok = !!(retmask & kScriptValueMaskFloat);		break;
