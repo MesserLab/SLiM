@@ -36,6 +36,9 @@
 	// Interpreter logistical support
 	SymbolTable *global_symbols;
 	SLiMSim *sim;
+	
+	// Object browser
+	NSMutableArray *browserWrappers;
 }
 
 @property (retain) IBOutlet SLiMSyntaxColoredTextView *launchSLiMScriptTextView;
@@ -44,6 +47,7 @@
 @property (retain) IBOutlet NSSplitView *mainSplitView;
 @property (retain) IBOutlet SLiMSyntaxColoredTextView *scriptTextView;
 @property (retain) IBOutlet ConsoleTextView *outputTextView;
+@property (retain) IBOutlet NSButton *browserWindowButton;
 
 @property (retain) IBOutlet NSWindow *browserWindow;
 @property (retain) IBOutlet NSOutlineView *browserOutline;
@@ -65,8 +69,6 @@
 - (IBAction)executeSelection:(id)sender;
 
 @end
-
-
 
 
 

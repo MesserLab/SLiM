@@ -83,6 +83,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	delete global_symbols;
 	global_symbols = nil;
 	
+	[browserWrappers release];
+	browserWrappers = nil;
+	
 	[super dealloc];
 }
 
@@ -150,6 +153,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	NSString *terminationString = [self launchSimulationWithScript:launchScript];
 	
 	// Reload symbols in outline view
+	[browserWrappers removeAllObjects];
 	[_browserOutline reloadData];
 	
 	// Run startup tests, if enabled
@@ -281,6 +285,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back
 		
 		// reload outline view to show new global symbols, in case they have changed
+		[browserWrappers removeAllObjects];
 		[_browserOutline reloadData];
 		
 		if (executionString)
@@ -1078,6 +1083,10 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		
 		[[NSApplication sharedApplication] terminate:nil];
 	}
+	else if (closingWindow == _browserWindow)
+	{
+		[_browserWindowButton setState:NSOffState];
+	}
 }
 
 
@@ -1136,6 +1145,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 {
 	if (global_symbols)
 	{
+		if (!browserWrappers)
+			browserWrappers = [NSMutableArray new];
+		
 		if (item == nil)
 		{
 			std::vector<std::string> readOnlySymbols = global_symbols->ReadOnlySymbols();
@@ -1146,16 +1158,22 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				std::string symbolName = readOnlySymbols[index];
 				ScriptValue *symbolValue = global_symbols->GetValueForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				ScriptValueWrapper *wrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
-				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+				[browserWrappers addObject:wrapper];
+				
+				return wrapper;
 			}
 			else
 			{
 				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
 				ScriptValue *symbolValue = global_symbols->GetValueForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				ScriptValueWrapper *wrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
-				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+				[browserWrappers addObject:wrapper];
+				
+				return wrapper;
 			}
 		}
 		else
@@ -1170,16 +1188,22 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				std::string symbolName = readOnlySymbols[index];
 				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
-				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+				[browserWrappers addObject:childWrapper];
+				
+				return wrapper;
 			}
 			else
 			{
 				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
 				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
-				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+				[browserWrappers addObject:childWrapper];
+				
+				return wrapper;
 			}
 		}
 	}

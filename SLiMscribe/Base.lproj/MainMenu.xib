@@ -15,6 +15,7 @@
             <connections>
                 <outlet property="browserOutline" destination="VXg-L5-KAP" id="fak-wr-aAZ"/>
                 <outlet property="browserWindow" destination="fnq-b4-RNN" id="Ua4-0o-ZBw"/>
+                <outlet property="browserWindowButton" destination="mO4-pm-gGS" id="d4f-C3-CBH"/>
                 <outlet property="launchSLiMScriptTextView" destination="x3T-cB-16z" id="rXZ-G8-das"/>
                 <outlet property="mainSplitView" destination="emP-KH-cSX" id="RPe-k0-9gX"/>
                 <outlet property="outputTextView" destination="E2O-GK-io0" id="Ied-CP-7tg"/>
@@ -493,8 +494,8 @@ DQ
                                             <constraint firstAttribute="width" constant="20" id="5Fc-By-453"/>
                                             <constraint firstAttribute="height" constant="20" id="f65-wK-mRe"/>
                                         </constraints>
-                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="overlaps" alignment="center" alternateImage="show_browser_H" state="on" imageScaling="proportionallyDown" inset="2" id="MMz-cb-QN1">
-                                            <behavior key="behavior" lightByContents="YES"/>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="overlaps" alignment="center" alternateImage="show_browser_H" imageScaling="proportionallyDown" inset="2" id="MMz-cb-QN1">
+                                            <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <connections>
@@ -795,6 +796,9 @@ DQ
                     <constraint firstItem="0V5-wz-ezj" firstAttribute="top" secondItem="SON-9D-eMN" secondAttribute="top" constant="-1" id="zha-Ck-9Sv"/>
                 </constraints>
             </view>
+            <connections>
+                <outlet property="delegate" destination="Voe-Tx-rLC" id="WMe-JP-h2I"/>
+            </connections>
             <point key="canvasLocation" x="2288" y="1875"/>
         </window>
     </objects>
