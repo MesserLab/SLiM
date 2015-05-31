@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
+		98090FA31B1B8B5800791DBF /* show_browser.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA11B1B8B5800791DBF /* show_browser.pdf */; };
+		98090FA61B1B978900791DBF /* ScriptValueWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98090FA51B1B978900791DBF /* ScriptValueWrapper.mm */; };
 		980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */; };
 		980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */; };
 		981BAC6A1ACC6E8B0005BE94 /* script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981BAC681ACC6E8B0005BE94 /* script.cpp */; };
@@ -263,6 +266,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		98090FA01B1B8B5800791DBF /* show_browser_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser_H.pdf; sourceTree = "<group>"; };
+		98090FA11B1B8B5800791DBF /* show_browser.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser.pdf; sourceTree = "<group>"; };
+		98090FA41B1B978900791DBF /* ScriptValueWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptValueWrapper.h; sourceTree = "<group>"; };
+		98090FA51B1B978900791DBF /* ScriptValueWrapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptValueWrapper.mm; sourceTree = "<group>"; };
 		980DD5191AAE42F900D5B7B8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphAxisRescaleSheet.xib; sourceTree = "<group>"; };
 		980DD51B1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencyTrajectory.h; sourceTree = "<group>"; };
 		980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFrequencyTrajectory.mm; sourceTree = "<group>"; };
@@ -684,6 +691,8 @@
 				985724B41AD478630047C223 /* AppDelegate.mm */,
 				985724E51AD622880047C223 /* ConsoleTextView.h */,
 				985724E61AD622880047C223 /* ConsoleTextView.m */,
+				98090FA41B1B978900791DBF /* ScriptValueWrapper.h */,
+				98090FA51B1B978900791DBF /* ScriptValueWrapper.mm */,
 				985724B81AD478630047C223 /* Images.xcassets */,
 				985724BA1AD478630047C223 /* MainMenu.xib */,
 				98EFE6321ADD92BC00CBEC78 /* AboutWindow.xib */,
@@ -801,6 +810,8 @@
 		98D4C1E41A6FD8D600FFB083 /* buttons */ = {
 			isa = PBXGroup;
 			children = (
+				98090FA01B1B8B5800791DBF /* show_browser_H.pdf */,
+				98090FA11B1B8B5800791DBF /* show_browser.pdf */,
 				986926D21AA1337A0000E138 /* graph_submenu_H.pdf */,
 				986926D31AA1337A0000E138 /* graph_submenu.pdf */,
 				98453F4C1A76004300C058CB /* open_type_drawer_H.pdf */,
@@ -1018,6 +1029,7 @@
 				985724E11AD4C3310047C223 /* execute_script.pdf in Resources */,
 				985724D61AD489AA0047C223 /* check_H.pdf in Resources */,
 				985724E01AD4C3310047C223 /* execute_script_H.pdf in Resources */,
+				98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */,
 				985724B91AD478630047C223 /* Images.xcassets in Resources */,
 				985724F71AD6DD470047C223 /* show_execution.pdf in Resources */,
 				985724BC1AD478630047C223 /* MainMenu.xib in Resources */,
@@ -1032,6 +1044,7 @@
 				985724F21AD6D4060047C223 /* show_tokens_H.pdf in Resources */,
 				985724EA1AD6B9FE0047C223 /* execute_selection_H.pdf in Resources */,
 				985724F61AD6DD470047C223 /* show_execution_H.pdf in Resources */,
+				98090FA31B1B8B5800791DBF /* show_browser.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1169,6 +1182,7 @@
 				98AC15EC1AF55CBE0096F15D /* event.cpp in Sources */,
 				98AC15EF1AF55CBE0096F15D /* introduced_mutation.cpp in Sources */,
 				985724B71AD478630047C223 /* main.m in Sources */,
+				98090FA61B1B978900791DBF /* ScriptValueWrapper.mm in Sources */,
 				985724D01AD479010047C223 /* script_value.cpp in Sources */,
 				985724D31AD479010047C223 /* script_test.cpp in Sources */,
 				98AC15F81AF55CBE0096F15D /* population.cpp in Sources */,

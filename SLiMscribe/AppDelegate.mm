@@ -20,6 +20,8 @@
 
 #import "AppDelegate.h"
 #import "CocoaExtra.h"
+#import "ScriptValueWrapper.h"
+
 #include "script_functions.h"
 #include "script_functionsignature.h"
 #include "script_test.h"
@@ -146,6 +148,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[launchSLiMScriptTextView setString:launchScript];
 	
 	NSString *terminationString = [self launchSimulationWithScript:launchScript];
+	
+	// Reload symbols in outline view
+	[_browserOutline reloadData];
 	
 	// Run startup tests, if enabled
 	RunSLiMScriptTests();
@@ -274,6 +279,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		result = interpreter.EvaluateInterpreterBlock();
 		output = interpreter.ExecutionOutput();
 		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back
+		
+		// reload outline view to show new global symbols, in case they have changed
+		[_browserOutline reloadData];
 		
 		if (executionString)
 			*executionString = [NSString stringWithUTF8String:interpreter.ExecutionLog().c_str()];
@@ -421,6 +429,15 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	
 	[outputTextView registerNewHistoryItem:@"help()"];
 	[self executeScriptString:@"help()" addOptionalSemicolon:YES];
+}
+
+- (IBAction)toggleBrowserVisibility:(id)sender
+{
+	// FIXME keep button highlighted to show toggle state
+	if ([_browserWindow isVisible])
+		[_browserWindow orderOut:nil];
+	else
+		[_browserWindow makeKeyAndOrderFront:nil];
 }
 
 - (IBAction)clearOutput:(id)sender
@@ -1076,15 +1093,130 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMax - 200;
+	return proposedMax - 230;
 }
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMin + 200;
+	return proposedMin + 230;
+}
+
+
+//
+//	NSOutlineView datasource / delegate methods
+//
+#pragma mark NSOutlineView delegate
+
+- (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
+{
+	if (global_symbols)
+	{
+		if (item == nil)
+		{
+			std::vector<std::string> readOnlySymbols = global_symbols->ReadOnlySymbols();
+			std::vector<std::string> readWriteSymbols = global_symbols->ReadWriteSymbols();
+			
+			return (readOnlySymbols.size() + readWriteSymbols.size());
+		}
+		else
+		{
+			ScriptValueWrapper *wrapper = (ScriptValueWrapper *)item;
+			ScriptValue_Object *value = (ScriptValue_Object *)(wrapper->wrappedValue);
+			std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
+			std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+			
+			return (readOnlySymbols.size() + readWriteSymbols.size());
+		}
+	}
+	
+	return 0;
+}
+
+- (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item
+{
+	if (global_symbols)
+	{
+		if (item == nil)
+		{
+			std::vector<std::string> readOnlySymbols = global_symbols->ReadOnlySymbols();
+			std::vector<std::string> readWriteSymbols = global_symbols->ReadWriteSymbols();
+			
+			if (index < readOnlySymbols.size())
+			{
+				std::string symbolName = readOnlySymbols[index];
+				ScriptValue *symbolValue = global_symbols->GetValueForSymbol(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				
+				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+			}
+			else
+			{
+				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+				ScriptValue *symbolValue = global_symbols->GetValueForSymbol(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				
+				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+			}
+		}
+		else
+		{
+			ScriptValueWrapper *wrapper = (ScriptValueWrapper *)item;
+			ScriptValue_Object *value = (ScriptValue_Object *)(wrapper->wrappedValue);
+			std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
+			std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+			
+			if (index < readOnlySymbols.size())
+			{
+				std::string symbolName = readOnlySymbols[index];
+				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				
+				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+			}
+			else
+			{
+				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				
+				return [[ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue] retain];	// retain is a leak
+			}
+		}
+	}
+	
+	return nil;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
+{
+	if ([item isKindOfClass:[ScriptValueWrapper class]])
+	{
+		ScriptValueWrapper *wrapper = (ScriptValueWrapper *)item;
+		ScriptValue *value = wrapper->wrappedValue;
+		
+		if (value->Type() == ScriptValueType::kValueObject)
+		{
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
+- (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
+{
+	if ([item isKindOfClass:[ScriptValueWrapper class]])
+	{
+		ScriptValueWrapper *wrapper = (ScriptValueWrapper *)item;
+		
+		return wrapper->wrappedName;
+	}
+	
+	return nil;
 }
 
 @end
+
 
 
 

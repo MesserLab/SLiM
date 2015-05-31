@@ -27,7 +27,7 @@
 #include "slim_sim.h"
 
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, ConsoleTextViewDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, ConsoleTextViewDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
 	// About window cruft
 	IBOutlet NSWindow *aboutWindow;
@@ -45,6 +45,9 @@
 @property (retain) IBOutlet SLiMSyntaxColoredTextView *scriptTextView;
 @property (retain) IBOutlet ConsoleTextView *outputTextView;
 
+@property (retain) IBOutlet NSWindow *browserWindow;
+@property (retain) IBOutlet NSOutlineView *browserOutline;
+
 - (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon;
 
 - (IBAction)showAboutWindow:(id)sender;
@@ -56,6 +59,7 @@
 
 - (IBAction)checkScript:(id)sender;
 - (IBAction)showScriptHelp:(id)sender;
+- (IBAction)toggleBrowserVisibility:(id)sender;
 - (IBAction)clearOutput:(id)sender;
 - (IBAction)executeAll:(id)sender;
 - (IBAction)executeSelection:(id)sender;

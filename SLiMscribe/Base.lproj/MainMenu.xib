@@ -13,6 +13,8 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
+                <outlet property="browserOutline" destination="VXg-L5-KAP" id="fak-wr-aAZ"/>
+                <outlet property="browserWindow" destination="fnq-b4-RNN" id="Ua4-0o-ZBw"/>
                 <outlet property="launchSLiMScriptTextView" destination="x3T-cB-16z" id="rXZ-G8-das"/>
                 <outlet property="mainSplitView" destination="emP-KH-cSX" id="RPe-k0-9gX"/>
                 <outlet property="outputTextView" destination="E2O-GK-io0" id="Ied-CP-7tg"/>
@@ -422,7 +424,7 @@ DQ
                                         </scroller>
                                     </scrollView>
                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="CDb-X6-3mS">
-                                        <rect key="frame" x="54" y="746" width="79" height="17"/>
+                                        <rect key="frame" x="77" y="746" width="79" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="SLiMscript:" id="ydS-ng-PJX">
                                             <font key="font" metaFont="systemBold"/>
                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -485,11 +487,28 @@ DQ
                                             <action selector="executeAll:" target="Voe-Tx-rLC" id="VE4-ql-y1A"/>
                                         </connections>
                                     </button>
+                                    <button toolTip="script syntax help" translatesAutoresizingMaskIntoConstraints="NO" id="mO4-pm-gGS">
+                                        <rect key="frame" x="50" y="745" width="20" height="20"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="20" id="5Fc-By-453"/>
+                                            <constraint firstAttribute="height" constant="20" id="f65-wK-mRe"/>
+                                        </constraints>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="overlaps" alignment="center" alternateImage="show_browser_H" state="on" imageScaling="proportionallyDown" inset="2" id="MMz-cb-QN1">
+                                            <behavior key="behavior" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="toggleBrowserVisibility:" target="Voe-Tx-rLC" id="n98-xl-UeX"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="pmY-vP-P1r" firstAttribute="bottom" secondItem="ZkX-bq-jHG" secondAttribute="bottom" id="4C3-E5-T0n"/>
                                     <constraint firstItem="CDb-X6-3mS" firstAttribute="top" secondItem="yOR-Mp-aWX" secondAttribute="top" constant="5" id="5cB-aN-LdP"/>
+                                    <constraint firstItem="mO4-pm-gGS" firstAttribute="bottom" secondItem="J8w-w4-5C7" secondAttribute="bottom" id="5tl-xu-YCK"/>
+                                    <constraint firstItem="CDb-X6-3mS" firstAttribute="leading" secondItem="mO4-pm-gGS" secondAttribute="trailing" constant="9" id="EKz-Hl-j4G"/>
                                     <constraint firstItem="pmY-vP-P1r" firstAttribute="bottom" secondItem="J8w-w4-5C7" secondAttribute="bottom" id="FB0-Ml-cxv"/>
+                                    <constraint firstItem="mO4-pm-gGS" firstAttribute="leading" secondItem="J8w-w4-5C7" secondAttribute="trailing" constant="3" id="J0P-x6-ncn"/>
                                     <constraint firstItem="J8w-w4-5C7" firstAttribute="leading" secondItem="VGp-pi-hdF" secondAttribute="trailing" constant="3" id="PAq-RM-odu"/>
                                     <constraint firstAttribute="trailing" secondItem="fMi-eB-8gc" secondAttribute="trailing" constant="-1" id="TTo-MZ-CaX"/>
                                     <constraint firstAttribute="bottom" secondItem="fMi-eB-8gc" secondAttribute="bottom" constant="-1" id="TcY-Q4-j1F"/>
@@ -499,7 +518,6 @@ DQ
                                     <constraint firstItem="VGp-pi-hdF" firstAttribute="leading" secondItem="yOR-Mp-aWX" secondAttribute="leading" constant="4" id="aQm-yd-Xrf"/>
                                     <constraint firstItem="ZkX-bq-jHG" firstAttribute="leading" secondItem="pmY-vP-P1r" secondAttribute="trailing" constant="3" id="dS7-mk-PmG"/>
                                     <constraint firstAttribute="trailing" secondItem="ZkX-bq-jHG" secondAttribute="trailing" constant="5" id="eyc-rU-ZLZ"/>
-                                    <constraint firstItem="CDb-X6-3mS" firstAttribute="leading" secondItem="J8w-w4-5C7" secondAttribute="trailing" constant="9" id="fXM-ob-Mdr"/>
                                     <constraint firstItem="VGp-pi-hdF" firstAttribute="bottom" secondItem="J8w-w4-5C7" secondAttribute="bottom" id="u2T-of-uS8"/>
                                 </constraints>
                             </customView>
@@ -642,7 +660,7 @@ DQ
             <connections>
                 <outlet property="delegate" destination="Voe-Tx-rLC" id="VhK-Uh-jSl"/>
             </connections>
-            <point key="canvasLocation" x="1722" y="1719"/>
+            <point key="canvasLocation" x="1992" y="1721"/>
         </window>
         <userDefaultsController representsSharedInstance="YES" id="lSE-C6-fAy"/>
         <window title="SLiMscribe Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="SLiMscribePreferences" animationBehavior="default" id="07I-Ik-fZL" customClass="NSPanel">
@@ -669,14 +687,14 @@ DQ
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <textView importsGraphics="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" smartInsertDelete="YES" id="x3T-cB-16z" customClass="SLiMSyntaxColoredTextView">
-                                    <rect key="frame" x="0.0" y="0.0" width="223" height="133"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="223" height="461"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                     <size key="minSize" width="454" height="461"/>
-                                    <size key="maxSize" width="463" height="10000000"/>
+                                    <size key="maxSize" width="471" height="10000000"/>
                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                     <size key="minSize" width="454" height="461"/>
-                                    <size key="maxSize" width="463" height="10000000"/>
+                                    <size key="maxSize" width="471" height="10000000"/>
                                     <connections>
                                         <outlet property="delegate" destination="Voe-Tx-rLC" id="UR4-tI-JEm"/>
                                     </connections>
@@ -716,6 +734,69 @@ DQ
             </view>
             <point key="canvasLocation" x="1796.5" y="1984.5"/>
         </window>
+        <window title="Browser" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="fnq-b4-RNN">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="283" y="348" width="480" height="302"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
+            <view key="contentView" id="SON-9D-eMN">
+                <rect key="frame" x="0.0" y="-5" width="480" height="302"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0V5-wz-ezj">
+                        <rect key="frame" x="-1" y="-1" width="482" height="304"/>
+                        <clipView key="contentView" id="AYV-wx-FfH">
+                            <rect key="frame" x="1" y="0.0" width="238" height="134"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" indentationPerLevel="16" outlineTableColumn="beA-5C-pSP" id="VXg-L5-KAP">
+                                    <rect key="frame" x="0.0" y="0.0" width="238" height="134"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                    <size key="intercellSpacing" width="3" height="2"/>
+                                    <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                    <tableColumns>
+                                        <tableColumn width="477" minWidth="40" maxWidth="1000" id="beA-5C-pSP">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left">
+                                                <font key="font" metaFont="smallSystem"/>
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="2Us-ZR-8Y7">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        </tableColumn>
+                                    </tableColumns>
+                                    <connections>
+                                        <outlet property="dataSource" destination="Voe-Tx-rLC" id="25v-Tl-s67"/>
+                                        <outlet property="delegate" destination="Voe-Tx-rLC" id="xvZ-f5-bZn"/>
+                                    </connections>
+                                </outlineView>
+                            </subviews>
+                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </clipView>
+                        <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="nNI-30-AC4">
+                            <rect key="frame" x="1" y="119" width="223" height="15"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                        </scroller>
+                        <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="L4f-CW-bj0">
+                            <rect key="frame" x="224" y="17" width="15" height="102"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                        </scroller>
+                    </scrollView>
+                </subviews>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="0V5-wz-ezj" secondAttribute="trailing" constant="-1" id="OCx-WJ-Qda"/>
+                    <constraint firstAttribute="bottom" secondItem="0V5-wz-ezj" secondAttribute="bottom" constant="-1" id="cTs-My-j3P"/>
+                    <constraint firstItem="0V5-wz-ezj" firstAttribute="leading" secondItem="SON-9D-eMN" secondAttribute="leading" constant="-1" id="y36-2U-351"/>
+                    <constraint firstItem="0V5-wz-ezj" firstAttribute="top" secondItem="SON-9D-eMN" secondAttribute="top" constant="-1" id="zha-Ck-9Sv"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="2288" y="1875"/>
+        </window>
     </objects>
     <resources>
         <image name="check" width="137" height="137"/>
@@ -726,6 +807,8 @@ DQ
         <image name="execute_script_H" width="137" height="137"/>
         <image name="execute_selection" width="137" height="137"/>
         <image name="execute_selection_H" width="137" height="137"/>
+        <image name="show_browser" width="137" height="137"/>
+        <image name="show_browser_H" width="137" height="137"/>
         <image name="show_execution" width="137" height="137"/>
         <image name="show_execution_H" width="137" height="137"/>
         <image name="show_parse" width="137" height="137"/>
