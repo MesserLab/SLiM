@@ -297,6 +297,11 @@ void ScriptValue_NULL::PushValueFromIndexOfScriptValue(int p_idx, const ScriptVa
 		SLIM_TERMINATION << "ERROR (ScriptValue_NULL::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
 }
 
+void ScriptValue_NULL::Sort(bool p_ascending)
+{
+	// nothing to do
+}
+
 
 //
 //	ScriptValue_Logical
@@ -454,6 +459,14 @@ void ScriptValue_Logical::PushValueFromIndexOfScriptValue(int p_idx, const Scrip
 		SLIM_TERMINATION << "ERROR (ScriptValue_Logical::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
 }
 
+void ScriptValue_Logical::Sort(bool p_ascending)
+{
+	if (p_ascending)
+		std::sort(values_.begin(), values_.end());
+	else
+		std::sort(values_.begin(), values_.end(), std::greater<bool>());
+}
+
 
 //
 //	ScriptValue_String
@@ -604,6 +617,14 @@ void ScriptValue_String::PushValueFromIndexOfScriptValue(int p_idx, const Script
 		values_.push_back(p_source_script_value->StringAtIndex(p_idx));
 	else
 		SLIM_TERMINATION << "ERROR (ScriptValue_String::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+}
+
+void ScriptValue_String::Sort(bool p_ascending)
+{
+	if (p_ascending)
+		std::sort(values_.begin(), values_.end());
+	else
+		std::sort(values_.begin(), values_.end(), std::greater<std::string>());
 }
 
 
@@ -769,6 +790,14 @@ void ScriptValue_Int::PushValueFromIndexOfScriptValue(int p_idx, const ScriptVal
 		SLIM_TERMINATION << "ERROR (ScriptValue_Int::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
 }
 
+void ScriptValue_Int::Sort(bool p_ascending)
+{
+	if (p_ascending)
+		std::sort(values_.begin(), values_.end());
+	else
+		std::sort(values_.begin(), values_.end(), std::greater<int64_t>());
+}
+
 
 //
 //	ScriptValue_Float
@@ -926,6 +955,14 @@ void ScriptValue_Float::PushValueFromIndexOfScriptValue(int p_idx, const ScriptV
 		SLIM_TERMINATION << "ERROR (ScriptValue_Float::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
 }
 
+void ScriptValue_Float::Sort(bool p_ascending)
+{
+	if (p_ascending)
+		std::sort(values_.begin(), values_.end());
+	else
+		std::sort(values_.begin(), values_.end(), std::greater<double>());
+}
+
 
 //
 //	ScriptValue_Object
@@ -1055,6 +1092,189 @@ void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const Script
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
 }
 
+void ScriptValue_Object::Sort(bool p_ascending)
+{
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object::Sort): Sort() is not defined for type object." << endl << slim_terminate();
+}
+
+bool CompareLogicalObjectSortPairsAscending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j);
+bool CompareLogicalObjectSortPairsAscending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j)					{ return (i.first < j.first); }
+bool CompareLogicalObjectSortPairsDescending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j);
+bool CompareLogicalObjectSortPairsDescending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j)					{ return (i.first > j.first); }
+
+bool CompareIntObjectSortPairsAscending(std::pair<int64_t, ScriptObjectElement*> i, std::pair<int64_t, ScriptObjectElement*> j);
+bool CompareIntObjectSortPairsAscending(std::pair<int64_t, ScriptObjectElement*> i, std::pair<int64_t, ScriptObjectElement*> j)					{ return (i.first < j.first); }
+bool CompareIntObjectSortPairsDescending(std::pair<int64_t, ScriptObjectElement*> i, std::pair<int64_t, ScriptObjectElement*> j);
+bool CompareIntObjectSortPairsDescending(std::pair<int64_t, ScriptObjectElement*> i, std::pair<int64_t, ScriptObjectElement*> j)				{ return (i.first > j.first); }
+
+bool CompareFloatObjectSortPairsAscending(std::pair<double, ScriptObjectElement*> i, std::pair<double, ScriptObjectElement*> j);
+bool CompareFloatObjectSortPairsAscending(std::pair<double, ScriptObjectElement*> i, std::pair<double, ScriptObjectElement*> j)					{ return (i.first < j.first); }
+bool CompareFloatObjectSortPairsDescending(std::pair<double, ScriptObjectElement*> i, std::pair<double, ScriptObjectElement*> j);
+bool CompareFloatObjectSortPairsDescending(std::pair<double, ScriptObjectElement*> i, std::pair<double, ScriptObjectElement*> j)				{ return (i.first > j.first); }
+
+bool CompareStringObjectSortPairsAscending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j);
+bool CompareStringObjectSortPairsAscending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j)		{ return (i.first < j.first); }
+bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j);
+bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j)		{ return (i.first > j.first); }
+
+void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
+{
+	// length 0 is already sorted
+	if (values_.size() == 0)
+		return;
+	
+	// figure out what type the property returns
+	ScriptValue *first_result = values_[0]->GetValueForMember(p_property);
+	ScriptValueType property_type = first_result->Type();
+	
+	if (!first_result->InSymbolTable()) delete first_result;
+	
+	// switch on the property type for efficiency
+	switch (property_type)
+	{
+		case ScriptValueType::kValueNULL:
+		case ScriptValueType::kValueObject:
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << endl << slim_terminate();
+			break;
+			
+		case ScriptValueType::kValueLogical:
+		{
+			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
+			vector<std::pair<bool, ScriptObjectElement*>> sortable_pairs;
+			
+			for (auto value : values_)
+			{
+				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				
+				if (temp_result->Count() != 1)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+				if (temp_result->Type() != property_type)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+				
+				sortable_pairs.push_back(std::pair<bool, ScriptObjectElement*>(temp_result->LogicalAtIndex(0), value));
+				
+				if (!temp_result->InSymbolTable()) delete temp_result;
+			}
+			
+			// sort the vector of pairs
+			if (p_ascending)
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareLogicalObjectSortPairsAscending);
+			else
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareLogicalObjectSortPairsDescending);
+			
+			// read out our new element vector
+			values_.clear();
+			
+			for (auto sorted_pair : sortable_pairs)
+				values_.push_back(sorted_pair.second);
+			
+			break;
+		}
+			
+		case ScriptValueType::kValueInt:
+		{
+			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
+			vector<std::pair<int64_t, ScriptObjectElement*>> sortable_pairs;
+			
+			for (auto value : values_)
+			{
+				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				
+				if (temp_result->Count() != 1)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+				if (temp_result->Type() != property_type)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+				
+				sortable_pairs.push_back(std::pair<int64_t, ScriptObjectElement*>(temp_result->IntAtIndex(0), value));
+				
+				if (!temp_result->InSymbolTable()) delete temp_result;
+			}
+			
+			// sort the vector of pairs
+			if (p_ascending)
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareIntObjectSortPairsAscending);
+			else
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareIntObjectSortPairsDescending);
+			
+			// read out our new element vector
+			values_.clear();
+			
+			for (auto sorted_pair : sortable_pairs)
+				values_.push_back(sorted_pair.second);
+			
+			break;
+		}
+			
+		case ScriptValueType::kValueFloat:
+		{
+			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
+			vector<std::pair<double, ScriptObjectElement*>> sortable_pairs;
+			
+			for (auto value : values_)
+			{
+				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				
+				if (temp_result->Count() != 1)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+				if (temp_result->Type() != property_type)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+				
+				sortable_pairs.push_back(std::pair<double, ScriptObjectElement*>(temp_result->FloatAtIndex(0), value));
+				
+				if (!temp_result->InSymbolTable()) delete temp_result;
+			}
+			
+			// sort the vector of pairs
+			if (p_ascending)
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareFloatObjectSortPairsAscending);
+			else
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareFloatObjectSortPairsDescending);
+			
+			// read out our new element vector
+			values_.clear();
+			
+			for (auto sorted_pair : sortable_pairs)
+				values_.push_back(sorted_pair.second);
+			
+			break;
+		}
+			
+		case ScriptValueType::kValueString:
+		{
+			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
+			vector<std::pair<std::string, ScriptObjectElement*>> sortable_pairs;
+			
+			for (auto value : values_)
+			{
+				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				
+				if (temp_result->Count() != 1)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+				if (temp_result->Type() != property_type)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+				
+				sortable_pairs.push_back(std::pair<std::string, ScriptObjectElement*>(temp_result->StringAtIndex(0), value));
+				
+				if (!temp_result->InSymbolTable()) delete temp_result;
+			}
+			
+			// sort the vector of pairs
+			if (p_ascending)
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareStringObjectSortPairsAscending);
+			else
+				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareStringObjectSortPairsDescending);
+			
+			// read out our new element vector
+			values_.clear();
+			
+			for (auto sorted_pair : sortable_pairs)
+				values_.push_back(sorted_pair.second);
+			
+			break;
+		}
+	}
+}
+
 std::vector<std::string> ScriptValue_Object::ReadOnlyMembersOfElements(void) const
 {
 	if (values_.size() == 0)
@@ -1075,7 +1295,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << endl << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1137,7 +1357,7 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << endl << slim_terminate();
 	}
 	else
 	{
@@ -1385,7 +1605,9 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
 				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+				
 				if (!first_value->InSymbolTable()) delete first_value;
+				if (!second_value->InSymbolTable()) delete second_value;
 			}
 			
 			if (!member_value->InSymbolTable()) delete member_value;

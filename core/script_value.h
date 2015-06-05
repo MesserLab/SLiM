@@ -141,6 +141,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const = 0;			// a deep copy of the receiver with in_symbol_table_ == invisible_ == false
 	virtual ScriptValue *NewMatchingType(void) const = 0;		// a new ScriptValue instance of the same type as the receiver
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;	// copy a value from another object of the same type
+	virtual void Sort(bool p_ascending) = 0;
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptValue &p_value);
@@ -166,6 +167,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
 };
 
 class ScriptValue_Logical : public ScriptValue
@@ -205,6 +207,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
 };
 
 class ScriptValue_String : public ScriptValue
@@ -243,6 +246,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
 };
 
 class ScriptValue_Int : public ScriptValue
@@ -282,6 +286,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
 };
 
 class ScriptValue_Float : public ScriptValue
@@ -320,6 +325,7 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
 };
 
 class ScriptValue_Object : public ScriptValue
@@ -350,6 +356,8 @@ public:
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
+	void SortBy(const std::string p_property, bool p_ascending);
 	
 	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
