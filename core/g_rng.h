@@ -74,9 +74,12 @@ static inline __attribute__((always_inline)) bool g_rng_bool(gsl_rng *r)
 }
 
 
-// Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye, Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505
-// The expected number of mutations / breakpoints will always be quite small, so we should be safe using this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
-// allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good reasons for us to roll our own here.
+// Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye,
+// Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505.
+// The expected number of mutations / breakpoints will always be quite small, so we should be safe using
+// this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
+// allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good
+// reasons for us to roll our own here.
 static inline __attribute__((always_inline)) unsigned int slim_fast_ran_poisson(double mu)
 {
 	unsigned int x = 0;
