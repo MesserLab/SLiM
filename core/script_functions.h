@@ -135,6 +135,7 @@ enum class FunctionIdentifier {
 	helpFunction,
 	licenseFunction,
 	rmFunction,
+	setSeedFunction,
 	stopFunction,
 	timeFunction,
 	versionFunction,

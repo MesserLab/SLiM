@@ -11,8 +11,9 @@ command-line tool:
 	add support for rules as discussed with Philipp: modify the fitness calculation with a call out to SLiMscript
 
 SLiMscript:
+	remove all input file directive code, convert to 100% SLiMscript-based operation
+	implement help()
 	add rigorous tests for all functions
-	vectorize functions like substr more fully; should be able to give a vector of first/last positions, for example
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
 documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
@@ -23,6 +24,7 @@ documentation work: revise docs for min, max, range, sum, product, sd, whichMax,
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
 SLiMgui work:
+	change SLiMgui to be zero-based in everything, like the back end and SLiMscript
 	fold SLiMscribe into SLiMgui!
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe

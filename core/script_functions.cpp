@@ -108,13 +108,13 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("integer",		FunctionIdentifier::integerFunction,	kScriptValueMaskInt))->AddInt_S());
 		signatures->push_back((new FunctionSignature("logical",		FunctionIdentifier::logicalFunction,	kScriptValueMaskLogical))->AddInt_S());
 		signatures->push_back((new FunctionSignature("object",		FunctionIdentifier::objectFunction,		kScriptValueMaskObject)));
-		signatures->push_back((new FunctionSignature("rbinom",		FunctionIdentifier::rbinomFunction,		kScriptValueMaskInt))->AddInt_S()->AddInt_S()->AddFloat_S());
+		signatures->push_back((new FunctionSignature("rbinom",		FunctionIdentifier::rbinomFunction,		kScriptValueMaskInt))->AddInt_S()->AddInt()->AddFloat());
 		signatures->push_back((new FunctionSignature("rep",			FunctionIdentifier::repFunction,		kScriptValueMaskAny))->AddAny()->AddInt_S());
 		signatures->push_back((new FunctionSignature("repEach",		FunctionIdentifier::repEachFunction,	kScriptValueMaskAny))->AddAny()->AddInt());
-		signatures->push_back((new FunctionSignature("rexp",		FunctionIdentifier::rexpFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_OS());
-		signatures->push_back((new FunctionSignature("rnorm",		FunctionIdentifier::rnormFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_OS()->AddNumeric_OS());
-		signatures->push_back((new FunctionSignature("rpois",		FunctionIdentifier::rpoisFunction,		kScriptValueMaskInt))->AddInt_S()->AddNumeric_S());
-		signatures->push_back((new FunctionSignature("runif",		FunctionIdentifier::runifFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_OS()->AddNumeric_OS());
+		signatures->push_back((new FunctionSignature("rexp",		FunctionIdentifier::rexpFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_O());
+		signatures->push_back((new FunctionSignature("rnorm",		FunctionIdentifier::rnormFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_O()->AddNumeric_O());
+		signatures->push_back((new FunctionSignature("rpois",		FunctionIdentifier::rpoisFunction,		kScriptValueMaskInt))->AddInt_S()->AddNumeric());
+		signatures->push_back((new FunctionSignature("runif",		FunctionIdentifier::runifFunction,		kScriptValueMaskFloat))->AddInt_S()->AddNumeric_O()->AddNumeric_O());
 		signatures->push_back((new FunctionSignature("sample",		FunctionIdentifier::sampleFunction,		kScriptValueMaskAny))->AddAny()->AddInt()->AddLogical_OS()->AddNumeric_O());
 		signatures->push_back((new FunctionSignature("seq",			FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
 		signatures->push_back((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
@@ -139,7 +139,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("sortBy",		FunctionIdentifier::sortByFunction,		kScriptValueMaskObject))->AddObject()->AddString_S()->AddLogical_OS());
 		signatures->push_back((new FunctionSignature("str",			FunctionIdentifier::strFunction,		kScriptValueMaskNULL))->AddAny());
 		signatures->push_back((new FunctionSignature("strsplit",	FunctionIdentifier::strsplitFunction,	kScriptValueMaskString))->AddString_S()->AddString_OS());
-		signatures->push_back((new FunctionSignature("substr",		FunctionIdentifier::substrFunction,		kScriptValueMaskString))->AddString()->AddInt_S()->AddInt_OS());
+		signatures->push_back((new FunctionSignature("substr",		FunctionIdentifier::substrFunction,		kScriptValueMaskString))->AddString()->AddInt()->AddInt_O());
 		signatures->push_back((new FunctionSignature("unique",		FunctionIdentifier::uniqueFunction,		kScriptValueMaskAny))->AddAny());
 		signatures->push_back((new FunctionSignature("which",		FunctionIdentifier::whichFunction,		kScriptValueMaskInt))->AddLogical());
 		signatures->push_back((new FunctionSignature("whichMax",	FunctionIdentifier::whichMaxFunction,	kScriptValueMaskInt))->AddAnyBase());
@@ -176,6 +176,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
 		signatures->push_back((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
 		signatures->push_back((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
+		signatures->push_back((new FunctionSignature("setSeed",		FunctionIdentifier::setSeedFunction,	kScriptValueMaskNULL))->AddInt_S());
 		signatures->push_back((new FunctionSignature("stop",		FunctionIdentifier::stopFunction,		kScriptValueMaskNULL))->AddString_OS());
 		signatures->push_back((new FunctionSignature("time",		FunctionIdentifier::timeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton)));
 		signatures->push_back((new FunctionSignature("version",		FunctionIdentifier::versionFunction,	kScriptValueMaskString | kScriptValueMaskSingleton)));
@@ -1007,16 +1008,49 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rbinomFunction:
 		{
 			int64_t num_draws = arg1_value->IntAtIndex(0);
-			int size = (int)p_arguments[1]->IntAtIndex(0);
-			double probability = p_arguments[2]->FloatAtIndex(0);
+			ScriptValue *arg_size = p_arguments[1];
+			ScriptValue *arg_prob = p_arguments[2];
+			int arg_size_count = arg_size->Count();
+			int arg_prob_count = arg_prob->Count();
+			bool size_singleton = (arg_size_count == 1);
+			bool prob_singleton = (arg_prob_count == 1);
 			
-			if (size < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << endl << slim_terminate();
-			if ((probability < 0.0) || (probability > 1.0))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << endl << slim_terminate();
+			if (num_draws < 0)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << endl << slim_terminate();
+			if (!size_singleton && (arg_size_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << endl << slim_terminate();
+			if (!prob_singleton && (arg_prob_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires prob to be of length 1 or n." << endl << slim_terminate();
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->PushInt(gsl_ran_binomial(g_rng, probability, size));
+			int size0 = (int)arg_size->IntAtIndex(0);
+			double probability0 = arg_prob->FloatAtIndex(0);
+			
+			if (size_singleton && prob_singleton)
+			{
+				if (size0 < 0)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << endl << slim_terminate();
+				if ((probability0 < 0.0) || (probability0 > 1.0))
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << endl << slim_terminate();
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->PushInt(gsl_ran_binomial(g_rng, probability0, size0));
+			}
+			else
+			{
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex(draw_index));
+					double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index));
+					
+					if (size < 0)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << endl << slim_terminate();
+					if ((probability < 0.0) || (probability > 1.0))
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << endl << slim_terminate();
+					
+					int_result->PushInt(gsl_ran_binomial(g_rng, probability, size));
+				}
+			}
+			
 			break;
 		}
 			
@@ -1034,15 +1068,39 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rexpFunction:
 		{
 			int64_t num_draws = arg1_value->IntAtIndex(0);
-			double rate = ((n_args >= 2) ? p_arguments[1]->FloatAtIndex(0) : 1.0);
+			ScriptValue *arg_rate = ((n_args >= 2) ? p_arguments[1] : nullptr);
+			int arg_rate_count = (arg_rate ? arg_rate->Count() : 1);
+			bool rate_singleton = (arg_rate_count == 1);
 			
-			if (rate <= 0.0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << endl << slim_terminate();
+			if (num_draws < 0)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << endl << slim_terminate();
+			if (!rate_singleton && (arg_rate_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << endl << slim_terminate();
 			
-			double mu = 1.0 / rate;
+			if (rate_singleton)
+			{
+				double rate0 = (arg_rate ? arg_rate->FloatAtIndex(0) : 1.0);
+				double mu0 = 1.0 / rate0;
+				
+				if (rate0 <= 0.0)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << endl << slim_terminate();
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+					float_result->PushFloat(gsl_ran_exponential(g_rng, mu0));
+			}
+			else
+			{
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double rate = arg_rate->FloatAtIndex(draw_index);
+					
+					if (rate <= 0.0)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << endl << slim_terminate();
+					
+					float_result->PushFloat(gsl_ran_exponential(g_rng, 1.0 / rate));
+				}
+			}
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->PushFloat(gsl_ran_exponential(g_rng, mu));
 			break;
 		}
 			
@@ -1050,14 +1108,45 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rnormFunction:
 		{
 			int64_t num_draws = arg1_value->IntAtIndex(0);
-			double mu = ((n_args >= 2) ? p_arguments[1]->FloatAtIndex(0) : 0.0);
-			double sigma = ((n_args >= 3) ? p_arguments[2]->FloatAtIndex(0) : 1.0);
+			ScriptValue *arg_mu = ((n_args >= 2) ? p_arguments[1] : nullptr);
+			ScriptValue *arg_sigma = ((n_args >= 3) ? p_arguments[2] : nullptr);
+			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
+			int arg_sigma_count = (arg_sigma ? arg_sigma->Count() : 1);
+			bool mu_singleton = (arg_mu_count == 1);
+			bool sigma_singleton = (arg_sigma_count == 1);
 			
-			if (sigma < 0.0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sigma >= 0.0." << endl << slim_terminate();
+			if (num_draws < 0)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << endl << slim_terminate();
+			if (!mu_singleton && (arg_mu_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << endl << slim_terminate();
+			if (!sigma_singleton && (arg_sigma_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << endl << slim_terminate();
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma) + mu);
+			double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0) : 0.0);
+			double sigma0 = (arg_sigma ? arg_sigma->FloatAtIndex(0) : 1.0);
+			
+			if (mu_singleton && sigma_singleton)
+			{
+				if (sigma0 < 0.0)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << endl << slim_terminate();
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+					float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma0) + mu0);
+			}
+			else
+			{
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(draw_index));
+					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index));
+					
+					if (sigma < 0.0)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << endl << slim_terminate();
+					
+					float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma) + mu);
+				}
+			}
+			
 			break;
 		}
 			
@@ -1065,13 +1154,38 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rpoisFunction:
 		{
 			int64_t num_draws = arg1_value->IntAtIndex(0);
-			double lambda = p_arguments[1]->FloatAtIndex(0);
+			ScriptValue *arg_lambda = p_arguments[1];
+			int arg_lambda_count = arg_lambda->Count();
+			bool lambda_singleton = (arg_lambda_count == 1);
 			
-			if (lambda <= 0.0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << endl << slim_terminate();
+			if (num_draws < 0)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << endl << slim_terminate();
+			if (!lambda_singleton && (arg_lambda_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << endl << slim_terminate();
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->PushInt(gsl_ran_poisson(g_rng, lambda));		// use the GSL, not slim_fast_ran_poisson, to give the user high accuracy
+			if (lambda_singleton)
+			{
+				double lambda0 = arg_lambda->FloatAtIndex(0);
+				
+				if (lambda0 <= 0.0)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << endl << slim_terminate();
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->PushInt(gsl_ran_poisson(g_rng, lambda0));		// use the GSL, not slim_fast_ran_poisson, to give the user high accuracy
+			}
+			else
+			{
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double lambda = arg_lambda->FloatAtIndex(draw_index);
+					
+					if (lambda <= 0.0)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << endl << slim_terminate();
+					
+					int_result->PushInt(gsl_ran_poisson(g_rng, lambda));
+				}
+			}
+			
 			break;
 		}
 			
@@ -1079,15 +1193,47 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::runifFunction:
 		{
 			int64_t num_draws = arg1_value->IntAtIndex(0);
-			double min_value = ((n_args >= 2) ? p_arguments[1]->FloatAtIndex(0) : 0.0);
-			double max_value = ((n_args >= 3) ? p_arguments[2]->FloatAtIndex(0) : 1.0);
-			double range = max_value - min_value;
+			ScriptValue *arg_min = ((n_args >= 2) ? p_arguments[1] : nullptr);
+			ScriptValue *arg_max = ((n_args >= 3) ? p_arguments[2] : nullptr);
+			int arg_min_count = (arg_min ? arg_min->Count() : 1);
+			int arg_max_count = (arg_max ? arg_max->Count() : 1);
+			bool min_singleton = (arg_min_count == 1);
+			bool max_singleton = (arg_max_count == 1);
 			
-			if (range < 0.0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << endl << slim_terminate();
+			if (num_draws < 0)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << endl << slim_terminate();
+			if (!min_singleton && (arg_min_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << endl << slim_terminate();
+			if (!max_singleton && (arg_max_count != num_draws))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << endl << slim_terminate();
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->PushFloat(gsl_rng_uniform(g_rng) * range + min_value);
+			double min_value0 = (arg_min ? arg_min->FloatAtIndex(0) : 0.0);
+			double max_value0 = (arg_max ? arg_max->FloatAtIndex(0) : 1.0);
+			double range0 = max_value0 - min_value0;
+			
+			if (min_singleton && max_singleton)
+			{
+				if (range0 < 0.0)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << endl << slim_terminate();
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+					float_result->PushFloat(gsl_rng_uniform(g_rng) * range0 + min_value0);
+			}
+			else
+			{
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex(draw_index));
+					double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex(draw_index));
+					double range = max_value - min_value;
+					
+					if (range < 0.0)
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << endl << slim_terminate();
+					
+					float_result->PushFloat(gsl_rng_uniform(g_rng) * range + min_value);
+				}
+			}
+			
 			break;
 		}
 			
@@ -1405,18 +1551,33 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark substr
 		case FunctionIdentifier::substrFunction:
 		{
-			int64_t first = p_arguments[1]->IntAtIndex(0);
+			ScriptValue *arg_first = p_arguments[1];
+			int arg_first_count = arg_first->Count();
+			bool first_singleton = (arg_first_count == 1);
+			
+			if (!first_singleton && (arg_first_count != arg1_count))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << endl << slim_terminate();
+			
+			int64_t first0 = arg_first->IntAtIndex(0);
 			
 			if (n_args >= 3)
 			{
 				// last supplied
-				int64_t last = p_arguments[2]->IntAtIndex(0);
+				ScriptValue *arg_last = p_arguments[2];
+				int arg_last_count = arg_last->Count();
+				bool last_singleton = (arg_last_count == 1);
+				
+				if (!last_singleton && (arg_last_count != arg1_count))
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << endl << slim_terminate();
+				
+				int64_t last0 = arg_last->IntAtIndex(0);
 				
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
 				{
 					std::string str = arg1_value->StringAtIndex(value_index);
 					string::size_type len = str.length();
-					int clamped_first = (int)first, clamped_last = (int)last;
+					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
+					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index));
 					
 					if (clamped_first < 0) clamped_first = 0;
 					if (clamped_last >= len) clamped_last = (int)len - 1;
@@ -1434,7 +1595,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				{
 					std::string str = arg1_value->StringAtIndex(value_index);
 					string::size_type len = str.length();
-					int clamped_first = (int)first;
+					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
 					
 					if (clamped_first < 0) clamped_first = 0;
 					
@@ -1838,6 +1999,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			break;
 		}
+			
+#pragma mark setSeed
+		case FunctionIdentifier::setSeedFunction:
+			InitializeRNGFromSeed((int)(arg1_value->IntAtIndex(0)));
+			break;
 			
 #pragma mark stop
 		case FunctionIdentifier::stopFunction:
