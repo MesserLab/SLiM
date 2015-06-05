@@ -11,9 +11,9 @@ command-line tool:
 	add support for rules as discussed with Philipp: modify the fitness calculation with a call out to SLiMscript
 
 SLiMscript:
-	add ability to change the separator for cat – optional parameter
+	add rigorous tests for all functions
+	vectorize functions like substr more fully; should be able to give a vector of first/last positions, for example
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
-	for Erich: implement unimplemented functions
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
 documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
 	
@@ -22,10 +22,8 @@ documentation work: revise docs for min, max, range, sum, product, sd, whichMax,
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
-SLiMscribe:
-	remove File menu or convert to a document-based model
-
 SLiMgui work:
+	fold SLiMscribe into SLiMgui!
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
