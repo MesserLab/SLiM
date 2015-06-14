@@ -19,7 +19,6 @@
 
 
 #import "ConsoleTextView.h"
-#import "CocoaExtra.h"
 
 
 static NSDictionary *promptAttrs = nil;
@@ -36,19 +35,19 @@ static NSDictionary *executionAttrs = nil;
 + (void)initialize
 {
 	if (!promptAttrs)
-		promptAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]] retain];
+		promptAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]] retain];
 	if (!inputAttrs)
-		inputAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]] retain];
+		inputAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]] retain];
 	if (!outputAttrs)
-		outputAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0]] retain];
+		outputAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0]] retain];
 	if (!errorAttrs)
-		errorAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]] retain];
+		errorAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]] retain];
 	if (!tokensAttrs)
-		tokensAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0]] retain];
+		tokensAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0]] retain];
 	if (!parseAttrs)
-		parseAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]] retain];
+		parseAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]] retain];
 	if (!executionAttrs)
-		executionAttrs = [[SLiMSyntaxColoredTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]] retain];
+		executionAttrs = [[SLiMScriptTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]] retain];
 }
 
 + (NSDictionary *)promptAttrs { return promptAttrs; }
@@ -213,11 +212,16 @@ static NSDictionary *executionAttrs = nil;
 	return lastPromptRange.location + lastPromptRange.length;
 }
 
+- (NSUInteger)rangeOffsetForCompletionRange
+{
+	return [self promptRangeEnd];
+}
+
 - (void)showWelcomeMessage
 {
 	NSTextStorage *ts = [self textStorage];
 	
-	NSAttributedString *welcomeString1 = [[NSAttributedString alloc] initWithString:@"SLiMscript version 2.0a1\n\nBy Benjamin C. Haller (" attributes:outputAttrs];
+	NSAttributedString *welcomeString1 = [[NSAttributedString alloc] initWithString:@"SLiMscript version 2.0a2\n\nBy Benjamin C. Haller (" attributes:outputAttrs];
 	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[ConsoleTextView baseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
 	NSAttributedString *welcomeString3 = [[NSAttributedString alloc] initWithString:@").\nCopyright (c) 2015 Philipp Messer. All rights reserved.\n\nSLiMscript is free software with ABSOLUTELY NO WARRANTY.\nType license() for license and distribution details.\n\nGo to " attributes:outputAttrs];
 	NSAttributedString *welcomeString4 = [[NSAttributedString alloc] initWithString:@"https://github.com/MesserLab/SLiM" attributes:[ConsoleTextView baseAttributes:outputAttrs withHyperlink:@"https://github.com/MesserLab/SLiM"]];
@@ -236,34 +240,6 @@ static NSDictionary *executionAttrs = nil;
 	[welcomeString3 release];
 	[welcomeString4 release];
 	[welcomeString5 release];
-}
-
-- (void)showSimulationLaunchSuccess:(BOOL)simLaunchSuccess errorMessage:(NSString *)errorMessage
-{
-	NSTextStorage *ts = [self textStorage];
-	
-	NSAttributedString *launchString;
-	NSAttributedString *errorString = nil;
-	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
-	
-	if (simLaunchSuccess)
-		launchString = [[NSAttributedString alloc] initWithString:@"SLiM launched and halted; SLiM services are available.\n" attributes:outputAttrs];
-	else
-		launchString = [[NSAttributedString alloc] initWithString:@"SLiM failed to launch and halt:\n\n" attributes:errorAttrs];
-	
-	if (!simLaunchSuccess && errorMessage)
-		errorString = [[NSAttributedString alloc] initWithString:errorMessage attributes:errorAttrs];
-	
-	[ts beginEditing];
-	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:launchString];
-	if (errorString)
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorString];
-	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:dividerString];
-	[ts endEditing];
-	
-	[launchString release];
-	[errorString release];
-	[dividerString release];
 }
 
 - (void)showPrompt

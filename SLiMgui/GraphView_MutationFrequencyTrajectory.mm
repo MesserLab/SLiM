@@ -272,8 +272,8 @@
 	//
 	int subpop_total_genome_count = 0;
 	
-	SLIMCONST Mutation **registry_iter = mutationRegistry.begin_pointer();
-	SLIMCONST Mutation **registry_iter_end = mutationRegistry.end_pointer();
+	Mutation **registry_iter = mutationRegistry.begin_pointer();
+	Mutation **registry_iter_end = mutationRegistry.end_pointer();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		(*registry_iter)->gui_scratch_reference_count = 0;
@@ -293,8 +293,8 @@
 				
 				if (!genome.IsNull())
 				{
-					SLIMCONST Mutation **genome_iter = genome.begin_pointer();
-					SLIMCONST Mutation **genome_end_iter = genome.end_pointer();
+					Mutation **genome_iter = genome.begin_pointer();
+					Mutation **genome_end_iter = genome.end_pointer();
 					
 					for (; genome_iter != genome_end_iter; ++genome_iter)
 					{
@@ -352,8 +352,8 @@
 		if (!history->updated)
 		{
 			uint64 historyID = history->mutationID;
-			SLIMCONST Mutation **mutation_iter = mutationRegistry.begin_pointer();
-			SLIMCONST Mutation **mutation_iter_end = mutationRegistry.end_pointer();
+			Mutation **mutation_iter = mutationRegistry.begin_pointer();
+			Mutation **mutation_iter_end = mutationRegistry.end_pointer();
 			BOOL mutationStillExists = NO;
 			
 			for (mutation_iter = mutationRegistry.begin_pointer(); mutation_iter != mutation_iter_end; ++mutation_iter)
@@ -395,7 +395,7 @@
 			uint64 mutationID = history->mutationID;
 			BOOL wasFixed = NO;
 			
-			std::vector<SLIMCONST Substitution*> &substitutions = population.substitutions_;
+			std::vector<Substitution*> &substitutions = population.substitutions_;
 			
 			for (const Substitution *substitution : substitutions)
 			{

@@ -25,7 +25,7 @@
 
 @class SLiMWhiteView;
 @class SLiMWindowController;
-@class SLiMSyntaxColoredTextView;
+@class SLiMScriptTextView;
 
 
 // User defaults keys
@@ -34,8 +34,6 @@ extern NSString *defaultsSyntaxHighlightScriptKey;
 extern NSString *defaultsSyntaxHighlightOutputKey;
 extern NSString *defaultsPlaySoundParseSuccessKey;
 extern NSString *defaultsPlaySoundParseFailureKey;
-
-extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
@@ -52,7 +50,7 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 	// Script Syntax Help
 	IBOutlet NSWindow *scriptSyntaxWindow;
 	IBOutlet SLiMWhiteView *scriptSyntaxWhiteView;
-	IBOutlet SLiMSyntaxColoredTextView *scriptSyntaxTextView;
+	IBOutlet SLiMScriptTextView *scriptSyntaxTextView;
 }
 
 - (IBAction)newDocument:(id)sender;

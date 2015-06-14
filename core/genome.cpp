@@ -20,6 +20,7 @@
 
 #include "genome.h"
 #include "slim_global.h"
+#include "script_functionsignature.h"
 
 
 #ifdef DEBUG
@@ -51,9 +52,9 @@ void Genome::RemoveFixedMutations(int p_fixed_count)
 		NullGenomeAccessError();
 #endif
 	
-	SLIMCONST Mutation **genome_iter = begin_pointer();
-	SLIMCONST Mutation **genome_backfill_iter = begin_pointer();
-	SLIMCONST Mutation **genome_max = end_pointer();
+	Mutation **genome_iter = begin_pointer();
+	Mutation **genome_backfill_iter = begin_pointer();
+	Mutation **genome_max = end_pointer();
 	
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed (copy it backward to the backfill pointer)
 	while (genome_iter != genome_max)
@@ -100,7 +101,7 @@ Genome::Genome(const Genome &p_original)
 	if (source_mutation_count > mutation_capacity_)
 	{
 		mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-		mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+		mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 	}
 	
 	// then copy all pointers from the source to ourselves
@@ -131,7 +132,7 @@ Genome& Genome::operator= (const Genome& p_original)
 		if (source_mutation_count > mutation_capacity_)
 		{
 			mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 		}
 		
 		// then copy all pointers from the source to ourselves
@@ -158,7 +159,6 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 #endif
 
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -239,29 +239,186 @@ std::vector<std::string> Genome::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
+	methods.push_back("addMutations");
+	methods.push_back("addNewDrawnMutation");
+	methods.push_back("addNewMutation");
+	methods.push_back("removeMutations");
+	
 	return methods;
 }
 
 const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_name) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	static FunctionSignature *addMutationsSig = nullptr;
+	static FunctionSignature *addNewDrawnMutationSig = nullptr;
+	static FunctionSignature *addNewMutationSig = nullptr;
+	static FunctionSignature *removeMutationsSig = nullptr;
+	
+	if (!addMutationsSig)
+	{
+		addMutationsSig = (new FunctionSignature("addMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addNewDrawnMutationSig = (new FunctionSignature("addNewDrawnMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject + kScriptValueMaskSingleton))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
+		addNewMutationSig = (new FunctionSignature("addNewMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject + kScriptValueMaskSingleton))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
+		removeMutationsSig = (new FunctionSignature("removeMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+	}
+	
+	if (p_method_name.compare("addMutations") == 0)
+		return addMutationsSig;
+	else if (p_method_name.compare("addNewDrawnMutation") == 0)
+		return addNewDrawnMutationSig;
+	else if (p_method_name.compare("addNewMutation") == 0)
+		return addNewMutationSig;
+	else if (p_method_name.compare("removeMutations") == 0)
+		return removeMutationsSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	int num_arguments = (int)p_arguments.size();
+	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
+	ScriptValue *arg2_value = ((num_arguments >= 3) ? p_arguments[2] : nullptr);
+	ScriptValue *arg3_value = ((num_arguments >= 4) ? p_arguments[3] : nullptr);
+	ScriptValue *arg4_value = ((num_arguments >= 5) ? p_arguments[4] : nullptr);
+	
+	//
+	//	*********************	- (void)addMutations(object mutations)
+	//
+#pragma mark -addMutations()
+	
+	if (p_method_name.compare("addMutations") == 0)
+	{
+		int arg0_count = arg0_value->Count();
+		
+		if (arg0_count)
+		{
+			if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Mutation") != 0)
+				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				insert_sorted_mutation_if_unique((Mutation *)(arg0_value->ElementAtIndex(value_index)));
+		}
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	//
+	//	*********************	- (object$)addNewDrawnMutation(object$ mutationType, integer$ originGeneration, integer$ position, integer$ originSubpopID)
+	//
+#pragma mark -addNewDrawnMutation()
+	
+	if (p_method_name.compare("addNewDrawnMutation") == 0)
+	{
+		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+		int origin_generation = (int)arg1_value->IntAtIndex(0);
+		int position = (int)arg2_value->IntAtIndex(0);
+		int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
+		
+		if (mut_type_value->ElementType().compare("MutationType") != 0)
+			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+		
+		MutationType *mut_type = (MutationType *)mut_type_value;
+		double selection_coeff = mut_type->DrawSelectionCoefficient();
+		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
+		
+		insert_sorted_mutation(mutation);
+		
+		return new ScriptValue_Object(mutation);
+	}
+	
+	
+	//
+	//	*********************	- (object$)addNewMutation(object$ mutationType, integer$ originGeneration, integer$ position, numeric$ selectionCoeff, integer$ originSubpopID)
+	//
+#pragma mark -addNewMutation()
+	
+	if (p_method_name.compare("addNewMutation") == 0)
+	{
+		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+		int origin_generation = (int)arg1_value->IntAtIndex(0);
+		int position = (int)arg2_value->IntAtIndex(0);
+		double selection_coeff = arg3_value->FloatAtIndex(0);
+		int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
+		
+		if (mut_type_value->ElementType().compare("MutationType") != 0)
+			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+		
+		MutationType *mut_type = (MutationType *)mut_type_value;
+		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
+		
+		insert_sorted_mutation(mutation);
+		
+		return new ScriptValue_Object(mutation);
+	}
+	
+	
+	//
+	//	*********************	- (void)removeMutations(object mutations)
+	//
+#pragma mark -removeMutations()
+	
+	if (p_method_name.compare("removeMutations") == 0)
+	{
+		int arg0_count = arg0_value->Count();
+		
+		if (arg0_count)
+		{
+			if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Mutation") != 0)
+				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+			
+			if (is_null_genome_)
+				NullGenomeAccessError();
+			
+			// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
+			Mutation **genome_iter = begin_pointer();
+			Mutation **genome_backfill_iter = begin_pointer();
+			Mutation **genome_max = end_pointer();
+			
+			// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+			while (genome_iter != genome_max)
+			{
+				Mutation *candidate_mutation = *genome_iter;
+				bool should_remove = false;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					if (arg0_value->ElementAtIndex(value_index) == candidate_mutation)
+					{
+						should_remove = true;
+						break;
+					}
+				
+				if (should_remove)
+				{
+					// Removed mutation; we want to omit it, so we just advance our pointer
+					++genome_iter;
+				}
+				else
+				{
+					// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+					if (genome_backfill_iter != genome_iter)
+						*genome_backfill_iter = *genome_iter;
+					
+					++genome_backfill_iter;
+					++genome_iter;
+				}
+			}
+			
+			// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+			mutation_count_ -= (genome_iter - genome_backfill_iter);
+		}
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	else
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-/*
-	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
-	bool is_null_genome_ = false;						// if true, this genome is a meaningless placeholder (often a Y chromosome)
-	
-	int mutation_count_ = 0;							// the number of entries presently in mutations_
-	int mutation_capacity_ = 0;							// the capacity of mutations_
-	SLIMCONST Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
-*/
 
-#endif	// #ifndef SLIMCORE
 
 
 

@@ -25,6 +25,7 @@
 #include "mutation_type.h"
 #include "g_rng.h"
 #include "slim_global.h"
+#include "script_functionsignature.h"
 
 
 using std::endl;
@@ -42,9 +43,9 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 	static string possible_dfe_types = "fge";
 	
 	if (possible_dfe_types.find(dfe_type_) == string::npos)
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << slim_terminate();
 	if (dfe_parameters_.size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << slim_terminate();
 }
 
 double MutationType::DrawSelectionCoefficient() const
@@ -54,7 +55,7 @@ double MutationType::DrawSelectionCoefficient() const
 		case 'f': return dfe_parameters_[0];
 		case 'g': return gsl_ran_gamma(g_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
 		case 'e': return gsl_ran_exponential(g_rng, dfe_parameters_[0]);
-		default: SLIM_TERMINATION << "ERROR (DrawSelectionCoefficient): invalid DFE type" << endl << slim_terminate(); return 0;
+		default: SLIM_TERMINATION << "ERROR (DrawSelectionCoefficient): invalid DFE type" << slim_terminate(); return 0;
 	}
 }
 
@@ -86,7 +87,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 	return p_outstream;
 }
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -141,11 +141,11 @@ void MutationType::SetValueForMember(const std::string &p_member_name, ScriptVal
 {
 	if (p_member_name.compare("dominanceCoeff") == 0)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
 		double value = p_value->FloatAtIndex(0);
 		
-		dominance_coeff_ = (int)value;
+		dominance_coeff_ = static_cast<typeof(dominance_coeff_)>(value);	// float, at present, but I don't want to hard-code that
 		return;
 	}
 	
@@ -156,22 +156,71 @@ std::vector<std::string> MutationType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	// setDistribution()
+	methods.push_back("changeDistribution");
 	
 	return methods;
 }
 
 const FunctionSignature *MutationType::SignatureForMethod(std::string const &p_method_name) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	static FunctionSignature *changeDistributionSig = nullptr;
+	
+	if (!changeDistributionSig)
+	{
+		changeDistributionSig = (new FunctionSignature("changeDistribution", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
+	}
+	
+	if (p_method_name.compare("changeDistribution") == 0)
+		return changeDistributionSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	int num_arguments = (int)p_arguments.size();
+	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	
+	//
+	//	*********************	- (void)changeDistribution(string$ distributionType, ...)
+	//
+#pragma mark -changeDistribution()
+	
+	if (p_method_name.compare("changeDistribution") == 0)
+	{
+		string dfe_type_string = arg0_value->StringAtIndex(0);
+		int expected_dfe_param_count = 0;
+		std::vector<double> dfe_parameters;
+		
+		if (dfe_type_string.compare("f") == 0)
+			expected_dfe_param_count = 1;
+		else if (dfe_type_string.compare("g") == 0)
+			expected_dfe_param_count = 2;
+		else if (dfe_type_string.compare("e") == 0)
+			expected_dfe_param_count = 1;
+		else
+			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): changeDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << slim_terminate();
+		
+		char dfe_type = dfe_type_string[0];
+		
+		if (num_arguments != 1 + expected_dfe_param_count)
+			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): changeDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
+		
+		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
+			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
+		
+		// Everything seems to be in order, so replace our distribution info with the new info
+		dfe_type_ = dfe_type;
+		dfe_parameters_ = dfe_parameters;
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	else
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-#endif	// #ifndef SLIMCORE
 
 
 

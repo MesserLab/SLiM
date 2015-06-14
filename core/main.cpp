@@ -34,7 +34,7 @@ void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	SLIM_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <parameter file>" << std::endl << slim_terminate();
+	SLIM_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <script file>" << slim_terminate();
 }
 
 int main(int argc, char *argv[])
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			SLIM_ERRSTREAM << "SLiM version 2.0a1, built " << __DATE__ << " " __TIME__ << std::endl;
+			SLIM_ERRSTREAM << "SLiM version 2.0a2, built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		

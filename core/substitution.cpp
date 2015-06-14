@@ -25,10 +25,10 @@
 
 #ifdef SLIMGUI
 // In SLiMgui, the mutation_id_ gets initialized here, from the mutation
-Substitution::Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time) :
+Substitution::Substitution(Mutation &p_mutation, int p_fixation_time) :
 mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_time_(p_fixation_time), mutation_id_(p_mutation.mutation_id_)
 #else
-Substitution::Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time) :
+Substitution::Substitution(Mutation &p_mutation, int p_fixation_time) :
 	mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_time_(p_fixation_time)
 #endif
 {
@@ -39,7 +39,6 @@ void Substitution::print(std::ostream &p_out) const
 	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_+1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl; 
 }
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -115,7 +114,6 @@ ScriptValue *Substitution::ExecuteMethod(std::string const &p_method_name, std::
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-#endif	// #ifndef SLIMCORE
 
 
 

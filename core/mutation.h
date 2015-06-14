@@ -32,24 +32,18 @@
 
 #include "mutation_type.h"
 #include "slim_global.h"
-
-#ifndef SLIMCORE
 #include "script_value.h"
-#endif
 
 
-class Mutation
-#ifndef SLIMCORE
-				: public ScriptObjectElement
-#endif
+class Mutation : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
 public:
 	
-	SLIMCONST MutationType *mutation_type_ptr_;			// mutation type identifier
+	MutationType *mutation_type_ptr_;			// mutation type identifier
 	const int32_t position_;							// position on the chromosome
-	SLIMCONST float selection_coeff_;					// selection coefficient – SLIMCONST because it may be changed in script
+	float selection_coeff_;					// selection coefficient – because it may be changed in script
 	const int32_t subpop_index_;						// subpopulation in which mutation arose
 	const int32_t generation_;							// generation in which mutation arose
 	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
@@ -62,13 +56,12 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(SLIMCONST MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
+	Mutation(MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
 	
 #if DEBUG_MUTATIONS
 	~Mutation();										// destructor, if we are debugging
 #endif
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -83,7 +76,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 // true if M1 has an earlier (smaller) position than M2
@@ -96,22 +88,6 @@ inline bool operator<(const Mutation &p_mutation1, const Mutation &p_mutation2)
 inline bool CompareMutations(const Mutation *p_mutation1, const Mutation *p_mutation2)
 {
 	return (p_mutation1->position_ < p_mutation2->position_);
-}
-
-// true if M1 and M2 have the same position, type, and selection coefficient
-inline bool operator==(const Mutation &p_mutation1, const Mutation &p_mutation2)
-{
-	return (p_mutation1.position_ == p_mutation2.position_ &&
-			p_mutation1.mutation_type_ptr_ == p_mutation2.mutation_type_ptr_ &&
-			p_mutation1.selection_coeff_ == p_mutation2.selection_coeff_);
-}
-
-// like operator== but with pointers; used for unique() among other things
-inline bool EqualMutations(const Mutation *p_mutation1, const Mutation *p_mutation2)
-{
-	return (p_mutation1->position_ == p_mutation2->position_ &&
-			p_mutation1->mutation_type_ptr_ == p_mutation2->mutation_type_ptr_ &&
-			p_mutation1->selection_coeff_ == p_mutation2->selection_coeff_);
 }
 
 // support stream output of Mutation, for debugging

@@ -61,7 +61,7 @@ std::vector<std::string> SymbolTable::ReadOnlySymbols(void) const
 {
 	std::vector<std::string> symbols;
 	
-	for(auto symbol_pair : constants_)
+	for (auto symbol_pair : constants_)
 		symbols.push_back(symbol_pair.first);
 	
 	return symbols;
@@ -71,7 +71,7 @@ std::vector<std::string> SymbolTable::ReadWriteSymbols(void) const
 {
 	std::vector<std::string> symbols;
 	
-	for(auto symbol_pair : variables_)
+	for (auto symbol_pair : variables_)
 		symbols.push_back(symbol_pair.first);
 	
 	return symbols;
@@ -102,7 +102,7 @@ ScriptValue *SymbolTable::GetValueForSymbol(const std::string &p_symbol_name) co
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
 	if (!result)
-		SLIM_TERMINATION << "ERROR (SymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << slim_terminate();
 	
 	return result;
 }
@@ -137,7 +137,7 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 	auto constant_iter = constants_.find(p_symbol_name);
 	
 	if (constant_iter != constants_.end())
-		SLIM_TERMINATION << "ERROR (SymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -167,13 +167,13 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	auto constant_iter = constants_.find(p_symbol_name);
 	
 	if (constant_iter != constants_.end())
-		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << slim_terminate();
 	
 	// check that we're not trying to overwrite a variable; if you want to define a constant, you have to get there first
 	auto variable_iter = variables_.find(p_symbol_name);
 	
 	if (variable_iter != variables_.end())
-		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -214,7 +214,7 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 				delete value;
 			}
 			else
-				SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << slim_terminate();
 		}
 	}
 	

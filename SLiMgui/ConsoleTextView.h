@@ -19,10 +19,10 @@
 
 
 #import <Cocoa/Cocoa.h>
-#import "CocoaExtra.h"
+#import "SLiMScriptTextView.h"
 
 
-@interface ConsoleTextView : SLiMSyntaxColoredTextView
+@interface ConsoleTextView : SLiMScriptTextView
 {
 @public
 	NSRange lastPromptRange;
@@ -43,7 +43,6 @@
 - (NSUInteger)promptRangeEnd;
 
 - (void)showWelcomeMessage;
-- (void)showSimulationLaunchSuccess:(BOOL)simLaunchSuccess errorMessage:(NSString *)errorMessage;
 - (void)showPrompt;
 - (void)appendSpacer;
 

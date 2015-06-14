@@ -316,7 +316,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	std::vector<SLIMCONST Substitution*> &substitutions = pop.substitutions_;
+	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
@@ -348,7 +348,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	Genome &mutationRegistry = pop.mutation_registry_;
-	SLIMCONST Mutation **mutations = mutationRegistry.mutations_;
+	Mutation **mutations = mutationRegistry.mutations_;
 	int mutationCount = mutationRegistry.mutation_count_;
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -430,11 +430,17 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	SLiMWindowController *controller = [[self window] windowController];
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	bool ready = ([self enabled] && ![controller invalidSimulation]);
 	NSRect contentRect = [self contentRect];
 	NSRect interiorRect = [self interiorRect];
 	
-	if ([self enabled] && ![controller invalidSimulation])
+	// if the simulation is at generation 0, it is not ready
+	if (ready)
+		if (controller->sim->generation_ == 0)
+			ready = NO;
+	
+	if (ready)
 	{
 		// erase the content area itself
 		[[NSColor colorWithCalibratedWhite:0.0 alpha:1.0] set];
@@ -483,7 +489,15 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
-	if ([self isSelectable] && [self enabled] && ![[[self window] windowController] invalidSimulation])
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	bool ready = ([self isSelectable] && [self enabled] && ![controller invalidSimulation]);
+	
+	// if the simulation is at generation 0, it is not ready
+	if (ready)
+		if (controller->sim->generation_ == 0)
+			ready = NO;
+	
+	if (ready)
 	{
 		NSRect contentRect = [self contentRect];
 		NSRect interiorRect = [self interiorRect];
@@ -500,7 +514,6 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 			{
 				int clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];	// this is 1-based
 				NSRange selectionRange = NSMakeRange(0, 0);
-				SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 				Chromosome &chromosome = controller->sim->chromosome_;
 				
 				for (GenomicElement &genomicElement : chromosome)

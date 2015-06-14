@@ -31,16 +31,10 @@
 #include <iostream>
 
 #include "genomic_element_type.h"
-
-#ifndef SLIMCORE
 #include "script_value.h"
-#endif
 
 
-class GenomicElement
-#ifndef SLIMCORE
-						: public ScriptObjectElement
-#endif
+class GenomicElement : public ScriptObjectElement
 {
 	// This class has a restricted copying policy; see below
 	
@@ -50,7 +44,7 @@ private:
 	
 public:
 	
-	SLIMCONST GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
+	GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
 	int start_position_;												// the start position of the element
 	int end_position_;													// the end position of the element
 	
@@ -65,9 +59,8 @@ public:
 	GenomicElement(void) = delete;										// no null construction
 	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
-	GenomicElement(SLIMCONST GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
+	GenomicElement(GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -81,7 +74,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 // support stream output of GenomicElement, for debugging

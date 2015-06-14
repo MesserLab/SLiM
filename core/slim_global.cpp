@@ -27,9 +27,8 @@
 #include <stdexcept>
 
 
-// set by CheckInputFile() and used by SLiMgui
-int gLineNumberOfParseError = 0;										// one-based
-int gCharacterStartOfParseError = -1, gCharacterEndOfParseError = -1;	// zero-based
+// the part of the input file that caused an error; set by CheckInputFile() and used by SLiMgui
+int gCharacterStartOfParseError = -1, gCharacterEndOfParseError = -1;
 
 
 // Stuff that changes depending on whether we're building inside SLiMgui or as a standalone tool
@@ -204,6 +203,8 @@ void print_stacktrace(FILE *out, unsigned int max_frames)
 
 std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator)
 {
+	p_out << std::endl;
+	
 	p_out.flush();
 	
 	if (p_terminator.print_backtrace_)

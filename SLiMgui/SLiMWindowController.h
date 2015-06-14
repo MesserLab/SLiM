@@ -27,9 +27,11 @@
 #include "PopulationView.h"
 #include "GraphView.h"
 #include "CocoaExtra.h"
+#import "ConsoleTextView.h"
+#include "ConsoleWindowController.h"
 
 
-@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate>
+@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, ConsoleControllerDelegate>
 {
 @public
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
@@ -70,6 +72,12 @@
 	IBOutlet NSTableColumn *genomicElementTypeColorColumn;
 	IBOutlet NSTableColumn *genomicElementTypeMutationTypesColumn;
 	
+	IBOutlet NSTableView *scriptBlocksTableView;
+	IBOutlet NSTableColumn *scriptBlocksIDColumn;
+	IBOutlet NSTableColumn *scriptBlocksStartColumn;
+	IBOutlet NSTableColumn *scriptBlocksEndColumn;
+	IBOutlet NSTableColumn *scriptBlocksTypeColumn;
+	
 	IBOutlet SLiMColorStripeView *fitnessColorStripe;
 	IBOutlet NSSlider *fitnessColorSlider;
 	IBOutlet SLiMColorStripeView *selectionColorStripe;
@@ -82,8 +90,9 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
-	IBOutlet SLiMSyntaxColoredTextView *scriptTextView;
-	IBOutlet SLiMSyntaxColoredTextView *outputTextView;
+	IBOutlet SLiMScriptTextView *scriptTextView;
+	IBOutlet SLiMScriptTextView *outputTextView;
+	IBOutlet NSButton *consoleButton;
 	
 	IBOutlet NSTableView *subpopTableView;
 	IBOutlet NSTableColumn *subpopIDColumn;
@@ -142,6 +151,8 @@
 @property (nonatomic) BOOL reachedSimulationEnd;
 @property (nonatomic, readonly) NSColor *colorForWindowLabels;
 
+@property (retain) IBOutlet ConsoleWindowController *consoleController;
+
 //
 //	Actions
 //
@@ -181,9 +192,10 @@
 - (IBAction)fitnessColorSliderChanged:(id)sender;
 - (IBAction)selectionColorSliderChanged:(id)sender;
 
-- (IBAction)checkScriptTextView:(id)sender;
-- (IBAction)showScriptSyntaxHelp:(id)sender;
-- (IBAction)clearOutputTextView:(id)sender;
+- (IBAction)checkScript:(id)sender;
+- (IBAction)showScriptHelp:(id)sender;
+- (IBAction)toggleConsoleVisibility:(id)sender;
+- (IBAction)clearOutput:(id)sender;
 - (IBAction)dumpPopulationToOutput:(id)sender;
 
 - (IBAction)showRecombinationIntervalsButtonToggled:(id)sender;

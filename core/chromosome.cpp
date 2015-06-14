@@ -25,6 +25,7 @@
 
 #include "g_rng.h"
 #include "slim_global.h"
+#include "script_functionsignature.h"
 
 
 Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), length_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
@@ -46,11 +47,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): empty chromosome" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): empty chromosome" << slim_terminate();
 	if (recombination_rates_.size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): recombination rate not specified" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): recombination rate not specified" << slim_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << slim_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	length_ = 0;
@@ -131,7 +132,7 @@ Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) cons
 	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
-	SLIMCONST MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
+	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
@@ -176,7 +177,6 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 }
 
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -285,22 +285,87 @@ std::vector<std::string> Chromosome::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	// setRecombination(positions, rates)
+	methods.push_back("changeRecombinationIntervals");
 	
 	return methods;
 }
 
 const FunctionSignature *Chromosome::SignatureForMethod(std::string const &p_method_name) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	static FunctionSignature *changeRecombinationIntervalsSig = nullptr;
+	
+	if (!changeRecombinationIntervalsSig)
+	{
+		changeRecombinationIntervalsSig = (new FunctionSignature("changeRecombinationIntervals", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
+	}
+	
+	if (p_method_name.compare("changeRecombinationIntervals") == 0)
+		return changeRecombinationIntervalsSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	int num_arguments = (int)p_arguments.size();
+	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
+	
+	//
+	//	*********************	- (void)changeRecombinationIntervals(integer ends, numeric rates)
+	//
+#pragma mark -changeRecombinationIntervals()
+	
+	if (p_method_name.compare("changeRecombinationIntervals") == 0)
+	{
+		int ends_count = arg0_value->Count();
+		int rates_count = arg1_value->Count();
+		
+		// check first
+		if ((ends_count == 0) || (ends_count != rates_count))
+			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << slim_terminate();
+		
+		for (int value_index = 0; value_index < ends_count; ++value_index)
+		{
+			int64_t end = arg0_value->IntAtIndex(value_index);
+			double rate = arg1_value->FloatAtIndex(value_index);
+			
+			if (value_index > 0)
+				if (end <= arg0_value->IntAtIndex(value_index - 1))
+					SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires ends to be in ascending order." << slim_terminate();
+			
+			if (rate < 0.0)
+				SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires rates to be >= 0." << slim_terminate();
+		}
+		
+		// FIXME is this required? or does it just need to be less than length?
+		// and this needs adjustment for the move to 0-based values...
+		if (arg0_value->IntAtIndex(ends_count - 1) != length_)
+			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires the last interval to end at the length of the chromosome." << slim_terminate();
+		
+		// then adopt them
+		recombination_end_positions_.clear();
+		recombination_rates_.clear();
+		
+		for (int value_index = 0; value_index < ends_count; ++value_index)
+		{
+			int64_t end = arg0_value->IntAtIndex(value_index);
+			double rate = arg1_value->FloatAtIndex(value_index);
+			
+			recombination_end_positions_.push_back((int)end);
+			recombination_rates_.push_back(rate);
+		}
+		
+		InitializeDraws();
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	else
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-#endif	// #ifndef SLIMCORE
 
 
 

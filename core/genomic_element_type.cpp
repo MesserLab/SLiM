@@ -22,13 +22,14 @@
 
 #include "slim_global.h"
 #include "mutation_type.h"
+#include "script_functionsignature.h"
 
 
 GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
 {
 	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
-		SLIM_TERMINATION << "ERROR (Initialize): mutation types and fractions have different sizes" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Initialize): mutation types and fractions have different sizes" << slim_terminate();
 	
 	// Prepare to randomly draw mutation types
 	double A[mutation_type_ptrs_.size()];
@@ -50,7 +51,7 @@ GenomicElementType::~GenomicElementType(void)
 		gsl_ran_discrete_free(lookup_mutation_type);
 }
 
-SLIMCONST MutationType *GenomicElementType::DrawMutationType() const
+MutationType *GenomicElementType::DrawMutationType() const
 {
 	return mutation_type_ptrs_[gsl_ran_discrete(g_rng, lookup_mutation_type)];
 }
@@ -104,7 +105,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	return p_outstream;
 }
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -165,20 +165,72 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
+	methods.push_back("changeMutationFractions");
+	
 	return methods;
 }
 
 const FunctionSignature *GenomicElementType::SignatureForMethod(std::string const &p_method_name) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	static FunctionSignature *changeMutationFractionsSig = nullptr;
+	
+	if (!changeMutationFractionsSig)
+	{
+		changeMutationFractionsSig = (new FunctionSignature("changeMutationFractions", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+	}
+	
+	if (p_method_name.compare("changeMutationFractions") == 0)
+		return changeMutationFractionsSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	int num_arguments = (int)p_arguments.size();
+	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
+	
+	//
+	//	*********************	- (void)changeMutationFractions(object mutationTypes, numeric proportions)
+	//
+#pragma mark -changeMutationFractions()
+	
+	if (p_method_name.compare("changeMutationFractions") == 0)
+	{
+		int mut_type_id_count = arg0_value->Count();
+		int proportion_count = arg1_value->Count();
+		
+		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
+			SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): changeMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << slim_terminate();
+		
+		std::vector<MutationType*> mutation_types;
+		std::vector<double> mutation_fractions;
+		
+		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
+		{ 
+			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ElementAtIndex(mut_type_index);
+			double proportion = arg1_value->FloatAtIndex(mut_type_index);
+			
+			if (proportion <= 0)
+				SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): changeMutationFractions() proportions must be greater than zero." << slim_terminate();
+			
+			mutation_types.push_back(mutation_type_ptr);
+			mutation_fractions.push_back(proportion);
+		}
+		
+		// Everything seems to be in order, so replace our mutation info with the new info
+		mutation_type_ptrs_ = mutation_types;
+		mutation_fractions_ = mutation_fractions;
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	else
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-#endif	// #ifndef SLIMCORE
 
 
 

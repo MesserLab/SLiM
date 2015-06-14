@@ -1,8 +1,8 @@
 //
-//  script_test.h
+//  VariableBrowserController.h
 //  SLiM
 //
-//  Created by Ben Haller on 4/7/15.
+//  Created by Ben Haller on 6/13/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -17,22 +17,38 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
- 
- This file contains code to test SLiMScript.
- 
- */
 
-#ifndef __SLiM__script_test__
-#define __SLiM__script_test__
+#import <Cocoa/Cocoa.h>
 
-#include <string>
+#include "script_symbols.h"
 
 
-void RunSLiMScriptTests(void);
+@protocol VariableBrowserDelegate <NSObject>
+- (SymbolTable *)symbolTable;
+@end
 
 
-#endif /* defined(__SLiM__script_test__) */
+@interface VariableBrowserController : NSObject <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
+{
+	// Temporary wrappers for displayed objects
+	NSMutableArray *browserWrappers;
+}
+
+@property (nonatomic, assign) IBOutlet NSObject<VariableBrowserDelegate> *delegate;
+
+@property (nonatomic, assign) IBOutlet NSButton *browserWindowButton;
+
+@property (nonatomic, retain) IBOutlet NSWindow *browserWindow;
+@property (nonatomic, assign) IBOutlet NSOutlineView *browserOutline;
+
+- (void)reloadBrowser;
+
+- (IBAction)toggleBrowserVisibility:(id)sender;
+
+@end
+
+
+
 
 
 

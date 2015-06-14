@@ -31,8 +31,6 @@ NSString *defaultsSyntaxHighlightOutputKey = @"SyntaxHighlightOutput";
 NSString *defaultsPlaySoundParseSuccessKey = @"PlaySoundParseSuccess";
 NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 
-NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSuccessPanel";
-
 
 @implementation AppDelegate
 

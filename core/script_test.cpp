@@ -52,7 +52,7 @@ static int gTestFailureCount = 0;
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 {
-	Script script(1, 1, p_script_string, 0);
+	Script script(p_script_string, 0);
 	ScriptValue *result = nullptr;
 	
 	gTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
@@ -126,7 +126,7 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
 void AssertScriptRaise(string p_script_string)
 {
-	Script script(1, 1, p_script_string, 0);
+	Script script(p_script_string, 0);
 	
 	try {
 		script.Tokenize();

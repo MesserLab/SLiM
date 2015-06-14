@@ -98,7 +98,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	ScriptValueType type2 = p_value2->Type();
 	
 	if ((type1 == ScriptValueType::kValueNULL) || (type2 == ScriptValueType::kValueNULL))
-		SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison with NULL is illegal." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison with NULL is illegal." << slim_terminate();
 	
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((type1 == ScriptValueType::kValueObject) && (type2 == ScriptValueType::kValueObject))
@@ -147,7 +147,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 	}
 	
 	// that's the end of the road; we should never reach this point
-	SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison involving type " << type1 << " and type " << type2 << " is undefined." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (CompareScriptValues): comparison involving type " << type1 << " and type " << type2 << " is undefined." << slim_terminate();
 	return 0;
 }
 
@@ -189,35 +189,35 @@ ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 bool ScriptValue::LogicalAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type logical." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type logical." << slim_terminate();
 	return false;
 }
 
 std::string ScriptValue::StringAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type string." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type string." << slim_terminate();
 	return std::string();
 }
 
 int64_t ScriptValue::IntAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type integer." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type integer." << slim_terminate();
 	return 0;
 }
 
 double ScriptValue::FloatAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type float." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type float." << slim_terminate();
 	return 0.0;
 }
 
 ScriptObjectElement *ScriptValue::ElementAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type object." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type object." << slim_terminate();
 	return nullptr;
 }
 
@@ -275,7 +275,7 @@ ScriptValue *ScriptValue_NULL::GetValueAtIndex(const int p_idx) const
 void ScriptValue_NULL::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 #pragma unused(p_idx, p_value)
-	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR: operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << slim_terminate();
 }
 
 ScriptValue *ScriptValue_NULL::CopyValues(void) const
@@ -294,11 +294,12 @@ void ScriptValue_NULL::PushValueFromIndexOfScriptValue(int p_idx, const ScriptVa
 	if (p_source_script_value->Type() == ScriptValueType::kValueNULL)
 		;	// NULL doesn't have values or indices, so this is a no-op
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_NULL::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_NULL::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_NULL::Sort(bool p_ascending)
 {
+#pragma unused(p_ascending)
 	// nothing to do
 }
 
@@ -436,7 +437,7 @@ ScriptValue *ScriptValue_Logical::GetValueAtIndex(const int p_idx) const
 void ScriptValue_Logical::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Logical::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Logical::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	values_.at(p_idx) = p_value->LogicalAtIndex(0);
 }
@@ -456,7 +457,7 @@ void ScriptValue_Logical::PushValueFromIndexOfScriptValue(int p_idx, const Scrip
 	if (p_source_script_value->Type() == ScriptValueType::kValueLogical)
 		values_.push_back(p_source_script_value->LogicalAtIndex(p_idx));
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Logical::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Logical::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_Logical::Sort(bool p_ascending)
@@ -596,7 +597,7 @@ ScriptValue *ScriptValue_String::GetValueAtIndex(const int p_idx) const
 void ScriptValue_String::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_String::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_String::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	values_.at(p_idx) = p_value->StringAtIndex(0);
 }
@@ -616,7 +617,7 @@ void ScriptValue_String::PushValueFromIndexOfScriptValue(int p_idx, const Script
 	if (p_source_script_value->Type() == ScriptValueType::kValueString)
 		values_.push_back(p_source_script_value->StringAtIndex(p_idx));
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_String::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_String::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_String::Sort(bool p_ascending)
@@ -767,7 +768,7 @@ ScriptValue *ScriptValue_Int::GetValueAtIndex(const int p_idx) const
 void ScriptValue_Int::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Int::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Int::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	values_.at(p_idx) = p_value->IntAtIndex(0);
 }
@@ -787,7 +788,7 @@ void ScriptValue_Int::PushValueFromIndexOfScriptValue(int p_idx, const ScriptVal
 	if (p_source_script_value->Type() == ScriptValueType::kValueInt)
 		values_.push_back(p_source_script_value->IntAtIndex(p_idx));
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Int::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Int::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_Int::Sort(bool p_ascending)
@@ -932,7 +933,7 @@ ScriptValue *ScriptValue_Float::GetValueAtIndex(const int p_idx) const
 void ScriptValue_Float::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Float::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	values_.at(p_idx) = p_value->FloatAtIndex(0);
 }
@@ -952,7 +953,7 @@ void ScriptValue_Float::PushValueFromIndexOfScriptValue(int p_idx, const ScriptV
 	if (p_source_script_value->Type() == ScriptValueType::kValueFloat)
 		values_.push_back(p_source_script_value->FloatAtIndex(p_idx));
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Float::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_Float::Sort(bool p_ascending)
@@ -1046,7 +1047,7 @@ ScriptObjectElement *ScriptValue_Object::ElementAtIndex(int p_idx) const
 void ScriptValue_Object::PushElement(ScriptObjectElement *p_element)
 {
 	if ((values_.size() > 0) && (ElementType().compare(p_element->ElementType()) != 0))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushElement): the type of an object cannot be changed." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushElement): the type of an object cannot be changed." << slim_terminate();
 	else
 		values_.push_back(p_element->Retain());
 }
@@ -1059,11 +1060,11 @@ ScriptValue *ScriptValue_Object::GetValueAtIndex(const int p_idx) const
 void ScriptValue_Object::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): subscript " << p_idx << " out of range." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	// can't change the type of element object we collect
 	if ((values_.size() > 0) && (ElementType().compare(p_value->ElementAtIndex(0)->ElementType()) != 0))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): the type of an object cannot be changed." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): the type of an object cannot be changed." << slim_terminate();
 	
 	values_.at(p_idx)->Release();
 	values_.at(p_idx) = p_value->ElementAtIndex(0)->Retain();
@@ -1084,17 +1085,18 @@ void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const Script
 	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
 	{
 		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << slim_terminate();
 		else
 			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
 	}
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 void ScriptValue_Object::Sort(bool p_ascending)
 {
-	SLIM_TERMINATION << "ERROR (ScriptValue_Object::Sort): Sort() is not defined for type object." << endl << slim_terminate();
+#pragma unused(p_ascending)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object::Sort): Sort() is not defined for type object." << slim_terminate();
 }
 
 bool CompareLogicalObjectSortPairsAscending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j);
@@ -1134,7 +1136,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 	{
 		case ScriptValueType::kValueNULL:
 		case ScriptValueType::kValueObject:
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << slim_terminate();
 			break;
 			
 		case ScriptValueType::kValueLogical:
@@ -1147,9 +1149,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<bool, ScriptObjectElement*>(temp_result->LogicalAtIndex(0), value));
 				
@@ -1181,9 +1183,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<int64_t, ScriptObjectElement*>(temp_result->IntAtIndex(0), value));
 				
@@ -1215,9 +1217,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<double, ScriptObjectElement*>(temp_result->FloatAtIndex(0), value));
 				
@@ -1249,9 +1251,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<std::string, ScriptObjectElement*>(temp_result->StringAtIndex(0), value));
 				
@@ -1295,7 +1297,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1311,7 +1313,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 			ScriptValue *temp_result = value->GetValueForMember(p_member_name);
 			
 			if (!is_constant_member && (temp_result->Count() != 1))
-				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
 			
 			results.push_back(temp_result);
 		}
@@ -1357,7 +1359,7 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 	}
 	else
 	{
@@ -1382,7 +1384,7 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 			}
 		}
 		else
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
 	}
 }
 
@@ -1398,7 +1400,7 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::s
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
 		return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
@@ -1411,7 +1413,7 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 	if (values_.size() == 0)
 	{
 		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1428,7 +1430,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1498,16 +1500,16 @@ ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_
 	std::vector<std::string> constants = ReadOnlyMembers();
 	
 	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-only member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-only member " << p_member_name << " was not handled by subclass." << slim_terminate();
 	
 	// Check whether getting a variable failed due to a bad subclass implementation
 	std::vector<std::string> variables = ReadWriteMembers();
 	
 	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-write member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-write member " << p_member_name << " was not handled by subclass." << slim_terminate();
 	
 	// Otherwise, we have an unrecognized member, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << slim_terminate();
 	return nullptr;
 }
 
@@ -1518,16 +1520,16 @@ void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, Sc
 	std::vector<std::string> constants = ReadOnlyMembers();
 	
 	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << p_member_name << "." << slim_terminate();
 	
 	// Check whether setting a variable failed due to a bad subclass implementation
 	std::vector<std::string> variables = ReadWriteMembers();
 	
 	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << p_member_name << " was not handled by subclass." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << p_member_name << " was not handled by subclass." << slim_terminate();
 	
 	// Otherwise, we have an unrecognized member, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << slim_terminate();
 }
 
 std::vector<std::string> ScriptObjectElement::Methods(void) const
@@ -1566,10 +1568,10 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	std::vector<std::string> methods = Methods();
 	
 	if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << p_method_name << " was not provided by subclass." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << p_method_name << " was not provided by subclass." << slim_terminate();
 	
 	// Otherwise, we have an unrecognized method, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
@@ -1682,10 +1684,10 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		std::vector<std::string> methods = Methods();
 		
 		if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
-			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << p_method_name << " was not handled by subclass." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << p_method_name << " was not handled by subclass." << slim_terminate();
 		
 		// Otherwise, we have an unrecognized method, so throw
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
@@ -1707,13 +1709,13 @@ void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const
 	}
 	
 	if (!type_ok)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << slim_terminate();
 }
 
 void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range)
 {
 	if (!p_in_range)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << slim_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)

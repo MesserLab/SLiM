@@ -21,27 +21,6 @@
 #import <Cocoa/Cocoa.h>
 
 
-// A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
-@interface SLiMSyntaxColoredTextView : NSTextView
-+ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
-- (IBAction)shiftSelectionLeft:(id)sender;
-- (IBAction)shiftSelectionRight:(id)sender;
-- (void)syntaxColorForSLiMScript;
-- (void)syntaxColorForSLiMInput;
-- (void)clearSyntaxColoring;
-@end
-
-@protocol SLiMSyntaxColoredTextViewDelegate <NSObject>
-@optional
-- (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange;
-@end
-
-
-//
-//	The rest of this file is live only in SLiMgui, not in SLiMscribe
-//
-#ifdef SLIMGUI
-
 @class SLiMWindowController;
 
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
@@ -108,7 +87,6 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 - (void)slimSetTintColor:(NSColor *)tintColor;
 @end
 
-#endif	// def SLIMGUI
 
 
 

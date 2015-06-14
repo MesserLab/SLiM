@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include "math.h"
+#include "g_rng.h"
 
 
 using std::string;
@@ -89,19 +90,37 @@ bool TypeCheckAssignmentOfValueIntoValue(ScriptValue *base_value, ScriptValue *d
 //
 #pragma mark ScriptInterpreter
 
-ScriptInterpreter::ScriptInterpreter(const Script &p_script) : script_(p_script)
+ScriptInterpreter::ScriptInterpreter(const Script &p_script) : root_node_(p_script.AST())
 {
-	global_symbols_ = new SymbolTable();
-	
-	RegisterBuiltInFunctions();
+	SharedInitialization();
 }
 
-ScriptInterpreter::ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols) : script_(p_script), global_symbols_(p_symbols)
+ScriptInterpreter::ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols) : root_node_(p_script.AST()), global_symbols_(p_symbols)
+{
+	SharedInitialization();
+}
+
+ScriptInterpreter::ScriptInterpreter(const ScriptASTNode *p_root_node_) : root_node_(p_root_node_)
+{
+	SharedInitialization();
+}
+
+ScriptInterpreter::ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable *p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
+{
+	SharedInitialization();
+}
+
+void ScriptInterpreter::SharedInitialization(void)
 {
 	if (!global_symbols_)
 		global_symbols_ = new SymbolTable();
 	
 	RegisterBuiltInFunctions();
+	
+	// Initialize the random number generator if and only if it has not already been initialized
+	// If SLiM wants a different seed, it will enforce that; not our problem.
+	if (!g_rng)
+		InitializeRNGFromSeed(GenerateSeedFromPIDAndTime());
 }
 
 ScriptInterpreter::~ScriptInterpreter(void)
@@ -153,14 +172,14 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 		execution_log_ << IndentString(execution_log_indent_++) << "EvaluateScriptBlock() entered\n";
 	}
 	
-	ScriptValue *result = EvaluateNode(script_.AST());
+	ScriptValue *result = EvaluateNode(root_node_);
 	
 	// if a next or break statement was hit and was not handled by a loop, throw an error
 	if (next_statement_hit_ || break_statement_hit_)
 	{
 		if (!result->InSymbolTable()) delete result;
 		
-		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
 	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
@@ -200,10 +219,9 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		execution_log_ << IndentString(execution_log_indent_++) << "EvaluateInterpreterBlock() entered\n";
 	}
 	
-	const ScriptASTNode *p_node = script_.AST();
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
-	for (ScriptASTNode *child_node : p_node->children_)
+	for (ScriptASTNode *child_node : root_node_->children_)
 	{
 		if (!result->InSymbolTable()) delete result;
 		
@@ -214,7 +232,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		{
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
 		}
 		
 		// send the result of the block to our output stream
@@ -268,7 +286,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 		case TokenType::kTokenLBracket:
 		{
 			if (p_parent_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '[' node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '[' node)." << slim_terminate();
 			
 			ScriptASTNode *left_operand = p_parent_node->children_[0];
 			ScriptASTNode *right_operand = p_parent_node->children_[1];
@@ -286,7 +304,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			{
 				if (!second_child_value->InSymbolTable()) delete second_child_value;
 				
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << slim_terminate();
 			}
 			
 			int second_child_count = second_child_value->Count();
@@ -298,7 +316,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 				{
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					
-					SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
 				}
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -322,7 +340,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 					{
 						if (!second_child_value->InSymbolTable()) delete second_child_value;
 						
-						SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << slim_terminate();
 					}
 					else
 						p_indices_ptr->push_back(base_indices[index_value]);
@@ -340,7 +358,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 		case TokenType::kTokenDot:
 		{
 			if (p_parent_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 2 children for '.' node)." << slim_terminate();
 			
 			ScriptASTNode *left_operand = p_parent_node->children_[0];
 			ScriptASTNode *right_operand = p_parent_node->children_[1];
@@ -352,14 +370,14 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 			}
 			
 			if (right_operand->token_->token_type_ != TokenType::kTokenIdentifier)
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 			}
 			
 			*p_base_value_ptr = first_child_value;
@@ -375,7 +393,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 		case TokenType::kTokenIdentifier:
 		{
 			if (p_parent_node->children_.size() != 0)
-				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << slim_terminate();
 			
 			ScriptValue *identifier_value = global_symbols_->GetValueForSymbol(p_parent_node->token_->token_string_);
 			*p_base_value_ptr = identifier_value;
@@ -388,7 +406,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			break;
 		}
 		default:
-			SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): Unexpected node token type " << token_type << "; lvalue required." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): Unexpected node token type " << token_type << "; lvalue required." << slim_terminate();
 			break;
 	}
 }
@@ -409,7 +427,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 		case TokenType::kTokenLBracket:
 		{
 			if (p_lvalue_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << slim_terminate();
 			
 			ScriptValue *base_value;
 			string member_name;
@@ -425,7 +443,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 				if (member_name.length() == 0)
 				{
 					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
-						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << slim_terminate();
 					
 					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -441,7 +459,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						ScriptValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx]);
 						
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
-							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
+							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << slim_terminate();
 						
 						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, rvalue);
 						
@@ -454,7 +472,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 				if (member_name.length() == 0)
 				{
 					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
-						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << slim_terminate();
 					
 					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -475,7 +493,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						ScriptValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx);
 						
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
-							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << endl << slim_terminate();
+							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << slim_terminate();
 						
 						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, temp_rvalue);
 						
@@ -486,7 +504,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			}
 			else
 			{
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
 			}
 			
 			break;
@@ -494,7 +512,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 		case TokenType::kTokenDot:
 		{
 			if (p_lvalue_node->children_.size() != 2)
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '.' node)." << slim_terminate();
 			
 			ScriptValue *first_child_value = EvaluateNode(p_lvalue_node->children_[0]);
 			ScriptValueType first_child_type = first_child_value->Type();
@@ -503,7 +521,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 			}
 			
 			ScriptASTNode *second_child_node = p_lvalue_node->children_[1];
@@ -512,7 +530,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			{
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
@@ -522,14 +540,14 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 		case TokenType::kTokenIdentifier:
 		{
 			if (p_lvalue_node->children_.size() != 0)
-				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 0 children for identifier node)." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 0 children for identifier node)." << slim_terminate();
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
 			global_symbols_->SetValueForSymbol(p_lvalue_node->token_->token_string_, rvalue);
 			break;
 		}
 		default:
-			SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): Unexpected node token type " << token_type << "; lvalue required." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): Unexpected node token type " << token_type << "; lvalue required." << slim_terminate();
 			break;
 	}
 }
@@ -581,12 +599,12 @@ ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
 		case TokenType::kTokenBreak:		result = Evaluate_Break(p_node);				break;
 		case TokenType::kTokenReturn:		result = Evaluate_Return(p_node);				break;
 		default:
-			SLIM_TERMINATION << "ERROR (EvaluateNode): Unexpected node token type " << token_type << "." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvaluateNode): Unexpected node token type " << token_type << "." << slim_terminate();
 			break;
 	}
 	
 	if (!result)
-		SLIM_TERMINATION << "ERROR (EvaluateNode): nullptr returned from evaluation of token type " << token_type << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (EvaluateNode): nullptr returned from evaluation of token type " << token_type << "." << slim_terminate();
 	
 	return result;
 }
@@ -598,7 +616,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NullStatement(const ScriptASTNode *p_no
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NullStatement() entered\n";
 	
 	if (p_node->children_.size() != 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_NullStatement): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_NullStatement): internal error (expected 0 children)." << slim_terminate();
 	
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
@@ -638,7 +656,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_RangeExpr() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	bool too_wide = false;
@@ -654,7 +672,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << first_child_type << " is not supported by the ':' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << first_child_type << " is not supported by the ':' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
@@ -662,7 +680,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << second_child_type << " is not supported by the ':' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << second_child_type << " is not supported by the ':' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -673,7 +691,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operands of the ':' operator must have size() == 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operands of the ':' operator must have size() == 1." << slim_terminate();
 	}
 	
 	// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
@@ -766,13 +784,13 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 	{
 		if (!result->InSymbolTable()) delete result;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): the floating-point range could not be constructed due to underflow." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): the floating-point range could not be constructed due to underflow." << slim_terminate();
 	}
 	if (too_wide)
 	{
 		if (!result->InSymbolTable()) delete result;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): a range with more than 100000 entries cannot be constructed." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): a range with more than 100000 entries cannot be constructed." << slim_terminate();
 	}
 	
 	if (logging_execution_)
@@ -806,7 +824,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	else if (function_name_token_type == TokenType::kTokenDot)
 	{
 		if (function_name_node->children_.size() != 2)
-			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): internal error (expected 2 children for '.' node)." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): internal error (expected 2 children for '.' node)." << slim_terminate();
 		
 		ScriptValue *first_child_value = EvaluateNode(function_name_node->children_[0]);
 		ScriptValueType first_child_type = first_child_value->Type();
@@ -815,7 +833,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		{
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 		}
 		
 		ScriptASTNode *second_child_node = function_name_node->children_[1];
@@ -824,7 +842,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		{
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 		}
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
@@ -833,7 +851,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << slim_terminate();
 	}
 	
 	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
@@ -885,7 +903,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Subset() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Subset): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Subset): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -909,7 +927,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << slim_terminate();
 		}
 		
 		// OK, we can definitely do this subset, so allocate the result value based on the type of the first operand
@@ -930,7 +948,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!result->InSymbolTable()) delete result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
 				}
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -954,7 +972,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 						if (!second_child_value->InSymbolTable()) delete second_child_value;
 						if (!result->InSymbolTable()) delete result;
 						
-						SLIM_TERMINATION << "ERROR (Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << slim_terminate();
 					}
 					else
 						result->PushValueFromIndexOfScriptValue((int)index_value, first_child_value);
@@ -979,7 +997,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_MemberRef() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -990,7 +1008,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): operand type " << first_child_type << " is not supported by the '.' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 	}
 	
 	ScriptASTNode *second_child_node = p_node->children_[1];
@@ -999,7 +1017,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 	}
 	
 	string member_name = second_child_node->token_->token_string_;
@@ -1010,7 +1028,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	
 	// check result; this should never happen, since GetValueForMember should check
 	if (!result)
-		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << member_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << member_name << "." << slim_terminate();
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";
@@ -1024,7 +1042,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Plus() entered\n";
 	
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
-		SLIM_TERMINATION << "ERROR (Evaluate_Plus): internal error (expected 1 or 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Plus): internal error (expected 1 or 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -1038,7 +1056,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		{
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << slim_terminate();
 		}
 		
 		result = first_child_value;
@@ -1059,7 +1077,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 		
 		if ((first_child_type == ScriptValueType::kValueString) || (second_child_type == ScriptValueType::kValueString))
@@ -1122,7 +1140,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 				if (!first_child_value->InSymbolTable()) delete first_child_value;
 				if (!second_child_value->InSymbolTable()) delete second_child_value;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << slim_terminate();
 			}
 			
 			ScriptValue_Float *float_result = new ScriptValue_Float();
@@ -1167,7 +1185,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Minus() entered\n";
 	
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
-		SLIM_TERMINATION << "ERROR (Evaluate_Minus): internal error (expected 1 or 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Minus): internal error (expected 1 or 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -1178,7 +1196,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -1219,7 +1237,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << slim_terminate();
 		}
 		
 		int second_child_count = second_child_value->Count();
@@ -1229,7 +1247,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 			if (!first_child_value->InSymbolTable()) delete first_child_value;
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 		
 		if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
@@ -1302,7 +1320,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mod() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Mod): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mod): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -1317,7 +1335,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
@@ -1325,7 +1343,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -1336,7 +1354,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
 	/*
@@ -1362,7 +1380,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!int_result->InSymbolTable()) delete int_result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 				}
 				
 				int_result->PushInt(first_child_value->IntAtIndex(value_index) % divisor);
@@ -1382,7 +1400,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!int_result->InSymbolTable()) delete int_result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 				}
 				
 				int_result->PushInt(singleton_int % divisor);
@@ -1398,7 +1416,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 				if (!second_child_value->InSymbolTable()) delete second_child_value;
 				if (!int_result->InSymbolTable()) delete int_result;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 			}
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1452,7 +1470,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mult() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Mult): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mult): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -1467,7 +1485,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
@@ -1475,7 +1493,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -1536,7 +1554,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
 	// free our operands
@@ -1555,7 +1573,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Div() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Div): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Div): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -1570,7 +1588,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
@@ -1578,7 +1596,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -1589,7 +1607,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
 	/*
@@ -1614,7 +1632,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!int_result->InSymbolTable()) delete int_result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 				}
 				
 				int_result->PushInt(first_child_value->IntAtIndex(value_index) / divisor);
@@ -1634,7 +1652,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 					if (!second_child_value->InSymbolTable()) delete second_child_value;
 					if (!int_result->InSymbolTable()) delete int_result;
 					
-					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 				}
 				
 				int_result->PushInt(singleton_int / divisor);
@@ -1650,7 +1668,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 				if (!second_child_value->InSymbolTable()) delete second_child_value;
 				if (!int_result->InSymbolTable()) delete int_result;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 			}
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1704,7 +1722,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Exp() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Exp): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Exp): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -1717,7 +1735,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
@@ -1725,7 +1743,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << slim_terminate();
 	}
 	
 	int first_child_count = first_child_value->Count();
@@ -1735,7 +1753,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		if (!second_child_value->InSymbolTable()) delete second_child_value;
-		SLIM_TERMINATION << "ERROR (Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
@@ -1777,7 +1795,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_And() entered\n";
 	
 	if (p_node->children_.size() < 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_And): internal error (expected 2+ children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_And): internal error (expected 2+ children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = nullptr;
 	int result_count = 0;
@@ -1792,7 +1810,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 			if (!child_result->InSymbolTable()) delete child_result;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << slim_terminate();
 		}
 		
 		int child_count = child_result->Count();
@@ -1816,7 +1834,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 				if (!child_result->InSymbolTable()) delete child_result;
 				if (!result->InSymbolTable()) delete result;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << slim_terminate();
 			}
 			
 			if (child_count == 1)
@@ -1869,7 +1887,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Or() entered\n";
 	
 	if (p_node->children_.size() < 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Or): internal error (expected 2+ children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Or): internal error (expected 2+ children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = nullptr;
 	int result_count = 0;
@@ -1884,7 +1902,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 			if (!child_result->InSymbolTable()) delete child_result;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << slim_terminate();
 		}
 		
 		int child_count = child_result->Count();
@@ -1906,7 +1924,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 				if (!child_result->InSymbolTable()) delete child_result;
 				if (!result->InSymbolTable()) delete result;
 				
-				SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << slim_terminate();
 			}
 			
 			if (child_count == 1)
@@ -1959,7 +1977,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Not() entered\n";
 	
 	if (p_node->children_.size() != 1)
-		SLIM_TERMINATION << "ERROR (Evaluate_Not): internal error (expected 1 child)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Not): internal error (expected 1 child)." << slim_terminate();
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValueType first_child_type = first_child_value->Type();
@@ -1968,7 +1986,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 	{
 		if (!first_child_value->InSymbolTable()) delete first_child_value;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << slim_terminate();
 	}
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical();
@@ -1993,7 +2011,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Assign() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Assign): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Assign): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptASTNode *lvalue_node = p_node->children_[0];
 	ScriptValue *rvalue = EvaluateNode(p_node->children_[1]);
@@ -2019,7 +2037,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Eq() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Eq): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Eq): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2068,7 +2086,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2088,7 +2106,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Lt() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Lt): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2099,7 +2117,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 	ScriptValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
-		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator cannot be used with type object." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator cannot be used with type object." << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
@@ -2140,7 +2158,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2160,7 +2178,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_LtEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_LtEq): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_LtEq): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2171,7 +2189,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 	ScriptValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
-		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<=' operator cannot be used with type object." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<=' operator cannot be used with type object." << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
@@ -2212,7 +2230,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2232,7 +2250,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Gt() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Gt): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Gt): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2243,7 +2261,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 	ScriptValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
-		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>' operator cannot be used with type object." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>' operator cannot be used with type object." << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
@@ -2284,7 +2302,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2304,7 +2322,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_GtEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_GtEq): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_GtEq): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2315,7 +2333,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 	ScriptValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
-		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>=' operator cannot be used with type object." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>=' operator cannot be used with type object." << slim_terminate();
 	
 	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
@@ -2356,7 +2374,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2376,7 +2394,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NotEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_NotEq): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_NotEq): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue_Logical *result = new ScriptValue_Logical;
 	
@@ -2425,7 +2443,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 			if (!second_child_value->InSymbolTable()) delete second_child_value;
 			if (!result->InSymbolTable()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
@@ -2439,13 +2457,33 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 	return result;
 }
 
+// A utility static method for getting an int for a number node outside of a ScriptInterpreter session
+int64_t ScriptInterpreter::IntForNumberToken(const ScriptToken *p_token)
+{
+	if (p_token->token_type_ != TokenType::kTokenNumber)
+		SLIM_TERMINATION << "ERROR (IntForNumberToken): internal error (expected kTokenNumber)." << slim_terminate();
+	
+	string number_string = p_token->token_string_;
+	
+	// This needs to use the same criteria as Evaluate_Number() below; it raises if the number is a float.
+	if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+	{
+		SLIM_TERMINATION << "ERROR (IntForNumberToken): an integer is required." << slim_terminate();
+		return 0;
+	}
+	else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
+		return static_cast<int64_t>(strtod(number_string.c_str(), nullptr));			// has an exponent
+	else
+		return strtoll(number_string.c_str(), NULL, 10);								// plain integer
+}
+
 ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Number() entered\n";
 	
 	if (p_node->children_.size() > 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_Number): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Number): internal error (expected 0 children)." << slim_terminate();
 	
 	string number_string = p_node->token_->token_string_;
 	
@@ -2459,7 +2497,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 	if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
 		result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
 	else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-		result = new ScriptValue_Int(static_cast<int>(strtod(number_string.c_str(), nullptr)));			// has an exponent
+		result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));			// has an exponent
 	else
 		result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 	
@@ -2475,7 +2513,7 @@ ScriptValue *ScriptInterpreter::Evaluate_String(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_String() entered\n";
 	
 	if (p_node->children_.size() > 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_String): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_String): internal error (expected 0 children)." << slim_terminate();
 	
 	ScriptValue *result = new ScriptValue_String(p_node->token_->token_string_);
 	
@@ -2491,14 +2529,14 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Identifier() entered\n";
 	
 	if (p_node->children_.size() > 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << slim_terminate();
 	
 	string identifier_string = p_node->token_->token_string_;
 	ScriptValue *result = global_symbols_->GetValueForSymbol(identifier_string);
 	
 	// check result; this should never happen, since GetValueForSymbol should check
 	if (!result)
-		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): undefined identifier " << identifier_string << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): undefined identifier " << identifier_string << "." << slim_terminate();
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Identifier() : return == " << *result << "\n";
@@ -2512,7 +2550,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_If() entered\n";
 	
 	if ((p_node->children_.size() != 2) && (p_node->children_.size() != 3))
-		SLIM_TERMINATION << "ERROR (Evaluate_If): internal error (expected 2 or 3 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_If): internal error (expected 2 or 3 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -2542,7 +2580,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 	{
 		if (!condition_result->InSymbolTable()) delete condition_result;
 		
-		SLIM_TERMINATION << "ERROR (Evaluate_If): condition has size() != 1." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_If): condition has size() != 1." << slim_terminate();
 	}
 	
 	// free our operands
@@ -2560,7 +2598,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Do() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_Do): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Do): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -2606,7 +2644,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		{
 			if (!condition_result->InSymbolTable()) delete condition_result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_Do): condition has size() != 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_Do): condition has size() != 1." << slim_terminate();
 		}
 	}
 	while (true);
@@ -2626,7 +2664,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_While() entered\n";
 	
 	if (p_node->children_.size() != 2)
-		SLIM_TERMINATION << "ERROR (Evaluate_While): internal error (expected 2 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_While): internal error (expected 2 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
 	
@@ -2649,7 +2687,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		{
 			if (!condition_result->InSymbolTable()) delete condition_result;
 			
-			SLIM_TERMINATION << "ERROR (Evaluate_While): condition has size() != 1." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Evaluate_While): condition has size() != 1." << slim_terminate();
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
@@ -2691,14 +2729,14 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_For() entered\n";
 	
 	if (p_node->children_.size() != 3)
-		SLIM_TERMINATION << "ERROR (Evaluate_For): internal error (expected 3 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_For): internal error (expected 3 children)." << slim_terminate();
 	
 	ScriptASTNode *identifier_child = p_node->children_[0];
 	
 	// an lvalue is needed to assign into; for right now, we require an identifier, although that isn't quite right
 	// since we should also be able to assign into a subscript, a member of a class, etc.; we need a concept of lvalue references
 	if (identifier_child->token_->token_type_ != TokenType::kTokenIdentifier)
-		SLIM_TERMINATION << "ERROR (Evaluate_For): the 'for' keyword requires an identifier for its left operand." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_For): the 'for' keyword requires an identifier for its left operand." << slim_terminate();
 	
 	string identifier_name = identifier_child->token_->token_string_;
 	ScriptValue *range_value = EvaluateNode(p_node->children_[1]);
@@ -2757,7 +2795,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Next(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Next() entered\n";
 	
 	if (p_node->children_.size() != 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_Next): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Next): internal error (expected 0 children)." << slim_terminate();
 	
 	// just like a null statement, except that we set a flag in the interpreter, which will be seen by the eval
 	// methods and will cause them to return up to the for loop immediately; Evaluate_For will handle the flag.
@@ -2778,7 +2816,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Break(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Break() entered\n";
 	
 	if (p_node->children_.size() != 0)
-		SLIM_TERMINATION << "ERROR (Evaluate_Break): internal error (expected 0 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Break): internal error (expected 0 children)." << slim_terminate();
 	
 	// just like a null statement, except that we set a flag in the interpreter, which will be seen by the eval
 	// methods and will cause them to return up to the for loop immediately; Evaluate_For will handle the flag.
@@ -2799,7 +2837,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Return(const ScriptASTNode *p_node)
 		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Return() entered\n";
 	
 	if (p_node->children_.size() > 1)
-		SLIM_TERMINATION << "ERROR (Evaluate_Return): internal error (expected 0 or 1 children)." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_Return): internal error (expected 0 or 1 children)." << slim_terminate();
 	
 	// set a flag in the interpreter, which will be seen by the eval methods and will cause them to return up to the top-level block immediately
 	return_statement_hit_ = true;

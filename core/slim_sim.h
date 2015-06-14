@@ -37,22 +37,16 @@
 #include "mutation_type.h"
 #include "population.h"
 #include "chromosome.h"
-#include "event.h"
-
-#ifndef SLIMCORE
 #include "script.h"
 #include "script_value.h"
 #include "script_functions.h"
-#endif
+#include "slim_script_block.h"
 
 
 class ScriptInterpreter;
 
 
-class SLiMSim
-#ifndef SLIMCORE
-				: public ScriptObjectElement
-#endif
+class SLiMSim : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -67,16 +61,10 @@ private:
 	int time_start_ = 0;															// the first generation number for which the simulation will run
 	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
 	int generation_ = 0;															// the current generation reached in simulation
-	std::vector<std::string> input_parameters_;										// invocation parameters from input file
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
 	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	std::multimap<const int,Event*> events_;										// OWNED POINTERS: demographic and structure events
-	std::multimap<const int,Event*> outputs_;										// OWNED POINTERS: output events (time, output)
-	std::multimap<const int,SLIMCONST IntroducedMutation*> introduced_mutations_;	// OWNED POINTERS: user-defined mutations that will be introduced (time, mutation)
-	std::vector<SLIMCONST PartialSweep*> partial_sweeps_;							// OWNED POINTERS: mutations undergoing partial sweeps
-	std::vector<MutationType*> tracked_mutations_;									// tracked mutation-types; these pointers are not owned (they are owned by mutation_types_, above)
 	int rng_seed_ = 0;																// random number generator seed
 	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
 	
@@ -85,15 +73,30 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-#ifndef SLIMCORE
-	std::vector<Script*> scripts_;													// OWNED POINTERS: script events
-	FunctionSignature *simFunctionSig = nullptr;									// OWNED POINTERS: SLiMscript function signatures
-#endif
+	Script *script_;																// OWNED POINTER: the whole input file script
+	std::vector<SLiMScriptBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
+	std::vector<SLiMScriptBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
+	std::vector<FunctionSignature*> sim_0_signatures;								// OWNED POINTERS: SLiMscript function signatures
 	
 	// private initialization methods
-	static std::string CheckInputFile(std::istream &infile);						// check an input file for correctness and exit with a good error message if there is a problem
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
-	void InitializeFromFile(std::istream &infile);									// parse a (previously checked) input file and set up the simulation state from its contents
+	void InitializeFromFile(std::istream &infile);									// parse a input file and set up the simulation state from its contents
+	
+	// initialization completeness check counts; used only in generation 0
+	int num_mutation_types;
+	int num_mutation_rates;
+	int num_genomic_element_types;
+	int num_genomic_elements;
+	int num_recombination_rates;
+	int num_gene_conversions;
+	int num_generations;
+	int num_sex_declarations;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
+	
+	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
+	bool mutation_types_changed_ = true;
+	bool genomic_element_types_changed_ = true;
+	bool chromosome_changed_ = true;
+	bool scripts_changed_ = true;
 	
 public:
 	
@@ -103,26 +106,31 @@ public:
 	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
 	~SLiMSim(void);																	// destructor
 	
+	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
+	std::vector<SLiMScriptBlock*> ScriptBlocksMatching(int p_generation, SLiMScriptBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id);
+	void DeregisterScheduledScriptBlocks(void);
+	
+	void RunZeroGeneration(void);													// run generation zero and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end
 	
 	// accessors
 	inline int Generation(void) const												{ return generation_; }
-	inline const std::vector<std::string> &InputParameters(void) const				{ return input_parameters_; }
+	inline Chromosome &Chromosome(void)												{ return chromosome_; }
 	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
 	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 	
-	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter);					// add SLiM constructs to a SLiMscript interpreter instance
+	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block);	// add SLiM constructs to an interpreter instance
+	std::vector<FunctionSignature*> *InjectedFunctionSignatures(void);
 	
 	virtual std::string ElementType(void) const;
 	
@@ -134,7 +142,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 

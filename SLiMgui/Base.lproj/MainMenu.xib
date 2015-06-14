@@ -237,189 +237,207 @@
                 </menuItem>
                 <menuItem title="Simulation" id="H8h-7b-M4v">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Simulation" id="HyV-fh-RgO">
+                    <menu key="submenu" title="Simulation" id="lGi-Wg-1SI">
                         <items>
-                            <menuItem title="Step" keyEquivalent="]" id="yG6-bq-3tp">
+                            <menuItem title="Step" keyEquivalent="]" id="C9p-mA-fVt">
                                 <connections>
-                                    <action selector="playOneStep:" target="-1" id="1sS-jL-p3p"/>
+                                    <action selector="playOneStep:" target="-1" id="SjN-uK-tIt"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Play" keyEquivalent="]" id="kBB-s5-YaT">
+                            <menuItem title="Play" keyEquivalent="]" id="EyD-tq-95A">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
-                                    <action selector="play:" target="-1" id="7D8-4g-TFR"/>
+                                    <action selector="play:" target="-1" id="AGn-8l-Bub"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Recycle" keyEquivalent="[" id="ash-F8-BGU">
+                            <menuItem title="Recycle" keyEquivalent="[" id="MtH-g3-zh4">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
-                                    <action selector="recycle:" target="-1" id="etX-EP-G5f"/>
+                                    <action selector="recycle:" target="-1" id="Jo1-Sx-pAg"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="pdb-1F-iji"/>
-                            <menuItem title="Change Subpopulation Size..." id="Y0O-Kx-vIf">
+                            <menuItem isSeparatorItem="YES" id="0Gd-Zb-sPj"/>
+                            <menuItem title="Change Subpopulation Size..." id="rxc-hS-5Ou">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonChangeSubpopSize:" target="-1" id="k4C-oL-vBB"/>
+                                    <action selector="buttonChangeSubpopSize:" target="-1" id="cSm-Zo-Yrn"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Remove Subpopulation..." id="bGG-5Y-fi9">
+                            <menuItem title="Remove Subpopulation..." id="00D-fA-8hI">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonRemoveSubpop:" target="-1" id="u1V-b5-Goh"/>
+                                    <action selector="buttonRemoveSubpop:" target="-1" id="r2p-Na-xyO"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Subpopulation..." id="N1w-bj-PZV">
+                            <menuItem title="Add Subpopulation..." id="AkA-4t-SUu">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonAddSubpop:" target="-1" id="PpI-NK-wGf"/>
+                                    <action selector="buttonAddSubpop:" target="-1" id="Nkd-G9-pir"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Split Subpopulation..." id="Qal-7h-S3f">
+                            <menuItem title="Split Subpopulation..." id="wzB-k7-W3y">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonSplitSubpop:" target="-1" id="sIQ-yY-8wU"/>
+                                    <action selector="buttonSplitSubpop:" target="-1" id="e1g-QP-eE1"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Change Migration Rates..." id="aLn-OU-6sR">
+                            <menuItem title="Change Migration Rates..." id="Pbv-4l-wIq">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonChangeMigrationRates:" target="-1" id="Xt3-0b-xP1"/>
+                                    <action selector="buttonChangeMigrationRates:" target="-1" id="yuN-lY-gvK"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Change Selfing Rate..." id="0gM-JP-NnP">
+                            <menuItem title="Change Selfing Rate..." id="qyd-pU-bof">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonChangeSelfingRates:" target="-1" id="ucy-WW-dya"/>
+                                    <action selector="buttonChangeSelfingRates:" target="-1" id="6RG-Bl-teN"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Change Sex Ratio..." id="uqs-eh-N7e">
+                            <menuItem title="Change Sex Ratio..." id="YJ3-cR-7cB">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="buttonChangeSexRatio:" target="-1" id="6By-Ub-Nbe"/>
+                                    <action selector="buttonChangeSexRatio:" target="-1" id="lfQ-wa-KBY"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="qWL-0c-SHN"/>
-                            <menuItem title="Add Mutation Type..." id="rjw-ra-ml8">
+                            <menuItem isSeparatorItem="YES" id="Hta-hf-61q"/>
+                            <menuItem title="Add Mutation Type..." id="trY-5Z-o5I">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="addMutationType:" target="-1" id="9aQ-m0-c4A"/>
+                                    <action selector="addMutationType:" target="-1" id="mvw-a0-adG"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Genomic Element Type..." id="g3J-HZ-O77">
+                            <menuItem title="Add Genomic Element Type..." id="tKe-zj-cCW">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="addGenomicElementType:" target="-1" id="NTM-QS-wen"/>
+                                    <action selector="addGenomicElementType:" target="-1" id="yfV-Sm-Fcv"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Genomic Element to Chromosome..." id="qsJ-e7-nLA">
+                            <menuItem title="Add Genomic Element to Chromosome..." id="rNK-jf-COe">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="addGenomicElementToChromosome:" target="-1" id="tB4-aQ-whz"/>
+                                    <action selector="addGenomicElementToChromosome:" target="-1" id="SDy-mu-v1V"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Recombination Interval..." id="6KI-RF-4hk">
+                            <menuItem title="Add Recombination Interval..." id="4Ke-1T-1sb">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="addRecombinationInterval:" target="-1" id="OZa-lm-umo"/>
+                                    <action selector="addRecombinationInterval:" target="-1" id="fuX-Ht-eRx"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Predetermined Mutation..." id="Joq-so-9ij">
+                            <menuItem title="Add Predetermined Mutation..." id="Ew5-sh-MM8">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="addPredeterminedMutation:" target="-1" id="xD8-Du-8WH"/>
+                                    <action selector="addPredeterminedMutation:" target="-1" id="VC7-Vo-LfY"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="ZUj-Po-nd2"/>
-                            <menuItem title="Output Full Population State..." id="Nyj-Uy-1gd">
+                            <menuItem isSeparatorItem="YES" id="J48-9s-tbA"/>
+                            <menuItem title="Output Full Population State..." id="XhD-CB-edn">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="outputFullPopulationState:" target="-1" id="F5y-WY-zH1"/>
+                                    <action selector="outputFullPopulationState:" target="-1" id="HJR-T9-PCK"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Output Population Sample..." id="gdt-5L-9xF">
+                            <menuItem title="Output Population Sample..." id="7UE-Q9-2nb">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="outputPopulationSample:" target="-1" id="8CO-dt-Z0L"/>
+                                    <action selector="outputPopulationSample:" target="-1" id="CPv-RK-1mw"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Output Fixed Mutations..." id="J4A-5w-sBw">
+                            <menuItem title="Output Fixed Mutations..." id="n8w-w5-LfG">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="outputFixedMutations:" target="-1" id="xE5-Wz-bQv"/>
+                                    <action selector="outputFixedMutations:" target="-1" id="rFU-ES-1YL"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Track Mutation Type..." id="UhD-UK-dNK">
+                            <menuItem title="Track Mutation Type..." id="tDI-gW-kfi">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="trackMutationType:" target="-1" id="yGl-Og-uWj"/>
+                                    <action selector="trackMutationType:" target="-1" id="rd0-pB-GB9"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="AeK-kn-cUy"/>
-                            <menuItem title="Graph Mutation Frequency Spectrum" id="o5J-bi-Lxj">
+                            <menuItem isSeparatorItem="YES" id="JRf-ad-zNv"/>
+                            <menuItem title="Graph Mutation Frequency Spectrum" id="FSt-J5-XHJ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphMutationFrequencySpectrum:" target="-1" id="1yT-yi-K9T"/>
+                                    <action selector="graphMutationFrequencySpectrum:" target="-1" id="LYQ-tN-PAb"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Mutation Frequency Trajectories" id="sNv-W4-OFs">
+                            <menuItem title="Graph Mutation Frequency Trajectories" id="Srz-OG-dXi">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphMutationFrequencyTrajectories:" target="-1" id="gRu-Ta-4Tr"/>
+                                    <action selector="graphMutationFrequencyTrajectories:" target="-1" id="y1p-AO-MeW"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Mutation Loss Time Histogram" id="j5A-d1-g8g">
+                            <menuItem title="Graph Mutation Loss Time Histogram" id="it8-Wc-Cdo">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphMutationLossTimeHistogram:" target="-1" id="RqW-If-7gQ"/>
+                                    <action selector="graphMutationLossTimeHistogram:" target="-1" id="ap5-sJ-NXp"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Mutation Fixation Time Histogram" id="VuN-MA-8hG">
+                            <menuItem title="Graph Mutation Fixation Time Histogram" id="IK3-Na-aV4">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphMutationFixationTimeHistogram:" target="-1" id="ctO-9M-Hme"/>
+                                    <action selector="graphMutationFixationTimeHistogram:" target="-1" id="MV9-Od-bJH"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Fitness ~ Time" id="vju-ux-fG0">
+                            <menuItem title="Graph Fitness ~ Time" id="EEv-Te-bqv">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphFitnessOverTime:" target="-1" id="3yK-hb-PHq"/>
+                                    <action selector="graphFitnessOverTime:" target="-1" id="fnL-UF-XS8"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Graph Population Visualization" id="lup-Ws-ra9">
+                            <menuItem title="Graph Population Visualization" id="QMY-a7-PG1">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="graphPopulationVisualization:" target="-1" id="V3C-y8-2sm"/>
+                                    <action selector="graphPopulationVisualization:" target="-1" id="yhD-GA-1K7"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="0RT-dB-Yr4"/>
-                            <menuItem title="Check Script Syntax" keyEquivalent="=" id="iGq-iW-iVU">
+                            <menuItem isSeparatorItem="YES" id="CsN-zd-8hB"/>
+                            <menuItem title="Dump Population State" keyEquivalent="" id="7LZ-Ir-BDL">
                                 <connections>
-                                    <action selector="checkScriptTextView:" target="-1" id="A1F-Zr-Uy2"/>
+                                    <action selector="dumpPopulationToOutput:" target="-1" id="V9u-uo-yiz"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Show Script Syntax Help" id="Gnw-AH-WxQ">
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="Script" id="dw5-Kx-j6q" userLabel="Script">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <menu key="submenu" title="Script" id="tqb-Wc-Wzy">
+                        <items>
+                            <menuItem title="Check Script" keyEquivalent="=" id="6iN-PX-KmV">
+                                <connections>
+                                    <action selector="checkScript:" target="-1" id="3hw-Wc-h8c"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Show Script Help" id="u9S-Gc-HU7">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="showScriptSyntaxHelp:" target="-1" id="0D9-D4-g7r"/>
+                                    <action selector="showScriptHelp:" target="-1" id="93p-9I-4d4"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="Qwc-5x-NYw"/>
-                            <menuItem title="Clear Output" keyEquivalent="k" id="XAa-aI-oMf">
+                            <menuItem isSeparatorItem="YES" id="HGB-qg-Jeh"/>
+                            <menuItem title="Clear Output" keyEquivalent="k" id="Oi2-aT-uau">
                                 <connections>
-                                    <action selector="clearOutputTextView:" target="-1" id="WrE-nJ-2Md"/>
+                                    <action selector="clearOutput:" target="-1" id="vEb-WY-99A"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Dump Population State" keyEquivalent="" id="LF1-Jo-Agy">
+                            <menuItem isSeparatorItem="YES" id="aHz-1a-shY"/>
+                            <menuItem title="Execute Selection" id="c4h-gc-RSR">
+                                <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
                                 <connections>
-                                    <action selector="dumpPopulationToOutput:" target="-1" id="zQS-xY-LRw"/>
+                                    <action selector="executeSelection:" target="-1" id="kOR-ZG-Zu9"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="wvf-HZ-I1B"/>
-                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="ois-g7-pPB">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                            <menuItem title="Execute All" id="2SN-ZE-qHc">
+                                <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
-                                    <action selector="toggleFullScreen:" target="-1" id="Jpa-bl-kf3"/>
+                                    <action selector="executeAll:" target="-1" id="CXc-6D-hgz"/>
                                 </connections>
                             </menuItem>
                         </items>
@@ -445,6 +463,13 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="arrangeInFront:" target="-1" id="DRN-fu-gQh"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="bkY-ut-fvs"/>
+                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="d9X-fb-9Kh">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleFullScreen:" target="-1" id="B01-9u-yA0"/>
                                 </connections>
                             </menuItem>
                         </items>

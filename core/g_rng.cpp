@@ -42,7 +42,11 @@ int GenerateSeedFromPIDAndTime(void)
 
 void InitializeRNGFromSeed(int p_seed)
 {
-	g_rng = gsl_rng_alloc(gsl_rng_taus2);
+	// Allocate the RNG if needed
+	if (!g_rng)
+		g_rng = gsl_rng_alloc(gsl_rng_taus2);
+	
+	// Then set the seed as requested
 	gsl_rng_set(g_rng, static_cast<long>(p_seed));
 	
 	// These need to be zeroed out, too; they are part of our RNG state

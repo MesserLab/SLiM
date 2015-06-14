@@ -1,8 +1,8 @@
 //
-//  AppDelegate.h
-//  SLiMscribe
+//  SLiMScriptTextView.h
+//  SLiM
 //
-//  Created by Ben Haller on 4/7/15.
+//  Created by Ben Haller on 6/14/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -19,39 +19,35 @@
 
 
 #import <Cocoa/Cocoa.h>
-#include "ConsoleWindowController.h"
 
-#include "script.h"
-#include "script_value.h"
 #include "script_interpreter.h"
-#include "slim_sim.h"
 
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, ConsoleControllerDelegate>
+// A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
+
+@interface SLiMScriptTextView : NSTextView
 {
-	// About window cruft
-	IBOutlet NSWindow *aboutWindow;
-	IBOutlet NSTextField *aboutVersionTextField;
-	
-	// SLiMSim instance created using the script from the prefs window
-	SLiMSim *sim;
 }
 
-@property (retain) IBOutlet SLiMScriptTextView *launchSLiMScriptTextView;
-@property (retain) IBOutlet ConsoleWindowController *consoleController;
-
-// for ConsoleControllerDelegate
-@property (nonatomic) BOOL continuousPlayOn;
-@property (nonatomic) BOOL generationPlayOn;
-
-- (IBAction)showAboutWindow:(id)sender;
-
-- (IBAction)sendFeedback:(id)sender;
-- (IBAction)showMesserLab:(id)sender;
-- (IBAction)showBenHaller:(id)sender;
-- (IBAction)showStickSoftware:(id)sender;
++ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
+- (IBAction)shiftSelectionLeft:(id)sender;
+- (IBAction)shiftSelectionRight:(id)sender;
+- (void)syntaxColorForSLiMScript;
+- (void)syntaxColorForSLiMInput;
+- (void)clearSyntaxColoring;
+- (void)selectErrorRange;
 
 @end
+
+
+// A protocol of optional methods that the SLiMScriptTextView's delegate can implement
+@protocol SLiMScriptTextViewDelegate <NSObject>
+@optional
+- (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange;
+- (SymbolTable *)globalSymbolsForCompletion;
+- (std::vector<FunctionSignature*> *)injectedFunctionSignatures;
+@end
+
 
 
 

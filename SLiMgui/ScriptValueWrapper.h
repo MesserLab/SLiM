@@ -1,8 +1,8 @@
 //
-//  script_test.h
+//  ScriptValueWrapper.h
 //  SLiM
 //
-//  Created by Ben Haller on 4/7/15.
+//  Created by Ben Haller on 5/31/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -17,82 +17,22 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
- 
- This file contains code to test SLiMScript.
- 
- */
 
-#ifndef __SLiM__script_test__
-#define __SLiM__script_test__
+#import <Foundation/Foundation.h>
 
-#include <string>
+#include "script_value.h"
 
 
-void RunSLiMScriptTests(void);
+@interface ScriptValueWrapper : NSObject
+{
+@public
+	NSString *wrappedName;
+	ScriptValue *wrappedValue;
+}
 
++ (instancetype)wrapperForName:(NSString *)aName value:(ScriptValue *)aValue;
 
-#endif /* defined(__SLiM__script_test__) */
+- (instancetype)initWithWrappedName:(NSString *)aName value:(ScriptValue *)aValue;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@end
 

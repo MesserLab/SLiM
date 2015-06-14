@@ -27,10 +27,6 @@
 #ifndef __SLiM__script__
 #define __SLiM__script__
 
-#ifdef SLIMCORE
-#error This header should not be included when building the slimcore target
-#endif
-
 #include <vector>
 #include <string>
 
@@ -84,6 +80,8 @@ enum class TokenType {
 	// ----- VIRTUAL TOKENS; THESE WILL HAVE A STRING OF "" AND A LENGTH OF 0
 	
 	kTokenInterpreterBlock,			// a block of statements executed as a unit in the interpreter
+	kTokenSLiMFile,					// a SLiM input file containing zero or more SLiMscript blocks
+	kTokenSLiMScriptBlock,			// a SLiM script block with a generation range, optional callback identifier, etc.
 	
 	// ----- ALL TOKENS AFTER THIS POINT SHOULD BE KEYWORDS MATCHED BY kTokenIdentifier
 	
@@ -96,7 +94,12 @@ enum class TokenType {
 	kTokenIn,			// in		loop over set
 	kTokenNext,			// next		loop jump to end
 	kTokenBreak,		// break	loop jump to completion
-	kTokenReturn		// return	return a value from the enclosing block
+	kTokenReturn,		// return	return a value from the enclosing block
+	
+	// SLiM keywords
+	kTokenFitness,		// fitness		fitness callback definition
+	kTokenMateChoice,	// mateChoice	mateChoice callback definition
+	kTokenModifyChild	// modifyChild	modifyChild callback definition
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type);
@@ -131,6 +134,7 @@ class ScriptASTNode
 public:
 	
 	ScriptToken *token_;										// not owned (owned by the Script's token stream)
+																// FIXME: note that virtual tokens are leaked at present
 	std::vector<ScriptASTNode *> children_;						// OWNED POINTERS
 	
 	ScriptASTNode(const ScriptASTNode&) = delete;				// no copying
@@ -142,6 +146,7 @@ public:
 	~ScriptASTNode(void);										// destructor
 	
 	void AddChild(ScriptASTNode *p_child_node);					// takes ownership of the passed node
+	void ReplaceTokenWithToken(ScriptToken *p_token);			// used to fix virtual token to encompass their children; takes ownership
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;
@@ -168,36 +173,38 @@ private:
 	
 public:
 	
-	int generation_start_;			// the first generation in which to execute the script
-	int generation_end_;			// the last generation in which to execute the script
-	
 	Script(const Script&) = delete;								// no copying
 	Script& operator=(const Script&) = delete;					// no copying
 	Script(void) = delete;										// no null construction
-	Script(int p_gen_start, int p_gen_end, std::string p_script_string, int p_start_index);
+	Script(std::string p_script_string, int p_start_index);
 	
 	~Script(void);												// destructor
 	
 	void Tokenize(bool p_keep_nonsignificant = false);			// generate token stream from script string
 	void AddOptionalSemicolon(void);							// add a semicolon to unterminated input like "6+7" so it works in the console
 	
-	void ParseScriptBlockToAST(void);							// generate AST from token stream for a script block ( { statement* } EOF )
+	void ParseSLiMFileToAST(void);								// generate AST from token stream for a SLiM input file ( slim_script_block* EOF )
 	void ParseInterpreterBlockToAST(void);						// generate AST from token stream for an interpreter block ( statement* EOF )
 	
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;
 	
-	inline const std::vector<ScriptToken *> &Tokens(void) { return token_stream_; }
-	
-	const ScriptASTNode *AST(void) const;
+	inline const std::vector<ScriptToken *> &Tokens(void) const		{ return token_stream_; }
+	inline const ScriptASTNode *AST(void) const						{ return parse_root_; }
 	
 	// Parsing methods; see grammar for definitions
 	void Consume();
 	void SetErrorPositionFromCurrentToken(void);
 	void Match(TokenType p_token_type, std::string p_context);
 	
-	ScriptASTNode *Parse_ScriptBlock(void);
+	// Top-level parse methods for SLiM input files
+	ScriptASTNode *Parse_SLiMFile(void);
+	ScriptASTNode *Parse_SLiMScriptBlock(void);
+	
+	// Top-level parse method for the SLiMscript interpreter and other contexts
 	ScriptASTNode *Parse_InterpreterBlock(void);
+	
+	// Lower-level parsing
 	ScriptASTNode *Parse_CompoundStatement(void);
 	ScriptASTNode *Parse_Statement(void);
 	ScriptASTNode *Parse_ExprStatement(void);

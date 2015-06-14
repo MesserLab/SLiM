@@ -134,14 +134,14 @@
 		{
 			// add it to the queue
 			auto found_muttype_pair = controller->sim->mutation_types_.find(mutationTypeID);
-			SLIMCONST MutationType *mutation_type_ptr = found_muttype_pair->second;
-			SLIMCONST IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, positionInt, subpopulationID, targetGenerationInt, nHomozygotes, nHeterozygotes);
+			MutationType *mutation_type_ptr = found_muttype_pair->second;
+			IntroducedMutation *new_introduced_mutation = new IntroducedMutation(mutation_type_ptr, positionInt, subpopulationID, targetGenerationInt, nHomozygotes, nHeterozygotes);
 			
-			controller->sim->introduced_mutations_.insert(std::pair<const int,SLIMCONST IntroducedMutation*>(targetGenerationInt, new_introduced_mutation));
+			controller->sim->introduced_mutations_.insert(std::pair<const int,IntroducedMutation*>(targetGenerationInt, new_introduced_mutation));
 			
 			if (partialSweep)
 			{
-				SLIMCONST PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, positionInt, atof([terminateFreq cStringUsingEncoding:NSASCIIStringEncoding]));
+				PartialSweep *new_partial_sweep = new PartialSweep(mutation_type_ptr, positionInt, atof([terminateFreq cStringUsingEncoding:NSASCIIStringEncoding]));
 				
 				controller->sim->partial_sweeps_.push_back(new_partial_sweep);
 			}

@@ -91,9 +91,9 @@ void Script_PathElement::SetValueForMember(const std::string &p_member_name, Scr
 		int value_count = p_value->Count();
 		
 		if (value_type != ScriptValueType::kValueString)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): type mismatch in assignment to member 'path'." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): type mismatch in assignment to member 'path'." << slim_terminate();
 		if (value_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Script_PathElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << slim_terminate();
 		
 		base_path_ = p_value->StringAtIndex(0);
 		return;
@@ -187,17 +187,16 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 		}
 	}
-	
-	if (p_method_name.compare("readFile") == 0)
+	else if (p_method_name.compare("readFile") == 0)
 	{
 		// the first argument is the filename
-		ScriptValue *arg1_value = p_arguments[0];
-		int arg1_count = arg1_value->Count();
+		ScriptValue *arg0_value = p_arguments[0];
+		int arg0_count = arg0_value->Count();
 		
-		if (arg1_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
+		if (arg0_count != 1)
+			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << slim_terminate();
 		
-		string filename = arg1_value->StringAtIndex(0);
+		string filename = arg0_value->StringAtIndex(0);
 		string file_path = ResolvedBasePath() + "/" + filename;
 		
 		// read the contents in
@@ -227,18 +226,18 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 	else if (p_method_name.compare("writeFile") == 0)
 	{
 		// the first argument is the filename
-		ScriptValue *arg1_value = p_arguments[0];
-		int arg1_count = arg1_value->Count();
+		ScriptValue *arg0_value = p_arguments[0];
+		int arg0_count = arg0_value->Count();
 		
-		if (arg1_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << endl << slim_terminate();
+		if (arg0_count != 1)
+			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << slim_terminate();
 		
-		string filename = arg1_value->StringAtIndex(0);
+		string filename = arg0_value->StringAtIndex(0);
 		string file_path = ResolvedBasePath() + "/" + filename;
 		
 		// the second argument is the file contents to write
-		ScriptValue *arg2_value = p_arguments[1];
-		int arg2_count = arg2_value->Count();
+		ScriptValue *arg1_value = p_arguments[1];
+		int arg1_count = arg1_value->Count();
 		
 		// write the contents out
 		std::ofstream file_stream(file_path.c_str());
@@ -250,12 +249,12 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 		}
 		
-		for (int value_index = 0; value_index < arg2_count; ++value_index)
+		for (int value_index = 0; value_index < arg1_count; ++value_index)
 		{
 			if (value_index > 0)
 				file_stream << endl;
 			
-			file_stream << arg2_value->StringAtIndex(value_index);
+			file_stream << arg1_value->StringAtIndex(value_index);
 		}
 		
 		if (file_stream.bad())

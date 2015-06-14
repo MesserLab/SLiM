@@ -20,12 +20,13 @@
 
 #include "genomic_element.h"
 #include "slim_global.h"
+#include "script_functionsignature.h"
 
 
 bool GenomicElement::s_log_copy_and_assign_ = true;
 
 
-GenomicElement::GenomicElement(SLIMCONST GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position) :
+GenomicElement::GenomicElement(GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position) :
 	genomic_element_type_ptr_(p_genomic_element_type_ptr), start_position_(p_start_position), end_position_(p_end_position)
 {
 }
@@ -82,7 +83,6 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 }
 
 
-#ifndef SLIMCORE
 //
 // SLiMscript support
 //
@@ -131,20 +131,50 @@ std::vector<std::string> GenomicElement::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
+	methods.push_back("changeGenomicElementType");
+	
 	return methods;
 }
 
 const FunctionSignature *GenomicElement::SignatureForMethod(std::string const &p_method_name) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	static FunctionSignature *changeGenomicElementTypeSig = nullptr;
+	
+	if (!changeGenomicElementTypeSig)
+	{
+		changeGenomicElementTypeSig = (new FunctionSignature("changeGenomicElementType", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
+	}
+	
+	if (p_method_name.compare("changeGenomicElementType") == 0)
+		return changeGenomicElementTypeSig;
+	else
+		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
 ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	int num_arguments = (int)p_arguments.size();
+	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	
+	//
+	//	*********************	- (void)changeGenomicElementType(object$ genomicElementType)
+	//
+#pragma mark -changeGenomicElementType()
+	
+	if (p_method_name.compare("changeGenomicElementType") == 0)
+	{
+		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ElementAtIndex(0));
+		
+		genomic_element_type_ptr_ = getype;
+		
+		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	}
+	
+	
+	else
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
 }
 
-#endif	// #ifndef SLIMCORE
 
 
 

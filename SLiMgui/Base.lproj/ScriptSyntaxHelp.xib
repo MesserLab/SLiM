@@ -35,7 +35,7 @@
             </view>
             <point key="canvasLocation" x="512" y="635.5"/>
         </window>
-        <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="panel" allowsNonContiguousLayout="YES" id="bqS-Wh-Qw9" customClass="SLiMSyntaxColoredTextView">
+        <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="panel" allowsNonContiguousLayout="YES" id="bqS-Wh-Qw9" customClass="SLiMScriptTextView">
             <rect key="frame" x="0.0" y="0.0" width="330" height="818"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>

@@ -32,16 +32,10 @@
 
 #include "mutation.h"
 #include "slim_global.h"
-
-#ifndef SLIMCORE
 #include "script_value.h"
-#endif
 
 
-class Genome
-#ifndef SLIMCORE
-				: public ScriptObjectElement
-#endif
+class Genome : public ScriptObjectElement
 {
 	// This class has a restricted copying policy; see below
 
@@ -56,7 +50,7 @@ private:
 	
 	int mutation_count_ = 0;							// the number of entries presently in mutations_
 	int mutation_capacity_ = 0;							// the capacity of mutations_
-	SLIMCONST Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
+	Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
@@ -98,7 +92,7 @@ public:
 	
 	void RemoveFixedMutations(int p_fixed_count);						// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
 	
-	inline SLIMCONST Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	inline Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -107,7 +101,7 @@ public:
 		return mutations_[index];
 	}
 	
-	inline SLIMCONST Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -144,7 +138,7 @@ public:
 			--mutation_count_;
 	}
 	
-	inline void push_back(SLIMCONST Mutation *p_mutation)
+	inline void push_back(Mutation *p_mutation)
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -155,12 +149,12 @@ public:
 			if (!mutation_capacity_)
 			{
 				mutation_capacity_ = 16;		// start with room for 16 pointers; the hope is that for many simulations this will avoid realloc entirely
-				mutations_ = (SLIMCONST Mutation **)malloc(16 * sizeof(Mutation*));
+				mutations_ = (Mutation **)malloc(16 * sizeof(Mutation*));
 			}
 			else
 			{
 				mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-				mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 			}
 		}
 		
@@ -170,7 +164,7 @@ public:
 		++mutation_count_;
 	}
 	
-	inline void insert_sorted_mutation(SLIMCONST Mutation *p_mutation)
+	inline void insert_sorted_mutation(Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
 		push_back(p_mutation);
@@ -180,8 +174,8 @@ public:
 			return;
 		
 		// then find the proper position for it
-		SLIMCONST Mutation **sort_position = begin_pointer();
-		SLIMCONST Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
+		Mutation **sort_position = begin_pointer();
+		Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
 		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
 			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
@@ -198,7 +192,7 @@ public:
 		*sort_position = p_mutation;
 	}
 	
-	inline void insert_sorted_mutation_if_unique(SLIMCONST Mutation *p_mutation)
+	inline void insert_sorted_mutation_if_unique(Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
 		push_back(p_mutation);
@@ -208,8 +202,8 @@ public:
 			return;
 		
 		// then find the proper position for it
-		SLIMCONST Mutation **sort_position = begin_pointer();
-		SLIMCONST Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
+		Mutation **sort_position = begin_pointer();
+		Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
 		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
 		{
@@ -217,7 +211,7 @@ public:
 			{
 				break;
 			}
-			else if (EqualMutations(p_mutation, *sort_position))
+			else if (p_mutation == *sort_position)
 			{
 				// We are only supposed to insert the mutation if it is unique, and apparently it is not; discard it off the end
 				--mutation_count_;
@@ -248,7 +242,7 @@ public:
 		if (source_mutation_count > mutation_capacity_)
 		{
 			mutation_capacity_ = p_source_genome.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (SLIMCONST Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 		}
 		
 		// then copy all pointers from the source to ourselves
@@ -260,7 +254,7 @@ public:
 		is_null_genome_ = p_source_genome.is_null_genome_;
 	}
 	
-	inline SLIMCONST Mutation **begin_pointer(void) const
+	inline Mutation **begin_pointer(void) const
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -269,7 +263,7 @@ public:
 		return mutations_;
 	}
 	
-	inline SLIMCONST Mutation **end_pointer(void) const
+	inline Mutation **end_pointer(void) const
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -278,7 +272,7 @@ public:
 		return mutations_ + mutation_count_;
 	}
 	
-	inline SLIMCONST Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
+	inline Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
 	{
 #ifdef DEBUG
 		if (is_null_genome_)
@@ -287,7 +281,6 @@ public:
 		return *(mutations_ + (mutation_count_ - 1));
 	}
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -302,7 +295,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 #endif /* defined(__SLiM__genome__) */

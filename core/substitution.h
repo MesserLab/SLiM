@@ -32,22 +32,16 @@
 
 #import "mutation.h"
 #import "chromosome.h"
-
-#ifndef SLIMCORE
 #include "script_value.h"
-#endif
 
 
-class Substitution
-#ifndef SLIMCORE
-					: public ScriptObjectElement
-#endif
+class Substitution : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
 public:
 	
-	SLIMCONST MutationType *mutation_type_ptr_;	// mutation type identifier
+	MutationType *mutation_type_ptr_;	// mutation type identifier
 	int position_;								// position
 	float selection_coeff_;						// selection coefficient
 	int subpop_index_;							// subpopulation in which mutation arose
@@ -60,11 +54,10 @@ public:
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
-	Substitution(SLIMCONST Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
+	Substitution(Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print(std::ostream &p_out) const;
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -79,7 +72,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 

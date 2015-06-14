@@ -36,16 +36,13 @@
 #include "g_rng.h"
 #include "genome.h"
 #include "chromosome.h"
-
-#ifndef SLIMCORE
 #include "script_value.h"
-#endif
 
 
-class Subpopulation
-#ifndef SLIMCORE
-					: public ScriptObjectElement
-#endif
+class Population;
+
+
+class Subpopulation : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -57,6 +54,7 @@ private:
 	
 public:
 	
+	Population &population_;						// we need to know our Population so we can remove ourselves, etc.
 	int subpopulation_id_;							// the id by which this subpopulation is indexed in the Population
 	double selfing_fraction_ = 0.0;					// selfing fraction
 	std::map<int,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per generation
@@ -86,8 +84,8 @@ public:
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction
-	Subpopulation(int p_subpopulation_id, int p_subpop_size);										// construct with a population size
-	Subpopulation(int p_subpopulation_id, int p_subpop_size, double p_sex_ratio,
+	Subpopulation(Population &p_population, int p_subpopulation_id, int p_subpop_size);										// construct with a population size
+	Subpopulation(Population &p_population, int p_subpopulation_id, int p_subpop_size, double p_sex_ratio,
 				  GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
@@ -99,12 +97,11 @@ public:
 	inline int DrawMaleParentEqualProbability(void) const;											// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	void GenerateChildrenToFit(const bool p_parents_also);											// given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
-	inline IndividualSex SexOfChild(int p_child_index);													// return the sex of the child at the given index
+	inline IndividualSex SexOfIndividual(int p_individual_index);									// return the sex of the individual at the given index; uses child_generation_valid
 	void UpdateFitness(void);																		// update the fitness lookup table based upon current mutations
 	double FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	
-#ifndef SLIMCORE
 	//
 	// SLiMscript support
 	//
@@ -119,7 +116,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
 	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-#endif	// #ifndef SLIMCORE
 };
 
 
@@ -127,7 +123,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawParentUsingFitness(
 {
 #if DEBUG
 	if (sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawIndividual() called on a population for which sex is enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawIndividual() called on a population for which sex is enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_parent_));
@@ -137,7 +133,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawParentEqualProbabil
 {
 #if DEBUG
 	if (sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawIndividualEqualProbability() called on a population for which sex is enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawIndividualEqualProbability() called on a population for which sex is enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(g_rng, parent_subpop_size_));
@@ -148,7 +144,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawFemaleParentUsingFi
 {
 #if DEBUG
 	if (!sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawFemale() called on a population for which sex is not enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawFemale() called on a population for which sex is not enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_female_parent_));
@@ -159,7 +155,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawFemaleParentEqualPr
 {
 #if DEBUG
 	if (!sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawFemaleEqualProbability() called on a population for which sex is not enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawFemaleEqualProbability() called on a population for which sex is not enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(g_rng, parent_first_male_index_));
@@ -170,7 +166,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawMaleParentUsingFitn
 {
 #if DEBUG
 	if (!sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawMale() called on a population for which sex is not enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawMale() called on a population for which sex is not enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(g_rng, lookup_male_parent_)) + parent_first_male_index_;
@@ -181,20 +177,32 @@ inline __attribute__((always_inline)) int Subpopulation::DrawMaleParentEqualProb
 {
 #if DEBUG
 	if (!sex_enabled_)
-		SLIM_TERMINATION << "Subpopulation::DrawMaleEqualProbability() called on a population for which sex is not enabled" << std::endl << slim_terminate();
+		SLIM_TERMINATION << "Subpopulation::DrawMaleEqualProbability() called on a population for which sex is not enabled" << slim_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(g_rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
 }
 
-inline IndividualSex Subpopulation::SexOfChild(int p_child_index)
+inline IndividualSex Subpopulation::SexOfIndividual(int p_individual_index)
 {
 	if (!sex_enabled_)
+	{
 		return IndividualSex::kHermaphrodite;
-	else if (p_child_index < child_first_male_index_)
-		return IndividualSex::kFemale;
+	}
+	else if (child_generation_valid)
+	{
+		if (p_individual_index < child_first_male_index_)
+			return IndividualSex::kFemale;
+		else
+			return IndividualSex::kMale;
+	}
 	else
-		return IndividualSex::kMale;
+	{
+		if (p_individual_index < parent_first_male_index_)
+			return IndividualSex::kFemale;
+		else
+			return IndividualSex::kMale;
+	}
 }
 
 

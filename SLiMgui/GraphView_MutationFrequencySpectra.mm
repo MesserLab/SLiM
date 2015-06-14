@@ -82,7 +82,7 @@
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.total_genome_count_;
 	Genome &mutationRegistry = pop.mutation_registry_;
-	SLIMCONST Mutation **mutations = mutationRegistry.mutations_;
+	Mutation **mutations = mutationRegistry.mutations_;
 	int mutationCount = mutationRegistry.mutation_count_;
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)

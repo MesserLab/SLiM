@@ -28,17 +28,11 @@
 #ifndef __SLiM__script_value__
 #define __SLiM__script_value__
 
-#ifdef SLIMCORE
-#error This header should not be included when building the slimcore target
-#endif
-
 #include <iostream>
 #include <vector>
 #include <string>
 
-#ifndef SLIMCORE
 #include "script_symbols.h"
-#endif
 
 
 class ScriptValue;

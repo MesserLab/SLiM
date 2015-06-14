@@ -21,10 +21,6 @@
 #ifndef __SLiM__script_functionsignature__
 #define __SLiM__script_functionsignature__
 
-#ifdef SLIMCORE
-#error This header should not be included when building the slimcore target
-#endif
-
 #include "script_interpreter.h"
 #include "script_value.h"
 
@@ -105,6 +101,42 @@ public:
 	FunctionSignature *AddLogicalEquiv_OS();
 	FunctionSignature *AddAnyBase_OS();
 	FunctionSignature *AddAny_OS();
+	
+	// type-specified or NULL
+	FunctionSignature *AddLogical_N();
+	FunctionSignature *AddInt_N();
+	FunctionSignature *AddFloat_N();
+	FunctionSignature *AddString_N();
+	FunctionSignature *AddObject_N();
+	FunctionSignature *AddNumeric_N();
+	FunctionSignature *AddLogicalEquiv_N();
+	
+	// optional type-specified or NULL
+	FunctionSignature *AddLogical_ON();
+	FunctionSignature *AddInt_ON();
+	FunctionSignature *AddFloat_ON();
+	FunctionSignature *AddString_ON();
+	FunctionSignature *AddObject_ON();
+	FunctionSignature *AddNumeric_ON();
+	FunctionSignature *AddLogicalEquiv_ON();
+	
+	// singleton type-specified or NULL
+	FunctionSignature *AddLogical_SN();
+	FunctionSignature *AddInt_SN();
+	FunctionSignature *AddFloat_SN();
+	FunctionSignature *AddString_SN();
+	FunctionSignature *AddObject_SN();
+	FunctionSignature *AddNumeric_SN();
+	FunctionSignature *AddLogicalEquiv_SN();
+	
+	// optional singleton type-specified or NULL
+	FunctionSignature *AddLogical_OSN();
+	FunctionSignature *AddInt_OSN();
+	FunctionSignature *AddFloat_OSN();
+	FunctionSignature *AddString_OSN();
+	FunctionSignature *AddObject_OSN();
+	FunctionSignature *AddNumeric_OSN();
+	FunctionSignature *AddLogicalEquiv_OSN();
 	
 	// check an argument list; p_call_type should be "function" or "method", for error output only
 	void CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const;

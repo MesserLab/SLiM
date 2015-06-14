@@ -2,7 +2,6 @@ command-line tool:
 	set up testing code for validation, check against old version of the code
 	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
 	could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
-	can we use pointer equality to define equality of mutations, or is the current definition important?
 	should we use map instead of multimap?  set?  unordered versions, possibly?
 	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
@@ -11,21 +10,23 @@ command-line tool:
 	add support for rules as discussed with Philipp: modify the fitness calculation with a call out to SLiMscript
 
 SLiMscript:
-	remove all input file directive code, convert to 100% SLiMscript-based operation
+	extensions for Daphnia model
+		add a "modify generated child" event that can be used to make resting eggs by (1) setting a flag saying that the generated child should not be used, and (2) scheduling a new script event for the future that wakes up the resting egg
+		add a "generate child" event that can be used to wake up a resting egg by taking values defining the mutations present and creating a child out of them
+		add a "add existing mutation" method that searches for an exact match for mutation parameters, uses that mutation if found, otherwise makes a new mutation – or use an int64_t mutation id to uniquely identify the mutation to re-create, perhaps even better but more complex
 	implement help()
 	add rigorous tests for all functions
 	for Erich: implement a symbol table browser, implement functions, add regression tests, implement a help system based on some sort of file-based representation
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
-documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
+	documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
 	
-	implement SLiM object element methods to support common tasks
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
 SLiMgui work:
 	change SLiMgui to be zero-based in everything, like the back end and SLiMscript
-	fold SLiMscribe into SLiMgui!
+	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
@@ -52,6 +53,7 @@ changes to mention in docs:
 	more than one mutation with a negative fitness could result in a positive fitness, since the two negatives would multiply to make a positive; fixed in a revision to 1.8, and in 2.0
 	predetermined mutations doc says you can specify a selection coefficient and dominance coefficient, but you can't; doc error, apparently
 	addition of SLiMscript, SLiMscribe
+	mutation equality defined by pointer equality
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim

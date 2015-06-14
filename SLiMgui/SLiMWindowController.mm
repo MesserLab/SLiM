@@ -26,51 +26,56 @@
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
-#import "ScriptMod_ChangeSubpopSize.h"
-#import "ScriptMod_RemoveSubpop.h"
-#import "ScriptMod_AddSubpop.h"
-#import "ScriptMod_SplitSubpop.h"
-#import "ScriptMod_ChangeMigration.h"
-#import "ScriptMod_ChangeSelfing.h"
-#import "ScriptMod_ChangeSexRatio.h"
-#import "ScriptMod_OutputFullPopulation.h"
-#import "ScriptMod_OutputSubpopSample.h"
-#import "ScriptMod_OutputFixedMutations.h"
-#import "ScriptMod_TrackMutationType.h"
-#import "ScriptMod_AddMutationType.h"
-#import "ScriptMod_AddGenomicElementType.h"
-#import "ScriptMod_AddGenomicElement.h"
-#import "ScriptMod_AddRecombinationRate.h"
-#import "ScriptMod_AddPredeterminedMutation.h"
+//#import "ScriptMod_ChangeSubpopSize.h"
+//#import "ScriptMod_RemoveSubpop.h"
+//#import "ScriptMod_AddSubpop.h"
+//#import "ScriptMod_SplitSubpop.h"
+//#import "ScriptMod_ChangeMigration.h"
+//#import "ScriptMod_ChangeSelfing.h"
+//#import "ScriptMod_ChangeSexRatio.h"
+//#import "ScriptMod_OutputFullPopulation.h"
+//#import "ScriptMod_OutputSubpopSample.h"
+//#import "ScriptMod_OutputFixedMutations.h"
+//#import "ScriptMod_TrackMutationType.h"
+//#import "ScriptMod_AddMutationType.h"
+//#import "ScriptMod_AddGenomicElementType.h"
+//#import "ScriptMod_AddGenomicElement.h"
+//#import "ScriptMod_AddRecombinationRate.h"
+//#import "ScriptMod_AddPredeterminedMutation.h"
 
 #include <iostream>
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
 
-
-static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
-										"#MUTATION TYPES\n"
-										"m1 0.5 f 0.0 // neutral\n\n"
-										"#MUTATION RATE\n"
-										"1e-7\n\n"
-										"#GENOMIC ELEMENT TYPES\n"
-										"g1 m1 1.0 // only one type comprising the neutral mutations\n\n"
-										"#CHROMOSOME ORGANIZATION\n"
-										"g1 1 100000 // uniform chromosome of length 100 kb\n\n"
-										"#RECOMBINATION RATE\n"
-										"100000 1e-8\n\n"
-										"#GENERATIONS\n"
-										"10000\n\n"
-										"#DEMOGRAPHY AND STRUCTURE\n"
-										"1 P p1 500 // one population of 500 individuals\n\n"
-										"#OUTPUT\n"
-										"2000 R p1 10 // output sample of 10 genomes\n"
-										"4000 R p1 10\n"
-										"6000 R p1 10\n"
-										"8000 R p1 10\n"
-										"10000 R p1 10\n"
-										"10000 F // output fixed mutations";
+static NSString *defaultScriptString = @"// set up a simple neutral simulation\n"
+										"0 {\n"
+										"	setMutationRate0(1e-7);\n"
+										"	setGenerationRange0(10000);\n"
+										"	\n"
+										"	// m1 mutation type: neutral\n"
+										"	addMutationType0(1, 0.5, \"f\", 0.0);\n"
+										"	\n"
+										"	// g1 genomic element type: uses m1 for all mutations\n"
+										"	addGenomicElementType0(1, 1, 1.0);\n"
+										"	\n"
+										"	// uniform chromosome of length 100 kb with uniform recombination\n"
+										"	addGenomicElement0(1, 0, 99999);\n"
+										"	addRecombinationIntervals0(99999, 1e-8);\n"
+										"}\n"
+										"\n"
+										"// create a population of 500 individuals\n"
+										"1 {\n"
+										"	sim.addSubpop(1, 500);\n"
+										"}\n"
+										"\n"
+										"// output events: samples of 10 genomes periodically, all fixed mutations at end\n"
+										"2000 { p1.outputSample(10); }\n"
+										"4000 { p1.outputSample(10); }\n"
+										"6000 { p1.outputSample(10); }\n"
+										"8000 { p1.outputSample(10); }\n"
+										"10000 { p1.outputSample(10); }\n"
+										"10000 { sim.outputFixedMutations(); }\n";
 
 
 @implementation SLiMWindowController
@@ -139,40 +144,6 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	return self;
 }
 
-- (void)selectErrorRange
-{
-	if ((gCharacterStartOfParseError >= 0) && (gCharacterEndOfParseError >= gCharacterStartOfParseError))
-	{
-		[scriptTextView setSelectedRange:NSMakeRange(gCharacterStartOfParseError, gCharacterEndOfParseError - gCharacterStartOfParseError + 1)];
-	}
-	else if (gLineNumberOfParseError > 0)
-	{
-		NSString *currentScriptString = [scriptTextView string];
-		
-		// Find the range for the line number where the error occurred; maybe there is a better way to do this...
-		NSArray *lines = [currentScriptString componentsSeparatedByString:@"\n"];
-		int i, precedingLinesLength = 0;
-		NSRange lineRange = NSMakeRange(NSNotFound, NSNotFound);
-		
-		for (i = 0; i < [lines count]; ++i)
-		{
-			NSString *line = [lines objectAtIndex:i];
-			
-			if (i == gLineNumberOfParseError - 1)	// gLineNumberOfParseError is 1-based
-			{
-				lineRange.location = precedingLinesLength;
-				lineRange.length = [line length];
-				break;
-			}
-			
-			precedingLinesLength += [line length] + 1;
-		}
-		
-		[scriptTextView setSelectedRange:lineRange];
-		[scriptTextView scrollRangeToVisible:lineRange];
-	}
-}
-
 - (void)showTerminationMessage:(NSString *)terminationMessage
 {
 	NSAlert *alert = [[NSAlert alloc] init];
@@ -185,7 +156,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; [terminationMessage autorelease]; }];
 	
 	// Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
-	[self selectErrorRange];
+	[scriptTextView selectErrorRange];
 }
 
 - (void)checkForSimulationTermination
@@ -248,7 +219,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		sim_random_bool_bit_counter = g_random_bool_bit_counter;
 		sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
 		
-		g_rng = nil;
+		g_rng = NULL;
 		
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
@@ -285,7 +256,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightScriptKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightScriptKey])
-				[scriptTextView syntaxColorForSLiMInput];
+				[scriptTextView syntaxColorForSLiMScript];
 			else
 				[scriptTextView clearSyntaxColoring];
 		}
@@ -395,6 +366,12 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 
 - (void)updateAfterTick
 {
+	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
+	[self checkForSimulationTermination];
+	
+	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
+	bool invalid = [self invalidSimulation];
+	
 	// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
 	[self updateOutputTextView];
 	
@@ -405,7 +382,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	reloadingSubpopTableview = YES;
 	[subpopTableView reloadData];
 	
-	if ([self invalidSimulation])
+	if (invalid)
 	{
 		[subpopTableView deselectAll:nil];
 	}
@@ -454,11 +431,45 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	
 	[self updateGenerationCounter];
 	
+	// Update stuff that only needs updating when the script is re-parsed, not after every tick
+	if (invalid || sim->mutation_types_changed_)
+	{
+		[mutTypeTableView reloadData];
+		[mutTypeTableView setNeedsDisplay];
+		
+		if (sim)
+			sim->mutation_types_changed_ = false;
+	}
+	
+	if (invalid || sim->genomic_element_types_changed_)
+	{
+		[genomicElementTypeTableView reloadData];
+		[genomicElementTypeTableView setNeedsDisplay];
+		
+		if (sim)
+			sim->genomic_element_types_changed_ = false;
+	}
+	
+	if (invalid || sim->scripts_changed_)
+	{
+		[scriptBlocksTableView reloadData];
+		[scriptBlocksTableView setNeedsDisplay];
+		
+		if (sim)
+			sim->scripts_changed_ = false;
+	}
+	
+	if (invalid || sim->chromosome_changed_)
+	{
+		[chromosomeOverview setSelectedRange:NSMakeRange(0, 0)];
+		[chromosomeOverview setNeedsDisplay:YES];
+		
+		if (sim)
+			sim->chromosome_changed_ = false;
+	}
+	
 	// Update graph windows as well; it is assumed that all graphs need updating every tick
 	[self sendAllGraphViewsSelector:@selector(setNeedsDisplay)];
-	
-	// Check whether the simulation has terminated due to an error; if so, show an error message
-	[self checkForSimulationTermination];
 }
 
 - (void)chromosomeSelectionChanged:(NSNotification *)note
@@ -515,7 +526,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[scriptTextView setString:scriptString];
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[scriptTextView syntaxColorForSLiMInput];
+		[scriptTextView syntaxColorForSLiMScript];
 	
 	// Set up our chromosome views to show the proper stuff
 	[chromosomeOverview setReferenceChromosomeView:nil];
@@ -549,13 +560,16 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[drawer setMinContentSize:NSMakeSize(280, 570)];
 	[drawer setMaxContentSize:NSMakeSize(450, 570)];
 	[drawer setContentSize:NSMakeSize(280, 570)];
-	[drawer setLeadingOffset:50.0];
-	[drawer setTrailingOffset:50.0];
+	[drawer setLeadingOffset:0.0];
+	[drawer setTrailingOffset:20.0];
 	[drawer openOnEdge:NSMaxXEdge];
 	[drawer close];
 	
 	// Update all our UI to reflect the current state of the simulation
 	[self updateAfterTick];
+	
+	// Load our console window nib
+	[[NSBundle mainBundle] loadNibNamed:@"ConsoleWindow" owner:self topLevelObjects:NULL];
 }
 
 - (std::vector<Subpopulation*>)selectedSubpopulations
@@ -662,7 +676,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
 	
-	if (sel == @selector(checkScriptTextView:))
+	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || generationPlayOn);
 	
 	if (sel == @selector(importPopulation:))
@@ -675,7 +689,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	if (sel == @selector(exportPopulation:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	
-	if (sel == @selector(clearOutputTextView:))
+	if (sel == @selector(clearOutput:))
 		return !(invalidSimulation);
 	if (sel == @selector(dumpPopulationToOutput:))
 		return !(invalidSimulation);
@@ -691,82 +705,82 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 
 - (IBAction)buttonChangeSubpopSize:(id)sender
 {
-	[ScriptMod_ChangeSubpopSize runWithController:self];
+//	[ScriptMod_ChangeSubpopSize runWithController:self];
 }
 
 - (IBAction)buttonRemoveSubpop:(id)sender
 {
-	[ScriptMod_RemoveSubpop runWithController:self];
+//	[ScriptMod_RemoveSubpop runWithController:self];
 }
 
 - (IBAction)buttonAddSubpop:(id)sender
 {
-	[ScriptMod_AddSubpop runWithController:self];
+//	[ScriptMod_AddSubpop runWithController:self];
 }
 
 - (IBAction)buttonSplitSubpop:(id)sender
 {
-	[ScriptMod_SplitSubpop runWithController:self];
+//	[ScriptMod_SplitSubpop runWithController:self];
 }
 
 - (IBAction)buttonChangeMigrationRates:(id)sender
 {
-	[ScriptMod_ChangeMigration runWithController:self];
+//	[ScriptMod_ChangeMigration runWithController:self];
 }
 
 - (IBAction)buttonChangeSelfingRates:(id)sender
 {
-	[ScriptMod_ChangeSelfing runWithController:self];
+//	[ScriptMod_ChangeSelfing runWithController:self];
 }
 
 - (IBAction)buttonChangeSexRatio:(id)sender
 {
-	[ScriptMod_ChangeSexRatio runWithController:self];
+//	[ScriptMod_ChangeSexRatio runWithController:self];
 }
 
 - (IBAction)addMutationType:(id)sender
 {
-	[ScriptMod_AddMutationType runWithController:self];
+//	[ScriptMod_AddMutationType runWithController:self];
 }
 
 - (IBAction)addGenomicElementType:(id)sender
 {
-	[ScriptMod_AddGenomicElementType runWithController:self];
+//	[ScriptMod_AddGenomicElementType runWithController:self];
 }
 
 - (IBAction)addGenomicElementToChromosome:(id)sender
 {
-	[ScriptMod_AddGenomicElement runWithController:self];
+//	[ScriptMod_AddGenomicElement runWithController:self];
 }
 
 - (IBAction)addRecombinationInterval:(id)sender
 {
-	[ScriptMod_AddRecombinationRate runWithController:self];
+//	[ScriptMod_AddRecombinationRate runWithController:self];
 }
 
 - (IBAction)addPredeterminedMutation:(id)sender
 {
-	[ScriptMod_AddPredeterminedMutation runWithController:self];
+//	[ScriptMod_AddPredeterminedMutation runWithController:self];
 }
 
 - (IBAction)outputFullPopulationState:(id)sender
 {
-	[ScriptMod_OutputFullPopulation runWithController:self];
+//	[ScriptMod_OutputFullPopulation runWithController:self];
 }
 
 - (IBAction)outputPopulationSample:(id)sender
 {
-	[ScriptMod_OutputSubpopSample runWithController:self];
+//	[ScriptMod_OutputSubpopSample runWithController:self];
 }
 
 - (IBAction)outputFixedMutations:(id)sender
 {
-	[ScriptMod_OutputFixedMutations runWithController:self];
+//	[ScriptMod_OutputFixedMutations runWithController:self];
 }
 
 - (IBAction)trackMutationType:(id)sender
 {
-	[ScriptMod_TrackMutationType runWithController:self];
+//	[ScriptMod_TrackMutationType runWithController:self];
 }
 
 - (void)positionNewGraphWindow:(NSWindow *)window
@@ -916,18 +930,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	// any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
 	BOOL stillRunning = YES;
 	
-	if (g_rng)
-		NSLog(@"runSimOneGeneration: g_rng already set up!");
-	
-	g_rng = sim_rng;
-	g_random_bool_bit_counter = sim_random_bool_bit_counter;
-	g_random_bool_bit_buffer = sim_random_bool_bit_buffer;
+	[self willExecuteScript];
 	stillRunning = sim->RunOneGeneration();
-	sim_rng = g_rng;
-	sim_random_bool_bit_counter = g_random_bool_bit_counter;
-	sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
-	
-	g_rng = nil;
+	[self didExecuteScript];
 	
 	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
 	// happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
@@ -940,7 +945,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 {
 	if (!invalidSimulation)
 	{
+		[_consoleController invalidateSymbolTable];
 		[self setReachedSimulationEnd:![self runSimOneGeneration]];
+		[_consoleController validateSymbolTable];
 		[self updateAfterTick];
 	}
 }
@@ -1019,6 +1026,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		continuousPlayGenerationsCompleted = 0;
 		[self setContinuousPlayOn:YES];
 		
+		// invalidate the console symbols, and don't validate them until we are done
+		[_consoleController invalidateSymbolTable];
+		
 		// start playing
 		[self performSelector:@selector(_continuousPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 	}
@@ -1029,8 +1039,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		
 		// stop our recurring perform request
 		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousPlay:) object:nil];
-		
 		[self setContinuousPlayOn:NO];
+		
+		[_consoleController validateSymbolTable];
 		[self updateAfterTick];
 		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
@@ -1087,6 +1098,9 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		[generationProgressIndicator startAnimation:nil];
 		[self setGenerationPlayOn:YES];
 		
+		// invalidate the console symbols, and don't validate them until we are done
+		[_consoleController invalidateSymbolTable];
+		
 		// get the first responder out of the generation textfield
 		[[self window] performSelector:@selector(makeFirstResponder:) withObject:nil afterDelay:0.0];
 		
@@ -1101,6 +1115,8 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		[self setGenerationPlayOn:NO];
 		[generationProgressIndicator stopAnimation:nil];
 		
+		[_consoleController validateSymbolTable];
+		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
 		if ([self reachedSimulationEnd])
 			[self forceImmediateMenuUpdate];
@@ -1109,19 +1125,11 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 
 - (IBAction)recycle:(id)sender
 {
-	[self clearOutputTextView:nil];
+	[_consoleController invalidateSymbolTable];
+	[self clearOutput:nil];
 	[self setScriptStringAndInitializeSimulation:[scriptTextView string]];
+	[_consoleController validateSymbolTable];
 	[self updateAfterTick];
-	
-	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	[mutTypeTableView reloadData];
-	[mutTypeTableView setNeedsDisplay];
-	
-	[genomicElementTypeTableView reloadData];
-	[genomicElementTypeTableView setNeedsDisplay];
-	
-	[chromosomeOverview setSelectedRange:NSMakeRange(0, 0)];
-	[chromosomeOverview setNeedsDisplay:YES];
 	
 	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
 }
@@ -1156,11 +1164,10 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[chromosomeZoomed setNeedsDisplay:YES];
 }
 
-- (IBAction)checkScriptTextView:(id)sender
+- (IBAction)checkScript:(id)sender
 {
 	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
-	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	NSString *currentScriptString = [scriptTextView string];
 	const char *cstr = [currentScriptString UTF8String];
 	NSString *errorDiagnostic = nil;
@@ -1171,20 +1178,24 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	}
 	else
 	{
-		std::istringstream infile(cstr);
+		Script script(cstr, 0);
 		
-		std::string checkErrors = SLiMSim::CheckInputFile(infile);
-		
-		if (checkErrors.length())
-			errorDiagnostic = [[NSString stringWithUTF8String:checkErrors.c_str()] retain];
+		try {
+			script.Tokenize();
+			script.ParseSLiMFileToAST();
+		}
+		catch (std::runtime_error err)
+		{
+			errorDiagnostic = [[NSString stringWithUTF8String:GetTrimmedRaiseMessage().c_str()] retain];
+		}
 	}
+	
+	// use our ConsoleWindowController delegate method to play the appropriate sound
+	[self checkScriptDidSucceed:!errorDiagnostic];
 	
 	if (errorDiagnostic)
 	{
-		// On failure, we always play a sound, show an alert describing the error, and highlight the relevant script line
-		if ([defaults boolForKey:defaultsPlaySoundParseFailureKey])
-			[[NSSound soundNamed:@"Ping"] play];
-		
+		// On failure, we show an alert describing the error, and highlight the relevant script line
 		NSAlert *alert = [[NSAlert alloc] init];
 		
 		[alert setAlertStyle:NSWarningAlertStyle];
@@ -1194,14 +1205,13 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		
 		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
 		
-		[self selectErrorRange];
+		[scriptTextView selectErrorRange];
 	}
 	else
 	{
-		// On success, we always play a sound, and optionally show a success alert sheet
-		if ([defaults boolForKey:defaultsPlaySoundParseSuccessKey])
-			[[NSSound soundNamed:@"Bottle"] play];
+		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 		
+		// On success, we optionally show a success alert sheet
 		if (![defaults boolForKey:defaultsSuppressScriptCheckSuccessPanelKey])
 		{
 			NSAlert *alert = [[NSAlert alloc] init];
@@ -1223,14 +1233,19 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	[errorDiagnostic release];
 }
 
-- (IBAction)showScriptSyntaxHelp:(id)sender
+- (IBAction)showScriptHelp:(id)sender
 {
 	// the AppDelegate manages the syntax help window, since it is a singleton, but it needs to know that we're
 	// the one requesting it, so it can position the window next to us nicely, so we handle the action for it.
 	[(AppDelegate *)[NSApp delegate] showScriptSyntaxHelpForSLiMWindowController:self];
 }
 
-- (IBAction)clearOutputTextView:(id)sender
+- (IBAction)toggleConsoleVisibility:(id)sender
+{
+	[_consoleController toggleConsoleVisibility:sender];
+}
+
+- (IBAction)clearOutput:(id)sender
 {
 	[outputTextView setString:@""];
 }
@@ -1389,7 +1404,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 								sim->generation_ = newGeneration;
 								[self updateAfterTick];							// we need to do this first, to select all our subpopulations so our stats-gathering is correct
 								sim->population_.TallyMutationReferences();
-								sim->population_.SurveyPopulation(*sim);
+								sim->population_.SurveyPopulation();
 							}
 						}
 					}
@@ -1487,10 +1502,10 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		if (result == NSFileHandlingPanelOKButton)
 		{
 			std::ostringstream outstring;
-			const std::vector<std::string> &input_parameters = sim->InputParameters();
-			
-			for (int i = 0; i < input_parameters.size(); i++)
-				outstring << input_parameters[i] << std::endl;
+//			const std::vector<std::string> &input_parameters = sim->InputParameters();
+//			
+//			for (int i = 0; i < input_parameters.size(); i++)
+//				outstring << input_parameters[i] << std::endl;
 			
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
 			sim->population_.PrintAll(outstring);
@@ -1502,6 +1517,91 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 			[sp autorelease];
 		}
 	}];
+}
+
+
+//
+//	ConsoleWindowController delegate methods
+//
+#pragma mark ConsoleWindowController delegate
+
+- (void)appendWelcomeMessageAddendum
+{
+	ConsoleTextView *textView = [_consoleController textView];
+	NSTextStorage *ts = [textView textStorage];
+	NSDictionary *outputAttrs = [ConsoleTextView outputAttrs];
+	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\n" attributes:outputAttrs];
+	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
+	
+	[ts beginEditing];
+	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:launchString];
+	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:dividerString];
+	[ts endEditing];
+	
+	[launchString release];
+	[dividerString release];
+}
+
+- (void)injectIntoInterpreter:(ScriptInterpreter *)interpreter
+{
+	if (sim && !invalidSimulation)
+		sim->InjectIntoInterpreter(*interpreter, nullptr);
+}
+
+- (SymbolTable *)globalSymbolsForCompletion
+{
+	return [_consoleController symbols];
+}
+
+- (std::vector<FunctionSignature*> *)injectedFunctionSignatures
+{
+	if (sim && !invalidSimulation)
+		return sim->InjectedFunctionSignatures();
+	
+	return nullptr;
+}
+
+- (void)checkScriptDidSucceed:(BOOL)succeeded
+{
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	if (succeeded)
+	{
+		if ([defaults boolForKey:defaultsPlaySoundParseSuccessKey])
+			[[NSSound soundNamed:@"Bottle"] play];
+	}
+	else
+	{
+		if ([defaults boolForKey:defaultsPlaySoundParseFailureKey])
+			[[NSSound soundNamed:@"Ping"] play];
+	}
+}
+
+- (void)willExecuteScript
+{
+	// Whenever we are about to execute script, we swap in our random number generator; at other times, g_rng is NULL.
+	// The goal here is to keep each SLiM window independent in its random number sequence.
+	if (g_rng)
+		NSLog(@"willExecuteScript: g_rng already set up!");
+	
+	g_rng = sim_rng;
+	g_random_bool_bit_counter = sim_random_bool_bit_counter;
+	g_random_bool_bit_buffer = sim_random_bool_bit_buffer;
+}
+
+- (void)didExecuteScript
+{
+	// Swap our random number generator back out again; see -willExecuteScript
+	sim_rng = g_rng;
+	sim_random_bool_bit_counter = g_random_bool_bit_counter;
+	sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
+	
+	g_rng = NULL;
+}
+
+- (void)consoleWindowWillClose
+{
+	[consoleButton setState:NSOffState];
 }
 
 
@@ -1578,7 +1678,7 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
 	{
 		if (textView == scriptTextView)
-			[scriptTextView syntaxColorForSLiMInput];
+			[scriptTextView syntaxColorForSLiMScript];
 		else if (textView == outputTextView)
 			[outputTextView syntaxColorForSLiMInput];
 	}
@@ -1663,6 +1763,10 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 		else if (aTableView == genomicElementTypeTableView)
 		{
 			return sim->genomic_element_types_.size();
+		}
+		else if (aTableView == scriptBlocksTableView)
+		{
+			return sim->script_blocks_.size();
 		}
 	}
 	
@@ -1803,9 +1907,74 @@ static NSString *defaultScriptString = @"// simple neutral simulation\n\n"
 				}
 			}
 		}
+		else if (aTableView == scriptBlocksTableView)
+		{
+			std::vector<SLiMScriptBlock*> &scriptBlocks = sim->script_blocks_;
+			int scriptBlockCount = (int)scriptBlocks.size();
+			
+			if (rowIndex < scriptBlockCount)
+			{
+				SLiMScriptBlock *scriptBlock = scriptBlocks[rowIndex];
+				
+				if (aTableColumn == scriptBlocksIDColumn)
+				{
+					int block_id = scriptBlock->block_id_;
+					
+					if (block_id == -1)
+						return @"—";
+					else
+						return [NSString stringWithFormat:@"s%d", block_id];
+				}
+				else if (aTableColumn == scriptBlocksStartColumn)
+				{
+					return [NSString stringWithFormat:@"%d", scriptBlock->start_generation_];
+				}
+				else if (aTableColumn == scriptBlocksEndColumn)
+				{
+					if (scriptBlock->end_generation_ == INT_MAX)
+						return @"MAX";
+					else
+						return [NSString stringWithFormat:@"%d", scriptBlock->end_generation_];
+				}
+				else if (aTableColumn == scriptBlocksTypeColumn)
+				{
+					switch (scriptBlock->type_)
+					{
+						case SLiMScriptBlockType::SLiMScriptEvent:					return @"event";
+						case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return @"fitness()";
+						case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return @"mateChoice()";
+						case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return @"modifyChild()";
+					}
+				}
+			}
+		}
 	}
 	
 	return @"";
+}
+
+- (NSString *)tableView:(NSTableView *)aTableView toolTipForCell:(NSCell *)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex mouseLocation:(NSPoint)mouseLocation
+{
+	if (aTableView == scriptBlocksTableView)
+	{
+		std::vector<SLiMScriptBlock*> &scriptBlocks = sim->script_blocks_;
+		int scriptBlockCount = (int)scriptBlocks.size();
+		
+		if (rowIndex < scriptBlockCount)
+		{
+			SLiMScriptBlock *scriptBlock = scriptBlocks[rowIndex];
+			const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
+			NSString *ns_script_string = [NSString stringWithUTF8String:script_string];
+			
+			// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
+			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
+			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@"\t" withString:@"    "];	// second string is four &nbsp;s
+			
+			return ns_script_string;
+		}
+	}
+	
+	return nil;
 }
 
 

@@ -27,21 +27,14 @@
 #ifndef __SLiM__script_interpreter__
 #define __SLiM__script_interpreter__
 
-#ifdef SLIMCORE
-#error This header should not be included when building the slimcore target
-#endif
-
 #include <vector>
 #include <string>
 #include <map>
 
 #include "mutation.h"
-
-#ifndef SLIMCORE
 #include "script.h"
 #include "script_value.h"
 #include "script_functions.h"
-#endif
 
 
 // typedefs used to set up our map table of FunctionSignature objects
@@ -58,7 +51,7 @@ class ScriptInterpreter
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 private:
-	const Script &script_;							// not owned
+	const ScriptASTNode *root_node_;				// not owned
 	SymbolTable *global_symbols_ = nullptr;			// OWNED POINTERS: identifiers to ScriptValues
 	FunctionMap function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
 	
@@ -80,8 +73,12 @@ public:
 	ScriptInterpreter(const ScriptInterpreter&) = delete;					// no copying
 	ScriptInterpreter& operator=(const ScriptInterpreter&) = delete;		// no copying
 	ScriptInterpreter(void) = delete;										// no null construction
+	
 	ScriptInterpreter(const Script &p_script);
-	ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols);		// the receiver takes ownership of the passed symbol table
+	ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols);					// the receiver takes ownership of the passed symbol table
+	ScriptInterpreter(const ScriptASTNode *p_root_node_);
+	ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable *p_symbols);		// the receiver takes ownership of the passed symbol table
+	void SharedInitialization(void);
 	
 	~ScriptInterpreter(void);												// destructor
 	
@@ -145,6 +142,9 @@ public:
 	
 	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
 	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
+	
+	// Utility static methods
+	static int64_t IntForNumberToken(const ScriptToken *p_token);
 };
 
 

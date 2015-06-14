@@ -87,7 +87,13 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 		case TokenType::kTokenBreak:		p_outstream << "break";			break;
 		case TokenType::kTokenReturn:		p_outstream << "return";		break;
 			
+		case TokenType::kTokenFitness:		p_outstream << "fitness";		break;
+		case TokenType::kTokenMateChoice:	p_outstream << "mateChoice";	break;
+		case TokenType::kTokenModifyChild:	p_outstream << "modifyChild";	break;
+			
 		case TokenType::kTokenInterpreterBlock:		p_outstream << "$>";	break;
+		case TokenType::kTokenSLiMFile:				p_outstream << "###";	break;
+		case TokenType::kTokenSLiMScriptBlock:		p_outstream << "#>";	break;
 		case TokenType::kFirstIdentifierLikeToken:	p_outstream << "???";	break;
 	}
 	
@@ -148,6 +154,13 @@ ScriptASTNode::~ScriptASTNode(void)
 void ScriptASTNode::AddChild(ScriptASTNode *p_child_node)
 {
 	children_.push_back(p_child_node);
+}
+
+void ScriptASTNode::ReplaceTokenWithToken(ScriptToken *p_token)
+{
+	// used to fix virtual token to encompass their children; takes ownership
+	// FIXME: note that virtual tokens are leaked at present
+	token_ = p_token;
 }
 
 void ScriptASTNode::PrintToken(std::ostream &p_outstream) const
@@ -246,8 +259,8 @@ void ScriptASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent)
 //
 #pragma mark Script
 
-Script::Script(int p_gen_start, int p_gen_end, string p_script_string, int p_start_index) :
-	generation_start_(p_gen_start), generation_end_(p_gen_end), script_string_(p_script_string), start_character_index_(p_start_index)
+Script::Script(string p_script_string, int p_start_index) :
+	script_string_(p_script_string), start_character_index_(p_start_index)
 {
 }
 
@@ -436,7 +449,7 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
-							SLIM_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << endl << slim_terminate();
+							SLIM_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << slim_terminate();
 						
 						int chn = script_string_[token_end + 1];
 						
@@ -450,7 +463,7 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 						{
 							// escape sequence; another character must exist
 							if (token_end + 2 == len)
-								SLIM_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << endl << slim_terminate();
+								SLIM_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << slim_terminate();
 							
 							int ch_esq = script_string_[token_end + 2];
 							
@@ -467,13 +480,13 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 							else
 							{
 								// an illegal escape
-								SLIM_TERMINATION << "ERROR (Tokenize): illegal escape \\" << (char)ch_esq << " in string literal \"" << token_string << "\"" << endl << slim_terminate();
+								SLIM_TERMINATION << "ERROR (Tokenize): illegal escape \\" << (char)ch_esq << " in string literal \"" << token_string << "\"" << slim_terminate();
 							}
 						}
 						else if ((chn == '\n') || (chn == '\r'))
 						{
 							// literal newlines are not allowed within string literals at present
-							SLIM_TERMINATION << "ERROR (Tokenize): illegal newline in string literal \"" << token_string << "\"" << endl << slim_terminate();
+							SLIM_TERMINATION << "ERROR (Tokenize): illegal newline in string literal \"" << token_string << "\"" << slim_terminate();
 						}
 						else
 						{
@@ -495,7 +508,7 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 			gCharacterStartOfParseError = start_character_index_ + token_start;
 			gCharacterEndOfParseError = start_character_index_ + token_end;
 			
-			SLIM_TERMINATION << "ERROR (Tokenize): unrecognized token at character '" << (char)ch << "'" << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Tokenize): unrecognized token at character '" << (char)ch << "'" << slim_terminate();
 		}
 		
 		// if skip == true, we just discard the token and continue, as for whitespace and comments
@@ -518,6 +531,11 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 				else if (token_string.compare("next") == 0) token_type = TokenType::kTokenNext;
 				else if (token_string.compare("break") == 0) token_type = TokenType::kTokenBreak;
 				else if (token_string.compare("return") == 0) token_type = TokenType::kTokenReturn;
+				
+				// SLiM keywords
+				else if (token_string.compare("fitness") == 0) token_type = TokenType::kTokenFitness;
+				else if (token_string.compare("mateChoice") == 0) token_type = TokenType::kTokenMateChoice;
+				else if (token_string.compare("modifyChild") == 0) token_type = TokenType::kTokenModifyChild;
 				
 				if (token_type > TokenType::kFirstIdentifierLikeToken)
 					token_string = "<" + token_string + ">";
@@ -613,24 +631,100 @@ void Script::Match(TokenType p_token_type, string p_context)
 	{
 		// not finding the right token type is fatal
 		SetErrorPositionFromCurrentToken();
-		SLIM_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << p_context << "; expected '" << p_token_type << "'" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << p_context << "; expected '" << p_token_type << "'" << slim_terminate();
 	}
 }
 
-ScriptASTNode *Script::Parse_ScriptBlock(void)
+ScriptASTNode *Script::Parse_SLiMFile(void)
 {
-	ScriptASTNode *node;
- 
-	node = Parse_CompoundStatement();
-	Match(TokenType::kTokenEOF, "script block");
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, "", 0, 0);
+	ScriptASTNode *node = new ScriptASTNode(virtual_token);
+	
+	while (current_token_type_ != TokenType::kTokenEOF)
+	{
+		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
+		// Parsing of the optional generation range is done in Parse_SLiMScriptBlock() since it ends up as children of that node.
+		ScriptASTNode *script_block = Parse_SLiMScriptBlock();
+		
+		node->AddChild(script_block);
+	}
+	
+	Match(TokenType::kTokenEOF, "SLiM file");
 	
 	return node;
+}
+
+ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
+{
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, "", 0, 0);
+	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token);
+	
+	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
+	// We parse the slim_script_info section here, as part of the script block.
+	if (current_token_type_ == TokenType::kTokenString)
+	{
+		// a script identifier string is present; add it
+		ScriptASTNode *script_id_node = Parse_Constant();
+		
+		slim_script_block_node->AddChild(script_id_node);
+	}
+	
+	if (current_token_type_ == TokenType::kTokenNumber)
+	{
+		// A start generation is present; add it
+		ScriptASTNode *start_generation_node = Parse_Constant();
+		
+		slim_script_block_node->AddChild(start_generation_node);
+		
+		if (current_token_type_ == TokenType::kTokenColon)
+		{
+			// An end generation is present; add it
+			Match(TokenType::kTokenColon, "SLiM script block");
+			
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				ScriptASTNode *end_generation_node = Parse_Constant();
+				
+				slim_script_block_node->AddChild(end_generation_node);
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+			}
+		}
+	}
+	
+	// Now we are to the point of parsing the actual slim_script_block
+	if (current_token_type_ == TokenType::kTokenFitness)
+	{
+		// FIXME!
+		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+	}
+	else if (current_token_type_ == TokenType::kTokenMateChoice)
+	{
+		// FIXME!
+		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+	}
+	else if (current_token_type_ == TokenType::kTokenModifyChild)
+	{
+		// FIXME!
+		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+	}
+	
+	// Regardless of what happened above, all SLiMscript blocks end with a compound statement, which is the last child of the node
+	ScriptASTNode *compound_statement_node = Parse_CompoundStatement();
+	
+	slim_script_block_node->AddChild(compound_statement_node);
+	
+	return slim_script_block_node;
 }
 
 ScriptASTNode *Script::Parse_InterpreterBlock(void)
 {
 	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, "", 0, 0);
 	ScriptASTNode *node = new ScriptASTNode(virtual_token);
+	
+	int token_start = current_token_->token_start_;
 	
 	while (current_token_type_ != TokenType::kTokenEOF)
 	{
@@ -639,7 +733,15 @@ ScriptASTNode *Script::Parse_InterpreterBlock(void)
 		node->AddChild(child);
 	}
 	
+	int token_end = current_token_->token_start_ - 1;
+	
 	Match(TokenType::kTokenEOF, "interpreter block");
+	
+	// swap in a new virtual token that encompasses all our children
+	std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
+	
+	virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, token_string, token_start, token_end);
+	node->ReplaceTokenWithToken(virtual_token);
 	
 	return node;
 }
@@ -647,6 +749,8 @@ ScriptASTNode *Script::Parse_InterpreterBlock(void)
 ScriptASTNode *Script::Parse_CompoundStatement(void)
 {
 	ScriptASTNode *node = new ScriptASTNode(current_token_);
+	
+	int token_start = current_token_->token_start_;
 	
 	Match(TokenType::kTokenLBrace, "compound statement");
 	
@@ -657,7 +761,15 @@ ScriptASTNode *Script::Parse_CompoundStatement(void)
 		node->AddChild(child);
 	}
 	
+	int token_end = current_token_->token_start_;
+	
 	Match(TokenType::kTokenRBrace, "compound statement");
+	
+	// swap in a new virtual token that encompasses all our children
+	std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
+	
+	ScriptToken *virtual_token = new ScriptToken(node->token_->token_type_, token_string, token_start, token_end);
+	node->ReplaceTokenWithToken(virtual_token);
 	
 	return node;
 }
@@ -1087,7 +1199,7 @@ ScriptASTNode *Script::Parse_PrimaryExpr(void)
 	else
 	{
 		SetErrorPositionFromCurrentToken();
-		SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_PrimaryExpr" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_PrimaryExpr" << slim_terminate();
 		return nullptr;
 	}
 }
@@ -1127,14 +1239,14 @@ ScriptASTNode *Script::Parse_Constant(void)
 	else
 	{
 		SetErrorPositionFromCurrentToken();
-		SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_Constant" << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_Constant" << slim_terminate();
 		return nullptr;
 	}
 	
 	return node;
 }
 
-void Script::ParseScriptBlockToAST(void)
+void Script::ParseSLiMFileToAST(void)
 {
 	// delete the existing AST
 	delete parse_root_;
@@ -1146,7 +1258,7 @@ void Script::ParseScriptBlockToAST(void)
 	current_token_type_ = current_token_->token_type_;
 	
 	// parse a new AST from our start token
-	ScriptASTNode *tree = Parse_ScriptBlock();
+	ScriptASTNode *tree = Parse_SLiMFile();
 	
 	parse_root_ = tree;
 	
@@ -1201,11 +1313,6 @@ void Script::PrintAST(ostream &p_outstream) const
 		
 		p_outstream << endl;
 	}
-}
-
-const ScriptASTNode *Script::AST(void) const
-{
-	return parse_root_;
 }
 
 

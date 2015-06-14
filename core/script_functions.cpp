@@ -248,7 +248,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 				{
 					// we've already seen a object type, so check that this one is the same type
 					if (element_type.compare(this_element_type) != 0)
-						SLIM_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << slim_terminate();
 				}
 			}
 			
@@ -259,7 +259,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	}
 	
 	if (has_object_type && has_nonobject_type)
-		SLIM_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << slim_terminate();
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == ScriptValueType::kValueNULL)
@@ -322,7 +322,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateScriptValues()." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateScriptValues()." << slim_terminate();
 	}
 	
 	return nullptr;
@@ -331,21 +331,21 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments)
 {
 #pragma unused(p_function_name)
-	ScriptValue *arg1_value = p_arguments[0];
+	ScriptValue *arg0_value = p_arguments[0];
+	int arg0_count = arg0_value->Count();
+	ScriptValue *arg1_value = p_arguments[1];
 	int arg1_count = arg1_value->Count();
-	ScriptValue *arg2_value = p_arguments[1];
-	int arg2_count = arg2_value->Count();
 	
 	// the return type depends on the type of the first argument, which will get replicated
-	ScriptValue *result = arg1_value->NewMatchingType();
+	ScriptValue *result = arg0_value->NewMatchingType();
 	
-	if (arg2_count == 1)
+	if (arg1_count == 1)
 	{
-		int64_t rep_count = arg2_value->IntAtIndex(0);
+		int64_t rep_count = arg1_value->IntAtIndex(0);
 		
 		for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-			for (int value_idx = 0; value_idx < arg1_count; value_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg1_value);
+			for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
 	}
 	
 	return result;
@@ -353,35 +353,35 @@ ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_argument
 
 ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_arguments)
 {
-	ScriptValue *arg1_value = p_arguments[0];
+	ScriptValue *arg0_value = p_arguments[0];
+	int arg0_count = arg0_value->Count();
+	ScriptValue *arg1_value = p_arguments[1];
 	int arg1_count = arg1_value->Count();
-	ScriptValue *arg2_value = p_arguments[1];
-	int arg2_count = arg2_value->Count();
 	
 	// the return type depends on the type of the first argument, which will get replicated
-	ScriptValue *result = arg1_value->NewMatchingType();
+	ScriptValue *result = arg0_value->NewMatchingType();
 	
-	if (arg2_count == 1)
+	if (arg1_count == 1)
 	{
-		int64_t rep_count = arg2_value->IntAtIndex(0);
+		int64_t rep_count = arg1_value->IntAtIndex(0);
 		
-		for (int value_idx = 0; value_idx < arg1_count; value_idx++)
+		for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg1_value);
+				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
 	}
-	else if (arg2_count == arg1_count)
+	else if (arg1_count == arg0_count)
 	{
-		for (int value_idx = 0; value_idx < arg1_count; value_idx++)
+		for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 		{
-			int64_t rep_count = arg2_value->IntAtIndex(value_idx);
+			int64_t rep_count = arg1_value->IntAtIndex(value_idx);
 			
 			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg1_value);
+				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
 		}
 	}
 	else
 	{
-		SLIM_TERMINATION << "ERROR (Execute_repEach): function " << p_function_name << "() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Execute_repEach): function " << p_function_name << "() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << slim_terminate();
 	}
 	
 	return result;
@@ -390,28 +390,28 @@ ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_argu
 ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments)
 {
 	ScriptValue *result = nullptr;
-	ScriptValue *arg1_value = p_arguments[0];
+	ScriptValue *arg0_value = p_arguments[0];
+	ScriptValueType arg0_type = arg0_value->Type();
+	ScriptValue *arg1_value = p_arguments[1];
 	ScriptValueType arg1_type = arg1_value->Type();
-	ScriptValue *arg2_value = p_arguments[1];
-	ScriptValueType arg2_type = arg2_value->Type();
-	ScriptValue *arg3_value = ((p_arguments.size() == 3) ? p_arguments[2] : nullptr);
-	ScriptValueType arg3_type = (arg3_value ? arg3_value->Type() : ScriptValueType::kValueInt);
+	ScriptValue *arg2_value = ((p_arguments.size() == 3) ? p_arguments[2] : nullptr);
+	ScriptValueType arg2_type = (arg2_value ? arg2_value->Type() : ScriptValueType::kValueInt);
 	
-	if ((arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat) || (arg3_type == ScriptValueType::kValueFloat))
+	if ((arg0_type == ScriptValueType::kValueFloat) || (arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat))
 	{
 		// float return case
 		ScriptValue_Float *float_result = new ScriptValue_Float();
 		result = float_result;
 		
-		double first_value = arg1_value->FloatAtIndex(0);
-		double second_value = arg2_value->FloatAtIndex(0);
+		double first_value = arg0_value->FloatAtIndex(0);
+		double second_value = arg1_value->FloatAtIndex(0);
 		double default_by = ((first_value < second_value) ? 1 : -1);
-		double by_value = (arg3_value ? arg3_value->FloatAtIndex(0) : default_by);
+		double by_value = (arg2_value ? arg2_value->FloatAtIndex(0) : default_by);
 		
 		if (by_value == 0.0)
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
 		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
 		
 		if (by_value > 0)
 			for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -426,15 +426,15 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 		ScriptValue_Int *int_result = new ScriptValue_Int();
 		result = int_result;
 		
-		int64_t first_value = arg1_value->IntAtIndex(0);
-		int64_t second_value = arg2_value->IntAtIndex(0);
+		int64_t first_value = arg0_value->IntAtIndex(0);
+		int64_t second_value = arg1_value->IntAtIndex(0);
 		int64_t default_by = ((first_value < second_value) ? 1 : -1);
-		int64_t by_value = (arg3_value ? arg3_value->IntAtIndex(0) : default_by);
+		int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0) : default_by);
 		
 		if (by_value == 0)
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
 		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
 		
 		if (by_value > 0)
 			for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -455,14 +455,14 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	auto signature_iter = function_map_.find(p_function_name);
 	
 	if (signature_iter == function_map_.end())
-		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << slim_terminate();
 	
 	const FunctionSignature *signature = signature_iter->second;
 	bool class_method = signature->is_class_method;
 	bool instance_method = signature->is_instance_method;
 	
 	if (class_method || instance_method)
-		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << slim_terminate();
 	
 	signature->CheckArguments("function", p_arguments);
 	
@@ -503,25 +503,25 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	
 	// Prefetch arguments to allow greater brevity in the code below
 	int n_args = (int)p_arguments.size();
-	ScriptValue *arg1_value = (n_args >= 1) ? p_arguments[0] : nullptr;
-	ScriptValueType arg1_type = (n_args >= 1) ? arg1_value->Type() : ScriptValueType::kValueNULL;
-	int arg1_count = (n_args >= 1) ? arg1_value->Count() : 0;
+	ScriptValue *arg0_value = (n_args >= 1) ? p_arguments[0] : nullptr;
+	ScriptValueType arg0_type = (n_args >= 1) ? arg0_value->Type() : ScriptValueType::kValueNULL;
+	int arg0_count = (n_args >= 1) ? arg0_value->Count() : 0;
 	
 	/*
-	ScriptValue *arg2_value = (n_args >= 2) ? p_arguments[1] : nullptr;
-	ScriptValueType arg2_type = (n_args >= 2) ? arg2_value->Type() : ScriptValueType::kValueNULL;
-	int arg2_count = (n_args >= 2) ? arg2_value->Count() : 0;
+	ScriptValue *arg1_value = (n_args >= 2) ? p_arguments[1] : nullptr;
+	ScriptValueType arg1_type = (n_args >= 2) ? arg1_value->Type() : ScriptValueType::kValueNULL;
+	int arg1_count = (n_args >= 2) ? arg1_value->Count() : 0;
 	
-	ScriptValue *arg3_value = (n_args >= 3) ? p_arguments[2] : nullptr;
-	ScriptValueType arg3_type = (n_args >= 3) ? arg3_value->Type() : ScriptValueType::kValueNULL;
-	int arg3_count = (n_args >= 3) ? arg3_value->Count() : 0;
+	ScriptValue *arg2_value = (n_args >= 3) ? p_arguments[2] : nullptr;
+	ScriptValueType arg2_type = (n_args >= 3) ? arg2_value->Type() : ScriptValueType::kValueNULL;
+	int arg2_count = (n_args >= 3) ? arg2_value->Count() : 0;
 	*/
 	
 	// Now we look up the function again and actually execute it
 	switch (signature->function_id_)
 	{
 		case FunctionIdentifier::kNoFunction:
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): internal logic error." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): internal logic error." << slim_terminate();
 			break;
 			
 		case FunctionIdentifier::kDelegatedFunction:
@@ -537,148 +537,148 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark abs
 		case FunctionIdentifier::absFunction:
-			if (arg1_type == ScriptValueType::kValueInt)
+			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					int_result->PushInt(llabs(arg1_value->IntAtIndex(value_index)));
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					int_result->PushInt(llabs(arg0_value->IntAtIndex(value_index)));
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					float_result->PushFloat(fabs(arg1_value->FloatAtIndex(value_index)));
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index)));
 			}
 			break;
 			
 #pragma mark acos
 		case FunctionIdentifier::acosFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(acos(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark asin
 		case FunctionIdentifier::asinFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(asin(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark atan
 		case FunctionIdentifier::atanFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(atan(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark atan2
 		case FunctionIdentifier::atan2Function:
 		{
-			ScriptValue *arg2_value = p_arguments[1];
-			int arg2_count = arg2_value->Count();
+			ScriptValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
 			
-			if (arg1_count != arg2_count)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function atan2() requires arguments of equal length." << endl << slim_terminate();
+			if (arg0_count != arg1_count)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function atan2() requires arguments of equal length." << slim_terminate();
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(atan2(arg1_value->FloatAtIndex(value_index), arg2_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(atan2(arg0_value->FloatAtIndex(value_index), arg1_value->FloatAtIndex(value_index)));
 			break;
 		}
 			
 #pragma mark ceil
 		case FunctionIdentifier::ceilFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(ceil(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark cos
 		case FunctionIdentifier::cosFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(cos(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark exp
 		case FunctionIdentifier::expFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(exp(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark floor
 		case FunctionIdentifier::floorFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(floor(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark isFinite
 		case FunctionIdentifier::isFiniteFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				logical_result->PushLogical(isfinite(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark isInfinite
 		case FunctionIdentifier::isInfiniteFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				logical_result->PushLogical(isinf(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark isNAN
 		case FunctionIdentifier::isNaNFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				logical_result->PushLogical(isnan(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark log
 		case FunctionIdentifier::logFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark log10
 		case FunctionIdentifier::log10Function:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log10(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark log2
 		case FunctionIdentifier::log2Function:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(log2(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index)));
 			break;
 
 #pragma mark product
 		case FunctionIdentifier::productFunction:
-			if (arg1_type == ScriptValueType::kValueInt)
+			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
 				int64_t product = 1;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
 					int64_t old_product = product;
-					int64_t temp = arg1_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index);
 					
-					product *= arg1_value->IntAtIndex(value_index);
+					product *= arg0_value->IntAtIndex(value_index);
 					
 					// raise on overflow; test after doing the multiplication
 					if (product / temp != old_product)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << slim_terminate();
 				}
 				
 				int_result->PushInt(product);
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
 				double product = 1;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					product *= arg1_value->FloatAtIndex(value_index);
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					product *= arg0_value->FloatAtIndex(value_index);
 				
 				float_result->PushFloat(product);
 			}
@@ -686,35 +686,35 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark sum
 		case FunctionIdentifier::sumFunction:
-			if (arg1_type == ScriptValueType::kValueInt)
+			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
 				int64_t sum = 0;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg1_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index);
 					
 					// raise on overflow; test prior to doing the addition
 					if (((temp > 0) && (sum > INT64_MAX - temp)) || ((temp < 0) && (sum < INT64_MIN - temp)))
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << slim_terminate();
 					
-					sum += arg1_value->IntAtIndex(value_index);
+					sum += arg0_value->IntAtIndex(value_index);
 				}
 				
 				int_result->PushInt(sum);
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
 				double sum = 0;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					sum += arg1_value->FloatAtIndex(value_index);
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					sum += arg0_value->FloatAtIndex(value_index);
 				
 				float_result->PushFloat(sum);
 			}
@@ -722,32 +722,32 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 
 #pragma mark round
 		case FunctionIdentifier::roundFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(round(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark sin
 		case FunctionIdentifier::sinFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(sin(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark sqrt
 		case FunctionIdentifier::sqrtFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(sqrt(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark tan
 		case FunctionIdentifier::tanFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(tan(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 #pragma mark trunc
 		case FunctionIdentifier::truncFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				float_result->PushFloat(trunc(arg1_value->FloatAtIndex(value_index)));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index)));
 			break;
 			
 			
@@ -759,61 +759,61 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark max
 		case FunctionIdentifier::maxFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
 				result = new ScriptValue_NULL();
 			}
-			else if (arg1_type == ScriptValueType::kValueLogical)
+			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
 				logical_result = new ScriptValue_Logical();
 				result = logical_result;
 				
-				bool max = arg1_value->LogicalAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				bool max = arg0_value->LogicalAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					bool temp = arg1_value->LogicalAtIndex(value_index);
+					bool temp = arg0_value->LogicalAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 				}
 				logical_result->PushLogical(max);
 			}
-			else if (arg1_type == ScriptValueType::kValueInt)
+			else if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
-				int64_t max = arg1_value->IntAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				int64_t max = arg0_value->IntAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg1_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 				}
 				int_result->PushInt(max);
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
-				double max = arg1_value->FloatAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				double max = arg0_value->FloatAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg1_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 				}
 				float_result->PushFloat(max);
 			}
-			else if (arg1_type == ScriptValueType::kValueString)
+			else if (arg0_type == ScriptValueType::kValueString)
 			{
 				string_result = new ScriptValue_String();
 				result = string_result;
 				
-				string max = arg1_value->StringAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				string max = arg0_value->StringAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string temp = arg1_value->StringAtIndex(value_index);
+					string temp = arg0_value->StringAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 				}
@@ -825,69 +825,69 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::meanFunction:
 		{
 			double sum = 0;
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				sum += arg1_value->FloatAtIndex(value_index);
-			float_result->PushFloat(sum / arg1_count);
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				sum += arg0_value->FloatAtIndex(value_index);
+			float_result->PushFloat(sum / arg0_count);
 			break;
 		}
 			
 #pragma mark min
 		case FunctionIdentifier::minFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
 				result = new ScriptValue_NULL();
 			}
-			else if (arg1_type == ScriptValueType::kValueLogical)
+			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
 				logical_result = new ScriptValue_Logical();
 				result = logical_result;
 				
-				bool min = arg1_value->LogicalAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				bool min = arg0_value->LogicalAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					bool temp = arg1_value->LogicalAtIndex(value_index);
+					bool temp = arg0_value->LogicalAtIndex(value_index);
 					if (min > temp)
 						min = temp;
 				}
 				logical_result->PushLogical(min);
 			}
-			else if (arg1_type == ScriptValueType::kValueInt)
+			else if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
-				int64_t min = arg1_value->IntAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				int64_t min = arg0_value->IntAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg1_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index);
 					if (min > temp)
 						min = temp;
 				}
 				int_result->PushInt(min);
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
-				double min = arg1_value->FloatAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				double min = arg0_value->FloatAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg1_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index);
 					if (min > temp)
 						min = temp;
 				}
 				float_result->PushFloat(min);
 			}
-			else if (arg1_type == ScriptValueType::kValueString)
+			else if (arg0_type == ScriptValueType::kValueString)
 			{
 				string_result = new ScriptValue_String();
 				result = string_result;
 				
-				string min = arg1_value->StringAtIndex(0);
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				string min = arg0_value->StringAtIndex(0);
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string temp = arg1_value->StringAtIndex(value_index);
+					string temp = arg0_value->StringAtIndex(value_index);
 					if (min > temp)
 						min = temp;
 				}
@@ -897,21 +897,21 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark range
 		case FunctionIdentifier::rangeFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
 				result = new ScriptValue_NULL();
 			}
-			else if (arg1_type == ScriptValueType::kValueInt)
+			else if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
-				int64_t max = arg1_value->IntAtIndex(0);
+				int64_t max = arg0_value->IntAtIndex(0);
 				int64_t min = max;
 
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg1_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 					else if (min > temp)
@@ -920,17 +920,17 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				int_result->PushInt(min);
 				int_result->PushInt(max);
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
-				double max = arg1_value->FloatAtIndex(0);
+				double max = arg0_value->FloatAtIndex(0);
 				double min = max;
 
-				for (int value_index = 1; value_index < arg1_count; ++value_index)
+				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg1_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 					else if (min > temp)
@@ -944,23 +944,23 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark sd
 		case FunctionIdentifier::sdFunction:
 		{
-			if (arg1_count > 1)
+			if (arg0_count > 1)
 			{
 				double mean = 0;
 				double sd = 0;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					mean += arg1_value->FloatAtIndex(value_index);
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					mean += arg0_value->FloatAtIndex(value_index);
 				
-				mean /= arg1_count;
+				mean /= arg0_count;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double temp = (arg1_value->FloatAtIndex(value_index) - mean);
+					double temp = (arg0_value->FloatAtIndex(value_index) - mean);
 					sd += temp * temp;
 				}
 				
-				sd = sqrt(sd / (arg1_count - 1));
+				sd = sqrt(sd / (arg0_count - 1));
 				float_result->PushFloat(sd);
 			}
 			else
@@ -983,19 +983,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark float
 		case FunctionIdentifier::floatFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				float_result->PushFloat(0.0);
 			break;
 			
 #pragma mark integer
 		case FunctionIdentifier::integerFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				int_result->PushInt(0);
 			break;
 			
 #pragma mark logical
 		case FunctionIdentifier::logicalFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				logical_result->PushLogical(false);
 			break;
 			
@@ -1007,7 +1007,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark rbinom
 		case FunctionIdentifier::rbinomFunction:
 		{
-			int64_t num_draws = arg1_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0);
 			ScriptValue *arg_size = p_arguments[1];
 			ScriptValue *arg_prob = p_arguments[2];
 			int arg_size_count = arg_size->Count();
@@ -1016,11 +1016,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			bool prob_singleton = (arg_prob_count == 1);
 			
 			if (num_draws < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << slim_terminate();
 			if (!size_singleton && (arg_size_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << slim_terminate();
 			if (!prob_singleton && (arg_prob_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires prob to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires prob to be of length 1 or n." << slim_terminate();
 			
 			int size0 = (int)arg_size->IntAtIndex(0);
 			double probability0 = arg_prob->FloatAtIndex(0);
@@ -1028,9 +1028,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (size_singleton && prob_singleton)
 			{
 				if (size0 < 0)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << slim_terminate();
 				if ((probability0 < 0.0) || (probability0 > 1.0))
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << slim_terminate();
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					int_result->PushInt(gsl_ran_binomial(g_rng, probability0, size0));
@@ -1043,9 +1043,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index));
 					
 					if (size < 0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires size >= 0." << slim_terminate();
 					if ((probability < 0.0) || (probability > 1.0))
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << slim_terminate();
 					
 					int_result->PushInt(gsl_ran_binomial(g_rng, probability, size));
 				}
@@ -1067,15 +1067,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark rexp
 		case FunctionIdentifier::rexpFunction:
 		{
-			int64_t num_draws = arg1_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0);
 			ScriptValue *arg_rate = ((n_args >= 2) ? p_arguments[1] : nullptr);
 			int arg_rate_count = (arg_rate ? arg_rate->Count() : 1);
 			bool rate_singleton = (arg_rate_count == 1);
 			
 			if (num_draws < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << slim_terminate();
 			if (!rate_singleton && (arg_rate_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << slim_terminate();
 			
 			if (rate_singleton)
 			{
@@ -1083,7 +1083,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				double mu0 = 1.0 / rate0;
 				
 				if (rate0 <= 0.0)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << slim_terminate();
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->PushFloat(gsl_ran_exponential(g_rng, mu0));
@@ -1095,7 +1095,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					double rate = arg_rate->FloatAtIndex(draw_index);
 					
 					if (rate <= 0.0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << slim_terminate();
 					
 					float_result->PushFloat(gsl_ran_exponential(g_rng, 1.0 / rate));
 				}
@@ -1107,7 +1107,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark rnorm
 		case FunctionIdentifier::rnormFunction:
 		{
-			int64_t num_draws = arg1_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0);
 			ScriptValue *arg_mu = ((n_args >= 2) ? p_arguments[1] : nullptr);
 			ScriptValue *arg_sigma = ((n_args >= 3) ? p_arguments[2] : nullptr);
 			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
@@ -1116,11 +1116,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			bool sigma_singleton = (arg_sigma_count == 1);
 			
 			if (num_draws < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << slim_terminate();
 			if (!mu_singleton && (arg_mu_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << slim_terminate();
 			if (!sigma_singleton && (arg_sigma_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << slim_terminate();
 			
 			double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0) : 0.0);
 			double sigma0 = (arg_sigma ? arg_sigma->FloatAtIndex(0) : 1.0);
@@ -1128,7 +1128,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (mu_singleton && sigma_singleton)
 			{
 				if (sigma0 < 0.0)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << slim_terminate();
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma0) + mu0);
@@ -1141,7 +1141,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index));
 					
 					if (sigma < 0.0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << slim_terminate();
 					
 					float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma) + mu);
 				}
@@ -1153,22 +1153,22 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark rpois
 		case FunctionIdentifier::rpoisFunction:
 		{
-			int64_t num_draws = arg1_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0);
 			ScriptValue *arg_lambda = p_arguments[1];
 			int arg_lambda_count = arg_lambda->Count();
 			bool lambda_singleton = (arg_lambda_count == 1);
 			
 			if (num_draws < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << slim_terminate();
 			if (!lambda_singleton && (arg_lambda_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << slim_terminate();
 			
 			if (lambda_singleton)
 			{
 				double lambda0 = arg_lambda->FloatAtIndex(0);
 				
 				if (lambda0 <= 0.0)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << slim_terminate();
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					int_result->PushInt(gsl_ran_poisson(g_rng, lambda0));		// use the GSL, not slim_fast_ran_poisson, to give the user high accuracy
@@ -1180,7 +1180,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					double lambda = arg_lambda->FloatAtIndex(draw_index);
 					
 					if (lambda <= 0.0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda > 0.0." << slim_terminate();
 					
 					int_result->PushInt(gsl_ran_poisson(g_rng, lambda));
 				}
@@ -1192,7 +1192,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark runif
 		case FunctionIdentifier::runifFunction:
 		{
-			int64_t num_draws = arg1_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0);
 			ScriptValue *arg_min = ((n_args >= 2) ? p_arguments[1] : nullptr);
 			ScriptValue *arg_max = ((n_args >= 3) ? p_arguments[2] : nullptr);
 			int arg_min_count = (arg_min ? arg_min->Count() : 1);
@@ -1201,11 +1201,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			bool max_singleton = (arg_max_count == 1);
 			
 			if (num_draws < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << slim_terminate();
 			if (!min_singleton && (arg_min_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << slim_terminate();
 			if (!max_singleton && (arg_max_count != num_draws))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << slim_terminate();
 			
 			double min_value0 = (arg_min ? arg_min->FloatAtIndex(0) : 0.0);
 			double max_value0 = (arg_max ? arg_max->FloatAtIndex(0) : 1.0);
@@ -1214,7 +1214,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (min_singleton && max_singleton)
 			{
 				if (range0 < 0.0)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << endl << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << slim_terminate();
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->PushFloat(gsl_rng_uniform(g_rng) * range0 + min_value0);
@@ -1228,7 +1228,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					double range = max_value - min_value;
 					
 					if (range < 0.0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << slim_terminate();
 					
 					float_result->PushFloat(gsl_rng_uniform(g_rng) * range + min_value);
 				}
@@ -1243,10 +1243,10 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			int64_t sample_size = p_arguments[1]->IntAtIndex(0);
 			bool replace = ((n_args >= 3) ? p_arguments[2]->LogicalAtIndex(0) : false);
 			
-			result = arg1_value->NewMatchingType();
+			result = arg0_value->NewMatchingType();
 			
 			if (sample_size < 0)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() requires a sample size >= 0." << endl << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() requires a sample size >= 0." << slim_terminate();
 			if (sample_size == 0)
 				break;
 			
@@ -1256,15 +1256,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// weights supplied
 				vector<double> weights_vector;
 				double weights_sum = 0.0;
-				ScriptValue *arg4_value = p_arguments[3];
-				int arg4_count = arg4_value->Count();
+				ScriptValue *arg3_value = p_arguments[3];
+				int arg3_count = arg3_value->Count();
 				
-				if (arg4_count != arg1_count)
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() requires x and weights to be the same length." << endl << slim_terminate();
+				if (arg3_count != arg0_count)
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() requires x and weights to be the same length." << slim_terminate();
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double weight = arg4_value->FloatAtIndex(value_index);
+					double weight = arg3_value->FloatAtIndex(value_index);
 					
 					weights_vector.push_back(weight);
 					weights_sum += weight;
@@ -1273,18 +1273,18 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// get indices of x; we sample from this vector and then look up the corresponding ScriptValue element
 				vector<int> index_vector;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					index_vector.push_back(value_index);
 				
 				// do the sampling
-				int64_t contender_count = arg1_count;
+				int64_t contender_count = arg0_count;
 				
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
 					if (contender_count <= 0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << slim_terminate();
 					if (weights_sum <= 0.0)
-						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() encountered weights summing to <= 0." << endl << slim_terminate();
+						SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() encountered weights summing to <= 0." << slim_terminate();
 					
 					double rose = gsl_rng_uniform(g_rng) * weights_sum;
 					double rose_sum = 0.0;
@@ -1298,7 +1298,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 							break;
 					}
 					
-					result->PushValueFromIndexOfScriptValue(index_vector[rose_index], arg1_value);
+					result->PushValueFromIndexOfScriptValue(index_vector[rose_index], arg0_value);
 					
 					if (!replace)
 					{
@@ -1316,27 +1316,27 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (replace)
 				{
 					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
-						result->PushValueFromIndexOfScriptValue((int)gsl_rng_uniform_int(g_rng, arg1_count), arg1_value);
+						result->PushValueFromIndexOfScriptValue((int)gsl_rng_uniform_int(g_rng, arg0_count), arg0_value);
 				}
 				else
 				{
 					// get indices of x; we sample from this vector and then look up the corresponding ScriptValue element
 					vector<int> index_vector;
 					
-					for (int value_index = 0; value_index < arg1_count; ++value_index)
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
 						index_vector.push_back(value_index);
 					
 					// do the sampling
-					int64_t contender_count = arg1_count;
+					int64_t contender_count = arg0_count;
 					
 					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 					{
 						if (contender_count <= 0)
-							SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << endl << slim_terminate();
+							SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << slim_terminate();
 						
 						int rose_index = (int)gsl_rng_uniform_int(g_rng, contender_count);
 						
-						result->PushValueFromIndexOfScriptValue(index_vector[rose_index], arg1_value);
+						result->PushValueFromIndexOfScriptValue(index_vector[rose_index], arg0_value);
 						
 						index_vector.erase(index_vector.begin() + rose_index);
 						--contender_count;
@@ -1354,13 +1354,13 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark seqAlong
 		case FunctionIdentifier::seqAlongFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				int_result->PushInt(value_index);
 			break;
 
 #pragma mark string
 		case FunctionIdentifier::stringFunction:
-			for (int64_t value_index = arg1_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				string_result->PushString("");
 			break;
 			
@@ -1373,8 +1373,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark all
 		case FunctionIdentifier::allFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (!arg1_value->LogicalAtIndex(value_index))
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (!arg0_value->LogicalAtIndex(value_index))
 				{
 					logical_result->PushLogical(false);
 					break;
@@ -1385,8 +1385,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark any
 		case FunctionIdentifier::anyFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (arg1_value->LogicalAtIndex(value_index))
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (arg0_value->LogicalAtIndex(value_index))
 				{
 					logical_result->PushLogical(true);
 					break;
@@ -1400,12 +1400,12 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
 				if (value_index > 0)
 					p_output_stream << separator;
 				
-				p_output_stream << arg1_value->StringAtIndex(value_index);
+				p_output_stream << arg0_value->StringAtIndex(value_index);
 			}
 			break;
 		}
@@ -1413,35 +1413,35 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark ifelse
 		case FunctionIdentifier::ifelseFunction:
 		{
-			ScriptValue *arg2_value = p_arguments[1];
+			ScriptValue *arg1_value = p_arguments[1];
+			ScriptValueType arg1_type = arg1_value->Type();
+			int arg1_count = arg1_value->Count();
+			
+			ScriptValue *arg2_value = p_arguments[2];
 			ScriptValueType arg2_type = arg2_value->Type();
 			int arg2_count = arg2_value->Count();
 			
-			ScriptValue *arg3_value = p_arguments[2];
-			ScriptValueType arg3_type = arg3_value->Type();
-			int arg3_count = arg3_value->Count();
-			
-			if (arg1_count != arg2_count || arg1_count != arg3_count)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments of equal length." << endl << slim_terminate();
-			if (arg2_type != arg3_type)
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << endl << slim_terminate();
+			if (arg0_count != arg1_count || arg0_count != arg2_count)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments of equal length." << slim_terminate();
+			if (arg1_type != arg2_type)
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << slim_terminate();
 				
-			result = arg2_value->NewMatchingType();
+			result = arg1_value->NewMatchingType();
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (arg1_value->LogicalAtIndex(value_index))
-					result->PushValueFromIndexOfScriptValue(value_index, arg2_value);
+				if (arg0_value->LogicalAtIndex(value_index))
+					result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
 				else
-					result->PushValueFromIndexOfScriptValue(value_index, arg3_value);
+					result->PushValueFromIndexOfScriptValue(value_index, arg2_value);
 			}
 			break;
 		}
 			
 #pragma mark nchar
 		case FunctionIdentifier::ncharFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				int_result->PushInt(arg1_value->StringAtIndex(value_index).length());
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				int_result->PushInt(arg0_value->StringAtIndex(value_index).length());
 			break;
 			
 #pragma mark paste
@@ -1450,12 +1450,12 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
 			string result_string;
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
 				if (value_index > 0)
 					result_string.append(separator);
 				
-				result_string.append(arg1_value->StringAtIndex(value_index));
+				result_string.append(arg0_value->StringAtIndex(value_index));
 			}
 			
 			string_result->PushString(result_string);
@@ -1464,28 +1464,28 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark print
 		case FunctionIdentifier::printFunction:
-			p_output_stream << *arg1_value << endl;
+			p_output_stream << *arg0_value << endl;
 			break;
 			
 #pragma mark rev
 		case FunctionIdentifier::revFunction:
-			result = arg1_value->NewMatchingType();
+			result = arg0_value->NewMatchingType();
 			
-			for (int value_index = arg1_count - 1; value_index >= 0; --value_index)
-				result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
+			for (int value_index = arg0_count - 1; value_index >= 0; --value_index)
+				result->PushValueFromIndexOfScriptValue(value_index, arg0_value);
 			break;
 			
 #pragma mark size
 		case FunctionIdentifier::sizeFunction:
-			int_result->PushInt(arg1_value->Count());
+			int_result->PushInt(arg0_value->Count());
 			break;
 			
 #pragma mark sort
 		case FunctionIdentifier::sortFunction:
-			result = arg1_value->NewMatchingType();
+			result = arg0_value->NewMatchingType();
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				result->PushValueFromIndexOfScriptValue(value_index, arg1_value);
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				result->PushValueFromIndexOfScriptValue(value_index, arg0_value);
 			
 			result->Sort((n_args == 1) ? true : p_arguments[1]->LogicalAtIndex(0));
 			break;
@@ -1495,8 +1495,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			ScriptValue_Object *object_result = new ScriptValue_Object();
 			
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				object_result->PushElement(arg1_value->ElementAtIndex(value_index));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				object_result->PushElement(arg0_value->ElementAtIndex(value_index));
 			
 			object_result->SortBy(p_arguments[1]->StringAtIndex(0), (n_args == 2) ? true : p_arguments[2]->LogicalAtIndex(0));
 			
@@ -1506,16 +1506,16 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark str
 		case FunctionIdentifier::strFunction:
-			p_output_stream << "(" << arg1_type << ") ";
+			p_output_stream << "(" << arg0_type << ") ";
 			
-			if (arg1_count <= 2)
-				p_output_stream << *arg1_value << endl;
+			if (arg0_count <= 2)
+				p_output_stream << *arg0_value << endl;
 			else
 			{
-				ScriptValue *first_value = arg1_value->GetValueAtIndex(0);
-				ScriptValue *second_value = arg1_value->GetValueAtIndex(1);
+				ScriptValue *first_value = arg0_value->GetValueAtIndex(0);
+				ScriptValue *second_value = arg0_value->GetValueAtIndex(1);
 				
-				p_output_stream << *first_value << " " << *second_value << " ... (" << arg1_count << " values)" << endl;
+				p_output_stream << *first_value << " " << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
 				if (!first_value->InSymbolTable()) delete first_value;
 				if (!second_value->InSymbolTable()) delete second_value;
@@ -1525,7 +1525,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark strsplit
 		case FunctionIdentifier::strsplitFunction:
 		{
-			string joined_string = arg1_value->StringAtIndex(0);
+			string joined_string = arg0_value->StringAtIndex(0);
 			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
 			string::size_type start_idx = 0, sep_idx;
 			
@@ -1555,8 +1555,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			int arg_first_count = arg_first->Count();
 			bool first_singleton = (arg_first_count == 1);
 			
-			if (!first_singleton && (arg_first_count != arg1_count))
-				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << endl << slim_terminate();
+			if (!first_singleton && (arg_first_count != arg0_count))
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << slim_terminate();
 			
 			int64_t first0 = arg_first->IntAtIndex(0);
 			
@@ -1567,14 +1567,14 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				int arg_last_count = arg_last->Count();
 				bool last_singleton = (arg_last_count == 1);
 				
-				if (!last_singleton && (arg_last_count != arg1_count))
-					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << endl << slim_terminate();
+				if (!last_singleton && (arg_last_count != arg0_count))
+					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << slim_terminate();
 				
 				int64_t last0 = arg_last->IntAtIndex(0);
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg1_value->StringAtIndex(value_index);
+					std::string str = arg0_value->StringAtIndex(value_index);
 					string::size_type len = str.length();
 					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
 					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index));
@@ -1591,9 +1591,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			else
 			{
 				// last not supplied; take substrings to the end of each string
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg1_value->StringAtIndex(value_index);
+					std::string str = arg0_value->StringAtIndex(value_index);
 					string::size_type len = str.length();
 					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
 					
@@ -1611,23 +1611,23 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark unique
 		case FunctionIdentifier::uniqueFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
-				result = arg1_value->NewMatchingType();
+				result = arg0_value->NewMatchingType();
 			}
-			else if (arg1_type == ScriptValueType::kValueLogical)
+			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
 				logical_result = new ScriptValue_Logical();
 				result = logical_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					bool value = arg1_value->LogicalAtIndex(value_index);
+					bool value = arg0_value->LogicalAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg1_value->LogicalAtIndex(scan_index))
+						if (value == arg0_value->LogicalAtIndex(scan_index))
 							break;
 					}
 					
@@ -1635,19 +1635,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						logical_result->PushLogical(value);
 				}
 			}
-			else if (arg1_type == ScriptValueType::kValueInt)
+			else if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
 				result = int_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					int64_t value = arg1_value->IntAtIndex(value_index);
+					int64_t value = arg0_value->IntAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg1_value->IntAtIndex(scan_index))
+						if (value == arg0_value->IntAtIndex(scan_index))
 							break;
 					}
 					
@@ -1655,19 +1655,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						int_result->PushInt(value);
 				}
 			}
-			else if (arg1_type == ScriptValueType::kValueFloat)
+			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
 				float_result = new ScriptValue_Float();
 				result = float_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double value = arg1_value->FloatAtIndex(value_index);
+					double value = arg0_value->FloatAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg1_value->FloatAtIndex(scan_index))
+						if (value == arg0_value->FloatAtIndex(scan_index))
 							break;
 					}
 					
@@ -1675,19 +1675,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						float_result->PushFloat(value);
 				}
 			}
-			else if (arg1_type == ScriptValueType::kValueString)
+			else if (arg0_type == ScriptValueType::kValueString)
 			{
 				string_result = new ScriptValue_String();
 				result = string_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					string value = arg1_value->StringAtIndex(value_index);
+					string value = arg0_value->StringAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg1_value->StringAtIndex(scan_index))
+						if (value == arg0_value->StringAtIndex(scan_index))
 							break;
 					}
 					
@@ -1695,19 +1695,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						string_result->PushString(value);
 				}
 			}
-			else if (arg1_type == ScriptValueType::kValueObject)
+			else if (arg0_type == ScriptValueType::kValueObject)
 			{
 				ScriptValue_Object *object_result = new ScriptValue_Object();
 				result = object_result;
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					ScriptObjectElement *value = arg1_value->ElementAtIndex(value_index);
+					ScriptObjectElement *value = arg0_value->ElementAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg1_value->ElementAtIndex(scan_index))
+						if (value == arg0_value->ElementAtIndex(scan_index))
 							break;
 					}
 					
@@ -1719,14 +1719,14 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark which
 		case FunctionIdentifier::whichFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				if (arg1_value->LogicalAtIndex(value_index))
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (arg0_value->LogicalAtIndex(value_index))
 					int_result->PushInt(value_index);
 			break;
 			
 #pragma mark whichMax
 		case FunctionIdentifier::whichMaxFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
 				result = new ScriptValue_NULL();
 			}
@@ -1734,43 +1734,43 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			{
 				int first_index = 0;
 				
-				if (arg1_type == ScriptValueType::kValueLogical)
+				if (arg0_type == ScriptValueType::kValueLogical)
 				{
-					bool max = arg1_value->LogicalAtIndex(0);
+					bool max = arg0_value->LogicalAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = arg1_value->LogicalAtIndex(value_index);
+						bool temp = arg0_value->LogicalAtIndex(value_index);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueInt)
+				else if (arg0_type == ScriptValueType::kValueInt)
 				{
-					int64_t max = arg1_value->IntAtIndex(0);
+					int64_t max = arg0_value->IntAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg1_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueFloat)
+				else if (arg0_type == ScriptValueType::kValueFloat)
 				{
-					double max = arg1_value->FloatAtIndex(0);
+					double max = arg0_value->FloatAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						double temp = arg1_value->FloatAtIndex(value_index);
+						double temp = arg0_value->FloatAtIndex(value_index);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueString)
+				else if (arg0_type == ScriptValueType::kValueString)
 				{
-					string max = arg1_value->StringAtIndex(0);
+					string max = arg0_value->StringAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string temp = arg1_value->StringAtIndex(value_index);
+						string temp = arg0_value->StringAtIndex(value_index);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
@@ -1781,7 +1781,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark whichMin
 		case FunctionIdentifier::whichMinFunction:
-			if (arg1_count == 0)
+			if (arg0_count == 0)
 			{
 				result = new ScriptValue_NULL();
 			}
@@ -1789,43 +1789,43 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			{
 				int first_index = 0;
 				
-				if (arg1_type == ScriptValueType::kValueLogical)
+				if (arg0_type == ScriptValueType::kValueLogical)
 				{
-					bool min = arg1_value->LogicalAtIndex(0);
+					bool min = arg0_value->LogicalAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = arg1_value->LogicalAtIndex(value_index);
+						bool temp = arg0_value->LogicalAtIndex(value_index);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueInt)
+				else if (arg0_type == ScriptValueType::kValueInt)
 				{
-					int64_t min = arg1_value->IntAtIndex(0);
+					int64_t min = arg0_value->IntAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg1_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueFloat)
+				else if (arg0_type == ScriptValueType::kValueFloat)
 				{
-					double min = arg1_value->FloatAtIndex(0);
+					double min = arg0_value->FloatAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						double temp = arg1_value->FloatAtIndex(value_index);
+						double temp = arg0_value->FloatAtIndex(value_index);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
-				else if (arg1_type == ScriptValueType::kValueString)
+				else if (arg0_type == ScriptValueType::kValueString)
 				{
-					string min = arg1_value->StringAtIndex(0);
+					string min = arg0_value->StringAtIndex(0);
 					
-					for (int value_index = 1; value_index < arg1_count; ++value_index)
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string temp = arg1_value->StringAtIndex(value_index);
+						string temp = arg0_value->StringAtIndex(value_index);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
@@ -1843,69 +1843,69 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark asFloat
 		case FunctionIdentifier::asFloatFunction:
-            for (int value_index = 0; value_index < arg1_count; ++value_index)
-                float_result->PushFloat(arg1_value->FloatAtIndex(value_index));
+            for (int value_index = 0; value_index < arg0_count; ++value_index)
+                float_result->PushFloat(arg0_value->FloatAtIndex(value_index));
             break;
 			
 #pragma mark asInteger
 		case FunctionIdentifier::asIntegerFunction:
-            for (int value_index = 0; value_index < arg1_count; ++value_index)
-                int_result->PushInt(arg1_value->IntAtIndex(value_index));
+            for (int value_index = 0; value_index < arg0_count; ++value_index)
+                int_result->PushInt(arg0_value->IntAtIndex(value_index));
             break;
 			
 #pragma mark asLogical
 		case FunctionIdentifier::asLogicalFunction:
-			for (int value_index = 0; value_index < arg1_count; ++value_index)
-				logical_result->PushLogical(arg1_value->LogicalAtIndex(value_index));
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index));
 			break;
 			
 #pragma mark asString
 		case FunctionIdentifier::asStringFunction:
-            for (int value_index = 0; value_index < arg1_count; ++value_index)
-                string_result->PushString(arg1_value->StringAtIndex(value_index));
+            for (int value_index = 0; value_index < arg0_count; ++value_index)
+                string_result->PushString(arg0_value->StringAtIndex(value_index));
             break;
 			
 #pragma mark element
 		case FunctionIdentifier::elementFunction:
-			if (arg1_value->Type() == ScriptValueType::kValueObject)
-				string_result->PushString(((ScriptValue_Object *)arg1_value)->ElementType());
+			if (arg0_value->Type() == ScriptValueType::kValueObject)
+				string_result->PushString(((ScriptValue_Object *)arg0_value)->ElementType());
 			else
-				string_result->PushString(StringForScriptValueType(arg1_value->Type()));
+				string_result->PushString(StringForScriptValueType(arg0_value->Type()));
 			break;
 			
 #pragma mark isFloat
 		case FunctionIdentifier::isFloatFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueFloat);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueFloat);
 			break;
 			
 #pragma mark isInteger
 		case FunctionIdentifier::isIntegerFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueInt);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueInt);
 			break;
 			
 #pragma mark isLogical
 		case FunctionIdentifier::isLogicalFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueLogical);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueLogical);
 			break;
 			
 #pragma mark isNULL
 		case FunctionIdentifier::isNULLFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueNULL);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueNULL);
 			break;
 			
 #pragma mark isObject
 		case FunctionIdentifier::isObjectFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueObject);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueObject);
 			break;
 			
 #pragma mark isString
 		case FunctionIdentifier::isStringFunction:
-			logical_result->PushLogical(arg1_type == ScriptValueType::kValueString);
+			logical_result->PushLogical(arg0_type == ScriptValueType::kValueString);
 			break;
 			
 #pragma mark type
 		case FunctionIdentifier::typeFunction:
-			string_result->PushString(StringForScriptValueType(arg1_value->Type()));
+			string_result->PushString(StringForScriptValueType(arg0_value->Type()));
 			break;
 			
 			
@@ -1933,7 +1933,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark function
 		case FunctionIdentifier::functionFunction:
 		{
-			string match_string = (arg1_value ? arg1_value->StringAtIndex(0) : "");
+			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : "");
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order
@@ -1941,14 +1941,14 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			{
 				const FunctionSignature *iter_signature = functionPairIter->second;
 				
-				if (arg1_value && (iter_signature->function_name_.compare(match_string) != 0))
+				if (arg0_value && (iter_signature->function_name_.compare(match_string) != 0))
 					continue;
 				
 				p_output_stream << *iter_signature << endl;
 				signature_found = true;
 			}
 			
-			if (arg1_value && !signature_found)
+			if (arg0_value && !signature_found)
 				p_output_stream << "No function signature found for \"" << match_string << "\"." << endl;
 			
 			break;
@@ -1991,8 +1991,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (n_args == 0)
 				symbols_to_remove = global_symbols_->ReadWriteSymbols();
 			else
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					symbols_to_remove.push_back(arg1_value->StringAtIndex(value_index));
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index));
 			
 			for (string symbol : symbols_to_remove)
 				global_symbols_->RemoveValueForSymbol(symbol, false);
@@ -2002,15 +2002,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark setSeed
 		case FunctionIdentifier::setSeedFunction:
-			InitializeRNGFromSeed((int)(arg1_value->IntAtIndex(0)));
+			InitializeRNGFromSeed((int)(arg0_value->IntAtIndex(0)));
 			break;
 			
 #pragma mark stop
 		case FunctionIdentifier::stopFunction:
-			if (arg1_value)
-				p_output_stream << arg1_value->StringAtIndex(0) << endl;
+			if (arg0_value)
+				p_output_stream << arg0_value->StringAtIndex(0) << endl;
 			
-			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << endl << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << slim_terminate();
 			break;
 			
 #pragma mark time
@@ -2030,7 +2030,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark version
 		case FunctionIdentifier::versionFunction:
-			string_result->PushString("SLiMscript version 2.0a1");
+			string_result->PushString("SLiMscript version 2.0a2");
 			break;
 			
 			
@@ -2041,7 +2041,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark Path
 		case FunctionIdentifier::PathFunction:
-			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg1_value->StringAtIndex(0))) : (new Script_PathElement());
+			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg0_value->StringAtIndex(0))) : (new Script_PathElement());
 			result = new ScriptValue_Object(pathElement);
 			pathElement->Release();
 			break;
@@ -2070,9 +2070,9 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 	bool instance_method = method_signature->is_instance_method;
 	
 	if (!class_method && !instance_method)
-		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is not designated as a class method or instance method." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is not designated as a class method or instance method." << slim_terminate();
 	if (class_method && instance_method)
-		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << endl << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << slim_terminate();
 	
 	method_signature->CheckArguments("method", p_arguments);
 	
