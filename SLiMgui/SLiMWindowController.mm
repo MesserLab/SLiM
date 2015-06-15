@@ -1186,7 +1186,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		catch (std::runtime_error err)
 		{
-			string raise_msg = GetTrimmedRaiseMessage();
+			std::string raise_msg = GetTrimmedRaiseMessage();
 			
 			errorDiagnostic = [[NSString stringWithUTF8String:raise_msg.c_str()] retain];
 		}
@@ -1512,7 +1512,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
 			sim->population_.PrintAll(outstring);
 			
-			string pop_str = outstring.str();
+			std::string pop_str = outstring.str();
 			NSString *populationDump = [NSString stringWithUTF8String:pop_str.c_str()];
 			
 			[populationDump writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
