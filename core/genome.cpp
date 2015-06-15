@@ -21,6 +21,7 @@
 #include "genome.h"
 #include "slim_global.h"
 #include "script_functionsignature.h"
+#include "slim_sim.h"	// we need to register mutations in the simulation...
 
 
 #ifdef DEBUG
@@ -283,6 +284,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	ScriptValue *arg3_value = ((num_arguments >= 4) ? p_arguments[3] : nullptr);
 	ScriptValue *arg4_value = ((num_arguments >= 5) ? p_arguments[4] : nullptr);
 	
+
 	//
 	//	*********************	- (void)addMutations(object mutations)
 	//
@@ -298,7 +300,15 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				insert_sorted_mutation_if_unique((Mutation *)(arg0_value->ElementAtIndex(value_index)));
+			{
+				Mutation *new_mutation = (Mutation *)(arg0_value->ElementAtIndex(value_index));
+				
+				insert_sorted_mutation_if_unique(new_mutation);
+				
+				// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
+				//if (!registry.contains_mutation(new_mutation))
+				//	registry.push_back(new_mutation);
+			}
 		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
@@ -324,7 +334,13 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		double selection_coeff = mut_type->DrawSelectionCoefficient();
 		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 		
+		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
+		SymbolTable &symbols = p_interpreter.BorrowSymbolTable();
+		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
+		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
+		
 		insert_sorted_mutation(mutation);
+		sim->population_.mutation_registry_.push_back(mutation);
 		
 		return new ScriptValue_Object(mutation);
 	}
@@ -349,8 +365,14 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		MutationType *mut_type = (MutationType *)mut_type_value;
 		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 		
-		insert_sorted_mutation(mutation);
+		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
+		SymbolTable &symbols = p_interpreter.BorrowSymbolTable();
+		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
+		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
+		insert_sorted_mutation(mutation);
+		sim->population_.mutation_registry_.push_back(mutation);
+
 		return new ScriptValue_Object(mutation);
 	}
 	
