@@ -24,6 +24,7 @@
 
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
+#include <GLKit/GLKMatrix4.h>
 
 
 @implementation PopulationView
@@ -216,12 +217,8 @@
 	
 	// Update the projection
 	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	// FIXME this is deprecated, but I can't figure out to I'm supposed to fix it... seems like I would be forced into GLKit, which I don't want to deal with...
-	gluOrtho2D(0.0, (int)bounds.size.width, (int)bounds.size.height, 0.0);	// swap bottom and top to create a flipped coordinate system
-#pragma clang diagnostic pop
+	GLKMatrix4 orthoMat = GLKMatrix4MakeOrtho(0.0, (int)bounds.size.width, (int)bounds.size.height, 0.0, -1.0f, 1.0f);
+	glLoadMatrixf(orthoMat.m);
 	glMatrixMode(GL_MODELVIEW);
 	
 	if (selectedSubpopCount == 0)
