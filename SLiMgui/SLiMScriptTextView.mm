@@ -304,7 +304,8 @@ using std::string;
 		// if we get a raise, we just use as many tokens as we got; clear the error string buffer
 		GetUntrimmedRaiseMessage();
 		
-		//NSString *errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
+		//string raise_msg = GetUntrimmedRaiseMessage();
+		//NSString *errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
 		//NSLog(@"raise during syntax coloring tokenization: %@", errorString);
 	}
 	

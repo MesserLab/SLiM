@@ -576,12 +576,16 @@ std::string ScriptValue_String::StringAtIndex(int p_idx) const
 
 int64_t ScriptValue_String::IntAtIndex(int p_idx) const
 {
-	return strtoll(values_.at(p_idx).c_str(), nullptr, 10);
+	string index_str = values_.at(p_idx);
+	
+	return strtoll(index_str.c_str(), nullptr, 10);
 }
 
 double ScriptValue_String::FloatAtIndex(int p_idx) const
 {
-	return strtod(values_.at(p_idx).c_str(), nullptr);
+	string index_str = values_.at(p_idx);
+	
+	return strtod(index_str.c_str(), nullptr);
 }
 
 void ScriptValue_String::PushString(std::string p_string)

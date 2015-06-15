@@ -300,7 +300,8 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		iss >> sub;
 		sub.erase(0, 1);	// p
 		int pos = static_cast<int>(sub.find_first_of(":"));
-		const char *subpop_id_string = sub.substr(0, pos).c_str();
+		string subpop_substr = sub.substr(0, pos);
+		const char *subpop_id_string = subpop_substr.c_str();
 		int subpop_id = atoi(subpop_id_string);
 		
 		Subpopulation &subpop = population_.SubpopulationWithID(subpop_id);
