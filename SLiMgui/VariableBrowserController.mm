@@ -21,6 +21,8 @@
 #import "VariableBrowserController.h"
 #import "ScriptValueWrapper.h"
 
+#include <sstream>
+
 
 @implementation VariableBrowserController
 
@@ -204,7 +206,58 @@
 	{
 		ScriptValueWrapper *wrapper = (ScriptValueWrapper *)item;
 		
-		return wrapper->wrappedName;
+		if (tableColumn == _symbolColumn)
+		{
+			return wrapper->wrappedName;
+		}
+		else if (tableColumn == _typeColumn)
+		{
+			ScriptValueType type = wrapper->wrappedValue->Type();
+			std::string type_string = StringForScriptValueType(type);
+			const char *type_cstr = type_string.c_str();
+			NSString *typeString = [NSString stringWithUTF8String:type_cstr];
+			
+			if (type == ScriptValueType::kValueObject)
+			{
+				ScriptValue_Object *object_value = (ScriptValue_Object *)wrapper->wrappedValue;
+				std::string element_string = object_value->ElementType();
+				const char *element_cstr = element_string.c_str();
+				NSString *elementString = [NSString stringWithUTF8String:element_cstr];
+				
+				typeString = [NSString stringWithFormat:@"%@<%@>", typeString, elementString];
+			}
+			
+			return typeString;
+		}
+		else if (tableColumn == _sizeColumn)
+		{
+			int size = wrapper->wrappedValue->Count();
+			
+			return [NSString stringWithFormat:@"%d", size];
+		}
+		else if (tableColumn == _valueColumn)
+		{
+			ScriptValue *value = wrapper->wrappedValue;
+			int value_count = value->Count();
+			std::ostringstream outstream;
+			
+			// print values as a comma-separated list with strings quoted; halfway between print() and cat()
+			for (int value_index = 0; value_index < value_count; ++value_index)
+			{
+				ScriptValue *element_value = value->GetValueAtIndex(value_index);
+				
+				if (value_index > 0)
+					outstream << ", ";
+				
+				outstream << *element_value;
+			}
+			
+			std::string out_str = outstream.str();
+			const char *out_cstr = out_str.c_str();
+			NSString *outString = [NSString stringWithUTF8String:out_cstr];
+			
+			return outString;
+		}
 	}
 	
 	return nil;

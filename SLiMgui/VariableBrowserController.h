@@ -40,6 +40,10 @@
 
 @property (nonatomic, retain) IBOutlet NSWindow *browserWindow;
 @property (nonatomic, assign) IBOutlet NSOutlineView *browserOutline;
+@property (nonatomic, assign) IBOutlet NSTableColumn *symbolColumn;
+@property (nonatomic, assign) IBOutlet NSTableColumn *typeColumn;
+@property (nonatomic, assign) IBOutlet NSTableColumn *sizeColumn;
+@property (nonatomic, assign) IBOutlet NSTableColumn *valueColumn;
 
 - (void)reloadBrowser;
 
