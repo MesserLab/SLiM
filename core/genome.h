@@ -128,6 +128,23 @@ public:
 		mutation_count_ = 0;
 	}
 	
+	inline bool contains_mutation(Mutation *p_mutation)
+	{
+#ifdef DEBUG
+		if (is_null_genome_)
+			NullGenomeAccessError();
+#endif
+		// This function does not assume that mutations are in sorted order, because we want to be able to use it with the mutation registry
+		Mutation **position = begin_pointer();
+		Mutation **end_position = end_pointer();
+		
+		for (; position != end_position; ++position)
+			if (*position == p_mutation)
+				return true;
+		
+		return false;
+	}
+	
 	inline void pop_back(void)
 	{
 #ifdef DEBUG
