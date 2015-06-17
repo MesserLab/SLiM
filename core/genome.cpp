@@ -258,8 +258,8 @@ const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_
 	if (!addMutationsSig)
 	{
 		addMutationsSig = (new FunctionSignature("addMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		addNewDrawnMutationSig = (new FunctionSignature("addNewDrawnMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject + kScriptValueMaskSingleton))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
-		addNewMutationSig = (new FunctionSignature("addNewMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject + kScriptValueMaskSingleton))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
+		addNewDrawnMutationSig = (new FunctionSignature("addNewDrawnMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
+		addNewMutationSig = (new FunctionSignature("addNewMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
 		removeMutationsSig = (new FunctionSignature("removeMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
 	}
 	
