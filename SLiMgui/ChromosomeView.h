@@ -25,14 +25,6 @@
 
 extern NSString *SLiMChromosomeSelectionChangedNotification;
 
-//
-//	The back end of SLiM uses zero-based positions internally, while using 1-based positions in its input and output.  SLiMgui follows this
-//	convention, presenting 1-based positions to the user while interfacing to the 0-based back end.  ChromosomeView is the nexus where all
-//	of this gets maximally confusing.  Whenever a position is taken from back end, or pushed out to the back end, a conversion must occur.
-//	Positions kept by the front end, such as the selection and tracking positions below, are 1-based, since they live only in the GUI.
-//	Tread carefully.
-//
-
 @interface ChromosomeView : NSView
 {
 @public

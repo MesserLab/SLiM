@@ -62,7 +62,7 @@ public:
 	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
-	int    length_;											// length of the chromosome
+	int    last_position_;									// last position; used to be called length_ but it is (length - 1) really
 	double overall_mutation_rate_;							// overall mutation rate
 	double overall_recombination_rate_;						// overall recombination rate
 	double gene_conversion_fraction_;						// gene conversion fraction

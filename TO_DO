@@ -25,7 +25,6 @@ SLiMscript:
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 	
 SLiMgui work:
-	change SLiMgui to be zero-based in everything, like the back end and SLiMscript
 	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe

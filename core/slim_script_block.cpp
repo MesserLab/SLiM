@@ -39,7 +39,7 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			SLIM_TERMINATION << "ERROR (SLiMScriptBlock::SLiMScriptBlock): the script block id must have an integer identifier after the \"s\" prefix." << slim_terminate();
 		
 		errno = 0;
-		long long_block_id = strtol(id_cstr + 1, NULL, 10);
+		long long_block_id = strtol(id_cstr + 1, NULL, 10);	// +1 to omit the leading "s"
 		
 		if (errno)
 			SLIM_TERMINATION << "ERROR (SLiMScriptBlock::SLiMScriptBlock): the script block id " << id_string << " was not parseable." << slim_terminate();

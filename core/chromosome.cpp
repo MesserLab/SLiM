@@ -28,7 +28,7 @@
 #include "script_functionsignature.h"
 
 
-Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), length_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
 {
 }
 
@@ -54,15 +54,15 @@ void Chromosome::InitializeDraws(void)
 		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << slim_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
-	length_ = 0;
+	last_position_ = 0;
 	
 	double A[size()];
 	int l = 0;
 	
 	for (int i = 0; i < size(); i++) 
 	{ 
-		if ((*this)[i].end_position_ > length_)
-			length_ = (*this)[i].end_position_;
+		if ((*this)[i].end_position_ > last_position_)
+			last_position_ = (*this)[i].end_position_;
 		
 		int l_i = (*this)[i].end_position_ - (*this)[i].start_position_ + 1;
 		
@@ -89,8 +89,8 @@ void Chromosome::InitializeDraws(void)
 		B[i] = recombination_rates_[i] * static_cast<double>(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
 		overall_recombination_rate_+= B[i];
 		
-		if (recombination_end_positions_[i] > length_)
-			length_ = recombination_end_positions_[i];
+		if (recombination_end_positions_[i] > last_position_)
+			last_position_ = recombination_end_positions_[i];
 	}
 	
 	// SLIM_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
@@ -192,7 +192,7 @@ std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
 	constants.push_back("genomicElements");					// this
-	constants.push_back("lastPosition");					// length_
+	constants.push_back("lastPosition");					// last_position_
 	constants.push_back("overallRecombinationRate");		// overall_recombination_rate_
 	constants.push_back("recombinationEndPositions");		// recombination_end_positions_
 	constants.push_back("recombinationRates");				// recombination_rates_
@@ -224,7 +224,7 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 		return vec;
 	}
 	if (p_member_name.compare("lastPosition") == 0)
-		return new ScriptValue_Int(length_);
+		return new ScriptValue_Int(last_position_);
 	if (p_member_name.compare("overallRecombinationRate") == 0)
 		return new ScriptValue_Float(overall_recombination_rate_);
 	if (p_member_name.compare("recombinationEndPositions") == 0)
@@ -339,9 +339,8 @@ ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::ve
 		}
 		
 		// FIXME is this required? or does it just need to be less than length?
-		// and this needs adjustment for the move to 0-based values...
-		if (arg0_value->IntAtIndex(ends_count - 1) != length_)
-			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires the last interval to end at the length of the chromosome." << slim_terminate();
+		if (arg0_value->IntAtIndex(ends_count - 1) != last_position_)
+			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << slim_terminate();
 		
 		// then adopt them
 		recombination_end_positions_.clear();

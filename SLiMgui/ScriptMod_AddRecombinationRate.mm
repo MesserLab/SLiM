@@ -49,7 +49,7 @@
 	
 	for (auto positionIter = endPositions.begin(); positionIter != endPositions.end(); positionIter++)
 	{
-		int endPosition = *positionIter + 1;	// convert from back end 0-base
+		int endPosition = *positionIter;	// used to have a +1; switched to zero-based
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;

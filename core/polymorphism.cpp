@@ -36,7 +36,7 @@ void Polymorphism::print(std::ostream &p_out, int p_index, bool include_id /* = 
 	if (include_id)
 		p_out << mutation_id_ << " ";
 	
-	p_out << "m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index + 1 << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl; 
+	p_out << "m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl;		// used to have a +1 on p_index, which is the position; switched to zero-based
 }
 
 // find p_mutation in p_polymorphisms and return its id
@@ -68,7 +68,7 @@ void AddMutationToPolymorphismMap(multimap<const int,Polymorphism> *p_polymorphi
 		}
 	
 	// the mutation was not found, so add it to p_polymorphisms
-	int mutation_id = static_cast<int>(p_polymorphisms->size()) + 1;
+	int mutation_id = static_cast<int>(p_polymorphisms->size());	// used to have a +1 here; switched to zero-based
 	Polymorphism new_polymorphism = Polymorphism(mutation_id, p_mutation.mutation_type_ptr_, p_mutation.selection_coeff_, p_mutation.subpop_index_, p_mutation.generation_, 1);
 	
 	p_polymorphisms->insert(std::pair<const int,Polymorphism>(p_mutation.position_, new_polymorphism));

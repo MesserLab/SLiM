@@ -243,7 +243,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		int mutation_type_id = atoi(sub.c_str());
 		
 		iss >> sub;
-		int position = atoi(sub.c_str()) - 1;
+		int position = atoi(sub.c_str());		// used to have a -1; switched to zero-based
 		
 		iss >> sub;
 		double selection_coeff = atof(sub.c_str());
@@ -307,7 +307,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		Subpopulation &subpop = population_.SubpopulationWithID(subpop_id);
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int genome_index = atoi(sub.c_str()) - 1;
+		int genome_index = atoi(sub.c_str());		// used to have a -1; switched to zero-based
 		Genome &genome = subpop.parent_genomes_[genome_index];
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
@@ -582,8 +582,8 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 	if (p_function_name.compare("addGenomicElement0") == 0)
 	{
 		int genomic_element_type = (int)arg0_value->IntAtIndex(0);
-		int start_position = (int)arg1_value->IntAtIndex(0) - 1;
-		int end_position = (int)arg2_value->IntAtIndex(0) - 1;
+		int start_position = (int)arg1_value->IntAtIndex(0);		// used to have a -1; switched to zero-based
+		int end_position = (int)arg2_value->IntAtIndex(0);			// used to have a -1; switched to zero-based
 		auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 		
 		if (found_getype_pair == genomic_element_types_.end())
@@ -741,7 +741,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			int recombination_end_position = (int)arg0_value->IntAtIndex(interval_index) - 1;
+			int recombination_end_position = (int)arg0_value->IntAtIndex(interval_index);	// used to have a -1; switched to zero-based
 			double recombination_rate = arg1_value->FloatAtIndex(interval_index);
 			
 			// FIXME bounds-check position and rate
@@ -1477,7 +1477,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		
 		for (int i = 0; i < subs.size(); i++)
 		{
-			SLIM_OUTSTREAM << i + 1;
+			SLIM_OUTSTREAM << i;				// used to have a +1; switched to zero-based
 			subs[i]->print(SLIM_OUTSTREAM);
 		}
 		

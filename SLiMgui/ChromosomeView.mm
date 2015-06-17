@@ -121,9 +121,10 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 		Chromosome &chromosome = controller->sim->chromosome_;
-		int chromosomeLength = chromosome.length_;
+		int chromosomeLastPosition = chromosome.last_position_;
 		
-		return NSMakeRange(1, chromosomeLength + 1);	// chromosomeLength is zero-based, so chromosomeLength + 1 bases are encompassed
+		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
+															// used to start at 1; switched to zero-based
 	}
 }
 
@@ -160,9 +161,10 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 		Chromosome &chromosome = controller->sim->chromosome_;
-		int chromosomeLength = chromosome.length_;
+		int chromosomeLastPosition = chromosome.last_position_;
 		
-		return NSMakeRange(1, chromosomeLength + 1);	// chromosomeLength is zero-based, so chromosomeLength + 1 bases are encompassed
+		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
+															// used to start at 1; switched to zero-based
 	}
 }
 
@@ -234,8 +236,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (GenomicElement &genomicElement : chromosome)
 	{
-		int startPosition = genomicElement.start_position_ + 1;		// +1 because the back end is 0-based
-		int endPosition = genomicElement.end_position_ + 1;
+		int startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
+		int endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		// if we're drawing recombination intervals as well, then they get the top half and we take the bottom half
@@ -264,7 +266,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
 	{
-		int intervalEndPosition = chromosome.recombination_end_positions_[interval] + 1;	// +1 because the back end is 0-based
+		int intervalEndPosition = chromosome.recombination_end_positions_[interval];	// used to have a +1; switched to zero-based
 		double intervalRate = chromosome.recombination_rates_[interval];
 		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
@@ -320,7 +322,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		int substitutionPosition = substitution->position_ + 1;		// +1 because the back end is 0-based
+		int substitutionPosition = substitution->position_;		// used to have a +1; switched to zero-based
 		NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		if (shouldDrawMutations)
@@ -355,7 +357,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		const Mutation *mutation = mutations[mutIndex];
 		int32_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-		int mutationPosition = mutation->position_ + 1;					// +1 because the back end is 0-based
+		int mutationPosition = mutation->position_;						// used to have a +1; switched to zero-based
 		NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		
@@ -512,14 +514,14 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		{
 			if (NSPointInRect(curPoint, contentRect))
 			{
-				int clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];	// this is 1-based
+				int clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
 				NSRange selectionRange = NSMakeRange(0, 0);
 				Chromosome &chromosome = controller->sim->chromosome_;
 				
 				for (GenomicElement &genomicElement : chromosome)
 				{
-					int startPosition = genomicElement.start_position_ + 1;		// +1 because the back end is 0-based
-					int endPosition = genomicElement.end_position_ + 1;
+					int startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
+					int endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
 					
 					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
 						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);

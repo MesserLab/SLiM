@@ -628,7 +628,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			// create vector with uniqued recombination breakpoints
 			std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
 			
-			all_breakpoints.push_back(p_chromosome.length_ + 1);
+			all_breakpoints.push_back(p_chromosome.last_position_ + 1);
 			sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
@@ -690,7 +690,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		
 		// create vector with uniqued recombination breakpoints
 		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
-		all_breakpoints.push_back(p_chromosome.length_ + 1);
+		all_breakpoints.push_back(p_chromosome.last_position_ + 1);
 		sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
@@ -1218,17 +1218,17 @@ void Population::PrintAll(std::ostream &p_out) const
 		int subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		int first_male_index = (child_generation_valid ? subpop->child_first_male_index_ : subpop->parent_first_male_index_);
 		
-		for (int i = 0; i < subpop_size; i++)								// go through all children
+		for (int i = 0; i < subpop_size; i++)							// go through all children
 		{
-			p_out << "p" << subpop_id << ":i" << i + 1;								// individual identifier
+			p_out << "p" << subpop_id << ":i" << i;						// individual identifier	// used to have a +1; switched to zero-based
 			
 			if (subpop->sex_enabled_)
-				p_out << ((i < first_male_index) ? " F " : " M ");			// sex: SEX ONLY
+				p_out << ((i < first_male_index) ? " F " : " M ");		// sex: SEX ONLY
 			else
-				p_out << " H ";														// hermaphrodite
+				p_out << " H ";											// hermaphrodite
 			
-			p_out << "p" << subpop_id << ":" << (i * 2 + 1);						// genome identifier 1
-			p_out << " p" << subpop_id << ":" << (i * 2 + 2);						// genome identifier 2
+			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1	// used to have a +1; switched to zero-based
+			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2	// used to have a +2; switched to zero-based
 			p_out << endl;
 		}
 	}
@@ -1246,7 +1246,7 @@ void Population::PrintAll(std::ostream &p_out) const
 		{
 			Genome &genome = child_generation_valid ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
-			p_out << "p" << subpop_id << ":" << i + 1 << " " << genome.GenomeType();
+			p_out << "p" << subpop_id << ":" << i << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
 			
 			if (genome.IsNull())
 			{
@@ -1309,7 +1309,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] + 1 << " " << genome.GenomeType();
+		SLIM_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
 		
 		if (genome.IsNull())
 		{
@@ -1368,7 +1368,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		SLIM_OUTSTREAM << "positions:";
 		
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first + 1) / (p_chromosome.length_ + 1); 
+			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first + 1) / (p_chromosome.last_position_ + 1);	// this prints positions as being in the interval (0,1]; is that correct?
 		
 		SLIM_OUTSTREAM << endl;
 	}
