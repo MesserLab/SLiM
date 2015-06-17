@@ -365,8 +365,15 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 	}
 	
 	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
+	// Note that generation+1 is used; we are computing fitnesses for the next generation
 	for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
-		subpop_pair.second->UpdateFitness();
+	{
+		int subpop_id = subpop_pair.first;
+		Subpopulation *subpop = subpop_pair.second;
+		std::vector<SLiMScriptBlock*> fitness_callbacks = ScriptBlocksMatching(generation_ + 1, SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, subpop_id);
+		
+		subpop->UpdateFitness(fitness_callbacks);
+	}
 }
 
 std::vector<SLiMScriptBlock*> SLiMSim::ScriptBlocksMatching(int p_generation, SLiMScriptBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id)

@@ -697,8 +697,43 @@ ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 	// Now we are to the point of parsing the actual slim_script_block
 	if (current_token_type_ == TokenType::kTokenFitness)
 	{
-		// FIXME!
-		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+		
+		Match(TokenType::kTokenFitness, "SLiM fitness() callback");
+		Match(TokenType::kTokenLParen, "SLiM fitness() callback");
+		
+		if (current_token_type_ == TokenType::kTokenNumber)
+		{
+			// A (required) mutation type id is present; add it
+			ScriptASTNode *mutation_type_id_node = Parse_Constant();
+			
+			callback_info_node->AddChild(mutation_type_id_node);
+		}
+		else
+		{
+			SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a mutation type id is required in fitness() callback definitions" << slim_terminate();
+		}
+		
+		if (current_token_type_ == TokenType::kTokenComma)
+		{
+			// A (optional) subpopulation id is present; add it
+			Match(TokenType::kTokenComma, "SLiM fitness() callback");
+			
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				ScriptASTNode *subpopulation_id_node = Parse_Constant();
+				
+				callback_info_node->AddChild(subpopulation_id_node);
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a subpopulation id is expected after a comma in fitness() callback definitions" << slim_terminate();
+			}
+		}
+		
+		Match(TokenType::kTokenRParen, "SLiM fitness() callback");
+		
+		slim_script_block_node->AddChild(callback_info_node);
 	}
 	else if (current_token_type_ == TokenType::kTokenMateChoice)
 	{

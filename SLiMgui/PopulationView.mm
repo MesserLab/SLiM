@@ -64,7 +64,10 @@
 {
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
-	int subpopSize = subpop->child_subpop_size_;
+	int subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
+	std::vector<double> &subpop_fitness = subpop->gui_cached_parental_fitness_;
+	BOOL useCachedFitness = (subpop_fitness.size() == subpopSize);	// needs to have the right number of entries, otherwise we punt
+	
 	int squareSize, viewColumns = 0, viewRows = 0;
 	
 	// first figure out the biggest square size that will allow us to display the whole subpopulation
@@ -156,8 +159,8 @@
 			
 			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
 			
-			// use individual trait values to determine color
-			double fitness = subpop->FitnessOfParentWithGenomeIndices(2 * individualArrayIndex, 2 * individualArrayIndex + 1);
+			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
 			
 			RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 			

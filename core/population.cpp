@@ -908,9 +908,32 @@ void Population::SwapGenerations()
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
 	child_generation_valid = false;
 	
-	// calculate the fitnesses of the parents and make lookup tables
+	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
+	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
+	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
+	// note that generation+1 is used; we are computing fitnesses for the next generation
+	std::vector<SLiMScriptBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(sim_.generation_ + 1, SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, -1);
+	
 	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
-		subpop_pair.second->UpdateFitness(); 
+	{
+		int subpop_id = subpop_pair.first;
+		Subpopulation *subpop = subpop_pair.second;
+		std::vector<SLiMScriptBlock*> subpop_fitness_callbacks;
+		
+		// Get fitness callbacks that apply to this subpopulation
+		for (SLiMScriptBlock *callback : fitness_callbacks)
+		{
+			int callback_subpop_id = callback->subpopulation_id_;
+			
+			if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+				subpop_fitness_callbacks.push_back(callback);
+		}
+		
+		// Update fitness values, using the callbacks
+		subpop->UpdateFitness(subpop_fitness_callbacks);
+	}
+	
+	sim_.DeregisterScheduledScriptBlocks();
 	
 #ifdef SLIMGUI
 	SurveyPopulation();

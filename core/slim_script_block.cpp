@@ -83,6 +83,8 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			
 			if (n_callback_children == 2)
 				subpopulation_id_ = (int)ScriptInterpreter::IntForNumberToken(callback_children[1]->token_);
+			
+			type_ = SLiMScriptBlockType::SLiMScriptFitnessCallback;
 		}
 		else if (callback_type == TokenType::kTokenMateChoice)
 		{
@@ -91,6 +93,8 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			
 			if (n_callback_children == 1)
 				subpopulation_id_ = (int)ScriptInterpreter::IntForNumberToken(callback_children[0]->token_);
+			
+			type_ = SLiMScriptBlockType::SLiMScriptMateChoiceCallback;
 		}
 		else if (callback_type == TokenType::kTokenModifyChild)
 		{
@@ -99,6 +103,8 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			
 			if (n_callback_children == 1)
 				subpopulation_id_ = (int)ScriptInterpreter::IntForNumberToken(callback_children[0]->token_);
+			
+			type_ = SLiMScriptBlockType::SLiMScriptModifyChildCallback;
 		}
 		else
 		{

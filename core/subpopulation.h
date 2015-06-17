@@ -37,6 +37,7 @@
 #include "genome.h"
 #include "chromosome.h"
 #include "script_value.h"
+#include "slim_script_block.h"
 
 
 class Population;
@@ -78,6 +79,7 @@ public:
 #ifdef SLIMGUI
 	bool gui_selected_ = false;						// keeps track of whether we are selected in SLiMgui's table of subpopulations
 	double parental_total_fitness_ = 0.0;			// updated in UpdateFitness() when running under SLiMgui
+	std::vector<double> gui_cached_parental_fitness_;	// cached in UpdateFitness() when running under SLiMgui
 	double gui_center_x, gui_center_y, gui_radius;	// used as scratch space by GraphView_PopulationVisualization
 #endif
 	
@@ -98,8 +100,9 @@ public:
 	
 	void GenerateChildrenToFit(const bool p_parents_also);											// given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
 	inline IndividualSex SexOfIndividual(int p_individual_index);									// return the sex of the individual at the given index; uses child_generation_valid
-	void UpdateFitness(void);																		// update the fitness lookup table based upon current mutations
-	double FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2) const;	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
+	void UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callbacks);							// update the fitness lookup table based upon current mutations
+	double FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2, std::vector<SLiMScriptBlock*> &p_fitness_callbacks);	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
+	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMScriptBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2);
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	
 	//
