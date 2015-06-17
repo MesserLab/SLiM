@@ -53,6 +53,7 @@ changes to mention in docs:
 	predetermined mutations doc says you can specify a selection coefficient and dominance coefficient, but you can't; doc error, apparently
 	addition of SLiMscript, SLiMscribe
 	mutation equality defined by pointer equality
+	MS output slightly changed, now outputs positions spanning the interval [0,1] instead of (0,1]
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim

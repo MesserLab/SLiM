@@ -1368,7 +1368,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		SLIM_OUTSTREAM << "positions:";
 		
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first + 1) / (p_chromosome.last_position_ + 1);	// this prints positions as being in the interval (0,1]; is that correct?
+			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
 		SLIM_OUTSTREAM << endl;
 	}
