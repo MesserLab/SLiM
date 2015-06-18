@@ -117,6 +117,7 @@ public:
 	// accessors
 	inline int Generation(void) const												{ return generation_; }
 	inline Chromosome &Chromosome(void)												{ return chromosome_; }
+	inline Population &Population(void)												{ return population_; }
 	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }

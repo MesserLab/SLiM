@@ -340,7 +340,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
 		insert_sorted_mutation(mutation);
-		sim->population_.mutation_registry_.push_back(mutation);
+		sim->Population().mutation_registry_.push_back(mutation);
 		
 		return new ScriptValue_Object(mutation);
 	}
@@ -371,7 +371,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
 		insert_sorted_mutation(mutation);
-		sim->population_.mutation_registry_.push_back(mutation);
+		sim->Population().mutation_registry_.push_back(mutation);
 
 		return new ScriptValue_Object(mutation);
 	}

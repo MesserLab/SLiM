@@ -1081,7 +1081,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		// We fetch callbacks from the sim; we use the callbacks from the current stage, for our subpopulation ID
 		// We do not comprise our own generation stage, so we do not deregister blocks when we are done
 		SLiMSim &sim = population_.sim_;
-		std::vector<SLiMScriptBlock*> fitness_callbacks = sim.ScriptBlocksMatching(sim.generation_, SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, subpopulation_id_);
+		std::vector<SLiMScriptBlock*> fitness_callbacks = sim.ScriptBlocksMatching(sim.Generation(), SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, subpopulation_id_);
 		
 		bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
 		int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
