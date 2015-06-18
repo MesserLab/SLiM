@@ -737,13 +737,41 @@ ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 	}
 	else if (current_token_type_ == TokenType::kTokenMateChoice)
 	{
-		// FIXME!
-		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+		
+		Match(TokenType::kTokenMateChoice, "SLiM mateChoice() callback");
+		Match(TokenType::kTokenLParen, "SLiM mateChoice() callback");
+		
+		// A (optional) subpopulation id is present; add it
+		if (current_token_type_ == TokenType::kTokenNumber)
+		{
+			ScriptASTNode *subpopulation_id_node = Parse_Constant();
+			
+			callback_info_node->AddChild(subpopulation_id_node);
+		}
+		
+		Match(TokenType::kTokenRParen, "SLiM mateChoice() callback");
+		
+		slim_script_block_node->AddChild(callback_info_node);
 	}
 	else if (current_token_type_ == TokenType::kTokenModifyChild)
 	{
-		// FIXME!
-		SLIM_TERMINATION << "ERROR (Parse): unimplemented token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+		
+		Match(TokenType::kTokenModifyChild, "SLiM modifyChild() callback");
+		Match(TokenType::kTokenLParen, "SLiM modifyChild() callback");
+		
+		// A (optional) subpopulation id is present; add it
+		if (current_token_type_ == TokenType::kTokenNumber)
+		{
+			ScriptASTNode *subpopulation_id_node = Parse_Constant();
+			
+			callback_info_node->AddChild(subpopulation_id_node);
+		}
+		
+		Match(TokenType::kTokenRParen, "SLiM modifyChild() callback");
+		
+		slim_script_block_node->AddChild(callback_info_node);
 	}
 	
 	// Regardless of what happened above, all SLiMscript blocks end with a compound statement, which is the last child of the node
