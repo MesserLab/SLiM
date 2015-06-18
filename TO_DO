@@ -23,6 +23,14 @@ SLiMscript:
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
+
+SLiMscript optimization:
+	Instrument first to see where the slow parts are
+	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
+	Optimize the addition of functions, methods, symbols; if they are not used they don't need to be added, or could be shared anyway
+	Switch to heterogeneous nodes – avoid overhead of EvaluateNode
+	Add caching of evaluated values for numbers, strings, caching of integer indices for known identifiers (method/function names)
+	Function lookup should involve only a switch on an integer, no string comparison
 	
 SLiMgui work:
 	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.

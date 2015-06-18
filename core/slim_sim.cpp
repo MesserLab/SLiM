@@ -508,7 +508,9 @@ bool SLiMSim::RunOneGeneration(void)
 				}
 				else
 				{
-					// execute script events for the current generation
+					//
+					// Stage 1: execute script events for the current generation
+					//
 					std::vector<SLiMScriptBlock*> blocks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptEvent, -1, -1);
 					
 					for (auto script_block : blocks)
@@ -517,11 +519,34 @@ bool SLiMSim::RunOneGeneration(void)
 					
 					DeregisterScheduledScriptBlocks();
 					
-					// evolve all subpopulations
-					for (const std::pair<const int,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_);
+					//
+					// Stage 2: evolve all subpopulations
+					//
+					std::vector<SLiMScriptBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptModifyChildCallback, -1, -1);
 					
-					// swap generations
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					{
+						int subpop_id = subpop_pair.first;
+						std::vector<SLiMScriptBlock*> subpop_modify_child_callbacks;
+						
+						// Get fitness callbacks that apply to this subpopulation
+						for (SLiMScriptBlock *callback : modify_child_callbacks)
+						{
+							int callback_subpop_id = callback->subpopulation_id_;
+							
+							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+								subpop_modify_child_callbacks.push_back(callback);
+						}
+						
+						// Update fitness values, using the callbacks
+						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, subpop_modify_child_callbacks);
+					}
+					
+					DeregisterScheduledScriptBlocks();
+					
+					//
+					// Stage 3: swap generations
+					//
 					population_.SwapGenerations();
 					
 					// advance the generation counter as soon as the generation is done
