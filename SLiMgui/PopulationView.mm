@@ -65,7 +65,7 @@
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
 	int subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
-	std::vector<double> &subpop_fitness = subpop->gui_cached_parental_fitness_;
+	std::vector<double> &subpop_fitness = subpop->cached_parental_fitness_;
 	BOOL useCachedFitness = (subpop_fitness.size() == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	
 	int squareSize, viewColumns = 0, viewRows = 0;

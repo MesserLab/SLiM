@@ -71,6 +71,9 @@ public:
 	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate
 	int child_first_male_index_ = INT_MAX;			// the index of the first male in the child Genome vector (NOT premultiplied by 2!); equal to the number of females
 	
+	std::vector<double> cached_parental_fitness_;	// cached in UpdateFitness(), used by SLiMgui and by the fitness() methods of Subpopulation
+	std::vector<double> cached_male_fitness_;		// SEX ONLY: used by mateChoice() callsbacks; same as cached_parental_fitness_ but with 0 for all females
+	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
@@ -79,7 +82,6 @@ public:
 #ifdef SLIMGUI
 	bool gui_selected_ = false;						// keeps track of whether we are selected in SLiMgui's table of subpopulations
 	double parental_total_fitness_ = 0.0;			// updated in UpdateFitness() when running under SLiMgui
-	std::vector<double> gui_cached_parental_fitness_;	// cached in UpdateFitness() when running under SLiMgui
 	double gui_center_x, gui_center_y, gui_radius;	// used as scratch space by GraphView_PopulationVisualization
 #endif
 	

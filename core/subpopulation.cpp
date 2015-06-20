@@ -181,15 +181,17 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 #ifdef SLIMGUI
 	// When running under SLiMgui, this function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
-	
-	// Under SLiM, we also cache the calculated fitness values, for use in PopulationView
-	gui_cached_parental_fitness_.clear();
 #endif
+	
+	// We cache the calculated fitness values, for use in PopulationView and mateChoice() callbacks and such
+	cached_parental_fitness_.clear();
 	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
 	{
 		// SEX ONLY
+		cached_male_fitness_.clear();
+		
 		gsl_ran_discrete_free(lookup_female_parent_);
 		gsl_ran_discrete_free(lookup_male_parent_);
 		
@@ -201,9 +203,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
 			A[i] = fitness;
+			cached_parental_fitness_.push_back(fitness);
+			cached_male_fitness_.push_back(0);				// this vector has 0 for all females, for mateChoice() callbacks
+			
 #ifdef SLIMGUI
 			totalFitness += fitness;
-			gui_cached_parental_fitness_.push_back(fitness);
 #endif
 		}
 		
@@ -218,9 +222,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 			double fitness = FitnessOfParentWithGenomeIndices(2 * (i + parent_first_male_index_), 2 * (i + parent_first_male_index_) + 1, p_fitness_callbacks);
 			
 			B[i] = fitness;
+			cached_parental_fitness_.push_back(fitness);
+			cached_male_fitness_.push_back(fitness);
+			
 #ifdef SLIMGUI
 			totalFitness += fitness;
-			gui_cached_parental_fitness_.push_back(fitness);
 #endif
 		}
 		
@@ -237,9 +243,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
 			A[i] = fitness;
+			cached_parental_fitness_.push_back(fitness);
+			
 #ifdef SLIMGUI
 			totalFitness += fitness;
-			gui_cached_parental_fitness_.push_back(fitness);
 #endif
 		}
 		
@@ -1076,12 +1083,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	else if (p_method_name.compare("fitness") == 0)
 	{
 		if (child_generation_valid)
-			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before offspring generation)." << slim_terminate();
-		
-		// We fetch callbacks from the sim; we use the callbacks from the current stage, for our subpopulation ID
-		// We do not comprise our own generation stage, so we do not deregister blocks when we are done
-		SLiMSim &sim = population_.sim_;
-		std::vector<SLiMScriptBlock*> fitness_callbacks = sim.ScriptBlocksMatching(sim.Generation(), SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, subpopulation_id_);
+			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
 		
 		bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
 		int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
@@ -1090,7 +1092,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		for (int value_index = 0; value_index < index_count; value_index++)
 		{
 			int index = (do_all_indices ? value_index : (int)arg0_value->IntAtIndex(value_index));
-			double fitness = FitnessOfParentWithGenomeIndices(2 * index, 2 * index + 1, fitness_callbacks);
+			double fitness = cached_parental_fitness_[index];
 			
 			float_return->PushFloat(fitness);
 		}
