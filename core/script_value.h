@@ -174,7 +174,7 @@ public:
 	ScriptValue_Logical& operator=(const ScriptValue_Logical&) = delete;	// no copying
 	
 	ScriptValue_Logical(void);
-	explicit ScriptValue_Logical(std::vector<bool> p_boolvec);
+	explicit ScriptValue_Logical(std::vector<bool> &p_boolvec);
 	explicit ScriptValue_Logical(bool p_bool1);
 	ScriptValue_Logical(bool p_bool1, bool p_bool2);
 	ScriptValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3);
@@ -187,6 +187,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	const std::vector<bool> &LogicalVector(void) const;
 	virtual bool LogicalAtIndex(int p_idx) const;
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
@@ -214,7 +215,7 @@ public:
 	ScriptValue_String& operator=(const ScriptValue_String&) = delete;	// no copying
 	
 	ScriptValue_String(void);
-	explicit ScriptValue_String(std::vector<std::string> p_stringvec);
+	explicit ScriptValue_String(std::vector<std::string> &p_stringvec);
 	explicit ScriptValue_String(std::string p_string1);
 	ScriptValue_String(std::string p_string1, std::string p_string2);
 	ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3);
@@ -227,6 +228,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	const std::vector<std::string> &StringVector(void) const;
 	virtual bool LogicalAtIndex(int p_idx) const;
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
@@ -253,8 +255,8 @@ public:
 	ScriptValue_Int& operator=(const ScriptValue_Int&) = delete;	// no copying
 	
 	ScriptValue_Int(void);
-	explicit ScriptValue_Int(std::vector<int> p_intvec);
-	explicit ScriptValue_Int(std::vector<int64_t> p_intvec);
+	explicit ScriptValue_Int(std::vector<int> &p_intvec);
+	explicit ScriptValue_Int(std::vector<int64_t> &p_intvec);
 	explicit ScriptValue_Int(int64_t p_int1);
 	ScriptValue_Int(int64_t p_int1, int64_t p_int2);
 	ScriptValue_Int(int64_t p_int1, int64_t p_int2, int64_t p_int3);
@@ -267,6 +269,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	const std::vector<int64_t> &IntVector(void) const;
 	virtual bool LogicalAtIndex(int p_idx) const;
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
@@ -293,7 +296,7 @@ public:
 	ScriptValue_Float& operator=(const ScriptValue_Float&) = delete;	// no copying
 	
 	ScriptValue_Float(void);
-	explicit ScriptValue_Float(std::vector<double> p_doublevec);
+	explicit ScriptValue_Float(std::vector<double> &p_doublevec);
 	explicit ScriptValue_Float(double p_float1);
 	ScriptValue_Float(double p_float1, double p_float2);
 	ScriptValue_Float(double p_float1, double p_float2, double p_float3);
@@ -306,6 +309,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	const std::vector<double> &FloatVector(void) const;
 	virtual bool LogicalAtIndex(int p_idx) const;
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
@@ -332,7 +336,7 @@ public:
 	ScriptValue_Object& operator=(const ScriptValue_Object&) = delete;		// no copying
 	
 	ScriptValue_Object(void);
-	explicit ScriptValue_Object(std::vector<ScriptObjectElement *> p_elementvec);
+	explicit ScriptValue_Object(std::vector<ScriptObjectElement *> &p_elementvec);
 	explicit ScriptValue_Object(ScriptObjectElement *p_element1);
 	virtual ~ScriptValue_Object(void);
 	

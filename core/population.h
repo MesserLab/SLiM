@@ -108,11 +108,14 @@ public:
 	// execute a script event in the population; the script is assumed to be due to trigger
 	void ExecuteScript(SLiMScriptBlock *p_script_block, int p_generation, const Chromosome &p_chromosome);
 	
+	// apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
+	int ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks);
+	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 	bool ApplyModifyChildCallbacks(int p_child_index, int p_child_is_female, int p_parent1_index, int p_parent2_index, bool p_is_selfing, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
+	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 	void CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex);

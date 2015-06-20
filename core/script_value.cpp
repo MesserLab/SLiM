@@ -313,7 +313,7 @@ ScriptValue_Logical::ScriptValue_Logical(void)
 {
 }
 
-ScriptValue_Logical::ScriptValue_Logical(std::vector<bool> p_boolvec)
+ScriptValue_Logical::ScriptValue_Logical(std::vector<bool> &p_boolvec)
 {
 	values_ = p_boolvec;
 }
@@ -399,6 +399,11 @@ void ScriptValue_Logical::Print(std::ostream &p_ostream) const
 	}
 }
 
+const std::vector<bool> &ScriptValue_Logical::LogicalVector(void) const
+{
+	return values_;
+}
+
 bool ScriptValue_Logical::LogicalAtIndex(int p_idx) const
 {
 	return values_.at(p_idx);
@@ -478,7 +483,7 @@ ScriptValue_String::ScriptValue_String(void)
 {
 }
 
-ScriptValue_String::ScriptValue_String(std::vector<std::string> p_stringvec)
+ScriptValue_String::ScriptValue_String(std::vector<std::string> &p_stringvec)
 {
 	values_ = p_stringvec;
 }
@@ -564,6 +569,11 @@ void ScriptValue_String::Print(std::ostream &p_ostream) const
 	}
 }
 
+const std::vector<std::string> &ScriptValue_String::StringVector(void) const
+{
+	return values_;
+}
+
 bool ScriptValue_String::LogicalAtIndex(int p_idx) const
 {
 	return (values_.at(p_idx).length() > 0);
@@ -642,13 +652,13 @@ ScriptValue_Int::ScriptValue_Int(void)
 {
 }
 
-ScriptValue_Int::ScriptValue_Int(std::vector<int> p_intvec)
+ScriptValue_Int::ScriptValue_Int(std::vector<int> &p_intvec)
 {
 	for (auto intval : p_intvec)
 		values_.push_back(intval);
 }
 
-ScriptValue_Int::ScriptValue_Int(std::vector<int64_t> p_intvec)
+ScriptValue_Int::ScriptValue_Int(std::vector<int64_t> &p_intvec)
 {
 	values_ = p_intvec;
 }
@@ -734,6 +744,11 @@ void ScriptValue_Int::Print(std::ostream &p_ostream) const
 	}
 }
 
+const std::vector<int64_t> &ScriptValue_Int::IntVector(void) const
+{
+	return values_;
+}
+
 bool ScriptValue_Int::LogicalAtIndex(int p_idx) const
 {
 	return (values_.at(p_idx) == 0 ? false : true);
@@ -813,7 +828,7 @@ ScriptValue_Float::ScriptValue_Float(void)
 {
 }
 
-ScriptValue_Float::ScriptValue_Float(std::vector<double> p_doublevec)
+ScriptValue_Float::ScriptValue_Float(std::vector<double> &p_doublevec)
 {
 	values_ = p_doublevec;
 }
@@ -897,6 +912,11 @@ void ScriptValue_Float::Print(std::ostream &p_ostream) const
 			p_ostream << value;
 		}
 	}
+}
+
+const std::vector<double> &ScriptValue_Float::FloatVector(void) const
+{
+	return values_;
 }
 
 bool ScriptValue_Float::LogicalAtIndex(int p_idx) const
@@ -984,7 +1004,7 @@ ScriptValue_Object::ScriptValue_Object(void)
 {
 }
 
-ScriptValue_Object::ScriptValue_Object(std::vector<ScriptObjectElement *> p_elementvec)
+ScriptValue_Object::ScriptValue_Object(std::vector<ScriptObjectElement *> &p_elementvec)
 {
 	values_ = p_elementvec;
 }
