@@ -19,11 +19,12 @@
 
 /*
  
- A symbol table is basically just a C++ map of identifiers to ScriptValue objects.  However, there are some additional smarts,
+ A symbol table is basically just a map of identifiers to ScriptValue objects.  However, there are some additional smarts,
  particularly where memory management is concerned.  ScriptValue objects can have one of three memory management statuses:
  (1) temporary, such that the current scope owns the value and should delete it before exiting, (2) externally owned, such that
- the SymbolTable machinery just handles the pointer but does not delete it, or (3) ina symbol table, such that temporary users
- of the object do not delete it, but the SymbolTable will delete it if it is removed from the table.
+ the SymbolTable machinery just handles the pointer but does not delete it, or (3) in a symbol table, such that temporary users
+ of the object do not delete it, but the SymbolTable will delete it if it is removed from the table.  It used to be implemented
+ with C++'s std::map, but that was very slow to construct and destruct, so I've shifted to a pure C implementation for speed.
  
  */
 
@@ -38,7 +39,18 @@
 
 class ScriptValue;
 
+
+// This is used by ReplaceConstantSymbolEntry for fast setup / teardown
 typedef std::pair<const std::string, ScriptValue*> SymbolTableEntry;
+
+
+// This is what SymbolTable now uses internally
+typedef struct {
+	std::string *symbol_name_;
+	int symbol_name_length_;			// used to make scanning of the symbol table faster
+	ScriptValue *symbol_value_;
+	bool symbol_is_const_;
+} SymbolTableSlot;
 
 
 class SymbolTable
@@ -46,8 +58,9 @@ class SymbolTable
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	std::map<const std::string, ScriptValue*> constants_;
-	std::map<const std::string, ScriptValue*> variables_;
+	SymbolTableSlot *symbols_;					// all our symbols
+	int symbol_count_;							// the number of symbol table slots actually used
+	int symbol_capacity_;						// the number of symbol table slots currently allocated
 	
 public:
 	
@@ -65,8 +78,12 @@ public:
 	void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
 	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
 	
-	// A special-purpose method used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
-	void ReplaceConstantSymbolEntry(SymbolTableEntry *p_new_entry);
+	// a special-purpose method used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
+	void InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry);
+	
+	// internal
+	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);
+	int _AllocateNewSlot(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols);

@@ -179,6 +179,12 @@ ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 ScriptValue *ScriptValue::SetExternallyOwned(bool p_externally_owned)
 {
 	externally_owned_ = p_externally_owned;
+	
+	// these flags are not really independent; if an object is externally owned, it is treated as already being in a symbol table, too
+	// this would happen soon enough, when it got added to the symbol table; so we might as well do it here to keep it consistent
+	if (p_externally_owned)
+		in_symbol_table_ = true;
+	
 	return this;
 }
 

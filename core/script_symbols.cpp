@@ -40,6 +40,11 @@ using std::ostream;
 
 SymbolTable::SymbolTable(void)
 {
+	// Set up the symbol table itself
+	symbol_count_ = 0;
+	symbol_capacity_ = 30;
+	symbols_ = (SymbolTableSlot *)malloc(sizeof(SymbolTableSlot) * symbol_capacity_);
+	
 	// We statically allocate our base symbols for fast setup / teardown
 	static SymbolTableEntry *trueConstant = nullptr;
 	static SymbolTableEntry *falseConstant = nullptr;
@@ -60,116 +65,142 @@ SymbolTable::SymbolTable(void)
 		nanConstant = new SymbolTableEntry("NAN", (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned(true));
 	}
 	
-	constants_.insert(*trueConstant);
-	constants_.insert(*falseConstant);
-	constants_.insert(*nullConstant);
-	constants_.insert(*piConstant);
-	constants_.insert(*eConstant);
-	constants_.insert(*infConstant);
-	constants_.insert(*nanConstant);
+	InitializeConstantSymbolEntry(trueConstant);
+	InitializeConstantSymbolEntry(falseConstant);
+	InitializeConstantSymbolEntry(nullConstant);
+	InitializeConstantSymbolEntry(piConstant);
+	InitializeConstantSymbolEntry(eConstant);
+	InitializeConstantSymbolEntry(infConstant);
+	InitializeConstantSymbolEntry(nanConstant);
 }
 
 SymbolTable::~SymbolTable(void)
 {
 	// We delete all values that are not marked as externally owned; those that are externally owned are someone else's problem.
-	
-	for (auto symbol_entry : constants_)
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
-		ScriptValue *value = symbol_entry.second;
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		ScriptValue *value = symbol_slot->symbol_value_;
+		std::string *name = symbol_slot->symbol_name_;
 		
 		if (!value->ExternallyOwned())
 			delete value;
+		
+		delete name;
 	}
 	
-	for (auto symbol_entry : variables_)
-	{
-		ScriptValue *value = symbol_entry.second;
-		
-		if (!value->ExternallyOwned())
-			delete value;
-	}
+	free(symbols_);
+	symbols_ = nullptr;
 }
 
 std::vector<std::string> SymbolTable::ReadOnlySymbols(void) const
 {
-	std::vector<std::string> symbols;
+	std::vector<std::string> symbol_names;
 	
-	for (auto symbol_pair : constants_)
-		symbols.push_back(symbol_pair.first);
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	{
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		
+		if (symbol_slot->symbol_is_const_)
+			symbol_names.push_back(*symbol_slot->symbol_name_);
+	}
 	
-	return symbols;
+	return symbol_names;
 }
 
 std::vector<std::string> SymbolTable::ReadWriteSymbols(void) const
 {
-	std::vector<std::string> symbols;
+	std::vector<std::string> symbol_names;
 	
-	for (auto symbol_pair : variables_)
-		symbols.push_back(symbol_pair.first);
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	{
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		
+		if (!symbol_slot->symbol_is_const_)
+			symbol_names.push_back(*symbol_slot->symbol_name_);
+	}
 	
-	return symbols;
+	return symbol_names;
 }
 
 ScriptValue *SymbolTable::GetValueForSymbol(const std::string &p_symbol_name) const
 {
-	ScriptValue *result = nullptr;
+	int key_length = (int)p_symbol_name.length();
 	
-	// first look in our constants
-	auto constant_iter = constants_.find(p_symbol_name);
-	
-	if (constant_iter != constants_.end())
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
-		// got a hit; extract it from the iterator and the map pair
-		result = (*constant_iter).second;
-	}
-	else
-	{
-		// no hit; check in our variables
-		auto variable_iter = variables_.find(p_symbol_name);
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
 		
-		if (variable_iter != variables_.end())
-			result = (*variable_iter).second;
+		// use the length of the string to make the scan fast; only call compare() for equal-length strings
+		if (symbol_slot->symbol_name_length_ == key_length)
+		{
+			if (symbol_slot->symbol_name_->compare(p_symbol_name) == 0)
+				return symbol_slot->symbol_value_;
+		}
 	}
 	
 	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
-	if (!result)
-		SLIM_TERMINATION << "ERROR (SymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << slim_terminate();
-	
-	return result;
+	SLIM_TERMINATION << "ERROR (SymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << slim_terminate();
+	return nullptr;
 }
 
 ScriptValue *SymbolTable::GetValueOrNullForSymbol(const std::string &p_symbol_name) const
 {
-	ScriptValue *result = nullptr;
+	int key_length = (int)p_symbol_name.length();
 	
-	// first look in our constants
-	auto constant_iter = constants_.find(p_symbol_name);
-	
-	if (constant_iter != constants_.end())
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
-		// got a hit; extract it from the iterator and the map pair
-		result = (*constant_iter).second;
-	}
-	else
-	{
-		// no hit; check in our variables
-		auto variable_iter = variables_.find(p_symbol_name);
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
 		
-		if (variable_iter != variables_.end())
-			result = (*variable_iter).second;
+		// use the length of the string to make the scan fast; only call compare() for equal-length strings
+		if (symbol_slot->symbol_name_length_ == key_length)
+		{
+			if (symbol_slot->symbol_name_->compare(p_symbol_name) == 0)
+				return symbol_slot->symbol_value_;
+		}
 	}
 	
-	return result;
+	return nullptr;
+}
+
+// does a fast search for the slot matching the search key; returns -1 if no match is found
+int SymbolTable::_SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length)
+{
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	{
+		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		
+		// use the length of the string to make the scan fast; only call compare() for equal-length strings
+		if (symbol_slot->symbol_name_length_ == p_key_length)
+		{
+			if (symbol_slot->symbol_name_->compare(p_symbol_name) == 0)
+				return symbol_index;
+		}
+	}
+	
+	return -1;
+}
+
+// allocates a new slot and returns its index; it is assumed that the slot will actually be used, so symbol_count_ is incremented
+int SymbolTable::_AllocateNewSlot(void)
+{
+	if (symbol_count_ == symbol_capacity_)
+	{
+		symbol_capacity_ <<= 1;
+		symbols_ = (SymbolTableSlot *)realloc(symbols_, sizeof(SymbolTableSlot) * symbol_capacity_);
+	}
+	
+	return symbol_count_++;
 }
 
 void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
 {
-	// check that we're not trying to overwrite a constant
-	auto constant_iter = constants_.find(p_symbol_name);
+	int key_length = (int)p_symbol_name.length();
+	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
 	
-	if (constant_iter != constants_.end())
+	if ((symbol_slot >= 0) && symbols_[symbol_slot].symbol_is_const_)
 		SLIM_TERMINATION << "ERROR (SymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
@@ -191,24 +222,44 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 	p_value->SetInSymbolTable(true);
 	
 	// and now set the value in the symbol table
-	variables_[p_symbol_name] = p_value;
+	if (symbol_slot == -1)
+	{
+		symbol_slot = _AllocateNewSlot();
+		
+		SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+		
+		new_symbol_slot_ptr->symbol_name_ = new std::string(p_symbol_name);
+		new_symbol_slot_ptr->symbol_name_length_ = key_length;
+		new_symbol_slot_ptr->symbol_value_ = p_value;
+		new_symbol_slot_ptr->symbol_is_const_ = false;
+	}
+	else
+	{
+		SymbolTableSlot *existing_symbol_slot_ptr = symbols_ + symbol_slot;
+		ScriptValue *existing_value = existing_symbol_slot_ptr->symbol_value_;
+		
+		if (!existing_value->ExternallyOwned())
+			delete existing_value;
+		
+		existing_symbol_slot_ptr->symbol_value_ = p_value;
+	}
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
 void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
 {
-	// check that we're not trying to overwrite a constant
-	auto constant_iter = constants_.find(p_symbol_name);
+	int key_length = (int)p_symbol_name.length();
+	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
 	
-	if (constant_iter != constants_.end())
-		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << slim_terminate();
-	
-	// check that we're not trying to overwrite a variable; if you want to define a constant, you have to get there first
-	auto variable_iter = variables_.find(p_symbol_name);
-	
-	if (variable_iter != variables_.end())
-		SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << slim_terminate();
+	if (symbol_slot >= 0)
+	{
+		// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
+		if (symbols_[symbol_slot].symbol_is_const_)
+			SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << slim_terminate();
+		else
+			SLIM_TERMINATION << "ERROR (SymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << slim_terminate();
+	}
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
@@ -228,49 +279,46 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	// we set the symbol table flag so the pointer won't be deleted or reused by anybody else
 	p_value->SetInSymbolTable(true);
 	
-	// and now set the value in the symbol table
-	constants_[p_symbol_name] = p_value;
+	// and now set the value in the symbol table; we know, from the check above, that we're in a new slot
+	symbol_slot = _AllocateNewSlot();
+	
+	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	
+	new_symbol_slot_ptr->symbol_name_ = new std::string(p_symbol_name);
+	new_symbol_slot_ptr->symbol_name_length_ = key_length;
+	new_symbol_slot_ptr->symbol_value_ = p_value;
+	new_symbol_slot_ptr->symbol_is_const_ = true;
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
 void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant)
 {
-	{
-		auto constant_iter = constants_.find(p_symbol_name);
-		
-		if (constant_iter != constants_.end())
-		{
-			if (remove_constant)
-			{
-				ScriptValue *value = constant_iter->second;
-				
-				constants_.erase(constant_iter);
-				
-				if (!value->ExternallyOwned())
-					delete value;
-			}
-			else
-				SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << slim_terminate();
-		}
-	}
+	int key_length = (int)p_symbol_name.length();
+	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
 	
+	if (symbol_slot >= 0)
 	{
-		auto variables_iter = variables_.find(p_symbol_name);
+		SymbolTableSlot *symbol_slot_ptr = symbols_ + symbol_slot;
+		ScriptValue *value = symbol_slot_ptr->symbol_value_;
 		
-		if (variables_iter != variables_.end())
-		{
-			ScriptValue *value = variables_iter->second;
-			
-			variables_.erase(variables_iter);
-			
-			if (!value->ExternallyOwned())
-				delete value;
-		}
+		if (symbol_slot_ptr->symbol_is_const_ && !remove_constant)
+			SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << slim_terminate();
+		
+		if (!value->ExternallyOwned())
+			delete value;
+		
+		// delete the slot and free the name string; if we're removing the last slot, that's all we have to do
+		delete (symbols_[symbol_slot].symbol_name_);
+		--symbol_count_;
+		
+		// if we're removing an interior value, we can just replace this slot with the last slot, since we don't sort our entries
+		if (symbol_slot != symbol_count_)
+			*symbol_slot_ptr = symbols_[symbol_count_];
 	}
 }
 
-void SymbolTable::ReplaceConstantSymbolEntry(SymbolTableEntry *p_new_entry)
+void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 {
 	const std::string &entry_name = p_new_entry->first;
 	ScriptValue *entry_value = p_new_entry->second;
@@ -278,8 +326,15 @@ void SymbolTable::ReplaceConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 	if (!entry_value->ExternallyOwned() || !entry_value->InSymbolTable() || entry_value->Invisible())
 		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
 	
-	// and now set the value in the symbol table
-	constants_[entry_name] = entry_value;
+	// we assume that this symbol is not yet defined, for maximal set-up speed
+	int symbol_slot = _AllocateNewSlot();
+	
+	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	
+	new_symbol_slot_ptr->symbol_name_ = new std::string(entry_name);
+	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.length();
+	new_symbol_slot_ptr->symbol_value_ = entry_value;
+	new_symbol_slot_ptr->symbol_is_const_ = true;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols)

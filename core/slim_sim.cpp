@@ -1010,7 +1010,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	
 	// A constant for reference to the SLiMScriptBlock
 	if (p_script_block)
-		global_symbols.ReplaceConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
+		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
 	if (generation_ == 0)
@@ -1034,19 +1034,19 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	if (generation_ != 0)
 	{
 		// A constant for reference to the simulation
-		global_symbols.ReplaceConstantSymbolEntry(CachedSymbolTableEntry());
+		global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
 		
 		// Add constants for our genomic element types, like g1, g2, ...
 		for (auto getype_pair : genomic_element_types_)
-			global_symbols.ReplaceConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
+			global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our mutation types
 		for (auto mut_type_pair : mutation_types_)
-			global_symbols.ReplaceConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
+			global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our subpopulations
 		for (auto pop_pair : population_)
-			global_symbols.ReplaceConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
+			global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our scripts
 		for (SLiMScriptBlock *script_block : script_blocks_)
@@ -1054,7 +1054,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 			int id = script_block->block_id_;
 			
 			if (id != -1)	// add symbols only for non-anonymous blocks
-				global_symbols.ReplaceConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
+				global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 		}
 	}
 }
