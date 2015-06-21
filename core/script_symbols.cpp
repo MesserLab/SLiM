@@ -81,12 +81,12 @@ SymbolTable::~SymbolTable(void)
 	{
 		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
 		ScriptValue *value = symbol_slot->symbol_value_;
-		std::string *name = symbol_slot->symbol_name_;
 		
 		if (!value->ExternallyOwned())
 			delete value;
 		
-		delete name;
+		if (!symbol_slot->symbol_name_externally_owned_)
+			delete symbol_slot->symbol_name_;
 	}
 	
 	free(symbols_);
@@ -232,6 +232,7 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 		new_symbol_slot_ptr->symbol_name_length_ = key_length;
 		new_symbol_slot_ptr->symbol_value_ = p_value;
 		new_symbol_slot_ptr->symbol_is_const_ = false;
+		new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
 	}
 	else
 	{
@@ -240,6 +241,9 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 		
 		if (!existing_value->ExternallyOwned())
 			delete existing_value;
+		
+		if (!existing_symbol_slot_ptr->symbol_name_externally_owned_)
+			delete existing_symbol_slot_ptr->symbol_name_;
 		
 		existing_symbol_slot_ptr->symbol_value_ = p_value;
 	}
@@ -288,6 +292,7 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	new_symbol_slot_ptr->symbol_name_length_ = key_length;
 	new_symbol_slot_ptr->symbol_value_ = p_value;
 	new_symbol_slot_ptr->symbol_is_const_ = true;
+	new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
@@ -308,8 +313,10 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 		if (!value->ExternallyOwned())
 			delete value;
 		
+		if (!symbol_slot_ptr->symbol_name_externally_owned_)
+			delete symbol_slot_ptr->symbol_name_;
+		
 		// delete the slot and free the name string; if we're removing the last slot, that's all we have to do
-		delete (symbols_[symbol_slot].symbol_name_);
 		--symbol_count_;
 		
 		// if we're removing an interior value, we can just replace this slot with the last slot, since we don't sort our entries
@@ -320,7 +327,7 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 
 void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 {
-	const std::string &entry_name = p_new_entry->first;
+	std::string &entry_name = p_new_entry->first;
 	ScriptValue *entry_value = p_new_entry->second;
 	
 	if (!entry_value->ExternallyOwned() || !entry_value->InSymbolTable() || entry_value->Invisible())
@@ -331,10 +338,11 @@ void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 	
 	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
 	
-	new_symbol_slot_ptr->symbol_name_ = new std::string(entry_name);
+	new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
 	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.length();
 	new_symbol_slot_ptr->symbol_value_ = entry_value;
 	new_symbol_slot_ptr->symbol_is_const_ = true;
+	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols)

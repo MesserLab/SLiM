@@ -33,6 +33,7 @@ SLiMscript optimization:
 		0:20 after optimizing SymbolTable setup with static cached std::pairs
 		0:19 after switching to lazy construction of output streams
 		0:15 after taking SymbolTable off std::map
+		0:10 after switching to external string pointers for predefined symbol names
 	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
 	Optimize the addition of functions, methods, symbols; if they are not used they don't need to be added, or could be shared anyway
 	Switch to heterogeneous nodes – avoid overhead of EvaluateNode
