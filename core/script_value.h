@@ -116,12 +116,14 @@ public:
 	virtual int Count(void) const = 0;						// the number of values in the vector
 	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
 	
-	bool Invisible(void) const;								// getter only; invisible objects must be made through construction or InvisibleCopy()
+	// getter only; invisible objects must be made through construction or InvisibleCopy()
+	inline bool Invisible(void) const							{ return invisible_; }
 	
-	inline bool IsTemporary(void) const						{ return !(in_symbol_table_ || externally_owned_); };
-	bool InSymbolTable(void) const;
+	// memory management flags; see the comment in script_symbols.h
+	inline bool IsTemporary(void) const							{ return !(in_symbol_table_ || externally_owned_); };
+	inline bool InSymbolTable(void) const						{ return in_symbol_table_; }
+	inline bool ExternallyOwned(void) const						{ return externally_owned_; }
 	ScriptValue *SetInSymbolTable(bool p_in_symbol_table);
-	bool ExternallyOwned(void) const;
 	ScriptValue *SetExternallyOwned(bool p_externally_owned);
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this

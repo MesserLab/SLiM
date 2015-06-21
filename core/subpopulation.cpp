@@ -174,6 +174,9 @@ Subpopulation::~Subpopulation(void)
 	gsl_ran_discrete_free(lookup_parent_);
 	gsl_ran_discrete_free(lookup_female_parent_);
 	gsl_ran_discrete_free(lookup_male_parent_);
+	
+	if (self_symbol_)
+		delete self_symbol_;
 }
 
 void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callbacks)
@@ -840,6 +843,16 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 //
 // SLiMscript support
 //
+
+void Subpopulation::GenerateCachedSymbolTableEntry(void)
+{
+	std::ostringstream subpop_stream;
+	
+	subpop_stream << "p" << subpopulation_id_;
+	
+	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string Subpopulation::ElementType(void) const
 {
 	return "Subpopulation";

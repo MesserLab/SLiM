@@ -170,25 +170,10 @@ ScriptValue::~ScriptValue(void)
 {
 }
 
-bool ScriptValue::Invisible(void) const
-{
-	return invisible_;
-}
-
-bool ScriptValue::InSymbolTable(void) const
-{
-	return in_symbol_table_;
-}
-
 ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 {
 	in_symbol_table_ = p_in_symbol_table;
 	return this;
-}
-
-bool ScriptValue::ExternallyOwned(void) const
-{
-	return externally_owned_;
 }
 
 ScriptValue *ScriptValue::SetExternallyOwned(bool p_externally_owned)

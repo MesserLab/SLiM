@@ -106,6 +106,9 @@ SLiMSim::~SLiMSim(void)
 	// We should not have any interpreter instances that still refer to us
 	for (FunctionSignature *signature : sim_0_signatures)
 		delete signature;
+	
+	if (self_symbol_)
+		delete self_symbol_;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &infile)
@@ -594,6 +597,11 @@ void SLiMSim::RunToEnd(void)
 //
 #pragma mark SLiMscript support
 
+void SLiMSim::GenerateCachedSymbolTableEntry(void)
+{
+	self_symbol_ = new SymbolTableEntry("sim", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 // a static member function is used as a funnel, so that we can get a pointer to function for it
 ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
 {
@@ -1001,9 +1009,8 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
 	
 	// A constant for reference to the SLiMScriptBlock
-	global_symbols.RemoveValueForSymbol("self", true);	// we have to remove each time because you can't overwrite a constant
 	if (p_script_block)
-		global_symbols.SetConstantForSymbol("self", new ScriptValue_Object(p_script_block));
+		global_symbols.ReplaceConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
 	if (generation_ == 0)
@@ -1013,6 +1020,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 		if (signatures)
 		{
 			// construct a new map based on the built-in map, add our functions, and register it, which gives the pointer to the interpreter
+			// this is slow, but it doesn't matter; if we start adding functions outside of zero-gen, this will need to be revisited
 			FunctionMap *derived_function_map = new FunctionMap(*ScriptInterpreter::BuiltInFunctionMap());
 			
 			for (FunctionSignature *signature : *signatures)
@@ -1026,53 +1034,19 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	if (generation_ != 0)
 	{
 		// A constant for reference to the simulation
-		global_symbols.RemoveValueForSymbol("sim", true);	// we have to remove each time because you can't overwrite a constant
-		global_symbols.SetConstantForSymbol("sim", new ScriptValue_Object(this));
+		global_symbols.ReplaceConstantSymbolEntry(CachedSymbolTableEntry());
 		
-		// Add constants for our genomic element types
+		// Add constants for our genomic element types, like g1, g2, ...
 		for (auto getype_pair : genomic_element_types_)
-		{
-			GenomicElementType *getype_type = getype_pair.second;
-			int id = getype_type->genomic_element_type_id_;
-			std::ostringstream getype_stream;
-			
-			getype_stream << "g" << id;
-			
-			std::string getype_string = getype_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(getype_string, true);
-			global_symbols.SetConstantForSymbol(getype_string, new ScriptValue_Object(getype_type));
-		}
+			global_symbols.ReplaceConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our mutation types
 		for (auto mut_type_pair : mutation_types_)
-		{
-			MutationType *mut_type = mut_type_pair.second;
-			int id = mut_type->mutation_type_id_;
-			std::ostringstream mut_type_stream;
-			
-			mut_type_stream << "m" << id;
-			
-			std::string mut_type_string = mut_type_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(mut_type_string, true);
-			global_symbols.SetConstantForSymbol(mut_type_string, new ScriptValue_Object(mut_type));
-		}
+			global_symbols.ReplaceConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our subpopulations
 		for (auto pop_pair : population_)
-		{
-			Subpopulation *subpop = pop_pair.second;
-			int id = pop_pair.first;
-			std::ostringstream subpop_stream;
-			
-			subpop_stream << "p" << id;
-			
-			std::string subpop_string = subpop_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(subpop_string, true);
-			global_symbols.SetConstantForSymbol(subpop_string, new ScriptValue_Object(subpop));
-		}
+			global_symbols.ReplaceConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
 		
 		// Add constants for our scripts
 		for (SLiMScriptBlock *script_block : script_blocks_)
@@ -1080,16 +1054,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 			int id = script_block->block_id_;
 			
 			if (id != -1)	// add symbols only for non-anonymous blocks
-			{
-				std::ostringstream script_stream;
-				
-				script_stream << "s" << id;
-				
-				std::string script_string = script_stream.str();
-				
-				global_symbols.RemoveValueForSymbol(script_string, true);
-				global_symbols.SetConstantForSymbol(script_string, new ScriptValue_Object(script_block));
-			}
+				global_symbols.ReplaceConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 		}
 	}
 }

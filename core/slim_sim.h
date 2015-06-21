@@ -98,6 +98,8 @@ private:
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
 	
+	SymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	
 public:
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
@@ -127,6 +129,9 @@ public:
 	//
 	// SLiMscript support
 	//
+	void GenerateCachedSymbolTableEntry(void);
+	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	
 	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
 	

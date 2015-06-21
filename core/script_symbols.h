@@ -38,6 +38,8 @@
 
 class ScriptValue;
 
+typedef std::pair<const std::string, ScriptValue*> SymbolTableEntry;
+
 
 class SymbolTable
 {
@@ -52,16 +54,19 @@ public:
 	SymbolTable(const SymbolTable&) = delete;				// no copying
 	SymbolTable& operator=(const SymbolTable&) = delete;	// no copying
 	SymbolTable(void);										// standard constructor
-	virtual ~SymbolTable(void);								// destructor
+	~SymbolTable(void);										// destructor
 	
 	// member access; these are variables defined in the global namespace
-	virtual std::vector<std::string> ReadOnlySymbols(void) const;
-	virtual std::vector<std::string> ReadWriteSymbols(void) const;
-	virtual ScriptValue *GetValueForSymbol(const std::string &p_symbol_name) const;
-	virtual ScriptValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
-	virtual void SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
-	virtual void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
-	virtual void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
+	std::vector<std::string> ReadOnlySymbols(void) const;
+	std::vector<std::string> ReadWriteSymbols(void) const;
+	ScriptValue *GetValueForSymbol(const std::string &p_symbol_name) const;
+	ScriptValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
+	void SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
+	void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
+	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
+	
+	// A special-purpose method used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
+	void ReplaceConstantSymbolEntry(SymbolTableEntry *p_new_entry);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols);

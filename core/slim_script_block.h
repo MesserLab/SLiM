@@ -45,6 +45,11 @@ class SLiMScriptBlock : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+
+	SymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	SymbolTableEntry *script_block_symbol_ = nullptr;			// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	
 public:
 	
 	SLiMScriptBlockType type_ = SLiMScriptBlockType::SLiMScriptEvent;
@@ -71,6 +76,12 @@ public:
 	//
 	// SLiMscript support
 	//
+	void GenerateCachedSymbolTableEntry(void);
+	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	void GenerateCachedScriptBlockSymbolTableEntry(void);
+	inline SymbolTableEntry *CachedScriptBlockSymbolTableEntry(void)
+		{ if (!script_block_symbol_) GenerateCachedScriptBlockSymbolTableEntry(); return script_block_symbol_; };
+	
 	virtual std::string ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	

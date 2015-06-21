@@ -26,9 +26,10 @@ SLiMscript:
 
 SLiMscript optimization:
 	Instrument first to see where the slow parts are
-		1:36 runtime for profile_fitness.txt
+		0:96 runtime for profile_fitness.txt
 		0:43 after making the built-in function map statically allocated
 		0:38 after adding statically allocated SLiMscript constants
+		0:24 after adding cached ScriptValue objects to represent SLiM globals
 	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
 	Optimize the addition of functions, methods, symbols; if they are not used they don't need to be added, or could be shared anyway
 	Switch to heterogeneous nodes – avoid overhead of EvaluateNode

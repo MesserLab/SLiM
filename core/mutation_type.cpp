@@ -48,6 +48,12 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << slim_terminate();
 }
 
+MutationType::~MutationType(void)
+{
+	if (self_symbol_)
+		delete self_symbol_;
+}
+
 double MutationType::DrawSelectionCoefficient() const
 {
 	switch (dfe_type_)
@@ -90,6 +96,16 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 //
 // SLiMscript support
 //
+
+void MutationType::GenerateCachedSymbolTableEntry(void)
+{
+	std::ostringstream mut_type_stream;
+	
+	mut_type_stream << "m" << mutation_type_id_;
+	
+	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string MutationType::ElementType(void) const
 {
 	return "MutationType";

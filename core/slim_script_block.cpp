@@ -149,12 +149,35 @@ SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScri
 SLiMScriptBlock::~SLiMScriptBlock(void)
 {
 	delete script_;
+	
+	if (self_symbol_)
+		delete self_symbol_;
+	if (script_block_symbol_)
+		delete script_block_symbol_;
 }
 
 
 //
 // SLiMscript support
 //
+
+void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
+{
+	self_symbol_ = new SymbolTableEntry("self", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
+void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
+{
+	if (block_id_ == -1)
+		SLIM_TERMINATION << "ERROR (SLiMScriptBlock::GenerateCachedSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << slim_terminate();
+	
+	std::ostringstream script_stream;
+	
+	script_stream << "s" << block_id_;
+	
+	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string SLiMScriptBlock::ElementType(void) const
 {
 	return "SLiMScriptBlock";

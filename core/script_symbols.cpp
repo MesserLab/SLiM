@@ -270,6 +270,18 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 	}
 }
 
+void SymbolTable::ReplaceConstantSymbolEntry(SymbolTableEntry *p_new_entry)
+{
+	const std::string &entry_name = p_new_entry->first;
+	ScriptValue *entry_value = p_new_entry->second;
+	
+	if (!entry_value->ExternallyOwned() || !entry_value->InSymbolTable() || entry_value->Invisible())
+		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
+	
+	// and now set the value in the symbol table
+	constants_[entry_name] = entry_value;
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols)
 {
 	std::vector<std::string> read_only_symbol_names = p_symbols.ReadOnlySymbols();

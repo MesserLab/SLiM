@@ -49,6 +49,9 @@ GenomicElementType::~GenomicElementType(void)
 	
 	if (lookup_mutation_type)
 		gsl_ran_discrete_free(lookup_mutation_type);
+	
+	if (self_symbol_)
+		delete self_symbol_;
 }
 
 MutationType *GenomicElementType::DrawMutationType() const
@@ -108,6 +111,16 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 //
 // SLiMscript support
 //
+
+void GenomicElementType::GenerateCachedSymbolTableEntry(void)
+{
+	std::ostringstream getype_stream;
+	
+	getype_stream << "g" << genomic_element_type_id_;
+	
+	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string GenomicElementType::ElementType(void) const
 {
 	return "GenomicElementType";
