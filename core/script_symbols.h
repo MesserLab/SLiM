@@ -17,6 +17,16 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ A symbol table is basically just a C++ map of identifiers to ScriptValue objects.  However, there are some additional smarts,
+ particularly where memory management is concerned.  ScriptValue objects can have one of three memory management statuses:
+ (1) temporary, such that the current scope owns the value and should delete it before exiting, (2) externally owned, such that
+ the SymbolTable machinery just handles the pointer but does not delete it, or (3) ina symbol table, such that temporary users
+ of the object do not delete it, but the SymbolTable will delete it if it is removed from the table.
+ 
+ */
+
 #ifndef __SLiM__script_symbols__
 #define __SLiM__script_symbols__
 
@@ -29,7 +39,6 @@
 class ScriptValue;
 
 
-// A symbol table is basically just a C++ map of identifiers to ScriptValue objects
 class SymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.

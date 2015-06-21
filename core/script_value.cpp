@@ -157,7 +157,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 //
 #pragma mark ScriptValue
 
-ScriptValue::ScriptValue(const ScriptValue &p_original) : in_symbol_table_(false), invisible_(false)	// doesn't use original for these flags
+ScriptValue::ScriptValue(const ScriptValue &p_original) : in_symbol_table_(false), externally_owned_(false), invisible_(false)	// doesn't use original for these flags
 {
 #pragma unused(p_original)
 }
@@ -183,6 +183,17 @@ bool ScriptValue::InSymbolTable(void) const
 ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 {
 	in_symbol_table_ = p_in_symbol_table;
+	return this;
+}
+
+bool ScriptValue::ExternallyOwned(void) const
+{
+	return externally_owned_;
+}
+
+ScriptValue *ScriptValue::SetExternallyOwned(bool p_externally_owned)
+{
+	externally_owned_ = p_externally_owned;
 	return this;
 }
 
@@ -1153,7 +1164,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 	ScriptValue *first_result = values_[0]->GetValueForMember(p_property);
 	ScriptValueType property_type = first_result->Type();
 	
-	if (!first_result->InSymbolTable()) delete first_result;
+	if (first_result->IsTemporary()) delete first_result;
 	
 	// switch on the property type for efficiency
 	switch (property_type)
@@ -1179,7 +1190,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<bool, ScriptObjectElement*>(temp_result->LogicalAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1213,7 +1224,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<int64_t, ScriptObjectElement*>(temp_result->IntAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1247,7 +1258,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<double, ScriptObjectElement*>(temp_result->FloatAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1281,7 +1292,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<std::string, ScriptObjectElement*>(temp_result->StringAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1632,11 +1643,11 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 				
 				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				
-				if (!first_value->InSymbolTable()) delete first_value;
-				if (!second_value->InSymbolTable()) delete second_value;
+				if (first_value->IsTemporary()) delete first_value;
+				if (second_value->IsTemporary()) delete second_value;
 			}
 			
-			if (!member_value->InSymbolTable()) delete member_value;
+			if (member_value->IsTemporary()) delete member_value;
 		}
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
@@ -1666,7 +1677,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			
 			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
 			
-			if (!member_value->InSymbolTable()) delete member_value;
+			if (member_value->IsTemporary()) delete member_value;
 			signature_found = true;
 		}
 		

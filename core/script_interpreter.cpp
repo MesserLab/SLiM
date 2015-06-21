@@ -183,7 +183,7 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 	// if a next or break statement was hit and was not handled by a loop, throw an error
 	if (next_statement_hit_ || break_statement_hit_)
 	{
-		if (!result->InSymbolTable()) delete result;
+		if (result->IsTemporary()) delete result;
 		
 		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
 	}
@@ -229,14 +229,14 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 	
 	for (ScriptASTNode *child_node : root_node_->children_)
 	{
-		if (!result->InSymbolTable()) delete result;
+		if (result->IsTemporary()) delete result;
 		
 		result = EvaluateNode(child_node);
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
 		{
-			if (!result->InSymbolTable()) delete result;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
 		}
@@ -308,7 +308,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			
 			if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat) && (second_child_type != ScriptValueType::kValueLogical) && (second_child_type != ScriptValueType::kValueNULL))
 			{
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
 				
 				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << slim_terminate();
 			}
@@ -320,7 +320,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
 				if (second_child_count != base_indices.size())
 				{
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
 					
 					SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
 				}
@@ -344,7 +344,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 					
 					if ((index_value < 0) || (index_value >= base_indices_count))
 					{
-						if (!second_child_value->InSymbolTable()) delete second_child_value;
+						if (second_child_value->IsTemporary()) delete second_child_value;
 						
 						SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << slim_terminate();
 					}
@@ -374,14 +374,14 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			
 			if (first_child_type != ScriptValueType::kValueObject)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				if (first_child_value->IsTemporary()) delete first_child_value;
 				
 				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 			}
 			
 			if (right_operand->token_->token_type_ != TokenType::kTokenIdentifier)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				if (first_child_value->IsTemporary()) delete first_child_value;
 				
 				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 			}
@@ -525,7 +525,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			
 			if (first_child_type != ScriptValueType::kValueObject)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				if (first_child_value->IsTemporary()) delete first_child_value;
 				
 				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 			}
@@ -534,7 +534,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			
 			if (second_child_node->token_->token_type_ != TokenType::kTokenIdentifier)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
+				if (first_child_value->IsTemporary()) delete first_child_value;
 				
 				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 			}
@@ -641,7 +641,7 @@ ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
-		if (!result->InSymbolTable()) delete result;
+		if (result->IsTemporary()) delete result;
 		
 		result = EvaluateNode(child_node);
 		
@@ -675,16 +675,16 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << first_child_type << " is not supported by the ':' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operand type " << second_child_type << " is not supported by the ':' operator." << slim_terminate();
 	}
@@ -694,8 +694,8 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 	
 	if ((first_child_count != 1) || (second_child_count != 1))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): operands of the ':' operator must have size() == 1." << slim_terminate();
 	}
@@ -783,18 +783,18 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (underflow)
 	{
-		if (!result->InSymbolTable()) delete result;
+		if (result->IsTemporary()) delete result;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): the floating-point range could not be constructed due to underflow." << slim_terminate();
 	}
 	if (too_wide)
 	{
-		if (!result->InSymbolTable()) delete result;
+		if (result->IsTemporary()) delete result;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): a range with more than 100000 entries cannot be constructed." << slim_terminate();
 	}
@@ -837,7 +837,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		
 		if (first_child_type != ScriptValueType::kValueObject)
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 		}
@@ -846,7 +846,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		
 		if (second_child_node->token_->token_type_ != TokenType::kTokenIdentifier)
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 		}
@@ -891,11 +891,11 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	{
 		ScriptValue *arg = *arg_iter;
 		
-		if (!arg->InSymbolTable()) delete arg;
+		if (arg->IsTemporary()) delete arg;
 	}
 	
 	// And if it was a method call, we can free the method object now, too
-	if (method_object && !method_object->InSymbolTable()) delete method_object;
+	if (method_object && method_object->IsTemporary()) delete method_object;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_FunctionCall() : return == " << *result << "\n";
@@ -921,7 +921,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 		// Any subscript of NULL returns NULL
 		result = new ScriptValue_NULL();
 		
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 	}
 	else
 	{
@@ -930,8 +930,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 		
 		if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat) && (second_child_type != ScriptValueType::kValueLogical) && (second_child_type != ScriptValueType::kValueNULL))
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << slim_terminate();
 		}
@@ -950,9 +950,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 				// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
 				if (first_child_count != second_child_count)
 				{
-					if (!first_child_value->InSymbolTable()) delete first_child_value;
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
-					if (!result->InSymbolTable()) delete result;
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (result->IsTemporary()) delete result;
 					
 					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
 				}
@@ -974,9 +974,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 					
 					if ((index_value < 0) || (index_value >= first_child_count))
 					{
-						if (!first_child_value->InSymbolTable()) delete first_child_value;
-						if (!second_child_value->InSymbolTable()) delete second_child_value;
-						if (!result->InSymbolTable()) delete result;
+						if (first_child_value->IsTemporary()) delete first_child_value;
+						if (second_child_value->IsTemporary()) delete second_child_value;
+						if (result->IsTemporary()) delete result;
 						
 						SLIM_TERMINATION << "ERROR (Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << slim_terminate();
 					}
@@ -987,8 +987,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 		}
 		
 		// Free our operands
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	if (logging_execution_)
@@ -1012,7 +1012,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	
 	if (first_child_type != ScriptValueType::kValueObject)
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): operand type " << first_child_type << " is not supported by the '.' operator." << slim_terminate();
 	}
@@ -1021,7 +1021,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	
 	if (second_child_node->token_->token_type_ != TokenType::kTokenIdentifier)
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 	}
@@ -1030,7 +1030,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_name);
 	
 	// free our operand
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
 	
 	// check result; this should never happen, since GetValueForMember should check
 	if (!result)
@@ -1060,7 +1060,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		// unary plus is a no-op, but legal only for numeric types
 		if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << slim_terminate();
 		}
@@ -1080,8 +1080,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		
 		if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
@@ -1143,8 +1143,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		{
 			if (((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat)) || ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat)))
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
 				
 				SLIM_TERMINATION << "ERROR (Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << slim_terminate();
 			}
@@ -1175,8 +1175,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		}
 		
 		// free our operands
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	if (logging_execution_)
@@ -1200,7 +1200,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << slim_terminate();
 	}
@@ -1230,7 +1230,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		}
 		
 		// free our operands
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 	}
 	else
 	{
@@ -1240,8 +1240,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		
 		if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << slim_terminate();
 		}
@@ -1250,8 +1250,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		
 		if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
@@ -1310,8 +1310,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		}
 		
 		// free our operands
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	if (logging_execution_)
@@ -1338,16 +1338,16 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << slim_terminate();
 	}
@@ -1357,8 +1357,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 	
 	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
@@ -1382,9 +1382,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 				
 				if (divisor == 0)
 				{
-					if (!first_child_value->InSymbolTable()) delete first_child_value;
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
-					if (!int_result->InSymbolTable()) delete int_result;
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (int_result->IsTemporary()) delete int_result;
 					
 					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 				}
@@ -1402,9 +1402,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 				
 				if (divisor == 0)
 				{
-					if (!first_child_value->InSymbolTable()) delete first_child_value;
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
-					if (!int_result->InSymbolTable()) delete int_result;
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (int_result->IsTemporary()) delete int_result;
 					
 					SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 				}
@@ -1418,9 +1418,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 			
 			if (singleton_int == 0)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
-				if (!int_result->InSymbolTable()) delete int_result;
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				if (int_result->IsTemporary()) delete int_result;
 				
 				SLIM_TERMINATION << "ERROR (Evaluate_Mod): integer modulo by zero." << slim_terminate();
 			}
@@ -1461,8 +1461,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mod() : return == " << *result << "\n";
@@ -1488,16 +1488,16 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << slim_terminate();
 	}
@@ -1557,15 +1557,15 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 	}
 	else
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mult() : return == " << *result << "\n";
@@ -1591,16 +1591,16 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << slim_terminate();
 	}
@@ -1610,8 +1610,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 	
 	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
@@ -1634,9 +1634,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 				
 				if (divisor == 0)
 				{
-					if (!first_child_value->InSymbolTable()) delete first_child_value;
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
-					if (!int_result->InSymbolTable()) delete int_result;
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (int_result->IsTemporary()) delete int_result;
 					
 					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 				}
@@ -1654,9 +1654,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 				
 				if (divisor == 0)
 				{
-					if (!first_child_value->InSymbolTable()) delete first_child_value;
-					if (!second_child_value->InSymbolTable()) delete second_child_value;
-					if (!int_result->InSymbolTable()) delete int_result;
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (int_result->IsTemporary()) delete int_result;
 					
 					SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 				}
@@ -1670,9 +1670,9 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 			
 			if (singleton_int == 0)
 			{
-				if (!first_child_value->InSymbolTable()) delete first_child_value;
-				if (!second_child_value->InSymbolTable()) delete second_child_value;
-				if (!int_result->InSymbolTable()) delete int_result;
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				if (int_result->IsTemporary()) delete int_result;
 				
 				SLIM_TERMINATION << "ERROR (Evaluate_Div): integer divide by zero." << slim_terminate();
 			}
@@ -1713,8 +1713,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Div() : return == " << *result << "\n";
@@ -1738,16 +1738,16 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << slim_terminate();
 	}
 	
 	if ((second_child_type != ScriptValueType::kValueInt) && (second_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << slim_terminate();
 	}
@@ -1757,8 +1757,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	
 	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
-		if (!second_child_value->InSymbolTable()) delete second_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
 		SLIM_TERMINATION << "ERROR (Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 	}
 	
@@ -1786,8 +1786,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Exp() : return == " << *result << "\n";
@@ -1813,8 +1813,8 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 		
 		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
 		{
-			if (!child_result->InSymbolTable()) delete child_result;
-			if (!result->InSymbolTable()) delete result;
+			if (child_result->IsTemporary()) delete child_result;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << slim_terminate();
 		}
@@ -1837,8 +1837,8 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
 			{
-				if (!child_result->InSymbolTable()) delete child_result;
-				if (!result->InSymbolTable()) delete result;
+				if (child_result->IsTemporary()) delete child_result;
+				if (result->IsTemporary()) delete result;
 				
 				SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << slim_terminate();
 			}
@@ -1857,7 +1857,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 				// we had a one-length result vector, but now we need to upscale it to match child_result
 				bool result_bool = result->LogicalAtIndex(0);
 				
-				if (!result->InSymbolTable()) delete result;
+				if (result->IsTemporary()) delete result;
 				result = new ScriptValue_Logical();
 				result_count = child_count;
 				
@@ -1878,7 +1878,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 		}
 		
 		// free our operand
-		if (!child_result->InSymbolTable()) delete child_result;
+		if (child_result->IsTemporary()) delete child_result;
 	}
 	
 	if (logging_execution_)
@@ -1905,8 +1905,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 		
 		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
 		{
-			if (!child_result->InSymbolTable()) delete child_result;
-			if (!result->InSymbolTable()) delete result;
+			if (child_result->IsTemporary()) delete child_result;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << slim_terminate();
 		}
@@ -1927,8 +1927,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
 			{
-				if (!child_result->InSymbolTable()) delete child_result;
-				if (!result->InSymbolTable()) delete result;
+				if (child_result->IsTemporary()) delete child_result;
+				if (result->IsTemporary()) delete result;
 				
 				SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << slim_terminate();
 			}
@@ -1947,7 +1947,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 				// we had a one-length result vector, but now we need to upscale it to match child_result
 				bool result_bool = result->LogicalAtIndex(0);
 				
-				if (!result->InSymbolTable()) delete result;
+				if (result->IsTemporary()) delete result;
 				result = new ScriptValue_Logical();
 				result_count = child_count;
 				
@@ -1968,7 +1968,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 		}
 		
 		// free our operand
-		if (!child_result->InSymbolTable()) delete child_result;
+		if (child_result->IsTemporary()) delete child_result;
 	}
 	
 	if (logging_execution_)
@@ -1990,7 +1990,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 	
 	if ((first_child_type != ScriptValueType::kValueLogical) && (first_child_type != ScriptValueType::kValueString) && (first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
 	{
-		if (!first_child_value->InSymbolTable()) delete first_child_value;
+		if (first_child_value->IsTemporary()) delete first_child_value;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << slim_terminate();
 	}
@@ -2003,7 +2003,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 		result->PushLogical(!first_child_value->LogicalAtIndex(value_index));
 	
 	// free our operand
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Not() : return == " << *result << "\n";
@@ -2029,7 +2029,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	// free our operand
-	if (!rvalue->InSymbolTable()) delete rvalue;
+	if (rvalue->IsTemporary()) delete rvalue;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Assign() : return == " << *result << "\n";
@@ -2088,17 +2088,17 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Eq() : return == " << *result << "\n";
@@ -2160,17 +2160,17 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Lt() : return == " << *result << "\n";
@@ -2232,17 +2232,17 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_LtEq() : return == " << *result << "\n";
@@ -2304,17 +2304,17 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Gt() : return == " << *result << "\n";
@@ -2376,17 +2376,17 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_GtEq() : return == " << *result << "\n";
@@ -2445,17 +2445,17 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			if (!first_child_value->InSymbolTable()) delete first_child_value;
-			if (!second_child_value->InSymbolTable()) delete second_child_value;
-			if (!result->InSymbolTable()) delete result;
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
 	}
 	
 	// free our operands
-	if (!first_child_value->InSymbolTable()) delete first_child_value;
-	if (!second_child_value->InSymbolTable()) delete second_child_value;
+	if (first_child_value->IsTemporary()) delete first_child_value;
+	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NotEq() : return == " << *result << "\n";
@@ -2584,13 +2584,13 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 	}
 	else
 	{
-		if (!condition_result->InSymbolTable()) delete condition_result;
+		if (condition_result->IsTemporary()) delete condition_result;
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_If): condition has size() != 1." << slim_terminate();
 	}
 	
 	// free our operands
-	if (!condition_result->InSymbolTable()) delete condition_result;
+	if (condition_result->IsTemporary()) delete condition_result;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_If() : return == " << *result << "\n";
@@ -2621,7 +2621,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		}
 		
 		// otherwise, discard the return value
-		if (!statement_value->InSymbolTable()) delete statement_value;
+		if (statement_value->IsTemporary()) delete statement_value;
 		
 		// handle next and break statements
 		if (next_statement_hit_)
@@ -2641,14 +2641,14 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0);
 			
-			if (!condition_result->InSymbolTable()) delete condition_result;
+			if (condition_result->IsTemporary()) delete condition_result;
 			
 			if (!condition_bool)
 				break;
 		}
 		else
 		{
-			if (!condition_result->InSymbolTable()) delete condition_result;
+			if (condition_result->IsTemporary()) delete condition_result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Do): condition has size() != 1." << slim_terminate();
 		}
@@ -2684,14 +2684,14 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0);
 			
-			if (!condition_result->InSymbolTable()) delete condition_result;
+			if (condition_result->IsTemporary()) delete condition_result;
 			
 			if (!condition_bool)
 				break;
 		}
 		else
 		{
-			if (!condition_result->InSymbolTable()) delete condition_result;
+			if (condition_result->IsTemporary()) delete condition_result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_While): condition has size() != 1." << slim_terminate();
 		}
@@ -2707,7 +2707,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		}
 		
 		// otherwise, discard the return value
-		if (!statement_value->InSymbolTable()) delete statement_value;
+		if (statement_value->IsTemporary()) delete statement_value;
 		
 		// handle next and break statements
 		if (next_statement_hit_)
@@ -2756,7 +2756,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		
 		global_symbols_->SetValueForSymbol(identifier_name, range_value_at_index);
 		
-		if (!range_value_at_index->InSymbolTable()) delete range_value_at_index;
+		if (range_value_at_index->IsTemporary()) delete range_value_at_index;
 		
 		// execute the for loop's statement by evaluating its node; evaluation values get thrown away
 		ScriptValue *statement_value = EvaluateNode(p_node->children_[2]);
@@ -2769,7 +2769,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		}
 		
 		// otherwise, discard the return value
-		if (!statement_value->InSymbolTable()) delete statement_value;
+		if (statement_value->IsTemporary()) delete statement_value;
 		
 		// handle next and break statements
 		if (next_statement_hit_)
@@ -2786,7 +2786,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	// free our range operand
-	if (!range_value->InSymbolTable()) delete range_value;
+	if (range_value->IsTemporary()) delete range_value;
 	
 	if (logging_execution_)
 		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_For() : return == " << *result << "\n";

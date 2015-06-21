@@ -97,6 +97,7 @@ class ScriptValue
 private:
 	
 	bool in_symbol_table_ = false;							// if true, the value should not be deleted, as it is owned by the symbol table
+	bool externally_owned_ = false;							// if true, even the symbol table should not delete this ScriptValue; it is owned or statically allocated
 	
 protected:
 	
@@ -117,8 +118,11 @@ public:
 	
 	bool Invisible(void) const;								// getter only; invisible objects must be made through construction or InvisibleCopy()
 	
+	inline bool IsTemporary(void) const						{ return !(in_symbol_table_ || externally_owned_); };
 	bool InSymbolTable(void) const;
 	ScriptValue *SetInSymbolTable(bool p_in_symbol_table);
+	bool ExternallyOwned(void) const;
+	ScriptValue *SetExternallyOwned(bool p_externally_owned);
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;

@@ -40,21 +40,54 @@ using std::ostream;
 
 SymbolTable::SymbolTable(void)
 {
-	SetConstantForSymbol("T", new ScriptValue_Logical(true));
-	SetConstantForSymbol("F", new ScriptValue_Logical(false));
-	SetConstantForSymbol("NULL", new ScriptValue_NULL());
-	SetConstantForSymbol("PI", new ScriptValue_Float(M_PI));
-	SetConstantForSymbol("E", new ScriptValue_Float(M_E));
-	SetConstantForSymbol("INF", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
-	SetConstantForSymbol("NAN", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()));
+	// We statically allocate our base symbols for fast setup / teardown
+	static ScriptValue *trueConstant = nullptr;
+	static ScriptValue *falseConstant = nullptr;
+	static ScriptValue *nullConstant = nullptr;
+	static ScriptValue *piConstant = nullptr;
+	static ScriptValue *eConstant = nullptr;
+	static ScriptValue *infConstant = nullptr;
+	static ScriptValue *nanConstant = nullptr;
+	
+	if (!trueConstant)
+	{
+		trueConstant = (new ScriptValue_Logical(true))->SetExternallyOwned(true);
+		falseConstant = (new ScriptValue_Logical(false))->SetExternallyOwned(true);
+		nullConstant = (new ScriptValue_NULL())->SetExternallyOwned(true);
+		piConstant = (new ScriptValue_Float(M_PI))->SetExternallyOwned(true);
+		eConstant = (new ScriptValue_Float(M_E))->SetExternallyOwned(true);
+		infConstant = (new ScriptValue_Float(std::numeric_limits<double>::infinity()))->SetExternallyOwned(true);
+		nanConstant = (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned(true);
+	}
+	
+	SetConstantForSymbol("T", trueConstant);
+	SetConstantForSymbol("F", falseConstant);
+	SetConstantForSymbol("NULL", nullConstant);
+	SetConstantForSymbol("PI", piConstant);
+	SetConstantForSymbol("E", eConstant);
+	SetConstantForSymbol("INF", infConstant);
+	SetConstantForSymbol("NAN", nanConstant);
 }
 
 SymbolTable::~SymbolTable(void)
 {
+	// We delete all values that are not marked as externally owned; those that are externally owned are someone else's problem.
+	
 	for (auto symbol_entry : constants_)
-		delete symbol_entry.second;
+	{
+		ScriptValue *value = symbol_entry.second;
+		
+		if (!value->ExternallyOwned())
+			delete value;
+	}
+	
 	for (auto symbol_entry : variables_)
-		delete symbol_entry.second;
+	{
+		ScriptValue *value = symbol_entry.second;
+		
+		if (!value->ExternallyOwned())
+			delete value;
+	}
 }
 
 std::vector<std::string> SymbolTable::ReadOnlySymbols(void) const
@@ -142,13 +175,15 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
 	{
-		// if it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue
-		p_value = p_value->CopyValues();
+		// If it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue.
+		// This is because we don't refcount; if a ScriptValue were shared, it would be freed when the first reference was deleted.
+		// This is not a concern for externally owned ScriptValues, since we don't free them anyway, so we don't need to copy them.
+		if (!p_value->ExternallyOwned())
+			p_value = p_value->CopyValues();
 	}
 	else if (p_value->Invisible())
 	{
 		// if it's invisible, then we need to copy it, since the original needs to stay invisible to make sure it displays correctly
-		// it might be possible to set the invisible flag directly instead, since assignment returns NULL; could revisit this...
 		p_value = p_value->CopyValues();
 	}
 	
@@ -178,13 +213,15 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->InSymbolTable())
 	{
-		// if it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue
-		p_value = p_value->CopyValues();
+		// If it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue.
+		// This is because we don't refcount; if a ScriptValue were shared, it would be freed when the first reference was deleted.
+		// This is not a concern for externally owned ScriptValues, since we don't free them anyway, so we don't need to copy them.
+		if (!p_value->ExternallyOwned())
+			p_value = p_value->CopyValues();
 	}
 	else if (p_value->Invisible())
 	{
 		// if it's invisible, then we need to copy it, since the original needs to stay invisible to make sure it displays correctly
-		// it might be possible to set the invisible flag directly instead, since assignment returns NULL; could revisit this...
 		p_value = p_value->CopyValues();
 	}
 	
@@ -210,8 +247,8 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 				
 				constants_.erase(constant_iter);
 				
-				value->SetInSymbolTable(false);
-				delete value;
+				if (!value->ExternallyOwned())
+					delete value;
 			}
 			else
 				SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << slim_terminate();
@@ -227,8 +264,8 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 			
 			variables_.erase(variables_iter);
 			
-			value->SetInSymbolTable(false);
-			delete value;
+			if (!value->ExternallyOwned())
+				delete value;
 		}
 	}
 }

@@ -1522,8 +1522,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				p_output_stream << *first_value << " " << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
-				if (!first_value->InSymbolTable()) delete first_value;
-				if (!second_value->InSymbolTable()) delete second_value;
+				if (first_value->IsTemporary()) delete first_value;
+				if (second_value->IsTemporary()) delete second_value;
 			}
 			break;
 			
