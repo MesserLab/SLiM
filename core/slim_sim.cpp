@@ -1006,12 +1006,20 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 		global_symbols.SetConstantForSymbol("self", new ScriptValue_Object(p_script_block));
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
-	std::vector<FunctionSignature*> *signatures = InjectedFunctionSignatures();
-	
-	if (signatures)
+	if (generation_ == 0)
 	{
-		for (FunctionSignature *signature : *signatures)
-			p_interpreter.RegisterSignature(signature);
+		std::vector<FunctionSignature*> *signatures = InjectedFunctionSignatures();
+		
+		if (signatures)
+		{
+			// construct a new map based on the built-in map, add our functions, and register it, which gives the pointer to the interpreter
+			FunctionMap *derived_function_map = new FunctionMap(*ScriptInterpreter::BuiltInFunctionMap());
+			
+			for (FunctionSignature *signature : *signatures)
+				derived_function_map->insert(FunctionMapPair(signature->function_name_, signature));
+			
+			p_interpreter.RegisterFunctionMap(derived_function_map);
+		}
 	}
 	
 	// Inject for generations > 0 : no zero-generation functions, but global symbols

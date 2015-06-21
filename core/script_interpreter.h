@@ -53,7 +53,8 @@ class ScriptInterpreter
 private:
 	const ScriptASTNode *root_node_;				// not owned
 	SymbolTable *global_symbols_ = nullptr;			// OWNED POINTERS: identifiers to ScriptValues
-	FunctionMap function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
+	FunctionMap *function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
+													// the function_map_ pointer itself is owned, and will be deleted unless it is the static built-in map
 	
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
@@ -137,8 +138,9 @@ public:
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const FunctionSignature *> &BuiltInFunctions(void);
-	void RegisterSignature(const FunctionSignature *p_signature);
-	void RegisterBuiltInFunctions(void);
+	static FunctionMap *BuiltInFunctionMap(void);
+	
+	inline void RegisterFunctionMap(FunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
 	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
 	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);

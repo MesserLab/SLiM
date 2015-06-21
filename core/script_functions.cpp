@@ -197,17 +197,22 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 	return *signatures;
 }
 
-void ScriptInterpreter::RegisterSignature(const FunctionSignature *p_signature)
+FunctionMap *ScriptInterpreter::BuiltInFunctionMap(void)
 {
-	function_map_.insert(FunctionMapPair(p_signature->function_name_, p_signature));
-}
-
-void ScriptInterpreter::RegisterBuiltInFunctions(void)
-{
-	vector<const FunctionSignature *> &built_in_functions = ScriptInterpreter::BuiltInFunctions();
+	// The built-in function map is statically allocated for faster ScriptInterpreter startup
+	static FunctionMap *built_in_function_map = nullptr;
 	
-	for (auto sig : built_in_functions)
-		function_map_.insert(FunctionMapPair(sig->function_name_, sig));
+	if (!built_in_function_map)
+	{
+		vector<const FunctionSignature *> &built_in_functions = ScriptInterpreter::BuiltInFunctions();
+		
+		built_in_function_map = new FunctionMap;
+		
+		for (auto sig : built_in_functions)
+			built_in_function_map->insert(FunctionMapPair(sig->function_name_, sig));
+	}
+	
+	return built_in_function_map;
 }
 
 
@@ -452,9 +457,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	ScriptValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	auto signature_iter = function_map_.find(p_function_name);
+	auto signature_iter = function_map_->find(p_function_name);
 	
-	if (signature_iter == function_map_.end())
+	if (signature_iter == function_map_->end())
 		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << slim_terminate();
 	
 	const FunctionSignature *signature = signature_iter->second;
@@ -1937,7 +1942,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order
-			for (auto functionPairIter = function_map_.begin(); functionPairIter != function_map_.end(); ++functionPairIter)
+			for (auto functionPairIter = function_map_->begin(); functionPairIter != function_map_->end(); ++functionPairIter)
 			{
 				const FunctionSignature *iter_signature = functionPairIter->second;
 				

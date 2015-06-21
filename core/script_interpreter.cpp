@@ -115,7 +115,7 @@ void ScriptInterpreter::SharedInitialization(void)
 	if (!global_symbols_)
 		global_symbols_ = new SymbolTable();
 	
-	RegisterBuiltInFunctions();
+	RegisterFunctionMap(ScriptInterpreter::BuiltInFunctionMap());
 	
 	// Initialize the random number generator if and only if it has not already been initialized
 	// If SLiM wants a different seed, it will enforce that; not our problem.
@@ -127,6 +127,12 @@ ScriptInterpreter::~ScriptInterpreter(void)
 {
 	delete global_symbols_;
 	global_symbols_ = nullptr;
+	
+	if (function_map_ != ScriptInterpreter::BuiltInFunctionMap())
+	{
+		delete function_map_;
+		function_map_ = nullptr;
+	}
 }
 
 void ScriptInterpreter::SetShouldLogExecution(bool p_log)
