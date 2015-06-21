@@ -1428,7 +1428,7 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::s
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
@@ -1440,13 +1440,13 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 	else
 	{
 		// call the method on one member only, since it is a class method
-		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 		
 		return result;
 	}
 }
 
-ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
@@ -1460,7 +1460,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 		vector<ScriptValue*> results;
 		
 		for (auto value : values_)
-			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter));
+			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_interpreter));
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
 		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::ExecuteMethod", results);
@@ -1595,12 +1595,14 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
-ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare("str") == 0)		// instance method
 	{
-		p_output_stream << ElementType() << ":" << endl;
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << ElementType() << ":" << endl;
 		
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
@@ -1617,16 +1619,16 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			int member_count = member_value->Count();
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			p_output_stream << "\t";
+			output_stream << "\t";
 			
 			if (member_count <= 2)
-				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
+				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
 			else
 			{
 				ScriptValue *first_value = member_value->GetValueAtIndex(0);
 				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
-				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				
 				if (first_value->IsTemporary()) delete first_value;
 				if (second_value->IsTemporary()) delete second_value;
@@ -1639,6 +1641,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	}
 	else if (p_method_name.compare("property") == 0)		// class method
 	{
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
@@ -1660,19 +1663,20 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			ScriptValue *member_value = GetValueForMember(member_name);
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
+			output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
 			
 			if (member_value->IsTemporary()) delete member_value;
 			signature_found = true;
 		}
 		
 		if (has_match_string && !signature_found)
-			p_output_stream << "No property found for \"" << match_string << "\"." << endl;
+			output_stream << "No property found for \"" << match_string << "\"." << endl;
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}
 	else if (p_method_name.compare("method") == 0)		// class method
 	{
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> method_names = Methods();
@@ -1689,12 +1693,12 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			
 			const FunctionSignature *method_signature = SignatureForMethod(method_name);
 			
-			p_output_stream << *method_signature << endl;
+			output_stream << *method_signature << endl;
 			signature_found = true;
 		}
 		
 		if (has_match_string && !signature_found)
-			p_output_stream << "No method signature found for \"" << match_string << "\"." << endl;
+			output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 		
 		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	}

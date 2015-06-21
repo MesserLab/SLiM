@@ -452,7 +452,7 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, vector<ScriptValue*> const &p_arguments, ostream &p_output_stream)
+ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, vector<ScriptValue*> const &p_arguments)
 {
 	ScriptValue *result = nullptr;
 	
@@ -530,7 +530,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 			
 		case FunctionIdentifier::kDelegatedFunction:
-			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, p_output_stream, *this);
+			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, *this);
 			break;
 			
 			
@@ -1403,14 +1403,15 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark cat
 		case FunctionIdentifier::catFunction:
 		{
+			std::ostringstream &output_stream = ExecutionOutputStream();
 			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
 				if (value_index > 0)
-					p_output_stream << separator;
+					output_stream << separator;
 				
-				p_output_stream << arg0_value->StringAtIndex(value_index);
+				output_stream << arg0_value->StringAtIndex(value_index);
 			}
 			break;
 		}
@@ -1469,7 +1470,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark print
 		case FunctionIdentifier::printFunction:
-			p_output_stream << *arg0_value << endl;
+			ExecutionOutputStream() << *arg0_value << endl;
 			break;
 			
 #pragma mark rev
@@ -1511,21 +1512,25 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark str
 		case FunctionIdentifier::strFunction:
-			p_output_stream << "(" << arg0_type << ") ";
+		{
+			std::ostringstream &output_stream = ExecutionOutputStream();
+			
+			output_stream << "(" << arg0_type << ") ";
 			
 			if (arg0_count <= 2)
-				p_output_stream << *arg0_value << endl;
+				output_stream << *arg0_value << endl;
 			else
 			{
 				ScriptValue *first_value = arg0_value->GetValueAtIndex(0);
 				ScriptValue *second_value = arg0_value->GetValueAtIndex(1);
 				
-				p_output_stream << *first_value << " " << *second_value << " ... (" << arg0_count << " values)" << endl;
+				output_stream << *first_value << " " << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
 				if (first_value->IsTemporary()) delete first_value;
 				if (second_value->IsTemporary()) delete second_value;
 			}
 			break;
+		}
 			
 #pragma mark strsplit
 		case FunctionIdentifier::strsplitFunction:
@@ -1938,6 +1943,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark function
 		case FunctionIdentifier::functionFunction:
 		{
+			std::ostringstream &output_stream = ExecutionOutputStream();
 			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : "");
 			bool signature_found = false;
 			
@@ -1949,44 +1955,48 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (arg0_value && (iter_signature->function_name_.compare(match_string) != 0))
 					continue;
 				
-				p_output_stream << *iter_signature << endl;
+				output_stream << *iter_signature << endl;
 				signature_found = true;
 			}
 			
 			if (arg0_value && !signature_found)
-				p_output_stream << "No function signature found for \"" << match_string << "\"." << endl;
+				output_stream << "No function signature found for \"" << match_string << "\"." << endl;
 			
 			break;
 		}
 			
 #pragma mark globals
 		case FunctionIdentifier::globalsFunction:
-			p_output_stream << *global_symbols_;
+			ExecutionOutputStream() << *global_symbols_;
 			break;
 			
 #pragma mark help
 		case FunctionIdentifier::helpFunction:
-			p_output_stream << "Help for SLiMscript is currently unimplemented." << endl;
+			ExecutionOutputStream() << "Help for SLiMscript is currently unimplemented." << endl;
 			break;
 			
 #pragma mark license
 		case FunctionIdentifier::licenseFunction:
-			p_output_stream << "SLiM is free software: you can redistribute it and/or" << endl;
-			p_output_stream << "modify it under the terms of the GNU General Public" << endl;
-			p_output_stream << "License as published by the Free Software Foundation," << endl;
-			p_output_stream << "either version 3 of the License, or (at your option)" << endl;
-			p_output_stream << "any later version." << endl << endl;
+		{
+			std::ostringstream &output_stream = ExecutionOutputStream();
 			
-			p_output_stream << "SLiM is distributed in the hope that it will be" << endl;
-			p_output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << endl;
-			p_output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << endl;
-			p_output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << endl;
-			p_output_stream << "License for more details." << endl << endl;
+			output_stream << "SLiM is free software: you can redistribute it and/or" << endl;
+			output_stream << "modify it under the terms of the GNU General Public" << endl;
+			output_stream << "License as published by the Free Software Foundation," << endl;
+			output_stream << "either version 3 of the License, or (at your option)" << endl;
+			output_stream << "any later version." << endl << endl;
 			
-			p_output_stream << "You should have received a copy of the GNU General" << endl;
-			p_output_stream << "Public License along with SLiM.  If not, see" << endl;
-			p_output_stream << "<http://www.gnu.org/licenses/>." << endl;
+			output_stream << "SLiM is distributed in the hope that it will be" << endl;
+			output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << endl;
+			output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << endl;
+			output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << endl;
+			output_stream << "License for more details." << endl << endl;
+			
+			output_stream << "You should have received a copy of the GNU General" << endl;
+			output_stream << "Public License along with SLiM.  If not, see" << endl;
+			output_stream << "<http://www.gnu.org/licenses/>." << endl;
 			break;
+		}
 			
 #pragma mark rm
 		case FunctionIdentifier::rmFunction:
@@ -2013,7 +2023,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark stop
 		case FunctionIdentifier::stopFunction:
 			if (arg0_value)
-				p_output_stream << arg0_value->StringAtIndex(0) << endl;
+				ExecutionOutputStream() << arg0_value->StringAtIndex(0) << endl;
 			
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << slim_terminate();
 			break;
@@ -2065,7 +2075,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, vector<ScriptValue*> const &p_arguments, ostream &p_output_stream)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, vector<ScriptValue*> const &p_arguments)
 {
 	ScriptValue *result = nullptr;
 	
@@ -2083,9 +2093,9 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 	
 	// Make the method call
 	if (class_method)
-		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, p_output_stream, *this);
+		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, *this);
 	else
-		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, p_output_stream, *this);
+		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn("method", result);

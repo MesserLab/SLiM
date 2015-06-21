@@ -133,11 +133,25 @@ ScriptInterpreter::~ScriptInterpreter(void)
 		delete function_map_;
 		function_map_ = nullptr;
 	}
+	
+	if (execution_log_)
+		delete execution_log_;
+	
+	if (execution_output_)
+		delete execution_output_;
 }
 
 void ScriptInterpreter::SetShouldLogExecution(bool p_log)
 {
 	logging_execution_ = p_log;
+	
+	if (logging_execution_)
+	{
+		// execution_log_ is allocated when logging execution is turned on; all use of execution_log_
+		// should be inside "if (logging_execution_)", so this should suffice.
+		if (!execution_log_)
+			execution_log_ = new std::ostringstream();
+	}
 }
 
 bool ScriptInterpreter::ShouldLogExecution(void)
@@ -147,12 +161,21 @@ bool ScriptInterpreter::ShouldLogExecution(void)
 
 std::string ScriptInterpreter::ExecutionLog(void)
 {
-	return execution_log_.str();
+	return (execution_log_ ? execution_log_->str() : "");
 }
 
 std::string ScriptInterpreter::ExecutionOutput(void)
 {
-	return execution_output_.str();
+	return (execution_output_ ? execution_output_->str() : "");
+}
+
+std::ostringstream &ScriptInterpreter::ExecutionOutputStream(void)
+{
+	// lazy allocation; all use of execution_output_ should get it through this accessor
+	if (!execution_output_)
+		execution_output_ = new std::ostringstream();
+	
+	return *execution_output_;
 }
 
 SymbolTable &ScriptInterpreter::BorrowSymbolTable(void)
@@ -175,7 +198,7 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 	if (logging_execution_)
 	{
 		execution_log_indent_ = 0;
-		execution_log_ << IndentString(execution_log_indent_++) << "EvaluateScriptBlock() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "EvaluateScriptBlock() entered\n";
 	}
 	
 	ScriptValue *result = EvaluateNode(root_node_);
@@ -207,11 +230,11 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 	}*/
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "EvaluateScriptBlock() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "EvaluateScriptBlock() : return == " << *result << "\n";
 	
-	// if requested, send the full trace to std:cout
+	// if requested, send the full trace to std::cout
 	if (gSLiMScriptLogEvaluation)
-		std::cout << (execution_log_.str());
+		std::cout << ExecutionLog();
 	
 	return result;
 }
@@ -222,7 +245,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 	if (logging_execution_)
 	{
 		execution_log_indent_ = 0;
-		execution_log_ << IndentString(execution_log_indent_++) << "EvaluateInterpreterBlock() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "EvaluateInterpreterBlock() entered\n";
 	}
 	
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
@@ -244,12 +267,14 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		// send the result of the block to our output stream
 		if (!result->Invisible())
 		{
-			auto position = execution_output_.tellp();
-			execution_output_ << *result;
+			std::ostringstream &execution_output = ExecutionOutputStream();
+			
+			auto position = execution_output.tellp();
+			execution_output << *result;
 			
 			// ScriptValue does not put an endl on the stream, so if it emitted any output, add an endl
-			if (position != execution_output_.tellp())
-				execution_output_ << endl;
+			if (position != execution_output.tellp())
+				execution_output << endl;
 		}
 		
 		// handle a return statement; we're at the top level, so there's not much to do except stop execution
@@ -261,11 +286,11 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "EvaluateInterpreterBlock() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "EvaluateInterpreterBlock() : return == " << *result << "\n";
 	
 	// if requested, send the full trace to std:cout
 	if (gSLiMScriptLogEvaluation)
-		std::cout << (execution_log_.str());
+		std::cout << ExecutionLog();
 	
 	return result;
 }
@@ -423,9 +448,9 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 	
 	if (logging_execution_)
 	{
-		execution_log_ << IndentString(execution_log_indent_) << "_AssignRValueToLValue() : lvalue token ";
-		p_lvalue_node->PrintToken(execution_log_);
-		execution_log_ << "\n";
+		*execution_log_ << IndentString(execution_log_indent_) << "_AssignRValueToLValue() : lvalue token ";
+		p_lvalue_node->PrintToken(*execution_log_);
+		*execution_log_ << "\n";
 	}
 	
 	switch (token_type)
@@ -565,9 +590,9 @@ ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
 	
 	if (logging_execution_)
 	{
-		execution_log_ << IndentString(execution_log_indent_) << "EvaluateNode() : token ";
-		p_node->PrintToken(execution_log_);
-		execution_log_ << "\n";
+		*execution_log_ << IndentString(execution_log_indent_) << "EvaluateNode() : token ";
+		p_node->PrintToken(*execution_log_);
+		*execution_log_ << "\n";
 	}
 	
 	switch (token_type)
@@ -619,7 +644,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NullStatement(const ScriptASTNode *p_no
 {
 #pragma unused(p_node)
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NullStatement() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NullStatement() entered\n";
 	
 	if (p_node->children_.size() != 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_NullStatement): internal error (expected 0 children)." << slim_terminate();
@@ -627,7 +652,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NullStatement(const ScriptASTNode *p_no
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NullStatement() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NullStatement() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -635,7 +660,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NullStatement(const ScriptASTNode *p_no
 ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_CompoundStatement() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_CompoundStatement() entered\n";
 	
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
@@ -651,7 +676,7 @@ ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_CompoundStatement() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_CompoundStatement() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -659,7 +684,7 @@ ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *
 ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_RangeExpr() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_RangeExpr() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_RangeExpr): internal error (expected 2 children)." << slim_terminate();
@@ -800,7 +825,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_RangeExpr() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_RangeExpr() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -808,7 +833,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_FunctionCall() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_FunctionCall() entered\n";
 	
 	ScriptValue *result = nullptr;
 	
@@ -882,9 +907,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	
 	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 	if (method_object)
-		result = ExecuteMethodCall(method_object, function_name, arguments, execution_output_);
+		result = ExecuteMethodCall(method_object, function_name, arguments);
 	else
-		result = ExecuteFunctionCall(function_name, arguments, execution_output_);
+		result = ExecuteFunctionCall(function_name, arguments);
 	
 	// And now we can free the arguments
 	for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
@@ -898,7 +923,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	if (method_object && method_object->IsTemporary()) delete method_object;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_FunctionCall() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_FunctionCall() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -906,7 +931,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Subset() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Subset() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Subset): internal error (expected 2 children)." << slim_terminate();
@@ -992,7 +1017,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Subset() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Subset() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1000,7 +1025,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_MemberRef() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_MemberRef() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): internal error (expected 2 children)." << slim_terminate();
@@ -1037,7 +1062,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << member_name << "." << slim_terminate();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1045,7 +1070,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Plus() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Plus() entered\n";
 	
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
 		SLIM_TERMINATION << "ERROR (Evaluate_Plus): internal error (expected 1 or 2 children)." << slim_terminate();
@@ -1180,7 +1205,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Plus() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Plus() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1188,7 +1213,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Minus() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Minus() entered\n";
 	
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
 		SLIM_TERMINATION << "ERROR (Evaluate_Minus): internal error (expected 1 or 2 children)." << slim_terminate();
@@ -1315,7 +1340,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Minus() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Minus() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1323,7 +1348,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mod() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mod() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Mod): internal error (expected 2 children)." << slim_terminate();
@@ -1465,7 +1490,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mod() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mod() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1473,7 +1498,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mult() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Mult() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Mult): internal error (expected 2 children)." << slim_terminate();
@@ -1568,7 +1593,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mult() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Mult() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1576,7 +1601,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Div() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Div() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Div): internal error (expected 2 children)." << slim_terminate();
@@ -1717,7 +1742,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Div() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Div() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1725,7 +1750,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Exp() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Exp() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Exp): internal error (expected 2 children)." << slim_terminate();
@@ -1790,7 +1815,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Exp() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Exp() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1798,7 +1823,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_And() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_And() entered\n";
 	
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_And): internal error (expected 2+ children)." << slim_terminate();
@@ -1882,7 +1907,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_And() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_And() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1890,7 +1915,7 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Or() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Or() entered\n";
 	
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Or): internal error (expected 2+ children)." << slim_terminate();
@@ -1972,7 +1997,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 	}
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Or() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Or() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -1980,7 +2005,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Not() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Not() entered\n";
 	
 	if (p_node->children_.size() != 1)
 		SLIM_TERMINATION << "ERROR (Evaluate_Not): internal error (expected 1 child)." << slim_terminate();
@@ -2006,7 +2031,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 	if (first_child_value->IsTemporary()) delete first_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Not() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Not() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2014,7 +2039,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Assign() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Assign() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Assign): internal error (expected 2 children)." << slim_terminate();
@@ -2032,7 +2057,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 	if (rvalue->IsTemporary()) delete rvalue;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Assign() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Assign() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2040,7 +2065,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Eq() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Eq() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Eq): internal error (expected 2 children)." << slim_terminate();
@@ -2101,7 +2126,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Eq() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Eq() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2109,7 +2134,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Lt() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Lt() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): internal error (expected 2 children)." << slim_terminate();
@@ -2173,7 +2198,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Lt() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Lt() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2181,7 +2206,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_LtEq() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_LtEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_LtEq): internal error (expected 2 children)." << slim_terminate();
@@ -2245,7 +2270,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_LtEq() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_LtEq() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2253,7 +2278,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Gt() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Gt() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Gt): internal error (expected 2 children)." << slim_terminate();
@@ -2317,7 +2342,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Gt() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Gt() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2325,7 +2350,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_GtEq() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_GtEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_GtEq): internal error (expected 2 children)." << slim_terminate();
@@ -2389,7 +2414,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_GtEq() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_GtEq() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2397,7 +2422,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NotEq() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_NotEq() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_NotEq): internal error (expected 2 children)." << slim_terminate();
@@ -2458,7 +2483,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 	if (second_child_value->IsTemporary()) delete second_child_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NotEq() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NotEq() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2486,7 +2511,7 @@ int64_t ScriptInterpreter::IntForNumberToken(const ScriptToken *p_token)
 ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Number() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Number() entered\n";
 	
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Number): internal error (expected 0 children)." << slim_terminate();
@@ -2508,7 +2533,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 		result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Number() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Number() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2516,7 +2541,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_String(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_String() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_String() entered\n";
 	
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_String): internal error (expected 0 children)." << slim_terminate();
@@ -2524,7 +2549,7 @@ ScriptValue *ScriptInterpreter::Evaluate_String(const ScriptASTNode *p_node)
 	ScriptValue *result = new ScriptValue_String(p_node->token_->token_string_);
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_String() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_String() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2532,7 +2557,7 @@ ScriptValue *ScriptInterpreter::Evaluate_String(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Identifier() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Identifier() entered\n";
 	
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << slim_terminate();
@@ -2545,7 +2570,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): undefined identifier " << identifier_string << "." << slim_terminate();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Identifier() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Identifier() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2553,7 +2578,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_If() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_If() entered\n";
 	
 	if ((p_node->children_.size() != 2) && (p_node->children_.size() != 3))
 		SLIM_TERMINATION << "ERROR (Evaluate_If): internal error (expected 2 or 3 children)." << slim_terminate();
@@ -2593,7 +2618,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 	if (condition_result->IsTemporary()) delete condition_result;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_If() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_If() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2601,7 +2626,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Do() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Do() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Do): internal error (expected 2 children)." << slim_terminate();
@@ -2659,7 +2684,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Do() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Do() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2667,7 +2692,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_While() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_While() entered\n";
 	
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_While): internal error (expected 2 children)." << slim_terminate();
@@ -2724,7 +2749,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_While() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_While() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2732,7 +2757,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 {
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_For() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_For() entered\n";
 	
 	if (p_node->children_.size() != 3)
 		SLIM_TERMINATION << "ERROR (Evaluate_For): internal error (expected 3 children)." << slim_terminate();
@@ -2789,7 +2814,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 	if (range_value->IsTemporary()) delete range_value;
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_For() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_For() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2798,7 +2823,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Next(const ScriptASTNode *p_node)
 {
 #pragma unused(p_node)
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Next() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Next() entered\n";
 	
 	if (p_node->children_.size() != 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Next): internal error (expected 0 children)." << slim_terminate();
@@ -2810,7 +2835,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Next(const ScriptASTNode *p_node)
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Next() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Next() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2819,7 +2844,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Break(const ScriptASTNode *p_node)
 {
 #pragma unused(p_node)
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Break() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Break() entered\n";
 	
 	if (p_node->children_.size() != 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Break): internal error (expected 0 children)." << slim_terminate();
@@ -2831,7 +2856,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Break(const ScriptASTNode *p_node)
 	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Break() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Break() : return == " << *result << "\n";
 	
 	return result;
 }
@@ -2840,7 +2865,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Return(const ScriptASTNode *p_node)
 {
 #pragma unused(p_node)
 	if (logging_execution_)
-		execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Return() entered\n";
+		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_Return() entered\n";
 	
 	if (p_node->children_.size() > 1)
 		SLIM_TERMINATION << "ERROR (Evaluate_Return): internal error (expected 0 or 1 children)." << slim_terminate();
@@ -2856,7 +2881,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Return(const ScriptASTNode *p_node)
 		result = EvaluateNode(p_node->children_[0]);
 	
 	if (logging_execution_)
-		execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Return() : return == " << *result << "\n";
+		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Return() : return == " << *result << "\n";
 	
 	return result;
 }

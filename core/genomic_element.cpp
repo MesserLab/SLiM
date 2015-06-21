@@ -151,7 +151,7 @@ const FunctionSignature *GenomicElement::SignatureForMethod(std::string const &p
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -172,7 +172,7 @@ ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

@@ -64,10 +64,10 @@ private:
 	// flags and streams for execution logging – a trace of the DFS of the parse tree
 	bool logging_execution_ = false;
 	int execution_log_indent_ = 0;
-	std::ostringstream execution_log_;
+	std::ostringstream *execution_log_ = nullptr;		// allocated lazily
 	
 	// an output stream for output from executed nodes and functions; this goes into the user's console
-	std::ostringstream execution_output_;
+	std::ostringstream *execution_output_ = nullptr;	// allocated lazily
 	
 public:
 	
@@ -89,6 +89,7 @@ public:
 	bool ShouldLogExecution(void);
 	std::string ExecutionLog(void);
 	
+	std::ostringstream &ExecutionOutputStream(void);	// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
 	SymbolTable &BorrowSymbolTable(void);			// the returned pointer is owned by the interpreter, borrowed by the caller
@@ -142,8 +143,8 @@ public:
 	
 	inline void RegisterFunctionMap(FunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
-	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
-	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
+	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments);
 	
 	// Utility static methods
 	static int64_t IntForNumberToken(const ScriptToken *p_token);

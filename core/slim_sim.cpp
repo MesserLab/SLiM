@@ -603,17 +603,17 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
 	
-	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_output_stream, p_interpreter);
+	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_interpreter);
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
-#pragma unused(p_output_stream, p_interpreter)
+#pragma unused(p_interpreter)
 	
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -1316,7 +1316,7 @@ const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -1734,7 +1734,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 
