@@ -41,32 +41,32 @@ using std::ostream;
 SymbolTable::SymbolTable(void)
 {
 	// We statically allocate our base symbols for fast setup / teardown
-	static ScriptValue *trueConstant = nullptr;
-	static ScriptValue *falseConstant = nullptr;
-	static ScriptValue *nullConstant = nullptr;
-	static ScriptValue *piConstant = nullptr;
-	static ScriptValue *eConstant = nullptr;
-	static ScriptValue *infConstant = nullptr;
-	static ScriptValue *nanConstant = nullptr;
+	static SymbolTableEntry *trueConstant = nullptr;
+	static SymbolTableEntry *falseConstant = nullptr;
+	static SymbolTableEntry *nullConstant = nullptr;
+	static SymbolTableEntry *piConstant = nullptr;
+	static SymbolTableEntry *eConstant = nullptr;
+	static SymbolTableEntry *infConstant = nullptr;
+	static SymbolTableEntry *nanConstant = nullptr;
 	
 	if (!trueConstant)
 	{
-		trueConstant = (new ScriptValue_Logical(true))->SetExternallyOwned(true);
-		falseConstant = (new ScriptValue_Logical(false))->SetExternallyOwned(true);
-		nullConstant = (new ScriptValue_NULL())->SetExternallyOwned(true);
-		piConstant = (new ScriptValue_Float(M_PI))->SetExternallyOwned(true);
-		eConstant = (new ScriptValue_Float(M_E))->SetExternallyOwned(true);
-		infConstant = (new ScriptValue_Float(std::numeric_limits<double>::infinity()))->SetExternallyOwned(true);
-		nanConstant = (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned(true);
+		trueConstant = new SymbolTableEntry("T", (new ScriptValue_Logical(true))->SetExternallyOwned(true));
+		falseConstant = new SymbolTableEntry("F", (new ScriptValue_Logical(false))->SetExternallyOwned(true));
+		nullConstant = new SymbolTableEntry("NULL", (new ScriptValue_NULL())->SetExternallyOwned(true));
+		piConstant = new SymbolTableEntry("PI", (new ScriptValue_Float(M_PI))->SetExternallyOwned(true));
+		eConstant = new SymbolTableEntry("E", (new ScriptValue_Float(M_E))->SetExternallyOwned(true));
+		infConstant = new SymbolTableEntry("INF", (new ScriptValue_Float(std::numeric_limits<double>::infinity()))->SetExternallyOwned(true));
+		nanConstant = new SymbolTableEntry("NAN", (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned(true));
 	}
 	
-	SetConstantForSymbol("T", trueConstant);
-	SetConstantForSymbol("F", falseConstant);
-	SetConstantForSymbol("NULL", nullConstant);
-	SetConstantForSymbol("PI", piConstant);
-	SetConstantForSymbol("E", eConstant);
-	SetConstantForSymbol("INF", infConstant);
-	SetConstantForSymbol("NAN", nanConstant);
+	constants_.insert(*trueConstant);
+	constants_.insert(*falseConstant);
+	constants_.insert(*nullConstant);
+	constants_.insert(*piConstant);
+	constants_.insert(*eConstant);
+	constants_.insert(*infConstant);
+	constants_.insert(*nanConstant);
 }
 
 SymbolTable::~SymbolTable(void)
