@@ -126,6 +126,8 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 	
 	if (child_index != n_children)
 		SLIM_TERMINATION << "ERROR (InitializeFromFile): unexpected node in SLiMScriptBlock" << slim_terminate();
+	
+	ScanTree();
 }
 
 SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end)
@@ -144,6 +146,8 @@ SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScri
 		SLIM_TERMINATION << "ERROR (SLiMScriptBlock::SLiMScriptBlock): script blocks must be compound statements." << slim_terminate();
 	
 	compound_statement_node_ = root_node_->children_[0];
+	
+	ScanTree();
 }
 
 SLiMScriptBlock::~SLiMScriptBlock(void)
@@ -154,6 +158,62 @@ SLiMScriptBlock::~SLiMScriptBlock(void)
 		delete self_symbol_;
 	if (script_block_symbol_)
 		delete script_block_symbol_;
+}
+
+void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
+{
+	if (p_scan_node->token_->token_type_ == TokenType::kTokenIdentifier)
+	{
+		const std::string &token_string = p_scan_node->token_->token_string_;
+		
+		if (token_string.compare("executeLambda") == 0)		contains_wildcard_ = true;
+		if (token_string.compare("globals") == 0)			contains_wildcard_ = true;
+		
+		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
+		if (token_string.length() >= 2)
+		{
+			char char2 = token_string[1];
+			
+			if ((char2 >= '0') && (char2 <= '9'))
+			{
+				char char1 = token_string[0];
+				
+				if (char1 == 'p')							contains_pX_ = true;
+				if (char1 == 'g')							contains_gX_ = true;
+				if (char1 == 'm')							contains_mX_ = true;
+				if (char1 == 's')							contains_sX_ = true;
+			}
+		}
+		
+		if (token_string.compare("sim") == 0)				contains_sim_ = true;
+		if (token_string.compare("self") == 0)				contains_self_ = true;
+		
+		if (token_string.compare("mut") == 0)				contains_mut_ = true;
+		if (token_string.compare("relFitness") == 0)		contains_relFitness_ = true;
+		if (token_string.compare("genome1") == 0)			contains_genome1_ = true;
+		if (token_string.compare("genome2") == 0)			contains_genome2_ = true;
+		if (token_string.compare("subpop") == 0)			contains_subpop_ = true;
+		if (token_string.compare("homozygous") == 0)		contains_homozygous_ = true;
+		if (token_string.compare("sourceSubpop") == 0)		contains_sourceSubpop_ = false;
+		if (token_string.compare("weights") == 0)			contains_weights_ = false;
+		if (token_string.compare("childGenome1") == 0)		contains_childGenome1_ = false;
+		if (token_string.compare("childGenome2") == 0)		contains_childGenome2_ = false;
+		if (token_string.compare("childIsFemale") == 0)		contains_childIsFemale_ = false;
+		if (token_string.compare("parent1Genome1") == 0)	contains_parent1Genome1_ = false;
+		if (token_string.compare("parent1Genome2") == 0)	contains_parent1Genome2_ = false;
+		if (token_string.compare("isSelfing") == 0)			contains_isSelfing_ = false;
+		if (token_string.compare("parent2Genome1") == 0)	contains_parent2Genome1_ = false;
+		if (token_string.compare("parent2Genome2") == 0)	contains_parent2Genome2_ = false;
+	}
+	
+	// recurse down the tree
+	for (auto child : p_scan_node->children_)
+		_ScanNodeForIdentifiers(child);
+}
+
+void SLiMScriptBlock::ScanTree(void)
+{
+	_ScanNodeForIdentifiers(compound_statement_node_);
 }
 
 

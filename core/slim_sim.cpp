@@ -1007,9 +1007,10 @@ std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block)
 {
 	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
+	bool script_has_wildcard = (p_script_block ? p_script_block->contains_wildcard_ : true);	// if a wildcard is present, we must inject all
 	
-	// A constant for reference to the SLiMScriptBlock
-	if (p_script_block)
+	// A constant for reference to the SLiMScriptBlock, self
+	if (p_script_block && (script_has_wildcard || p_script_block->contains_self_))
 		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
@@ -1033,29 +1034,30 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	// Inject for generations > 0 : no zero-generation functions, but global symbols
 	if (generation_ != 0)
 	{
-		// A constant for reference to the simulation
-		global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
+		// A constant for reference to the simulation, sim
+		if (script_has_wildcard || p_script_block->contains_sim_)
+			global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
 		
 		// Add constants for our genomic element types, like g1, g2, ...
-		for (auto getype_pair : genomic_element_types_)
-			global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
+		if (script_has_wildcard || p_script_block->contains_gX_)
+			for (auto getype_pair : genomic_element_types_)
+				global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our mutation types
-		for (auto mut_type_pair : mutation_types_)
-			global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
+		// Add constants for our mutation types, like m1, m2, ...
+		if (script_has_wildcard || p_script_block->contains_mX_)
+			for (auto mut_type_pair : mutation_types_)
+				global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our subpopulations
-		for (auto pop_pair : population_)
-			global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
+		// Add constants for our subpopulations, like p1, p2, ...
+		if (script_has_wildcard || p_script_block->contains_pX_)
+			for (auto pop_pair : population_)
+				global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our scripts
-		for (SLiMScriptBlock *script_block : script_blocks_)
-		{
-			int id = script_block->block_id_;
-			
-			if (id != -1)	// add symbols only for non-anonymous blocks
-				global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
-		}
+		// Add constants for our scripts, like s1, s2, ...
+		if (script_has_wildcard || p_script_block->contains_sX_)
+			for (SLiMScriptBlock *script_block : script_blocks_)
+				if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
+					global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 	}
 }
 

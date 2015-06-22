@@ -260,17 +260,30 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
 			ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_);
 			SymbolTable &global_symbols = interpreter.BorrowSymbolTable();
+			bool script_has_wildcard = mate_choice_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			
 			sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
 			
-			Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-			Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+			if (script_has_wildcard || mate_choice_callback->contains_genome1_)
+			{
+				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
+				global_symbols.SetConstantForSymbol("genome1", new ScriptValue_Object(parent1_genome1));
+			}
 			
-			global_symbols.SetConstantForSymbol("genome1", new ScriptValue_Object(parent1_genome1));
-			global_symbols.SetConstantForSymbol("genome2", new ScriptValue_Object(parent1_genome2));
-			global_symbols.SetConstantForSymbol("subpop", new ScriptValue_Object(p_subpop));
-			global_symbols.SetConstantForSymbol("sourceSubpop", new ScriptValue_Object(p_source_subpop));
-			global_symbols.SetConstantForSymbol("weights", new ScriptValue_Float(*current_weights));
+			if (script_has_wildcard || mate_choice_callback->contains_genome2_)
+			{
+				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+				global_symbols.SetConstantForSymbol("genome2", new ScriptValue_Object(parent1_genome2));
+			}
+			
+			if (script_has_wildcard || mate_choice_callback->contains_subpop_)
+				global_symbols.SetConstantForSymbol("subpop", new ScriptValue_Object(p_subpop));
+			
+			if (script_has_wildcard || mate_choice_callback->contains_sourceSubpop_)
+				global_symbols.SetConstantForSymbol("sourceSubpop", new ScriptValue_Object(p_source_subpop));
+			
+			if (script_has_wildcard || mate_choice_callback->contains_weights_)
+				global_symbols.SetConstantForSymbol("weights", new ScriptValue_Float(*current_weights));
 			
 			// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
 			ScriptValue *result = interpreter.EvaluateScriptBlock();
@@ -404,31 +417,62 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
 			ScriptInterpreter interpreter(modify_child_callback->compound_statement_node_);
 			SymbolTable &global_symbols = interpreter.BorrowSymbolTable();
+			bool script_has_wildcard = modify_child_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			
 			sim_.InjectIntoInterpreter(interpreter, modify_child_callback);
 			
-			Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
-			Genome *child_genome2 = &(p_subpop->child_genomes_[p_child_index * 2 + 1]);
-			Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-			Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-			Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
-			Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
+			if (script_has_wildcard || modify_child_callback->contains_childGenome1_)
+			{
+				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
+				global_symbols.SetConstantForSymbol("childGenome1", new ScriptValue_Object(child_genome1));
+			}
 			
-			global_symbols.SetConstantForSymbol("childGenome1", new ScriptValue_Object(child_genome1));
-			global_symbols.SetConstantForSymbol("childGenome2", new ScriptValue_Object(child_genome2));
+			if (script_has_wildcard || modify_child_callback->contains_childGenome2_)
+			{
+				Genome *child_genome2 = &(p_subpop->child_genomes_[p_child_index * 2 + 1]);
+				global_symbols.SetConstantForSymbol("childGenome2", new ScriptValue_Object(child_genome2));
+			}
 			
-			if (p_child_is_female == -1)
-				global_symbols.SetConstantForSymbol("childIsFemale", new ScriptValue_NULL());
-			else
-				global_symbols.SetConstantForSymbol("childIsFemale", new ScriptValue_Logical(p_child_is_female != 0));
+			if (script_has_wildcard || modify_child_callback->contains_childIsFemale_)
+			{
+				if (p_child_is_female == -1)
+					global_symbols.SetConstantForSymbol("childIsFemale", new ScriptValue_NULL());
+				else
+					global_symbols.SetConstantForSymbol("childIsFemale", new ScriptValue_Logical(p_child_is_female != 0));
+			}
 			
-			global_symbols.SetConstantForSymbol("parent1Genome1", new ScriptValue_Object(parent1_genome1));
-			global_symbols.SetConstantForSymbol("parent1Genome2", new ScriptValue_Object(parent1_genome2));
-			global_symbols.SetConstantForSymbol("isSelfing", new ScriptValue_Logical(p_is_selfing));
-			global_symbols.SetConstantForSymbol("parent2Genome1", new ScriptValue_Object(parent2_genome1));
-			global_symbols.SetConstantForSymbol("parent2Genome2", new ScriptValue_Object(parent2_genome2));
-			global_symbols.SetConstantForSymbol("subpop", new ScriptValue_Object(p_subpop));
-			global_symbols.SetConstantForSymbol("sourceSubpop", new ScriptValue_Object(p_source_subpop));
+			if (script_has_wildcard || modify_child_callback->contains_parent1Genome1_)
+			{
+				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
+				global_symbols.SetConstantForSymbol("parent1Genome1", new ScriptValue_Object(parent1_genome1));
+			}
+			
+			if (script_has_wildcard || modify_child_callback->contains_parent1Genome2_)
+			{
+				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+				global_symbols.SetConstantForSymbol("parent1Genome2", new ScriptValue_Object(parent1_genome2));
+			}
+			
+			if (script_has_wildcard || modify_child_callback->contains_isSelfing_)
+				global_symbols.SetConstantForSymbol("isSelfing", new ScriptValue_Logical(p_is_selfing));
+			
+			if (script_has_wildcard || modify_child_callback->contains_parent2Genome1_)
+			{
+				Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
+				global_symbols.SetConstantForSymbol("parent2Genome1", new ScriptValue_Object(parent2_genome1));
+			}
+			
+			if (script_has_wildcard || modify_child_callback->contains_parent2Genome2_)
+			{
+				Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
+				global_symbols.SetConstantForSymbol("parent2Genome2", new ScriptValue_Object(parent2_genome2));
+			}
+			
+			if (script_has_wildcard || modify_child_callback->contains_subpop_)
+				global_symbols.SetConstantForSymbol("subpop", new ScriptValue_Object(p_subpop));
+			
+			if (script_has_wildcard || modify_child_callback->contains_sourceSubpop_)
+				global_symbols.SetConstantForSymbol("sourceSubpop", new ScriptValue_Object(p_source_subpop));
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
 			ScriptValue *result = interpreter.EvaluateScriptBlock();
