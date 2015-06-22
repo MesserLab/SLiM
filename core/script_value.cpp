@@ -1339,25 +1339,53 @@ std::vector<std::string> ScriptValue_Object::ReadWriteMembersOfElements(void) co
 
 ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &p_member_name) const
 {
-	if (values_.size() == 0)
+	auto values_size = values_.size();
+	
+	if (values_size == 0)
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
 		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
+	else if (values_size == 1)
+	{
+		// the singleton case is very common, so it should be special-cased for speed
+		ScriptObjectElement *value = values_[0];
+		ScriptValue *result = value->GetValueForMember(p_member_name);
+			
+		if (result->Count() != 1)
+		{
+			// We need to check that this property is const; if not, it is required to give a singleton return
+			std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
+			bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
+			
+			if (!is_constant_member)
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
+		}
+		
+		return result;
+	}
 	else
 	{
 		// get the value from all members and collect the results
-		std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
-		bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
 		vector<ScriptValue*> results;
+		bool checked_const_multivalued = false;
 		
 		for (auto value : values_)
 		{
 			ScriptValue *temp_result = value->GetValueForMember(p_member_name);
 			
-			if (!is_constant_member && (temp_result->Count() != 1))
-				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
+			if (!checked_const_multivalued && (temp_result->Count() != 1))
+			{
+				// We need to check that this property is const; if not, it is required to give a singleton return
+				std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
+				bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
+				
+				if (!is_constant_member)
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
+				
+				checked_const_multivalued = true;
+			}
 			
 			results.push_back(temp_result);
 		}
