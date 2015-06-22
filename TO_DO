@@ -39,12 +39,12 @@ SLiMscript optimization:
 		0:01.4 after switching to static instances for NULLs
 		0:01.3 after making ScriptInterpreter use a SymbolTable reference
 		0:00.86 after adding smart injection to SymbolTable
-	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
+		0:00.59 after adding a built-in buffer to SymbolTable
+		0:00.27 after adding constant script short-circuiting
 	Switch to heterogeneous nodes – avoid overhead of EvaluateNode
-	Caching of integer indices for known identifiers (method/function names)
-	Caching of logical values for T/F in the tree, as with numbers and strings
-	Function lookup should involve only a switch on an integer, no string comparison
-	Since SymbolTable malloc is slow, could reuse the same symbol table across all calls for a callback; just set count=0 to empty it?
+	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
+	Caching of statically allocated logical values for T/F in the tree, as with numbers and strings
+	Callbacks could allocate some ScriptValue objects for parameters outside the main loop, mark them as statically allocated, and reuse them
 	
 SLiMgui work:
 	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.

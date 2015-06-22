@@ -151,7 +151,12 @@ ScriptASTNode::~ScriptASTNode(void)
 		delete child;
 	
 	if (cached_value_)
-		delete cached_value_;
+	{
+		if (cached_value_is_owned_)
+			delete cached_value_;
+		
+		cached_value_ = nullptr;
+	}
 }
 
 void ScriptASTNode::AddChild(ScriptASTNode *p_child_node)

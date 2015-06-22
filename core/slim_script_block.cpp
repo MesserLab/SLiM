@@ -221,11 +221,18 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 
 void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 {
-	if (p_scan_node->token_->token_type_ == TokenType::kTokenNumber)
+	// recurse down the tree; determine our children, then ourselves
+	for (const ScriptASTNode *child : p_scan_node->children_)
+		_ScanNodeForConstants(child);
+	
+	// now find constant expressions and make ScriptValues for them
+	TokenType token_type = p_scan_node->token_->token_type_;
+	
+	if (token_type == TokenType::kTokenNumber)
 	{
 		const std::string &number_string = p_scan_node->token_->token_string_;
 		
-		// These criteria are taken from ScriptInterpreter::Evaluate_Number and need to match exactly!
+		// This is taken from ScriptInterpreter::Evaluate_Number and needs to match exactly!
 		ScriptValue *result = nullptr;
 		
 		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
@@ -238,20 +245,38 @@ void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 		result->SetExternallyOwned(true);
 		
 		p_scan_node->cached_value_ = result;
+		p_scan_node->cached_value_is_owned_ = true;
 	}
-	else if (p_scan_node->token_->token_type_ == TokenType::kTokenString)
+	else if (token_type == TokenType::kTokenString)
 	{
-		// This is taken from ScriptInterpreter::Evaluate_String and need to match exactly!
+		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
 		ScriptValue *result = new ScriptValue_String(p_scan_node->token_->token_string_);
 		
 		result->SetExternallyOwned(true);
 		
 		p_scan_node->cached_value_ = result;
+		p_scan_node->cached_value_is_owned_ = true;
 	}
-	
-	// recurse down the tree
-	for (auto child : p_scan_node->children_)
-		_ScanNodeForConstants(child);
+	else if ((token_type == TokenType::kTokenReturn) || (token_type == TokenType::kTokenLBrace))
+	{
+		// These are node types which can propagate a single constant value upward.  Note that this is not strictly
+		// true; both return and compound statements have side effects on the flow of execution.  It would therefore
+		// be inappropriate for their execution to be short-circuited in favor of a constant value in general; but
+		// that is not what this optimization means.  Rather, it means that these nodes are saying "I've got just a
+		// constant value inside me, so *if* nothing else is going on around me, I can be taken as equal to that
+		// constant."  We honor that conditional statement by only checking for the cached constant in specific places.
+		if (p_scan_node->children_.size() == 1)
+		{
+			const ScriptASTNode *child = p_scan_node->children_[0];
+			ScriptValue *cached_value = child->cached_value_;
+			
+			if (cached_value)
+			{
+				p_scan_node->cached_value_ = cached_value;
+				p_scan_node->cached_value_is_owned_ = false;	// somebody below us owns the value
+			}
+		}
+	}
 }
 
 void SLiMScriptBlock::ScanTree(void)

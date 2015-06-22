@@ -54,6 +54,9 @@ typedef struct {
 	bool symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
 } SymbolTableSlot;
 
+// As an optimization, SymbolTable contains a small buffer within itself, of this size, to avoid malloc/free
+// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room
+#define SLIM_SYMBOL_TABLE_BASE_SIZE		30
 
 class SymbolTable
 {
@@ -63,6 +66,8 @@ private:
 	SymbolTableSlot *symbols_;					// all our symbols
 	int symbol_count_;							// the number of symbol table slots actually used
 	int symbol_capacity_;						// the number of symbol table slots currently allocated
+	
+	SymbolTableSlot non_malloc_symbols[SLIM_SYMBOL_TABLE_BASE_SIZE];	// a base buffer, used to avoid malloc/free for simple scripts
 	
 public:
 	

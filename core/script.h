@@ -141,6 +141,7 @@ public:
 	std::vector<ScriptASTNode *> children_;						// OWNED POINTERS
 	
 	mutable ScriptValue *cached_value_ = nullptr;				// an optional pre-cached ScriptValue representing the node
+	mutable bool cached_value_is_owned_ = false;				// if T, this node owns its own cached_value_; if F, a descendant node owns it
 	
 	ScriptASTNode(const ScriptASTNode&) = delete;				// no copying
 	ScriptASTNode& operator=(const ScriptASTNode&) = delete;	// no copying

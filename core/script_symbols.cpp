@@ -43,8 +43,8 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 {
 	// Set up the symbol table itself
 	symbol_count_ = 0;
-	symbol_capacity_ = 30;
-	symbols_ = (SymbolTableSlot *)malloc(sizeof(SymbolTableSlot) * symbol_capacity_);
+	symbol_capacity_ = SLIM_SYMBOL_TABLE_BASE_SIZE;
+	symbols_ = non_malloc_symbols;
 	
 	// We statically allocate our base symbols for fast setup / teardown
 	static SymbolTableEntry *trueConstant = nullptr;
@@ -111,8 +111,11 @@ SymbolTable::~SymbolTable(void)
 			delete symbol_slot->symbol_name_;
 	}
 	
-	free(symbols_);
-	symbols_ = nullptr;
+	if (symbols_ && (symbols_ != non_malloc_symbols))
+	{
+		free(symbols_);
+		symbols_ = nullptr;
+	}
 }
 
 std::vector<std::string> SymbolTable::ReadOnlySymbols(void) const
@@ -210,8 +213,22 @@ int SymbolTable::_AllocateNewSlot(void)
 {
 	if (symbol_count_ == symbol_capacity_)
 	{
-		symbol_capacity_ <<= 1;
-		symbols_ = (SymbolTableSlot *)realloc(symbols_, sizeof(SymbolTableSlot) * symbol_capacity_);
+		int new_symbol_capacity = symbol_capacity_ << 1;
+		
+		if (symbols_ == non_malloc_symbols)
+		{
+			// We have been living off our base buffer, so we need to malloc for the first time
+			symbols_ = (SymbolTableSlot *)malloc(sizeof(SymbolTableSlot) * new_symbol_capacity);
+			
+			memcpy(symbols_, non_malloc_symbols, sizeof(SymbolTableSlot) * symbol_capacity_);
+		}
+		else
+		{
+			// We already have a malloced buffer, so we just need to realloc
+			symbols_ = (SymbolTableSlot *)realloc(symbols_, sizeof(SymbolTableSlot) * new_symbol_capacity);
+		}
+		
+		symbol_capacity_ = new_symbol_capacity;
 	}
 	
 	return symbol_count_++;
