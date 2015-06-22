@@ -100,6 +100,7 @@ public:
 	
 	// Scan the tree for optimization purposes, called by the constructors
 	void _ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node);
+	void _ScanNodeForConstants(const ScriptASTNode *p_scan_node);
 	void ScanTree(void);
 	
 	//

@@ -149,6 +149,9 @@ ScriptASTNode::~ScriptASTNode(void)
 {
 	for (auto child : children_)
 		delete child;
+	
+	if (cached_value_)
+		delete cached_value_;
 }
 
 void ScriptASTNode::AddChild(ScriptASTNode *p_child_node)

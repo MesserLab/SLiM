@@ -2494,7 +2494,7 @@ int64_t ScriptInterpreter::IntForNumberToken(const ScriptToken *p_token)
 	if (p_token->token_type_ != TokenType::kTokenNumber)
 		SLIM_TERMINATION << "ERROR (IntForNumberToken): internal error (expected kTokenNumber)." << slim_terminate();
 	
-	string number_string = p_token->token_string_;
+	const string &number_string = p_token->token_string_;
 	
 	// This needs to use the same criteria as Evaluate_Number() below; it raises if the number is a float.
 	if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
@@ -2516,21 +2516,24 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Number): internal error (expected 0 children)." << slim_terminate();
 	
-	string number_string = p_node->token_->token_string_;
+	ScriptValue *result = p_node->cached_value_;	// use a cached value from _ScanNodeForConstants() if present
 	
-	// At this point, we have to decide whether to instantiate an int or a float.  If it has a decimal point or
-	// a minus sign in it (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
-	// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
-	// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
-	// expressable using scientific notation.
-	ScriptValue *result = nullptr;
-	
-	if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-		result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
-	else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-		result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));			// has an exponent
-	else
-		result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+	if (!result)
+	{
+		// At this point, we have to decide whether to instantiate an int or a float.  If it has a decimal point or
+		// a minus sign in it (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
+		// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
+		// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
+		// expressable using scientific notation.
+		const string &number_string = p_node->token_->token_string_;
+		
+		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+			result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
+		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
+			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+		else
+			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+	}
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Number() : return == " << *result << "\n";
@@ -2546,7 +2549,10 @@ ScriptValue *ScriptInterpreter::Evaluate_String(const ScriptASTNode *p_node)
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_String): internal error (expected 0 children)." << slim_terminate();
 	
-	ScriptValue *result = new ScriptValue_String(p_node->token_->token_string_);
+	ScriptValue *result = p_node->cached_value_;	// use a cached value from _ScanNodeForConstants() if present
+	
+	if (!result)
+		result = new ScriptValue_String(p_node->token_->token_string_);
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_String() : return == " << *result << "\n";

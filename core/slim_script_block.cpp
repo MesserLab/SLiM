@@ -211,9 +211,45 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 		_ScanNodeForIdentifiers(child);
 }
 
+void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
+{
+	if (p_scan_node->token_->token_type_ == TokenType::kTokenNumber)
+	{
+		const std::string &number_string = p_scan_node->token_->token_string_;
+		
+		// These criteria are taken from ScriptInterpreter::Evaluate_Number and need to match exactly!
+		ScriptValue *result = nullptr;
+		
+		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+			result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
+		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
+			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+		else
+			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+		
+		result->SetExternallyOwned(true);
+		
+		p_scan_node->cached_value_ = result;
+	}
+	else if (p_scan_node->token_->token_type_ == TokenType::kTokenString)
+	{
+		// This is taken from ScriptInterpreter::Evaluate_String and need to match exactly!
+		ScriptValue *result = new ScriptValue_String(p_scan_node->token_->token_string_);
+		
+		result->SetExternallyOwned(true);
+		
+		p_scan_node->cached_value_ = result;
+	}
+	
+	// recurse down the tree
+	for (auto child : p_scan_node->children_)
+		_ScanNodeForConstants(child);
+}
+
 void SLiMScriptBlock::ScanTree(void)
 {
 	_ScanNodeForIdentifiers(compound_statement_node_);
+	_ScanNodeForConstants(compound_statement_node_);
 }
 
 

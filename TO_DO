@@ -35,9 +35,10 @@ SLiMscript optimization:
 		0:15 after taking SymbolTable off std::map
 		0:10 after switching to external string pointers for predefined symbol names
 		0:03 after smart injection of symbols based on a pre-scan of the tree
+		0:01.7 after caching of pre-evaluated constant numbers and strings
 	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
 	Switch to heterogeneous nodes – avoid overhead of EvaluateNode
-	Add caching of evaluated values for numbers, strings, caching of integer indices for known identifiers (method/function names)
+	Caching of integer indices for known identifiers (method/function names)
 	Function lookup should involve only a switch on an integer, no string comparison
 	Construction of a few basic things should use shared static objects: NULL, invisible NULL, T, F
 	

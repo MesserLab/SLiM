@@ -31,6 +31,9 @@
 #include <string>
 
 
+class ScriptValue;
+
+
 // set these to true to get logging of tokens / AST / evaluation
 extern bool gSLiMScriptLogTokens;
 extern bool gSLiMScriptLogAST;
@@ -136,6 +139,8 @@ public:
 	ScriptToken *token_;										// not owned (owned by the Script's token stream)
 																// FIXME: note that virtual tokens are leaked at present
 	std::vector<ScriptASTNode *> children_;						// OWNED POINTERS
+	
+	mutable ScriptValue *cached_value_ = nullptr;				// an optional pre-cached ScriptValue representing the node
 	
 	ScriptASTNode(const ScriptASTNode&) = delete;				// no copying
 	ScriptASTNode& operator=(const ScriptASTNode&) = delete;	// no copying
