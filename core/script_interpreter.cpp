@@ -161,12 +161,18 @@ bool ScriptInterpreter::ShouldLogExecution(void)
 
 std::string ScriptInterpreter::ExecutionLog(void)
 {
-	return (execution_log_ ? execution_log_->str() : "");
+	// use a static empty string, because using "" actually shows up in the profile
+	static const std::string empty_string;
+	
+	return (execution_log_ ? execution_log_->str() : empty_string);
 }
 
 std::string ScriptInterpreter::ExecutionOutput(void)
 {
-	return (execution_output_ ? execution_output_->str() : "");
+	// use a static empty string, because using "" actually shows up in the profile
+	static const std::string empty_string;
+	
+	return (execution_output_ ? execution_output_->str() : empty_string);
 }
 
 std::ostringstream &ScriptInterpreter::ExecutionOutputStream(void)
