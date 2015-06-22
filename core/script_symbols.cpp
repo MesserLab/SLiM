@@ -21,6 +21,7 @@
 #include "script_symbols.h"
 #include "script_value.h"
 #include "slim_global.h"
+#include "slim_script_block.h"
 #include "math.h"
 
 
@@ -38,7 +39,7 @@ using std::ostream;
 //
 #pragma mark SymbolTable
 
-SymbolTable::SymbolTable(void)
+SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 {
 	// Set up the symbol table itself
 	symbol_count_ = 0;
@@ -65,13 +66,34 @@ SymbolTable::SymbolTable(void)
 		nanConstant = new SymbolTableEntry("NAN", (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned(true));
 	}
 	
-	InitializeConstantSymbolEntry(trueConstant);
-	InitializeConstantSymbolEntry(falseConstant);
-	InitializeConstantSymbolEntry(nullConstant);
-	InitializeConstantSymbolEntry(piConstant);
-	InitializeConstantSymbolEntry(eConstant);
-	InitializeConstantSymbolEntry(infConstant);
-	InitializeConstantSymbolEntry(nanConstant);
+	if (script_block)
+	{
+		// Include symbols only if they are used by the script block we are being created to interpret
+		if (script_block->contains_wildcard_ || script_block->contains_T_)
+			InitializeConstantSymbolEntry(trueConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_F_)
+			InitializeConstantSymbolEntry(falseConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_NULL_)
+			InitializeConstantSymbolEntry(nullConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_PI_)
+			InitializeConstantSymbolEntry(piConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_E_)
+			InitializeConstantSymbolEntry(eConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_INF_)
+			InitializeConstantSymbolEntry(infConstant);
+		if (script_block->contains_wildcard_ || script_block->contains_NAN_)
+			InitializeConstantSymbolEntry(nanConstant);
+	}
+	else
+	{
+		InitializeConstantSymbolEntry(trueConstant);
+		InitializeConstantSymbolEntry(falseConstant);
+		InitializeConstantSymbolEntry(nullConstant);
+		InitializeConstantSymbolEntry(piConstant);
+		InitializeConstantSymbolEntry(eConstant);
+		InitializeConstantSymbolEntry(infConstant);
+		InitializeConstantSymbolEntry(nanConstant);
+	}
 }
 
 SymbolTable::~SymbolTable(void)

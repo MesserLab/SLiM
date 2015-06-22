@@ -38,6 +38,7 @@
 
 
 class ScriptValue;
+class SLiMScriptBlock;
 
 
 // This is used by ReplaceConstantSymbolEntry for fast setup / teardown
@@ -65,10 +66,10 @@ private:
 	
 public:
 	
-	SymbolTable(const SymbolTable&) = delete;				// no copying
-	SymbolTable& operator=(const SymbolTable&) = delete;	// no copying
-	SymbolTable(void);										// standard constructor
-	~SymbolTable(void);										// destructor
+	SymbolTable(const SymbolTable&) = delete;							// no copying
+	SymbolTable& operator=(const SymbolTable&) = delete;				// no copying
+	explicit SymbolTable(SLiMScriptBlock *script_block = nullptr);		// standard constructor
+	~SymbolTable(void);													// destructor
 	
 	// member access; these are variables defined in the global namespace
 	std::vector<std::string> ReadOnlySymbols(void) const;

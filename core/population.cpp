@@ -228,7 +228,7 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 void Population::ExecuteScript(SLiMScriptBlock *p_script_block, int p_generation, const Chromosome &p_chromosome)
 {
 #pragma unused(p_generation, p_chromosome)
-	SymbolTable global_symbols;
+	SymbolTable global_symbols(p_script_block);
 	ScriptInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols);
 	
 	sim_.InjectIntoInterpreter(interpreter, p_script_block);
@@ -259,7 +259,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 		{
 			// The callback is active, so we need to execute it
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
-			SymbolTable global_symbols;
+			SymbolTable global_symbols(mate_choice_callback);
 			ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
 			bool script_has_wildcard = mate_choice_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			
@@ -416,7 +416,7 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 		{
 			// The callback is active, so we need to execute it
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
-			SymbolTable global_symbols;
+			SymbolTable global_symbols(modify_child_callback);
 			ScriptInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
 			bool script_has_wildcard = modify_child_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			

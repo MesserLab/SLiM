@@ -276,7 +276,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 			{
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we inject some additional values, and we use the return value
-				SymbolTable global_symbols;
+				SymbolTable global_symbols(fitness_callback);
 				ScriptInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols);
 				bool script_has_wildcard = fitness_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 				

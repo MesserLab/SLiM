@@ -169,6 +169,14 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 		if (token_string.compare("executeLambda") == 0)		contains_wildcard_ = true;
 		if (token_string.compare("globals") == 0)			contains_wildcard_ = true;
 		
+		if (token_string.compare("T") == 0)					contains_T_ = true;
+		if (token_string.compare("F") == 0)					contains_F_ = true;
+		if (token_string.compare("NULL") == 0)				contains_NULL_ = true;
+		if (token_string.compare("PI") == 0)				contains_PI_ = true;
+		if (token_string.compare("E") == 0)					contains_E_ = true;
+		if (token_string.compare("INF") == 0)				contains_INF_ = true;
+		if (token_string.compare("NAN") == 0)				contains_NAN_ = false;
+		
 		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
 		if (token_string.length() >= 2)
 		{

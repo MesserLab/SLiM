@@ -67,6 +67,13 @@ public:
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
 	bool contains_wildcard_ = false;			// "executeLambda", "globals"
+	bool contains_T_ = false;					// "T"
+	bool contains_F_ = false;					// "F"
+	bool contains_NULL_ = false;				// "NULL"
+	bool contains_PI_ = false;					// "PI"
+	bool contains_E_ = false;					// "E"
+	bool contains_INF_ = false;					// "INF"
+	bool contains_NAN_ = false;					// "NAN"
 	bool contains_pX_ = false;					// any subpop identifier like p1, p2...
 	bool contains_gX_ = false;					// any genomic element type identifier like g1, g2...
 	bool contains_mX_ = false;					// any mutation type identifier like m1, m2...
