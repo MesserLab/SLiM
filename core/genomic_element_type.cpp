@@ -49,6 +49,9 @@ GenomicElementType::~GenomicElementType(void)
 	
 	if (lookup_mutation_type)
 		gsl_ran_discrete_free(lookup_mutation_type);
+	
+	if (self_symbol_)
+		delete self_symbol_;
 }
 
 MutationType *GenomicElementType::DrawMutationType() const
@@ -108,6 +111,16 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 //
 // SLiMscript support
 //
+
+void GenomicElementType::GenerateCachedSymbolTableEntry(void)
+{
+	std::ostringstream getype_stream;
+	
+	getype_stream << "g" << genomic_element_type_id_;
+	
+	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string GenomicElementType::ElementType(void) const
 {
 	return "GenomicElementType";
@@ -185,7 +198,7 @@ const FunctionSignature *GenomicElementType::SignatureForMethod(std::string cons
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -223,12 +236,12 @@ ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name,
 		mutation_type_ptrs_ = mutation_types;
 		mutation_fractions_ = mutation_fractions;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

@@ -705,7 +705,7 @@ using std::string;
 		return nil;			// unknown symbol at the root, so we have no idea what's going on
 	if (key_path_value->Type() != ScriptValueType::kValueObject)
 	{
-		if (!key_path_value->InSymbolTable()) delete key_path_value;
+		if (key_path_value->IsTemporary()) delete key_path_value;
 		return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
 	}
 	
@@ -715,14 +715,14 @@ using std::string;
 		
 		ScriptValue *property_value = ((ScriptValue_Object *)key_path_value)->GetRepresentativeValueOrNullForMemberOfElements(identifier_name);
 		
-		if (!key_path_value->InSymbolTable()) delete key_path_value;
+		if (key_path_value->IsTemporary()) delete key_path_value;
 		key_path_value = property_value;
 		
 		if (!key_path_value)
 			return nil;			// unknown symbol at the root, so we have no idea what's going on
 		if (key_path_value->Type() != ScriptValueType::kValueObject)
 		{
-			if (!key_path_value->InSymbolTable()) delete key_path_value;
+			if (key_path_value->IsTemporary()) delete key_path_value;
 			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
 		}
 	}
@@ -750,7 +750,7 @@ using std::string;
 	}
 	
 	// Dispose of our terminus
-	if (!terminus->InSymbolTable()) delete terminus;
+	if (terminus->IsTemporary()) delete terminus;
 	
 	return candidates;
 }

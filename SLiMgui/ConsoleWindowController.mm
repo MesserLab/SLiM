@@ -241,12 +241,15 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		return nil;
 	}
 	
+	// Ensure that we have a symbol table; this used to be done by ScriptInterpreter but now we're responsible
+	if (!global_symbols)
+		global_symbols = new SymbolTable();
+	
 	// Interpret the parsed block
 	if (delegate)
 		[delegate willExecuteScript];
 	
-	ScriptInterpreter interpreter(script, global_symbols);		// give the interpreter the symbol table
-	global_symbols = nullptr;
+	ScriptInterpreter interpreter(script, *global_symbols);		// give the interpreter the symbol table
 	
 	// Give our delegate a chance to add variables and other context to the interpreter
 	if (delegate)
@@ -259,7 +262,6 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		
 		result = interpreter.EvaluateInterpreterBlock();
 		output = interpreter.ExecutionOutput();
-		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back
 		
 		// reload outline view to show new global symbols, in case they have changed
 		[browserController reloadBrowser];
@@ -277,10 +279,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 			[delegate didExecuteScript];
 		
 		output = interpreter.ExecutionOutput();
-		global_symbols = interpreter.YieldSymbolTable();			// take the symbol table back despite the raise
 		
 		string raise_msg = GetUntrimmedRaiseMessage();
-		
 		*errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
 		
 		return [NSString stringWithUTF8String:output.c_str()];

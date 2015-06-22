@@ -37,6 +37,8 @@
 class MutationType : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	
+	SymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
 
 public:
 	
@@ -65,12 +67,16 @@ public:
 #else
 	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 #endif
+	~MutationType(void);
 	
 	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE
 	
 	//
 	// SLiMscript support
 	//
+	void GenerateCachedSymbolTableEntry(void);
+	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	
 	virtual std::string ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -81,7 +87,7 @@ public:
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 };
 
 // support stream output of MutationType, for debugging

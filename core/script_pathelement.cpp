@@ -156,7 +156,7 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (p_method_name.compare("files") == 0)
 	{
@@ -184,7 +184,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		{
 			// would be nice to emit an error message, but at present we don't have access to the stream...
 			//p_output_stream << "Path " << path << " could not be opened." << endl;
-			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 		}
 	}
 	else if (p_method_name.compare("readFile") == 0)
@@ -205,8 +205,8 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		if (!file_stream.is_open())
 		{
 			// not a fatal error, just a warning log
-			p_output_stream << "WARNING: File at path " << file_path << " could not be read." << endl;
-			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+			p_interpreter.ExecutionOutputStream() << "WARNING: File at path " << file_path << " could not be read." << endl;
+			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 		}
 		
 		ScriptValue_String *string_result = new ScriptValue_String();
@@ -218,7 +218,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		if (file_stream.bad())
 		{
 			// not a fatal error, just a warning log
-			p_output_stream << "WARNING: Stream errors occurred while reading file at path " << file_path << "." << endl;
+			p_interpreter.ExecutionOutputStream() << "WARNING: Stream errors occurred while reading file at path " << file_path << "." << endl;
 		}
 		
 		return string_result;
@@ -245,8 +245,8 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		if (!file_stream.is_open())
 		{
 			// Not a fatal error, just a warning log
-			p_output_stream << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
-			return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
+			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 		}
 		
 		for (int value_index = 0; value_index < arg1_count; ++value_index)
@@ -260,14 +260,14 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		if (file_stream.bad())
 		{
 			// Not a fatal error, just a warning log
-			p_output_stream << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
+			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 	}
 }
 

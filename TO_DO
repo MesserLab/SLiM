@@ -26,11 +26,25 @@ SLiMscript:
 
 SLiMscript optimization:
 	Instrument first to see where the slow parts are
-	SLiMScriptBlock could evaluate its tree to see whether it is invariant; evaluate once (or once per generation at least) and cache the result
-	Optimize the addition of functions, methods, symbols; if they are not used they don't need to be added, or could be shared anyway
+		0:96 runtime for profile_fitness.txt
+		0:43 after making the built-in function map statically allocated
+		0:38 after adding statically allocated SLiMscript constants
+		0:24 after adding cached ScriptValue objects to represent SLiM globals
+		0:20 after optimizing SymbolTable setup with static cached std::pairs
+		0:19 after switching to lazy construction of output streams
+		0:15 after taking SymbolTable off std::map
+		0:10 after switching to external string pointers for predefined symbol names
+		0:03 after smart injection of symbols based on a pre-scan of the tree
+		0:01.7 after caching of pre-evaluated constant numbers and strings
+		0:01.4 after switching to static instances for NULLs
+		0:01.3 after making ScriptInterpreter use a SymbolTable reference
+		0:00.86 after adding smart injection to SymbolTable
+		0:00.59 after adding a built-in buffer to SymbolTable
+		0:00.27 after adding constant script short-circuiting
 	Switch to heterogeneous nodes – avoid overhead of EvaluateNode
-	Add caching of evaluated values for numbers, strings, caching of integer indices for known identifiers (method/function names)
-	Function lookup should involve only a switch on an integer, no string comparison
+	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
+	Caching of statically allocated logical values for T/F in the tree, as with numbers and strings
+	Callbacks could allocate some ScriptValue objects for parameters outside the main loop, mark them as statically allocated, and reuse them
 	
 SLiMgui work:
 	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.

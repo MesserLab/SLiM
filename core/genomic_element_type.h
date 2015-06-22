@@ -47,6 +47,8 @@ private:
 	
 	gsl_ran_discrete_t *lookup_mutation_type = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
 	
+	SymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	
 public:
 	
 	int genomic_element_type_id_;										// the id by which this genomic element type is indexed in the chromosome
@@ -64,6 +66,9 @@ public:
 	//
 	// SLiMscript support
 	//
+	void GenerateCachedSymbolTableEntry(void);
+	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	
 	virtual std::string ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -74,7 +79,7 @@ public:
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 };
 
 // support stream output of GenomicElementType, for debugging

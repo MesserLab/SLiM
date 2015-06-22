@@ -35,6 +35,7 @@
 #include "script.h"
 #include "script_value.h"
 #include "script_functions.h"
+#include "script_symbols.h"
 
 
 // typedefs used to set up our map table of FunctionSignature objects
@@ -52,8 +53,9 @@ class ScriptInterpreter
 	
 private:
 	const ScriptASTNode *root_node_;				// not owned
-	SymbolTable *global_symbols_ = nullptr;			// OWNED POINTERS: identifiers to ScriptValues
-	FunctionMap function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
+	SymbolTable &global_symbols_;					// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
+	FunctionMap *function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
+													// the function_map_ pointer itself is owned, and will be deleted unless it is the static built-in map
 	
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
@@ -63,10 +65,10 @@ private:
 	// flags and streams for execution logging – a trace of the DFS of the parse tree
 	bool logging_execution_ = false;
 	int execution_log_indent_ = 0;
-	std::ostringstream execution_log_;
+	std::ostringstream *execution_log_ = nullptr;		// allocated lazily
 	
 	// an output stream for output from executed nodes and functions; this goes into the user's console
-	std::ostringstream execution_output_;
+	std::ostringstream *execution_output_ = nullptr;	// allocated lazily
 	
 public:
 	
@@ -74,10 +76,8 @@ public:
 	ScriptInterpreter& operator=(const ScriptInterpreter&) = delete;		// no copying
 	ScriptInterpreter(void) = delete;										// no null construction
 	
-	ScriptInterpreter(const Script &p_script);
-	ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols);					// the receiver takes ownership of the passed symbol table
-	ScriptInterpreter(const ScriptASTNode *p_root_node_);
-	ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable *p_symbols);		// the receiver takes ownership of the passed symbol table
+	ScriptInterpreter(const Script &p_script, SymbolTable &p_symbols);					// we use the passed symbol table but do not own it
+	ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable &p_symbols);		// we use the passed symbol table but do not own it
 	void SharedInitialization(void);
 	
 	~ScriptInterpreter(void);												// destructor
@@ -88,10 +88,10 @@ public:
 	bool ShouldLogExecution(void);
 	std::string ExecutionLog(void);
 	
+	std::ostringstream &ExecutionOutputStream(void);	// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	SymbolTable &BorrowSymbolTable(void);			// the returned pointer is owned by the interpreter, borrowed by the caller
-	SymbolTable *YieldSymbolTable(void);			// the returned pointer is owned by the caller, and the receiver nulls out its symbol table pointer
+	SymbolTable &GetSymbolTable(void);						// the returned reference is to the symbol table that the interpreter has borrowed
 	
 	// Evaluation methods; the caller owns the returned ScriptValue object
 	ScriptValue *EvaluateScriptBlock(void);			// the starting point for script blocks in SLiM simulations, which require braces
@@ -137,11 +137,12 @@ public:
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const FunctionSignature *> &BuiltInFunctions(void);
-	void RegisterSignature(const FunctionSignature *p_signature);
-	void RegisterBuiltInFunctions(void);
+	static FunctionMap *BuiltInFunctionMap(void);
 	
-	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
-	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream);
+	inline void RegisterFunctionMap(FunctionMap *p_function_map) { function_map_ = p_function_map; };
+	
+	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, std::vector<ScriptValue*> const &p_arguments);
 	
 	// Utility static methods
 	static int64_t IntForNumberToken(const ScriptToken *p_token);

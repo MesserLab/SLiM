@@ -157,7 +157,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 //
 #pragma mark ScriptValue
 
-ScriptValue::ScriptValue(const ScriptValue &p_original) : in_symbol_table_(false), invisible_(false)	// doesn't use original for these flags
+ScriptValue::ScriptValue(const ScriptValue &p_original) : in_symbol_table_(false), externally_owned_(false), invisible_(false)	// doesn't use original for these flags
 {
 #pragma unused(p_original)
 }
@@ -170,19 +170,21 @@ ScriptValue::~ScriptValue(void)
 {
 }
 
-bool ScriptValue::Invisible(void) const
-{
-	return invisible_;
-}
-
-bool ScriptValue::InSymbolTable(void) const
-{
-	return in_symbol_table_;
-}
-
 ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
 {
 	in_symbol_table_ = p_in_symbol_table;
+	return this;
+}
+
+ScriptValue *ScriptValue::SetExternallyOwned(bool p_externally_owned)
+{
+	externally_owned_ = p_externally_owned;
+	
+	// these flags are not really independent; if an object is externally owned, it is treated as already being in a symbol table, too
+	// this would happen soon enough, when it got added to the symbol table; so we might as well do it here to keep it consistent
+	if (p_externally_owned)
+		in_symbol_table_ = true;
+	
 	return this;
 }
 
@@ -242,13 +244,31 @@ ScriptValue_NULL::~ScriptValue_NULL(void)
 {
 }
 
-/* static */ ScriptValue_NULL *ScriptValue_NULL::ScriptValue_NULL_Invisible(void)
+/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL(void)
 {
-	ScriptValue_NULL *new_null = new ScriptValue_NULL();
+	static ScriptValue_NULL *static_null = nullptr;
 	
-	new_null->invisible_ = true;
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL();
+		static_null->SetExternallyOwned(true);
+	}
 	
-	return new_null;
+	return static_null;
+}
+
+/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL_Invisible(void)
+{
+	static ScriptValue_NULL *static_null = nullptr;
+	
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL();
+		static_null->invisible_ = true;
+		static_null->SetExternallyOwned(true);
+	}
+	
+	return static_null;
 }
 
 ScriptValueType ScriptValue_NULL::Type(void) const
@@ -1153,7 +1173,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 	ScriptValue *first_result = values_[0]->GetValueForMember(p_property);
 	ScriptValueType property_type = first_result->Type();
 	
-	if (!first_result->InSymbolTable()) delete first_result;
+	if (first_result->IsTemporary()) delete first_result;
 	
 	// switch on the property type for efficiency
 	switch (property_type)
@@ -1179,7 +1199,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<bool, ScriptObjectElement*>(temp_result->LogicalAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1213,7 +1233,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<int64_t, ScriptObjectElement*>(temp_result->IntAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1247,7 +1267,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<double, ScriptObjectElement*>(temp_result->FloatAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1281,7 +1301,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				
 				sortable_pairs.push_back(std::pair<std::string, ScriptObjectElement*>(temp_result->StringAtIndex(0), value));
 				
-				if (!temp_result->InSymbolTable()) delete temp_result;
+				if (temp_result->IsTemporary()) delete temp_result;
 			}
 			
 			// sort the vector of pairs
@@ -1323,7 +1343,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1347,7 +1367,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
-			delete temp_value;
+			if (temp_value->IsTemporary()) delete temp_value;
 		
 		return result;
 	}
@@ -1404,7 +1424,7 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 				
 				values_[value_idx]->SetValueForMember(p_member_name, temp_rvalue);
 				
-				delete temp_rvalue;
+				if (temp_rvalue->IsTemporary()) delete temp_rvalue;
 			}
 		}
 		else
@@ -1432,31 +1452,31 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::s
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
 		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
 		// call the method on one member only, since it is a class method
-		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 		
 		return result;
 	}
 }
 
-ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1464,14 +1484,14 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 		vector<ScriptValue*> results;
 		
 		for (auto value : values_)
-			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter));
+			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_interpreter));
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
 		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::ExecuteMethod", results);
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
-			delete temp_value;
+			if (temp_value->IsTemporary()) delete temp_value;
 		
 		return result;
 	}
@@ -1599,12 +1619,14 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
-ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare("str") == 0)		// instance method
 	{
-		p_output_stream << ElementType() << ":" << endl;
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << ElementType() << ":" << endl;
 		
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
@@ -1621,28 +1643,29 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			int member_count = member_value->Count();
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			p_output_stream << "\t";
+			output_stream << "\t";
 			
 			if (member_count <= 2)
-				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
+				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
 			else
 			{
 				ScriptValue *first_value = member_value->GetValueAtIndex(0);
 				ScriptValue *second_value = member_value->GetValueAtIndex(1);
 				
-				p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
 				
-				if (!first_value->InSymbolTable()) delete first_value;
-				if (!second_value->InSymbolTable()) delete second_value;
+				if (first_value->IsTemporary()) delete first_value;
+				if (second_value->IsTemporary()) delete second_value;
 			}
 			
-			if (!member_value->InSymbolTable()) delete member_value;
+			if (member_value->IsTemporary()) delete member_value;
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else if (p_method_name.compare("property") == 0)		// class method
 	{
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
@@ -1664,19 +1687,20 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			ScriptValue *member_value = GetValueForMember(member_name);
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 			
-			p_output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
+			output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
 			
-			if (!member_value->InSymbolTable()) delete member_value;
+			if (member_value->IsTemporary()) delete member_value;
 			signature_found = true;
 		}
 		
 		if (has_match_string && !signature_found)
-			p_output_stream << "No property found for \"" << match_string << "\"." << endl;
+			output_stream << "No property found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else if (p_method_name.compare("method") == 0)		// class method
 	{
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
 		std::vector<std::string> method_names = Methods();
@@ -1693,14 +1717,14 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			
 			const FunctionSignature *method_signature = SignatureForMethod(method_name);
 			
-			p_output_stream << *method_signature << endl;
+			output_stream << *method_signature << endl;
 			signature_found = true;
 		}
 		
 		if (has_match_string && !signature_found)
-			p_output_stream << "No method signature found for \"" << match_string << "\"." << endl;
+			output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1713,7 +1737,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		// Otherwise, we have an unrecognized method, so throw
 		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 }
 

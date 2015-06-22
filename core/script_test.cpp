@@ -54,6 +54,7 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 {
 	Script script(p_script_string, 0);
 	ScriptValue *result = nullptr;
+	SymbolTable symbolTable;
 	
 	gTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
@@ -76,7 +77,7 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 	}
 	
 	try {
-		ScriptInterpreter interpreter(script);
+		ScriptInterpreter interpreter(script, symbolTable);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		
@@ -127,12 +128,13 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 void AssertScriptRaise(string p_script_string)
 {
 	Script script(p_script_string, 0);
+	SymbolTable symbolTable;
 	
 	try {
 		script.Tokenize();
 		script.ParseInterpreterBlockToAST();
 		
-		ScriptInterpreter interpreter(script);
+		ScriptInterpreter interpreter(script, symbolTable);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		

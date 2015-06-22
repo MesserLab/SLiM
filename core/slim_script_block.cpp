@@ -126,6 +126,8 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 	
 	if (child_index != n_children)
 		SLIM_TERMINATION << "ERROR (InitializeFromFile): unexpected node in SLiMScriptBlock" << slim_terminate();
+	
+	ScanTree();
 }
 
 SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end)
@@ -144,17 +146,167 @@ SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScri
 		SLIM_TERMINATION << "ERROR (SLiMScriptBlock::SLiMScriptBlock): script blocks must be compound statements." << slim_terminate();
 	
 	compound_statement_node_ = root_node_->children_[0];
+	
+	ScanTree();
 }
 
 SLiMScriptBlock::~SLiMScriptBlock(void)
 {
 	delete script_;
+	
+	if (self_symbol_)
+		delete self_symbol_;
+	if (script_block_symbol_)
+		delete script_block_symbol_;
+}
+
+void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
+{
+	if (p_scan_node->token_->token_type_ == TokenType::kTokenIdentifier)
+	{
+		const std::string &token_string = p_scan_node->token_->token_string_;
+		
+		if (token_string.compare("executeLambda") == 0)		contains_wildcard_ = true;
+		if (token_string.compare("globals") == 0)			contains_wildcard_ = true;
+		
+		if (token_string.compare("T") == 0)					contains_T_ = true;
+		if (token_string.compare("F") == 0)					contains_F_ = true;
+		if (token_string.compare("NULL") == 0)				contains_NULL_ = true;
+		if (token_string.compare("PI") == 0)				contains_PI_ = true;
+		if (token_string.compare("E") == 0)					contains_E_ = true;
+		if (token_string.compare("INF") == 0)				contains_INF_ = true;
+		if (token_string.compare("NAN") == 0)				contains_NAN_ = false;
+		
+		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
+		if (token_string.length() >= 2)
+		{
+			char char2 = token_string[1];
+			
+			if ((char2 >= '0') && (char2 <= '9'))
+			{
+				char char1 = token_string[0];
+				
+				if (char1 == 'p')							contains_pX_ = true;
+				if (char1 == 'g')							contains_gX_ = true;
+				if (char1 == 'm')							contains_mX_ = true;
+				if (char1 == 's')							contains_sX_ = true;
+			}
+		}
+		
+		if (token_string.compare("sim") == 0)				contains_sim_ = true;
+		if (token_string.compare("self") == 0)				contains_self_ = true;
+		
+		if (token_string.compare("mut") == 0)				contains_mut_ = true;
+		if (token_string.compare("relFitness") == 0)		contains_relFitness_ = true;
+		if (token_string.compare("genome1") == 0)			contains_genome1_ = true;
+		if (token_string.compare("genome2") == 0)			contains_genome2_ = true;
+		if (token_string.compare("subpop") == 0)			contains_subpop_ = true;
+		if (token_string.compare("homozygous") == 0)		contains_homozygous_ = true;
+		if (token_string.compare("sourceSubpop") == 0)		contains_sourceSubpop_ = false;
+		if (token_string.compare("weights") == 0)			contains_weights_ = false;
+		if (token_string.compare("childGenome1") == 0)		contains_childGenome1_ = false;
+		if (token_string.compare("childGenome2") == 0)		contains_childGenome2_ = false;
+		if (token_string.compare("childIsFemale") == 0)		contains_childIsFemale_ = false;
+		if (token_string.compare("parent1Genome1") == 0)	contains_parent1Genome1_ = false;
+		if (token_string.compare("parent1Genome2") == 0)	contains_parent1Genome2_ = false;
+		if (token_string.compare("isSelfing") == 0)			contains_isSelfing_ = false;
+		if (token_string.compare("parent2Genome1") == 0)	contains_parent2Genome1_ = false;
+		if (token_string.compare("parent2Genome2") == 0)	contains_parent2Genome2_ = false;
+	}
+	
+	// recurse down the tree
+	for (auto child : p_scan_node->children_)
+		_ScanNodeForIdentifiers(child);
+}
+
+void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (const ScriptASTNode *child : p_scan_node->children_)
+		_ScanNodeForConstants(child);
+	
+	// now find constant expressions and make ScriptValues for them
+	TokenType token_type = p_scan_node->token_->token_type_;
+	
+	if (token_type == TokenType::kTokenNumber)
+	{
+		const std::string &number_string = p_scan_node->token_->token_string_;
+		
+		// This is taken from ScriptInterpreter::Evaluate_Number and needs to match exactly!
+		ScriptValue *result = nullptr;
+		
+		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+			result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
+		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
+			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+		else
+			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+		
+		result->SetExternallyOwned(true);
+		
+		p_scan_node->cached_value_ = result;
+		p_scan_node->cached_value_is_owned_ = true;
+	}
+	else if (token_type == TokenType::kTokenString)
+	{
+		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
+		ScriptValue *result = new ScriptValue_String(p_scan_node->token_->token_string_);
+		
+		result->SetExternallyOwned(true);
+		
+		p_scan_node->cached_value_ = result;
+		p_scan_node->cached_value_is_owned_ = true;
+	}
+	else if ((token_type == TokenType::kTokenReturn) || (token_type == TokenType::kTokenLBrace))
+	{
+		// These are node types which can propagate a single constant value upward.  Note that this is not strictly
+		// true; both return and compound statements have side effects on the flow of execution.  It would therefore
+		// be inappropriate for their execution to be short-circuited in favor of a constant value in general; but
+		// that is not what this optimization means.  Rather, it means that these nodes are saying "I've got just a
+		// constant value inside me, so *if* nothing else is going on around me, I can be taken as equal to that
+		// constant."  We honor that conditional statement by only checking for the cached constant in specific places.
+		if (p_scan_node->children_.size() == 1)
+		{
+			const ScriptASTNode *child = p_scan_node->children_[0];
+			ScriptValue *cached_value = child->cached_value_;
+			
+			if (cached_value)
+			{
+				p_scan_node->cached_value_ = cached_value;
+				p_scan_node->cached_value_is_owned_ = false;	// somebody below us owns the value
+			}
+		}
+	}
+}
+
+void SLiMScriptBlock::ScanTree(void)
+{
+	_ScanNodeForIdentifiers(compound_statement_node_);
+	_ScanNodeForConstants(compound_statement_node_);
 }
 
 
 //
 // SLiMscript support
 //
+
+void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
+{
+	self_symbol_ = new SymbolTableEntry("self", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
+void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
+{
+	if (block_id_ == -1)
+		SLIM_TERMINATION << "ERROR (SLiMScriptBlock::GenerateCachedSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << slim_terminate();
+	
+	std::ostringstream script_stream;
+	
+	script_stream << "s" << block_id_;
+	
+	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string SLiMScriptBlock::ElementType(void) const
 {
 	return "SLiMScriptBlock";
@@ -255,9 +407,9 @@ const FunctionSignature *SLiMScriptBlock::SignatureForMethod(std::string const &
 	return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMScriptBlock::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMScriptBlock::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

@@ -17,6 +17,17 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ 
+ A symbol table is basically just a map of identifiers to ScriptValue objects.  However, there are some additional smarts,
+ particularly where memory management is concerned.  ScriptValue objects can have one of three memory management statuses:
+ (1) temporary, such that the current scope owns the value and should delete it before exiting, (2) externally owned, such that
+ the SymbolTable machinery just handles the pointer but does not delete it, or (3) in a symbol table, such that temporary users
+ of the object do not delete it, but the SymbolTable will delete it if it is removed from the table.  It used to be implemented
+ with C++'s std::map, but that was very slow to construct and destruct, so I've shifted to a pure C implementation for speed.
+ 
+ */
+
 #ifndef __SLiM__script_symbols__
 #define __SLiM__script_symbols__
 
@@ -27,32 +38,61 @@
 
 
 class ScriptValue;
+class SLiMScriptBlock;
 
 
-// A symbol table is basically just a C++ map of identifiers to ScriptValue objects
+// This is used by ReplaceConstantSymbolEntry for fast setup / teardown
+typedef std::pair<std::string, ScriptValue*> SymbolTableEntry;
+
+
+// This is what SymbolTable now uses internally
+typedef struct {
+	std::string *symbol_name_;			// ownership is defined by symbol_name_externally_owned_, below
+	int symbol_name_length_;			// used to make scanning of the symbol table faster
+	ScriptValue *symbol_value_;			// ownership is defined by the flags in ScriptValue
+	bool symbol_is_const_;				// T if const, F is variable
+	bool symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
+} SymbolTableSlot;
+
+// As an optimization, SymbolTable contains a small buffer within itself, of this size, to avoid malloc/free
+// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room
+#define SLIM_SYMBOL_TABLE_BASE_SIZE		30
+
 class SymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	std::map<const std::string, ScriptValue*> constants_;
-	std::map<const std::string, ScriptValue*> variables_;
+	SymbolTableSlot *symbols_;					// all our symbols
+	int symbol_count_;							// the number of symbol table slots actually used
+	int symbol_capacity_;						// the number of symbol table slots currently allocated
+	
+	SymbolTableSlot non_malloc_symbols[SLIM_SYMBOL_TABLE_BASE_SIZE];	// a base buffer, used to avoid malloc/free for simple scripts
 	
 public:
 	
-	SymbolTable(const SymbolTable&) = delete;				// no copying
-	SymbolTable& operator=(const SymbolTable&) = delete;	// no copying
-	SymbolTable(void);										// standard constructor
-	virtual ~SymbolTable(void);								// destructor
+	SymbolTable(const SymbolTable&) = delete;							// no copying
+	SymbolTable& operator=(const SymbolTable&) = delete;				// no copying
+	explicit SymbolTable(SLiMScriptBlock *script_block = nullptr);		// standard constructor
+	~SymbolTable(void);													// destructor
 	
 	// member access; these are variables defined in the global namespace
-	virtual std::vector<std::string> ReadOnlySymbols(void) const;
-	virtual std::vector<std::string> ReadWriteSymbols(void) const;
-	virtual ScriptValue *GetValueForSymbol(const std::string &p_symbol_name) const;
-	virtual ScriptValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
-	virtual void SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
-	virtual void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
-	virtual void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
+	std::vector<std::string> ReadOnlySymbols(void) const;
+	std::vector<std::string> ReadWriteSymbols(void) const;
+	ScriptValue *GetValueForSymbol(const std::string &p_symbol_name) const;
+	ScriptValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
+	void SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
+	void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
+	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
+	
+	// a special-purpose method used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
+	// the name string in the SymbolTableEntry is assumed to be statically defined, or long-lived enough that we can take a pointer to it
+	// for our entire lifetime; so this is not a general-purpose method, it is specifically for a very specialized init case!
+	void InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry);
+	
+	// internal
+	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);
+	int _AllocateNewSlot(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols);

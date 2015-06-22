@@ -48,6 +48,12 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << slim_terminate();
 }
 
+MutationType::~MutationType(void)
+{
+	if (self_symbol_)
+		delete self_symbol_;
+}
+
 double MutationType::DrawSelectionCoefficient() const
 {
 	switch (dfe_type_)
@@ -90,6 +96,16 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 //
 // SLiMscript support
 //
+
+void MutationType::GenerateCachedSymbolTableEntry(void)
+{
+	std::ostringstream mut_type_stream;
+	
+	mut_type_stream << "m" << mutation_type_id_;
+	
+	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 std::string MutationType::ElementType(void) const
 {
 	return "MutationType";
@@ -176,7 +192,7 @@ const FunctionSignature *MutationType::SignatureForMethod(std::string const &p_m
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -213,12 +229,12 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 		dfe_type_ = dfe_type;
 		dfe_parameters_ = dfe_parameters;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

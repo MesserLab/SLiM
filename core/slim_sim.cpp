@@ -106,6 +106,9 @@ SLiMSim::~SLiMSim(void)
 	// We should not have any interpreter instances that still refer to us
 	for (FunctionSignature *signature : sim_0_signatures)
 		delete signature;
+	
+	if (self_symbol_)
+		delete self_symbol_;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &infile)
@@ -594,18 +597,23 @@ void SLiMSim::RunToEnd(void)
 //
 #pragma mark SLiMscript support
 
+void SLiMSim::GenerateCachedSymbolTableEntry(void)
+{
+	self_symbol_ = new SymbolTableEntry("sim", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+}
+
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
 	
-	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_output_stream, p_interpreter);
+	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_interpreter);
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
-#pragma unused(p_output_stream, p_interpreter)
+#pragma unused(p_interpreter)
 	
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -969,7 +977,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 	}
 	
 	// the zero-generation functions all return invisible NULL
-	return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 }
 
 std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
@@ -998,91 +1006,58 @@ std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 
 void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block)
 {
-	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
+	SymbolTable &global_symbols = p_interpreter.GetSymbolTable();
+	bool script_has_wildcard = (p_script_block ? p_script_block->contains_wildcard_ : true);	// if a wildcard is present, we must inject all
 	
-	// A constant for reference to the SLiMScriptBlock
-	global_symbols.RemoveValueForSymbol("self", true);	// we have to remove each time because you can't overwrite a constant
-	if (p_script_block)
-		global_symbols.SetConstantForSymbol("self", new ScriptValue_Object(p_script_block));
+	// A constant for reference to the SLiMScriptBlock, self
+	if (p_script_block && (script_has_wildcard || p_script_block->contains_self_))
+		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
-	std::vector<FunctionSignature*> *signatures = InjectedFunctionSignatures();
-	
-	if (signatures)
+	if (generation_ == 0)
 	{
-		for (FunctionSignature *signature : *signatures)
-			p_interpreter.RegisterSignature(signature);
+		std::vector<FunctionSignature*> *signatures = InjectedFunctionSignatures();
+		
+		if (signatures)
+		{
+			// construct a new map based on the built-in map, add our functions, and register it, which gives the pointer to the interpreter
+			// this is slow, but it doesn't matter; if we start adding functions outside of zero-gen, this will need to be revisited
+			FunctionMap *derived_function_map = new FunctionMap(*ScriptInterpreter::BuiltInFunctionMap());
+			
+			for (FunctionSignature *signature : *signatures)
+				derived_function_map->insert(FunctionMapPair(signature->function_name_, signature));
+			
+			p_interpreter.RegisterFunctionMap(derived_function_map);
+		}
 	}
 	
 	// Inject for generations > 0 : no zero-generation functions, but global symbols
 	if (generation_ != 0)
 	{
-		// A constant for reference to the simulation
-		global_symbols.RemoveValueForSymbol("sim", true);	// we have to remove each time because you can't overwrite a constant
-		global_symbols.SetConstantForSymbol("sim", new ScriptValue_Object(this));
+		// A constant for reference to the simulation, sim
+		if (script_has_wildcard || p_script_block->contains_sim_)
+			global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
 		
-		// Add constants for our genomic element types
-		for (auto getype_pair : genomic_element_types_)
-		{
-			GenomicElementType *getype_type = getype_pair.second;
-			int id = getype_type->genomic_element_type_id_;
-			std::ostringstream getype_stream;
-			
-			getype_stream << "g" << id;
-			
-			std::string getype_string = getype_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(getype_string, true);
-			global_symbols.SetConstantForSymbol(getype_string, new ScriptValue_Object(getype_type));
-		}
+		// Add constants for our genomic element types, like g1, g2, ...
+		if (script_has_wildcard || p_script_block->contains_gX_)
+			for (auto getype_pair : genomic_element_types_)
+				global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our mutation types
-		for (auto mut_type_pair : mutation_types_)
-		{
-			MutationType *mut_type = mut_type_pair.second;
-			int id = mut_type->mutation_type_id_;
-			std::ostringstream mut_type_stream;
-			
-			mut_type_stream << "m" << id;
-			
-			std::string mut_type_string = mut_type_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(mut_type_string, true);
-			global_symbols.SetConstantForSymbol(mut_type_string, new ScriptValue_Object(mut_type));
-		}
+		// Add constants for our mutation types, like m1, m2, ...
+		if (script_has_wildcard || p_script_block->contains_mX_)
+			for (auto mut_type_pair : mutation_types_)
+				global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our subpopulations
-		for (auto pop_pair : population_)
-		{
-			Subpopulation *subpop = pop_pair.second;
-			int id = pop_pair.first;
-			std::ostringstream subpop_stream;
-			
-			subpop_stream << "p" << id;
-			
-			std::string subpop_string = subpop_stream.str();
-			
-			global_symbols.RemoveValueForSymbol(subpop_string, true);
-			global_symbols.SetConstantForSymbol(subpop_string, new ScriptValue_Object(subpop));
-		}
+		// Add constants for our subpopulations, like p1, p2, ...
+		if (script_has_wildcard || p_script_block->contains_pX_)
+			for (auto pop_pair : population_)
+				global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
 		
-		// Add constants for our scripts
-		for (SLiMScriptBlock *script_block : script_blocks_)
-		{
-			int id = script_block->block_id_;
-			
-			if (id != -1)	// add symbols only for non-anonymous blocks
-			{
-				std::ostringstream script_stream;
-				
-				script_stream << "s" << id;
-				
-				std::string script_string = script_stream.str();
-				
-				global_symbols.RemoveValueForSymbol(script_string, true);
-				global_symbols.SetConstantForSymbol(script_string, new ScriptValue_Object(script_block));
-			}
-		}
+		// Add constants for our scripts, like s1, s2, ...
+		if (script_has_wildcard || p_script_block->contains_sX_)
+			for (SLiMScriptBlock *script_block : script_blocks_)
+				if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
+					global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 	}
 }
 
@@ -1343,7 +1318,7 @@ const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	int num_arguments = (int)p_arguments.size();
 	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
@@ -1404,7 +1379,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		for (int block_index = 0; block_index < block_count; ++block_index)
 			scheduled_deregistrations_.push_back((SLiMScriptBlock *)(arg0_value->ElementAtIndex(block_index)));
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
@@ -1524,7 +1499,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			subs[i]->print(SLIM_OUTSTREAM);
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
@@ -1564,7 +1539,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			}
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
@@ -1615,7 +1590,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			}
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
@@ -1630,7 +1605,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		
 		InitializePopulationFromFile(file_path.c_str());
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	
@@ -1761,7 +1736,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_output_stream, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

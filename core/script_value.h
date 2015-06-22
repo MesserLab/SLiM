@@ -97,6 +97,7 @@ class ScriptValue
 private:
 	
 	bool in_symbol_table_ = false;							// if true, the value should not be deleted, as it is owned by the symbol table
+	bool externally_owned_ = false;							// if true, even the symbol table should not delete this ScriptValue; it is owned or statically allocated
 	
 protected:
 	
@@ -115,10 +116,15 @@ public:
 	virtual int Count(void) const = 0;						// the number of values in the vector
 	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
 	
-	bool Invisible(void) const;								// getter only; invisible objects must be made through construction or InvisibleCopy()
+	// getter only; invisible objects must be made through construction or InvisibleCopy()
+	inline bool Invisible(void) const							{ return invisible_; }
 	
-	bool InSymbolTable(void) const;
+	// memory management flags; see the comment in script_symbols.h
+	inline bool IsTemporary(void) const							{ return !(in_symbol_table_ || externally_owned_); };
+	inline bool InSymbolTable(void) const						{ return in_symbol_table_; }
+	inline bool ExternallyOwned(void) const						{ return externally_owned_; }
 	ScriptValue *SetInSymbolTable(bool p_in_symbol_table);
+	ScriptValue *SetExternallyOwned(bool p_externally_owned);
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
@@ -149,7 +155,8 @@ public:
 	ScriptValue_NULL(void);
 	virtual ~ScriptValue_NULL(void);
 	
-	static ScriptValue_NULL *ScriptValue_NULL_Invisible(void);		// factory method for invisible null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL(void);				// factory method for null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);	// factory method for invisible null objects, since that is a common need
 	
 	virtual ScriptValueType Type(void) const;
 	virtual int Count(void) const;
@@ -367,8 +374,8 @@ public:
 	
 	std::vector<std::string> MethodsOfElements(void) const;
 	const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
-	ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 };
 
 
@@ -403,7 +410,7 @@ public:
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 	
 	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
 	void TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask);

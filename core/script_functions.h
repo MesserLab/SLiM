@@ -144,7 +144,7 @@ enum class FunctionIdentifier {
 // functions with SLiMscript; this is how SLiM gets its functions into SLiMscript.  This registration is done with a delegate object and
 // a delegate function pointer (NOT a pointer to method).  This is the prototype for a function implementation delegate.  The function
 // pointed to will be called, and passed the delegate object along with other parameters for the function call.
-typedef ScriptValue *(*SLiMDelegateFunctionPtr)(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, std::ostream &p_output_stream, ScriptInterpreter &p_interpreter);
+typedef ScriptValue *(*SLiMDelegateFunctionPtr)(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 
 
 #endif /* defined(__SLiM__script_functions__) */
