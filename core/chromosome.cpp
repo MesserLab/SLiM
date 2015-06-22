@@ -357,7 +357,7 @@ ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::ve
 		
 		InitializeDraws();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	

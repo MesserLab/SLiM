@@ -229,7 +229,7 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 		dfe_type_ = dfe_type;
 		dfe_parameters_ = dfe_parameters;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	
 	

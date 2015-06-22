@@ -268,7 +268,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == ScriptValueType::kValueNULL)
-		return (all_invisible ? ScriptValue_NULL::ScriptValue_NULL_Invisible() : new ScriptValue_NULL());
+		return (all_invisible ? ScriptValue_NULL::Static_ScriptValue_NULL_Invisible() : ScriptValue_NULL::Static_ScriptValue_NULL());
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
 	if (highest_type == ScriptValueType::kValueLogical)
@@ -481,7 +481,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	
 	if (return_type_mask == kScriptValueMaskNULL)
 	{
-		null_result = ScriptValue_NULL::ScriptValue_NULL_Invisible();	// assumed that invisible is correct when the return type is NULL
+		null_result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();	// assumed that invisible is correct when the return type is NULL
 		result = null_result;
 	}
 	else if (return_type_mask == kScriptValueMaskLogical)
@@ -766,7 +766,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::maxFunction:
 			if (arg0_count == 0)
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
@@ -840,7 +840,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::minFunction:
 			if (arg0_count == 0)
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
@@ -904,7 +904,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rangeFunction:
 			if (arg0_count == 0)
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			else if (arg0_type == ScriptValueType::kValueInt)
 			{
@@ -970,7 +970,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			break;
 		}
@@ -1738,7 +1738,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::whichMaxFunction:
 			if (arg0_count == 0)
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			else
 			{
@@ -1793,7 +1793,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::whichMinFunction:
 			if (arg0_count == 0)
 			{
-				result = new ScriptValue_NULL();
+				result = ScriptValue_NULL::Static_ScriptValue_NULL();
 			}
 			else
 			{
@@ -2063,7 +2063,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	}
 	
 	// Deallocate any unused result pointers
-	if (null_result && (null_result != result)) delete null_result;
+	//if (null_result && (null_result != result)) delete null_result;		// null_result is a static
 	if (logical_result && (logical_result != result)) delete logical_result;
 	if (float_result && (float_result != result)) delete float_result;
 	if (int_result && (int_result != result)) delete int_result;

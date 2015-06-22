@@ -370,10 +370,10 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 			ScriptValue *second_value = symbol_value->GetValueAtIndex(1);
 			
 			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
-			if (!first_value->InSymbolTable()) delete first_value;
+			if (first_value->IsTemporary()) delete first_value;
 		}
 		
-		if (!symbol_value->InSymbolTable()) delete symbol_value;
+		if (symbol_value->IsTemporary()) delete symbol_value;
 	}
 	
 	return p_outstream;

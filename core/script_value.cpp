@@ -244,13 +244,31 @@ ScriptValue_NULL::~ScriptValue_NULL(void)
 {
 }
 
-/* static */ ScriptValue_NULL *ScriptValue_NULL::ScriptValue_NULL_Invisible(void)
+/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL(void)
 {
-	ScriptValue_NULL *new_null = new ScriptValue_NULL();
+	static ScriptValue_NULL *static_null = nullptr;
 	
-	new_null->invisible_ = true;
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL();
+		static_null->SetExternallyOwned(true);
+	}
 	
-	return new_null;
+	return static_null;
+}
+
+/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL_Invisible(void)
+{
+	static ScriptValue_NULL *static_null = nullptr;
+	
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL();
+		static_null->invisible_ = true;
+		static_null->SetExternallyOwned(true);
+	}
+	
+	return static_null;
 }
 
 ScriptValueType ScriptValue_NULL::Type(void) const
@@ -1325,7 +1343,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1349,7 +1367,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
-			delete temp_value;
+			if (temp_value->IsTemporary()) delete temp_value;
 		
 		return result;
 	}
@@ -1406,7 +1424,7 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 				
 				values_[value_idx]->SetValueForMember(p_member_name, temp_rvalue);
 				
-				delete temp_rvalue;
+				if (temp_rvalue->IsTemporary()) delete temp_rvalue;
 			}
 		}
 		else
@@ -1441,7 +1459,7 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1458,7 +1476,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1473,7 +1491,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
-			delete temp_value;
+			if (temp_value->IsTemporary()) delete temp_value;
 		
 		return result;
 	}
@@ -1643,7 +1661,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			if (member_value->IsTemporary()) delete member_value;
 		}
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else if (p_method_name.compare("property") == 0)		// class method
 	{
@@ -1678,7 +1696,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		if (has_match_string && !signature_found)
 			output_stream << "No property found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else if (p_method_name.compare("method") == 0)		// class method
 	{
@@ -1706,7 +1724,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		if (has_match_string && !signature_found)
 			output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 	else
 	{
@@ -1719,7 +1737,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		// Otherwise, we have an unrecognized method, so throw
 		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
 }
 

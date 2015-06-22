@@ -248,7 +248,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		*execution_log_ << IndentString(execution_log_indent_++) << "EvaluateInterpreterBlock() entered\n";
 	}
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	for (ScriptASTNode *child_node : root_node_->children_)
 	{
@@ -494,7 +494,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						
 						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, rvalue);
 						
-						delete temp_lvalue;
+						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 					}
 				}
 			}
@@ -511,7 +511,8 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						ScriptValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx);
 						
 						base_value->SetValueAtIndex(indices[value_idx], temp_rvalue);
-						delete temp_rvalue;
+						
+						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
 					}
 				}
 				else
@@ -528,8 +529,8 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						
 						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, temp_rvalue);
 						
-						delete temp_lvalue;
-						delete temp_rvalue;
+						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
+						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
 					}
 				}
 			}
@@ -649,7 +650,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NullStatement(const ScriptASTNode *p_no
 	if (p_node->children_.size() != 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_NullStatement): internal error (expected 0 children)." << slim_terminate();
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_NullStatement() : return == " << *result << "\n";
@@ -662,7 +663,7 @@ ScriptValue *ScriptInterpreter::Evaluate_CompoundStatement(const ScriptASTNode *
 	if (logging_execution_)
 		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_CompoundStatement() entered\n";
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
@@ -944,7 +945,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 	if (first_child_type == ScriptValueType::kValueNULL)
 	{
 		// Any subscript of NULL returns NULL
-		result = new ScriptValue_NULL();
+		result = ScriptValue_NULL::Static_ScriptValue_NULL();
 		
 		if (first_child_value->IsTemporary()) delete first_child_value;
 	}
@@ -2051,7 +2052,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Assign(const ScriptASTNode *p_node)
 	
 	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
 	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	// free our operand
 	if (rvalue->IsTemporary()) delete rvalue;
@@ -2610,7 +2611,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 		}
 		else										// no 'else' node, so the result is NULL
 		{
-			result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+			result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 		}
 	}
 	else
@@ -2687,7 +2688,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 	while (true);
 	
 	if (!result)
-		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Do() : return == " << *result << "\n";
@@ -2752,7 +2753,7 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 	}
 	
 	if (!result)
-		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_While() : return == " << *result << "\n";
@@ -2814,7 +2815,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 	}
 	
 	if (!result)
-		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+		result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	// free our range operand
 	if (range_value->IsTemporary()) delete range_value;
@@ -2838,7 +2839,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Next(const ScriptASTNode *p_node)
 	// methods and will cause them to return up to the for loop immediately; Evaluate_For will handle the flag.
 	next_statement_hit_ = true;
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Next() : return == " << *result << "\n";
@@ -2859,7 +2860,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Break(const ScriptASTNode *p_node)
 	// methods and will cause them to return up to the for loop immediately; Evaluate_For will handle the flag.
 	break_statement_hit_ = true;
 	
-	ScriptValue *result = ScriptValue_NULL::ScriptValue_NULL_Invisible();
+	ScriptValue *result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Break() : return == " << *result << "\n";
@@ -2882,7 +2883,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Return(const ScriptASTNode *p_node)
 	ScriptValue *result = nullptr;
 	
 	if (p_node->children_.size() == 0)
-		result = ScriptValue_NULL::ScriptValue_NULL_Invisible();	// default return value
+		result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();	// default return value
 	else
 		result = EvaluateNode(p_node->children_[0]);
 	

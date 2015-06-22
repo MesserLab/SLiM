@@ -155,7 +155,8 @@ public:
 	ScriptValue_NULL(void);
 	virtual ~ScriptValue_NULL(void);
 	
-	static ScriptValue_NULL *ScriptValue_NULL_Invisible(void);		// factory method for invisible null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL(void);				// factory method for null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);	// factory method for invisible null objects, since that is a common need
 	
 	virtual ScriptValueType Type(void) const;
 	virtual int Count(void) const;
