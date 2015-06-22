@@ -278,11 +278,10 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 		SymbolTableSlot *existing_symbol_slot_ptr = symbols_ + symbol_slot;
 		ScriptValue *existing_value = existing_symbol_slot_ptr->symbol_value_;
 		
+		// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
+		// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
 		if (!existing_value->ExternallyOwned())
 			delete existing_value;
-		
-		if (!existing_symbol_slot_ptr->symbol_name_externally_owned_)
-			delete existing_symbol_slot_ptr->symbol_name_;
 		
 		existing_symbol_slot_ptr->symbol_value_ = p_value;
 	}
