@@ -1006,7 +1006,7 @@ std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 
 void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block)
 {
-	SymbolTable &global_symbols = p_interpreter.BorrowSymbolTable();
+	SymbolTable &global_symbols = p_interpreter.GetSymbolTable();
 	bool script_has_wildcard = (p_script_block ? p_script_block->contains_wildcard_ : true);	// if a wildcard is present, we must inject all
 	
 	// A constant for reference to the SLiMScriptBlock, self

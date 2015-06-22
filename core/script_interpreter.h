@@ -35,6 +35,7 @@
 #include "script.h"
 #include "script_value.h"
 #include "script_functions.h"
+#include "script_symbols.h"
 
 
 // typedefs used to set up our map table of FunctionSignature objects
@@ -52,7 +53,7 @@ class ScriptInterpreter
 	
 private:
 	const ScriptASTNode *root_node_;				// not owned
-	SymbolTable *global_symbols_ = nullptr;			// OWNED POINTERS: identifiers to ScriptValues
+	SymbolTable &global_symbols_;					// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
 	FunctionMap *function_map_;						// NOT OWNED: a map table of FunctionSignature objects, keyed by function name
 													// the function_map_ pointer itself is owned, and will be deleted unless it is the static built-in map
 	
@@ -75,10 +76,8 @@ public:
 	ScriptInterpreter& operator=(const ScriptInterpreter&) = delete;		// no copying
 	ScriptInterpreter(void) = delete;										// no null construction
 	
-	ScriptInterpreter(const Script &p_script);
-	ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols);					// the receiver takes ownership of the passed symbol table
-	ScriptInterpreter(const ScriptASTNode *p_root_node_);
-	ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable *p_symbols);		// the receiver takes ownership of the passed symbol table
+	ScriptInterpreter(const Script &p_script, SymbolTable &p_symbols);					// we use the passed symbol table but do not own it
+	ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable &p_symbols);		// we use the passed symbol table but do not own it
 	void SharedInitialization(void);
 	
 	~ScriptInterpreter(void);												// destructor
@@ -92,8 +91,7 @@ public:
 	std::ostringstream &ExecutionOutputStream(void);	// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	SymbolTable &BorrowSymbolTable(void);			// the returned pointer is owned by the interpreter, borrowed by the caller
-	SymbolTable *YieldSymbolTable(void);			// the returned pointer is owned by the caller, and the receiver nulls out its symbol table pointer
+	SymbolTable &GetSymbolTable(void);						// the returned reference is to the symbol table that the interpreter has borrowed
 	
 	// Evaluation methods; the caller owns the returned ScriptValue object
 	ScriptValue *EvaluateScriptBlock(void);			// the starting point for script blocks in SLiM simulations, which require braces

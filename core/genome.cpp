@@ -335,7 +335,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 		
 		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-		SymbolTable &symbols = p_interpreter.BorrowSymbolTable();
+		SymbolTable &symbols = p_interpreter.GetSymbolTable();
 		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
@@ -366,7 +366,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 		
 		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-		SymbolTable &symbols = p_interpreter.BorrowSymbolTable();
+		SymbolTable &symbols = p_interpreter.GetSymbolTable();
 		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		

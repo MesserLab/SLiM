@@ -1967,7 +1967,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark globals
 		case FunctionIdentifier::globalsFunction:
-			ExecutionOutputStream() << *global_symbols_;
+			ExecutionOutputStream() << global_symbols_;
 			break;
 			
 #pragma mark help
@@ -2004,13 +2004,13 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			vector<string> symbols_to_remove;
 			
 			if (n_args == 0)
-				symbols_to_remove = global_symbols_->ReadWriteSymbols();
+				symbols_to_remove = global_symbols_.ReadWriteSymbols();
 			else
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index));
 			
 			for (string symbol : symbols_to_remove)
-				global_symbols_->RemoveValueForSymbol(symbol, false);
+				global_symbols_.RemoveValueForSymbol(symbol, false);
 			
 			break;
 		}

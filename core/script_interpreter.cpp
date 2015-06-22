@@ -90,31 +90,18 @@ bool TypeCheckAssignmentOfValueIntoValue(ScriptValue *base_value, ScriptValue *d
 //
 #pragma mark ScriptInterpreter
 
-ScriptInterpreter::ScriptInterpreter(const Script &p_script) : root_node_(p_script.AST())
+ScriptInterpreter::ScriptInterpreter(const Script &p_script, SymbolTable &p_symbols) : root_node_(p_script.AST()), global_symbols_(p_symbols)
 {
 	SharedInitialization();
 }
 
-ScriptInterpreter::ScriptInterpreter(const Script &p_script, SymbolTable *p_symbols) : root_node_(p_script.AST()), global_symbols_(p_symbols)
-{
-	SharedInitialization();
-}
-
-ScriptInterpreter::ScriptInterpreter(const ScriptASTNode *p_root_node_) : root_node_(p_root_node_)
-{
-	SharedInitialization();
-}
-
-ScriptInterpreter::ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable *p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
+ScriptInterpreter::ScriptInterpreter(const ScriptASTNode *p_root_node_, SymbolTable &p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
 {
 	SharedInitialization();
 }
 
 void ScriptInterpreter::SharedInitialization(void)
 {
-	if (!global_symbols_)
-		global_symbols_ = new SymbolTable();
-	
 	RegisterFunctionMap(ScriptInterpreter::BuiltInFunctionMap());
 	
 	// Initialize the random number generator if and only if it has not already been initialized
@@ -125,9 +112,6 @@ void ScriptInterpreter::SharedInitialization(void)
 
 ScriptInterpreter::~ScriptInterpreter(void)
 {
-	delete global_symbols_;
-	global_symbols_ = nullptr;
-	
 	if (function_map_ != ScriptInterpreter::BuiltInFunctionMap())
 	{
 		delete function_map_;
@@ -184,18 +168,9 @@ std::ostringstream &ScriptInterpreter::ExecutionOutputStream(void)
 	return *execution_output_;
 }
 
-SymbolTable &ScriptInterpreter::BorrowSymbolTable(void)
+SymbolTable &ScriptInterpreter::GetSymbolTable(void)
 {
-	return *global_symbols_;
-}
-
-SymbolTable *ScriptInterpreter::YieldSymbolTable(void)
-{
-	SymbolTable *return_value = global_symbols_;
-	
-	global_symbols_ = new SymbolTable();	// replace our symbol table with a fresh copy
-	
-	return return_value;
+	return global_symbols_;
 }
 
 // the starting point for script blocks in SLiM simulations, which require braces
@@ -432,7 +407,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			if (p_parent_node->children_.size() != 0)
 				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << slim_terminate();
 			
-			ScriptValue *identifier_value = global_symbols_->GetValueForSymbol(p_parent_node->token_->token_string_);
+			ScriptValue *identifier_value = global_symbols_.GetValueForSymbol(p_parent_node->token_->token_string_);
 			*p_base_value_ptr = identifier_value;
 			
 			int number_of_elements = identifier_value->Count();	// this value is already defined, so this is fast
@@ -581,7 +556,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 0 children for identifier node)." << slim_terminate();
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			global_symbols_->SetValueForSymbol(p_lvalue_node->token_->token_string_, rvalue);
+			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, rvalue);
 			break;
 		}
 		default:
@@ -2576,7 +2551,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << slim_terminate();
 	
 	string identifier_string = p_node->token_->token_string_;
-	ScriptValue *result = global_symbols_->GetValueForSymbol(identifier_string);
+	ScriptValue *result = global_symbols_.GetValueForSymbol(identifier_string);
 	
 	// check result; this should never happen, since GetValueForSymbol should check
 	if (!result)
@@ -2792,7 +2767,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 		// set the index variable to the range value and then throw the range value away
 		ScriptValue *range_value_at_index = range_value->GetValueAtIndex(range_index);
 		
-		global_symbols_->SetValueForSymbol(identifier_name, range_value_at_index);
+		global_symbols_.SetValueForSymbol(identifier_name, range_value_at_index);
 		
 		if (range_value_at_index->IsTemporary()) delete range_value_at_index;
 		
