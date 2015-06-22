@@ -526,12 +526,16 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	switch (signature->function_id_)
 	{
 		case FunctionIdentifier::kNoFunction:
+		{
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): internal logic error." << slim_terminate();
 			break;
+		}
 			
 		case FunctionIdentifier::kDelegatedFunction:
+		{
 			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, *this);
 			break;
+		}
 			
 			
 		// ************************************************************************************
@@ -542,6 +546,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark abs
 		case FunctionIdentifier::absFunction:
+		{
 			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
@@ -559,24 +564,31 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index)));
 			}
 			break;
+		}
 			
 #pragma mark acos
 		case FunctionIdentifier::acosFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark asin
 		case FunctionIdentifier::asinFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark atan
 		case FunctionIdentifier::atanFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark atan2
 		case FunctionIdentifier::atan2Function:
@@ -594,66 +606,87 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark ceil
 		case FunctionIdentifier::ceilFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark cos
 		case FunctionIdentifier::cosFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark exp
 		case FunctionIdentifier::expFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark floor
 		case FunctionIdentifier::floorFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark isFinite
 		case FunctionIdentifier::isFiniteFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark isInfinite
 		case FunctionIdentifier::isInfiniteFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark isNAN
 		case FunctionIdentifier::isNaNFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark log
 		case FunctionIdentifier::logFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark log10
 		case FunctionIdentifier::log10Function:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark log2
 		case FunctionIdentifier::log2Function:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index)));
 			break;
-
+		}
+			
 #pragma mark product
 		case FunctionIdentifier::productFunction:
+		{
 			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
@@ -688,9 +721,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				float_result->PushFloat(product);
 			}
 			break;
+		}
 			
 #pragma mark sum
 		case FunctionIdentifier::sumFunction:
+		{
 			if (arg0_type == ScriptValueType::kValueInt)
 			{
 				int_result = new ScriptValue_Int();
@@ -724,36 +759,47 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				float_result->PushFloat(sum);
 			}
 			break;
-
+		}
+			
 #pragma mark round
 		case FunctionIdentifier::roundFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark sin
 		case FunctionIdentifier::sinFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark sqrt
 		case FunctionIdentifier::sqrtFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark tan
 		case FunctionIdentifier::tanFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 #pragma mark trunc
 		case FunctionIdentifier::truncFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index)));
 			break;
+		}
 			
 			
 		// ************************************************************************************
@@ -764,6 +810,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark max
 		case FunctionIdentifier::maxFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = ScriptValue_NULL::Static_ScriptValue_NULL();
@@ -825,6 +872,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				string_result->PushString(max);
 			}
 			break;
+		}
 			
 #pragma mark mean
 		case FunctionIdentifier::meanFunction:
@@ -838,6 +886,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark min
 		case FunctionIdentifier::minFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = ScriptValue_NULL::Static_ScriptValue_NULL();
@@ -899,9 +948,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				string_result->PushString(min);
 			}
 			break;
+		}
 			
 #pragma mark range
 		case FunctionIdentifier::rangeFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = ScriptValue_NULL::Static_ScriptValue_NULL();
@@ -945,6 +996,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				float_result->PushFloat(max);
 			}
 			break;
+		}
 			
 #pragma mark sd
 		case FunctionIdentifier::sdFunction:
@@ -983,31 +1035,41 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark c
 		case FunctionIdentifier::cFunction:
+		{
 			result = ConcatenateScriptValues(p_function_name, p_arguments);
 			break;
+		}
 			
 #pragma mark float
 		case FunctionIdentifier::floatFunction:
+		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				float_result->PushFloat(0.0);
 			break;
+		}
 			
 #pragma mark integer
 		case FunctionIdentifier::integerFunction:
+		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				int_result->PushInt(0);
 			break;
+		}
 			
 #pragma mark logical
 		case FunctionIdentifier::logicalFunction:
+		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				logical_result->PushLogical(false);
 			break;
+		}
 			
 #pragma mark object
 		case FunctionIdentifier::objectFunction:
+		{
 			result = new ScriptValue_Object();
 			break;
+		}
 			
 #pragma mark rbinom
 		case FunctionIdentifier::rbinomFunction:
@@ -1061,13 +1123,17 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark rep
 		case FunctionIdentifier::repFunction:
+		{
 			result = Execute_rep(p_function_name, p_arguments);
 			break;
+		}
 			
 #pragma mark repEach
 		case FunctionIdentifier::repEachFunction:
+		{
 			result = Execute_repEach(p_function_name, p_arguments);
 			break;
+		}
 			
 #pragma mark rexp
 		case FunctionIdentifier::rexpFunction:
@@ -1354,20 +1420,26 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark seq
 		case FunctionIdentifier::seqFunction:
+		{
 			result = Execute_seq(p_function_name, p_arguments);
 			break;
+		}
 			
 #pragma mark seqAlong
 		case FunctionIdentifier::seqAlongFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				int_result->PushInt(value_index);
 			break;
-
+		}
+			
 #pragma mark string
 		case FunctionIdentifier::stringFunction:
+		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				string_result->PushString("");
 			break;
+		}
 			
 
 		// ************************************************************************************
@@ -1378,6 +1450,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark all
 		case FunctionIdentifier::allFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				if (!arg0_value->LogicalAtIndex(value_index))
 				{
@@ -1387,9 +1460,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (logical_result->Count() == 0)
 				logical_result->PushLogical(true);
 			break;
+		}
 			
 #pragma mark any
 		case FunctionIdentifier::anyFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				if (arg0_value->LogicalAtIndex(value_index))
 				{
@@ -1399,6 +1474,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (logical_result->Count() == 0)
 				logical_result->PushLogical(false);
 			break;
+		}
 			
 #pragma mark cat
 		case FunctionIdentifier::catFunction:
@@ -1446,9 +1522,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark nchar
 		case FunctionIdentifier::ncharFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				int_result->PushInt(arg0_value->StringAtIndex(value_index).length());
 			break;
+		}
 			
 #pragma mark paste
 		case FunctionIdentifier::pasteFunction:
@@ -1470,24 +1548,31 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark print
 		case FunctionIdentifier::printFunction:
+		{
 			ExecutionOutputStream() << *arg0_value << endl;
 			break;
+		}
 			
 #pragma mark rev
 		case FunctionIdentifier::revFunction:
+		{
 			result = arg0_value->NewMatchingType();
 			
 			for (int value_index = arg0_count - 1; value_index >= 0; --value_index)
 				result->PushValueFromIndexOfScriptValue(value_index, arg0_value);
 			break;
+		}
 			
 #pragma mark size
 		case FunctionIdentifier::sizeFunction:
+		{
 			int_result->PushInt(arg0_value->Count());
 			break;
+		}
 			
 #pragma mark sort
 		case FunctionIdentifier::sortFunction:
+		{
 			result = arg0_value->NewMatchingType();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1495,6 +1580,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			result->Sort((n_args == 1) ? true : p_arguments[1]->LogicalAtIndex(0));
 			break;
+		}
 			
 #pragma mark sortBy
 		case FunctionIdentifier::sortByFunction:
@@ -1621,6 +1707,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark unique
 		case FunctionIdentifier::uniqueFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = arg0_value->NewMatchingType();
@@ -1726,16 +1813,20 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				}
 			}
 			break;
+		}
 			
 #pragma mark which
 		case FunctionIdentifier::whichFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				if (arg0_value->LogicalAtIndex(value_index))
 					int_result->PushInt(value_index);
 			break;
+		}
 			
 #pragma mark whichMax
 		case FunctionIdentifier::whichMaxFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = ScriptValue_NULL::Static_ScriptValue_NULL();
@@ -1788,9 +1879,11 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				int_result->PushInt(first_index);
 			}
 			break;
+		}
 			
 #pragma mark whichMin
 		case FunctionIdentifier::whichMinFunction:
+		{
 			if (arg0_count == 0)
 			{
 				result = ScriptValue_NULL::Static_ScriptValue_NULL();
@@ -1843,6 +1936,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				int_result->PushInt(first_index);
 			}
 			break;
+		}
 			
 			
 		// ************************************************************************************
@@ -1853,70 +1947,94 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark asFloat
 		case FunctionIdentifier::asFloatFunction:
+		{
             for (int value_index = 0; value_index < arg0_count; ++value_index)
                 float_result->PushFloat(arg0_value->FloatAtIndex(value_index));
             break;
+		}
 			
 #pragma mark asInteger
 		case FunctionIdentifier::asIntegerFunction:
+		{
             for (int value_index = 0; value_index < arg0_count; ++value_index)
                 int_result->PushInt(arg0_value->IntAtIndex(value_index));
             break;
+		}
 			
 #pragma mark asLogical
 		case FunctionIdentifier::asLogicalFunction:
+		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index));
 			break;
+		}
 			
 #pragma mark asString
 		case FunctionIdentifier::asStringFunction:
+		{
             for (int value_index = 0; value_index < arg0_count; ++value_index)
                 string_result->PushString(arg0_value->StringAtIndex(value_index));
             break;
+		}
 			
 #pragma mark element
 		case FunctionIdentifier::elementFunction:
+		{
 			if (arg0_value->Type() == ScriptValueType::kValueObject)
 				string_result->PushString(((ScriptValue_Object *)arg0_value)->ElementType());
 			else
 				string_result->PushString(StringForScriptValueType(arg0_value->Type()));
 			break;
+		}
 			
 #pragma mark isFloat
 		case FunctionIdentifier::isFloatFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueFloat);
 			break;
+		}
 			
 #pragma mark isInteger
 		case FunctionIdentifier::isIntegerFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueInt);
 			break;
+		}
 			
 #pragma mark isLogical
 		case FunctionIdentifier::isLogicalFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueLogical);
 			break;
+		}
 			
 #pragma mark isNULL
 		case FunctionIdentifier::isNULLFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueNULL);
 			break;
+		}
 			
 #pragma mark isObject
 		case FunctionIdentifier::isObjectFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueObject);
 			break;
+		}
 			
 #pragma mark isString
 		case FunctionIdentifier::isStringFunction:
+		{
 			logical_result->PushLogical(arg0_type == ScriptValueType::kValueString);
 			break;
+		}
 			
 #pragma mark type
 		case FunctionIdentifier::typeFunction:
+		{
 			string_result->PushString(StringForScriptValueType(arg0_value->Type()));
 			break;
+		}
 			
 			
 		// ************************************************************************************
@@ -1967,13 +2085,17 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark globals
 		case FunctionIdentifier::globalsFunction:
+		{
 			ExecutionOutputStream() << global_symbols_;
 			break;
+		}
 			
 #pragma mark help
 		case FunctionIdentifier::helpFunction:
+		{
 			ExecutionOutputStream() << "Help for SLiMscript is currently unimplemented." << endl;
 			break;
+		}
 			
 #pragma mark license
 		case FunctionIdentifier::licenseFunction:
@@ -2017,16 +2139,20 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark setSeed
 		case FunctionIdentifier::setSeedFunction:
+		{
 			InitializeRNGFromSeed((int)(arg0_value->IntAtIndex(0)));
 			break;
+		}
 			
 #pragma mark stop
 		case FunctionIdentifier::stopFunction:
+		{
 			if (arg0_value)
 				ExecutionOutputStream() << arg0_value->StringAtIndex(0) << endl;
 			
 			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): stop() called." << slim_terminate();
 			break;
+		}
 			
 #pragma mark time
 		case FunctionIdentifier::timeFunction:
@@ -2045,8 +2171,10 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark version
 		case FunctionIdentifier::versionFunction:
+		{
 			string_result->PushString("SLiMscript version 2.0a2");
 			break;
+		}
 			
 			
 		// ************************************************************************************
@@ -2056,10 +2184,12 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 #pragma mark Path
 		case FunctionIdentifier::PathFunction:
+		{
 			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg0_value->StringAtIndex(0))) : (new Script_PathElement());
 			result = new ScriptValue_Object(pathElement);
 			pathElement->Release();
 			break;
+		}
 	}
 	
 	// Deallocate any unused result pointers
