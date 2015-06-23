@@ -2556,7 +2556,9 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 	if (logging_execution_)
 		*execution_log_ << IndentString(execution_log_indent_++) << "Evaluate_If() entered\n";
 	
-	if ((p_node->children_.size() != 2) && (p_node->children_.size() != 3))
+	auto children_size = p_node->children_.size();
+	
+	if ((children_size != 2) && (children_size != 3))
 		SLIM_TERMINATION << "ERROR (Evaluate_If): internal error (expected 2 or 3 children)." << slim_terminate();
 	
 	ScriptValue *result = nullptr;
@@ -2573,7 +2575,7 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 			ScriptASTNode *true_node = p_node->children_[1];
 			result = EvaluateNode(true_node);
 		}
-		else if (p_node->children_.size() == 3)		// has an 'else' node
+		else if (children_size == 3)		// has an 'else' node
 		{
 			ScriptASTNode *false_node = p_node->children_[2];
 			result = EvaluateNode(false_node);
