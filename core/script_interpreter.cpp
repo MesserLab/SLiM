@@ -562,14 +562,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
 {
 	TokenType token_type = p_node->token_->token_type_;
-	ScriptValue *result = nullptr;
-	
-	if (logging_execution_)
-	{
-		*execution_log_ << IndentString(execution_log_indent_) << "EvaluateNode() : token ";
-		p_node->PrintToken(*execution_log_);
-		*execution_log_ << "\n";
-	}
+	ScriptValue *result;
 	
 	switch (token_type)
 	{
@@ -607,6 +600,7 @@ ScriptValue *ScriptInterpreter::EvaluateNode(const ScriptASTNode *p_node)
 		case TokenType::kTokenReturn:		result = Evaluate_Return(p_node);				break;
 		default:
 			SLIM_TERMINATION << "ERROR (EvaluateNode): Unexpected node token type " << token_type << "." << slim_terminate();
+			result = nullptr;
 			break;
 	}
 	
