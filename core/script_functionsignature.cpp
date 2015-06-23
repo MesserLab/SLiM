@@ -256,7 +256,7 @@ ostream &operator<<(ostream &p_outstream, const FunctionSignature &p_signature)
 	if (arg_mask_count == 0)
 	{
 		if (!p_signature.has_ellipsis_)
-			p_outstream << "void";
+			p_outstream << gStr_void;
 	}
 	else
 	{

@@ -301,24 +301,24 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					sim.InjectIntoInterpreter(interpreter, fitness_callback);
 					
 					if (script_has_wildcard || fitness_callback->contains_mut_)
-						global_symbols.SetConstantForSymbol("mut", new ScriptValue_Object(p_mutation));
+						global_symbols.SetConstantForSymbol(gStr_mut, new ScriptValue_Object(p_mutation));
 					if (script_has_wildcard || fitness_callback->contains_relFitness_)
-						global_symbols.SetConstantForSymbol("relFitness", new ScriptValue_Float(p_computed_fitness));
+						global_symbols.SetConstantForSymbol(gStr_relFitness, new ScriptValue_Float(p_computed_fitness));
 					if (script_has_wildcard || fitness_callback->contains_genome1_)
-						global_symbols.SetConstantForSymbol("genome1", new ScriptValue_Object(genome1));
+						global_symbols.SetConstantForSymbol(gStr_genome1, new ScriptValue_Object(genome1));
 					if (script_has_wildcard || fitness_callback->contains_genome2_)
-						global_symbols.SetConstantForSymbol("genome2", new ScriptValue_Object(genome2));
+						global_symbols.SetConstantForSymbol(gStr_genome2, new ScriptValue_Object(genome2));
 					if (script_has_wildcard || fitness_callback->contains_subpop_)
-						global_symbols.SetConstantForSymbol("subpop", new ScriptValue_Object(this));
+						global_symbols.SetConstantForSymbol(gStr_subpop, new ScriptValue_Object(this));
 					
 					// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 					// that gets translated into SLiMScript values of NULL, F, and T, respectively
 					if (script_has_wildcard || fitness_callback->contains_homozygous_)
 					{
 						if (p_homozygous == -1)
-							global_symbols.SetConstantForSymbol("homozygous", ScriptValue_NULL::Static_ScriptValue_NULL());
+							global_symbols.SetConstantForSymbol(gStr_homozygous, ScriptValue_NULL::Static_ScriptValue_NULL());
 						else
-							global_symbols.SetConstantForSymbol("homozygous", new ScriptValue_Logical(p_homozygous != 0));
+							global_symbols.SetConstantForSymbol(gStr_homozygous, new ScriptValue_Logical(p_homozygous != 0));
 					}
 					
 					// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
@@ -886,7 +886,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 
 std::string Subpopulation::ElementType(void) const
 {
-	return "Subpopulation";
+	return gStr_Subpopulation;
 }
 
 void Subpopulation::Print(std::ostream &p_ostream) const
@@ -898,14 +898,14 @@ std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("id");								// subpopulation_id_
-	constants.push_back("firstMaleIndex");					// parent_first_male_index_ / child_first_male_index_
-	constants.push_back("genomes");							// parent_genomes_ / child_genomes_
-	constants.push_back("immigrantSubpopIDs");				// migrant_fractions_
-	constants.push_back("immigrantSubpopFractions");		// migrant_fractions_
-	constants.push_back("selfingFraction");					// selfing_fraction_
-	constants.push_back("sexRatio");						// parent_sex_ratio_ / child_sex_ratio_
-	constants.push_back("size");							// parent_subpop_size_ / child_subpop_size_
+	constants.push_back(gStr_id);								// subpopulation_id_
+	constants.push_back(gStr_firstMaleIndex);					// parent_first_male_index_ / child_first_male_index_
+	constants.push_back(gStr_genomes);							// parent_genomes_ / child_genomes_
+	constants.push_back(gStr_immigrantSubpopIDs);				// migrant_fractions_
+	constants.push_back(gStr_immigrantSubpopFractions);		// migrant_fractions_
+	constants.push_back(gStr_selfingFraction);					// selfing_fraction_
+	constants.push_back(gStr_sexRatio);						// parent_sex_ratio_ / child_sex_ratio_
+	constants.push_back(gStr_size);							// parent_subpop_size_ / child_subpop_size_
 	
 	return constants;
 }
@@ -920,11 +920,11 @@ std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("id") == 0)
+	if (p_member_name.compare(gStr_id) == 0)
 		return new ScriptValue_Int(subpopulation_id_);
-	if (p_member_name.compare("firstMaleIndex") == 0)
+	if (p_member_name.compare(gStr_firstMaleIndex) == 0)
 		return new ScriptValue_Int(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
-	if (p_member_name.compare("genomes") == 0)
+	if (p_member_name.compare(gStr_genomes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -937,7 +937,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("immigrantSubpopIDs") == 0)
+	if (p_member_name.compare(gStr_immigrantSubpopIDs) == 0)
 	{
 		ScriptValue_Int *vec = new ScriptValue_Int();
 		
@@ -946,7 +946,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("immigrantSubpopFractions") == 0)
+	if (p_member_name.compare(gStr_immigrantSubpopFractions) == 0)
 	{
 		ScriptValue_Float *vec = new ScriptValue_Float();
 		
@@ -955,11 +955,11 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("selfingFraction") == 0)
+	if (p_member_name.compare(gStr_selfingFraction) == 0)
 		return new ScriptValue_Float(selfing_fraction_);
-	if (p_member_name.compare("sexRatio") == 0)
+	if (p_member_name.compare(gStr_sexRatio) == 0)
 		return new ScriptValue_Float(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
-	if (p_member_name.compare("size") == 0)
+	if (p_member_name.compare(gStr_size) == 0)
 		return new ScriptValue_Int(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 	
 	// variables
@@ -970,7 +970,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 void Subpopulation::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
 	// remove this FIXME – no longer a writeable property
-	if (p_member_name.compare("selfingFraction") == 0)
+	if (p_member_name.compare(gStr_selfingFraction) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
@@ -988,13 +988,13 @@ std::vector<std::string> Subpopulation::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("changeMigrationRates");
-	methods.push_back("changeSelfingRate");
-	methods.push_back("changeSexRatio");
-	methods.push_back("changeSubpopulationSize");
-	methods.push_back("fitness");
-	methods.push_back("outputMSSample");
-	methods.push_back("outputSample");
+	methods.push_back(gStr_changeMigrationRates);
+	methods.push_back(gStr_changeSelfingRate);
+	methods.push_back(gStr_changeSexRatio);
+	methods.push_back(gStr_changeSubpopulationSize);
+	methods.push_back(gStr_fitness);
+	methods.push_back(gStr_outputMSSample);
+	methods.push_back(gStr_outputSample);
 	
 	return methods;
 }
@@ -1012,28 +1012,28 @@ const FunctionSignature *Subpopulation::SignatureForMethod(std::string const &p_
 	
 	if (!changeMigrationRatesSig)
 	{
-		changeMigrationRatesSig = (new FunctionSignature("changeMigrationRates", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
-		changeSelfingRateSig = (new FunctionSignature("changeSelfingRate", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
-		changeSexRatioSig = (new FunctionSignature("changeSexRatio", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
-		changeSubpopulationSizeSig = (new FunctionSignature("changeSubpopulationSize", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
-		fitnessSig = (new FunctionSignature("fitness", FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddInt();
-		outputMSSampleSig = (new FunctionSignature("outputMSSample", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
-		outputSampleSig = (new FunctionSignature("outputSample", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
+		changeMigrationRatesSig = (new FunctionSignature(gStr_changeMigrationRates, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		changeSelfingRateSig = (new FunctionSignature(gStr_changeSelfingRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
+		changeSexRatioSig = (new FunctionSignature(gStr_changeSexRatio, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		changeSubpopulationSizeSig = (new FunctionSignature(gStr_changeSubpopulationSize, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
+		fitnessSig = (new FunctionSignature(gStr_fitness, FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddInt();
+		outputMSSampleSig = (new FunctionSignature(gStr_outputMSSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
+		outputSampleSig = (new FunctionSignature(gStr_outputSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
 	}
 	
-	if (p_method_name.compare("changeMigrationRates") == 0)
+	if (p_method_name.compare(gStr_changeMigrationRates) == 0)
 		return changeMigrationRatesSig;
-	else if (p_method_name.compare("changeSelfingRate") == 0)
+	else if (p_method_name.compare(gStr_changeSelfingRate) == 0)
 		return changeSelfingRateSig;
-	else if (p_method_name.compare("changeSexRatio") == 0)
+	else if (p_method_name.compare(gStr_changeSexRatio) == 0)
 		return changeSexRatioSig;
-	else if (p_method_name.compare("changeSubpopulationSize") == 0)
+	else if (p_method_name.compare(gStr_changeSubpopulationSize) == 0)
 		return changeSubpopulationSizeSig;
-	else if (p_method_name.compare("fitness") == 0)
+	else if (p_method_name.compare(gStr_fitness) == 0)
 		return fitnessSig;
-	else if (p_method_name.compare("outputMSSample") == 0)
+	else if (p_method_name.compare(gStr_outputMSSample) == 0)
 		return outputMSSampleSig;
-	else if (p_method_name.compare("outputSample") == 0)
+	else if (p_method_name.compare(gStr_outputSample) == 0)
 		return outputSampleSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -1051,14 +1051,14 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	//
 #pragma mark -changeMigrationRates()
 	
-	if (p_method_name.compare("changeMigrationRates") == 0)
+	if (p_method_name.compare(gStr_changeMigrationRates) == 0)
 	{
 		int source_subpops_count = arg0_value->Count();
 		int rates_count = arg1_value->Count();
 		
 		if (source_subpops_count != rates_count)
 			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
-		if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Subpopulation") != 0)
+		if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
 			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
 		
 		for (int value_index = 0; value_index < source_subpops_count; ++value_index)
@@ -1079,7 +1079,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	//
 #pragma mark -changeSelfingRate()
 	
-	else if (p_method_name.compare("changeSelfingRate") == 0)
+	else if (p_method_name.compare(gStr_changeSelfingRate) == 0)
 	{
 		double selfing_fraction = arg0_value->FloatAtIndex(0);
 		
@@ -1094,7 +1094,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	//
 #pragma mark -changeSexRatio()
 	
-	else if (p_method_name.compare("changeSexRatio") == 0)
+	else if (p_method_name.compare(gStr_changeSexRatio) == 0)
 	{
 		double sex_ratio = arg0_value->FloatAtIndex(0);
 		
@@ -1109,7 +1109,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	//
 #pragma mark -changeSubpopulationSize()
 	
-	else if (p_method_name.compare("changeSubpopulationSize") == 0)
+	else if (p_method_name.compare(gStr_changeSubpopulationSize) == 0)
 	{
 		int subpop_size = (int)arg0_value->IntAtIndex(0);
 		
@@ -1124,7 +1124,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	//
 #pragma mark -fitness()
 	
-	else if (p_method_name.compare("fitness") == 0)
+	else if (p_method_name.compare(gStr_fitness) == 0)
 	{
 		if (child_generation_valid)
 			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
@@ -1152,7 +1152,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 #pragma mark -outputMSSample()
 #pragma mark -outputSample()
 	
-	else if ((p_method_name.compare("outputMSSample") == 0) || (p_method_name.compare("outputSample") == 0))
+	else if ((p_method_name.compare(gStr_outputMSSample) == 0) || (p_method_name.compare(gStr_outputSample) == 0))
 	{
 		int sample_size = (int)arg0_value->IntAtIndex(0);
 		IndividualSex requested_sex = IndividualSex::kUnspecified;
@@ -1178,7 +1178,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		
 		SLIM_OUTSTREAM << endl;
 		
-		if (p_method_name.compare("outputSample") == 0)
+		if (p_method_name.compare(gStr_outputSample) == 0)
 			population_.PrintSample(subpopulation_id_, sample_size, requested_sex);
 		else
 			population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);

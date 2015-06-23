@@ -201,7 +201,7 @@ public:
 	// Parsing methods; see grammar for definitions
 	void Consume();
 	void SetErrorPositionFromCurrentToken(void);
-	void Match(TokenType p_token_type, std::string p_context);
+	void Match(TokenType p_token_type, const char *p_context_cstr);
 	
 	// Top-level parse methods for SLiM input files
 	ScriptASTNode *Parse_SLiMFile(void);

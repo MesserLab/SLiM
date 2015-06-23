@@ -184,18 +184,18 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 
 std::string Chromosome::ElementType(void) const
 {
-	return "Chromosome";
+	return gStr_Chromosome;
 }
 
 std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("genomicElements");					// this
-	constants.push_back("lastPosition");					// last_position_
-	constants.push_back("overallRecombinationRate");		// overall_recombination_rate_
-	constants.push_back("recombinationEndPositions");		// recombination_end_positions_
-	constants.push_back("recombinationRates");				// recombination_rates_
+	constants.push_back(gStr_genomicElements);					// this
+	constants.push_back(gStr_lastPosition);					// last_position_
+	constants.push_back(gStr_overallRecombinationRate);		// overall_recombination_rate_
+	constants.push_back(gStr_recombinationEndPositions);		// recombination_end_positions_
+	constants.push_back(gStr_recombinationRates);				// recombination_rates_
 	
 	return constants;
 }
@@ -204,9 +204,9 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
-	variables.push_back("geneConversionFraction");			// gene_conversion_fraction_
-	variables.push_back("geneConversionMeanLength");		// gene_conversion_avg_length_
-	variables.push_back("overallMutationRate");				// overall_mutation_rate_
+	variables.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
+	variables.push_back(gStr_geneConversionMeanLength);		// gene_conversion_avg_length_
+	variables.push_back(gStr_overallMutationRate);				// overall_mutation_rate_
 	
 	return variables;
 }
@@ -214,7 +214,7 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("genomicElements") == 0)
+	if (p_member_name.compare(gStr_genomicElements) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -223,21 +223,21 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("lastPosition") == 0)
+	if (p_member_name.compare(gStr_lastPosition) == 0)
 		return new ScriptValue_Int(last_position_);
-	if (p_member_name.compare("overallRecombinationRate") == 0)
+	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)
 		return new ScriptValue_Float(overall_recombination_rate_);
-	if (p_member_name.compare("recombinationEndPositions") == 0)
+	if (p_member_name.compare(gStr_recombinationEndPositions) == 0)
 		return new ScriptValue_Int(recombination_end_positions_);
-	if (p_member_name.compare("recombinationRates") == 0)
+	if (p_member_name.compare(gStr_recombinationRates) == 0)
 		return new ScriptValue_Float(recombination_rates_);
 	
 	// variables
-	if (p_member_name.compare("geneConversionFraction") == 0)
+	if (p_member_name.compare(gStr_geneConversionFraction) == 0)
 		return new ScriptValue_Float(gene_conversion_fraction_);
-	if (p_member_name.compare("geneConversionMeanLength") == 0)
+	if (p_member_name.compare(gStr_geneConversionMeanLength) == 0)
 		return new ScriptValue_Float(gene_conversion_avg_length_);
-	if (p_member_name.compare("overallMutationRate") == 0)
+	if (p_member_name.compare(gStr_overallMutationRate) == 0)
 		return new ScriptValue_Float(overall_mutation_rate_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -245,7 +245,7 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 
 void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	if (p_member_name.compare("geneConversionFraction") == 0)
+	if (p_member_name.compare(gStr_geneConversionFraction) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
@@ -256,7 +256,7 @@ void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue
 		return;
 	}
 	
-	if (p_member_name.compare("geneConversionMeanLength") == 0)
+	if (p_member_name.compare(gStr_geneConversionMeanLength) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
@@ -267,7 +267,7 @@ void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue
 		return;
 	}
 	
-	if (p_member_name.compare("overallMutationRate") == 0)
+	if (p_member_name.compare(gStr_overallMutationRate) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskFloat);
 		
@@ -285,7 +285,7 @@ std::vector<std::string> Chromosome::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("changeRecombinationIntervals");
+	methods.push_back(gStr_changeRecombinationIntervals);
 	
 	return methods;
 }
@@ -296,10 +296,10 @@ const FunctionSignature *Chromosome::SignatureForMethod(std::string const &p_met
 	
 	if (!changeRecombinationIntervalsSig)
 	{
-		changeRecombinationIntervalsSig = (new FunctionSignature("changeRecombinationIntervals", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
+		changeRecombinationIntervalsSig = (new FunctionSignature(gStr_changeRecombinationIntervals, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
 	}
 	
-	if (p_method_name.compare("changeRecombinationIntervals") == 0)
+	if (p_method_name.compare(gStr_changeRecombinationIntervals) == 0)
 		return changeRecombinationIntervalsSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -316,7 +316,7 @@ ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, std::ve
 	//
 #pragma mark -changeRecombinationIntervals()
 	
-	if (p_method_name.compare("changeRecombinationIntervals") == 0)
+	if (p_method_name.compare(gStr_changeRecombinationIntervals) == 0)
 	{
 		int ends_count = arg0_value->Count();
 		int rates_count = arg1_value->Count();

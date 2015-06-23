@@ -123,7 +123,7 @@ void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 
 std::string GenomicElementType::ElementType(void) const
 {
-	return "GenomicElementType";
+	return gStr_GenomicElementType;
 }
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
@@ -135,9 +135,9 @@ std::vector<std::string> GenomicElementType::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("id");						// genomic_element_type_id_
-	constants.push_back("mutationTypes");			// mutation_type_ptrs_
-	constants.push_back("mutationFractions");		// mutation_fractions_
+	constants.push_back(gStr_id);						// genomic_element_type_id_
+	constants.push_back(gStr_mutationTypes);			// mutation_type_ptrs_
+	constants.push_back(gStr_mutationFractions);		// mutation_fractions_
 	
 	return constants;
 }
@@ -152,9 +152,9 @@ std::vector<std::string> GenomicElementType::ReadWriteMembers(void) const
 ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("id") == 0)
+	if (p_member_name.compare(gStr_id) == 0)
 		return new ScriptValue_Int(genomic_element_type_id_);
-	if (p_member_name.compare("mutationTypes") == 0)
+	if (p_member_name.compare(gStr_mutationTypes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -163,7 +163,7 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 		
 		return vec;
 	}
-	if (p_member_name.compare("mutationFractions") == 0)
+	if (p_member_name.compare(gStr_mutationFractions) == 0)
 		return new ScriptValue_Float(mutation_fractions_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -178,7 +178,7 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("changeMutationFractions");
+	methods.push_back(gStr_changeMutationFractions);
 	
 	return methods;
 }
@@ -189,10 +189,10 @@ const FunctionSignature *GenomicElementType::SignatureForMethod(std::string cons
 	
 	if (!changeMutationFractionsSig)
 	{
-		changeMutationFractionsSig = (new FunctionSignature("changeMutationFractions", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		changeMutationFractionsSig = (new FunctionSignature(gStr_changeMutationFractions, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
 	}
 	
-	if (p_method_name.compare("changeMutationFractions") == 0)
+	if (p_method_name.compare(gStr_changeMutationFractions) == 0)
 		return changeMutationFractionsSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -209,7 +209,7 @@ ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name,
 	//
 #pragma mark -changeMutationFractions()
 	
-	if (p_method_name.compare("changeMutationFractions") == 0)
+	if (p_method_name.compare(gStr_changeMutationFractions) == 0)
 	{
 		int mut_type_id_count = arg0_value->Count();
 		int proportion_count = arg1_value->Count();

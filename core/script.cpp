@@ -77,19 +77,19 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 		case TokenType::kTokenNumber:		p_outstream << "NUMBER";		break;
 		case TokenType::kTokenString:		p_outstream << "STRING";		break;
 		case TokenType::kTokenIdentifier:	p_outstream << "IDENTIFIER";	break;
-		case TokenType::kTokenIf:			p_outstream << "if";			break;
-		case TokenType::kTokenElse:			p_outstream << "else";			break;
-		case TokenType::kTokenDo:			p_outstream << "do";			break;
-		case TokenType::kTokenWhile:		p_outstream << "while";			break;
-		case TokenType::kTokenFor:			p_outstream << "for";			break;
-		case TokenType::kTokenIn:			p_outstream << "in";			break;
-		case TokenType::kTokenNext:			p_outstream << "next";			break;
-		case TokenType::kTokenBreak:		p_outstream << "break";			break;
-		case TokenType::kTokenReturn:		p_outstream << "return";		break;
+		case TokenType::kTokenIf:			p_outstream << gStr_if;			break;
+		case TokenType::kTokenElse:			p_outstream << gStr_else;			break;
+		case TokenType::kTokenDo:			p_outstream << gStr_do;			break;
+		case TokenType::kTokenWhile:		p_outstream << gStr_while;			break;
+		case TokenType::kTokenFor:			p_outstream << gStr_for;			break;
+		case TokenType::kTokenIn:			p_outstream << gStr_in;			break;
+		case TokenType::kTokenNext:			p_outstream << gStr_next;			break;
+		case TokenType::kTokenBreak:		p_outstream << gStr_break;			break;
+		case TokenType::kTokenReturn:		p_outstream << gStr_return;		break;
 			
-		case TokenType::kTokenFitness:		p_outstream << "fitness";		break;
-		case TokenType::kTokenMateChoice:	p_outstream << "mateChoice";	break;
-		case TokenType::kTokenModifyChild:	p_outstream << "modifyChild";	break;
+		case TokenType::kTokenFitness:		p_outstream << gStr_fitness;		break;
+		case TokenType::kTokenMateChoice:	p_outstream << gStr_mateChoice;	break;
+		case TokenType::kTokenModifyChild:	p_outstream << gStr_modifyChild;	break;
 			
 		case TokenType::kTokenInterpreterBlock:		p_outstream << "$>";	break;
 		case TokenType::kTokenSLiMFile:				p_outstream << "###";	break;
@@ -530,23 +530,23 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 			// figure out identifier-like tokens, which all get tokenized as kTokenIdentifier above
 			if (token_type == TokenType::kTokenIdentifier)
 			{
-				if (token_string.compare("if") == 0) token_type = TokenType::kTokenIf;
-				else if (token_string.compare("else") == 0) token_type = TokenType::kTokenElse;
-				else if (token_string.compare("do") == 0) token_type = TokenType::kTokenDo;
-				else if (token_string.compare("while") == 0) token_type = TokenType::kTokenWhile;
-				else if (token_string.compare("for") == 0) token_type = TokenType::kTokenFor;
-				else if (token_string.compare("in") == 0) token_type = TokenType::kTokenIn;
-				else if (token_string.compare("next") == 0) token_type = TokenType::kTokenNext;
-				else if (token_string.compare("break") == 0) token_type = TokenType::kTokenBreak;
-				else if (token_string.compare("return") == 0) token_type = TokenType::kTokenReturn;
+				if (token_string.compare(gStr_if) == 0) token_type = TokenType::kTokenIf;
+				else if (token_string.compare(gStr_else) == 0) token_type = TokenType::kTokenElse;
+				else if (token_string.compare(gStr_do) == 0) token_type = TokenType::kTokenDo;
+				else if (token_string.compare(gStr_while) == 0) token_type = TokenType::kTokenWhile;
+				else if (token_string.compare(gStr_for) == 0) token_type = TokenType::kTokenFor;
+				else if (token_string.compare(gStr_in) == 0) token_type = TokenType::kTokenIn;
+				else if (token_string.compare(gStr_next) == 0) token_type = TokenType::kTokenNext;
+				else if (token_string.compare(gStr_break) == 0) token_type = TokenType::kTokenBreak;
+				else if (token_string.compare(gStr_return) == 0) token_type = TokenType::kTokenReturn;
 				
 				// SLiM keywords
-				else if (token_string.compare("fitness") == 0) token_type = TokenType::kTokenFitness;
-				else if (token_string.compare("mateChoice") == 0) token_type = TokenType::kTokenMateChoice;
-				else if (token_string.compare("modifyChild") == 0) token_type = TokenType::kTokenModifyChild;
+				else if (token_string.compare(gStr_fitness) == 0) token_type = TokenType::kTokenFitness;
+				else if (token_string.compare(gStr_mateChoice) == 0) token_type = TokenType::kTokenMateChoice;
+				else if (token_string.compare(gStr_modifyChild) == 0) token_type = TokenType::kTokenModifyChild;
 				
 				if (token_type > TokenType::kFirstIdentifierLikeToken)
-					token_string = "<" + token_string + ">";
+					token_string = gStr_lessThanSign + token_string + gStr_greaterThanSign;
 			}
 			
 			// make the token and push it
@@ -623,7 +623,7 @@ void Script::SetErrorPositionFromCurrentToken(void)
 	gCharacterEndOfParseError = start_character_index_ + current_token_->token_end_;
 }
 
-void Script::Match(TokenType p_token_type, string p_context)
+void Script::Match(TokenType p_token_type, const char *p_context_cstr)
 {
 	if (current_token_type_ == p_token_type)
 	{
@@ -639,13 +639,13 @@ void Script::Match(TokenType p_token_type, string p_context)
 	{
 		// not finding the right token type is fatal
 		SetErrorPositionFromCurrentToken();
-		SLIM_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << p_context << "; expected '" << p_token_type << "'" << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << slim_terminate();
 	}
 }
 
 ScriptASTNode *Script::Parse_SLiMFile(void)
 {
-	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, "", 0, 0);
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, gStr_empty_string, 0, 0);
 	ScriptASTNode *node = new ScriptASTNode(virtual_token);
 	
 	while (current_token_type_ != TokenType::kTokenEOF)
@@ -664,7 +664,7 @@ ScriptASTNode *Script::Parse_SLiMFile(void)
 
 ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 {
-	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, "", 0, 0);
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, gStr_empty_string, 0, 0);
 	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token);
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
@@ -792,7 +792,7 @@ ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 
 ScriptASTNode *Script::Parse_InterpreterBlock(void)
 {
-	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, "", 0, 0);
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, gStr_empty_string, 0, 0);
 	ScriptASTNode *node = new ScriptASTNode(virtual_token);
 	
 	int token_start = current_token_->token_start_;

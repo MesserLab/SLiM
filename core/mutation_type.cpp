@@ -108,7 +108,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 
 std::string MutationType::ElementType(void) const
 {
-	return "MutationType";
+	return gStr_MutationType;
 }
 
 void MutationType::Print(std::ostream &p_ostream) const
@@ -120,9 +120,9 @@ std::vector<std::string> MutationType::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("id");						// mutation_type_id_
-	constants.push_back("distributionType");		// dfe_type_
-	constants.push_back("distributionParams");		// dfe_parameters_
+	constants.push_back(gStr_id);						// mutation_type_id_
+	constants.push_back(gStr_distributionType);		// dfe_type_
+	constants.push_back(gStr_distributionParams);		// dfe_parameters_
 	
 	return constants;
 }
@@ -131,7 +131,7 @@ std::vector<std::string> MutationType::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
-	variables.push_back("dominanceCoeff");		// dominance_coeff_
+	variables.push_back(gStr_dominanceCoeff);		// dominance_coeff_
 	
 	return variables;
 }
@@ -139,15 +139,15 @@ std::vector<std::string> MutationType::ReadWriteMembers(void) const
 ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("id") == 0)
+	if (p_member_name.compare(gStr_id) == 0)
 		return new ScriptValue_Int(mutation_type_id_);
-	if (p_member_name.compare("distributionType") == 0)
+	if (p_member_name.compare(gStr_distributionType) == 0)
 		return new ScriptValue_String(std::string(1, dfe_type_));
-	if (p_member_name.compare("distributionParams") == 0)
+	if (p_member_name.compare(gStr_distributionParams) == 0)
 		return new ScriptValue_Float(dfe_parameters_);
 	
 	// variables
-	if (p_member_name.compare("dominanceCoeff") == 0)
+	if (p_member_name.compare(gStr_dominanceCoeff) == 0)
 		return new ScriptValue_Float(dominance_coeff_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -155,7 +155,7 @@ ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 
 void MutationType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	if (p_member_name.compare("dominanceCoeff") == 0)
+	if (p_member_name.compare(gStr_dominanceCoeff) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
@@ -172,7 +172,7 @@ std::vector<std::string> MutationType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("changeDistribution");
+	methods.push_back(gStr_changeDistribution);
 	
 	return methods;
 }
@@ -183,10 +183,10 @@ const FunctionSignature *MutationType::SignatureForMethod(std::string const &p_m
 	
 	if (!changeDistributionSig)
 	{
-		changeDistributionSig = (new FunctionSignature("changeDistribution", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
+		changeDistributionSig = (new FunctionSignature(gStr_changeDistribution, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
 	}
 	
-	if (p_method_name.compare("changeDistribution") == 0)
+	if (p_method_name.compare(gStr_changeDistribution) == 0)
 		return changeDistributionSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -202,7 +202,7 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 	//
 #pragma mark -changeDistribution()
 	
-	if (p_method_name.compare("changeDistribution") == 0)
+	if (p_method_name.compare(gStr_changeDistribution) == 0)
 	{
 		string dfe_type_string = arg0_value->StringAtIndex(0);
 		int expected_dfe_param_count = 0;

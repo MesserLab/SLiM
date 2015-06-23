@@ -233,7 +233,7 @@ std::string GetTrimmedRaiseMessage(void)
 	std::string terminationMessage = gSLiMTermination.str();
 	
 	gSLiMTermination.clear();
-	gSLiMTermination.str("");
+	gSLiMTermination.str(gStr_empty_string);
 	
 	// trim off newlines at the end of the raise string
 	size_t endpos = terminationMessage.find_last_not_of("\n\r");
@@ -242,7 +242,7 @@ std::string GetTrimmedRaiseMessage(void)
 	
 	return terminationMessage;
 #else
-	return "";
+	return gStr_empty_string;
 #endif
 }
 
@@ -252,18 +252,187 @@ std::string GetUntrimmedRaiseMessage(void)
 	std::string terminationMessage = gSLiMTermination.str();
 	
 	gSLiMTermination.clear();
-	gSLiMTermination.str("");
+	gSLiMTermination.str(gStr_empty_string);
 	
 	return terminationMessage;
 #else
-	return "";
+	return gStr_empty_string;
 #endif
 }
 
 
+//	Global std::string objects.
+const std::string gStr_empty_string = "";
+const std::string gStr_space_string = " ";
+
+// mostly function names used in multiple places
+const std::string gStr_function = "function";
+const std::string gStr_method = "method";
+const std::string gStr_executeLambda = "executeLambda";
+const std::string gStr_globals = "globals";
+
+// mostly property names
+const std::string gStr_genomicElements = "genomicElements";
+const std::string gStr_lastPosition = "lastPosition";
+const std::string gStr_overallRecombinationRate = "overallRecombinationRate";
+const std::string gStr_recombinationEndPositions = "recombinationEndPositions";
+const std::string gStr_recombinationRates = "recombinationRates";
+const std::string gStr_geneConversionFraction = "geneConversionFraction";
+const std::string gStr_geneConversionMeanLength = "geneConversionMeanLength";
+const std::string gStr_overallMutationRate = "overallMutationRate";
+const std::string gStr_genomeType = "genomeType";
+const std::string gStr_isNullGenome = "isNullGenome";
+const std::string gStr_mutations = "mutations";
+const std::string gStr_genomicElementType = "genomicElementType";
+const std::string gStr_startPosition = "startPosition";
+const std::string gStr_endPosition = "endPosition";
+const std::string gStr_id = "id";
+const std::string gStr_mutationTypes = "mutationTypes";
+const std::string gStr_mutationFractions = "mutationFractions";
+const std::string gStr_mutationType = "mutationType";
+const std::string gStr_originGeneration = "originGeneration";
+const std::string gStr_position = "position";
+const std::string gStr_selectionCoeff = "selectionCoeff";
+const std::string gStr_subpopID = "subpopID";
+const std::string gStr_distributionType = "distributionType";
+const std::string gStr_distributionParams = "distributionParams";
+const std::string gStr_dominanceCoeff = "dominanceCoeff";
+const std::string gStr_path = "path";
+const std::string gStr_start = "start";
+const std::string gStr_end = "end";
+const std::string gStr_type = "type";
+const std::string gStr_source = "source";
+const std::string gStr_active = "active";
+const std::string gStr_chromosome = "chromosome";
+const std::string gStr_chromosomeType = "chromosomeType";
+const std::string gStr_genomicElementTypes = "genomicElementTypes";
+const std::string gStr_scriptBlocks = "scriptBlocks";
+const std::string gStr_sexEnabled = "sexEnabled";
+const std::string gStr_subpopulations = "subpopulations";
+const std::string gStr_substitutions = "substitutions";
+const std::string gStr_dominanceCoeffX = "dominanceCoeffX";
+const std::string gStr_duration = "duration";
+const std::string gStr_generation = "generation";
+const std::string gStr_randomSeed = "randomSeed";
+const std::string gStr_firstMaleIndex = "firstMaleIndex";
+const std::string gStr_genomes = "genomes";
+const std::string gStr_immigrantSubpopIDs = "immigrantSubpopIDs";
+const std::string gStr_immigrantSubpopFractions = "immigrantSubpopFractions";
+const std::string gStr_selfingFraction = "selfingFraction";
+const std::string gStr_sexRatio = "sexRatio";
+const std::string gStr_size = "size";
+const std::string gStr_fixationTime = "fixationTime";
+
+// mostly method names
+const std::string gStr_property = "property";
+const std::string gStr_str = "str";
+const std::string gStr_changeRecombinationIntervals = "changeRecombinationIntervals";
+const std::string gStr_addMutations = "addMutations";
+const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
+const std::string gStr_addNewMutation = "addNewMutation";
+const std::string gStr_removeMutations = "removeMutations";
+const std::string gStr_changeGenomicElementType = "changeGenomicElementType";
+const std::string gStr_changeMutationFractions = "changeMutationFractions";
+const std::string gStr_setSelectionCoeff = "setSelectionCoeff";
+const std::string gStr_changeDistribution = "changeDistribution";
+const std::string gStr_files = "files";
+const std::string gStr_readFile = "readFile";
+const std::string gStr_writeFile = "writeFile";
+const std::string gStr_addSubpop = "addSubpop";
+const std::string gStr_addSubpopSplit = "addSubpopSplit";
+const std::string gStr_deregisterScriptBlock = "deregisterScriptBlock";
+const std::string gStr_mutationFrequencies = "mutationFrequencies";
+const std::string gStr_outputFixedMutations = "outputFixedMutations";
+const std::string gStr_outputFull = "outputFull";
+const std::string gStr_outputMutations = "outputMutations";
+const std::string gStr_readFromPopulationFile = "readFromPopulationFile";
+const std::string gStr_registerScriptEvent = "registerScriptEvent";
+const std::string gStr_registerScriptFitnessCallback = "registerScriptFitnessCallback";
+const std::string gStr_registerScriptMateChoiceCallback = "registerScriptMateChoiceCallback";
+const std::string gStr_registerScriptModifyChildCallback = "registerScriptModifyChildCallback";
+const std::string gStr_changeMigrationRates = "changeMigrationRates";
+const std::string gStr_changeSelfingRate = "changeSelfingRate";
+const std::string gStr_changeSexRatio = "changeSexRatio";
+const std::string gStr_changeSubpopulationSize = "changeSubpopulationSize";
+const std::string gStr_fitness = "fitness";
+const std::string gStr_outputMSSample = "outputMSSample";
+const std::string gStr_outputSample = "outputSample";
+
+// mostly language keywords
+const std::string gStr_if = "if";
+const std::string gStr_else = "else";
+const std::string gStr_do = "do";
+const std::string gStr_while = "while";
+const std::string gStr_for = "for";
+const std::string gStr_in = "in";
+const std::string gStr_next = "next";
+const std::string gStr_break = "break";
+const std::string gStr_return = "return";
+
+// mostly SLiMscript global constants
+const std::string gStr_T = "T";
+const std::string gStr_F = "F";
+const std::string gStr_NULL = "NULL";
+const std::string gStr_PI = "PI";
+const std::string gStr_E = "E";
+const std::string gStr_INF = "INF";
+const std::string gStr_NAN = "NAN";
+
+// mostly SLiM type names
+const std::string gStr_void = "void";
+const std::string gStr_logical = "logical";
+const std::string gStr_string = "string";
+const std::string gStr_integer = "integer";
+const std::string gStr_float = "float";
+const std::string gStr_object = "object";
+const std::string gStr_numeric = "numeric";
+
+// mostly SLiMscript variable names used in callbacks and such
+const std::string gStr_sim = "sim";
+const std::string gStr_self = "self";
+const std::string gStr_genome1 = "genome1";
+const std::string gStr_genome2 = "genome2";
+const std::string gStr_subpop = "subpop";
+const std::string gStr_sourceSubpop = "sourceSubpop";
+const std::string gStr_weights = "weights";
+const std::string gStr_childGenome1 = "childGenome1";
+const std::string gStr_childGenome2 = "childGenome2";
+const std::string gStr_childIsFemale = "childIsFemale";
+const std::string gStr_parent1Genome1 = "parent1Genome1";
+const std::string gStr_parent1Genome2 = "parent1Genome2";
+const std::string gStr_isSelfing = "isSelfing";
+const std::string gStr_parent2Genome1 = "parent2Genome1";
+const std::string gStr_parent2Genome2 = "parent2Genome2";
+const std::string gStr_mut = "mut";
+const std::string gStr_relFitness = "relFitness";
+const std::string gStr_homozygous = "homozygous";
+
+// mostly SLiM element types
+const std::string gStr_Chromosome = "Chromosome";
+const std::string gStr_Genome = "Genome";
+const std::string gStr_GenomicElement = "GenomicElement";
+const std::string gStr_GenomicElementType = "GenomicElementType";
+const std::string gStr_Mutation = "Mutation";
+const std::string gStr_MutationType = "MutationType";
+const std::string gStr_Path = "Path";
+const std::string gStr_undefined = "undefined";
+const std::string gStr_SLiMScriptBlock = "SLiMScriptBlock";
+const std::string gStr_SLiMSim = "SLiMSim";
+const std::string gStr_Subpopulation = "Subpopulation";
+const std::string gStr_Substitution = "Substitution";
 
 
-
+// mostly other fixed strings
+const std::string gStr_Autosome = "Autosome";
+const std::string gStr_X_chromosome = "X chromosome";
+const std::string gStr_Y_chromosome = "Y chromosome";
+const std::string gStr_event = "event";
+const std::string gStr_mateChoice = "mateChoice";
+const std::string gStr_modifyChild = "modifyChild";
+const std::string gStr_lessThanSign = "<";
+const std::string gStr_greaterThanSign = ">";
+const std::string gStr_GetValueForMemberOfElements = "GetValueForMemberOfElements";
+const std::string gStr_ExecuteMethod = "ExecuteMethod";
 
 
 

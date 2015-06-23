@@ -41,7 +41,7 @@ Script_PathElement::Script_PathElement(std::string p_base_path) : base_path_(p_b
 
 std::string Script_PathElement::ElementType(void) const
 {
-	return "Path";
+	return gStr_Path;
 }
 
 bool Script_PathElement::ExternallyOwned(void) const
@@ -70,14 +70,14 @@ std::vector<std::string> Script_PathElement::ReadWriteMembers(void) const
 {
 	std::vector<std::string> members;
 	
-	members.push_back("path");
+	members.push_back(gStr_path);
 	
 	return members;
 }
 
 ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name)
 {
-	if (p_member_name.compare("path") == 0)
+	if (p_member_name.compare(gStr_path) == 0)
 		return new ScriptValue_String(base_path_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -85,7 +85,7 @@ ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_n
 
 void Script_PathElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	if (p_member_name.compare("path") == 0)
+	if (p_member_name.compare(gStr_path) == 0)
 	{
 		ScriptValueType value_type = p_value->Type();
 		int value_count = p_value->Count();
@@ -106,9 +106,9 @@ std::vector<std::string> Script_PathElement::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("files");
-	methods.push_back("readFile");
-	methods.push_back("writeFile");
+	methods.push_back(gStr_files);
+	methods.push_back(gStr_readFile);
+	methods.push_back(gStr_writeFile);
 	
 	return methods;
 }
@@ -122,16 +122,16 @@ const FunctionSignature *Script_PathElement::SignatureForMethod(std::string cons
 	
 	if (!filesSig)
 	{
-		filesSig = (new FunctionSignature("files", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod();
-		readFileSig = (new FunctionSignature("readFile", FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod()->AddString_S();
-		writeFileSig = (new FunctionSignature("writeFile", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddString();
+		filesSig = (new FunctionSignature(gStr_files, FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod();
+		readFileSig = (new FunctionSignature(gStr_readFile, FunctionIdentifier::kNoFunction, kScriptValueMaskString))->SetInstanceMethod()->AddString_S();
+		writeFileSig = (new FunctionSignature(gStr_writeFile, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddString();
 	}
 	
-	if (p_method_name.compare("files") == 0)
+	if (p_method_name.compare(gStr_files) == 0)
 		return filesSig;
-	else if (p_method_name.compare("readFile") == 0)
+	else if (p_method_name.compare(gStr_readFile) == 0)
 		return readFileSig;
-	else if (p_method_name.compare("writeFile") == 0)
+	else if (p_method_name.compare(gStr_writeFile) == 0)
 		return writeFileSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -158,7 +158,7 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 
 ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
-	if (p_method_name.compare("files") == 0)
+	if (p_method_name.compare(gStr_files) == 0)
 	{
 		string path = ResolvedBasePath();
 		
@@ -187,7 +187,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 		}
 	}
-	else if (p_method_name.compare("readFile") == 0)
+	else if (p_method_name.compare(gStr_readFile) == 0)
 	{
 		// the first argument is the filename
 		ScriptValue *arg0_value = p_arguments[0];
@@ -223,7 +223,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		
 		return string_result;
 	}
-	else if (p_method_name.compare("writeFile") == 0)
+	else if (p_method_name.compare(gStr_writeFile) == 0)
 	{
 		// the first argument is the filename
 		ScriptValue *arg0_value = p_arguments[0];

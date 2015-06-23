@@ -145,18 +145,12 @@ bool ScriptInterpreter::ShouldLogExecution(void)
 
 std::string ScriptInterpreter::ExecutionLog(void)
 {
-	// use a static empty string, because using "" actually shows up in the profile
-	static const std::string empty_string;
-	
-	return (execution_log_ ? execution_log_->str() : empty_string);
+	return (execution_log_ ? execution_log_->str() : gStr_empty_string);
 }
 
 std::string ScriptInterpreter::ExecutionOutput(void)
 {
-	// use a static empty string, because using "" actually shows up in the profile
-	static const std::string empty_string;
-	
-	return (execution_output_ ? execution_output_->str() : empty_string);
+	return (execution_output_ ? execution_output_->str() : gStr_empty_string);
 }
 
 std::ostringstream &ScriptInterpreter::ExecutionOutputStream(void)
@@ -189,7 +183,7 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 	{
 		if (result->IsTemporary()) delete result;
 		
-		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (EvaluateScriptBlock): statement \"" << (next_statement_hit_ ? gStr_next : gStr_break) << "\" encountered with no enclosing loop." << slim_terminate();
 	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
@@ -242,7 +236,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		{
 			if (result->IsTemporary()) delete result;
 			
-			SLIM_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? "next" : "break") << "\" encountered with no enclosing loop." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gStr_next : gStr_break) << "\" encountered with no enclosing loop." << slim_terminate();
 		}
 		
 		// send the result of the block to our output stream

@@ -88,16 +88,16 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 //
 std::string GenomicElement::ElementType(void) const
 {
-	return "GenomicElement";
+	return gStr_GenomicElement;
 }
 
 std::vector<std::string> GenomicElement::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("genomicElementType");		// genomic_element_type_ptr_
-	constants.push_back("startPosition");			// start_position_
-	constants.push_back("endPosition");				// end_position_
+	constants.push_back(gStr_genomicElementType);		// genomic_element_type_ptr_
+	constants.push_back(gStr_startPosition);			// start_position_
+	constants.push_back(gStr_endPosition);				// end_position_
 	
 	return constants;
 }
@@ -112,11 +112,11 @@ std::vector<std::string> GenomicElement::ReadWriteMembers(void) const
 ScriptValue *GenomicElement::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("genomicElementType") == 0)
+	if (p_member_name.compare(gStr_genomicElementType) == 0)
 		return new ScriptValue_Object(genomic_element_type_ptr_);
-	if (p_member_name.compare("startPosition") == 0)
+	if (p_member_name.compare(gStr_startPosition) == 0)
 		return new ScriptValue_Int(start_position_);
-	if (p_member_name.compare("endPosition") == 0)
+	if (p_member_name.compare(gStr_endPosition) == 0)
 		return new ScriptValue_Int(end_position_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -131,7 +131,7 @@ std::vector<std::string> GenomicElement::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("changeGenomicElementType");
+	methods.push_back(gStr_changeGenomicElementType);
 	
 	return methods;
 }
@@ -142,10 +142,10 @@ const FunctionSignature *GenomicElement::SignatureForMethod(std::string const &p
 	
 	if (!changeGenomicElementTypeSig)
 	{
-		changeGenomicElementTypeSig = (new FunctionSignature("changeGenomicElementType", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
+		changeGenomicElementTypeSig = (new FunctionSignature(gStr_changeGenomicElementType, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
 	}
 	
-	if (p_method_name.compare("changeGenomicElementType") == 0)
+	if (p_method_name.compare(gStr_changeGenomicElementType) == 0)
 		return changeGenomicElementTypeSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -161,7 +161,7 @@ ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std
 	//
 #pragma mark -changeGenomicElementType()
 	
-	if (p_method_name.compare("changeGenomicElementType") == 0)
+	if (p_method_name.compare(gStr_changeGenomicElementType) == 0)
 	{
 		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ElementAtIndex(0));
 		

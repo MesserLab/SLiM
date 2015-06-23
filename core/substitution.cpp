@@ -44,7 +44,7 @@ void Substitution::print(std::ostream &p_out) const
 //
 std::string Substitution::ElementType(void) const
 {
-	return "Substitution";
+	return gStr_Substitution;
 }
 
 void Substitution::Print(std::ostream &p_ostream) const
@@ -56,12 +56,12 @@ std::vector<std::string> Substitution::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("mutationType");		// mutation_type_ptr_
-	constants.push_back("position");			// position_
-	constants.push_back("selectionCoeff");		// selection_coeff_
-	constants.push_back("subpopID");			// subpop_index_
-	constants.push_back("originGeneration");	// generation_
-	constants.push_back("fixationTime");		// fixation_time_
+	constants.push_back(gStr_mutationType);		// mutation_type_ptr_
+	constants.push_back(gStr_position);			// position_
+	constants.push_back(gStr_selectionCoeff);		// selection_coeff_
+	constants.push_back(gStr_subpopID);			// subpop_index_
+	constants.push_back(gStr_originGeneration);	// generation_
+	constants.push_back(gStr_fixationTime);		// fixation_time_
 	
 	return constants;
 }
@@ -76,17 +76,17 @@ std::vector<std::string> Substitution::ReadWriteMembers(void) const
 ScriptValue *Substitution::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("mutationType") == 0)
+	if (p_member_name.compare(gStr_mutationType) == 0)
 		return new ScriptValue_Object(mutation_type_ptr_);
-	if (p_member_name.compare("position") == 0)
+	if (p_member_name.compare(gStr_position) == 0)
 		return new ScriptValue_Int(position_);
-	if (p_member_name.compare("selectionCoeff") == 0)
+	if (p_member_name.compare(gStr_selectionCoeff) == 0)
 		return new ScriptValue_Float(selection_coeff_);
-	if (p_member_name.compare("subpopID") == 0)
+	if (p_member_name.compare(gStr_subpopID) == 0)
 		return new ScriptValue_Int(subpop_index_);
-	if (p_member_name.compare("originGeneration") == 0)
+	if (p_member_name.compare(gStr_originGeneration) == 0)
 		return new ScriptValue_Int(generation_);
-	if (p_member_name.compare("fixationTime") == 0)
+	if (p_member_name.compare(gStr_fixationTime) == 0)
 		return new ScriptValue_Int(fixation_time_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);

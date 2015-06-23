@@ -104,10 +104,10 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((new FunctionSignature("c",			FunctionIdentifier::cFunction,			kScriptValueMaskAny))->AddEllipsis());
-		signatures->push_back((new FunctionSignature("float",		FunctionIdentifier::floatFunction,		kScriptValueMaskFloat))->AddInt_S());
-		signatures->push_back((new FunctionSignature("integer",		FunctionIdentifier::integerFunction,	kScriptValueMaskInt))->AddInt_S());
-		signatures->push_back((new FunctionSignature("logical",		FunctionIdentifier::logicalFunction,	kScriptValueMaskLogical))->AddInt_S());
-		signatures->push_back((new FunctionSignature("object",		FunctionIdentifier::objectFunction,		kScriptValueMaskObject)));
+		signatures->push_back((new FunctionSignature(gStr_float,		FunctionIdentifier::floatFunction,		kScriptValueMaskFloat))->AddInt_S());
+		signatures->push_back((new FunctionSignature(gStr_integer,		FunctionIdentifier::integerFunction,	kScriptValueMaskInt))->AddInt_S());
+		signatures->push_back((new FunctionSignature(gStr_logical,		FunctionIdentifier::logicalFunction,	kScriptValueMaskLogical))->AddInt_S());
+		signatures->push_back((new FunctionSignature(gStr_object,		FunctionIdentifier::objectFunction,		kScriptValueMaskObject)));
 		signatures->push_back((new FunctionSignature("rbinom",		FunctionIdentifier::rbinomFunction,		kScriptValueMaskInt))->AddInt_S()->AddInt()->AddFloat());
 		signatures->push_back((new FunctionSignature("rep",			FunctionIdentifier::repFunction,		kScriptValueMaskAny))->AddAny()->AddInt_S());
 		signatures->push_back((new FunctionSignature("repEach",		FunctionIdentifier::repEachFunction,	kScriptValueMaskAny))->AddAny()->AddInt());
@@ -118,7 +118,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("sample",		FunctionIdentifier::sampleFunction,		kScriptValueMaskAny))->AddAny()->AddInt()->AddLogical_OS()->AddNumeric_O());
 		signatures->push_back((new FunctionSignature("seq",			FunctionIdentifier::seqFunction,		kScriptValueMaskNumeric))->AddNumeric_S()->AddNumeric_S()->AddNumeric_OS());
 		signatures->push_back((new FunctionSignature("seqAlong",	FunctionIdentifier::seqAlongFunction,	kScriptValueMaskInt))->AddAny());
-		signatures->push_back((new FunctionSignature("string",		FunctionIdentifier::stringFunction,		kScriptValueMaskString))->AddInt_S());
+		signatures->push_back((new FunctionSignature(gStr_string,		FunctionIdentifier::stringFunction,		kScriptValueMaskString))->AddInt_S());
 		
 		
 		// ************************************************************************************
@@ -134,10 +134,10 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("paste",		FunctionIdentifier::pasteFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny()->AddString_OS());
 		signatures->push_back((new FunctionSignature("print",		FunctionIdentifier::printFunction,		kScriptValueMaskNULL))->AddAny());
 		signatures->push_back((new FunctionSignature("rev",			FunctionIdentifier::revFunction,		kScriptValueMaskAny))->AddAny());
-		signatures->push_back((new FunctionSignature("size",		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
+		signatures->push_back((new FunctionSignature(gStr_size,		FunctionIdentifier::sizeFunction,		kScriptValueMaskInt | kScriptValueMaskSingleton))->AddAny());
 		signatures->push_back((new FunctionSignature("sort",		FunctionIdentifier::sortFunction,		kScriptValueMaskAnyBase))->AddAnyBase()->AddLogical_OS());
 		signatures->push_back((new FunctionSignature("sortBy",		FunctionIdentifier::sortByFunction,		kScriptValueMaskObject))->AddObject()->AddString_S()->AddLogical_OS());
-		signatures->push_back((new FunctionSignature("str",			FunctionIdentifier::strFunction,		kScriptValueMaskNULL))->AddAny());
+		signatures->push_back((new FunctionSignature(gStr_str,			FunctionIdentifier::strFunction,		kScriptValueMaskNULL))->AddAny());
 		signatures->push_back((new FunctionSignature("strsplit",	FunctionIdentifier::strsplitFunction,	kScriptValueMaskString))->AddString_S()->AddString_OS());
 		signatures->push_back((new FunctionSignature("substr",		FunctionIdentifier::substrFunction,		kScriptValueMaskString))->AddString()->AddInt()->AddInt_O());
 		signatures->push_back((new FunctionSignature("unique",		FunctionIdentifier::uniqueFunction,		kScriptValueMaskAny))->AddAny());
@@ -162,7 +162,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new FunctionSignature("isNULL",		FunctionIdentifier::isNULLFunction,		kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
 		signatures->push_back((new FunctionSignature("isObject",	FunctionIdentifier::isObjectFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
 		signatures->push_back((new FunctionSignature("isString",	FunctionIdentifier::isStringFunction,	kScriptValueMaskLogical | kScriptValueMaskSingleton))->AddAny());
-		signatures->push_back((new FunctionSignature("type",		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
+		signatures->push_back((new FunctionSignature(gStr_type,		FunctionIdentifier::typeFunction,		kScriptValueMaskString | kScriptValueMaskSingleton))->AddAny());
 		
 		
 		// ************************************************************************************
@@ -172,7 +172,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		
 		signatures->push_back((new FunctionSignature("date",		FunctionIdentifier::dateFunction,		kScriptValueMaskString | kScriptValueMaskSingleton)));
 		signatures->push_back((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
-		signatures->push_back((new FunctionSignature("globals",		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
+		signatures->push_back((new FunctionSignature(gStr_globals,		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
 		signatures->push_back((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
 		signatures->push_back((new FunctionSignature("license",		FunctionIdentifier::licenseFunction,	kScriptValueMaskNULL)));
 		signatures->push_back((new FunctionSignature("rm",			FunctionIdentifier::rmFunction,			kScriptValueMaskNULL))->AddString_O());
@@ -187,7 +187,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((new FunctionSignature("Path",		FunctionIdentifier::PathFunction,		kScriptValueMaskObject | kScriptValueMaskSingleton))->AddString_OS());
+		signatures->push_back((new FunctionSignature(gStr_Path,		FunctionIdentifier::PathFunction,		kScriptValueMaskObject | kScriptValueMaskSingleton))->AddString_OS());
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -469,7 +469,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	if (class_method || instance_method)
 		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << slim_terminate();
 	
-	signature->CheckArguments("function", p_arguments);
+	signature->CheckArguments(gStr_function, p_arguments);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_NULL *null_result = nullptr;
@@ -1437,7 +1437,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::stringFunction:
 		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
-				string_result->PushString("");
+				string_result->PushString(gStr_empty_string);
 			break;
 		}
 			
@@ -1480,7 +1480,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::catFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
+			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -1531,7 +1531,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark paste
 		case FunctionIdentifier::pasteFunction:
 		{
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
+			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			string result_string;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1610,7 +1610,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				ScriptValue *first_value = arg0_value->GetValueAtIndex(0);
 				ScriptValue *second_value = arg0_value->GetValueAtIndex(1);
 				
-				output_stream << *first_value << " " << *second_value << " ... (" << arg0_count << " values)" << endl;
+				output_stream << *first_value << gStr_space_string << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
 				if (first_value->IsTemporary()) delete first_value;
 				if (second_value->IsTemporary()) delete second_value;
@@ -1622,7 +1622,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::strsplitFunction:
 		{
 			string joined_string = arg0_value->StringAtIndex(0);
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : " ");
+			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			string::size_type start_idx = 0, sep_idx;
 			
 			while (true)
@@ -1679,7 +1679,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (clamped_last >= len) clamped_last = (int)len - 1;
 					
 					if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
-						string_result->PushString("");
+						string_result->PushString(gStr_empty_string);
 					else
 						string_result->PushString(str.substr(clamped_first, clamped_last - clamped_first + 1));
 				}
@@ -1696,7 +1696,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (clamped_first < 0) clamped_first = 0;
 					
 					if (clamped_first >= len)						
-						string_result->PushString("");
+						string_result->PushString(gStr_empty_string);
 					else
 						string_result->PushString(str.substr(clamped_first, len));
 				}
@@ -2062,7 +2062,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::functionFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : "");
+			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : gStr_empty_string);
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order
@@ -2200,7 +2200,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	if (string_result && (string_result != result)) delete string_result;
 	
 	// Check the return value against the signature
-	signature->CheckReturn("function", result);
+	signature->CheckReturn(gStr_function, result);
 	
 	return result;
 }
@@ -2219,7 +2219,7 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 	if (class_method && instance_method)
 		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << slim_terminate();
 	
-	method_signature->CheckArguments("method", p_arguments);
+	method_signature->CheckArguments(gStr_method, p_arguments);
 	
 	// Make the method call
 	if (class_method)
@@ -2228,7 +2228,7 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, *this);
 	
 	// Check the return value against the signature
-	method_signature->CheckReturn("method", result);
+	method_signature->CheckReturn(gStr_method, result);
 	
 	return result;
 }

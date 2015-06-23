@@ -166,16 +166,16 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 	{
 		const std::string &token_string = p_scan_node->token_->token_string_;
 		
-		if (token_string.compare("executeLambda") == 0)		contains_wildcard_ = true;
-		if (token_string.compare("globals") == 0)			contains_wildcard_ = true;
+		if (token_string.compare(gStr_executeLambda) == 0)		contains_wildcard_ = true;
+		if (token_string.compare(gStr_globals) == 0)			contains_wildcard_ = true;
 		
-		if (token_string.compare("T") == 0)					contains_T_ = true;
-		if (token_string.compare("F") == 0)					contains_F_ = true;
-		if (token_string.compare("NULL") == 0)				contains_NULL_ = true;
-		if (token_string.compare("PI") == 0)				contains_PI_ = true;
-		if (token_string.compare("E") == 0)					contains_E_ = true;
-		if (token_string.compare("INF") == 0)				contains_INF_ = true;
-		if (token_string.compare("NAN") == 0)				contains_NAN_ = false;
+		if (token_string.compare(gStr_T) == 0)					contains_T_ = true;
+		if (token_string.compare(gStr_F) == 0)					contains_F_ = true;
+		if (token_string.compare(gStr_NULL) == 0)				contains_NULL_ = true;
+		if (token_string.compare(gStr_PI) == 0)					contains_PI_ = true;
+		if (token_string.compare(gStr_E) == 0)					contains_E_ = true;
+		if (token_string.compare(gStr_INF) == 0)				contains_INF_ = true;
+		if (token_string.compare(gStr_NAN) == 0)				contains_NAN_ = false;
 		
 		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
 		if (token_string.length() >= 2)
@@ -186,32 +186,32 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 			{
 				char char1 = token_string[0];
 				
-				if (char1 == 'p')							contains_pX_ = true;
-				if (char1 == 'g')							contains_gX_ = true;
-				if (char1 == 'm')							contains_mX_ = true;
-				if (char1 == 's')							contains_sX_ = true;
+				if (char1 == 'p')								contains_pX_ = true;
+				if (char1 == 'g')								contains_gX_ = true;
+				if (char1 == 'm')								contains_mX_ = true;
+				if (char1 == 's')								contains_sX_ = true;
 			}
 		}
 		
-		if (token_string.compare("sim") == 0)				contains_sim_ = true;
-		if (token_string.compare("self") == 0)				contains_self_ = true;
+		if (token_string.compare(gStr_sim) == 0)				contains_sim_ = true;
+		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
-		if (token_string.compare("mut") == 0)				contains_mut_ = true;
-		if (token_string.compare("relFitness") == 0)		contains_relFitness_ = true;
-		if (token_string.compare("genome1") == 0)			contains_genome1_ = true;
-		if (token_string.compare("genome2") == 0)			contains_genome2_ = true;
-		if (token_string.compare("subpop") == 0)			contains_subpop_ = true;
-		if (token_string.compare("homozygous") == 0)		contains_homozygous_ = true;
-		if (token_string.compare("sourceSubpop") == 0)		contains_sourceSubpop_ = false;
-		if (token_string.compare("weights") == 0)			contains_weights_ = false;
-		if (token_string.compare("childGenome1") == 0)		contains_childGenome1_ = false;
-		if (token_string.compare("childGenome2") == 0)		contains_childGenome2_ = false;
-		if (token_string.compare("childIsFemale") == 0)		contains_childIsFemale_ = false;
-		if (token_string.compare("parent1Genome1") == 0)	contains_parent1Genome1_ = false;
-		if (token_string.compare("parent1Genome2") == 0)	contains_parent1Genome2_ = false;
-		if (token_string.compare("isSelfing") == 0)			contains_isSelfing_ = false;
-		if (token_string.compare("parent2Genome1") == 0)	contains_parent2Genome1_ = false;
-		if (token_string.compare("parent2Genome2") == 0)	contains_parent2Genome2_ = false;
+		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
+		if (token_string.compare(gStr_relFitness) == 0)			contains_relFitness_ = true;
+		if (token_string.compare(gStr_genome1) == 0)			contains_genome1_ = true;
+		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
+		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
+		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
+		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = false;
+		if (token_string.compare(gStr_weights) == 0)			contains_weights_ = false;
+		if (token_string.compare(gStr_childGenome1) == 0)		contains_childGenome1_ = false;
+		if (token_string.compare(gStr_childGenome2) == 0)		contains_childGenome2_ = false;
+		if (token_string.compare(gStr_childIsFemale) == 0)		contains_childIsFemale_ = false;
+		if (token_string.compare(gStr_parent1Genome1) == 0)		contains_parent1Genome1_ = false;
+		if (token_string.compare(gStr_parent1Genome2) == 0)		contains_parent1Genome2_ = false;
+		if (token_string.compare(gStr_isSelfing) == 0)			contains_isSelfing_ = false;
+		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = false;
+		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = false;
 	}
 	
 	// recurse down the tree
@@ -292,7 +292,7 @@ void SLiMScriptBlock::ScanTree(void)
 
 void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry("self", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
 }
 
 void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -309,7 +309,7 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 
 std::string SLiMScriptBlock::ElementType(void) const
 {
-	return "SLiMScriptBlock";
+	return gStr_SLiMScriptBlock;
 }
 
 void SLiMScriptBlock::Print(std::ostream &p_ostream) const
@@ -334,11 +334,11 @@ std::vector<std::string> SLiMScriptBlock::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("id");			// block_id_
-	constants.push_back("start");		// start_generation_
-	constants.push_back("end");			// end_generation_
-	constants.push_back("type");		// type_
-	constants.push_back("source");		// source_
+	constants.push_back(gStr_id);			// block_id_
+	constants.push_back(gStr_start);		// start_generation_
+	constants.push_back(gStr_end);			// end_generation_
+	constants.push_back(gStr_type);		// type_
+	constants.push_back(gStr_source);		// source_
 	
 	return constants;
 }
@@ -347,7 +347,7 @@ std::vector<std::string> SLiMScriptBlock::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
-	variables.push_back("active");		// active_
+	variables.push_back(gStr_active);		// active_
 	
 	return variables;
 }
@@ -355,27 +355,27 @@ std::vector<std::string> SLiMScriptBlock::ReadWriteMembers(void) const
 ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("id") == 0)
+	if (p_member_name.compare(gStr_id) == 0)
 		return new ScriptValue_Int(block_id_);
-	if (p_member_name.compare("start") == 0)
+	if (p_member_name.compare(gStr_start) == 0)
 		return new ScriptValue_Int(start_generation_);
-	if (p_member_name.compare("end") == 0)
+	if (p_member_name.compare(gStr_end) == 0)
 		return new ScriptValue_Int(end_generation_);
-	if (p_member_name.compare("type") == 0)
+	if (p_member_name.compare(gStr_type) == 0)
 	{
 		switch (type_)
 		{
-			case SLiMScriptBlockType::SLiMScriptEvent:					return new ScriptValue_String("event");
-			case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return new ScriptValue_String("fitness");
-			case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return new ScriptValue_String("mateChoice");
-			case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return new ScriptValue_String("modifyChild");
+			case SLiMScriptBlockType::SLiMScriptEvent:					return new ScriptValue_String(gStr_event);
+			case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return new ScriptValue_String(gStr_fitness);
+			case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return new ScriptValue_String(gStr_mateChoice);
+			case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return new ScriptValue_String(gStr_modifyChild);
 		}
 	}
-	if (p_member_name.compare("source") == 0)
+	if (p_member_name.compare(gStr_source) == 0)
 		return new ScriptValue_String(compound_statement_node_->token_->token_string_);
 	
 	// variables
-	if (p_member_name.compare("active") == 0)
+	if (p_member_name.compare(gStr_active) == 0)
 		return new ScriptValue_Int(active_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -383,7 +383,7 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name
 
 void SLiMScriptBlock::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	if (p_member_name.compare("active") == 0)
+	if (p_member_name.compare(gStr_active) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
 		

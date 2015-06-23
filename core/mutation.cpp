@@ -60,7 +60,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 //
 std::string Mutation::ElementType(void) const
 {
-	return "Mutation";
+	return gStr_Mutation;
 }
 
 void Mutation::Print(std::ostream &p_ostream) const
@@ -72,11 +72,11 @@ std::vector<std::string> Mutation::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("mutationType");		// mutation_type_ptr_
-	constants.push_back("originGeneration");	// generation_
-	constants.push_back("position");			// position_
-	constants.push_back("selectionCoeff");		// selection_coeff_
-	constants.push_back("subpopID");			// subpop_index_
+	constants.push_back(gStr_mutationType);		// mutation_type_ptr_
+	constants.push_back(gStr_originGeneration);	// generation_
+	constants.push_back(gStr_position);			// position_
+	constants.push_back(gStr_selectionCoeff);		// selection_coeff_
+	constants.push_back(gStr_subpopID);			// subpop_index_
 	
 	return constants;
 }
@@ -91,15 +91,15 @@ std::vector<std::string> Mutation::ReadWriteMembers(void) const
 ScriptValue *Mutation::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("mutationType") == 0)
+	if (p_member_name.compare(gStr_mutationType) == 0)
 		return new ScriptValue_Object(mutation_type_ptr_);
-	if (p_member_name.compare("originGeneration") == 0)
+	if (p_member_name.compare(gStr_originGeneration) == 0)
 		return new ScriptValue_Int(generation_);
-	if (p_member_name.compare("position") == 0)
+	if (p_member_name.compare(gStr_position) == 0)
 		return new ScriptValue_Int(position_);
-	if (p_member_name.compare("selectionCoeff") == 0)
+	if (p_member_name.compare(gStr_selectionCoeff) == 0)
 		return new ScriptValue_Float(selection_coeff_);
-	if (p_member_name.compare("subpopID") == 0)
+	if (p_member_name.compare(gStr_subpopID) == 0)
 		return new ScriptValue_Int(subpop_index_);
 	
 	// variables
@@ -116,7 +116,7 @@ std::vector<std::string> Mutation::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("setSelectionCoeff");
+	methods.push_back(gStr_setSelectionCoeff);
 	
 	return methods;
 }
@@ -127,10 +127,10 @@ const FunctionSignature *Mutation::SignatureForMethod(std::string const &p_metho
 	
 	if (!setSelectionCoeffSig)
 	{
-		setSelectionCoeffSig = (new FunctionSignature("setSelectionCoeff", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		setSelectionCoeffSig = (new FunctionSignature(gStr_setSelectionCoeff, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
 	}
 	
-	if (p_method_name.compare("setSelectionCoeff") == 0)
+	if (p_method_name.compare(gStr_setSelectionCoeff) == 0)
 		return setSelectionCoeffSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -146,7 +146,7 @@ ScriptValue *Mutation::ExecuteMethod(std::string const &p_method_name, std::vect
 	//
 #pragma mark -setSelectionCoeff()
 	
-	if (p_method_name.compare("setSelectionCoeff") == 0)
+	if (p_method_name.compare(gStr_setSelectionCoeff) == 0)
 	{
 		double value = arg0_value->FloatAtIndex(0);
 		

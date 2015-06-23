@@ -129,6 +129,189 @@ inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 }
 
 
+//
+//	Global std::string objects.  This is kind of gross, but there are several rationales for it.  First of all, it makes
+//	a speed difference; converting a C string to a std::string is done every time it is hit in the code; C++ does not
+//	treat that as a constant expression and cache it for you, at least with the current generation of compilers.  The
+//	conversion is surprisingly slow; it has shown up repeatedly in profiles I have done.  Second, there is the issue of
+//	uniqueness; many of these strings occur in multiple places in the code, and a typo in one of those multiple occurrences
+//	would cause a bug that would be very difficult to find.  If multiple places in the code intend to refer to the same
+//	conceptual string, and rely on those references being the same, then a shared constant should be used.  So... oh well.
+//
+
+extern const std::string gStr_empty_string;
+extern const std::string gStr_space_string;
+
+extern const std::string gStr_function;
+extern const std::string gStr_method;
+extern const std::string gStr_executeLambda;
+extern const std::string gStr_globals;
+
+extern const std::string gStr_genomicElements;
+extern const std::string gStr_lastPosition;
+extern const std::string gStr_overallRecombinationRate;
+extern const std::string gStr_recombinationEndPositions;
+extern const std::string gStr_recombinationRates;
+extern const std::string gStr_geneConversionFraction;
+extern const std::string gStr_geneConversionMeanLength;
+extern const std::string gStr_overallMutationRate;
+extern const std::string gStr_genomeType;
+extern const std::string gStr_isNullGenome;
+extern const std::string gStr_mutations;
+extern const std::string gStr_genomicElementType;
+extern const std::string gStr_startPosition;
+extern const std::string gStr_endPosition;
+extern const std::string gStr_id;
+extern const std::string gStr_mutationTypes;
+extern const std::string gStr_mutationFractions;
+extern const std::string gStr_mutationType;
+extern const std::string gStr_originGeneration;
+extern const std::string gStr_position;
+extern const std::string gStr_selectionCoeff;
+extern const std::string gStr_subpopID;
+extern const std::string gStr_id;
+extern const std::string gStr_distributionType;
+extern const std::string gStr_distributionParams;
+extern const std::string gStr_dominanceCoeff;
+extern const std::string gStr_path;
+extern const std::string gStr_id;
+extern const std::string gStr_start;
+extern const std::string gStr_end;
+extern const std::string gStr_type;
+extern const std::string gStr_source;
+extern const std::string gStr_active;
+extern const std::string gStr_chromosome;
+extern const std::string gStr_chromosomeType;
+extern const std::string gStr_genomicElementTypes;
+extern const std::string gStr_mutations;
+extern const std::string gStr_mutationTypes;
+extern const std::string gStr_scriptBlocks;
+extern const std::string gStr_sexEnabled;
+extern const std::string gStr_start;
+extern const std::string gStr_subpopulations;
+extern const std::string gStr_substitutions;
+extern const std::string gStr_dominanceCoeffX;
+extern const std::string gStr_duration;
+extern const std::string gStr_generation;
+extern const std::string gStr_randomSeed;
+extern const std::string gStr_id;
+extern const std::string gStr_firstMaleIndex;
+extern const std::string gStr_genomes;
+extern const std::string gStr_immigrantSubpopIDs;
+extern const std::string gStr_immigrantSubpopFractions;
+extern const std::string gStr_selfingFraction;
+extern const std::string gStr_sexRatio;
+extern const std::string gStr_size;
+extern const std::string gStr_mutationType;
+extern const std::string gStr_position;
+extern const std::string gStr_selectionCoeff;
+extern const std::string gStr_subpopID;
+extern const std::string gStr_originGeneration;
+extern const std::string gStr_fixationTime;
+
+extern const std::string gStr_property;
+extern const std::string gStr_str;
+extern const std::string gStr_changeRecombinationIntervals;
+extern const std::string gStr_addMutations;
+extern const std::string gStr_addNewDrawnMutation;
+extern const std::string gStr_addNewMutation;
+extern const std::string gStr_removeMutations;
+extern const std::string gStr_changeGenomicElementType;
+extern const std::string gStr_changeMutationFractions;
+extern const std::string gStr_setSelectionCoeff;
+extern const std::string gStr_changeDistribution;
+extern const std::string gStr_files;
+extern const std::string gStr_readFile;
+extern const std::string gStr_writeFile;
+extern const std::string gStr_addSubpop;
+extern const std::string gStr_addSubpopSplit;
+extern const std::string gStr_deregisterScriptBlock;
+extern const std::string gStr_mutationFrequencies;
+extern const std::string gStr_outputFixedMutations;
+extern const std::string gStr_outputFull;
+extern const std::string gStr_outputMutations;
+extern const std::string gStr_readFromPopulationFile;
+extern const std::string gStr_registerScriptEvent;
+extern const std::string gStr_registerScriptFitnessCallback;
+extern const std::string gStr_registerScriptMateChoiceCallback;
+extern const std::string gStr_registerScriptModifyChildCallback;
+extern const std::string gStr_changeMigrationRates;
+extern const std::string gStr_changeSelfingRate;
+extern const std::string gStr_changeSexRatio;
+extern const std::string gStr_changeSubpopulationSize;
+extern const std::string gStr_fitness;
+extern const std::string gStr_outputMSSample;
+extern const std::string gStr_outputSample;
+
+extern const std::string gStr_if;
+extern const std::string gStr_else;
+extern const std::string gStr_do;
+extern const std::string gStr_while;
+extern const std::string gStr_for;
+extern const std::string gStr_in;
+extern const std::string gStr_next;
+extern const std::string gStr_break;
+extern const std::string gStr_return;
+
+extern const std::string gStr_T;
+extern const std::string gStr_F;
+extern const std::string gStr_NULL;
+extern const std::string gStr_PI;
+extern const std::string gStr_E;
+extern const std::string gStr_INF;
+extern const std::string gStr_NAN;
+
+extern const std::string gStr_void;
+extern const std::string gStr_logical;
+extern const std::string gStr_string;
+extern const std::string gStr_integer;
+extern const std::string gStr_float;
+extern const std::string gStr_object;
+extern const std::string gStr_numeric;
+
+extern const std::string gStr_sim;
+extern const std::string gStr_self;
+extern const std::string gStr_genome1;
+extern const std::string gStr_genome2;
+extern const std::string gStr_subpop;
+extern const std::string gStr_sourceSubpop;
+extern const std::string gStr_weights;
+extern const std::string gStr_childGenome1;
+extern const std::string gStr_childGenome2;
+extern const std::string gStr_childIsFemale;
+extern const std::string gStr_parent1Genome1;
+extern const std::string gStr_parent1Genome2;
+extern const std::string gStr_isSelfing;
+extern const std::string gStr_parent2Genome1;
+extern const std::string gStr_parent2Genome2;
+extern const std::string gStr_mut;
+extern const std::string gStr_relFitness;
+extern const std::string gStr_homozygous;
+
+extern const std::string gStr_Chromosome;
+extern const std::string gStr_Genome;
+extern const std::string gStr_GenomicElement;
+extern const std::string gStr_GenomicElementType;
+extern const std::string gStr_Mutation;
+extern const std::string gStr_MutationType;
+extern const std::string gStr_Path;
+extern const std::string gStr_undefined;
+extern const std::string gStr_SLiMScriptBlock;
+extern const std::string gStr_SLiMSim;
+extern const std::string gStr_Subpopulation;
+extern const std::string gStr_Substitution;
+
+extern const std::string gStr_Autosome;
+extern const std::string gStr_X_chromosome;
+extern const std::string gStr_Y_chromosome;
+extern const std::string gStr_event;
+extern const std::string gStr_mateChoice;
+extern const std::string gStr_modifyChild;
+extern const std::string gStr_lessThanSign;
+extern const std::string gStr_greaterThanSign;
+extern const std::string gStr_GetValueForMemberOfElements;
+extern const std::string gStr_ExecuteMethod;
+
 
 #endif /* defined(__SLiM__slim_global__) */
 

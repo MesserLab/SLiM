@@ -599,7 +599,7 @@ void SLiMSim::RunToEnd(void)
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry("sim", (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
@@ -1063,23 +1063,23 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 
 std::string SLiMSim::ElementType(void) const
 {
-	return "SLiMSim";
+	return gStr_SLiMSim;
 }
 
 std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("chromosome");			// chromosome_
-	constants.push_back("chromosomeType");		// modeled_chromosome_type_
-	constants.push_back("genomicElementTypes");	// genomic_element_types_
-	constants.push_back("mutations");			// population_.mutation_registry_
-	constants.push_back("mutationTypes");		// mutation_types_
-	constants.push_back("scriptBlocks");		// script_blocks_
-	constants.push_back("sexEnabled");			// sex_enabled_
-	constants.push_back("start");				// time_start_
-	constants.push_back("subpopulations");		// population_
-	constants.push_back("substitutions");		// population_.substitutions_
+	constants.push_back(gStr_chromosome);			// chromosome_
+	constants.push_back(gStr_chromosomeType);		// modeled_chromosome_type_
+	constants.push_back(gStr_genomicElementTypes);	// genomic_element_types_
+	constants.push_back(gStr_mutations);			// population_.mutation_registry_
+	constants.push_back(gStr_mutationTypes);		// mutation_types_
+	constants.push_back(gStr_scriptBlocks);		// script_blocks_
+	constants.push_back(gStr_sexEnabled);			// sex_enabled_
+	constants.push_back(gStr_start);				// time_start_
+	constants.push_back(gStr_subpopulations);		// population_
+	constants.push_back(gStr_substitutions);		// population_.substitutions_
 	
 	return constants;
 }
@@ -1088,10 +1088,10 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
-	variables.push_back("dominanceCoeffX");		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
-	variables.push_back("duration");			// time_duration_
-	variables.push_back("generation");			// generation_
-	variables.push_back("randomSeed");			// rng_seed_
+	variables.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
+	variables.push_back(gStr_duration);			// time_duration_
+	variables.push_back(gStr_generation);			// generation_
+	variables.push_back(gStr_randomSeed);			// rng_seed_
 	
 	return variables;
 }
@@ -1099,18 +1099,18 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("chromosome") == 0)
+	if (p_member_name.compare(gStr_chromosome) == 0)
 		return new ScriptValue_Object(&chromosome_);
-	if (p_member_name.compare("chromosomeType") == 0)
+	if (p_member_name.compare(gStr_chromosomeType) == 0)
 	{
 		switch (modeled_chromosome_type_)
 		{
-			case GenomeType::kAutosome:		return new ScriptValue_String("Autosome");
-			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
-			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
+			case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
+			case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
+			case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
 		}
 	}
-	if (p_member_name.compare("genomicElementTypes") == 0)
+	if (p_member_name.compare(gStr_genomicElementTypes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -1119,7 +1119,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("mutations") == 0)
+	if (p_member_name.compare(gStr_mutations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		Genome &mutation_registry = population_.mutation_registry_;
@@ -1130,7 +1130,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("mutationTypes") == 0)
+	if (p_member_name.compare(gStr_mutationTypes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -1139,7 +1139,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("scriptBlocks") == 0)
+	if (p_member_name.compare(gStr_scriptBlocks) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -1148,11 +1148,11 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("sexEnabled") == 0)
+	if (p_member_name.compare(gStr_sexEnabled) == 0)
 		return new ScriptValue_Logical(sex_enabled_);
-	if (p_member_name.compare("start") == 0)
+	if (p_member_name.compare(gStr_start) == 0)
 		return new ScriptValue_Int(time_start_);
-	if (p_member_name.compare("subpopulations") == 0)
+	if (p_member_name.compare(gStr_subpopulations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -1161,7 +1161,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		
 		return vec;
 	}
-	if (p_member_name.compare("substitutions") == 0)
+	if (p_member_name.compare(gStr_substitutions) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -1172,13 +1172,13 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	
 	// variables
-	if (p_member_name.compare("dominanceCoeffX") == 0)
+	if (p_member_name.compare(gStr_dominanceCoeffX) == 0)
 		return new ScriptValue_Float(x_chromosome_dominance_coeff_);
-	if (p_member_name.compare("duration") == 0)
+	if (p_member_name.compare(gStr_duration) == 0)
 		return new ScriptValue_Int(time_duration_);
-	if (p_member_name.compare("generation") == 0)
+	if (p_member_name.compare(gStr_generation) == 0)
 		return new ScriptValue_Int(generation_);
-	if (p_member_name.compare("randomSeed") == 0)
+	if (p_member_name.compare(gStr_randomSeed) == 0)
 		return new ScriptValue_Int(rng_seed_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
@@ -1186,7 +1186,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 
 void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
 {
-	if (p_member_name.compare("generationDuration") == 0)
+	if (p_member_name.compare(gStr_generation) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
 		
@@ -1197,7 +1197,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	if (p_member_name.compare("generation") == 0)
+	if (p_member_name.compare(gStr_generation) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
 		
@@ -1208,7 +1208,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	if (p_member_name.compare("dominanceCoeffX") == 0)
+	if (p_member_name.compare(gStr_dominanceCoeffX) == 0)
 	{
 		if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
 			SLIM_TERMINATION << "ERROR (SLiMSim::SetValueForMember): attempt to set member dominanceCoeffX when not simulating an X chromosome." << slim_terminate();
@@ -1221,7 +1221,7 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		return;
 	}
 	
-	if (p_member_name.compare("randomSeed") == 0)
+	if (p_member_name.compare(gStr_randomSeed) == 0)
 	{
 		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
 		
@@ -1242,18 +1242,18 @@ std::vector<std::string> SLiMSim::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("addSubpop");
-	methods.push_back("addSubpopSplit");
-	methods.push_back("deregisterScriptBlock");
-	methods.push_back("mutationFrequencies");
-	methods.push_back("outputFixedMutations");
-	methods.push_back("outputFull");
-	methods.push_back("outputMutations");
-	methods.push_back("readFromPopulationFile");
-	methods.push_back("registerScriptEvent");
-	methods.push_back("registerScriptFitnessCallback");
-	methods.push_back("registerScriptMateChoiceCallback");
-	methods.push_back("registerScriptModifyChildCallback");
+	methods.push_back(gStr_addSubpop);
+	methods.push_back(gStr_addSubpopSplit);
+	methods.push_back(gStr_deregisterScriptBlock);
+	methods.push_back(gStr_mutationFrequencies);
+	methods.push_back(gStr_outputFixedMutations);
+	methods.push_back(gStr_outputFull);
+	methods.push_back(gStr_outputMutations);
+	methods.push_back(gStr_readFromPopulationFile);
+	methods.push_back(gStr_registerScriptEvent);
+	methods.push_back(gStr_registerScriptFitnessCallback);
+	methods.push_back(gStr_registerScriptMateChoiceCallback);
+	methods.push_back(gStr_registerScriptModifyChildCallback);
 	
 	return methods;
 }
@@ -1276,43 +1276,43 @@ const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method
 	
 	if (!addSubpopSig)
 	{
-		addSubpopSig = (new FunctionSignature("addSubpop", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddFloat_OS();
-		addSubpopSplitSig = (new FunctionSignature("addSubpopSplit", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddObject_S()->AddFloat_OS();
-		deregisterScriptBlockSig = (new FunctionSignature("deregisterScriptBlock", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		mutationFrequenciesSig = (new FunctionSignature("mutationFrequencies", FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddObject()->AddObject_O();
-		outputFixedMutationsSig = (new FunctionSignature("outputFixedMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
-		outputFullSig = (new FunctionSignature("outputFull", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_OS();
-		outputMutationsSig = (new FunctionSignature("outputMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		readFromPopulationFileSig = (new FunctionSignature("readFromPopulationFile", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S();
-		registerScriptEventSig = (new FunctionSignature("registerScriptEvent", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS();
-		registerScriptFitnessCallbackSig = (new FunctionSignature("registerScriptFitnessCallback", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
-		registerScriptMateChoiceCallbackSig = (new FunctionSignature("registerScriptMateChoiceCallback", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
-		registerScriptModifyChildCallbackSig = (new FunctionSignature("registerScriptModifyChildCallback", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		addSubpopSig = (new FunctionSignature(gStr_addSubpop, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddFloat_OS();
+		addSubpopSplitSig = (new FunctionSignature(gStr_addSubpopSplit, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddObject_S()->AddFloat_OS();
+		deregisterScriptBlockSig = (new FunctionSignature(gStr_deregisterScriptBlock, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		mutationFrequenciesSig = (new FunctionSignature(gStr_mutationFrequencies, FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddObject()->AddObject_O();
+		outputFixedMutationsSig = (new FunctionSignature(gStr_outputFixedMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
+		outputFullSig = (new FunctionSignature(gStr_outputFull, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_OS();
+		outputMutationsSig = (new FunctionSignature(gStr_outputMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		readFromPopulationFileSig = (new FunctionSignature(gStr_readFromPopulationFile, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S();
+		registerScriptEventSig = (new FunctionSignature(gStr_registerScriptEvent, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS();
+		registerScriptFitnessCallbackSig = (new FunctionSignature(gStr_registerScriptFitnessCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		registerScriptMateChoiceCallbackSig = (new FunctionSignature(gStr_registerScriptMateChoiceCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		registerScriptModifyChildCallbackSig = (new FunctionSignature(gStr_registerScriptModifyChildCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
 	}
 	
-	if (p_method_name.compare("addSubpop") == 0)
+	if (p_method_name.compare(gStr_addSubpop) == 0)
 		return addSubpopSig;
-	else if (p_method_name.compare("addSubpopSplit") == 0)
+	else if (p_method_name.compare(gStr_addSubpopSplit) == 0)
 		return addSubpopSplitSig;
-	else if (p_method_name.compare("deregisterScriptBlock") == 0)
+	else if (p_method_name.compare(gStr_deregisterScriptBlock) == 0)
 		return deregisterScriptBlockSig;
-	else if (p_method_name.compare("mutationFrequencies") == 0)
+	else if (p_method_name.compare(gStr_mutationFrequencies) == 0)
 		return mutationFrequenciesSig;
-	else if (p_method_name.compare("outputFixedMutations") == 0)
+	else if (p_method_name.compare(gStr_outputFixedMutations) == 0)
 		return outputFixedMutationsSig;
-	else if (p_method_name.compare("outputFull") == 0)
+	else if (p_method_name.compare(gStr_outputFull) == 0)
 		return outputFullSig;
-	else if (p_method_name.compare("outputMutations") == 0)
+	else if (p_method_name.compare(gStr_outputMutations) == 0)
 		return outputMutationsSig;
-	else if (p_method_name.compare("readFromPopulationFile") == 0)
+	else if (p_method_name.compare(gStr_readFromPopulationFile) == 0)
 		return readFromPopulationFileSig;
-	else if (p_method_name.compare("registerScriptEvent") == 0)
+	else if (p_method_name.compare(gStr_registerScriptEvent) == 0)
 		return registerScriptEventSig;
-	else if (p_method_name.compare("registerScriptFitnessCallback") == 0)
+	else if (p_method_name.compare(gStr_registerScriptFitnessCallback) == 0)
 		return registerScriptFitnessCallbackSig;
-	else if (p_method_name.compare("registerScriptMateChoiceCallback") == 0)
+	else if (p_method_name.compare(gStr_registerScriptMateChoiceCallback) == 0)
 		return registerScriptMateChoiceCallbackSig;
-	else if (p_method_name.compare("registerScriptModifyChildCallback") == 0)
+	else if (p_method_name.compare(gStr_registerScriptModifyChildCallback) == 0)
 		return registerScriptModifyChildCallbackSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -1334,7 +1334,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -addSubpop()
 	
-	if (p_method_name.compare("addSubpop") == 0)
+	if (p_method_name.compare(gStr_addSubpop) == 0)
 	{
 		int subpop_id = (int)arg0_value->IntAtIndex(0);
 		int subpop_size = (int)arg1_value->IntAtIndex(0);
@@ -1352,7 +1352,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -addSubpopSplit()
 	
-	else if (p_method_name.compare("addSubpopSplit") == 0)
+	else if (p_method_name.compare(gStr_addSubpopSplit) == 0)
 	{
 		int subpop_id = (int)arg0_value->IntAtIndex(0);
 		int subpop_size = (int)arg1_value->IntAtIndex(0);
@@ -1371,7 +1371,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -deregisterScriptBlock()
 	
-	else if (p_method_name.compare("deregisterScriptBlock") == 0)
+	else if (p_method_name.compare(gStr_deregisterScriptBlock) == 0)
 	{
 		int block_count = arg0_value->Count();
 		
@@ -1388,7 +1388,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -mutationFrequencies()
 	
-	else if (p_method_name.compare("mutationFrequencies") == 0)
+	else if (p_method_name.compare(gStr_mutationFrequencies) == 0)
 	{
 		int total_genome_count = 0;
 		
@@ -1420,7 +1420,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			
 			if (requested_subpop_count)
 			{
-				if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Subpopulation") != 0)
+				if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
 					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << slim_terminate();
 				
 				for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
@@ -1463,7 +1463,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			
 			if (arg1_count)
 			{
-				if (((ScriptValue_Object *)arg1_value)->ElementType().compare("Mutation") != 0)
+				if (((ScriptValue_Object *)arg1_value)->ElementType().compare(gStr_Mutation) != 0)
 					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << slim_terminate();
 				
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
@@ -1486,7 +1486,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -outputFixedMutations()
 	
-	else if (p_method_name.compare("outputFixedMutations") == 0)
+	else if (p_method_name.compare(gStr_outputFixedMutations) == 0)
 	{
 		SLIM_OUTSTREAM << "#OUT: " << generation_ << " F " << endl;
 		SLIM_OUTSTREAM << "Mutations:" << endl;
@@ -1508,7 +1508,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -outputFull()
 	
-	else if (p_method_name.compare("outputFull") == 0)
+	else if (p_method_name.compare(gStr_outputFull) == 0)
 	{
 		if (num_arguments == 0)
 		{
@@ -1548,7 +1548,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -outputMutations()
 	
-	else if (p_method_name.compare("outputMutations") == 0)
+	else if (p_method_name.compare(gStr_outputMutations) == 0)
 	{
 		// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
 		ScriptValue_Object *mutations_object = (ScriptValue_Object *)arg0_value;
@@ -1599,7 +1599,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -readFromPopulationFile()
 	
-	else if (p_method_name.compare("readFromPopulationFile") == 0)
+	else if (p_method_name.compare(gStr_readFromPopulationFile) == 0)
 	{
 		string file_path = arg0_value->StringAtIndex(0);
 		
@@ -1614,7 +1614,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -registerScriptEvent()
 	
-	else if (p_method_name.compare("registerScriptEvent") == 0)
+	else if (p_method_name.compare(gStr_registerScriptEvent) == 0)
 	{
 		int script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 		string script_string = arg1_value->StringAtIndex(0);
@@ -1646,7 +1646,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	//
 #pragma mark -registerScriptFitnessCallback()
 	
-	else if (p_method_name.compare("registerScriptFitnessCallback") == 0)
+	else if (p_method_name.compare(gStr_registerScriptFitnessCallback) == 0)
 	{
 		int script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 		string script_string = arg1_value->StringAtIndex(0);
@@ -1696,7 +1696,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 #pragma mark -registerScriptMateChoiceCallback()
 #pragma mark -registerScriptModifyChildCallback()
 	
-	else if ((p_method_name.compare("registerScriptMateChoiceCallback") == 0) || (p_method_name.compare("registerScriptModifyChildCallback") == 0))
+	else if ((p_method_name.compare(gStr_registerScriptMateChoiceCallback) == 0) || (p_method_name.compare(gStr_registerScriptModifyChildCallback) == 0))
 	{
 		int script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 		string script_string = arg1_value->StringAtIndex(0);
@@ -1723,7 +1723,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
 			SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << slim_terminate();
 		
-		SLiMScriptBlockType block_type = ((p_method_name.compare("registerScriptMateChoiceCallback") == 0) ? SLiMScriptBlockType::SLiMScriptMateChoiceCallback : SLiMScriptBlockType::SLiMScriptModifyChildCallback);
+		SLiMScriptBlockType block_type = ((p_method_name.compare(gStr_registerScriptMateChoiceCallback) == 0) ? SLiMScriptBlockType::SLiMScriptMateChoiceCallback : SLiMScriptBlockType::SLiMScriptModifyChildCallback);
 		SLiMScriptBlock *script_block = new SLiMScriptBlock(script_id, script_string, block_type, start_generation, end_generation);
 		
 		script_block->subpopulation_id_ = subpop_id;

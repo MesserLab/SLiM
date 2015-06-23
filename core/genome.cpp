@@ -165,7 +165,7 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 //
 std::string Genome::ElementType(void) const
 {
-	return "Genome";
+	return gStr_Genome;
 }
 
 void Genome::Print(std::ostream &p_ostream) const
@@ -189,9 +189,9 @@ std::vector<std::string> Genome::ReadOnlyMembers(void) const
 {
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
-	constants.push_back("genomeType");			// genome_type_
-	constants.push_back("isNullGenome");		// is_null_genome_
-	constants.push_back("mutations");			// mutations_
+	constants.push_back(gStr_genomeType);			// genome_type_
+	constants.push_back(gStr_isNullGenome);		// is_null_genome_
+	constants.push_back(gStr_mutations);			// mutations_
 	
 	return constants;
 }
@@ -206,18 +206,18 @@ std::vector<std::string> Genome::ReadWriteMembers(void) const
 ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
-	if (p_member_name.compare("genomeType") == 0)
+	if (p_member_name.compare(gStr_genomeType) == 0)
 	{
 		switch (genome_type_)
 		{
-			case GenomeType::kAutosome:		return new ScriptValue_String("Autosome");
-			case GenomeType::kXChromosome:	return new ScriptValue_String("X chromosome");
-			case GenomeType::kYChromosome:	return new ScriptValue_String("Y chromosome");
+			case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
+			case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
+			case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
 		}
 	}
-	if (p_member_name.compare("isNullGenome") == 0)
+	if (p_member_name.compare(gStr_isNullGenome) == 0)
 		return new ScriptValue_Logical(is_null_genome_);
-	if (p_member_name.compare("mutations") == 0)
+	if (p_member_name.compare(gStr_mutations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
@@ -240,10 +240,10 @@ std::vector<std::string> Genome::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back("addMutations");
-	methods.push_back("addNewDrawnMutation");
-	methods.push_back("addNewMutation");
-	methods.push_back("removeMutations");
+	methods.push_back(gStr_addMutations);
+	methods.push_back(gStr_addNewDrawnMutation);
+	methods.push_back(gStr_addNewMutation);
+	methods.push_back(gStr_removeMutations);
 	
 	return methods;
 }
@@ -257,19 +257,19 @@ const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_
 	
 	if (!addMutationsSig)
 	{
-		addMutationsSig = (new FunctionSignature("addMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		addNewDrawnMutationSig = (new FunctionSignature("addNewDrawnMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
-		addNewMutationSig = (new FunctionSignature("addNewMutation", FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
-		removeMutationsSig = (new FunctionSignature("removeMutations", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addMutationsSig = (new FunctionSignature(gStr_addMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addNewDrawnMutationSig = (new FunctionSignature(gStr_addNewDrawnMutation, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
+		addNewMutationSig = (new FunctionSignature(gStr_addNewMutation, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
+		removeMutationsSig = (new FunctionSignature(gStr_removeMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
 	}
 	
-	if (p_method_name.compare("addMutations") == 0)
+	if (p_method_name.compare(gStr_addMutations) == 0)
 		return addMutationsSig;
-	else if (p_method_name.compare("addNewDrawnMutation") == 0)
+	else if (p_method_name.compare(gStr_addNewDrawnMutation) == 0)
 		return addNewDrawnMutationSig;
-	else if (p_method_name.compare("addNewMutation") == 0)
+	else if (p_method_name.compare(gStr_addNewMutation) == 0)
 		return addNewMutationSig;
-	else if (p_method_name.compare("removeMutations") == 0)
+	else if (p_method_name.compare(gStr_removeMutations) == 0)
 		return removeMutationsSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
@@ -290,13 +290,13 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	//
 #pragma mark -addMutations()
 	
-	if (p_method_name.compare("addMutations") == 0)
+	if (p_method_name.compare(gStr_addMutations) == 0)
 	{
 		int arg0_count = arg0_value->Count();
 		
 		if (arg0_count)
 		{
-			if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Mutation") != 0)
+			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -320,14 +320,14 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	//
 #pragma mark -addNewDrawnMutation()
 	
-	if (p_method_name.compare("addNewDrawnMutation") == 0)
+	if (p_method_name.compare(gStr_addNewDrawnMutation) == 0)
 	{
 		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
 		int origin_generation = (int)arg1_value->IntAtIndex(0);
 		int position = (int)arg2_value->IntAtIndex(0);
 		int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
 		
-		if (mut_type_value->ElementType().compare("MutationType") != 0)
+		if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
 			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
 		
 		MutationType *mut_type = (MutationType *)mut_type_value;
@@ -336,7 +336,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		
 		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 		SymbolTable &symbols = p_interpreter.GetSymbolTable();
-		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
+		ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
 		insert_sorted_mutation(mutation);
@@ -351,7 +351,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	//
 #pragma mark -addNewMutation()
 	
-	if (p_method_name.compare("addNewMutation") == 0)
+	if (p_method_name.compare(gStr_addNewMutation) == 0)
 	{
 		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
 		int origin_generation = (int)arg1_value->IntAtIndex(0);
@@ -359,7 +359,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		double selection_coeff = arg3_value->FloatAtIndex(0);
 		int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
 		
-		if (mut_type_value->ElementType().compare("MutationType") != 0)
+		if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
 			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
 		
 		MutationType *mut_type = (MutationType *)mut_type_value;
@@ -367,7 +367,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		
 		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 		SymbolTable &symbols = p_interpreter.GetSymbolTable();
-		ScriptValue *sim_value = symbols.GetValueForSymbol("sim");
+		ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
 		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 		
 		insert_sorted_mutation(mutation);
@@ -382,13 +382,13 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	//
 #pragma mark -removeMutations()
 	
-	if (p_method_name.compare("removeMutations") == 0)
+	if (p_method_name.compare(gStr_removeMutations) == 0)
 	{
 		int arg0_count = arg0_value->Count();
 		
 		if (arg0_count)
 		{
-			if (((ScriptValue_Object *)arg0_value)->ElementType().compare("Mutation") != 0)
+			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 			
 			if (is_null_genome_)

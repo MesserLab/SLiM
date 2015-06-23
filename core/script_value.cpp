@@ -36,12 +36,12 @@ string StringForScriptValueType(const ScriptValueType p_type)
 {
 	switch (p_type)
 	{
-		case ScriptValueType::kValueNULL:		return "NULL";
-		case ScriptValueType::kValueLogical:	return "logical";
-		case ScriptValueType::kValueString:		return "string";
-		case ScriptValueType::kValueInt:		return "integer";
-		case ScriptValueType::kValueFloat:		return "float";
-		case ScriptValueType::kValueObject:		return "object";
+		case ScriptValueType::kValueNULL:		return gStr_NULL;
+		case ScriptValueType::kValueLogical:	return gStr_logical;
+		case ScriptValueType::kValueString:		return gStr_string;
+		case ScriptValueType::kValueInt:		return gStr_integer;
+		case ScriptValueType::kValueFloat:		return gStr_float;
+		case ScriptValueType::kValueObject:		return gStr_object;
 	}
 }
 
@@ -65,13 +65,13 @@ std::string StringForScriptValueMask(const ScriptValueMask p_mask)
 	if (type_mask == kScriptValueMaskNone)			out_string += "?";
 	else if (type_mask == kScriptValueMaskAny)		out_string += "*";
 	else if (type_mask == kScriptValueMaskAnyBase)	out_string += "+";
-	else if (type_mask == kScriptValueMaskNULL)		out_string += "void";
-	else if (type_mask == kScriptValueMaskLogical)	out_string += "logical";
-	else if (type_mask == kScriptValueMaskString)	out_string += "string";
-	else if (type_mask == kScriptValueMaskInt)		out_string += "integer";
-	else if (type_mask == kScriptValueMaskFloat)	out_string += "float";
-	else if (type_mask == kScriptValueMaskObject)	out_string += "object";
-	else if (type_mask == kScriptValueMaskNumeric)	out_string += "numeric";
+	else if (type_mask == kScriptValueMaskNULL)		out_string += gStr_void;
+	else if (type_mask == kScriptValueMaskLogical)	out_string += gStr_logical;
+	else if (type_mask == kScriptValueMaskString)	out_string += gStr_string;
+	else if (type_mask == kScriptValueMaskInt)		out_string += gStr_integer;
+	else if (type_mask == kScriptValueMaskFloat)	out_string += gStr_float;
+	else if (type_mask == kScriptValueMaskObject)	out_string += gStr_object;
+	else if (type_mask == kScriptValueMaskNumeric)	out_string += gStr_numeric;
 	else
 	{
 		if (type_mask & kScriptValueMaskNULL)		out_string += "N";
@@ -283,7 +283,7 @@ int ScriptValue_NULL::Count(void) const
 
 void ScriptValue_NULL::Print(std::ostream &p_ostream) const
 {
-	p_ostream << "NULL";
+	p_ostream << gStr_NULL;
 }
 
 ScriptValue *ScriptValue_NULL::GetValueAtIndex(const int p_idx) const
@@ -414,7 +414,7 @@ void ScriptValue_Logical::Print(std::ostream &p_ostream) const
 			else
 				p_ostream << ' ';
 			
-			p_ostream << (value ? "T" : "F");
+			p_ostream << (value ? gStr_T : gStr_F);
 		}
 	}
 }
@@ -431,7 +431,7 @@ bool ScriptValue_Logical::LogicalAtIndex(int p_idx) const
 
 std::string ScriptValue_Logical::StringAtIndex(int p_idx) const
 {
-	return (values_.at(p_idx) ? "T" : "F");
+	return (values_.at(p_idx) ? gStr_T : gStr_F);
 }
 
 int64_t ScriptValue_Logical::IntAtIndex(int p_idx) const
@@ -1051,7 +1051,7 @@ ScriptValueType ScriptValue_Object::Type(void) const
 std::string ScriptValue_Object::ElementType(void) const
 {
 	if (values_.size() == 0)
-		return "undefined";
+		return gStr_undefined;
 	else
 		return values_[0]->ElementType();
 }
@@ -1391,7 +1391,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 		}
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::GetValueForMemberOfElements", results);
+		ScriptValue *result = ConcatenateScriptValues(gStr_GetValueForMemberOfElements, results);
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
@@ -1474,7 +1474,7 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::s
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
-		return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
+		return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
 	else
 		return values_[0]->SignatureForMethod(p_method_name);
@@ -1515,7 +1515,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_interpreter));
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		ScriptValue *result = ConcatenateScriptValues("ScriptValue_Object::ExecuteMethod", results);
+		ScriptValue *result = ConcatenateScriptValues(gStr_ExecuteMethod, results);
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
@@ -1608,9 +1608,9 @@ std::vector<std::string> ScriptObjectElement::Methods(void) const
 {
 	std::vector<std::string> methods;
 	
-	methods.push_back("method");
-	methods.push_back("property");
-	methods.push_back("str");
+	methods.push_back(gStr_method);
+	methods.push_back(gStr_property);
+	methods.push_back(gStr_str);
 	
 	return methods;
 }
@@ -1624,16 +1624,16 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	
 	if (!strSig)
 	{
-		methodsSig = (new FunctionSignature("method", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
-		propertySig = (new FunctionSignature("property", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
-		strSig = (new FunctionSignature("str", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
+		methodsSig = (new FunctionSignature(gStr_method, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
+		propertySig = (new FunctionSignature(gStr_property, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetClassMethod()->AddString_OS();
+		strSig = (new FunctionSignature(gStr_str, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
 	}
 	
-	if (p_method_name.compare("method") == 0)
+	if (p_method_name.compare(gStr_method) == 0)
 		return methodsSig;
-	else if (p_method_name.compare("property") == 0)
+	else if (p_method_name.compare(gStr_property) == 0)
 		return propertySig;
-	else if (p_method_name.compare("str") == 0)
+	else if (p_method_name.compare(gStr_str) == 0)
 		return strSig;
 	
 	// Check whether the method signature request failed due to a bad subclass implementation
@@ -1644,13 +1644,13 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	
 	// Otherwise, we have an unrecognized method, so throw
 	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
-	return new FunctionSignature("", FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
+	return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
 ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
-	if (p_method_name.compare("str") == 0)		// instance method
+	if (p_method_name.compare(gStr_str) == 0)		// instance method
 	{
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		
@@ -1691,11 +1691,11 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
-	else if (p_method_name.compare("property") == 0)		// class method
+	else if (p_method_name.compare(gStr_property) == 0)		// class method
 	{
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
-		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
+		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
 		std::vector<std::string> member_names;
@@ -1726,11 +1726,11 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
 	}
-	else if (p_method_name.compare("method") == 0)		// class method
+	else if (p_method_name.compare(gStr_method) == 0)		// class method
 	{
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		bool has_match_string = (p_arguments.size() == 1);
-		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : "");
+		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
 		std::vector<std::string> method_names = Methods();
 		bool signature_found = false;
 		
