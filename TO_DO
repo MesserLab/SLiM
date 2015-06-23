@@ -45,6 +45,7 @@ SLiMscript optimization:
 		0:76 initial time
 		0:49 after special-casing singletons in GetValueForMemberOfElements()
 		0:45 after changing C strings to static global std::strings
+		0:44 after making static ScriptValue_NULL objects globals
 	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
 	Caching of statically allocated logical values for T/F in the tree, as with numbers and strings
 	Callbacks could allocate some ScriptValue objects for parameters outside the main loop, mark them as statically allocated, and reuse them

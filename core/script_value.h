@@ -36,11 +36,20 @@
 
 
 class ScriptValue;
+class ScriptValue_NULL;
+class ScriptValue_Logical;
+
 struct FunctionSignature;
 class ScriptInterpreter;
 
 class ScriptObjectElement;	// the value type for ScriptValue_Object; defined at the bottom of this file
 
+
+extern ScriptValue_NULL *gStaticScriptValueNULL;
+extern ScriptValue_NULL *gStaticScriptValueNULLInvisible;
+
+extern ScriptValue_Logical *gStaticScriptValueT;
+extern ScriptValue_Logical *gStaticScriptValueF;
 
 
 // ScriptValueType is an enum of the possible types for ScriptValue objects.  Note that all of these types are vectors of the stated
@@ -155,9 +164,6 @@ public:
 	ScriptValue_NULL(void);
 	virtual ~ScriptValue_NULL(void);
 	
-	static ScriptValue_NULL *Static_ScriptValue_NULL(void);				// factory method for null objects, since that is a common need
-	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);	// factory method for invisible null objects, since that is a common need
-	
 	virtual ScriptValueType Type(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
@@ -169,6 +175,21 @@ public:
 	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
+};
+
+class ScriptValue_NULL_const : public ScriptValue_NULL
+{
+	// This is used for our static global ScriptValue_NULL instances
+private:
+	ScriptValue_NULL_const(void) = default;
+	
+public:
+	ScriptValue_NULL_const(const ScriptValue_NULL_const &p_original) = delete;	// no copy-construct
+	ScriptValue_NULL_const& operator=(const ScriptValue_NULL_const&) = delete;	// no copying
+	virtual ~ScriptValue_NULL_const(void);										// destructor calls slim_terminate()
+	
+	static ScriptValue_NULL *Static_ScriptValue_NULL(void);				// factory method for null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);	// factory method for invisible null objects, since that is a common need
 };
 
 class ScriptValue_Logical : public ScriptValue

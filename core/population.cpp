@@ -437,7 +437,7 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			if (script_has_wildcard || modify_child_callback->contains_childIsFemale_)
 			{
 				if (p_child_is_female == -1)
-					global_symbols.SetConstantForSymbol(gStr_childIsFemale, ScriptValue_NULL::Static_ScriptValue_NULL());
+					global_symbols.SetConstantForSymbol(gStr_childIsFemale, gStaticScriptValueNULL);
 				else
 					global_symbols.SetConstantForSymbol(gStr_childIsFemale, new ScriptValue_Logical(p_child_is_female != 0));
 			}

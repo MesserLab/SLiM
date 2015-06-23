@@ -977,7 +977,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 	}
 	
 	// the zero-generation functions all return invisible NULL
-	return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+	return gStaticScriptValueNULLInvisible;
 }
 
 std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
@@ -1379,7 +1379,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		for (int block_index = 0; block_index < block_count; ++block_index)
 			scheduled_deregistrations_.push_back((SLiMScriptBlock *)(arg0_value->ElementAtIndex(block_index)));
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1499,7 +1499,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			subs[i]->print(SLIM_OUTSTREAM);
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1539,7 +1539,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			}
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1590,7 +1590,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 			}
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1605,7 +1605,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		
 		InitializePopulationFromFile(file_path.c_str());
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	

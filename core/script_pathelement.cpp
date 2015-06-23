@@ -184,7 +184,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		{
 			// would be nice to emit an error message, but at present we don't have access to the stream...
 			//p_output_stream << "Path " << path << " could not be opened." << endl;
-			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+			return gStaticScriptValueNULLInvisible;
 		}
 	}
 	else if (p_method_name.compare(gStr_readFile) == 0)
@@ -206,7 +206,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		{
 			// not a fatal error, just a warning log
 			p_interpreter.ExecutionOutputStream() << "WARNING: File at path " << file_path << " could not be read." << endl;
-			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+			return gStaticScriptValueNULLInvisible;
 		}
 		
 		ScriptValue_String *string_result = new ScriptValue_String();
@@ -246,7 +246,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 		{
 			// Not a fatal error, just a warning log
 			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
-			return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+			return gStaticScriptValueNULLInvisible;
 		}
 		
 		for (int value_index = 0; value_index < arg1_count; ++value_index)
@@ -263,7 +263,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else
 	{

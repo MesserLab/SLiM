@@ -311,7 +311,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 			}
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -432,7 +432,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 			mutation_count_ -= (genome_iter - genome_backfill_iter);
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	

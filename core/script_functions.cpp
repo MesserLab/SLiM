@@ -268,7 +268,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == ScriptValueType::kValueNULL)
-		return (all_invisible ? ScriptValue_NULL::Static_ScriptValue_NULL_Invisible() : ScriptValue_NULL::Static_ScriptValue_NULL());
+		return (all_invisible ? gStaticScriptValueNULLInvisible : gStaticScriptValueNULL);
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
 	if (highest_type == ScriptValueType::kValueLogical)
@@ -481,7 +481,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	
 	if (return_type_mask == kScriptValueMaskNULL)
 	{
-		null_result = ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();	// assumed that invisible is correct when the return type is NULL
+		null_result = gStaticScriptValueNULLInvisible;	// assumed that invisible is correct when the return type is NULL
 		result = null_result;
 	}
 	else if (return_type_mask == kScriptValueMaskLogical)
@@ -813,7 +813,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			if (arg0_count == 0)
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
@@ -889,7 +889,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			if (arg0_count == 0)
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
@@ -955,7 +955,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			if (arg0_count == 0)
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			else if (arg0_type == ScriptValueType::kValueInt)
 			{
@@ -1022,7 +1022,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			break;
 		}
@@ -1829,7 +1829,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			if (arg0_count == 0)
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			else
 			{
@@ -1886,7 +1886,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			if (arg0_count == 0)
 			{
-				result = ScriptValue_NULL::Static_ScriptValue_NULL();
+				result = gStaticScriptValueNULL;
 			}
 			else
 			{

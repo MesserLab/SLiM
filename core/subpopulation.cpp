@@ -316,7 +316,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					if (script_has_wildcard || fitness_callback->contains_homozygous_)
 					{
 						if (p_homozygous == -1)
-							global_symbols.SetConstantForSymbol(gStr_homozygous, ScriptValue_NULL::Static_ScriptValue_NULL());
+							global_symbols.SetConstantForSymbol(gStr_homozygous, gStaticScriptValueNULL);
 						else
 							global_symbols.SetConstantForSymbol(gStr_homozygous, new ScriptValue_Logical(p_homozygous != 0));
 					}
@@ -1070,7 +1070,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 			population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1085,7 +1085,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		
 		population_.SetSelfing(subpopulation_id_, selfing_fraction);
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1100,7 +1100,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		
 		population_.SetSexRatio(subpopulation_id_, sex_ratio);
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1115,7 +1115,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		
 		population_.SetSize(subpopulation_id_, subpop_size);
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
@@ -1183,7 +1183,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		else
 			population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	

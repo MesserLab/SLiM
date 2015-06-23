@@ -32,6 +32,15 @@ using std::istream;
 using std::ostream;
 
 
+//
+//	Global static ScriptValue objects; these are effectively const, although ScriptValues can't be declared as const.
+//	Internally, thse are implemented as subclasses that terminate if they are dealloced or modified.
+//
+
+ScriptValue_NULL *gStaticScriptValueNULL = ScriptValue_NULL_const::Static_ScriptValue_NULL();
+ScriptValue_NULL *gStaticScriptValueNULLInvisible = ScriptValue_NULL_const::Static_ScriptValue_NULL_Invisible();
+
+
 string StringForScriptValueType(const ScriptValueType p_type)
 {
 	switch (p_type)
@@ -244,33 +253,6 @@ ScriptValue_NULL::~ScriptValue_NULL(void)
 {
 }
 
-/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL(void)
-{
-	static ScriptValue_NULL *static_null = nullptr;
-	
-	if (!static_null)
-	{
-		static_null = new ScriptValue_NULL();
-		static_null->SetExternallyOwned(true);
-	}
-	
-	return static_null;
-}
-
-/* static */ ScriptValue_NULL *ScriptValue_NULL::Static_ScriptValue_NULL_Invisible(void)
-{
-	static ScriptValue_NULL *static_null = nullptr;
-	
-	if (!static_null)
-	{
-		static_null = new ScriptValue_NULL();
-		static_null->invisible_ = true;
-		static_null->SetExternallyOwned(true);
-	}
-	
-	return static_null;
-}
-
 ScriptValueType ScriptValue_NULL::Type(void) const
 {
 	return ScriptValueType::kValueNULL;
@@ -322,6 +304,40 @@ void ScriptValue_NULL::Sort(bool p_ascending)
 #pragma unused(p_ascending)
 	// nothing to do
 }
+
+
+ScriptValue_NULL_const::~ScriptValue_NULL_const(void)
+{
+	SLIM_TERMINATION << "ERROR (ScriptValue_NULL_const::~ScriptValue_NULL_const): internal error: global constant deallocated." << slim_terminate();
+}
+
+/* static */ ScriptValue_NULL *ScriptValue_NULL_const::Static_ScriptValue_NULL(void)
+{
+	static ScriptValue_NULL_const *static_null = nullptr;
+	
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL_const();
+		static_null->SetExternallyOwned(true);
+	}
+	
+	return static_null;
+}
+
+/* static */ ScriptValue_NULL *ScriptValue_NULL_const::Static_ScriptValue_NULL_Invisible(void)
+{
+	static ScriptValue_NULL_const *static_null = nullptr;
+	
+	if (!static_null)
+	{
+		static_null = new ScriptValue_NULL_const();
+		static_null->invisible_ = true;
+		static_null->SetExternallyOwned(true);
+	}
+	
+	return static_null;
+}
+
 
 
 //
@@ -1345,7 +1361,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else if (values_size == 1)
 	{
@@ -1487,7 +1503,7 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else
 	{
@@ -1504,7 +1520,7 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else
 	{
@@ -1689,7 +1705,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 			if (member_value->IsTemporary()) delete member_value;
 		}
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else if (p_method_name.compare(gStr_property) == 0)		// class method
 	{
@@ -1724,7 +1740,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		if (has_match_string && !signature_found)
 			output_stream << "No property found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else if (p_method_name.compare(gStr_method) == 0)		// class method
 	{
@@ -1752,7 +1768,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		if (has_match_string && !signature_found)
 			output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	else
 	{
@@ -1765,7 +1781,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		// Otherwise, we have an unrecognized method, so throw
 		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 }
 

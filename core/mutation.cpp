@@ -152,7 +152,7 @@ ScriptValue *Mutation::ExecuteMethod(std::string const &p_method_name, std::vect
 		
 		selection_coeff_ = static_cast<typeof(selection_coeff_)>(value);	// float, at present, but I don't want to hard-code that
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	

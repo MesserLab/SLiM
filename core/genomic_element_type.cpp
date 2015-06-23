@@ -236,7 +236,7 @@ ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name,
 		mutation_type_ptrs_ = mutation_types;
 		mutation_fractions_ = mutation_fractions;
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	

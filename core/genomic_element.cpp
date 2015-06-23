@@ -167,7 +167,7 @@ ScriptValue *GenomicElement::ExecuteMethod(std::string const &p_method_name, std
 		
 		genomic_element_type_ptr_ = getype;
 		
-		return ScriptValue_NULL::Static_ScriptValue_NULL_Invisible();
+		return gStaticScriptValueNULLInvisible;
 	}
 	
 	
