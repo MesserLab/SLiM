@@ -172,13 +172,15 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 		if (token_string.compare(gStr_executeLambda) == 0)		contains_wildcard_ = true;
 		if (token_string.compare(gStr_globals) == 0)			contains_wildcard_ = true;
 		
+		// ***** If a new flag is added here, it must also be added to the list in SLiMScriptBlock::ScanTree!
+		
 		if (token_string.compare(gStr_T) == 0)					contains_T_ = true;
 		if (token_string.compare(gStr_F) == 0)					contains_F_ = true;
 		if (token_string.compare(gStr_NULL) == 0)				contains_NULL_ = true;
 		if (token_string.compare(gStr_PI) == 0)					contains_PI_ = true;
 		if (token_string.compare(gStr_E) == 0)					contains_E_ = true;
 		if (token_string.compare(gStr_INF) == 0)				contains_INF_ = true;
-		if (token_string.compare(gStr_NAN) == 0)				contains_NAN_ = false;
+		if (token_string.compare(gStr_NAN) == 0)				contains_NAN_ = true;
 		
 		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
 		if (token_string.length() >= 2)
@@ -205,16 +207,16 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
 		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
 		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
-		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = false;
-		if (token_string.compare(gStr_weights) == 0)			contains_weights_ = false;
-		if (token_string.compare(gStr_childGenome1) == 0)		contains_childGenome1_ = false;
-		if (token_string.compare(gStr_childGenome2) == 0)		contains_childGenome2_ = false;
-		if (token_string.compare(gStr_childIsFemale) == 0)		contains_childIsFemale_ = false;
-		if (token_string.compare(gStr_parent1Genome1) == 0)		contains_parent1Genome1_ = false;
-		if (token_string.compare(gStr_parent1Genome2) == 0)		contains_parent1Genome2_ = false;
-		if (token_string.compare(gStr_isSelfing) == 0)			contains_isSelfing_ = false;
-		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = false;
-		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = false;
+		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = true;
+		if (token_string.compare(gStr_weights) == 0)			contains_weights_ = true;
+		if (token_string.compare(gStr_childGenome1) == 0)		contains_childGenome1_ = true;
+		if (token_string.compare(gStr_childGenome2) == 0)		contains_childGenome2_ = true;
+		if (token_string.compare(gStr_childIsFemale) == 0)		contains_childIsFemale_ = true;
+		if (token_string.compare(gStr_parent1Genome1) == 0)		contains_parent1Genome1_ = true;
+		if (token_string.compare(gStr_parent1Genome2) == 0)		contains_parent1Genome2_ = true;
+		if (token_string.compare(gStr_isSelfing) == 0)			contains_isSelfing_ = true;
+		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
+		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
 	}
 	
 	// recurse down the tree
@@ -286,6 +288,41 @@ void SLiMScriptBlock::ScanTree(void)
 {
 	_ScanNodeForIdentifiers(compound_statement_node_);
 	_ScanNodeForConstants(compound_statement_node_);
+	
+	// If the script block contains a "wildcard" – an identifier that signifies that any other identifier could be accessed – then
+	// we just set all of our "contains_" flags to T.  Any new flag that is added must be added here too!
+	if (contains_wildcard_)
+	{
+		contains_T_ = true;
+		contains_F_ = true;
+		contains_NULL_ = true;
+		contains_PI_ = true;
+		contains_E_ = true;
+		contains_INF_ = true;
+		contains_NAN_ = true;
+		contains_pX_ = true;
+		contains_gX_ = true;
+		contains_mX_ = true;
+		contains_sX_ = true;
+		contains_sim_ = true;
+		contains_self_ = true;
+		contains_mut_ = true;
+		contains_relFitness_ = true;
+		contains_genome1_ = true;
+		contains_genome2_ = true;
+		contains_subpop_ = true;
+		contains_homozygous_ = true;
+		contains_sourceSubpop_ = true;
+		contains_weights_ = true;
+		contains_childGenome1_ = true;
+		contains_childGenome2_ = true;
+		contains_childIsFemale_ = true;
+		contains_parent1Genome1_ = true;
+		contains_parent1Genome2_ = true;
+		contains_isSelfing_ = true;
+		contains_parent2Genome1_ = true;
+		contains_parent2Genome2_ = true;
+	}
 }
 
 

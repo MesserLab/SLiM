@@ -69,19 +69,19 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 	if (script_block)
 	{
 		// Include symbols only if they are used by the script block we are being created to interpret
-		if (script_block->contains_wildcard_ || script_block->contains_T_)
+		if (script_block->contains_T_)
 			InitializeConstantSymbolEntry(trueConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_F_)
+		if (script_block->contains_F_)
 			InitializeConstantSymbolEntry(falseConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_NULL_)
+		if (script_block->contains_NULL_)
 			InitializeConstantSymbolEntry(nullConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_PI_)
+		if (script_block->contains_PI_)
 			InitializeConstantSymbolEntry(piConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_E_)
+		if (script_block->contains_E_)
 			InitializeConstantSymbolEntry(eConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_INF_)
+		if (script_block->contains_INF_)
 			InitializeConstantSymbolEntry(infConstant);
-		if (script_block->contains_wildcard_ || script_block->contains_NAN_)
+		if (script_block->contains_NAN_)
 			InitializeConstantSymbolEntry(nanConstant);
 	}
 	else

@@ -68,7 +68,7 @@ public:
 	int64_t active_ = -1;										// the "active" property of the block: 0 if inactive, all other values are active
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
-	bool contains_wildcard_ = false;			// "executeLambda", "globals"
+	bool contains_wildcard_ = false;			// "executeLambda", "globals"; all other contains_ flags will be T if this is T
 	bool contains_T_ = false;					// "T"
 	bool contains_F_ = false;					// "F"
 	bool contains_NULL_ = false;				// "NULL"

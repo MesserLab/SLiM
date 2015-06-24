@@ -299,24 +299,23 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					// We need to actually execute the script
 					SymbolTable global_symbols(fitness_callback);
 					ScriptInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols);
-					bool script_has_wildcard = fitness_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 					
 					sim.InjectIntoInterpreter(interpreter, fitness_callback);
 					
-					if (script_has_wildcard || fitness_callback->contains_mut_)
+					if (fitness_callback->contains_mut_)
 						global_symbols.SetConstantForSymbol(gStr_mut, new ScriptValue_Object(p_mutation));
-					if (script_has_wildcard || fitness_callback->contains_relFitness_)
+					if (fitness_callback->contains_relFitness_)
 						global_symbols.SetConstantForSymbol(gStr_relFitness, new ScriptValue_Float(p_computed_fitness));
-					if (script_has_wildcard || fitness_callback->contains_genome1_)
+					if (fitness_callback->contains_genome1_)
 						global_symbols.SetConstantForSymbol(gStr_genome1, genome1->CachedScriptValue());
-					if (script_has_wildcard || fitness_callback->contains_genome2_)
+					if (fitness_callback->contains_genome2_)
 						global_symbols.SetConstantForSymbol(gStr_genome2, genome2->CachedScriptValue());
-					if (script_has_wildcard || fitness_callback->contains_subpop_)
+					if (fitness_callback->contains_subpop_)
 						global_symbols.SetConstantForSymbol(gStr_subpop, CachedSymbolTableEntry()->second);
 					
 					// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 					// that gets translated into SLiMScript values of NULL, F, and T, respectively
-					if (script_has_wildcard || fitness_callback->contains_homozygous_)
+					if (fitness_callback->contains_homozygous_)
 					{
 						if (p_homozygous == -1)
 							global_symbols.SetConstantForSymbol(gStr_homozygous, gStaticScriptValueNULL);

@@ -261,29 +261,28 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
 			SymbolTable global_symbols(mate_choice_callback);
 			ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
-			bool script_has_wildcard = mate_choice_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			
 			sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
 			
-			if (script_has_wildcard || mate_choice_callback->contains_genome1_)
+			if (mate_choice_callback->contains_genome1_)
 			{
 				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
 				global_symbols.SetConstantForSymbol(gStr_genome1, parent1_genome1->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || mate_choice_callback->contains_genome2_)
+			if (mate_choice_callback->contains_genome2_)
 			{
 				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
 				global_symbols.SetConstantForSymbol(gStr_genome2, parent1_genome2->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || mate_choice_callback->contains_subpop_)
+			if (mate_choice_callback->contains_subpop_)
 				global_symbols.SetConstantForSymbol(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
 			
-			if (script_has_wildcard || mate_choice_callback->contains_sourceSubpop_)
+			if (mate_choice_callback->contains_sourceSubpop_)
 				global_symbols.SetConstantForSymbol(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
 			
-			if (script_has_wildcard || mate_choice_callback->contains_weights_)
+			if (mate_choice_callback->contains_weights_)
 				global_symbols.SetConstantForSymbol(gStr_weights, new ScriptValue_Float(*current_weights));
 			
 			// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
@@ -418,23 +417,22 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
 			SymbolTable global_symbols(modify_child_callback);
 			ScriptInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
-			bool script_has_wildcard = modify_child_callback->contains_wildcard_;	// if a wildcard is present, we must inject all
 			
 			sim_.InjectIntoInterpreter(interpreter, modify_child_callback);
 			
-			if (script_has_wildcard || modify_child_callback->contains_childGenome1_)
+			if (modify_child_callback->contains_childGenome1_)
 			{
 				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
 				global_symbols.SetConstantForSymbol(gStr_childGenome1, child_genome1->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_childGenome2_)
+			if (modify_child_callback->contains_childGenome2_)
 			{
 				Genome *child_genome2 = &(p_subpop->child_genomes_[p_child_index * 2 + 1]);
 				global_symbols.SetConstantForSymbol(gStr_childGenome2, child_genome2->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_childIsFemale_)
+			if (modify_child_callback->contains_childIsFemale_)
 			{
 				if (p_child_is_female == -1)
 					global_symbols.SetConstantForSymbol(gStr_childIsFemale, gStaticScriptValueNULL);
@@ -442,37 +440,37 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 					global_symbols.SetConstantForSymbol(gStr_childIsFemale, (p_child_is_female != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_parent1Genome1_)
+			if (modify_child_callback->contains_parent1Genome1_)
 			{
 				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
 				global_symbols.SetConstantForSymbol(gStr_parent1Genome1, parent1_genome1->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_parent1Genome2_)
+			if (modify_child_callback->contains_parent1Genome2_)
 			{
 				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
 				global_symbols.SetConstantForSymbol(gStr_parent1Genome2, parent1_genome2->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_isSelfing_)
+			if (modify_child_callback->contains_isSelfing_)
 				global_symbols.SetConstantForSymbol(gStr_isSelfing, p_is_selfing ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			
-			if (script_has_wildcard || modify_child_callback->contains_parent2Genome1_)
+			if (modify_child_callback->contains_parent2Genome1_)
 			{
 				Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
 				global_symbols.SetConstantForSymbol(gStr_parent2Genome1, parent2_genome1->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_parent2Genome2_)
+			if (modify_child_callback->contains_parent2Genome2_)
 			{
 				Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
 				global_symbols.SetConstantForSymbol(gStr_parent2Genome2, parent2_genome2->CachedScriptValue());
 			}
 			
-			if (script_has_wildcard || modify_child_callback->contains_subpop_)
+			if (modify_child_callback->contains_subpop_)
 				global_symbols.SetConstantForSymbol(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
 			
-			if (script_has_wildcard || modify_child_callback->contains_sourceSubpop_)
+			if (modify_child_callback->contains_sourceSubpop_)
 				global_symbols.SetConstantForSymbol(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
