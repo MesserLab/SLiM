@@ -1585,11 +1585,21 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 
 ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
-	if (values_.size() == 0)
+	auto values_size = values_.size();
+	
+	if (values_size == 0)
 	{
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
+	}
+	else if (values_size == 1)
+	{
+		// the singleton case is very common, so it should be special-cased for speed
+		ScriptObjectElement *value = values_[0];
+		ScriptValue *result = value->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		
+		return result;
 	}
 	else
 	{
