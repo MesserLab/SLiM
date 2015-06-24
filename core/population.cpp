@@ -439,7 +439,7 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 				if (p_child_is_female == -1)
 					global_symbols.SetConstantForSymbol(gStr_childIsFemale, gStaticScriptValueNULL);
 				else
-					global_symbols.SetConstantForSymbol(gStr_childIsFemale, new ScriptValue_Logical(p_child_is_female != 0));
+					global_symbols.SetConstantForSymbol(gStr_childIsFemale, (p_child_is_female != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			}
 			
 			if (script_has_wildcard || modify_child_callback->contains_parent1Genome1_)
@@ -455,7 +455,7 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			}
 			
 			if (script_has_wildcard || modify_child_callback->contains_isSelfing_)
-				global_symbols.SetConstantForSymbol(gStr_isSelfing, new ScriptValue_Logical(p_is_selfing));
+				global_symbols.SetConstantForSymbol(gStr_isSelfing, p_is_selfing ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			
 			if (script_has_wildcard || modify_child_callback->contains_parent2Genome1_)
 			{

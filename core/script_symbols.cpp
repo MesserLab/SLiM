@@ -57,9 +57,9 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 	
 	if (!trueConstant)
 	{
-		trueConstant = new SymbolTableEntry(gStr_T, (new ScriptValue_Logical(true))->SetExternallyOwned(true));
-		falseConstant = new SymbolTableEntry(gStr_F, (new ScriptValue_Logical(false))->SetExternallyOwned(true));
-		nullConstant = new SymbolTableEntry(gStr_NULL, (new ScriptValue_NULL())->SetExternallyOwned(true));
+		trueConstant = new SymbolTableEntry(gStr_T, gStaticScriptValue_LogicalT);
+		falseConstant = new SymbolTableEntry(gStr_F, gStaticScriptValue_LogicalF);
+		nullConstant = new SymbolTableEntry(gStr_NULL, gStaticScriptValueNULL);
 		piConstant = new SymbolTableEntry(gStr_PI, (new ScriptValue_Float(M_PI))->SetExternallyOwned(true));
 		eConstant = new SymbolTableEntry(gStr_E, (new ScriptValue_Float(M_E))->SetExternallyOwned(true));
 		infConstant = new SymbolTableEntry(gStr_INF, (new ScriptValue_Float(std::numeric_limits<double>::infinity()))->SetExternallyOwned(true));

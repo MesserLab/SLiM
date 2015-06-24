@@ -1798,83 +1798,171 @@ ScriptValue *ScriptInterpreter::Evaluate_And(const ScriptASTNode *p_node)
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_And): internal error (expected 2+ children)." << slim_terminate();
 	
+	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
 	ScriptValue_Logical *result = nullptr;
+	bool bool_result = false;
 	int result_count = 0;
+	bool first_child = true;
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
 		ScriptValue *child_result = EvaluateNode(child_node);
-		ScriptValueType child_type = child_result->Type();
 		
-		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
+		if (child_result == gStaticScriptValue_LogicalT)
 		{
-			if (child_result->IsTemporary()) delete child_result;
-			if (result->IsTemporary()) delete result;
-			
-			SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << slim_terminate();
-		}
-		
-		int child_count = child_result->Count();
-		
-		if (!result)
-		{
-			// if this is our first operand, we just clone it and move on to the next operand
-			result = new ScriptValue_Logical();
-			result_count = child_count;
-			
-			for (int value_index = 0; value_index < child_count; ++value_index)
-				result->PushLogical(child_result->LogicalAtIndex(value_index));
-			
-			continue;
-		}
-		else
-		{
-			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
-			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+			// Handle a static singleton logical true super fast; no need for type check, count, etc
+			if (first_child)
 			{
-				if (child_result->IsTemporary()) delete child_result;
-				if (result->IsTemporary()) delete result;
-				
-				SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << slim_terminate();
+				first_child = false;
+				bool_result = true;
+				result_count = 1;
 			}
-			
-			if (child_count == 1)
+			// if we're not on the first child, doing an AND with T is a no-op; it does not even change the size of the result vector
+		}
+		else if (child_result == gStaticScriptValue_LogicalF)
+		{
+			// Handle a static singleton logical false super fast; no need for type check, count, etc
+			if (first_child)
 			{
-				// if child_bool is T, it has no effect on result; if it is F, it turns result to all F
-				bool child_bool = child_result->LogicalAtIndex(0);
-				
-				if (!child_bool)
-					for (int value_index = 0; value_index < result_count; ++value_index)
-						result->SetLogicalAtIndex(value_index, false);
-			}
-			else if (result_count == 1)
-			{
-				// we had a one-length result vector, but now we need to upscale it to match child_result
-				bool result_bool = result->LogicalAtIndex(0);
-				
-				if (result->IsTemporary()) delete result;
-				result = new ScriptValue_Logical();
-				result_count = child_count;
-				
-				if (result_bool)
-					for (int value_index = 0; value_index < child_count; ++value_index)
-						result->PushLogical(child_result->LogicalAtIndex(value_index));
-				else
-					for (int value_index = 0; value_index < child_count; ++value_index)
-						result->PushLogical(false);
+				first_child = false;
+				bool_result = false;
+				result_count = 1;
 			}
 			else
 			{
-				// result and child_result are both != 1 length, so we match them one to one, and if child_result is F we turn result to F
-				for (int value_index = 0; value_index < result_count; ++value_index)
-					if (!child_result->LogicalAtIndex(value_index))
+				if (result)
+				{
+					// we have a result allocated, so alter the values in it
+					for (int value_index = 0; value_index < result_count; ++value_index)
 						result->SetLogicalAtIndex(value_index, false);
+				}
+				else
+				{
+					// we have no result allocated, so we must be using bool_result
+					bool_result = false;
+				}
 			}
 		}
-		
-		// free our operand
-		if (child_result->IsTemporary()) delete child_result;
+		else
+		{
+			// Cases that the code above can't handle drop through to the more general case here
+			ScriptValueType child_type = child_result->Type();
+			
+			if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
+			{
+				if (child_result->IsTemporary()) delete child_result;
+				if (result && result->IsTemporary()) delete result;
+				
+				SLIM_TERMINATION << "ERROR (Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << slim_terminate();
+			}
+			
+			int child_count = child_result->Count();
+			
+			if (first_child)
+			{
+				// if this is our first operand, we need to set up an initial result value from it
+				first_child = false;
+				
+				if (child_count == 1)
+				{
+					// if we have a singleton, avoid allocating a result yet, by using bool_result instead
+					bool_result = child_result->LogicalAtIndex(0);
+					result_count = 1;
+				}
+				else if ((child_type == ScriptValueType::kValueLogical) && child_result->IsTemporary())
+				{
+					// child_result is a temporary logical ScriptValue, so we can just take it over as our initial result
+					result = (ScriptValue_Logical *)child_result;
+					result_count = child_count;
+					
+					continue;	// do not free child_result
+				}
+				else
+				{
+					// for other cases, we just clone child_result
+					result = new ScriptValue_Logical();
+					result_count = child_count;
+					
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(child_result->LogicalAtIndex(value_index));
+				}
+			}
+			else
+			{
+				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
+				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+				{
+					if (child_result->IsTemporary()) delete child_result;
+					if (result && result->IsTemporary()) delete result;
+					
+					SLIM_TERMINATION << "ERROR (Evaluate_And): operands to the '&' operator are not compatible in size()." << slim_terminate();
+				}
+				
+				if (child_count == 1)
+				{
+					// if child_bool is T, it has no effect on result; if it is F, it turns result to all F
+					bool child_bool = child_result->LogicalAtIndex(0);
+					
+					if (!child_bool)
+					{
+						if (result)
+						{
+							// we have a result allocated, so alter the values in it
+							for (int value_index = 0; value_index < result_count; ++value_index)
+								result->SetLogicalAtIndex(value_index, false);
+						}
+						else
+						{
+							// we have no result allocated, so we must be using bool_result
+							bool_result = false;
+						}
+					}
+				}
+				else if (result_count == 1)
+				{
+					// we had a one-length result vector, but now we need to upscale it to match child_result
+					bool result_bool;
+					
+					if (result)
+					{
+						// we have a result allocated; work with that
+						result_bool = result->LogicalAtIndex(0);
+						
+						if (result->IsTemporary()) delete result;
+					}
+					else
+					{
+						// no result allocated, so we now need to upgrade to an allocated result
+						result_bool = bool_result;
+					}
+					
+					result = new ScriptValue_Logical();
+					result_count = child_count;
+					
+					if (result_bool)
+						for (int value_index = 0; value_index < child_count; ++value_index)
+							result->PushLogical(child_result->LogicalAtIndex(value_index));
+					else
+						for (int value_index = 0; value_index < child_count; ++value_index)
+							result->PushLogical(false);
+				}
+				else
+				{
+					// result and child_result are both != 1 length, so we match them one to one, and if child_result is F we turn result to F
+					for (int value_index = 0; value_index < result_count; ++value_index)
+						if (!child_result->LogicalAtIndex(value_index))
+							result->SetLogicalAtIndex(value_index, false);
+				}
+			}
+			
+			// free our operand
+			if (child_result->IsTemporary()) delete child_result;
+		}
 	}
+	
+	// if we avoided allocating a result, use a static logical value
+	if (!result)
+		result = (bool_result ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_And() : return == " << *result << "\n";
@@ -1890,81 +1978,171 @@ ScriptValue *ScriptInterpreter::Evaluate_Or(const ScriptASTNode *p_node)
 	if (p_node->children_.size() < 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Or): internal error (expected 2+ children)." << slim_terminate();
 	
+	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
 	ScriptValue_Logical *result = nullptr;
+	bool bool_result = false;
 	int result_count = 0;
+	bool first_child = true;
 	
 	for (ScriptASTNode *child_node : p_node->children_)
 	{
 		ScriptValue *child_result = EvaluateNode(child_node);
-		ScriptValueType child_type = child_result->Type();
 		
-		if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
+		if (child_result == gStaticScriptValue_LogicalT)
 		{
-			if (child_result->IsTemporary()) delete child_result;
-			if (result->IsTemporary()) delete result;
-			
-			SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << slim_terminate();
-		}
-		
-		int child_count = child_result->Count();
-		
-		if (!result)
-		{
-			// if this is our first operand, we just clone it and move on to the next operand
-			result = new ScriptValue_Logical();
-			result_count = child_count;
-			
-			for (int value_index = 0; value_index < child_count; ++value_index)
-				result->PushLogical(child_result->LogicalAtIndex(value_index));
-		}
-		else
-		{
-			// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
-			if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+			// Handle a static singleton logical true super fast; no need for type check, count, etc
+			if (first_child)
 			{
-				if (child_result->IsTemporary()) delete child_result;
-				if (result->IsTemporary()) delete result;
-				
-				SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << slim_terminate();
-			}
-			
-			if (child_count == 1)
-			{
-				// if child_bool is F, it has no effect on result; if it is T, it turns result to all T
-				bool child_bool = child_result->LogicalAtIndex(0);
-				
-				if (child_bool)
-					for (int value_index = 0; value_index < result_count; ++value_index)
-						result->SetLogicalAtIndex(value_index, true);
-			}
-			else if (result_count == 1)
-			{
-				// we had a one-length result vector, but now we need to upscale it to match child_result
-				bool result_bool = result->LogicalAtIndex(0);
-				
-				if (result->IsTemporary()) delete result;
-				result = new ScriptValue_Logical();
-				result_count = child_count;
-				
-				if (result_bool)
-					for (int value_index = 0; value_index < child_count; ++value_index)
-						result->PushLogical(true);
-				else
-					for (int value_index = 0; value_index < child_count; ++value_index)
-						result->PushLogical(child_result->LogicalAtIndex(value_index));
+				first_child = false;
+				bool_result = true;
+				result_count = 1;
 			}
 			else
 			{
-				// result and child_result are both != 1 length, so we match them one to one, and if child_result is T we turn result to T
-				for (int value_index = 0; value_index < result_count; ++value_index)
-					if (child_result->LogicalAtIndex(value_index))
+				if (result)
+				{
+					// we have a result allocated, so alter the values in it
+					for (int value_index = 0; value_index < result_count; ++value_index)
 						result->SetLogicalAtIndex(value_index, true);
+				}
+				else
+				{
+					// we have no result allocated, so we must be using bool_result
+					bool_result = true;
+				}
 			}
 		}
-		
-		// free our operand
-		if (child_result->IsTemporary()) delete child_result;
+		else if (child_result == gStaticScriptValue_LogicalF)
+		{
+			// Handle a static singleton logical false super fast; no need for type check, count, etc
+			if (first_child)
+			{
+				first_child = false;
+				bool_result = false;
+				result_count = 1;
+			}
+			// if we're not on the first child, doing an OR with F is a no-op; it does not even change the size of the result vector
+		}
+		else
+		{
+			// Cases that the code above can't handle drop through to the more general case here
+			ScriptValueType child_type = child_result->Type();
+			
+			if ((child_type != ScriptValueType::kValueLogical) && (child_type != ScriptValueType::kValueString) && (child_type != ScriptValueType::kValueInt) && (child_type != ScriptValueType::kValueFloat))
+			{
+				if (child_result->IsTemporary()) delete child_result;
+				if (result && result->IsTemporary()) delete result;
+				
+				SLIM_TERMINATION << "ERROR (Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << slim_terminate();
+			}
+			
+			int child_count = child_result->Count();
+			
+			if (first_child)
+			{
+				// if this is our first operand, we need to set up an initial result value from it
+				first_child = false;
+				
+				if (child_count == 1)
+				{
+					// if we have a singleton, avoid allocating a result yet, by using bool_result instead
+					bool_result = child_result->LogicalAtIndex(0);
+					result_count = 1;
+				}
+				else if ((child_type == ScriptValueType::kValueLogical) && child_result->IsTemporary())
+				{
+					// child_result is a temporary logical ScriptValue, so we can just take it over as our initial result
+					result = (ScriptValue_Logical *)child_result;
+					result_count = child_count;
+					
+					continue;	// do not free child_result
+				}
+				else
+				{
+					// for other cases, we just clone child_result
+					result = new ScriptValue_Logical();
+					result_count = child_count;
+					
+					for (int value_index = 0; value_index < child_count; ++value_index)
+						result->PushLogical(child_result->LogicalAtIndex(value_index));
+				}
+			}
+			else
+			{
+				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
+				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
+				{
+					if (child_result->IsTemporary()) delete child_result;
+					if (result && result->IsTemporary()) delete result;
+					
+					SLIM_TERMINATION << "ERROR (Evaluate_Or): operands to the '|' operator are not compatible in size()." << slim_terminate();
+				}
+				
+				if (child_count == 1)
+				{
+					// if child_bool is F, it has no effect on result; if it is T, it turns result to all T
+					bool child_bool = child_result->LogicalAtIndex(0);
+					
+					if (child_bool)
+					{
+						if (result)
+						{
+							// we have a result allocated, so alter the values in it
+							for (int value_index = 0; value_index < result_count; ++value_index)
+								result->SetLogicalAtIndex(value_index, true);
+						}
+						else
+						{
+							// we have no result allocated, so we must be using bool_result
+							bool_result = true;
+						}
+					}
+				}
+				else if (result_count == 1)
+				{
+					// we had a one-length result vector, but now we need to upscale it to match child_result
+					bool result_bool;
+					
+					if (result)
+					{
+						// we have a result allocated; work with that
+						result_bool = result->LogicalAtIndex(0);
+						
+						if (result->IsTemporary()) delete result;
+					}
+					else
+					{
+						// no result allocated, so we now need to upgrade to an allocated result
+						result_bool = bool_result;
+					}
+					
+					result = new ScriptValue_Logical();
+					result_count = child_count;
+					
+					if (result_bool)
+						for (int value_index = 0; value_index < child_count; ++value_index)
+							result->PushLogical(true);
+					else
+						for (int value_index = 0; value_index < child_count; ++value_index)
+							result->PushLogical(child_result->LogicalAtIndex(value_index));
+				}
+				else
+				{
+					// result and child_result are both != 1 length, so we match them one to one, and if child_result is T we turn result to T
+					for (int value_index = 0; value_index < result_count; ++value_index)
+						if (child_result->LogicalAtIndex(value_index))
+							result->SetLogicalAtIndex(value_index, true);
+				}
+			}
+			
+			// free our operand
+			if (child_result->IsTemporary()) delete child_result;
+		}
 	}
+	
+	// if we avoided allocating a result, use a static logical value
+	if (!result)
+		result = (bool_result ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Or() : return == " << *result << "\n";
@@ -1981,24 +2159,47 @@ ScriptValue *ScriptInterpreter::Evaluate_Not(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_Not): internal error (expected 1 child)." << slim_terminate();
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	ScriptValueType first_child_type = first_child_value->Type();
+	ScriptValue_Logical *result;
 	
-	if ((first_child_type != ScriptValueType::kValueLogical) && (first_child_type != ScriptValueType::kValueString) && (first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
+	if (first_child_value == gStaticScriptValue_LogicalT)
 	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		
-		SLIM_TERMINATION << "ERROR (Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << slim_terminate();
+		// Handle a static singleton logical true super fast; no need for type check, count, etc
+		result = gStaticScriptValue_LogicalF;
 	}
-	
-	ScriptValue_Logical *result = new ScriptValue_Logical();
-	
-	int first_child_count = first_child_value->Count();
-	
-	for (int value_index = 0; value_index < first_child_count; ++value_index)
-		result->PushLogical(!first_child_value->LogicalAtIndex(value_index));
-	
-	// free our operand
-	if (first_child_value->IsTemporary()) delete first_child_value;
+	else if (first_child_value == gStaticScriptValue_LogicalF)
+	{
+		// Handle a static singleton logical false super fast; no need for type check, count, etc
+		result = gStaticScriptValue_LogicalT;
+	}
+	else
+	{
+		ScriptValueType first_child_type = first_child_value->Type();
+		
+		if ((first_child_type != ScriptValueType::kValueLogical) && (first_child_type != ScriptValueType::kValueString) && (first_child_type != ScriptValueType::kValueInt) && (first_child_type != ScriptValueType::kValueFloat))
+		{
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			
+			SLIM_TERMINATION << "ERROR (Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << slim_terminate();
+		}
+		
+		int first_child_count = first_child_value->Count();
+		
+		if (first_child_count == 1)
+		{
+			// If we're generating a singleton result, use cached static logical values
+			result = (first_child_value->LogicalAtIndex(0) ? gStaticScriptValue_LogicalF : gStaticScriptValue_LogicalT);
+		}
+		else
+		{
+			result = new ScriptValue_Logical();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				result->PushLogical(!first_child_value->LogicalAtIndex(value_index));
+		}
+		
+		// free our operand
+		if (first_child_value->IsTemporary()) delete first_child_value;
+	}
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Not() : return == " << *result << "\n";
@@ -2040,7 +2241,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Eq): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2048,23 +2249,37 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result == 0);
+				result = (compare_result == 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result == 0);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2074,6 +2289,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2085,10 +2302,14 @@ ScriptValue *ScriptInterpreter::Evaluate_Eq(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2109,7 +2330,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2120,23 +2341,37 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator cannot be used with type object." << slim_terminate();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result == -1);
+				result = (compare_result == -1) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result == -1);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2146,6 +2381,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2157,10 +2394,14 @@ ScriptValue *ScriptInterpreter::Evaluate_Lt(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2181,7 +2422,7 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_LtEq): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2192,23 +2433,37 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '<=' operator cannot be used with type object." << slim_terminate();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result != 1);
+				result = (compare_result != 1) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result != 1);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2218,6 +2473,8 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2229,10 +2486,14 @@ ScriptValue *ScriptInterpreter::Evaluate_LtEq(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2253,7 +2514,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_Gt): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2264,23 +2525,37 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>' operator cannot be used with type object." << slim_terminate();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result == 1);
+				result = (compare_result == 1) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result == 1);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2290,6 +2565,8 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2301,10 +2578,14 @@ ScriptValue *ScriptInterpreter::Evaluate_Gt(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2325,7 +2606,7 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_GtEq): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2336,23 +2617,37 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 	if ((first_child_type == ScriptValueType::kValueObject) || (second_child_type == ScriptValueType::kValueObject))
 		SLIM_TERMINATION << "ERROR (Evaluate_Lt): the '>=' operator cannot be used with type object." << slim_terminate();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result != -1);
+				result = (compare_result != -1) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result != -1);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2362,6 +2657,8 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2373,10 +2670,14 @@ ScriptValue *ScriptInterpreter::Evaluate_GtEq(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2397,7 +2698,7 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 	if (p_node->children_.size() != 2)
 		SLIM_TERMINATION << "ERROR (Evaluate_NotEq): internal error (expected 2 children)." << slim_terminate();
 	
-	ScriptValue_Logical *result = new ScriptValue_Logical;
+	ScriptValue_Logical *result = nullptr;
 	
 	ScriptValue *first_child_value = EvaluateNode(p_node->children_[0]);
 	ScriptValue *second_child_value = EvaluateNode(p_node->children_[1]);
@@ -2405,23 +2706,37 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 	ScriptValueType first_child_type = first_child_value->Type();
 	ScriptValueType second_child_type = second_child_value->Type();
 	
-	// if either operand is NULL (including if both are), we return logical(0)
 	if ((first_child_type != ScriptValueType::kValueNULL) && (second_child_type != ScriptValueType::kValueNULL))
 	{
+		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
+			if (first_child_count == 1)
 			{
-				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
+				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, 0);
 				
-				result->PushLogical(compare_result != 0);
+				result = (compare_result != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
+			}
+			else
+			{
+				result = new ScriptValue_Logical;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+				{
+					int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, value_index);
+					
+					result->PushLogical(compare_result != 0);
+				}
 			}
 		}
 		else if (first_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, 0, second_child_value, value_index);
@@ -2431,6 +2746,8 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
+			result = new ScriptValue_Logical;
+			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				int compare_result = CompareScriptValues(first_child_value, value_index, second_child_value, 0);
@@ -2442,10 +2759,14 @@ ScriptValue *ScriptInterpreter::Evaluate_NotEq(const ScriptASTNode *p_node)
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
-			if (result->IsTemporary()) delete result;
 			
 			SLIM_TERMINATION << "ERROR (Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << slim_terminate();
 		}
+	}
+	else
+	{
+		// if either operand is NULL (including if both are), we return logical(0)
+		result = new ScriptValue_Logical;
 	}
 	
 	// free our operands
@@ -2566,7 +2887,26 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 	ScriptASTNode *condition_node = p_node->children_[0];
 	ScriptValue *condition_result = EvaluateNode(condition_node);
 	
-	if (condition_result->Count() == 1)
+	if (condition_result == gStaticScriptValue_LogicalT)
+	{
+		// Handle a static singleton logical true super fast; no need for type check, count, etc
+		ScriptASTNode *true_node = p_node->children_[1];
+		result = EvaluateNode(true_node);
+	}
+	else if (condition_result == gStaticScriptValue_LogicalF)
+	{
+		// Handle a static singleton logical false super fast; no need for type check, count, etc
+		if (children_size == 3)		// has an 'else' node
+		{
+			ScriptASTNode *false_node = p_node->children_[2];
+			result = EvaluateNode(false_node);
+		}
+		else										// no 'else' node, so the result is NULL
+		{
+			result = gStaticScriptValueNULLInvisible;
+		}
+	}
+	else if (condition_result->Count() == 1)
 	{
 		bool condition_bool = condition_result->LogicalAtIndex(0);
 		
@@ -2584,6 +2924,9 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 		{
 			result = gStaticScriptValueNULLInvisible;
 		}
+		
+		// free our operands
+		if (condition_result->IsTemporary()) delete condition_result;
 	}
 	else
 	{
@@ -2591,9 +2934,6 @@ ScriptValue *ScriptInterpreter::Evaluate_If(const ScriptASTNode *p_node)
 		
 		SLIM_TERMINATION << "ERROR (Evaluate_If): condition has size() != 1." << slim_terminate();
 	}
-	
-	// free our operands
-	if (condition_result->IsTemporary()) delete condition_result;
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_If() : return == " << *result << "\n";
@@ -2640,7 +2980,16 @@ ScriptValue *ScriptInterpreter::Evaluate_Do(const ScriptASTNode *p_node)
 		ScriptASTNode *condition_node = p_node->children_[1];
 		ScriptValue *condition_result = EvaluateNode(condition_node);
 		
-		if (condition_result->Count() == 1)
+		if (condition_result == gStaticScriptValue_LogicalT)
+		{
+			// Handle a static singleton logical true super fast; no need for type check, count, etc
+		}
+		else if (condition_result == gStaticScriptValue_LogicalF)
+		{
+			// Handle a static singleton logical false super fast; no need for type check, count, etc
+			break;
+		}
+		else if (condition_result->Count() == 1)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0);
 			
@@ -2683,7 +3032,16 @@ ScriptValue *ScriptInterpreter::Evaluate_While(const ScriptASTNode *p_node)
 		ScriptASTNode *condition_node = p_node->children_[0];
 		ScriptValue *condition_result = EvaluateNode(condition_node);
 		
-		if (condition_result->Count() == 1)
+		if (condition_result == gStaticScriptValue_LogicalT)
+		{
+			// Handle a static singleton logical true super fast; no need for type check, count, etc
+		}
+		else if (condition_result == gStaticScriptValue_LogicalF)
+		{
+			// Handle a static singleton logical false super fast; no need for type check, count, etc
+			break;
+		}
+		else if (condition_result->Count() == 1)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0);
 			

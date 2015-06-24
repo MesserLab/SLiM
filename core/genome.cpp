@@ -216,7 +216,7 @@ ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
 		}
 	}
 	if (p_member_name.compare(gStr_isNullGenome) == 0)
-		return new ScriptValue_Logical(is_null_genome_);
+		return (is_null_genome_ ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	if (p_member_name.compare(gStr_mutations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();

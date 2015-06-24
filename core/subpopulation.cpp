@@ -318,7 +318,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						if (p_homozygous == -1)
 							global_symbols.SetConstantForSymbol(gStr_homozygous, gStaticScriptValueNULL);
 						else
-							global_symbols.SetConstantForSymbol(gStr_homozygous, new ScriptValue_Logical(p_homozygous != 0));
+							global_symbols.SetConstantForSymbol(gStr_homozygous, (p_homozygous != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 					}
 					
 					// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value

@@ -48,8 +48,8 @@ class ScriptObjectElement;	// the value type for ScriptValue_Object; defined at 
 extern ScriptValue_NULL *gStaticScriptValueNULL;
 extern ScriptValue_NULL *gStaticScriptValueNULLInvisible;
 
-extern ScriptValue_Logical *gStaticScriptValueT;
-extern ScriptValue_Logical *gStaticScriptValueF;
+extern ScriptValue_Logical *gStaticScriptValue_LogicalT;
+extern ScriptValue_Logical *gStaticScriptValue_LogicalF;
 
 
 // ScriptValueType is an enum of the possible types for ScriptValue objects.  Note that all of these types are vectors of the stated
@@ -188,8 +188,8 @@ public:
 	ScriptValue_NULL_const& operator=(const ScriptValue_NULL_const&) = delete;	// no copying
 	virtual ~ScriptValue_NULL_const(void);										// destructor calls slim_terminate()
 	
-	static ScriptValue_NULL *Static_ScriptValue_NULL(void);				// factory method for null objects, since that is a common need
-	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);	// factory method for invisible null objects, since that is a common need
+	static ScriptValue_NULL *Static_ScriptValue_NULL(void);
+	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);
 };
 
 class ScriptValue_Logical : public ScriptValue
@@ -221,7 +221,7 @@ public:
 	virtual int64_t IntAtIndex(int p_idx) const;
 	virtual double FloatAtIndex(int p_idx) const;
 	
-	void PushLogical(bool p_logical);
+	virtual void PushLogical(bool p_logical);
 	virtual void SetLogicalAtIndex(const int p_idx, bool p_logical);
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
@@ -229,6 +229,29 @@ public:
 	
 	virtual ScriptValue *CopyValues(void) const;
 	virtual ScriptValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
+};
+
+class ScriptValue_Logical_const : public ScriptValue_Logical
+{
+	// This is used for our static global ScriptValue_Logical instances
+private:
+	ScriptValue_Logical_const(void) = default;
+	
+public:
+	ScriptValue_Logical_const(const ScriptValue_Logical_const &p_original) = delete;	// no copy-construct
+	ScriptValue_Logical_const& operator=(const ScriptValue_Logical_const&) = delete;	// no copying
+	explicit ScriptValue_Logical_const(bool p_bool1);
+	virtual ~ScriptValue_Logical_const(void);											// destructor calls slim_terminate()
+	
+	static ScriptValue_Logical *Static_ScriptValue_Logical_T(void);
+	static ScriptValue_Logical *Static_ScriptValue_Logical_F(void);
+	
+	// prohibited actions
+	virtual void PushLogical(bool p_logical);
+	virtual void SetLogicalAtIndex(const int p_idx, bool p_logical);
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
 };

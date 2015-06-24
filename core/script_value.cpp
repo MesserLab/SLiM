@@ -40,6 +40,9 @@ using std::ostream;
 ScriptValue_NULL *gStaticScriptValueNULL = ScriptValue_NULL_const::Static_ScriptValue_NULL();
 ScriptValue_NULL *gStaticScriptValueNULLInvisible = ScriptValue_NULL_const::Static_ScriptValue_NULL_Invisible();
 
+ScriptValue_Logical *gStaticScriptValue_LogicalT = ScriptValue_Logical_const::Static_ScriptValue_Logical_T();
+ScriptValue_Logical *gStaticScriptValue_LogicalF = ScriptValue_Logical_const::Static_ScriptValue_Logical_F();
+
 
 string StringForScriptValueType(const ScriptValueType p_type)
 {
@@ -472,7 +475,7 @@ void ScriptValue_Logical::SetLogicalAtIndex(const int p_idx, bool p_logical)
 
 ScriptValue *ScriptValue_Logical::GetValueAtIndex(const int p_idx) const
 {
-	return new ScriptValue_Logical(values_.at(p_idx));
+	return (values_.at(p_idx) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 }
 
 void ScriptValue_Logical::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
@@ -507,6 +510,72 @@ void ScriptValue_Logical::Sort(bool p_ascending)
 		std::sort(values_.begin(), values_.end());
 	else
 		std::sort(values_.begin(), values_.end(), std::greater<bool>());
+}
+
+
+ScriptValue_Logical_const::ScriptValue_Logical_const(bool p_bool1) : ScriptValue_Logical(p_bool1)
+{
+}
+
+ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
+{
+	SLIM_TERMINATION << "ERROR (ScriptValue_NULL_const::~ScriptValue_NULL_const): internal error: global constant deallocated." << slim_terminate();
+}
+
+/* static */ ScriptValue_Logical *ScriptValue_Logical_const::Static_ScriptValue_Logical_T(void)
+{
+	static ScriptValue_Logical_const *static_T = nullptr;
+	
+	if (!static_T)
+	{
+		static_T = new ScriptValue_Logical_const(true);
+		static_T->SetExternallyOwned(true);
+	}
+	
+	return static_T;
+}
+
+/* static */ ScriptValue_Logical *ScriptValue_Logical_const::Static_ScriptValue_Logical_F(void)
+{
+	static ScriptValue_Logical_const *static_F = nullptr;
+	
+	if (!static_F)
+	{
+		static_F = new ScriptValue_Logical_const(false);
+		static_F->SetExternallyOwned(true);
+	}
+	
+	return static_F;
+}
+
+void ScriptValue_Logical_const::PushLogical(bool p_logical)
+{
+#pragma unused(p_logical)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Logical_const::PushLogical): internal error: ScriptValue_Logical_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Logical_const::SetLogicalAtIndex(const int p_idx, bool p_logical)
+{
+#pragma unused(p_idx, p_logical)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Logical_const::SetLogicalAtIndex): internal error: ScriptValue_Logical_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Logical_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+{
+#pragma unused(p_idx, p_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Logical_const::SetValueAtIndex): internal error: ScriptValue_Logical_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Logical_const::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+{
+#pragma unused(p_idx, p_source_script_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Logical_const::PushValueFromIndexOfScriptValue): internal error: ScriptValue_Logical_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Logical_const::Sort(bool p_ascending)
+{
+#pragma unused(p_ascending)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Logical_const::Sort): internal error: ScriptValue_Logical_const is not modifiable." << slim_terminate();
 }
 
 

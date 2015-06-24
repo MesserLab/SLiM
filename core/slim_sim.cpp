@@ -1149,7 +1149,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		return vec;
 	}
 	if (p_member_name.compare(gStr_sexEnabled) == 0)
-		return new ScriptValue_Logical(sex_enabled_);
+		return (sex_enabled_ ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	if (p_member_name.compare(gStr_start) == 0)
 		return new ScriptValue_Int(time_start_);
 	if (p_member_name.compare(gStr_subpopulations) == 0)

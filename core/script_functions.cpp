@@ -473,7 +473,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_NULL *null_result = nullptr;
-	ScriptValue_Logical *logical_result = nullptr;
 	ScriptValue_Float *float_result = nullptr;
 	ScriptValue_Int *int_result = nullptr;
 	ScriptValue_String *string_result = nullptr;
@@ -483,11 +482,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	{
 		null_result = gStaticScriptValueNULLInvisible;	// assumed that invisible is correct when the return type is NULL
 		result = null_result;
-	}
-	else if (return_type_mask == kScriptValueMaskLogical)
-	{
-		logical_result = new ScriptValue_Logical();
-		result = logical_result;
 	}
 	else if (return_type_mask == kScriptValueMaskFloat)
 	{
@@ -639,24 +633,54 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark isFinite
 		case FunctionIdentifier::isFiniteFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = (isfinite(arg0_value->FloatAtIndex(0)) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			}
+			else
+			{
+				ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+				result = logical_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark isInfinite
 		case FunctionIdentifier::isInfiniteFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = (isinf(arg0_value->FloatAtIndex(0)) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			}
+			else
+			{
+				ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+				result = logical_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark isNAN
 		case FunctionIdentifier::isNaNFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = (isnan(arg0_value->FloatAtIndex(0)) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			}
+			else
+			{
+				ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+				result = logical_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
@@ -817,9 +841,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
-				logical_result = new ScriptValue_Logical();
-				result = logical_result;
-				
 				bool max = arg0_value->LogicalAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
@@ -827,7 +848,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (max < temp)
 						max = temp;
 				}
-				logical_result->PushLogical(max);
+				result = (max ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			}
 			else if (arg0_type == ScriptValueType::kValueInt)
 			{
@@ -893,9 +914,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
-				logical_result = new ScriptValue_Logical();
-				result = logical_result;
-				
 				bool min = arg0_value->LogicalAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
@@ -903,7 +921,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (min > temp)
 						min = temp;
 				}
-				logical_result->PushLogical(min);
+				result = (min ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			}
 			else if (arg0_type == ScriptValueType::kValueInt)
 			{
@@ -1059,6 +1077,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark logical
 		case FunctionIdentifier::logicalFunction:
 		{
+			ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+			result = logical_result;
+			
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				logical_result->PushLogical(false);
 			break;
@@ -1451,28 +1472,30 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark all
 		case FunctionIdentifier::allFunction:
 		{
+			result = gStaticScriptValue_LogicalT;
+			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				if (!arg0_value->LogicalAtIndex(value_index))
 				{
-					logical_result->PushLogical(false);
+					result = gStaticScriptValue_LogicalF;
 					break;
 				}
-			if (logical_result->Count() == 0)
-				logical_result->PushLogical(true);
+			
 			break;
 		}
 			
 #pragma mark any
 		case FunctionIdentifier::anyFunction:
 		{
+			result = gStaticScriptValue_LogicalF;
+			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				if (arg0_value->LogicalAtIndex(value_index))
 				{
-					logical_result->PushLogical(true);
+					result = gStaticScriptValue_LogicalT;
 					break;
 				}
-			if (logical_result->Count() == 0)
-				logical_result->PushLogical(false);
+			
 			break;
 		}
 			
@@ -1714,22 +1737,38 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueLogical)
 			{
-				logical_result = new ScriptValue_Logical();
-				result = logical_result;
+				bool containsF = false, containsT = false;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					bool value = arg0_value->LogicalAtIndex(value_index);
-					int scan_index;
+					if (arg0_value->LogicalAtIndex(value_index))
+						containsT = true;
+					else
+						containsF = true;
+				}
+				
+				if (containsF && !containsT)
+					result = gStaticScriptValue_LogicalF;
+				else if (containsT && !containsF)
+					result = gStaticScriptValue_LogicalT;
+				else if (!containsT && !containsF)
+					result = new ScriptValue_Logical();
+				else	// containsT && containsF
+				{
+					// In this case, we need to be careful to preserve the order of occurrence
+					ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+					result = logical_result;
 					
-					for (scan_index = 0; scan_index < value_index; ++scan_index)
+					if (arg0_value->LogicalAtIndex(0))
 					{
-						if (value == arg0_value->LogicalAtIndex(scan_index))
-							break;
+						logical_result->PushLogical(true);
+						logical_result->PushLogical(false);
 					}
-					
-					if (scan_index == value_index)
-						logical_result->PushLogical(value);
+					else
+					{
+						logical_result->PushLogical(false);
+						logical_result->PushLogical(true);
+					}
 				}
 			}
 			else if (arg0_type == ScriptValueType::kValueInt)
@@ -1964,9 +2003,19 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark asLogical
 		case FunctionIdentifier::asLogicalFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index));
-			break;
+			if (arg0_count == 1)
+			{
+				result = (arg0_value->LogicalAtIndex(0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			}
+			else
+			{
+				ScriptValue_Logical *logical_result = new ScriptValue_Logical();
+				result = logical_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index));
+				break;
+			}
 		}
 			
 #pragma mark asString
@@ -1990,42 +2039,42 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark isFloat
 		case FunctionIdentifier::isFloatFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueFloat);
+			result = (arg0_type == ScriptValueType::kValueFloat) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
 #pragma mark isInteger
 		case FunctionIdentifier::isIntegerFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueInt);
+			result = (arg0_type == ScriptValueType::kValueInt) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
 #pragma mark isLogical
 		case FunctionIdentifier::isLogicalFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueLogical);
+			result = (arg0_type == ScriptValueType::kValueLogical) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
 #pragma mark isNULL
 		case FunctionIdentifier::isNULLFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueNULL);
+			result = (arg0_type == ScriptValueType::kValueNULL) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
 #pragma mark isObject
 		case FunctionIdentifier::isObjectFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueObject);
+			result = (arg0_type == ScriptValueType::kValueObject) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
 #pragma mark isString
 		case FunctionIdentifier::isStringFunction:
 		{
-			logical_result->PushLogical(arg0_type == ScriptValueType::kValueString);
+			result = (arg0_type == ScriptValueType::kValueString) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF;
 			break;
 		}
 			
@@ -2193,8 +2242,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	}
 	
 	// Deallocate any unused result pointers
-	//if (null_result && (null_result != result)) delete null_result;		// null_result is a static
-	if (logical_result && (logical_result != result)) delete logical_result;
+	//if (null_result && (null_result != result)) delete null_result;				// null_result is a static
+	//if (logical_result && (logical_result != result)) delete logical_result;		// we don't use logical_result because of static logicals
 	if (float_result && (float_result != result)) delete float_result;
 	if (int_result && (int_result != result)) delete int_result;
 	if (string_result && (string_result != result)) delete string_result;
