@@ -38,7 +38,9 @@
 class Genome : public ScriptObjectElement
 {
 	// This class has a restricted copying policy; see below
-
+	
+	ScriptValue *self_value_ = nullptr;					// OWNED POINTER: cached ScriptValue object for speed
+	
 #ifdef SLIMGUI
 public:
 #else
@@ -73,10 +75,7 @@ public:
 	
 	Genome(void);											// default constructor; gives a non-null genome of type GenomeType::kAutosome
 	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
-	~Genome(void)
-	{
-		free(mutations_);
-	}
+	~Genome(void);
 	
 	void NullGenomeAccessError(void) const;								// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
@@ -301,6 +300,9 @@ public:
 	//
 	// SLiMscript support
 	//
+	void GenerateCachedScriptValue(void);
+	inline ScriptValue *CachedScriptValue(void) { if (!self_value_) GenerateCachedScriptValue(); return self_value_; };
+	
 	virtual std::string ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	

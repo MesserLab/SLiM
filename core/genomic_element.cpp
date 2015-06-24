@@ -113,7 +113,7 @@ ScriptValue *GenomicElement::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
 	if (p_member_name.compare(gStr_genomicElementType) == 0)
-		return new ScriptValue_Object(genomic_element_type_ptr_);
+		return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
 	if (p_member_name.compare(gStr_startPosition) == 0)
 		return new ScriptValue_Int(start_position_);
 	if (p_member_name.compare(gStr_endPosition) == 0)

@@ -77,7 +77,7 @@ ScriptValue *Substitution::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
 	if (p_member_name.compare(gStr_mutationType) == 0)
-		return new ScriptValue_Object(mutation_type_ptr_);
+		return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 	if (p_member_name.compare(gStr_position) == 0)
 		return new ScriptValue_Int(position_);
 	if (p_member_name.compare(gStr_selectionCoeff) == 0)

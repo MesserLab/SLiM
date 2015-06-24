@@ -308,11 +308,11 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					if (script_has_wildcard || fitness_callback->contains_relFitness_)
 						global_symbols.SetConstantForSymbol(gStr_relFitness, new ScriptValue_Float(p_computed_fitness));
 					if (script_has_wildcard || fitness_callback->contains_genome1_)
-						global_symbols.SetConstantForSymbol(gStr_genome1, new ScriptValue_Object(genome1));
+						global_symbols.SetConstantForSymbol(gStr_genome1, genome1->CachedScriptValue());
 					if (script_has_wildcard || fitness_callback->contains_genome2_)
-						global_symbols.SetConstantForSymbol(gStr_genome2, new ScriptValue_Object(genome2));
+						global_symbols.SetConstantForSymbol(gStr_genome2, genome2->CachedScriptValue());
 					if (script_has_wildcard || fitness_callback->contains_subpop_)
-						global_symbols.SetConstantForSymbol(gStr_subpop, new ScriptValue_Object(this));
+						global_symbols.SetConstantForSymbol(gStr_subpop, CachedSymbolTableEntry()->second);
 					
 					// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 					// that gets translated into SLiMScript values of NULL, F, and T, respectively

@@ -159,10 +159,24 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 }
 #endif
 
+Genome::~Genome(void)
+{
+	free(mutations_);
+	
+	if (self_value_)
+		delete self_value_;
+}
+
 
 //
 // SLiMscript support
 //
+
+void Genome::GenerateCachedScriptValue(void)
+{
+	self_value_ = (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true);
+}
+
 std::string Genome::ElementType(void) const
 {
 	return gStr_Genome;

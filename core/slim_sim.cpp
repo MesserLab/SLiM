@@ -1361,7 +1361,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
 		
-		return new ScriptValue_Object(new_subpop);
+		return new_subpop->CachedSymbolTableEntry()->second;
 	}
 	
 	
@@ -1380,7 +1380,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
 		
-		return new ScriptValue_Object(new_subpop);
+		return new_subpop->CachedSymbolTableEntry()->second;
 	}
 	
 	
@@ -1655,7 +1655,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		script_blocks_.push_back(script_block);		// takes ownership form us
 		scripts_changed_ = true;
 		
-		return new ScriptValue_Object(script_block);
+		return script_block->CachedSymbolTableEntry()->second;
 	}
 	
 	
@@ -1703,7 +1703,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		script_blocks_.push_back(script_block);		// takes ownership form us
 		scripts_changed_ = true;
 		
-		return new ScriptValue_Object(script_block);
+		return script_block->CachedSymbolTableEntry()->second;
 	}
 	
 	
@@ -1749,7 +1749,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		script_blocks_.push_back(script_block);		// takes ownership form us
 		scripts_changed_ = true;
 		
-		return new ScriptValue_Object(script_block);
+		return script_block->CachedSymbolTableEntry()->second;
 	}
 	
 	

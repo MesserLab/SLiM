@@ -48,6 +48,7 @@ SLiMscript optimization:
 		0:44 after making static ScriptValue_NULL objects globals
 		0:32 after switching to static globals for singleton logical ScriptValues
 		0:28 after adding cached ScriptValues for object ids and generation
+		0:26 after optimizing for self_symbol_ use in fitness callbacks
 	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
 	Callbacks could allocate some ScriptValue objects for parameters outside the main loop, mark them as statically allocated, and reuse them
 	
