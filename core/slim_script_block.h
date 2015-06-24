@@ -55,6 +55,8 @@ public:
 	SLiMScriptBlockType type_ = SLiMScriptBlockType::SLiMScriptEvent;
 	
 	int block_id_ = -1;											// the id of the block; -1 if no id was assigned (anonymous block)
+	ScriptValue *cached_value_block_id_ = nullptr;				// OWNED POINTER: a cached value for block_id_; delete and nil if that changes
+	
 	int start_generation_ = 1, end_generation_ = INT_MAX;		// the generation range to which the block is limited
 	int mutation_type_id_ = -1;									// -1 if not limited by this
 	int subpopulation_id_ = -1;									// -1 if not limited by this

@@ -109,6 +109,9 @@ SLiMSim::~SLiMSim(void)
 	
 	if (self_symbol_)
 		delete self_symbol_;
+	
+	if (cached_value_generation_)
+		delete cached_value_generation_;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &infile)
@@ -564,6 +567,11 @@ bool SLiMSim::RunOneGeneration(void)
 					population_.SwapGenerations();
 					
 					// advance the generation counter as soon as the generation is done
+					if (cached_value_generation_)
+					{
+						delete cached_value_generation_;
+						cached_value_generation_ = nullptr;
+					}
 					generation_++;
 				}
 				
@@ -1177,7 +1185,11 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_duration) == 0)
 		return new ScriptValue_Int(time_duration_);
 	if (p_member_name.compare(gStr_generation) == 0)
-		return new ScriptValue_Int(generation_);
+	{
+		if (!cached_value_generation_)
+			cached_value_generation_ = (new ScriptValue_Int(generation_))->SetExternallyOwned(true);
+		return cached_value_generation_;
+	}
 	if (p_member_name.compare(gStr_randomSeed) == 0)
 		return new ScriptValue_Int(rng_seed_);
 	
@@ -1203,6 +1215,12 @@ void SLiMSim::SetValueForMember(const std::string &p_member_name, ScriptValue *p
 		
 		int64_t value = p_value->IntAtIndex(0);
 		RangeCheckValue(__func__, p_member_name, (value >= time_start_) && (value <= time_start_ + time_duration_));
+		
+		if (cached_value_generation_)
+		{
+			delete cached_value_generation_;
+			cached_value_generation_ = nullptr;
+		}
 		
 		generation_ = (int)value;
 		return;

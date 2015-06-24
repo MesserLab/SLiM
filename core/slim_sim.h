@@ -60,7 +60,10 @@ private:
 	
 	int time_start_ = 0;															// the first generation number for which the simulation will run
 	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
+	
 	int generation_ = 0;															// the current generation reached in simulation
+	ScriptValue *cached_value_generation_ = nullptr;								// OWNED POINTER: a cached value for generation_; delete and nil if changed
+	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
 	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects

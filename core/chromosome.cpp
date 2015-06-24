@@ -41,6 +41,9 @@ Chromosome::~Chromosome(void)
 	
 	if (lookup_recombination)
 		gsl_ran_discrete_free(lookup_recombination);
+	
+	if (cached_value_lastpos_)
+		delete cached_value_lastpos_;
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -54,6 +57,11 @@ void Chromosome::InitializeDraws(void)
 		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << slim_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
+	if (cached_value_lastpos_)
+	{
+		delete cached_value_lastpos_;
+		cached_value_lastpos_ = nullptr;
+	}
 	last_position_ = 0;
 	
 	double A[size()];
@@ -224,7 +232,11 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 		return vec;
 	}
 	if (p_member_name.compare(gStr_lastPosition) == 0)
-		return new ScriptValue_Int(last_position_);
+	{
+		if (!cached_value_lastpos_)
+			cached_value_lastpos_ = (new ScriptValue_Int(last_position_))->SetExternallyOwned(true);
+		return cached_value_lastpos_;
+	}
 	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)
 		return new ScriptValue_Float(overall_recombination_rate_);
 	if (p_member_name.compare(gStr_recombinationEndPositions) == 0)

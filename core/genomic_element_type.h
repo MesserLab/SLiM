@@ -52,6 +52,8 @@ private:
 public:
 	
 	int genomic_element_type_id_;										// the id by which this genomic element type is indexed in the chromosome
+	ScriptValue *cached_value_getype_id_ = nullptr;						// OWNED POINTER: a cached value for genomic_element_type_id_; delete and nil if that changes
+	
 	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
 	

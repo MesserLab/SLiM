@@ -177,6 +177,9 @@ Subpopulation::~Subpopulation(void)
 	
 	if (self_symbol_)
 		delete self_symbol_;
+	
+	if (cached_value_subpop_id_)
+		delete cached_value_subpop_id_;
 }
 
 void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callbacks)
@@ -921,7 +924,11 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
 	if (p_member_name.compare(gStr_id) == 0)
-		return new ScriptValue_Int(subpopulation_id_);
+	{
+		if (!cached_value_subpop_id_)
+			cached_value_subpop_id_ = (new ScriptValue_Int(subpopulation_id_))->SetExternallyOwned(true);
+		return cached_value_subpop_id_;
+	}
 	if (p_member_name.compare(gStr_firstMaleIndex) == 0)
 		return new ScriptValue_Int(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
 	if (p_member_name.compare(gStr_genomes) == 0)

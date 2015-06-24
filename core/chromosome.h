@@ -62,7 +62,9 @@ public:
 	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
-	int    last_position_;									// last position; used to be called length_ but it is (length - 1) really
+	int last_position_;										// last position; used to be called length_ but it is (length - 1) really
+	ScriptValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
+	
 	double overall_mutation_rate_;							// overall mutation rate
 	double overall_recombination_rate_;						// overall recombination rate
 	double gene_conversion_fraction_;						// gene conversion fraction

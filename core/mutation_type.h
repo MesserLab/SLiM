@@ -51,6 +51,8 @@ public:
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
 	int mutation_type_id_;						// the id by which this mutation type is indexed in the chromosome
+	ScriptValue *cached_value_muttype_id_ = nullptr;	// OWNED POINTER: a cached value for mutation_type_id_; delete and nil if that changes
+	
 	float dominance_coeff_;						// dominance coefficient (h)
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters

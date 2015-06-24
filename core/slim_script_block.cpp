@@ -158,6 +158,9 @@ SLiMScriptBlock::~SLiMScriptBlock(void)
 		delete self_symbol_;
 	if (script_block_symbol_)
 		delete script_block_symbol_;
+	
+	if (cached_value_block_id_)
+		delete cached_value_block_id_;
 }
 
 void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
@@ -356,7 +359,11 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name
 {
 	// constants
 	if (p_member_name.compare(gStr_id) == 0)
-		return new ScriptValue_Int(block_id_);
+	{
+		if (!cached_value_block_id_)
+			cached_value_block_id_ = (new ScriptValue_Int(block_id_))->SetExternallyOwned(true);
+		return cached_value_block_id_;
+	}
 	if (p_member_name.compare(gStr_start) == 0)
 		return new ScriptValue_Int(start_generation_);
 	if (p_member_name.compare(gStr_end) == 0)

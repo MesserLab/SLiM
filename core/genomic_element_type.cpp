@@ -52,6 +52,9 @@ GenomicElementType::~GenomicElementType(void)
 	
 	if (self_symbol_)
 		delete self_symbol_;
+	
+	if (cached_value_getype_id_)
+		delete cached_value_getype_id_;
 }
 
 MutationType *GenomicElementType::DrawMutationType() const
@@ -153,7 +156,11 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 {
 	// constants
 	if (p_member_name.compare(gStr_id) == 0)
-		return new ScriptValue_Int(genomic_element_type_id_);
+	{
+		if (!cached_value_getype_id_)
+			cached_value_getype_id_ = (new ScriptValue_Int(genomic_element_type_id_))->SetExternallyOwned(true);
+		return cached_value_getype_id_;
+	}
 	if (p_member_name.compare(gStr_mutationTypes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();

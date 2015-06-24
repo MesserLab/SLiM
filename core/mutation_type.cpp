@@ -52,6 +52,9 @@ MutationType::~MutationType(void)
 {
 	if (self_symbol_)
 		delete self_symbol_;
+	
+	if (cached_value_muttype_id_)
+		delete cached_value_muttype_id_;
 }
 
 double MutationType::DrawSelectionCoefficient() const
@@ -140,7 +143,11 @@ ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
 	if (p_member_name.compare(gStr_id) == 0)
-		return new ScriptValue_Int(mutation_type_id_);
+	{
+		if (!cached_value_muttype_id_)
+			cached_value_muttype_id_ = (new ScriptValue_Int(mutation_type_id_))->SetExternallyOwned(true);
+		return cached_value_muttype_id_;
+	}
 	if (p_member_name.compare(gStr_distributionType) == 0)
 		return new ScriptValue_String(std::string(1, dfe_type_));
 	if (p_member_name.compare(gStr_distributionParams) == 0)
