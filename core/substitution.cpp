@@ -79,15 +79,15 @@ ScriptValue *Substitution::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_mutationType) == 0)
 		return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 	if (p_member_name.compare(gStr_position) == 0)
-		return new ScriptValue_Int(position_);
+		return new ScriptValue_Int_singleton_const(position_);
 	if (p_member_name.compare(gStr_selectionCoeff) == 0)
 		return new ScriptValue_Float_singleton_const(selection_coeff_);
 	if (p_member_name.compare(gStr_subpopID) == 0)
-		return new ScriptValue_Int(subpop_index_);
+		return new ScriptValue_Int_singleton_const(subpop_index_);
 	if (p_member_name.compare(gStr_originGeneration) == 0)
-		return new ScriptValue_Int(generation_);
+		return new ScriptValue_Int_singleton_const(generation_);
 	if (p_member_name.compare(gStr_fixationTime) == 0)
-		return new ScriptValue_Int(fixation_time_);
+		return new ScriptValue_Int_singleton_const(fixation_time_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

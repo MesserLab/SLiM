@@ -324,30 +324,59 @@ public:
 
 //	*********************************************************************************************************
 //
-//	ScriptValue_Int represents integer (C++ int64_t) values in SLiMscript.
+//	ScriptValue_Int represents integer (C++ int64_t) values in SLiMscript.  The subclass
+//	ScriptValue_Int_vector is the standard instance class, used to hold vectors of floats.
+//	ScriptValue_Int_singleton_const is used for speed, to represent single constant values.
 //
 
 class ScriptValue_Int : public ScriptValue
+{
+protected:
+	ScriptValue_Int(const ScriptValue_Int &p_original) = default;		// can copy-construct
+	ScriptValue_Int(void) = default;									// default constructor
+	
+public:
+	ScriptValue_Int& operator=(const ScriptValue_Int&) = delete;		// no copying
+	virtual ~ScriptValue_Int(void);
+	
+	virtual ScriptValueType Type(void) const;
+	virtual int Count(void) const = 0;
+	virtual void Print(std::ostream &p_ostream) const = 0;
+	
+	virtual bool LogicalAtIndex(int p_idx) const = 0;
+	virtual std::string StringAtIndex(int p_idx) const = 0;
+	virtual int64_t IntAtIndex(int p_idx) const = 0;
+	virtual double FloatAtIndex(int p_idx) const = 0;
+	
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value) = 0;
+	
+	virtual ScriptValue *CopyValues(void) const = 0;
+	virtual ScriptValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;
+	virtual void Sort(bool p_ascending) = 0;
+};
+
+class ScriptValue_Int_vector : public ScriptValue_Int
 {
 private:
 	std::vector<int64_t> values_;
 	
 public:
-	ScriptValue_Int(const ScriptValue_Int &p_original) = default;		// can copy-construct
-	ScriptValue_Int& operator=(const ScriptValue_Int&) = delete;	// no copying
+	ScriptValue_Int_vector(const ScriptValue_Int_vector &p_original) = default;		// can copy-construct
+	ScriptValue_Int_vector& operator=(const ScriptValue_Int_vector&) = delete;	// no copying
 	
-	ScriptValue_Int(void);
-	explicit ScriptValue_Int(std::vector<int> &p_intvec);
-	explicit ScriptValue_Int(std::vector<int64_t> &p_intvec);
-	explicit ScriptValue_Int(int64_t p_int1);
-	ScriptValue_Int(int64_t p_int1, int64_t p_int2);
-	ScriptValue_Int(int64_t p_int1, int64_t p_int2, int64_t p_int3);
-	ScriptValue_Int(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4);
-	ScriptValue_Int(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5);
-	ScriptValue_Int(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5, int64_t p_int6);
-	virtual ~ScriptValue_Int(void);
+	ScriptValue_Int_vector(void);
+	explicit ScriptValue_Int_vector(std::vector<int> &p_intvec);
+	explicit ScriptValue_Int_vector(std::vector<int64_t> &p_intvec);
+	//explicit ScriptValue_Int_vector(int64_t p_int1);		// disabled to encourage use of ScriptValue_Int_singleton_const for this case
+	ScriptValue_Int_vector(int64_t p_int1, int64_t p_int2);
+	ScriptValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3);
+	ScriptValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4);
+	ScriptValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5);
+	ScriptValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5, int64_t p_int6);
+	virtual ~ScriptValue_Int_vector(void);
 	
-	virtual ScriptValueType Type(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -363,7 +392,35 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	
 	virtual ScriptValue *CopyValues(void) const;
-	virtual ScriptValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
+};
+
+class ScriptValue_Int_singleton_const : public ScriptValue_Int
+{
+private:
+	int64_t value_;
+	
+public:
+	ScriptValue_Int_singleton_const(const ScriptValue_Int_singleton_const &p_original) = delete;	// no copy-construct
+	ScriptValue_Int_singleton_const& operator=(const ScriptValue_Int_singleton_const&) = delete;	// no copying
+	ScriptValue_Int_singleton_const(void) = delete;
+	explicit ScriptValue_Int_singleton_const(int64_t p_int1);
+	virtual ~ScriptValue_Int_singleton_const(void);
+	
+	virtual int Count(void) const;
+	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual bool LogicalAtIndex(int p_idx) const;
+	virtual std::string StringAtIndex(int p_idx) const;
+	virtual int64_t IntAtIndex(int p_idx) const;
+	virtual double FloatAtIndex(int p_idx) const;
+	
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
+	virtual ScriptValue *CopyValues(void) const;
+	
+	// prohibited actions
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
 };
@@ -452,7 +509,7 @@ public:
 	ScriptValue_Float_singleton_const& operator=(const ScriptValue_Float_singleton_const&) = delete;	// no copying
 	ScriptValue_Float_singleton_const(void) = delete;
 	explicit ScriptValue_Float_singleton_const(double p_float1);
-	virtual ~ScriptValue_Float_singleton_const(void);									// destructor calls slim_terminate()
+	virtual ~ScriptValue_Float_singleton_const(void);
 	
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

@@ -1161,7 +1161,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_sexEnabled) == 0)
 		return (sex_enabled_ ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	if (p_member_name.compare(gStr_start) == 0)
-		return new ScriptValue_Int(time_start_);
+		return new ScriptValue_Int_singleton_const(time_start_);
 	if (p_member_name.compare(gStr_subpopulations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
@@ -1185,15 +1185,15 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_dominanceCoeffX) == 0)
 		return new ScriptValue_Float_singleton_const(x_chromosome_dominance_coeff_);
 	if (p_member_name.compare(gStr_duration) == 0)
-		return new ScriptValue_Int(time_duration_);
+		return new ScriptValue_Int_singleton_const(time_duration_);
 	if (p_member_name.compare(gStr_generation) == 0)
 	{
 		if (!cached_value_generation_)
-			cached_value_generation_ = (new ScriptValue_Int(generation_))->SetExternallyOwned();
+			cached_value_generation_ = (new ScriptValue_Int_singleton_const(generation_))->SetExternallyOwned();
 		return cached_value_generation_;
 	}
 	if (p_member_name.compare(gStr_randomSeed) == 0)
-		return new ScriptValue_Int(rng_seed_);
+		return new ScriptValue_Int_singleton_const(rng_seed_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

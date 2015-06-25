@@ -703,7 +703,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		int64_t first_int = first_child_value->IntAtIndex(0);
 		int64_t second_int = second_child_value->IntAtIndex(0);
 		
-		ScriptValue_Int *int_result = new ScriptValue_Int();
+		ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
 		
 		if (first_int <= second_int)
 		{
@@ -1110,16 +1110,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 		}
 		else if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 		{
-			ScriptValue_Int *int_result = new ScriptValue_Int();
-			
 			if (first_child_count == second_child_count)
 			{
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(first_child_value->IntAtIndex(value_index) + second_child_value->IntAtIndex(value_index));
+				if (first_child_count == 1)
+				{
+					result = new ScriptValue_Int_singleton_const(first_child_value->IntAtIndex(0) + second_child_value->IntAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+					result = int_result;
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						int_result->PushInt(first_child_value->IntAtIndex(value_index) + second_child_value->IntAtIndex(value_index));
+				}
 			}
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0);
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					int_result->PushInt(singleton_int + second_child_value->IntAtIndex(value_index));
@@ -1127,12 +1137,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0);
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					int_result->PushInt(first_child_value->IntAtIndex(value_index) + singleton_int);
 			}
-			
-			result = int_result;
 		}
 		else
 		{
@@ -1217,12 +1227,18 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		// unary minus
 		if (first_child_type == ScriptValueType::kValueInt)
 		{
-			ScriptValue_Int *int_result = new ScriptValue_Int();
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				int_result->PushInt(-first_child_value->IntAtIndex(value_index));
-			
-			result = int_result;
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Int_singleton_const(-first_child_value->IntAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->PushInt(-first_child_value->IntAtIndex(value_index));
+			}
 		}
 		else
 		{
@@ -1269,16 +1285,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		
 		if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 		{
-			ScriptValue_Int *int_result = new ScriptValue_Int();
-			
 			if (first_child_count == second_child_count)
 			{
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(first_child_value->IntAtIndex(value_index) - second_child_value->IntAtIndex(value_index));
+				if (first_child_count == 1)
+				{
+					result = new ScriptValue_Int_singleton_const(first_child_value->IntAtIndex(0) - second_child_value->IntAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+					result = int_result;
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						int_result->PushInt(first_child_value->IntAtIndex(value_index) - second_child_value->IntAtIndex(value_index));
+				}
 			}
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0);
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					int_result->PushInt(singleton_int - second_child_value->IntAtIndex(value_index));
@@ -1286,12 +1312,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0);
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					int_result->PushInt(first_child_value->IntAtIndex(value_index) - singleton_int);
 			}
-			
-			result = int_result;
 		}
 		else
 		{
@@ -1541,12 +1567,18 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 		if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 		{
-			ScriptValue_Int *int_result = new ScriptValue_Int();
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				int_result->PushInt(first_child_value->IntAtIndex(value_index) * second_child_value->IntAtIndex(value_index));
-			
-			result = int_result;
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Int_singleton_const(first_child_value->IntAtIndex(0) * second_child_value->IntAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->PushInt(first_child_value->IntAtIndex(value_index) * second_child_value->IntAtIndex(value_index));
+			}
 		}
 		else
 		{
@@ -1574,12 +1606,11 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		if ((first_child_type == ScriptValueType::kValueInt) && (second_child_type == ScriptValueType::kValueInt))
 		{
 			int64_t singleton_int = one_count_child->IntAtIndex(0);
-			ScriptValue_Int *int_result = new ScriptValue_Int();
+			ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+			result = int_result;
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
 				int_result->PushInt(any_count_child->IntAtIndex(value_index) * singleton_int);
-			
-			result = int_result;
 		}
 		else
 		{
@@ -2884,11 +2915,11 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 		const string &number_string = p_node->token_->token_string_;
 		
 		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));			// requires a float
+			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+			result = new ScriptValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else
-			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+			result = new ScriptValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 	}
 	
 	if (logging_execution_)

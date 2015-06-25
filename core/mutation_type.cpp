@@ -148,7 +148,7 @@ ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_muttype_id_)
-			cached_value_muttype_id_ = (new ScriptValue_Int(mutation_type_id_))->SetExternallyOwned();
+			cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternallyOwned();
 		return cached_value_muttype_id_;
 	}
 	if (p_member_name.compare(gStr_distributionType) == 0)

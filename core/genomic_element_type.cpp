@@ -161,7 +161,7 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_getype_id_)
-			cached_value_getype_id_ = (new ScriptValue_Int(genomic_element_type_id_))->SetExternallyOwned();
+			cached_value_getype_id_ = (new ScriptValue_Int_singleton_const(genomic_element_type_id_))->SetExternallyOwned();
 		return cached_value_getype_id_;
 	}
 	if (p_member_name.compare(gStr_mutationTypes) == 0)

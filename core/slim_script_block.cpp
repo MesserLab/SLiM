@@ -247,11 +247,11 @@ void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 		ScriptValue *result = nullptr;
 		
 		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));			// requires a float
+			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+			result = new ScriptValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else
-			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+			result = new ScriptValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 		
 		result->SetExternallyOwned();
 		
@@ -404,13 +404,13 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_block_id_)
-			cached_value_block_id_ = (new ScriptValue_Int(block_id_))->SetExternallyOwned();
+			cached_value_block_id_ = (new ScriptValue_Int_singleton_const(block_id_))->SetExternallyOwned();
 		return cached_value_block_id_;
 	}
 	if (p_member_name.compare(gStr_start) == 0)
-		return new ScriptValue_Int(start_generation_);
+		return new ScriptValue_Int_singleton_const(start_generation_);
 	if (p_member_name.compare(gStr_end) == 0)
-		return new ScriptValue_Int(end_generation_);
+		return new ScriptValue_Int_singleton_const(end_generation_);
 	if (p_member_name.compare(gStr_type) == 0)
 	{
 		switch (type_)
@@ -426,7 +426,7 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name
 	
 	// variables
 	if (p_member_name.compare(gStr_active) == 0)
-		return new ScriptValue_Int(active_);
+		return new ScriptValue_Int_singleton_const(active_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

@@ -945,11 +945,11 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_subpop_id_)
-			cached_value_subpop_id_ = (new ScriptValue_Int(subpopulation_id_))->SetExternallyOwned();
+			cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternallyOwned();
 		return cached_value_subpop_id_;
 	}
 	if (p_member_name.compare(gStr_firstMaleIndex) == 0)
-		return new ScriptValue_Int(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
+		return new ScriptValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
 	if (p_member_name.compare(gStr_genomes) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
@@ -965,7 +965,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_immigrantSubpopIDs) == 0)
 	{
-		ScriptValue_Int *vec = new ScriptValue_Int();
+		ScriptValue_Int_vector *vec = new ScriptValue_Int_vector();
 		
 		for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
 			vec->PushInt(migrant_pair->first);
@@ -986,7 +986,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_sexRatio) == 0)
 		return new ScriptValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
 	if (p_member_name.compare(gStr_size) == 0)
-		return new ScriptValue_Int(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
+		return new ScriptValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 	
 	// variables
 	

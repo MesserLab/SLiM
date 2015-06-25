@@ -234,13 +234,13 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_lastPosition) == 0)
 	{
 		if (!cached_value_lastpos_)
-			cached_value_lastpos_ = (new ScriptValue_Int(last_position_))->SetExternallyOwned();
+			cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternallyOwned();
 		return cached_value_lastpos_;
 	}
 	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)
 		return new ScriptValue_Float_singleton_const(overall_recombination_rate_);
 	if (p_member_name.compare(gStr_recombinationEndPositions) == 0)
-		return new ScriptValue_Int(recombination_end_positions_);
+		return new ScriptValue_Int_vector(recombination_end_positions_);
 	if (p_member_name.compare(gStr_recombinationRates) == 0)
 		return new ScriptValue_Float_vector(recombination_rates_);
 	
