@@ -250,6 +250,8 @@
 					outstream << ", ";
 				
 				outstream << *element_value;
+				
+				if (element_value->IsTemporary()) delete element_value;
 			}
 			
 			std::string out_str = outstream.str();

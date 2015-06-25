@@ -108,7 +108,10 @@ SLiMSim::~SLiMSim(void)
 		delete signature;
 	
 	if (self_symbol_)
+	{
+		delete self_symbol_->second;
 		delete self_symbol_;
+	}
 	
 	if (cached_value_generation_)
 		delete cached_value_generation_;

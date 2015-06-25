@@ -51,7 +51,10 @@ GenomicElementType::~GenomicElementType(void)
 		gsl_ran_discrete_free(lookup_mutation_type);
 	
 	if (self_symbol_)
+	{
+		delete self_symbol_->second;
 		delete self_symbol_;
+	}
 	
 	if (cached_value_getype_id_)
 		delete cached_value_getype_id_;

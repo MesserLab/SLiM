@@ -155,9 +155,15 @@ SLiMScriptBlock::~SLiMScriptBlock(void)
 	delete script_;
 	
 	if (self_symbol_)
+	{
+		delete self_symbol_->second;
 		delete self_symbol_;
+	}
 	if (script_block_symbol_)
+	{
+		delete script_block_symbol_->second;
 		delete script_block_symbol_;
+	}
 	
 	if (cached_value_block_id_)
 		delete cached_value_block_id_;

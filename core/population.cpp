@@ -71,6 +71,12 @@ Population::~Population(void)
 		mutationFixationTimes = nullptr;
 		mutationFixationGenSlots = 0;
 	}
+	if (fitnessHistory)
+	{
+		free(fitnessHistory);
+		fitnessHistory = nullptr;
+		fitnessHistoryLength = 0;
+	}
 #endif
 }
 

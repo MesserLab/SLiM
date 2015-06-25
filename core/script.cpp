@@ -134,8 +134,8 @@ ostream &operator<<(ostream &p_outstream, const ScriptToken &p_token)
 //
 #pragma mark ScriptASTNode
 
-ScriptASTNode::ScriptASTNode(ScriptToken *p_token) :
-	token_(p_token)
+ScriptASTNode::ScriptASTNode(ScriptToken *p_token, bool p_token_is_owned) :
+	token_(p_token), token_is_owned_(p_token_is_owned)
 {
 }
 
@@ -157,6 +157,12 @@ ScriptASTNode::~ScriptASTNode(void)
 		
 		cached_value_ = nullptr;
 	}
+	
+	if (token_is_owned_)
+	{
+		delete token_;
+		token_ = nullptr;
+	}
 }
 
 void ScriptASTNode::AddChild(ScriptASTNode *p_child_node)
@@ -166,9 +172,17 @@ void ScriptASTNode::AddChild(ScriptASTNode *p_child_node)
 
 void ScriptASTNode::ReplaceTokenWithToken(ScriptToken *p_token)
 {
+	// dispose of our previous token
+	if (token_is_owned_)
+	{
+		delete token_;
+		token_ = nullptr;
+		token_is_owned_ = false;
+	}
+	
 	// used to fix virtual token to encompass their children; takes ownership
-	// FIXME: note that virtual tokens are leaked at present
 	token_ = p_token;
+	token_is_owned_ = true;
 }
 
 void ScriptASTNode::PrintToken(std::ostream &p_outstream) const
@@ -646,7 +660,7 @@ void Script::Match(TokenType p_token_type, const char *p_context_cstr)
 ScriptASTNode *Script::Parse_SLiMFile(void)
 {
 	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, gStr_empty_string, 0, 0);
-	ScriptASTNode *node = new ScriptASTNode(virtual_token);
+	ScriptASTNode *node = new ScriptASTNode(virtual_token, true);
 	
 	while (current_token_type_ != TokenType::kTokenEOF)
 	{
@@ -665,7 +679,7 @@ ScriptASTNode *Script::Parse_SLiMFile(void)
 ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 {
 	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, gStr_empty_string, 0, 0);
-	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token);
+	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token, true);
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 	// We parse the slim_script_info section here, as part of the script block.
@@ -793,7 +807,7 @@ ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
 ScriptASTNode *Script::Parse_InterpreterBlock(void)
 {
 	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, gStr_empty_string, 0, 0);
-	ScriptASTNode *node = new ScriptASTNode(virtual_token);
+	ScriptASTNode *node = new ScriptASTNode(virtual_token, true);
 	
 	int token_start = current_token_->token_start_;
 	

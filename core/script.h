@@ -136,8 +136,8 @@ class ScriptASTNode
 	
 public:
 	
-	ScriptToken *token_;										// not owned (owned by the Script's token stream)
-																// FIXME: note that virtual tokens are leaked at present
+	ScriptToken *token_;										// normally not owned (owned by the Script's token stream) but:
+	bool token_is_owned_ = false;								// if T, we own token_ because it is a virtual token that replaced a real token
 	std::vector<ScriptASTNode *> children_;						// OWNED POINTERS
 	
 	mutable ScriptValue *cached_value_ = nullptr;				// an optional pre-cached ScriptValue representing the node
@@ -146,7 +146,7 @@ public:
 	ScriptASTNode(const ScriptASTNode&) = delete;				// no copying
 	ScriptASTNode& operator=(const ScriptASTNode&) = delete;	// no copying
 	ScriptASTNode(void) = delete;								// no null construction
-	ScriptASTNode(ScriptToken *p_token);						// standard constructor
+	ScriptASTNode(ScriptToken *p_token, bool p_token_is_owned = false);	// standard constructor; if p_token_is_owned, we own the token
 	ScriptASTNode(ScriptToken *p_token, ScriptASTNode *p_child_node);
 	
 	~ScriptASTNode(void);										// destructor

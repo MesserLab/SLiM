@@ -51,7 +51,10 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 MutationType::~MutationType(void)
 {
 	if (self_symbol_)
+	{
+		delete self_symbol_->second;
 		delete self_symbol_;
+	}
 	
 	if (cached_value_muttype_id_)
 		delete cached_value_muttype_id_;
