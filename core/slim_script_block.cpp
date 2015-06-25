@@ -253,7 +253,7 @@ void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 		else
 			result = new ScriptValue_Int(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 		
-		result->SetExternallyOwned(true);
+		result->SetExternallyOwned();
 		
 		p_scan_node->cached_value_ = result;
 		p_scan_node->cached_value_is_owned_ = true;
@@ -263,7 +263,7 @@ void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
 		ScriptValue *result = new ScriptValue_String(p_scan_node->token_->token_string_);
 		
-		result->SetExternallyOwned(true);
+		result->SetExternallyOwned();
 		
 		p_scan_node->cached_value_ = result;
 		p_scan_node->cached_value_is_owned_ = true;
@@ -338,7 +338,7 @@ void SLiMScriptBlock::ScanTree(void)
 
 void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object(this))->SetExternallyOwned());
 }
 
 void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -350,7 +350,7 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
 }
 
 std::string SLiMScriptBlock::ElementType(void) const
@@ -404,7 +404,7 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_block_id_)
-			cached_value_block_id_ = (new ScriptValue_Int(block_id_))->SetExternallyOwned(true);
+			cached_value_block_id_ = (new ScriptValue_Int(block_id_))->SetExternallyOwned();
 		return cached_value_block_id_;
 	}
 	if (p_member_name.compare(gStr_start) == 0)

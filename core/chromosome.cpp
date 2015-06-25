@@ -234,7 +234,7 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_lastPosition) == 0)
 	{
 		if (!cached_value_lastpos_)
-			cached_value_lastpos_ = (new ScriptValue_Int(last_position_))->SetExternallyOwned(true);
+			cached_value_lastpos_ = (new ScriptValue_Int(last_position_))->SetExternallyOwned();
 		return cached_value_lastpos_;
 	}
 	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)

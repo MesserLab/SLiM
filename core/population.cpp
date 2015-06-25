@@ -294,7 +294,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			
 			if (mate_choice_callback->contains_weights_)
 			{
-				local_weights_ptr = (new ScriptValue_Float(*current_weights))->SetExternallyOwned(true);
+				local_weights_ptr = (new ScriptValue_Float(*current_weights))->SetExternallyOwned();
 				global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
 			}
 			

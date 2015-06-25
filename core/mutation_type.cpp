@@ -109,7 +109,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
 }
 
 std::string MutationType::ElementType(void) const
@@ -148,7 +148,7 @@ ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_muttype_id_)
-			cached_value_muttype_id_ = (new ScriptValue_Int(mutation_type_id_))->SetExternallyOwned(true);
+			cached_value_muttype_id_ = (new ScriptValue_Int(mutation_type_id_))->SetExternallyOwned();
 		return cached_value_muttype_id_;
 	}
 	if (p_member_name.compare(gStr_distributionType) == 0)

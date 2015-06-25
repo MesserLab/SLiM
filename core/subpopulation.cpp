@@ -312,12 +312,12 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
 					if (fitness_callback->contains_mut_)
 					{
-						local_mut_ptr = (new ScriptValue_Object(p_mutation))->SetExternallyOwned(true);
+						local_mut_ptr = (new ScriptValue_Object(p_mutation))->SetExternallyOwned();
 						global_symbols.InitializeConstantSymbolEntry(gStr_mut, local_mut_ptr);
 					}
 					if (fitness_callback->contains_relFitness_)
 					{
-						local_relFitness_ptr = (new ScriptValue_Float(p_computed_fitness))->SetExternallyOwned(true);
+						local_relFitness_ptr = (new ScriptValue_Float(p_computed_fitness))->SetExternallyOwned();
 						global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, local_relFitness_ptr);
 					}
 					if (fitness_callback->contains_genome1_)
@@ -901,7 +901,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
 }
 
 std::string Subpopulation::ElementType(void) const
@@ -943,7 +943,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_id) == 0)
 	{
 		if (!cached_value_subpop_id_)
-			cached_value_subpop_id_ = (new ScriptValue_Int(subpopulation_id_))->SetExternallyOwned(true);
+			cached_value_subpop_id_ = (new ScriptValue_Int(subpopulation_id_))->SetExternallyOwned();
 		return cached_value_subpop_id_;
 	}
 	if (p_member_name.compare(gStr_firstMaleIndex) == 0)

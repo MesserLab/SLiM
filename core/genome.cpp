@@ -216,7 +216,7 @@ Genome::~Genome(void)
 
 void Genome::GenerateCachedScriptValue(void)
 {
-	self_value_ = (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true);
+	self_value_ = (new ScriptValue_Object(this))->SetExternallyOwned();
 }
 
 std::string Genome::ElementType(void) const

@@ -610,7 +610,7 @@ void SLiMSim::RunToEnd(void)
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object(this))->SetExternallyOwned(true)->SetInSymbolTable(true));
+	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object(this))->SetExternallyOwned());
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
@@ -1189,7 +1189,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_generation) == 0)
 	{
 		if (!cached_value_generation_)
-			cached_value_generation_ = (new ScriptValue_Int(generation_))->SetExternallyOwned(true);
+			cached_value_generation_ = (new ScriptValue_Int(generation_))->SetExternallyOwned();
 		return cached_value_generation_;
 	}
 	if (p_member_name.compare(gStr_randomSeed) == 0)

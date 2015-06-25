@@ -130,10 +130,10 @@ public:
 	
 	// memory management flags; see the comment in script_symbols.h
 	inline bool IsTemporary(void) const							{ return !(in_symbol_table_ || externally_owned_); };
-	inline bool InSymbolTable(void) const						{ return in_symbol_table_; }
-	inline bool ExternallyOwned(void) const						{ return externally_owned_; }
-	ScriptValue *SetInSymbolTable(bool p_in_symbol_table);
-	ScriptValue *SetExternallyOwned(bool p_externally_owned);
+	inline bool InSymbolTable(void) const						{ return in_symbol_table_; };
+	inline bool ExternallyOwned(void) const						{ return externally_owned_; };
+	inline ScriptValue *SetInSymbolTable(bool p_in_table)		{ in_symbol_table_ = p_in_table; return this; };
+	inline ScriptValue *SetExternallyOwned()					{ externally_owned_ = true; in_symbol_table_ = true; return this; };
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;

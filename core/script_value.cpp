@@ -182,24 +182,6 @@ ScriptValue::~ScriptValue(void)
 {
 }
 
-ScriptValue *ScriptValue::SetInSymbolTable(bool p_in_symbol_table)
-{
-	in_symbol_table_ = p_in_symbol_table;
-	return this;
-}
-
-ScriptValue *ScriptValue::SetExternallyOwned(bool p_externally_owned)
-{
-	externally_owned_ = p_externally_owned;
-	
-	// these flags are not really independent; if an object is externally owned, it is treated as already being in a symbol table, too
-	// this would happen soon enough, when it got added to the symbol table; so we might as well do it here to keep it consistent
-	if (p_externally_owned)
-		in_symbol_table_ = true;
-	
-	return this;
-}
-
 bool ScriptValue::LogicalAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
@@ -321,7 +303,7 @@ ScriptValue_NULL_const::~ScriptValue_NULL_const(void)
 	if (!static_null)
 	{
 		static_null = new ScriptValue_NULL_const();
-		static_null->SetExternallyOwned(true);
+		static_null->SetExternallyOwned();
 	}
 	
 	return static_null;
@@ -335,7 +317,7 @@ ScriptValue_NULL_const::~ScriptValue_NULL_const(void)
 	{
 		static_null = new ScriptValue_NULL_const();
 		static_null->invisible_ = true;
-		static_null->SetExternallyOwned(true);
+		static_null->SetExternallyOwned();
 	}
 	
 	return static_null;
@@ -529,7 +511,7 @@ ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
 	if (!static_T)
 	{
 		static_T = new ScriptValue_Logical_const(true);
-		static_T->SetExternallyOwned(true);
+		static_T->SetExternallyOwned();
 	}
 	
 	return static_T;
@@ -542,7 +524,7 @@ ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
 	if (!static_F)
 	{
 		static_F = new ScriptValue_Logical_const(false);
-		static_F->SetExternallyOwned(true);
+		static_F->SetExternallyOwned();
 	}
 	
 	return static_F;
