@@ -208,30 +208,25 @@ int SymbolTable::_SlotIndexForSymbol(const std::string &p_symbol_name, int p_key
 	return -1;
 }
 
-// allocates a new slot and returns its index; it is assumed that the slot will actually be used, so symbol_count_ is incremented
-int SymbolTable::_AllocateNewSlot(void)
+// increases capacity to accommodate the addition of new symbols
+void SymbolTable::_CapacityIncrease(void)
 {
-	if (symbol_count_ == symbol_capacity_)
+	int new_symbol_capacity = symbol_capacity_ << 1;
+	
+	if (symbols_ == non_malloc_symbols)
 	{
-		int new_symbol_capacity = symbol_capacity_ << 1;
+		// We have been living off our base buffer, so we need to malloc for the first time
+		symbols_ = (SymbolTableSlot *)malloc(sizeof(SymbolTableSlot) * new_symbol_capacity);
 		
-		if (symbols_ == non_malloc_symbols)
-		{
-			// We have been living off our base buffer, so we need to malloc for the first time
-			symbols_ = (SymbolTableSlot *)malloc(sizeof(SymbolTableSlot) * new_symbol_capacity);
-			
-			memcpy(symbols_, non_malloc_symbols, sizeof(SymbolTableSlot) * symbol_capacity_);
-		}
-		else
-		{
-			// We already have a malloced buffer, so we just need to realloc
-			symbols_ = (SymbolTableSlot *)realloc(symbols_, sizeof(SymbolTableSlot) * new_symbol_capacity);
-		}
-		
-		symbol_capacity_ = new_symbol_capacity;
+		memcpy(symbols_, non_malloc_symbols, sizeof(SymbolTableSlot) * symbol_capacity_);
+	}
+	else
+	{
+		// We already have a malloced buffer, so we just need to realloc
+		symbols_ = (SymbolTableSlot *)realloc(symbols_, sizeof(SymbolTableSlot) * new_symbol_capacity);
 	}
 	
-	return symbol_count_++;
+	symbol_capacity_ = new_symbol_capacity;
 }
 
 void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValue *p_value)
@@ -263,7 +258,7 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 	// and now set the value in the symbol table
 	if (symbol_slot == -1)
 	{
-		symbol_slot = _AllocateNewSlot();
+		symbol_slot = AllocateNewSlot();
 		
 		SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
 		
@@ -322,7 +317,7 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	p_value->SetInSymbolTable(true);
 	
 	// and now set the value in the symbol table; we know, from the check above, that we're in a new slot
-	symbol_slot = _AllocateNewSlot();
+	symbol_slot = AllocateNewSlot();
 	
 	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
 	
@@ -372,7 +367,7 @@ void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
-	int symbol_slot = _AllocateNewSlot();
+	int symbol_slot = AllocateNewSlot();
 	
 	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
 	
@@ -389,7 +384,7 @@ void SymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name
 		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
-	int symbol_slot = _AllocateNewSlot();
+	int symbol_slot = AllocateNewSlot();
 	
 	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
 	

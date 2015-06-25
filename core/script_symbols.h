@@ -93,7 +93,8 @@ public:
 	
 	// internal
 	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);
-	int _AllocateNewSlot(void);
+	inline int AllocateNewSlot(void)	{ if (symbol_count_ == symbol_capacity_) _CapacityIncrease(); return symbol_count_++; };
+	void _CapacityIncrease(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols);
