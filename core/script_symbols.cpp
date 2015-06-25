@@ -365,7 +365,7 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 
 void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 {
-	std::string &entry_name = p_new_entry->first;
+	const std::string &entry_name = p_new_entry->first;
 	ScriptValue *entry_value = p_new_entry->second;
 	
 	if (!entry_value->ExternallyOwned() || !entry_value->InSymbolTable() || entry_value->Invisible())
@@ -379,6 +379,23 @@ void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 	new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
 	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.length();
 	new_symbol_slot_ptr->symbol_value_ = entry_value;
+	new_symbol_slot_ptr->symbol_is_const_ = true;
+	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+}
+
+void SymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name, ScriptValue *p_value)
+{
+	if (!p_value->ExternallyOwned() || !p_value->InSymbolTable() || p_value->Invisible())
+		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
+	
+	// we assume that this symbol is not yet defined, for maximal set-up speed
+	int symbol_slot = _AllocateNewSlot();
+	
+	SymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	
+	new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.length();
+	new_symbol_slot_ptr->symbol_value_ = p_value;
 	new_symbol_slot_ptr->symbol_is_const_ = true;
 	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 }

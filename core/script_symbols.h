@@ -42,12 +42,12 @@ class SLiMScriptBlock;
 
 
 // This is used by ReplaceConstantSymbolEntry for fast setup / teardown
-typedef std::pair<std::string, ScriptValue*> SymbolTableEntry;
+typedef std::pair<const std::string, ScriptValue*> SymbolTableEntry;
 
 
 // This is what SymbolTable now uses internally
 typedef struct {
-	std::string *symbol_name_;			// ownership is defined by symbol_name_externally_owned_, below
+	const std::string *symbol_name_;	// ownership is defined by symbol_name_externally_owned_, below
 	int symbol_name_length_;			// used to make scanning of the symbol table faster
 	ScriptValue *symbol_value_;			// ownership is defined by the flags in ScriptValue
 	bool symbol_is_const_;				// T if const, F is variable
@@ -85,10 +85,11 @@ public:
 	void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
 	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
 	
-	// a special-purpose method used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
+	// special-purpose methods used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
 	// the name string in the SymbolTableEntry is assumed to be statically defined, or long-lived enough that we can take a pointer to it
-	// for our entire lifetime; so this is not a general-purpose method, it is specifically for a very specialized init case!
+	// for our entire lifetime; so these are not general-purpose methods, they are specifically for a very specialized init case!
 	void InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry);
+	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, ScriptValue *p_value);
 	
 	// internal
 	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);

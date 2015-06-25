@@ -305,25 +305,36 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					
 					sim.InjectIntoInterpreter(interpreter, fitness_callback);
 					
+					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
+					ScriptValue *local_mut_ptr = nullptr;
+					ScriptValue *local_relFitness_ptr = nullptr;
+					
+					// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
 					if (fitness_callback->contains_mut_)
-						global_symbols.SetConstantForSymbol(gStr_mut, new ScriptValue_Object(p_mutation));
+					{
+						local_mut_ptr = (new ScriptValue_Object(p_mutation))->SetExternallyOwned(true);
+						global_symbols.InitializeConstantSymbolEntry(gStr_mut, local_mut_ptr);
+					}
 					if (fitness_callback->contains_relFitness_)
-						global_symbols.SetConstantForSymbol(gStr_relFitness, new ScriptValue_Float(p_computed_fitness));
+					{
+						local_relFitness_ptr = (new ScriptValue_Float(p_computed_fitness))->SetExternallyOwned(true);
+						global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, local_relFitness_ptr);
+					}
 					if (fitness_callback->contains_genome1_)
-						global_symbols.SetConstantForSymbol(gStr_genome1, genome1->CachedScriptValue());
+						global_symbols.InitializeConstantSymbolEntry(gStr_genome1, genome1->CachedScriptValue());
 					if (fitness_callback->contains_genome2_)
-						global_symbols.SetConstantForSymbol(gStr_genome2, genome2->CachedScriptValue());
+						global_symbols.InitializeConstantSymbolEntry(gStr_genome2, genome2->CachedScriptValue());
 					if (fitness_callback->contains_subpop_)
-						global_symbols.SetConstantForSymbol(gStr_subpop, CachedSymbolTableEntry()->second);
+						global_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
 					
 					// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 					// that gets translated into SLiMScript values of NULL, F, and T, respectively
 					if (fitness_callback->contains_homozygous_)
 					{
 						if (p_homozygous == -1)
-							global_symbols.SetConstantForSymbol(gStr_homozygous, gStaticScriptValueNULL);
+							global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticScriptValueNULL);
 						else
-							global_symbols.SetConstantForSymbol(gStr_homozygous, (p_homozygous != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+							global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 					}
 					
 					// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
@@ -341,6 +352,10 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					
 					if (!output_string.empty())
 						SLIM_OUTSTREAM << output_string;
+					
+					// Clean up any local ScriptValues that we allocated
+					delete local_mut_ptr;
+					delete local_relFitness_ptr;
 				}
 			}
 		}
