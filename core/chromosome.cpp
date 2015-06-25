@@ -238,19 +238,19 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 		return cached_value_lastpos_;
 	}
 	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)
-		return new ScriptValue_Float(overall_recombination_rate_);
+		return new ScriptValue_Float_singleton_const(overall_recombination_rate_);
 	if (p_member_name.compare(gStr_recombinationEndPositions) == 0)
 		return new ScriptValue_Int(recombination_end_positions_);
 	if (p_member_name.compare(gStr_recombinationRates) == 0)
-		return new ScriptValue_Float(recombination_rates_);
+		return new ScriptValue_Float_vector(recombination_rates_);
 	
 	// variables
 	if (p_member_name.compare(gStr_geneConversionFraction) == 0)
-		return new ScriptValue_Float(gene_conversion_fraction_);
+		return new ScriptValue_Float_singleton_const(gene_conversion_fraction_);
 	if (p_member_name.compare(gStr_geneConversionMeanLength) == 0)
-		return new ScriptValue_Float(gene_conversion_avg_length_);
+		return new ScriptValue_Float_singleton_const(gene_conversion_avg_length_);
 	if (p_member_name.compare(gStr_overallMutationRate) == 0)
-		return new ScriptValue_Float(overall_mutation_rate_);
+		return new ScriptValue_Float_singleton_const(overall_mutation_rate_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

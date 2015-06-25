@@ -174,7 +174,7 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 		return vec;
 	}
 	if (p_member_name.compare(gStr_mutationFractions) == 0)
-		return new ScriptValue_Float(mutation_fractions_);
+		return new ScriptValue_Float_vector(mutation_fractions_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

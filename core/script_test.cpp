@@ -164,9 +164,9 @@ void RunSLiMScriptTests(void)
 	// test literals, built-in identifiers, and tokenization
 	AssertScriptSuccess("3;", new ScriptValue_Int(3));
 	AssertScriptSuccess("3e2;", new ScriptValue_Int(300));
-	AssertScriptSuccess("3.1;", new ScriptValue_Float(3.1));
-	AssertScriptSuccess("3.1e2;", new ScriptValue_Float(3.1e2));
-	AssertScriptSuccess("3.1e-2;", new ScriptValue_Float(3.1e-2));
+	AssertScriptSuccess("3.1;", new ScriptValue_Float_singleton_const(3.1));
+	AssertScriptSuccess("3.1e2;", new ScriptValue_Float_singleton_const(3.1e2));
+	AssertScriptSuccess("3.1e-2;", new ScriptValue_Float_singleton_const(3.1e-2));
 	AssertScriptSuccess("\"foo\";", new ScriptValue_String("foo"));
 	AssertScriptSuccess("\"foo\\tbar\";", new ScriptValue_String("foo\tbar"));
 	AssertScriptSuccess("T;", new ScriptValue_Logical(true));
@@ -201,12 +201,12 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("(15:13)+(0:2);", new ScriptValue_Int(15, 15, 15));
 	AssertScriptRaise("(15:12)+(0:2);");
 	AssertScriptRaise("NULL+(0:2);");		// FIXME should this be an error?
-	AssertScriptSuccess("1+1.0;", new ScriptValue_Float(2));
-	AssertScriptSuccess("1.0+1;", new ScriptValue_Float(2));
-	AssertScriptSuccess("1.0+-1.0;", new ScriptValue_Float(0));
-	AssertScriptSuccess("(0:2.0)+10;", new ScriptValue_Float(10, 11, 12));
-	AssertScriptSuccess("10.0+(0:2);", new ScriptValue_Float(10, 11, 12));
-	AssertScriptSuccess("(15.0:13)+(0:2.0);", new ScriptValue_Float(15, 15, 15));
+	AssertScriptSuccess("1+1.0;", new ScriptValue_Float_singleton_const(2));
+	AssertScriptSuccess("1.0+1;", new ScriptValue_Float_singleton_const(2));
+	AssertScriptSuccess("1.0+-1.0;", new ScriptValue_Float_singleton_const(0));
+	AssertScriptSuccess("(0:2.0)+10;", new ScriptValue_Float_vector(10, 11, 12));
+	AssertScriptSuccess("10.0+(0:2);", new ScriptValue_Float_vector(10, 11, 12));
+	AssertScriptSuccess("(15.0:13)+(0:2.0);", new ScriptValue_Float_vector(15, 15, 15));
 	AssertScriptRaise("(15:12.0)+(0:2);");
 	AssertScriptRaise("NULL+(0:2.0);");		// FIXME should this be an error?
 	AssertScriptSuccess("\"foo\"+5;", new ScriptValue_String("foo5"));
@@ -227,7 +227,7 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("T+T;");
 	AssertScriptRaise("F+F;");
 	AssertScriptSuccess("+5;", new ScriptValue_Int(5));
-	AssertScriptSuccess("+5.0;", new ScriptValue_Float(5));
+	AssertScriptSuccess("+5.0;", new ScriptValue_Float_singleton_const(5));
 	AssertScriptRaise("+\"foo\";");
 	AssertScriptRaise("+T;");
 	AssertScriptSuccess("3+4+5;", new ScriptValue_Int(12));
@@ -240,12 +240,12 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("(15:13)-(0:2);", new ScriptValue_Int(15, 13, 11));
 	AssertScriptRaise("(15:12)-(0:2);");
 	AssertScriptRaise("NULL-(0:2);");		// FIXME should this be an error?
-	AssertScriptSuccess("1-1.0;", new ScriptValue_Float(0));
-	AssertScriptSuccess("1.0-1;", new ScriptValue_Float(0));
-	AssertScriptSuccess("1.0--1.0;", new ScriptValue_Float(2));
-	AssertScriptSuccess("(0:2.0)-10;", new ScriptValue_Float(-10, -9, -8));
-	AssertScriptSuccess("10.0-(0:2);", new ScriptValue_Float(10, 9, 8));
-	AssertScriptSuccess("(15.0:13)-(0:2.0);", new ScriptValue_Float(15, 13, 11));
+	AssertScriptSuccess("1-1.0;", new ScriptValue_Float_singleton_const(0));
+	AssertScriptSuccess("1.0-1;", new ScriptValue_Float_singleton_const(0));
+	AssertScriptSuccess("1.0--1.0;", new ScriptValue_Float_singleton_const(2));
+	AssertScriptSuccess("(0:2.0)-10;", new ScriptValue_Float_vector(-10, -9, -8));
+	AssertScriptSuccess("10.0-(0:2);", new ScriptValue_Float_vector(10, 9, 8));
+	AssertScriptSuccess("(15.0:13)-(0:2.0);", new ScriptValue_Float_vector(15, 13, 11));
 	AssertScriptRaise("(15:12.0)-(0:2);");
 	AssertScriptRaise("NULL-(0:2.0);");		// FIXME should this be an error?
 	AssertScriptRaise("\"foo\"-1;");
@@ -253,7 +253,7 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("T-T;");
 	AssertScriptRaise("F-F;");
 	AssertScriptSuccess("-5;", new ScriptValue_Int(-5));
-	AssertScriptSuccess("-5.0;", new ScriptValue_Float(-5));
+	AssertScriptSuccess("-5.0;", new ScriptValue_Float_singleton_const(-5));
 	AssertScriptRaise("-\"foo\";");
 	AssertScriptRaise("-T;");
 	AssertScriptSuccess("3-4-5;", new ScriptValue_Int(-6));
@@ -266,12 +266,12 @@ void RunSLiMScriptTests(void)
     AssertScriptSuccess("(15:13)*(0:2);", new ScriptValue_Int(0, 14, 26));
     AssertScriptRaise("(15:12)*(0:2);");
     AssertScriptRaise("NULL*(0:2);");		// FIXME should this be an error?
-    AssertScriptSuccess("1*1.0;", new ScriptValue_Float(1));
-    AssertScriptSuccess("1.0*1;", new ScriptValue_Float(1));
-    AssertScriptSuccess("1.0*-1.0;", new ScriptValue_Float(-1));
-    AssertScriptSuccess("(0:2.0)*10;", new ScriptValue_Float(0, 10, 20));
-    AssertScriptSuccess("10.0*(0:2);", new ScriptValue_Float(0, 10, 20));
-    AssertScriptSuccess("(15.0:13)*(0:2.0);", new ScriptValue_Float(0, 14, 26));
+    AssertScriptSuccess("1*1.0;", new ScriptValue_Float_singleton_const(1));
+    AssertScriptSuccess("1.0*1;", new ScriptValue_Float_singleton_const(1));
+    AssertScriptSuccess("1.0*-1.0;", new ScriptValue_Float_singleton_const(-1));
+    AssertScriptSuccess("(0:2.0)*10;", new ScriptValue_Float_vector(0, 10, 20));
+    AssertScriptSuccess("10.0*(0:2);", new ScriptValue_Float_vector(0, 10, 20));
+    AssertScriptSuccess("(15.0:13)*(0:2.0);", new ScriptValue_Float_vector(0, 14, 26));
     AssertScriptRaise("(15:12.0)*(0:2);");
     AssertScriptRaise("NULL*(0:2.0);");		// FIXME should this be an error?
     AssertScriptRaise("\"foo\"*5;");
@@ -285,17 +285,17 @@ void RunSLiMScriptTests(void)
     AssertScriptSuccess("3*4*5;", new ScriptValue_Int(60));
     
     // operator /
-    AssertScriptSuccess("1/1;", new ScriptValue_Float(1));
-    AssertScriptSuccess("1/-1;", new ScriptValue_Float(-1));
-    AssertScriptSuccess("(0:2)/10;", new ScriptValue_Float(0, 0.1, 0.2));
+    AssertScriptSuccess("1/1;", new ScriptValue_Float_singleton_const(1));
+    AssertScriptSuccess("1/-1;", new ScriptValue_Float_singleton_const(-1));
+    AssertScriptSuccess("(0:2)/10;", new ScriptValue_Float_vector(0, 0.1, 0.2));
     AssertScriptRaise("(15:12)/(0:2);");
     AssertScriptRaise("NULL/(0:2);");		// FIXME should this be an error?
-    AssertScriptSuccess("1/1.0;", new ScriptValue_Float(1));
-    AssertScriptSuccess("1.0/1;", new ScriptValue_Float(1));
-    AssertScriptSuccess("1.0/-1.0;", new ScriptValue_Float(-1));
-    AssertScriptSuccess("(0:2.0)/10;", new ScriptValue_Float(0, 0.1, 0.2));
-    AssertScriptSuccess("10.0/(0:2);", new ScriptValue_Float(std::numeric_limits<double>::infinity(), 10, 5));
-    AssertScriptSuccess("(15.0:13)/(0:2.0);", new ScriptValue_Float(std::numeric_limits<double>::infinity(), 14, 6.5));
+    AssertScriptSuccess("1/1.0;", new ScriptValue_Float_singleton_const(1));
+    AssertScriptSuccess("1.0/1;", new ScriptValue_Float_singleton_const(1));
+    AssertScriptSuccess("1.0/-1.0;", new ScriptValue_Float_singleton_const(-1));
+    AssertScriptSuccess("(0:2.0)/10;", new ScriptValue_Float_vector(0, 0.1, 0.2));
+    AssertScriptSuccess("10.0/(0:2);", new ScriptValue_Float_vector(std::numeric_limits<double>::infinity(), 10, 5));
+    AssertScriptSuccess("(15.0:13)/(0:2.0);", new ScriptValue_Float_vector(std::numeric_limits<double>::infinity(), 14, 6.5));
     AssertScriptRaise("(15:12.0)/(0:2);");
     AssertScriptRaise("NULL/(0:2.0);");		// FIXME should this be an error?
     AssertScriptRaise("\"foo\"/5;");
@@ -306,21 +306,21 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("/5.0;");
     AssertScriptRaise("/\"foo\";");
     AssertScriptRaise("/T;");
-    AssertScriptSuccess("3/4/5;", new ScriptValue_Float(0.15));
-	AssertScriptSuccess("6/0;", new ScriptValue_Float(std::numeric_limits<double>::infinity()));
+    AssertScriptSuccess("3/4/5;", new ScriptValue_Float_singleton_const(0.15));
+	AssertScriptSuccess("6/0;", new ScriptValue_Float_singleton_const(std::numeric_limits<double>::infinity()));
     
     // operator %
-    AssertScriptSuccess("1%1;", new ScriptValue_Float(0));
-    AssertScriptSuccess("1%-1;", new ScriptValue_Float(0));
-    AssertScriptSuccess("(0:2)%10;", new ScriptValue_Float(0, 1, 2));
+    AssertScriptSuccess("1%1;", new ScriptValue_Float_singleton_const(0));
+    AssertScriptSuccess("1%-1;", new ScriptValue_Float_singleton_const(0));
+    AssertScriptSuccess("(0:2)%10;", new ScriptValue_Float_vector(0, 1, 2));
     AssertScriptRaise("(15:12)%(0:2);");
     AssertScriptRaise("NULL%(0:2);");       // FIXME should this be an error?
-    AssertScriptSuccess("1%1.0;", new ScriptValue_Float(0));
-    AssertScriptSuccess("1.0%1;", new ScriptValue_Float(0));
-    AssertScriptSuccess("1.0%-1.0;", new ScriptValue_Float(0));
-    AssertScriptSuccess("(0:2.0)%10;", new ScriptValue_Float(0, 1, 2));
-    AssertScriptSuccess("10.0%(0:4);", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN(), 0, 0, 1, 2));
-    AssertScriptSuccess("(15.0:13)%(0:2.0);", new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN(), 0, 1));
+    AssertScriptSuccess("1%1.0;", new ScriptValue_Float_singleton_const(0));
+    AssertScriptSuccess("1.0%1;", new ScriptValue_Float_singleton_const(0));
+    AssertScriptSuccess("1.0%-1.0;", new ScriptValue_Float_singleton_const(0));
+    AssertScriptSuccess("(0:2.0)%10;", new ScriptValue_Float_vector(0, 1, 2));
+    AssertScriptSuccess("10.0%(0:4);", new ScriptValue_Float_vector(std::numeric_limits<double>::quiet_NaN(), 0, 0, 1, 2));
+    AssertScriptSuccess("(15.0:13)%(0:2.0);", new ScriptValue_Float_vector(std::numeric_limits<double>::quiet_NaN(), 0, 1));
     AssertScriptRaise("(15:12.0)%(0:2);");
     AssertScriptRaise("NULL%(0:2.0);");		// FIXME should this be an error?
     AssertScriptRaise("\"foo\"%5;");
@@ -331,7 +331,7 @@ void RunSLiMScriptTests(void)
     AssertScriptRaise("%5.0;");
     AssertScriptRaise("%\"foo\";");
     AssertScriptRaise("%T;");
-    AssertScriptSuccess("3%4%5;", new ScriptValue_Float(3));
+    AssertScriptSuccess("3%4%5;", new ScriptValue_Float_singleton_const(3));
 
 	// operator = (especially in conjunction with operator [])
 	AssertScriptSuccess("x = 5; x;", new ScriptValue_Int(5));
@@ -348,7 +348,7 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("x = 1:5; x[NULL] = NULL; x;");
 	AssertScriptSuccess("x = 1:5; x[NULL] = 10; x;", new ScriptValue_Int(1, 2, 3, 4, 5)); // assigns 10 to no indices, perfectly legal
 	AssertScriptRaise("x = 1:5; x[3] = NULL; x;");
-	AssertScriptSuccess("x = 1.0:5; x[3] = 1; x;", new ScriptValue_Float(1, 2, 3, 1, 5));
+	AssertScriptSuccess("x = 1.0:5; x[3] = 1; x;", new ScriptValue_Float_vector(1, 2, 3, 1, 5));
 	AssertScriptSuccess("x = c(\"a\", \"b\", \"c\"); x[1] = 1; x;", new ScriptValue_String("a", "1", "c"));
 	AssertScriptRaise("x = 1:5; x[3] = 1.5; x;");
 	AssertScriptRaise("x = 1:5; x[3] = \"foo\"; x;");
@@ -572,7 +572,7 @@ void RunSLiMScriptTests(void)
 	// repEach()
 	
 	// rexp()
-	AssertScriptSuccess("rexp(0);", new ScriptValue_Float());
+	AssertScriptSuccess("rexp(0);", new ScriptValue_Float_vector());
 	AssertScriptSuccess("setSeed(1); (rexp(3) - c(0.206919, 3.01675, 0.788416)) < 0.000001;", new ScriptValue_Logical(true, true, true));
 	AssertScriptSuccess("setSeed(2); (rexp(3, 0.1) - c(20.7, 12.2, 0.9)) < 0.1;", new ScriptValue_Logical(true, true, true));
 	AssertScriptSuccess("setSeed(3); (rexp(3, 0.00001) - c(95364.3, 307170.0, 74334.9)) < 0.1;", new ScriptValue_Logical(true, true, true));
@@ -583,9 +583,9 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("rexp(3, c(0.1, 0.2));");
 	
 	// rnorm()
-	AssertScriptSuccess("rnorm(0);", new ScriptValue_Float());
-	AssertScriptSuccess("rnorm(3, 0, 0);", new ScriptValue_Float(0.0, 0.0, 0.0));
-	AssertScriptSuccess("rnorm(3, 1, 0);", new ScriptValue_Float(1.0, 1.0, 1.0));
+	AssertScriptSuccess("rnorm(0);", new ScriptValue_Float_vector());
+	AssertScriptSuccess("rnorm(3, 0, 0);", new ScriptValue_Float_vector(0.0, 0.0, 0.0));
+	AssertScriptSuccess("rnorm(3, 1, 0);", new ScriptValue_Float_vector(1.0, 1.0, 1.0));
 	AssertScriptSuccess("setSeed(1); (rnorm(2) - c(-0.785386, 0.132009)) < 0.000001;", new ScriptValue_Logical(true, true));
 	AssertScriptSuccess("setSeed(2); (rnorm(2, 10.0) - c(10.38, 10.26)) < 0.01;", new ScriptValue_Logical(true, true));
 	AssertScriptSuccess("setSeed(3); (rnorm(2, 10.0, 100.0) - c(59.92, 95.35)) < 0.01;", new ScriptValue_Logical(true, true));
@@ -607,9 +607,9 @@ void RunSLiMScriptTests(void)
 	AssertScriptRaise("setSeed(4); rpois(5, c(1, 10, 100, 1000));");
 	
 	// runif()
-	AssertScriptSuccess("runif(0);", new ScriptValue_Float());
-	AssertScriptSuccess("runif(3, 0, 0);", new ScriptValue_Float(0.0, 0.0, 0.0));
-	AssertScriptSuccess("runif(3, 1, 1);", new ScriptValue_Float(1.0, 1.0, 1.0));
+	AssertScriptSuccess("runif(0);", new ScriptValue_Float_vector());
+	AssertScriptSuccess("runif(3, 0, 0);", new ScriptValue_Float_vector(0.0, 0.0, 0.0));
+	AssertScriptSuccess("runif(3, 1, 1);", new ScriptValue_Float_vector(1.0, 1.0, 1.0));
 	AssertScriptSuccess("setSeed(1); (runif(2) - c(0.186915, 0.951040)) < 0.000001;", new ScriptValue_Logical(true, true));
 	AssertScriptSuccess("setSeed(2); (runif(2, 0.5) - c(0.93, 0.85)) < 0.01;", new ScriptValue_Logical(true, true));
 	AssertScriptSuccess("setSeed(3); (runif(2, 10.0, 100.0) - c(65.31, 95.82)) < 0.01;", new ScriptValue_Logical(true, true));
@@ -625,8 +625,8 @@ void RunSLiMScriptTests(void)
 	// seq()
 	AssertScriptSuccess("seq(1, 5);", new ScriptValue_Int(1, 2, 3, 4, 5));
 	AssertScriptSuccess("seq(5, 1);", new ScriptValue_Int(5, 4, 3, 2, 1));
-	AssertScriptSuccess("seq(1.1, 5);", new ScriptValue_Float(1.1, 2.1, 3.1, 4.1));
-	AssertScriptSuccess("seq(1, 5.1);", new ScriptValue_Float(1, 2, 3, 4, 5));
+	AssertScriptSuccess("seq(1.1, 5);", new ScriptValue_Float_vector(1.1, 2.1, 3.1, 4.1));
+	AssertScriptSuccess("seq(1, 5.1);", new ScriptValue_Float_vector(1, 2, 3, 4, 5));
 	AssertScriptSuccess("seq(1, 10, 2);", new ScriptValue_Int(1, 3, 5, 7, 9));
 	AssertScriptRaise("seq(1, 10, -2);");
 	AssertScriptSuccess("seq(10, 1, -2);", new ScriptValue_Int(10, 8, 6, 4, 2));
@@ -664,9 +664,9 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("rev(-(6:10));", new ScriptValue_Int(-10,-9,-8,-7,-6));
 	AssertScriptSuccess("rev(c(\"foo\",\"bar\",\"baz\"));", new ScriptValue_String("baz","bar","foo"));
 	AssertScriptSuccess("rev(-1);", new ScriptValue_Int(-1));
-	AssertScriptSuccess("rev(1.0);", new ScriptValue_Float(1));
+	AssertScriptSuccess("rev(1.0);", new ScriptValue_Float_singleton_const(1));
 	AssertScriptSuccess("rev(\"foo\");", new ScriptValue_String("foo"));
-	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float(10,9,8,7,6));
+	AssertScriptSuccess("rev(6.0:10);", new ScriptValue_Float_vector(10,9,8,7,6));
 	AssertScriptSuccess("rev(c(T,T,T,F));", new ScriptValue_Logical(false, true, true, true));
 	
 	// size()
@@ -705,11 +705,11 @@ void RunSLiMScriptTests(void)
 	// whichMin()
 	
 	// asFloat()
-	AssertScriptSuccess("asFloat(-1:3);", new ScriptValue_Float(-1,0,1,2,3));
-	AssertScriptSuccess("asFloat(-1.0:3);", new ScriptValue_Float(-1,0,1,2,3));
-	AssertScriptSuccess("asFloat(c(T,F,T,F));", new ScriptValue_Float(1,0,1,0));
-	AssertScriptSuccess("asFloat(c(\"1\",\"2\",\"3\"));", new ScriptValue_Float(1,2,3));
-	AssertScriptSuccess("asFloat(\"foo\");", new ScriptValue_Float(0)); // FIXME should this be an error?
+	AssertScriptSuccess("asFloat(-1:3);", new ScriptValue_Float_vector(-1,0,1,2,3));
+	AssertScriptSuccess("asFloat(-1.0:3);", new ScriptValue_Float_vector(-1,0,1,2,3));
+	AssertScriptSuccess("asFloat(c(T,F,T,F));", new ScriptValue_Float_vector(1,0,1,0));
+	AssertScriptSuccess("asFloat(c(\"1\",\"2\",\"3\"));", new ScriptValue_Float_vector(1,2,3));
+	AssertScriptSuccess("asFloat(\"foo\");", new ScriptValue_Float_singleton_const(0)); // FIXME should this be an error?
 	
 	// asInteger()
 	AssertScriptSuccess("asInteger(-1:3);", new ScriptValue_Int(-1,0,1,2,3));

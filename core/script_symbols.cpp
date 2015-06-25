@@ -60,10 +60,10 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 		trueConstant = new SymbolTableEntry(gStr_T, gStaticScriptValue_LogicalT);
 		falseConstant = new SymbolTableEntry(gStr_F, gStaticScriptValue_LogicalF);
 		nullConstant = new SymbolTableEntry(gStr_NULL, gStaticScriptValueNULL);
-		piConstant = new SymbolTableEntry(gStr_PI, (new ScriptValue_Float(M_PI))->SetExternallyOwned());
-		eConstant = new SymbolTableEntry(gStr_E, (new ScriptValue_Float(M_E))->SetExternallyOwned());
-		infConstant = new SymbolTableEntry(gStr_INF, (new ScriptValue_Float(std::numeric_limits<double>::infinity()))->SetExternallyOwned());
-		nanConstant = new SymbolTableEntry(gStr_NAN, (new ScriptValue_Float(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned());
+		piConstant = new SymbolTableEntry(gStr_PI, (new ScriptValue_Float_singleton_const(M_PI))->SetExternallyOwned());
+		eConstant = new SymbolTableEntry(gStr_E, (new ScriptValue_Float_singleton_const(M_E))->SetExternallyOwned());
+		infConstant = new SymbolTableEntry(gStr_INF, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::infinity()))->SetExternallyOwned());
+		nanConstant = new SymbolTableEntry(gStr_NAN, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned());
 	}
 	
 	if (script_block)

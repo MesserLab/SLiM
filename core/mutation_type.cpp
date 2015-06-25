@@ -154,11 +154,11 @@ ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_distributionType) == 0)
 		return new ScriptValue_String(std::string(1, dfe_type_));
 	if (p_member_name.compare(gStr_distributionParams) == 0)
-		return new ScriptValue_Float(dfe_parameters_);
+		return new ScriptValue_Float_vector(dfe_parameters_);
 	
 	// variables
 	if (p_member_name.compare(gStr_dominanceCoeff) == 0)
-		return new ScriptValue_Float(dominance_coeff_);
+		return new ScriptValue_Float_singleton_const(dominance_coeff_);
 	
 	return ScriptObjectElement::GetValueForMember(p_member_name);
 }

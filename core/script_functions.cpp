@@ -295,7 +295,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	}
 	else if (highest_type == ScriptValueType::kValueFloat)
 	{
-		ScriptValue_Float *result = new ScriptValue_Float();
+		ScriptValue_Float_vector *result = new ScriptValue_Float_vector();
 		
 		for (ScriptValue *arg_value : p_arguments)
 			if (arg_value->Type() != ScriptValueType::kValueNULL)
@@ -405,7 +405,7 @@ ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_argument
 	if ((arg0_type == ScriptValueType::kValueFloat) || (arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat))
 	{
 		// float return case
-		ScriptValue_Float *float_result = new ScriptValue_Float();
+		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
 		result = float_result;
 		
 		double first_value = arg0_value->FloatAtIndex(0);
@@ -473,7 +473,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_NULL *null_result = nullptr;
-	ScriptValue_Float *float_result = nullptr;
 	ScriptValue_Int *int_result = nullptr;
 	ScriptValue_String *string_result = nullptr;
 	ScriptValueMask return_type_mask = signature->return_mask_ & kScriptValueMaskFlagStrip;
@@ -482,11 +481,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	{
 		null_result = gStaticScriptValueNULLInvisible;	// assumed that invisible is correct when the return type is NULL
 		result = null_result;
-	}
-	else if (return_type_mask == kScriptValueMaskFloat)
-	{
-		float_result = new ScriptValue_Float();
-		result = float_result;
 	}
 	else if (return_type_mask == kScriptValueMaskInt)
 	{
@@ -551,11 +545,18 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
-				result = float_result;
-				
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index)));
+				if (arg0_count == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(fabs(arg0_value->FloatAtIndex(0)));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index)));
+				}
 			}
 			break;
 		}
@@ -563,24 +564,54 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark acos
 		case FunctionIdentifier::acosFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(acos(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark asin
 		case FunctionIdentifier::asinFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(asin(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark atan
 		case FunctionIdentifier::atanFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(atan(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
@@ -593,40 +624,90 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (arg0_count != arg1_count)
 				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function atan2() requires arguments of equal length." << slim_terminate();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(atan2(arg0_value->FloatAtIndex(value_index), arg1_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(atan2(arg0_value->FloatAtIndex(0), arg1_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(atan2(arg0_value->FloatAtIndex(value_index), arg1_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark ceil
 		case FunctionIdentifier::ceilFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(ceil(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark cos
 		case FunctionIdentifier::cosFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(cos(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark exp
 		case FunctionIdentifier::expFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(exp(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark floor
 		case FunctionIdentifier::floorFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(floor(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
@@ -687,24 +768,54 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark log
 		case FunctionIdentifier::logFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(log(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark log10
 		case FunctionIdentifier::log10Function:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(log10(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark log2
 		case FunctionIdentifier::log2Function:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(log2(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
@@ -734,15 +845,22 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
-				result = float_result;
-				
-				double product = 1;
-				
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					product *= arg0_value->FloatAtIndex(value_index);
-				
-				float_result->PushFloat(product);
+				if (arg0_count == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					double product = 1;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						product *= arg0_value->FloatAtIndex(value_index);
+					
+					float_result->PushFloat(product);
+				}
 			}
 			break;
 		}
@@ -772,15 +890,22 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
-				result = float_result;
-				
-				double sum = 0;
-				
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					sum += arg0_value->FloatAtIndex(value_index);
-				
-				float_result->PushFloat(sum);
+				if (arg0_count == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					double sum = 0;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						sum += arg0_value->FloatAtIndex(value_index);
+					
+					float_result->PushFloat(sum);
+				}
 			}
 			break;
 		}
@@ -788,40 +913,90 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark round
 		case FunctionIdentifier::roundFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(round(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark sin
 		case FunctionIdentifier::sinFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(sin(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark sqrt
 		case FunctionIdentifier::sqrtFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(sqrt(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark tan
 		case FunctionIdentifier::tanFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(tan(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
 #pragma mark trunc
 		case FunctionIdentifier::truncFunction:
 		{
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index)));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(trunc(arg0_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index)));
+			}
 			break;
 		}
 			
@@ -866,9 +1041,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
-				result = float_result;
-				
 				double max = arg0_value->FloatAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
@@ -876,7 +1048,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (max < temp)
 						max = temp;
 				}
-				float_result->PushFloat(max);
+				result = new ScriptValue_Float_singleton_const(max);
 			}
 			else if (arg0_type == ScriptValueType::kValueString)
 			{
@@ -901,7 +1073,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			double sum = 0;
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				sum += arg0_value->FloatAtIndex(value_index);
-			float_result->PushFloat(sum / arg0_count);
+			
+			result = new ScriptValue_Float_singleton_const(sum / arg0_count);
 			break;
 		}
 			
@@ -939,9 +1112,6 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
-				result = float_result;
-				
 				double min = arg0_value->FloatAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
@@ -949,7 +1119,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					if (min > temp)
 						min = temp;
 				}
-				float_result->PushFloat(min);
+				result = new ScriptValue_Float_singleton_const(min);
 			}
 			else if (arg0_type == ScriptValueType::kValueString)
 			{
@@ -996,7 +1166,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
 				result = float_result;
 				
 				double max = arg0_value->FloatAtIndex(0);
@@ -1036,7 +1206,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				}
 				
 				sd = sqrt(sd / (arg0_count - 1));
-				float_result->PushFloat(sd);
+				result = new ScriptValue_Float_singleton_const(sd);
 			}
 			else
 			{
@@ -1061,6 +1231,9 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark float
 		case FunctionIdentifier::floatFunction:
 		{
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
+			
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
 				float_result->PushFloat(0.0);
 			break;
@@ -1177,11 +1350,24 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (rate0 <= 0.0)
 					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rexp() requires rate > 0.0." << slim_terminate();
 				
-				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-					float_result->PushFloat(gsl_ran_exponential(g_rng, mu0));
+				if (num_draws == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(gsl_ran_exponential(g_rng, mu0));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_ran_exponential(g_rng, mu0));
+				}
 			}
 			else
 			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
 					double rate = arg_rate->FloatAtIndex(draw_index);
@@ -1222,11 +1408,24 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (sigma0 < 0.0)
 					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << slim_terminate();
 				
-				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-					float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma0) + mu0);
+				if (num_draws == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(gsl_ran_gaussian(g_rng, sigma0) + mu0);
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_ran_gaussian(g_rng, sigma0) + mu0);
+				}
 			}
 			else
 			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
 					double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(draw_index));
@@ -1308,11 +1507,24 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (range0 < 0.0)
 					SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function runif() requires min < max." << slim_terminate();
 				
-				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-					float_result->PushFloat(gsl_rng_uniform(g_rng) * range0 + min_value0);
+				if (num_draws == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(gsl_rng_uniform(g_rng) * range0 + min_value0);
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_rng_uniform(g_rng) * range0 + min_value0);
+				}
 			}
 			else
 			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
 					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex(draw_index));
@@ -1793,7 +2005,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueFloat)
 			{
-				float_result = new ScriptValue_Float();
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1987,8 +2199,18 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark asFloat
 		case FunctionIdentifier::asFloatFunction:
 		{
-            for (int value_index = 0; value_index < arg0_count; ++value_index)
-                float_result->PushFloat(arg0_value->FloatAtIndex(value_index));
+			if (arg0_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					float_result->PushFloat(arg0_value->FloatAtIndex(value_index));
+			}
             break;
 		}
 			
@@ -2244,7 +2466,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	// Deallocate any unused result pointers
 	//if (null_result && (null_result != result)) delete null_result;				// null_result is a static
 	//if (logical_result && (logical_result != result)) delete logical_result;		// we don't use logical_result because of static logicals
-	if (float_result && (float_result != result)) delete float_result;
+	//if (float_result && (float_result != result)) delete float_result;			// we don't use float_result because of singleton floats
 	if (int_result && (int_result != result)) delete int_result;
 	if (string_result && (string_result != result)) delete string_result;
 	

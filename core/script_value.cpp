@@ -911,60 +911,6 @@ void ScriptValue_Int::Sort(bool p_ascending)
 //
 #pragma mark ScriptValue_Float
 
-ScriptValue_Float::ScriptValue_Float(void)
-{
-}
-
-ScriptValue_Float::ScriptValue_Float(std::vector<double> &p_doublevec)
-{
-	values_ = p_doublevec;
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1)
-{
-	values_.push_back(p_float1);
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1, double p_float2)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1, double p_float2, double p_float3)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-	values_.push_back(p_float5);
-}
-
-ScriptValue_Float::ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-	values_.push_back(p_float5);
-	values_.push_back(p_float6);
-}
-
 ScriptValue_Float::~ScriptValue_Float(void)
 {
 }
@@ -974,12 +920,73 @@ ScriptValueType ScriptValue_Float::Type(void) const
 	return ScriptValueType::kValueFloat;
 }
 
-int ScriptValue_Float::Count(void) const
+ScriptValue *ScriptValue_Float::NewMatchingType(void) const
+{
+	return new ScriptValue_Float_vector;
+}
+
+
+// ScriptValue_Float_vector
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(void)
+{
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(std::vector<double> &p_doublevec)
+{
+	values_ = p_doublevec;
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2)
+{
+	values_.push_back(p_float1);
+	values_.push_back(p_float2);
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3)
+{
+	values_.push_back(p_float1);
+	values_.push_back(p_float2);
+	values_.push_back(p_float3);
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4)
+{
+	values_.push_back(p_float1);
+	values_.push_back(p_float2);
+	values_.push_back(p_float3);
+	values_.push_back(p_float4);
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5)
+{
+	values_.push_back(p_float1);
+	values_.push_back(p_float2);
+	values_.push_back(p_float3);
+	values_.push_back(p_float4);
+	values_.push_back(p_float5);
+}
+
+ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6)
+{
+	values_.push_back(p_float1);
+	values_.push_back(p_float2);
+	values_.push_back(p_float3);
+	values_.push_back(p_float4);
+	values_.push_back(p_float5);
+	values_.push_back(p_float6);
+}
+
+ScriptValue_Float_vector::~ScriptValue_Float_vector(void)
+{
+}
+
+int ScriptValue_Float_vector::Count(void) const
 {
 	return (int)values_.size();
 }
 
-void ScriptValue_Float::Print(std::ostream &p_ostream) const
+void ScriptValue_Float_vector::Print(std::ostream &p_ostream) const
 {
 	if (values_.size() == 0)
 	{
@@ -1001,17 +1008,17 @@ void ScriptValue_Float::Print(std::ostream &p_ostream) const
 	}
 }
 
-const std::vector<double> &ScriptValue_Float::FloatVector(void) const
+const std::vector<double> &ScriptValue_Float_vector::FloatVector(void) const
 {
 	return values_;
 }
 
-bool ScriptValue_Float::LogicalAtIndex(int p_idx) const
+bool ScriptValue_Float_vector::LogicalAtIndex(int p_idx) const
 {
 	return (values_.at(p_idx) == 0 ? false : true);
 }
 
-std::string ScriptValue_Float::StringAtIndex(int p_idx) const
+std::string ScriptValue_Float_vector::StringAtIndex(int p_idx) const
 {
 	// with C++11, could use std::to_string(values_.at(p_idx))
 	ostringstream ss;
@@ -1021,58 +1028,142 @@ std::string ScriptValue_Float::StringAtIndex(int p_idx) const
 	return ss.str();
 }
 
-int64_t ScriptValue_Float::IntAtIndex(int p_idx) const
+int64_t ScriptValue_Float_vector::IntAtIndex(int p_idx) const
 {
 	return static_cast<int64_t>(values_.at(p_idx));
 }
 
-double ScriptValue_Float::FloatAtIndex(int p_idx) const
+double ScriptValue_Float_vector::FloatAtIndex(int p_idx) const
 {
 	return values_.at(p_idx);
 }
 
-void ScriptValue_Float::PushFloat(double p_float)
+void ScriptValue_Float_vector::PushFloat(double p_float)
 {
 	values_.push_back(p_float);
 }
 
-ScriptValue *ScriptValue_Float::GetValueAtIndex(const int p_idx) const
+ScriptValue *ScriptValue_Float_vector::GetValueAtIndex(const int p_idx) const
 {
-	return new ScriptValue_Float(values_.at(p_idx));
+	return new ScriptValue_Float_singleton_const(values_.at(p_idx));
 }
 
-void ScriptValue_Float::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+void ScriptValue_Float_vector::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Float::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	values_.at(p_idx) = p_value->FloatAtIndex(0);
 }
 
-ScriptValue *ScriptValue_Float::CopyValues(void) const
+ScriptValue *ScriptValue_Float_vector::CopyValues(void) const
 {
-	return new ScriptValue_Float(*this);
+	return new ScriptValue_Float_vector(*this);
 }
 
-ScriptValue *ScriptValue_Float::NewMatchingType(void) const
-{
-	return new ScriptValue_Float;
-}
-
-void ScriptValue_Float::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+void ScriptValue_Float_vector::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
 {
 	if (p_source_script_value->Type() == ScriptValueType::kValueFloat)
 		values_.push_back(p_source_script_value->FloatAtIndex(p_idx));
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Float::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_vector::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
-void ScriptValue_Float::Sort(bool p_ascending)
+void ScriptValue_Float_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
 		std::sort(values_.begin(), values_.end());
 	else
 		std::sort(values_.begin(), values_.end(), std::greater<double>());
+}
+
+
+// ScriptValue_Float_vector
+
+ScriptValue_Float_singleton_const::ScriptValue_Float_singleton_const(double p_float1) : value_(p_float1)
+{
+}
+
+ScriptValue_Float_singleton_const::~ScriptValue_Float_singleton_const(void)
+{
+}
+
+int ScriptValue_Float_singleton_const::Count(void) const
+{
+	return 1;
+}
+
+void ScriptValue_Float_singleton_const::Print(std::ostream &p_ostream) const
+{
+	p_ostream << value_;
+}
+
+bool ScriptValue_Float_singleton_const::LogicalAtIndex(int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return (value_ == 0 ? false : true);
+}
+
+std::string ScriptValue_Float_singleton_const::StringAtIndex(int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	// with C++11, could use std::to_string(values_.at(p_idx))
+	ostringstream ss;
+	
+	ss << value_;
+	
+	return ss.str();
+}
+
+int64_t ScriptValue_Float_singleton_const::IntAtIndex(int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return static_cast<int64_t>(value_);
+}
+
+double ScriptValue_Float_singleton_const::FloatAtIndex(int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return value_;
+}
+
+ScriptValue *ScriptValue_Float_singleton_const::GetValueAtIndex(const int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return new ScriptValue_Float_singleton_const(value_);
+}
+
+ScriptValue *ScriptValue_Float_singleton_const::CopyValues(void) const
+{
+	return new ScriptValue_Float_singleton_const(value_);
+}
+
+void ScriptValue_Float_singleton_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+{
+#pragma unused(p_idx, p_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::SetValueAtIndex): internal error: ScriptValue_Float_singleton_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Float_singleton_const::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+{
+#pragma unused(p_idx, p_source_script_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::PushValueFromIndexOfScriptValue): internal error: ScriptValue_Float_singleton_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Float_singleton_const::Sort(bool p_ascending)
+{
+#pragma unused(p_ascending)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Float_singleton_const::Sort): internal error: ScriptValue_Float_singleton_const is not modifiable." << slim_terminate();
 }
 
 

@@ -98,8 +98,12 @@ std::string StringForScriptValueMask(const ScriptValueMask p_mask);
 //std::ostream &operator<<(std::ostream &p_outstream, const ScriptValueMask p_mask);	// can't do this since ScriptValueMask is just uint32_t
 
 
-// A class representing a value resulting from script evaluation.  SLiMScript is quite dynamically typed;
-// problems cause runtime exceptions.  ScriptValue is the abstract base class for all value classes.
+//	*********************************************************************************************************
+//
+//	A class representing a value resulting from script evaluation.  SLiMScript is quite dynamically typed;
+//	problems cause runtime exceptions.  ScriptValue is the abstract base class for all value classes.
+//
+
 class ScriptValue
 {
 	//	This class has its assignment operator disabled, to prevent accidental copying.
@@ -155,6 +159,13 @@ public:
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptValue &p_value);
 
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_NULL and ScriptValue_NULL_const represent NULL values in SLiMscript.  ScriptValue_NULL_const
+//	is used for static global ScriptValue_NULL instances; we have two, one invisible, one not.
+//
+
 class ScriptValue_NULL : public ScriptValue
 {
 public:
@@ -179,7 +190,6 @@ public:
 
 class ScriptValue_NULL_const : public ScriptValue_NULL
 {
-	// This is used for our static global ScriptValue_NULL instances
 private:
 	ScriptValue_NULL_const(void) = default;
 	
@@ -191,6 +201,14 @@ public:
 	static ScriptValue_NULL *Static_ScriptValue_NULL(void);
 	static ScriptValue_NULL *Static_ScriptValue_NULL_Invisible(void);
 };
+
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_Logical and ScriptValue_Logical_const represent logical (bool) values in SLiMscript.
+//	ScriptValue_Logical_const is used for static global ScriptValue_Logical instances; we have two, T and F.
+//	Because there are only two values, T and F, we don't need a singleton class, we just use those globals.
+//
 
 class ScriptValue_Logical : public ScriptValue
 {
@@ -235,7 +253,6 @@ public:
 
 class ScriptValue_Logical_const : public ScriptValue_Logical
 {
-	// This is used for our static global ScriptValue_Logical instances
 private:
 	ScriptValue_Logical_const(void) = default;
 	
@@ -255,6 +272,14 @@ public:
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
 };
+
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_String represents string values in SLiMscript.  At the present time it doesn't seem worth
+//	having a singleton class, since working with strings is not that common in SLiMscript and it unlikely
+//	to happen in hotspot areas like callbacks.
+//
 
 class ScriptValue_String : public ScriptValue
 {
@@ -295,6 +320,12 @@ public:
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
 };
+
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_Int represents integer (C++ int64_t) values in SLiMscript.
+//
 
 class ScriptValue_Int : public ScriptValue
 {
@@ -337,26 +368,61 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_Float represents floating-point (C++ double) values in SLiMscript.  The subclass
+//	ScriptValue_Float_vector is the standard instance class, used to hold vectors of floats.
+//	ScriptValue_Float_singleton_const is used for speed, to represent single constant values.
+//
+
 class ScriptValue_Float : public ScriptValue
+{
+protected:
+	ScriptValue_Float(const ScriptValue_Float &p_original) = default;		// can copy-construct
+	ScriptValue_Float(void) = default;										// default constructor
+	
+public:
+	ScriptValue_Float& operator=(const ScriptValue_Float&) = delete;		// no copying
+	virtual ~ScriptValue_Float(void);
+	
+	virtual ScriptValueType Type(void) const;
+	virtual int Count(void) const = 0;
+	virtual void Print(std::ostream &p_ostream) const = 0;
+	
+	virtual bool LogicalAtIndex(int p_idx) const = 0;
+	virtual std::string StringAtIndex(int p_idx) const = 0;
+	virtual int64_t IntAtIndex(int p_idx) const = 0;
+	virtual double FloatAtIndex(int p_idx) const = 0;
+	
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value) = 0;
+	
+	virtual ScriptValue *CopyValues(void) const = 0;
+	virtual ScriptValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;
+	virtual void Sort(bool p_ascending) = 0;
+};
+
+class ScriptValue_Float_vector : public ScriptValue_Float
 {
 private:
 	std::vector<double> values_;
 	
 public:
-	ScriptValue_Float(const ScriptValue_Float &p_original) = default;		// can copy-construct
-	ScriptValue_Float& operator=(const ScriptValue_Float&) = delete;	// no copying
+	ScriptValue_Float_vector(const ScriptValue_Float_vector &p_original) = default;		// can copy-construct
+	ScriptValue_Float_vector& operator=(const ScriptValue_Float_vector&) = delete;	// no copying
 	
-	ScriptValue_Float(void);
-	explicit ScriptValue_Float(std::vector<double> &p_doublevec);
-	explicit ScriptValue_Float(double p_float1);
-	ScriptValue_Float(double p_float1, double p_float2);
-	ScriptValue_Float(double p_float1, double p_float2, double p_float3);
-	ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4);
-	ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5);
-	ScriptValue_Float(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6);
-	virtual ~ScriptValue_Float(void);
+	ScriptValue_Float_vector(void);
+	explicit ScriptValue_Float_vector(std::vector<double> &p_doublevec);
+	//explicit ScriptValue_Float_vector(double p_float1);		// disabled to encourage use of ScriptValue_Float_singleton_const for this case
+	ScriptValue_Float_vector(double p_float1, double p_float2);
+	ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3);
+	ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4);
+	ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5);
+	ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6);
+	virtual ~ScriptValue_Float_vector(void);
 	
-	virtual ScriptValueType Type(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -372,10 +438,45 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	
 	virtual ScriptValue *CopyValues(void) const;
-	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
 	virtual void Sort(bool p_ascending);
 };
+
+class ScriptValue_Float_singleton_const : public ScriptValue_Float
+{
+private:
+	double value_;
+	
+public:
+	ScriptValue_Float_singleton_const(const ScriptValue_Float_singleton_const &p_original) = delete;	// no copy-construct
+	ScriptValue_Float_singleton_const& operator=(const ScriptValue_Float_singleton_const&) = delete;	// no copying
+	ScriptValue_Float_singleton_const(void) = delete;
+	explicit ScriptValue_Float_singleton_const(double p_float1);
+	virtual ~ScriptValue_Float_singleton_const(void);									// destructor calls slim_terminate()
+	
+	virtual int Count(void) const;
+	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual bool LogicalAtIndex(int p_idx) const;
+	virtual std::string StringAtIndex(int p_idx) const;
+	virtual int64_t IntAtIndex(int p_idx) const;
+	virtual double FloatAtIndex(int p_idx) const;
+	
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
+	virtual ScriptValue *CopyValues(void) const;
+	
+	// prohibited actions
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	virtual void Sort(bool p_ascending);
+};
+
+
+//	*********************************************************************************************************
+//
+//	ScriptValue_Object represents objects in SLiMscript: entities that have properties and can respond to
+//	methods.
+//
 
 class ScriptValue_Object : public ScriptValue
 {
@@ -423,6 +524,8 @@ public:
 };
 
 
+//	*********************************************************************************************************
+//
 // This is the value type of which ScriptValue_Object is a vector, just as double is the value type of which
 // ScriptValue_Float is a vector.  ScriptValue_Object is just a bag; this class is the abstract base class of
 // the things that can be contained in that bag.  This class defines the methods that can be used by an
@@ -464,6 +567,7 @@ public:
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element);
 
 
+// A base class for ScriptObjectElement subclasses that are internal to SLiMscript.  See comment above.
 class ScriptObjectElementInternal : public ScriptObjectElement
 {
 private:

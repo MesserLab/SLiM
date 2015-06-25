@@ -263,85 +263,95 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 	{
 		if (mate_choice_callback->active_)
 		{
-			// The callback is active, so we need to execute it
-			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
-			SymbolTable global_symbols(mate_choice_callback);
-			ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
-			
-			sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
-			
 			// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 			ScriptValue *local_weights_ptr = nullptr;
-			
-			// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
-			if (mate_choice_callback->contains_genome1_)
-			{
-				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_genome1, parent1_genome1->CachedScriptValue());
-			}
-			
-			if (mate_choice_callback->contains_genome2_)
-			{
-				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_genome2, parent1_genome2->CachedScriptValue());
-			}
-			
-			if (mate_choice_callback->contains_subpop_)
-				global_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
-			
-			if (mate_choice_callback->contains_sourceSubpop_)
-				global_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
-			
-			if (mate_choice_callback->contains_weights_)
-			{
-				local_weights_ptr = (new ScriptValue_Float(*current_weights))->SetExternallyOwned();
-				global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
-			}
-			
-			// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
-			ScriptValue *result = interpreter.EvaluateScriptBlock();
 			bool redraw_mating = false;
 			
-			if (result->Type() == ScriptValueType::kValueNULL)
+			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
-				// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we do nothing
-			}
-			else if (result->Type() == ScriptValueType::kValueFloat)
-			{
-				int result_count = result->Count();
+				SymbolTable global_symbols(mate_choice_callback);
+				ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
 				
-				if (result_count == 0)
+				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
+				
+				// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
+				if (mate_choice_callback->contains_genome1_)
 				{
-					// a return of float(0) indicates that there is no acceptable mate for the first parent; the first parent must be redrawn
-					redraw_mating = true;
+					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
+					global_symbols.InitializeConstantSymbolEntry(gStr_genome1, parent1_genome1->CachedScriptValue());
 				}
-				else if (result_count == weights_length)
+				
+				if (mate_choice_callback->contains_genome2_)
 				{
-					// a non-zero float vector must match the size of the source subpop, and provides a new set of weights for us to use
-					if (!weights_modified)
-					{
-						current_weights = new std::vector<double>;		// need to allocate a new weights vector
-						weights_modified = true;
-					}
+					Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+					global_symbols.InitializeConstantSymbolEntry(gStr_genome2, parent1_genome2->CachedScriptValue());
+				}
+				
+				if (mate_choice_callback->contains_subpop_)
+					global_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
+				
+				if (mate_choice_callback->contains_sourceSubpop_)
+					global_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
+				
+				if (mate_choice_callback->contains_weights_)
+				{
+					local_weights_ptr = (new ScriptValue_Float_vector(*current_weights))->SetExternallyOwned();
+					global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
+				}
+				
+				// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
+				ScriptValue *result = interpreter.EvaluateScriptBlock();
+				
+				if (result->Type() == ScriptValueType::kValueNULL)
+				{
+					// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we do nothing
+				}
+				else if (result->Type() == ScriptValueType::kValueFloat)
+				{
+					int result_count = result->Count();
 					
-					*current_weights = ((ScriptValue_Float *)result)->FloatVector();
+					if (result_count == 0)
+					{
+						// a return of float(0) indicates that there is no acceptable mate for the first parent; the first parent must be redrawn
+						redraw_mating = true;
+					}
+					else if (result_count == weights_length)
+					{
+						// a non-zero float vector must match the size of the source subpop, and provides a new set of weights for us to use
+						if (!weights_modified)
+						{
+							current_weights = new std::vector<double>;		// need to allocate a new weights vector
+							weights_modified = true;
+						}
+						
+						// We really want to use ScriptValue_Float_vector's FloatVector() method to get the values
+						ScriptValue_Float_vector *result_vector_type = dynamic_cast<ScriptValue_Float_vector *>(result);
+						
+						if (result_vector_type)
+							*current_weights = result_vector_type->FloatVector();
+						else
+						{
+							(*current_weights).clear();
+							(*current_weights).push_back(result->FloatAtIndex(0));
+						}
+					}
+					else
+					{
+						SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << slim_terminate();
+					}
 				}
 				else
 				{
 					SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << slim_terminate();
 				}
+				
+				if (result->IsTemporary()) delete result;
+				
+				// Output generated by the interpreter goes to our output stream
+				SLIM_OUTSTREAM << interpreter.ExecutionOutput();
 			}
-			else
-			{
-				SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << slim_terminate();
-			}
 			
-			if (result->IsTemporary()) delete result;
-			
-			// Output generated by the interpreter goes to our output stream
-			SLIM_OUTSTREAM << interpreter.ExecutionOutput();
-			
-			// Clean up any local ScriptValues that we allocated
+			// Clean up any local ScriptValues that we allocated, after the symbol table is gone
 			delete local_weights_ptr;
 			
 			// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
@@ -430,7 +440,6 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 		if (modify_child_callback->active_)
 		{
 			// The callback is active, so we need to execute it
-			// This code is similar to Population::ExecuteScript, but we inject some additional values, and we read an output value
 			SymbolTable global_symbols(modify_child_callback);
 			ScriptInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
 			

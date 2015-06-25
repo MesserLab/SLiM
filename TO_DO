@@ -56,6 +56,7 @@ SLiMscript optimization:
 		0:23.0 after switching callbacks to use InitializeConstantSymbolEntry()
 		0:22.1 after inlining SetExternallyOwned()
 		0:21.9 after inlining AllocateNewSlot()
+		0:18.5 after introducing ScriptValue_Float_singleton_const
 	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
 	
 SLiMgui work:

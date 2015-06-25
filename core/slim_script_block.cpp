@@ -247,7 +247,7 @@ void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
 		ScriptValue *result = nullptr;
 		
 		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
+			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));			// requires a float
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
 			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else

@@ -729,7 +729,7 @@ ScriptValue *ScriptInterpreter::Evaluate_RangeExpr(const ScriptASTNode *p_node)
 		double first_float = first_child_value->FloatAtIndex(0);
 		double second_float = second_child_value->FloatAtIndex(0);
 		
-		ScriptValue_Float *float_result = new ScriptValue_Float();
+		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
 		
 		if (first_float <= second_float)
 		{
@@ -1144,16 +1144,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 				SLIM_TERMINATION << "ERROR (Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << slim_terminate();
 			}
 			
-			ScriptValue_Float *float_result = new ScriptValue_Float();
-			
 			if (first_child_count == second_child_count)
 			{
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) + second_child_value->FloatAtIndex(value_index));
+				if (first_child_count == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(first_child_value->FloatAtIndex(0) + second_child_value->FloatAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->PushFloat(first_child_value->FloatAtIndex(value_index) + second_child_value->FloatAtIndex(value_index));
+				}
 			}
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0);
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					float_result->PushFloat(singleton_float + second_child_value->FloatAtIndex(value_index));
@@ -1161,12 +1171,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Plus(const ScriptASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0);
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) + singleton_float);
 			}
-			
-			result = float_result;
 		}
 		
 		// free our operands
@@ -1216,12 +1226,18 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			ScriptValue_Float *float_result = new ScriptValue_Float();
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(-first_child_value->FloatAtIndex(value_index));
-			
-			result = float_result;
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(-first_child_value->FloatAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->PushFloat(-first_child_value->FloatAtIndex(value_index));
+			}
 		}
 		
 		// free our operands
@@ -1279,16 +1295,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			ScriptValue_Float *float_result = new ScriptValue_Float();
-			
 			if (first_child_count == second_child_count)
 			{
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) - second_child_value->FloatAtIndex(value_index));
+				if (first_child_count == 1)
+				{
+					result = new ScriptValue_Float_singleton_const(first_child_value->FloatAtIndex(0) - second_child_value->FloatAtIndex(0));
+				}
+				else
+				{
+					ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+					result = float_result;
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->PushFloat(first_child_value->FloatAtIndex(value_index) - second_child_value->FloatAtIndex(value_index));
+				}
 			}
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0);
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					float_result->PushFloat(singleton_float - second_child_value->FloatAtIndex(value_index));
@@ -1296,12 +1322,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Minus(const ScriptASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0);
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) - singleton_float);
 			}
-			
-			result = float_result;
 		}
 		
 		// free our operands
@@ -1430,16 +1456,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 	*/
 	{
 		// floating-point modulo by zero is safe; it will produce an NaN, following IEEE as implemented by C++
-		ScriptValue_Float *float_result = new ScriptValue_Float();
-		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index), second_child_value->FloatAtIndex(value_index)));
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(fmod(first_child_value->FloatAtIndex(0), second_child_value->FloatAtIndex(0)));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index), second_child_value->FloatAtIndex(value_index)));
+			}
 		}
 		else if (first_child_count == 1)
 		{
 			double singleton_float = first_child_value->FloatAtIndex(0);
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->PushFloat(fmod(singleton_float, second_child_value->FloatAtIndex(value_index)));
@@ -1447,12 +1483,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Mod(const ScriptASTNode *p_node)
 		else if (second_child_count == 1)
 		{
 			double singleton_float = second_child_value->FloatAtIndex(0);
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index), singleton_float));
 		}
-		
-		result = float_result;
 	}
 	
 	// free our operands
@@ -1514,12 +1550,18 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		}
 		else
 		{
-			ScriptValue_Float *float_result = new ScriptValue_Float();
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(first_child_value->FloatAtIndex(value_index) * second_child_value->FloatAtIndex(value_index));
-			
-			result = float_result;
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(first_child_value->FloatAtIndex(0) * second_child_value->FloatAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) * second_child_value->FloatAtIndex(value_index));
+			}
 		}
 	}
 	else if ((first_child_count == 1) || (second_child_count == 1))
@@ -1542,12 +1584,11 @@ ScriptValue *ScriptInterpreter::Evaluate_Mult(const ScriptASTNode *p_node)
 		else
 		{
 			double singleton_float = one_count_child->FloatAtIndex(0);
-			ScriptValue_Float *float_result = new ScriptValue_Float();
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
 				float_result->PushFloat(any_count_child->FloatAtIndex(value_index) * singleton_float);
-			
-			result = float_result;
 		}
 	}
 	else
@@ -1682,16 +1723,26 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 	*/
 	{
 		// floating-point division by zero is safe; it will produce an infinity, following IEEE as implemented by C++
-		ScriptValue_Float *float_result = new ScriptValue_Float();
-		
 		if (first_child_count == second_child_count)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(first_child_value->FloatAtIndex(value_index) / second_child_value->FloatAtIndex(value_index));
+			if (first_child_count == 1)
+			{
+				result = new ScriptValue_Float_singleton_const(first_child_value->FloatAtIndex(0) / second_child_value->FloatAtIndex(0));
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->PushFloat(first_child_value->FloatAtIndex(value_index) / second_child_value->FloatAtIndex(value_index));
+			}
 		}
 		else if (first_child_count == 1)
 		{
 			double singleton_float = first_child_value->FloatAtIndex(0);
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->PushFloat(singleton_float / second_child_value->FloatAtIndex(value_index));
@@ -1699,12 +1750,12 @@ ScriptValue *ScriptInterpreter::Evaluate_Div(const ScriptASTNode *p_node)
 		else if (second_child_count == 1)
 		{
 			double singleton_float = second_child_value->FloatAtIndex(0);
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->PushFloat(first_child_value->FloatAtIndex(value_index) / singleton_float);
 		}
-		
-		result = float_result;
 	}
 	
 	// free our operands
@@ -1758,26 +1809,40 @@ ScriptValue *ScriptInterpreter::Evaluate_Exp(const ScriptASTNode *p_node)
 	}
 	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
-	ScriptValue_Float *result = new ScriptValue_Float();
+	ScriptValue *result;
 	
 	if (first_child_count == second_child_count)
 	{
-		for (int value_index = 0; value_index < first_child_count; ++value_index)
-			result->PushFloat(pow(first_child_value->FloatAtIndex(value_index), second_child_value->FloatAtIndex(value_index)));
+		if (first_child_count == 1)
+		{
+			result = new ScriptValue_Float_singleton_const(pow(first_child_value->FloatAtIndex(0), second_child_value->FloatAtIndex(0)));
+		}
+		else
+		{
+			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			result = float_result;
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->PushFloat(pow(first_child_value->FloatAtIndex(value_index), second_child_value->FloatAtIndex(value_index)));
+		}
 	}
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0);
+		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+		result = float_result;
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
-			result->PushFloat(pow(singleton_float, second_child_value->FloatAtIndex(value_index)));
+			float_result->PushFloat(pow(singleton_float, second_child_value->FloatAtIndex(value_index)));
 	}
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0);
+		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+		result = float_result;
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
-			result->PushFloat(pow(first_child_value->FloatAtIndex(value_index), singleton_float));
+			float_result->PushFloat(pow(first_child_value->FloatAtIndex(value_index), singleton_float));
 	}
 	
 	// free our operands
@@ -2819,7 +2884,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Number(const ScriptASTNode *p_node)
 		const string &number_string = p_node->token_->token_string_;
 		
 		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new ScriptValue_Float(strtod(number_string.c_str(), nullptr));							// requires a float
+			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));			// requires a float
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
 			result = new ScriptValue_Int(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else

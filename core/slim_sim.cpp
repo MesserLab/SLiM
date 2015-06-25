@@ -1183,7 +1183,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	
 	// variables
 	if (p_member_name.compare(gStr_dominanceCoeffX) == 0)
-		return new ScriptValue_Float(x_chromosome_dominance_coeff_);
+		return new ScriptValue_Float_singleton_const(x_chromosome_dominance_coeff_);
 	if (p_member_name.compare(gStr_duration) == 0)
 		return new ScriptValue_Int(time_duration_);
 	if (p_member_name.compare(gStr_generation) == 0)
@@ -1473,7 +1473,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 		}
 		
 		// OK, now construct our result vector from the tallies for just the requested mutations
-		ScriptValue_Float *float_result = new ScriptValue_Float();
+		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
 		double denominator = 1.0 / total_genome_count;
 		
 		if (arg1_value)

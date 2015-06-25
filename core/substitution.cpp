@@ -81,7 +81,7 @@ ScriptValue *Substitution::GetValueForMember(const std::string &p_member_name)
 	if (p_member_name.compare(gStr_position) == 0)
 		return new ScriptValue_Int(position_);
 	if (p_member_name.compare(gStr_selectionCoeff) == 0)
-		return new ScriptValue_Float(selection_coeff_);
+		return new ScriptValue_Float_singleton_const(selection_coeff_);
 	if (p_member_name.compare(gStr_subpopID) == 0)
 		return new ScriptValue_Int(subpop_index_);
 	if (p_member_name.compare(gStr_originGeneration) == 0)
