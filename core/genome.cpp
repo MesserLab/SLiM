@@ -35,8 +35,14 @@ Genome::Genome(void)
 }
 
 // a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
-Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), is_null_genome_(p_is_null)
+Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_)
 {
+	// null genomes are now signalled with a null mutations pointer, rather than a separate flag
+	if (p_is_null)
+	{
+		mutations_ = nullptr;
+		mutation_capacity_ = 0;
+	}
 }
 
 // prints an error message, a stacktrace, and exits; called only for DEBUG
@@ -49,7 +55,7 @@ void Genome::NullGenomeAccessError(void) const
 void Genome::RemoveFixedMutations(int p_fixed_count)
 {
 #ifdef DEBUG
-	if (is_null_genome_)
+	if (mutations_ == nullptr)
 		NullGenomeAccessError();
 #endif
 	
@@ -96,22 +102,39 @@ Genome::Genome(const Genome &p_original)
 	}
 #endif
 	
-	int source_mutation_count = p_original.mutation_count_;
-	
-	// first we need to ensure that we have sufficient capacity
-	if (source_mutation_count > mutation_capacity_)
+	if (p_original.mutations_ == nullptr)
 	{
-		mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-		mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+		// p_original is a null genome, so make ourselves null too
+		if (mutations_ != mutations_buffer_)
+			free(mutations_);
+		
+		mutations_ = nullptr;
+		mutation_capacity_ = 0;
+		mutation_count_ = 0;
 	}
-	
-	// then copy all pointers from the source to ourselves
-	memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
-	mutation_count_ = source_mutation_count;
+	else
+	{
+		int source_mutation_count = p_original.mutation_count_;
+		
+		// first we need to ensure that we have sufficient capacity
+		if (source_mutation_count > mutation_capacity_)
+		{
+			mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
+			
+			// mutations_buffer_ is not malloced and cannot be realloced, so forget that we were using it
+			if (mutations_ == mutations_buffer_)
+				mutations_ = nullptr;
+			
+			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+		}
+		
+		// then copy all pointers from the source to ourselves
+		memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
+		mutation_count_ = source_mutation_count;
+	}
 	
 	// and copy other state
 	genome_type_ = p_original.genome_type_;
-	is_null_genome_ = p_original.is_null_genome_;
 }
 
 Genome& Genome::operator= (const Genome& p_original)
@@ -127,22 +150,39 @@ Genome& Genome::operator= (const Genome& p_original)
 	
 	if (this != &p_original)
 	{
-		int source_mutation_count = p_original.mutation_count_;
-		
-		// first we need to ensure that we have sufficient capacity
-		if (source_mutation_count > mutation_capacity_)
+		if (p_original.mutations_ == nullptr)
 		{
-			mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			// p_original is a null genome, so make ourselves null too
+			if (mutations_ != mutations_buffer_)
+				free(mutations_);
+			
+			mutations_ = nullptr;
+			mutation_capacity_ = 0;
+			mutation_count_ = 0;
 		}
-		
-		// then copy all pointers from the source to ourselves
-		memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
-		mutation_count_ = source_mutation_count;
+		else
+		{
+			int source_mutation_count = p_original.mutation_count_;
+			
+			// first we need to ensure that we have sufficient capacity
+			if (source_mutation_count > mutation_capacity_)
+			{
+				mutation_capacity_ = p_original.mutation_capacity_;		// just use the same capacity as the source
+				
+				// mutations_buffer_ is not malloced and cannot be realloced, so forget that we were using it
+				if (mutations_ == mutations_buffer_)
+					mutations_ = nullptr;
+				
+				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			}
+			
+			// then copy all pointers from the source to ourselves
+			memcpy(mutations_, p_original.mutations_, source_mutation_count * sizeof(Mutation*));
+			mutation_count_ = source_mutation_count;
+		}
 		
 		// and copy other state
 		genome_type_ = p_original.genome_type_;
-		is_null_genome_ = p_original.is_null_genome_;
 	}
 	
 	return *this;
@@ -161,7 +201,9 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 
 Genome::~Genome(void)
 {
-	free(mutations_);
+	// mutations_buffer_ is not malloced and cannot be freed; free only if we have an external buffer
+	if (mutations_ != mutations_buffer_)
+		free(mutations_);
 	
 	if (self_value_)
 		delete self_value_;
@@ -193,7 +235,7 @@ void Genome::Print(std::ostream &p_ostream) const
 		case GenomeType::kYChromosome:	p_ostream << "Y"; break;
 	}
 	
-	if (is_null_genome_)
+	if (mutations_ == nullptr)
 		p_ostream << ":null>";
 	else
 		p_ostream << ":" << mutation_count_ << ">";
@@ -204,7 +246,7 @@ std::vector<std::string> Genome::ReadOnlyMembers(void) const
 	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_genomeType);			// genome_type_
-	constants.push_back(gStr_isNullGenome);		// is_null_genome_
+	constants.push_back(gStr_isNullGenome);			// (mutations_ == nullptr)
 	constants.push_back(gStr_mutations);			// mutations_
 	
 	return constants;
@@ -230,14 +272,13 @@ ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
 		}
 	}
 	if (p_member_name.compare(gStr_isNullGenome) == 0)
-		return (is_null_genome_ ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+		return ((mutations_ == nullptr) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	if (p_member_name.compare(gStr_mutations) == 0)
 	{
 		ScriptValue_Object *vec = new ScriptValue_Object();
 		
-		if (!is_null_genome_)
-			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
-				vec->PushElement(mutations_[mut_index]);
+		for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
+			vec->PushElement(mutations_[mut_index]);
 		
 		return vec;
 	}
@@ -405,7 +446,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 			
-			if (is_null_genome_)
+			if (mutations_ == nullptr)
 				NullGenomeAccessError();
 			
 			// Remove the specified mutations; see RemoveFixedMutations for the origins of this code

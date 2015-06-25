@@ -35,6 +35,12 @@
 #include "script_value.h"
 
 
+// Genome now has an internal buffer that it can use to hold mutation pointers.  This makes every Genome object a bit bigger;
+// with 64-bit pointers, a buffer big enough to hold four pointers is 32 bytes, ouch.  But avoiding the malloc overhead is
+// worth it, for simulations with few mutations; and for simulations with many mutations, the 32-byte overhead is background noise.
+#define GENOME_MUT_BUFFER_SIZE	4
+
+
 class Genome : public ScriptObjectElement
 {
 	// This class has a restricted copying policy; see below
@@ -48,11 +54,12 @@ private:
 #endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
-	bool is_null_genome_ = false;						// if true, this genome is a meaningless placeholder (often a Y chromosome)
 	
 	int mutation_count_ = 0;							// the number of entries presently in mutations_
-	int mutation_capacity_ = 0;							// the capacity of mutations_
-	Mutation **mutations_ = nullptr;				// OWNED POINTER: a pointer to a malloced array of pointers to const Mutation objects
+	int mutation_capacity_ = GENOME_MUT_BUFFER_SIZE;	// the capacity of mutations_; we start by using our internal buffer
+	Mutation *(mutations_buffer_[GENOME_MUT_BUFFER_SIZE]);	// a built-in buffer to prevent the need for malloc with few mutations
+	Mutation **mutations_ = mutations_buffer_;			// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
+														// note that mutations_ == nullptr indicates a null (i.e. placeholder) genome
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
@@ -81,7 +88,7 @@ public:
 	
 	inline bool IsNull(void) const										// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
-		return is_null_genome_;
+		return (mutations_ == nullptr);
 	}
 	
 	GenomeType GenomeType(void) const									// returns the type of the genome: automosomal, X chromosome, or Y chromosome
@@ -94,7 +101,7 @@ public:
 	inline Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return mutations_[index];
@@ -103,7 +110,7 @@ public:
 	inline Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return mutations_[index];
@@ -112,7 +119,7 @@ public:
 	inline int size(void)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return mutation_count_;
@@ -121,7 +128,7 @@ public:
 	inline void clear(void)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		mutation_count_ = 0;
@@ -130,7 +137,7 @@ public:
 	inline bool contains_mutation(Mutation *p_mutation)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		// This function does not assume that mutations are in sorted order, because we want to be able to use it with the mutation registry
@@ -147,7 +154,7 @@ public:
 	inline void pop_back(void)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		if (mutation_count_ > 0)	// the standard says that popping an empty vector results in undefined behavior; this seems reasonable
@@ -157,15 +164,20 @@ public:
 	inline void push_back(Mutation *p_mutation)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		if (mutation_count_ == mutation_capacity_)
 		{
-			if (!mutation_capacity_)
+			if (mutations_ == mutations_buffer_)
 			{
-				mutation_capacity_ = 16;		// start with room for 16 pointers; the hope is that for many simulations this will avoid realloc entirely
-				mutations_ = (Mutation **)malloc(16 * sizeof(Mutation*));
+				// we're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  In this case,
+				// let's jump by more than a factor of two, to try to avoid having to do repeated reallocs as we grow; we're
+				// clearly running more than a minimal-size simulation.  The price paid is not huge, and the benefit is large.
+				mutation_capacity_ = GENOME_MUT_BUFFER_SIZE * 8;
+				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
+				
+				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));
 			}
 			else
 			{
@@ -249,31 +261,48 @@ public:
 	inline void copy_from_genome(const Genome &p_source_genome)
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
-		int source_mutation_count = p_source_genome.mutation_count_;
-		
-		// first we need to ensure that we have sufficient capacity
-		if (source_mutation_count > mutation_capacity_)
+		if (p_source_genome.mutations_ == nullptr)
 		{
-			mutation_capacity_ = p_source_genome.mutation_capacity_;		// just use the same capacity as the source
-			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			// p_original is a null genome, so make ourselves null too
+			if (mutations_ != mutations_buffer_)
+				free(mutations_);
+			
+			mutations_ = nullptr;
+			mutation_capacity_ = 0;
+			mutation_count_ = 0;
 		}
-		
-		// then copy all pointers from the source to ourselves
-		memcpy(mutations_, p_source_genome.mutations_, source_mutation_count * sizeof(Mutation*));
-		mutation_count_ = source_mutation_count;
+		else
+		{
+			int source_mutation_count = p_source_genome.mutation_count_;
+			
+			// first we need to ensure that we have sufficient capacity
+			if (source_mutation_count > mutation_capacity_)
+			{
+				mutation_capacity_ = p_source_genome.mutation_capacity_;		// just use the same capacity as the source
+				
+				// mutations_buffer_ is not malloced and cannot be realloced, so forget that we were using it
+				if (mutations_ == mutations_buffer_)
+					mutations_ = nullptr;
+				
+				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			}
+			
+			// then copy all pointers from the source to ourselves
+			memcpy(mutations_, p_source_genome.mutations_, source_mutation_count * sizeof(Mutation*));
+			mutation_count_ = source_mutation_count;
+		}
 		
 		// and copy other state
 		genome_type_ = p_source_genome.genome_type_;
-		is_null_genome_ = p_source_genome.is_null_genome_;
 	}
 	
 	inline Mutation **begin_pointer(void) const
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return mutations_;
@@ -282,7 +311,7 @@ public:
 	inline Mutation **end_pointer(void) const
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return mutations_ + mutation_count_;
@@ -291,7 +320,7 @@ public:
 	inline Mutation *& back(void) const				// returns a reference to a pointer to a const Mutation
 	{
 #ifdef DEBUG
-		if (is_null_genome_)
+		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
 		return *(mutations_ + (mutation_count_ - 1));
