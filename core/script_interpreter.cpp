@@ -814,13 +814,13 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	ScriptASTNode *function_name_node = p_node->children_[0];
 	TokenType function_name_token_type = function_name_node->token_->token_type_;
 	
-	string function_name;
+	const string *function_name;
 	ScriptValue_Object *method_object = nullptr;
 	
 	if (function_name_token_type == TokenType::kTokenIdentifier)
 	{
 		// OK, we have <identifier>(...); that's a well-formed function call
-		function_name = function_name_node->token_->token_string_;
+		function_name = &(function_name_node->token_->token_string_);
 	}
 	else if (function_name_token_type == TokenType::kTokenDot)
 	{
@@ -847,12 +847,13 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		}
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
-		function_name = second_child_node->token_->token_string_;
+		function_name = &(second_child_node->token_->token_string_);
 		method_object = static_cast<ScriptValue_Object *>(first_child_value);	// guaranteed by the Type() call above
 	}
 	else
 	{
 		SLIM_TERMINATION << "ERROR (Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << slim_terminate();
+		function_name = nullptr;	// to get rid of a warning
 	}
 	
 	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
@@ -865,7 +866,10 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		if (child->token_->token_type_ == TokenType::kTokenComma)
 		{
 			// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-			for (auto arg_list_iter = child->children_.begin(); arg_list_iter != child->children_.end(); ++arg_list_iter)
+			std::vector<ScriptASTNode *> &child_children = child->children_;
+			auto end_iterator = child_children.end();
+			
+			for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
 				arguments.push_back(EvaluateNode(*arg_list_iter));
 		}
 		else
@@ -877,9 +881,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	
 	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 	if (method_object)
-		result = ExecuteMethodCall(method_object, function_name, arguments);
+		result = ExecuteMethodCall(method_object, *function_name, arguments);
 	else
-		result = ExecuteFunctionCall(function_name, arguments);
+		result = ExecuteFunctionCall(*function_name, arguments);
 	
 	// And now we can free the arguments
 	for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
