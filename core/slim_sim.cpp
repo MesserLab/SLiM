@@ -614,22 +614,21 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
 	
-	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_interpreter);
+	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_interpreter)
 	
-	int num_arguments = (int)p_arguments.size();
-	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((num_arguments >= 3) ? p_arguments[2] : nullptr);
+	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
 	
 	// we only define zero-generation functions; so we must be in generation zero
 	if (generation_ != 0)
@@ -758,7 +757,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 		
 		char dfe_type = dfe_type_string[0];
 		
-		if (num_arguments != 3 + expected_dfe_param_count)
+		if (p_argument_count != 3 + expected_dfe_param_count)
 			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
@@ -880,7 +879,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() may be called only once." << slim_terminate();
 		
 		int duration = (int)arg0_value->IntAtIndex(0);
-		int start = (num_arguments == 2 ? (int)arg1_value->IntAtIndex(0) : 1);
+		int start = (p_argument_count == 2 ? (int)arg1_value->IntAtIndex(0) : 1);
 		
 		if (duration <= 0)
 			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires duration greater than 0." << slim_terminate();
@@ -965,7 +964,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 		else
 			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << slim_terminate();
 		
-		if (num_arguments == 2)
+		if (p_argument_count == 2)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0);
@@ -977,7 +976,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_nam
 		{
 			SLIM_OUTSTREAM << "setSexEnabled0(\"" << chromosome_type << "\"";
 			
-			if (num_arguments == 2)
+			if (p_argument_count == 2)
 				SLIM_OUTSTREAM << ", " << x_chromosome_dominance_coeff_;
 			
 			SLIM_OUTSTREAM << ");" << endl;
@@ -1338,15 +1337,14 @@ const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	int num_arguments = (int)p_arguments.size();
-	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((num_arguments >= 3) ? p_arguments[2] : nullptr);
-	ScriptValue *arg3_value = ((num_arguments >= 4) ? p_arguments[3] : nullptr);
-	ScriptValue *arg4_value = ((num_arguments >= 5) ? p_arguments[4] : nullptr);
-	ScriptValue *arg5_value = ((num_arguments >= 6) ? p_arguments[5] : nullptr);
+	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	ScriptValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
+	ScriptValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
+	ScriptValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5] : nullptr);
 	
 	
 	//
@@ -1530,12 +1528,12 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	
 	else if (p_method_name.compare(gStr_outputFull) == 0)
 	{
-		if (num_arguments == 0)
+		if (p_argument_count == 0)
 		{
 			SLIM_OUTSTREAM << "#OUT: " << generation_ << " A" << endl;
 			population_.PrintAll(SLIM_OUTSTREAM);
 		}
-		else if (num_arguments == 1)
+		else if (p_argument_count == 1)
 		{
 			string outfile_path = arg0_value->StringAtIndex(0);
 			std::ofstream outfile;
@@ -1756,7 +1754,7 @@ ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, std::vecto
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

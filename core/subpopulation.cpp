@@ -1061,11 +1061,10 @@ const FunctionSignature *Subpopulation::SignatureForMethod(std::string const &p_
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	int num_arguments = (int)p_arguments.size();
-	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
+	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	
 	//
@@ -1190,7 +1189,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 		int sample_size = (int)arg0_value->IntAtIndex(0);
 		IndividualSex requested_sex = IndividualSex::kUnspecified;
 		
-		if (num_arguments == 2)
+		if (p_argument_count == 2)
 		{
 			string sex_string = arg1_value->StringAtIndex(0);
 			
@@ -1221,7 +1220,7 @@ ScriptValue *Subpopulation::ExecuteMethod(std::string const &p_method_name, std:
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

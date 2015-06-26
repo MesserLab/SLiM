@@ -1643,7 +1643,7 @@ ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::s
 		}
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		ScriptValue *result = ConcatenateScriptValues(gStr_GetValueForMemberOfElements, results);
+		ScriptValue *result = ConcatenateScriptValues(gStr_GetValueForMemberOfElements, results.data(), (int)results.size());
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
@@ -1732,7 +1732,7 @@ const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
@@ -1744,13 +1744,13 @@ ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string
 	else
 	{
 		// call the method on one member only, since it is a class method
-		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 		
 		return result;
 	}
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	auto values_size = values_.size();
 	
@@ -1764,7 +1764,7 @@ ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::str
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		ScriptObjectElement *value = values_[0];
-		ScriptValue *result = value->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		ScriptValue *result = value->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 		
 		return result;
 	}
@@ -1774,10 +1774,10 @@ ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::str
 		vector<ScriptValue*> results;
 		
 		for (auto value : values_)
-			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_interpreter));
+			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter));
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		ScriptValue *result = ConcatenateScriptValues(gStr_ExecuteMethod, results);
+		ScriptValue *result = ConcatenateScriptValues(gStr_ExecuteMethod, results.data(), (int)results.size());
 		
 		// Now we just need to dispose of our temporary ScriptValues
 		for (ScriptValue *temp_value : results)
@@ -1914,14 +1914,14 @@ const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodO
 	return value_->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return value_->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return value_->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 
@@ -2046,7 +2046,7 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
-ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare(gStr_str) == 0)		// instance method
@@ -2093,7 +2093,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	else if (p_method_name.compare(gStr_property) == 0)		// class method
 	{
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-		bool has_match_string = (p_arguments.size() == 1);
+		bool has_match_string = (p_argument_count == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
 		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 		std::vector<std::string> read_write_member_names = ReadWriteMembers();
@@ -2128,7 +2128,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 	else if (p_method_name.compare(gStr_method) == 0)		// class method
 	{
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-		bool has_match_string = (p_arguments.size() == 1);
+		bool has_match_string = (p_argument_count == 1);
 		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
 		std::vector<std::string> method_names = Methods();
 		bool signature_found = false;

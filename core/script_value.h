@@ -570,8 +570,8 @@ public:
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
 	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const = 0;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter) = 0;
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter) = 0;
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
 };
 
 class ScriptValue_Object_vector : public ScriptValue_Object
@@ -612,8 +612,8 @@ public:
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
 	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 class ScriptValue_Object_singleton_const : public ScriptValue_Object
@@ -651,8 +651,8 @@ public:
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
 	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 
@@ -689,7 +689,7 @@ public:
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 	
 	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
 	void TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask);

@@ -39,11 +39,6 @@ using std::istream;
 using std::ostream;
 
 
-ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments);
-ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_arguments);
-ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments);
-
-
 //
 //	Construct our built-in function map
 //
@@ -220,7 +215,7 @@ FunctionMap *ScriptInterpreter::BuiltInFunctionMap(void)
 //	Executing function calls
 //
 
-ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*> p_arguments)
+ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count)
 {
 #pragma unused(p_function_name)
 	ScriptValueType highest_type = ScriptValueType::kValueNULL;
@@ -228,8 +223,9 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	string element_type;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
-	for (ScriptValue *arg_value : p_arguments)
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 	{
+		ScriptValue *arg_value = p_arguments[arg_index];
 		ScriptValueType arg_type = arg_value->Type();
 		
 		if (arg_type > highest_type)
@@ -275,10 +271,14 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	{
 		ScriptValue_Logical *result = new ScriptValue_Logical();
 		
-		for (ScriptValue *arg_value : p_arguments)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		{
+			ScriptValue *arg_value = p_arguments[arg_index];
+			
 			if (arg_value->Type() != ScriptValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
 					result->PushLogical(arg_value->LogicalAtIndex(value_index));
+		}
 		
 		return result;
 	}
@@ -286,10 +286,14 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	{
 		ScriptValue_Int_vector *result = new ScriptValue_Int_vector();
 		
-		for (ScriptValue *arg_value : p_arguments)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		{
+			ScriptValue *arg_value = p_arguments[arg_index];
+			
 			if (arg_value->Type() != ScriptValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
 					result->PushInt(arg_value->IntAtIndex(value_index));
+		}
 		
 		return result;
 	}
@@ -297,10 +301,14 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	{
 		ScriptValue_Float_vector *result = new ScriptValue_Float_vector();
 		
-		for (ScriptValue *arg_value : p_arguments)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		{
+			ScriptValue *arg_value = p_arguments[arg_index];
+			
 			if (arg_value->Type() != ScriptValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
 					result->PushFloat(arg_value->FloatAtIndex(value_index));
+		}
 		
 		return result;
 	}
@@ -308,10 +316,14 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	{
 		ScriptValue_String *result = new ScriptValue_String();
 		
-		for (ScriptValue *arg_value : p_arguments)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		{
+			ScriptValue *arg_value = p_arguments[arg_index];
+			
 			if (arg_value->Type() != ScriptValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
 					result->PushString(arg_value->StringAtIndex(value_index));
+		}
 		
 		return result;
 	}
@@ -319,9 +331,13 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	{
 		ScriptValue_Object_vector *result = new ScriptValue_Object_vector();
 		
-		for (ScriptValue *arg_value : p_arguments)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		{
+			ScriptValue *arg_value = p_arguments[arg_index];
+			
 			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
 				result->PushElement(arg_value->ElementAtIndex(value_index));
+		}
 		
 		return result;
 	}
@@ -333,126 +349,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	return nullptr;
 }
 
-ScriptValue *Execute_rep(string p_function_name, vector<ScriptValue*> p_arguments)
-{
-#pragma unused(p_function_name)
-	ScriptValue *arg0_value = p_arguments[0];
-	int arg0_count = arg0_value->Count();
-	ScriptValue *arg1_value = p_arguments[1];
-	int arg1_count = arg1_value->Count();
-	
-	// the return type depends on the type of the first argument, which will get replicated
-	ScriptValue *result = arg0_value->NewMatchingType();
-	
-	if (arg1_count == 1)
-	{
-		int64_t rep_count = arg1_value->IntAtIndex(0);
-		
-		for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-			for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
-	}
-	
-	return result;
-}
-
-ScriptValue *Execute_repEach(string p_function_name, vector<ScriptValue*> p_arguments)
-{
-	ScriptValue *arg0_value = p_arguments[0];
-	int arg0_count = arg0_value->Count();
-	ScriptValue *arg1_value = p_arguments[1];
-	int arg1_count = arg1_value->Count();
-	
-	// the return type depends on the type of the first argument, which will get replicated
-	ScriptValue *result = arg0_value->NewMatchingType();
-	
-	if (arg1_count == 1)
-	{
-		int64_t rep_count = arg1_value->IntAtIndex(0);
-		
-		for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
-	}
-	else if (arg1_count == arg0_count)
-	{
-		for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-		{
-			int64_t rep_count = arg1_value->IntAtIndex(value_idx);
-			
-			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-				result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
-		}
-	}
-	else
-	{
-		SLIM_TERMINATION << "ERROR (Execute_repEach): function " << p_function_name << "() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << slim_terminate();
-	}
-	
-	return result;
-}
-
-ScriptValue *Execute_seq(string p_function_name, vector<ScriptValue*> p_arguments)
-{
-	ScriptValue *result = nullptr;
-	ScriptValue *arg0_value = p_arguments[0];
-	ScriptValueType arg0_type = arg0_value->Type();
-	ScriptValue *arg1_value = p_arguments[1];
-	ScriptValueType arg1_type = arg1_value->Type();
-	ScriptValue *arg2_value = ((p_arguments.size() == 3) ? p_arguments[2] : nullptr);
-	ScriptValueType arg2_type = (arg2_value ? arg2_value->Type() : ScriptValueType::kValueInt);
-	
-	if ((arg0_type == ScriptValueType::kValueFloat) || (arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat))
-	{
-		// float return case
-		ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
-		result = float_result;
-		
-		double first_value = arg0_value->FloatAtIndex(0);
-		double second_value = arg1_value->FloatAtIndex(0);
-		double default_by = ((first_value < second_value) ? 1 : -1);
-		double by_value = (arg2_value ? arg2_value->FloatAtIndex(0) : default_by);
-		
-		if (by_value == 0.0)
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
-		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
-		
-		if (by_value > 0)
-			for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
-				float_result->PushFloat(seq_value);
-		else
-			for (double seq_value = first_value; seq_value >= second_value; seq_value += by_value)
-				float_result->PushFloat(seq_value);
-	}
-	else
-	{
-		// int return case
-		ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
-		result = int_result;
-		
-		int64_t first_value = arg0_value->IntAtIndex(0);
-		int64_t second_value = arg1_value->IntAtIndex(0);
-		int64_t default_by = ((first_value < second_value) ? 1 : -1);
-		int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0) : default_by);
-		
-		if (by_value == 0)
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
-		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
-		
-		if (by_value > 0)
-			for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
-				int_result->PushInt(seq_value);
-		else
-			for (int64_t seq_value = first_value; seq_value >= second_value; seq_value += by_value)
-				int_result->PushInt(seq_value);
-	}
-	
-	return result;
-}
-
-ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, vector<ScriptValue*> const &p_arguments)
+ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count)
 {
 	ScriptValue *result = nullptr;
 	
@@ -469,7 +366,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	if (class_method || instance_method)
 		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << slim_terminate();
 	
-	signature->CheckArguments(gStr_function, p_arguments);
+	signature->CheckArguments(gStr_function, p_arguments, p_argument_count);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_NULL *null_result = nullptr;
@@ -489,19 +386,18 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	// else the return type is not predictable and thus cannot be set up beforehand; the function implementation will have to do it
 	
 	// Prefetch arguments to allow greater brevity in the code below
-	int n_args = (int)p_arguments.size();
-	ScriptValue *arg0_value = (n_args >= 1) ? p_arguments[0] : nullptr;
-	ScriptValueType arg0_type = (n_args >= 1) ? arg0_value->Type() : ScriptValueType::kValueNULL;
-	int arg0_count = (n_args >= 1) ? arg0_value->Count() : 0;
+	ScriptValue *arg0_value = (p_argument_count >= 1) ? p_arguments[0] : nullptr;
+	ScriptValueType arg0_type = (p_argument_count >= 1) ? arg0_value->Type() : ScriptValueType::kValueNULL;
+	int arg0_count = (p_argument_count >= 1) ? arg0_value->Count() : 0;
 	
 	/*
-	ScriptValue *arg1_value = (n_args >= 2) ? p_arguments[1] : nullptr;
-	ScriptValueType arg1_type = (n_args >= 2) ? arg1_value->Type() : ScriptValueType::kValueNULL;
-	int arg1_count = (n_args >= 2) ? arg1_value->Count() : 0;
+	ScriptValue *arg1_value = (p_argument_count >= 2) ? p_arguments[1] : nullptr;
+	ScriptValueType arg1_type = (p_argument_count >= 2) ? arg1_value->Type() : ScriptValueType::kValueNULL;
+	int arg1_count = (p_argument_count >= 2) ? arg1_value->Count() : 0;
 	
-	ScriptValue *arg2_value = (n_args >= 3) ? p_arguments[2] : nullptr;
-	ScriptValueType arg2_type = (n_args >= 3) ? arg2_value->Type() : ScriptValueType::kValueNULL;
-	int arg2_count = (n_args >= 3) ? arg2_value->Count() : 0;
+	ScriptValue *arg2_value = (p_argument_count >= 3) ? p_arguments[2] : nullptr;
+	ScriptValueType arg2_type = (p_argument_count >= 3) ? arg2_value->Type() : ScriptValueType::kValueNULL;
+	int arg2_count = (p_argument_count >= 3) ? arg2_value->Count() : 0;
 	*/
 	
 	// Now we look up the function again and actually execute it
@@ -515,7 +411,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 		case FunctionIdentifier::kDelegatedFunction:
 		{
-			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, *this);
+			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, p_argument_count, *this);
 			break;
 		}
 			
@@ -1233,7 +1129,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark c
 		case FunctionIdentifier::cFunction:
 		{
-			result = ConcatenateScriptValues(p_function_name, p_arguments);
+			result = ConcatenateScriptValues(p_function_name, p_arguments, p_argument_count);
 			break;
 		}
 			
@@ -1343,14 +1239,56 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark rep
 		case FunctionIdentifier::repFunction:
 		{
-			result = Execute_rep(p_function_name, p_arguments);
+			ScriptValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			// the return type depends on the type of the first argument, which will get replicated
+			result = arg0_value->NewMatchingType();
+			
+			if (arg1_count == 1)
+			{
+				int64_t rep_count = arg1_value->IntAtIndex(0);
+				
+				for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+					for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+						result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
+			}
+			
 			break;
 		}
 			
 #pragma mark repEach
 		case FunctionIdentifier::repEachFunction:
 		{
-			result = Execute_repEach(p_function_name, p_arguments);
+			ScriptValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			// the return type depends on the type of the first argument, which will get replicated
+			result = arg0_value->NewMatchingType();
+			
+			if (arg1_count == 1)
+			{
+				int64_t rep_count = arg1_value->IntAtIndex(0);
+				
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+						result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
+			}
+			else if (arg1_count == arg0_count)
+			{
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+				{
+					int64_t rep_count = arg1_value->IntAtIndex(value_idx);
+					
+					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+						result->PushValueFromIndexOfScriptValue(value_idx, arg0_value);
+				}
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): function repEach() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << slim_terminate();
+			}
+			
 			break;
 		}
 			
@@ -1358,7 +1296,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rexpFunction:
 		{
 			int64_t num_draws = arg0_value->IntAtIndex(0);
-			ScriptValue *arg_rate = ((n_args >= 2) ? p_arguments[1] : nullptr);
+			ScriptValue *arg_rate = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 			int arg_rate_count = (arg_rate ? arg_rate->Count() : 1);
 			bool rate_singleton = (arg_rate_count == 1);
 			
@@ -1411,8 +1349,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::rnormFunction:
 		{
 			int64_t num_draws = arg0_value->IntAtIndex(0);
-			ScriptValue *arg_mu = ((n_args >= 2) ? p_arguments[1] : nullptr);
-			ScriptValue *arg_sigma = ((n_args >= 3) ? p_arguments[2] : nullptr);
+			ScriptValue *arg_mu = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+			ScriptValue *arg_sigma = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
 			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
 			int arg_sigma_count = (arg_sigma ? arg_sigma->Count() : 1);
 			bool mu_singleton = (arg_mu_count == 1);
@@ -1522,8 +1460,8 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::runifFunction:
 		{
 			int64_t num_draws = arg0_value->IntAtIndex(0);
-			ScriptValue *arg_min = ((n_args >= 2) ? p_arguments[1] : nullptr);
-			ScriptValue *arg_max = ((n_args >= 3) ? p_arguments[2] : nullptr);
+			ScriptValue *arg_min = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+			ScriptValue *arg_max = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
 			int arg_min_count = (arg_min ? arg_min->Count() : 1);
 			int arg_max_count = (arg_max ? arg_max->Count() : 1);
 			bool min_singleton = (arg_min_count == 1);
@@ -1583,7 +1521,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::sampleFunction:
 		{
 			int64_t sample_size = p_arguments[1]->IntAtIndex(0);
-			bool replace = ((n_args >= 3) ? p_arguments[2]->LogicalAtIndex(0) : false);
+			bool replace = ((p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0) : false);
 			
 			result = arg0_value->NewMatchingType();
 			
@@ -1593,7 +1531,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				break;
 			
 			// the algorithm used depends on whether weights were supplied
-			if (n_args >= 4)
+			if (p_argument_count >= 4)
 			{
 				// weights supplied
 				vector<double> weights_vector;
@@ -1692,7 +1630,58 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark seq
 		case FunctionIdentifier::seqFunction:
 		{
-			result = Execute_seq(p_function_name, p_arguments);
+			ScriptValue *arg1_value = p_arguments[1];
+			ScriptValueType arg1_type = arg1_value->Type();
+			ScriptValue *arg2_value = ((p_argument_count == 3) ? p_arguments[2] : nullptr);
+			ScriptValueType arg2_type = (arg2_value ? arg2_value->Type() : ScriptValueType::kValueInt);
+			
+			if ((arg0_type == ScriptValueType::kValueFloat) || (arg1_type == ScriptValueType::kValueFloat) || (arg2_type == ScriptValueType::kValueFloat))
+			{
+				// float return case
+				ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+				result = float_result;
+				
+				double first_value = arg0_value->FloatAtIndex(0);
+				double second_value = arg1_value->FloatAtIndex(0);
+				double default_by = ((first_value < second_value) ? 1 : -1);
+				double by_value = (arg2_value ? arg2_value->FloatAtIndex(0) : default_by);
+				
+				if (by_value == 0.0)
+					SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
+				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+					SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
+				
+				if (by_value > 0)
+					for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+						float_result->PushFloat(seq_value);
+				else
+					for (double seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+						float_result->PushFloat(seq_value);
+			}
+			else
+			{
+				// int return case
+				ScriptValue_Int_vector *int_result = new ScriptValue_Int_vector();
+				result = int_result;
+				
+				int64_t first_value = arg0_value->IntAtIndex(0);
+				int64_t second_value = arg1_value->IntAtIndex(0);
+				int64_t default_by = ((first_value < second_value) ? 1 : -1);
+				int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0) : default_by);
+				
+				if (by_value == 0)
+					SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << slim_terminate();
+				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+					SLIM_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << slim_terminate();
+				
+				if (by_value > 0)
+					for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+						int_result->PushInt(seq_value);
+				else
+					for (int64_t seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+						int_result->PushInt(seq_value);
+			}
+			
 			break;
 		}
 			
@@ -1756,7 +1745,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::catFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -1817,7 +1806,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark paste
 		case FunctionIdentifier::pasteFunction:
 		{
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			string result_string;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1864,7 +1853,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				result->PushValueFromIndexOfScriptValue(value_index, arg0_value);
 			
-			result->Sort((n_args == 1) ? true : p_arguments[1]->LogicalAtIndex(0));
+			result->Sort((p_argument_count == 1) ? true : p_arguments[1]->LogicalAtIndex(0));
 			break;
 		}
 			
@@ -1876,7 +1865,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				object_result->PushElement(arg0_value->ElementAtIndex(value_index));
 			
-			object_result->SortBy(p_arguments[1]->StringAtIndex(0), (n_args == 2) ? true : p_arguments[2]->LogicalAtIndex(0));
+			object_result->SortBy(p_arguments[1]->StringAtIndex(0), (p_argument_count == 2) ? true : p_arguments[2]->LogicalAtIndex(0));
 			
 			result = object_result;
 			break;
@@ -1908,7 +1897,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::strsplitFunction:
 		{
 			string joined_string = arg0_value->StringAtIndex(0);
-			string separator = ((n_args >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
 			string::size_type start_idx = 0, sep_idx;
 			
 			while (true)
@@ -1942,7 +1931,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			int64_t first0 = arg_first->IntAtIndex(0);
 			
-			if (n_args >= 3)
+			if (p_argument_count >= 3)
 			{
 				// last supplied
 				ScriptValue *arg_last = p_arguments[2];
@@ -2460,7 +2449,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			vector<string> symbols_to_remove;
 			
-			if (n_args == 0)
+			if (p_argument_count == 0)
 				symbols_to_remove = global_symbols_.ReadWriteSymbols();
 			else
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -2520,7 +2509,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark Path
 		case FunctionIdentifier::PathFunction:
 		{
-			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg0_value->StringAtIndex(0))) : (new Script_PathElement());
+			Script_PathElement *pathElement = (p_argument_count == 1) ? (new Script_PathElement(arg0_value->StringAtIndex(0))) : (new Script_PathElement());
 			result = new ScriptValue_Object_singleton_const(pathElement);
 			pathElement->Release();
 			break;
@@ -2540,7 +2529,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, vector<ScriptValue*> const &p_arguments)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count)
 {
 	ScriptValue *result = nullptr;
 	
@@ -2554,13 +2543,13 @@ ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_obj
 	if (class_method && instance_method)
 		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << slim_terminate();
 	
-	method_signature->CheckArguments(gStr_method, p_arguments);
+	method_signature->CheckArguments(gStr_method, p_arguments, p_argument_count);
 	
 	// Make the method call
 	if (class_method)
-		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, *this);
+		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, p_argument_count, *this);
 	else
-		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, *this);
+		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, p_argument_count, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn(gStr_method, result);

@@ -330,14 +330,13 @@ const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	int num_arguments = (int)p_arguments.size();
-	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((num_arguments >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((num_arguments >= 3) ? p_arguments[2] : nullptr);
-	ScriptValue *arg3_value = ((num_arguments >= 4) ? p_arguments[3] : nullptr);
-	ScriptValue *arg4_value = ((num_arguments >= 5) ? p_arguments[4] : nullptr);
+	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	ScriptValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
+	ScriptValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
 	
 
 	//
@@ -494,7 +493,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

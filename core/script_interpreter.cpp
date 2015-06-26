@@ -857,40 +857,100 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	}
 	
 	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
-	vector<ScriptValue*> arguments;
+	const std::vector<ScriptASTNode *> &node_children = p_node->children_;
+	auto node_children_end = node_children.end();
+	int arguments_count = 0;
 	
-	for (auto child_iter = p_node->children_.begin() + 1; child_iter != p_node->children_.end(); ++child_iter)
+	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
 		ScriptASTNode *child = *child_iter;
 		
 		if (child->token_->token_type_ == TokenType::kTokenComma)
-		{
-			// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-			std::vector<ScriptASTNode *> &child_children = child->children_;
-			auto end_iterator = child_children.end();
-			
-			for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-				arguments.push_back(EvaluateNode(*arg_list_iter));
-		}
+			arguments_count += child->children_.size();
 		else
-		{
-			// all other children get evaluated, and the results added to the arguments vector
-			arguments.push_back(EvaluateNode(child));
-		}
+			arguments_count++;
 	}
 	
-	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-	if (method_object)
-		result = ExecuteMethodCall(method_object, *function_name, arguments);
-	else
-		result = ExecuteFunctionCall(*function_name, arguments);
-	
-	// And now we can free the arguments
-	for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
+	if (arguments_count <= 5)
 	{
-		ScriptValue *arg = *arg_iter;
+		// We have 5 or fewer arguments, so use a stack-local array of arguments to avoid the malloc/free
+		ScriptValue *(arguments_array[5]);
+		int argument_index = 0;
 		
-		if (arg->IsTemporary()) delete arg;
+		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
+		{
+			ScriptASTNode *child = *child_iter;
+			
+			if (child->token_->token_type_ == TokenType::kTokenComma)
+			{
+				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
+				std::vector<ScriptASTNode *> &child_children = child->children_;
+				auto end_iterator = child_children.end();
+				
+				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
+					arguments_array[argument_index++] = EvaluateNode(*arg_list_iter);
+			}
+			else
+			{
+				// all other children get evaluated, and the results added to the arguments vector
+				arguments_array[argument_index++] = EvaluateNode(child);
+			}
+		}
+		
+		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
+		if (method_object)
+			result = ExecuteMethodCall(method_object, *function_name, arguments_array, arguments_count);
+		else
+			result = ExecuteFunctionCall(*function_name, arguments_array, arguments_count);
+		
+		// And now we can free the arguments
+		for (argument_index = 0; argument_index < arguments_count; ++argument_index)
+		{
+			ScriptValue *arg = arguments_array[argument_index];
+			
+			if (arg->IsTemporary()) delete arg;
+		}
+	}
+	else
+	{
+		// We have a lot of arguments, so we need to use a vector
+		vector<ScriptValue*> arguments;
+		
+		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
+		{
+			ScriptASTNode *child = *child_iter;
+			
+			if (child->token_->token_type_ == TokenType::kTokenComma)
+			{
+				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
+				std::vector<ScriptASTNode *> &child_children = child->children_;
+				auto end_iterator = child_children.end();
+				
+				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
+					arguments.push_back(EvaluateNode(*arg_list_iter));
+			}
+			else
+			{
+				// all other children get evaluated, and the results added to the arguments vector
+				arguments.push_back(EvaluateNode(child));
+			}
+		}
+		
+		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
+		ScriptValue **arguments_ptr = arguments.data();
+		
+		if (method_object)
+			result = ExecuteMethodCall(method_object, *function_name, arguments_ptr, arguments_count);
+		else
+			result = ExecuteFunctionCall(*function_name, arguments_ptr, arguments_count);
+		
+		// And now we can free the arguments
+		for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
+		{
+			ScriptValue *arg = *arg_iter;
+			
+			if (arg->IsTemporary()) delete arg;
+		}
 	}
 	
 	// And if it was a method call, we can free the method object now, too

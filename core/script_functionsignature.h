@@ -139,7 +139,7 @@ public:
 	FunctionSignature *AddLogicalEquiv_OSN();
 	
 	// check an argument list; p_call_type should be "function" or "method", for error output only
-	void CheckArguments(std::string const &p_call_type, std::vector<ScriptValue*> const &p_arguments) const;
+	void CheckArguments(std::string const &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const;
 	
 	// check a return value; p_call_type should be "function" or "method", for error output only
 	void CheckReturn(std::string const &p_call_type, ScriptValue *p_result) const;

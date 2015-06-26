@@ -202,10 +202,9 @@ const FunctionSignature *MutationType::SignatureForMethod(std::string const &p_m
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	int num_arguments = (int)p_arguments.size();
-	ScriptValue *arg0_value = ((num_arguments >= 1) ? p_arguments[0] : nullptr);
+	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
 	//	*********************	- (void)changeDistribution(string$ distributionType, ...)
@@ -229,7 +228,7 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 		
 		char dfe_type = dfe_type_string[0];
 		
-		if (num_arguments != 1 + expected_dfe_param_count)
+		if (p_argument_count != 1 + expected_dfe_param_count)
 			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): changeDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
@@ -244,7 +243,7 @@ ScriptValue *MutationType::ExecuteMethod(std::string const &p_method_name, std::
 	
 	
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

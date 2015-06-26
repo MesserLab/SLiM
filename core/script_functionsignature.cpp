@@ -157,28 +157,26 @@ FunctionSignature *FunctionSignature::AddObject_OSN()		{ return AddArg(kScriptVa
 FunctionSignature *FunctionSignature::AddNumeric_OSN()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptSingleton | kScriptValueMaskNULL); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv_OSN()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptSingleton | kScriptValueMaskNULL); }
 
-void FunctionSignature::CheckArguments(string const &p_call_type, vector<ScriptValue*> const &p_arguments) const
+void FunctionSignature::CheckArguments(string const &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const
 {
 	// Check the number of arguments supplied
-	int n_args = (int)p_arguments.size();
-	
 	if (!has_ellipsis_)
 	{
-		if (n_args > arg_masks_.size())
-			SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): " << p_call_type << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << n_args << " are supplied." << slim_terminate();
+		if (p_argument_count > arg_masks_.size())
+			SLIM_TERMINATION << "ERROR (FunctionSignature::CheckArguments): " << p_call_type << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied." << slim_terminate();
 	}
 	
 	// Check the types of all arguments specified in the signature
 	for (int arg_index = 0; arg_index < arg_masks_.size(); ++arg_index)
 	{
-		ScriptValueMask type_mask = arg_masks_[arg_index];		// the static_casts are annoying but I like scoped enums
+		ScriptValueMask type_mask = arg_masks_[arg_index];
 		bool is_optional = !!(type_mask & kScriptValueMaskOptional);
 		bool requires_singleton = !!(type_mask & kScriptValueMaskSingleton);
 		
 		type_mask &= kScriptValueMaskFlagStrip;
 		
 		// if no argument was passed for this slot, it needs to be an optional slot
-		if (n_args <= arg_index)
+		if (p_argument_count <= arg_index)
 		{
 			if (is_optional)
 				break;			// all the rest of the arguments must be optional, so we're done checking

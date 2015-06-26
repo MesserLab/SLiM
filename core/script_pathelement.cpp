@@ -156,7 +156,7 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	if (p_method_name.compare(gStr_files) == 0)
 	{
@@ -267,7 +267,7 @@ ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name,
 	}
 	else
 	{
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
