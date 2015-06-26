@@ -966,7 +966,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				string max = arg0_value->StringAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string temp = arg0_value->StringAtIndex(value_index);
+					string &&temp = arg0_value->StringAtIndex(value_index);
 					if (max < temp)
 						max = temp;
 				}
@@ -1034,7 +1034,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				string min = arg0_value->StringAtIndex(0);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string temp = arg0_value->StringAtIndex(value_index);
+					string &&temp = arg0_value->StringAtIndex(value_index);
 					if (min > temp)
 						min = temp;
 				}
@@ -2165,7 +2165,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string temp = arg0_value->StringAtIndex(value_index);
+						string &&temp = arg0_value->StringAtIndex(value_index);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
@@ -2222,7 +2222,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string temp = arg0_value->StringAtIndex(value_index);
+						string &&temp = arg0_value->StringAtIndex(value_index);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
@@ -2455,7 +2455,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index));
 			
-			for (string symbol : symbols_to_remove)
+			for (string &symbol : symbols_to_remove)
 				global_symbols_.RemoveValueForSymbol(symbol, false);
 			
 			break;

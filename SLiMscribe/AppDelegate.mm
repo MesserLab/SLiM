@@ -88,7 +88,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	catch (std::runtime_error)
 	{
 		// We want to catch a SLiMscript raise here, so that the simulation is frozen at the stage when scripts would normally be executed.
-		std::string terminationMessage = gSLiMTermination.str();
+		std::string &&terminationMessage = gSLiMTermination.str();
 		
 		if (!terminationMessage.empty())
 		{

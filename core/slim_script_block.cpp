@@ -25,7 +25,7 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 	
 	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == TokenType::kTokenString))
 	{
-		string id_string = block_children[child_index]->token_->token_string_;
+		const string &id_string = block_children[child_index]->token_->token_string_;
 		const char *id_cstr = id_string.c_str();
 		int id_cstr_len = (int)strlen(id_cstr);
 		
@@ -130,7 +130,7 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 	ScanTree();
 }
 
-SLiMScriptBlock::SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end)
+SLiMScriptBlock::SLiMScriptBlock(int p_id, const std::string &p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end)
 	: block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end)
 {
 	script_ = new Script(p_script_string, 0);
@@ -452,12 +452,12 @@ std::vector<std::string> SLiMScriptBlock::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *SLiMScriptBlock::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *SLiMScriptBlock::SignatureForMethod(const std::string &p_method_name) const
 {
 	return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMScriptBlock::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMScriptBlock::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }

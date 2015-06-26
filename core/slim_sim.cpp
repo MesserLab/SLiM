@@ -134,10 +134,8 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	
 	buffer << infile.rdbuf();
 	
-	std::string script_string = buffer.str();
-	
 	// Tokenize and parse
-	script_ = new Script(script_string, 0);
+	script_ = new Script(buffer.str(), 0);
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -309,8 +307,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		iss >> sub;
 		sub.erase(0, 1);	// p
 		int pos = static_cast<int>(sub.find_first_of(":"));
-		string subpop_substr = sub.substr(0, pos);
-		const char *subpop_id_string = subpop_substr.c_str();
+		const char *subpop_id_string = sub.substr(0, pos).c_str();
 		int subpop_id = atoi(subpop_id_string);
 		
 		Subpopulation &subpop = population_.SubpopulationWithID(subpop_id);
@@ -614,7 +611,7 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
 	
@@ -622,7 +619,7 @@ ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, std::string
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_interpreter)
 	
@@ -1277,7 +1274,7 @@ std::vector<std::string> SLiMSim::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *SLiMSim::SignatureForMethod(const std::string &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *addSubpopSig = nullptr;
@@ -1337,7 +1334,7 @@ const FunctionSignature *SLiMSim::SignatureForMethod(std::string const &p_method
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *SLiMSim::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMSim::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);

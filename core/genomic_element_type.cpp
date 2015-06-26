@@ -193,7 +193,7 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *GenomicElementType::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *GenomicElementType::SignatureForMethod(const std::string &p_method_name) const
 {
 	static FunctionSignature *changeMutationFractionsSig = nullptr;
 	
@@ -208,7 +208,7 @@ const FunctionSignature *GenomicElementType::SignatureForMethod(std::string cons
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *GenomicElementType::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *GenomicElementType::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);

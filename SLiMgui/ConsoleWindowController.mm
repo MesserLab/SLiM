@@ -204,16 +204,12 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 			
 			script.PrintTokens(token_stream);
 			
-			string token_stream_string = token_stream.str();
-			
-			*tokenString = [NSString stringWithUTF8String:token_stream_string.c_str()];
+			*tokenString = [NSString stringWithUTF8String:token_stream.str().c_str()];
 		}
 	}
 	catch (std::runtime_error err)
 	{
-		string raise_msg = GetUntrimmedRaiseMessage();
-		
-		*errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
 		return nil;
 	}
 	
@@ -228,16 +224,12 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 			
 			script.PrintAST(parse_stream);
 			
-			string parse_stream_string = parse_stream.str();
-			
-			*parseString = [NSString stringWithUTF8String:parse_stream_string.c_str()];
+			*parseString = [NSString stringWithUTF8String:parse_stream.str().c_str()];
 		}
 	}
 	catch (std::runtime_error err)
 	{
-		string raise_msg = GetUntrimmedRaiseMessage();
-		
-		*errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
 		return nil;
 	}
 	
@@ -267,11 +259,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		[browserController reloadBrowser];
 		
 		if (executionString)
-		{
-			string execution_log = interpreter.ExecutionLog();
-			
-			*executionString = [NSString stringWithUTF8String:execution_log.c_str()];
-		}
+			*executionString = [NSString stringWithUTF8String:interpreter.ExecutionLog().c_str()];
 	}
 	catch (std::runtime_error err)
 	{
@@ -280,8 +268,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		
 		output = interpreter.ExecutionOutput();
 		
-		string raise_msg = GetUntrimmedRaiseMessage();
-		*errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
+		*errorString = [NSString stringWithUTF8String:GetUntrimmedRaiseMessage().c_str()];
 		
 		return [NSString stringWithUTF8String:output.c_str()];
 	}
@@ -404,9 +391,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		}
 		catch (std::runtime_error err)
 		{
-			string raise_msg = GetTrimmedRaiseMessage();
-			
-			errorDiagnostic = [[NSString stringWithUTF8String:raise_msg.c_str()] retain];
+			errorDiagnostic = [[NSString stringWithUTF8String:GetTrimmedRaiseMessage().c_str()] retain];
 		}
 	}
 	

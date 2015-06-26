@@ -41,8 +41,8 @@ using std::ostream;
 
 
 // Helper functions for testing
-void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result);
-void AssertScriptRaise(string p_script_string);
+void AssertScriptSuccess(const string &p_script_string, ScriptValue *p_correct_result);
+void AssertScriptRaise(const string &p_script_string);
 
 // Keeping records of test success / failure
 static int gTestSuccessCount = 0;
@@ -50,7 +50,7 @@ static int gTestFailureCount = 0;
 
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations
-void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
+void AssertScriptSuccess(const string &p_script_string, ScriptValue *p_correct_result)
 {
 	Script script(p_script_string, 0);
 	ScriptValue *result = nullptr;
@@ -125,7 +125,7 @@ void AssertScriptSuccess(string p_script_string, ScriptValue *p_correct_result)
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
-void AssertScriptRaise(string p_script_string)
+void AssertScriptRaise(const string &p_script_string)
 {
 	Script script(p_script_string, 0);
 	SymbolTable symbolTable;
@@ -148,9 +148,7 @@ void AssertScriptRaise(string p_script_string)
 	{
 		gTestSuccessCount++;
 		
-		string raiseMessage = GetTrimmedRaiseMessage();
-		
-		//std::cerr << p_script_string << " == (expected raise) " << raiseMessage << " : \e[32mSUCCESS\e[0m" << endl;
+		//std::cerr << p_script_string << " == (expected raise) " << GetTrimmedRaiseMessage() << " : \e[32mSUCCESS\e[0m" << endl;
 		return;
 	}
 }

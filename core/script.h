@@ -123,7 +123,7 @@ public:
 	ScriptToken(const ScriptToken&) = delete;					// no copying
 	ScriptToken& operator=(const ScriptToken&) = delete;		// no copying
 	ScriptToken(void) = delete;									// no null construction
-	ScriptToken(TokenType p_token_type, std::string p_token_string, int p_token_start, int p_token_end);
+	ScriptToken(TokenType p_token_type, const std::string &p_token_string, int p_token_start, int p_token_end);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptToken &p_token);
@@ -166,8 +166,8 @@ class Script
 	
 private:
 	
-	std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
-	int start_character_index_;		// the index of the start brace in the SLiMSim script string
+	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
+	int start_character_index_;				// the index of the start brace in the SLiMSim script string
 	
 	std::vector<ScriptToken *> token_stream_;					// OWNED POINTERS
 	ScriptASTNode *parse_root_ = nullptr;						// OWNED POINTER
@@ -182,7 +182,7 @@ public:
 	Script(const Script&) = delete;								// no copying
 	Script& operator=(const Script&) = delete;					// no copying
 	Script(void) = delete;										// no null construction
-	Script(std::string p_script_string, int p_start_index);
+	Script(const std::string &p_script_string, int p_start_index);
 	
 	~Script(void);												// destructor
 	

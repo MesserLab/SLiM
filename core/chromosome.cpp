@@ -302,7 +302,7 @@ std::vector<std::string> Chromosome::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Chromosome::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *Chromosome::SignatureForMethod(const std::string &p_method_name) const
 {
 	static FunctionSignature *changeRecombinationIntervalsSig = nullptr;
 	
@@ -317,7 +317,7 @@ const FunctionSignature *Chromosome::SignatureForMethod(std::string const &p_met
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *Chromosome::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Chromosome::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);

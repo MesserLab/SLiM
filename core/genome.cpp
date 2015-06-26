@@ -303,7 +303,7 @@ std::vector<std::string> Genome::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *Genome::SignatureForMethod(const std::string &p_method_name) const
 {
 	static FunctionSignature *addMutationsSig = nullptr;
 	static FunctionSignature *addNewDrawnMutationSig = nullptr;
@@ -330,7 +330,7 @@ const FunctionSignature *Genome::SignatureForMethod(std::string const &p_method_
 		return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Genome::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);

@@ -407,7 +407,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols
 	
 	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
-		const std::string symbol_name = *symbol_name_iter;
+		const std::string &symbol_name = *symbol_name_iter;
 		ScriptValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();

@@ -128,7 +128,7 @@
 			
 			if (index < readOnlySymbols.size())
 			{
-				std::string symbolName = readOnlySymbols[index];
+				const std::string &symbolName = readOnlySymbols[index];
 				ScriptValue *symbolValue = symbols->GetValueForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *wrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
@@ -139,7 +139,7 @@
 			}
 			else
 			{
-				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
 				ScriptValue *symbolValue = symbols->GetValueForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *wrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
@@ -158,7 +158,7 @@
 			
 			if (index < readOnlySymbols.size())
 			{
-				std::string symbolName = readOnlySymbols[index];
+				const std::string &symbolName = readOnlySymbols[index];
 				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
@@ -169,7 +169,7 @@
 			}
 			else
 			{
-				std::string symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
 				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
@@ -254,9 +254,7 @@
 				if (element_value->IsTemporary()) delete element_value;
 			}
 			
-			std::string out_str = outstream.str();
-			const char *out_cstr = out_str.c_str();
-			NSString *outString = [NSString stringWithUTF8String:out_cstr];
+			NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];
 			
 			return outString;
 		}

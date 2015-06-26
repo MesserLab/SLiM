@@ -32,12 +32,12 @@ using std::ostream;
 //
 #pragma mark FunctionSignature
 
-FunctionSignature::FunctionSignature(string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask) :
+FunctionSignature::FunctionSignature(const string &p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask) :
 function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask)
 {
 }
 
-FunctionSignature::FunctionSignature(string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, string p_delegate_name) :
+FunctionSignature::FunctionSignature(const string &p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const string &p_delegate_name) :
 function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
 {
 }
@@ -157,7 +157,7 @@ FunctionSignature *FunctionSignature::AddObject_OSN()		{ return AddArg(kScriptVa
 FunctionSignature *FunctionSignature::AddNumeric_OSN()		{ return AddArg(kScriptValueMaskNumeric | kScriptValueMaskOptSingleton | kScriptValueMaskNULL); }
 FunctionSignature *FunctionSignature::AddLogicalEquiv_OSN()	{ return AddArg(kScriptValueMaskLogicalEquiv | kScriptValueMaskOptSingleton | kScriptValueMaskNULL); }
 
-void FunctionSignature::CheckArguments(string const &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const
+void FunctionSignature::CheckArguments(const string &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const
 {
 	// Check the number of arguments supplied
 	if (!has_ellipsis_)
@@ -211,7 +211,7 @@ void FunctionSignature::CheckArguments(string const &p_call_type, ScriptValue *c
 	}
 }
 
-void FunctionSignature::CheckReturn(string const &p_call_type, ScriptValue *p_result) const
+void FunctionSignature::CheckReturn(const string &p_call_type, ScriptValue *p_result) const
 {
 	uint32_t retmask = return_mask_;
 	bool return_type_ok = true;

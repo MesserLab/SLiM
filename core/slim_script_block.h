@@ -104,7 +104,7 @@ public:
 	SLiMScriptBlock(void) = delete;										// no default constructor
 	
 	SLiMScriptBlock(ScriptASTNode *p_root_node);						// initialize from a SLiMScriptBlock root node from the input file
-	SLiMScriptBlock(int p_id, std::string p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end);		// initialize from a programmatic script
+	SLiMScriptBlock(int p_id, const std::string &p_script_string, SLiMScriptBlockType p_type, int p_start, int p_end);		// initialize from a programmatic script
 	~SLiMScriptBlock(void);												// destructor
 	
 	// Scan the tree for optimization purposes, called by the constructors
@@ -130,8 +130,8 @@ public:
 	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 

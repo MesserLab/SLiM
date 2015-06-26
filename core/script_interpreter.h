@@ -141,8 +141,8 @@ public:
 	
 	inline void RegisterFunctionMap(FunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
-	ScriptValue *ExecuteFunctionCall(std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count);
-	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, std::string const &_method_name, ScriptValue *const *const p_arguments, int p_argument_count);
+	ScriptValue *ExecuteFunctionCall(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, const std::string &_method_name, ScriptValue *const *const p_arguments, int p_argument_count);
 	
 	// Utility static methods
 	static int64_t IntForNumberToken(const ScriptToken *p_token);

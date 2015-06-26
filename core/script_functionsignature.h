@@ -49,8 +49,8 @@ public:
 	FunctionSignature& operator=(const FunctionSignature&) = delete;		// no copying
 	FunctionSignature(void) = delete;										// no null construction
 	
-	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask);
-	FunctionSignature(std::string p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, std::string p_delegate_name);
+	FunctionSignature(const std::string &p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask);
+	FunctionSignature(const std::string &p_function_name, FunctionIdentifier p_function_id, ScriptValueMask p_return_mask, SLiMDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
 	
 	FunctionSignature *SetClassMethod();
 	FunctionSignature *SetInstanceMethod();
@@ -139,10 +139,10 @@ public:
 	FunctionSignature *AddLogicalEquiv_OSN();
 	
 	// check an argument list; p_call_type should be "function" or "method", for error output only
-	void CheckArguments(std::string const &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const;
+	void CheckArguments(const std::string &p_call_type, ScriptValue *const *const p_arguments, int p_argument_count) const;
 	
 	// check a return value; p_call_type should be "function" or "method", for error output only
-	void CheckReturn(std::string const &p_call_type, ScriptValue *p_result) const;
+	void CheckReturn(const std::string &p_call_type, ScriptValue *p_result) const;
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const FunctionSignature &p_signature);

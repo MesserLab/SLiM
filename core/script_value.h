@@ -292,12 +292,12 @@ public:
 	
 	ScriptValue_String(void);
 	explicit ScriptValue_String(std::vector<std::string> &p_stringvec);
-	explicit ScriptValue_String(std::string p_string1);
-	ScriptValue_String(std::string p_string1, std::string p_string2);
-	ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3);
-	ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4);
-	ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4, std::string p_string5);
-	ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4, std::string p_string5, std::string p_string6);
+	explicit ScriptValue_String(const std::string &p_string1);
+	ScriptValue_String(const std::string &p_string1, const std::string &p_string2);
+	ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3);
+	ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4);
+	ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5);
+	ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6);
 	virtual ~ScriptValue_String(void);
 	
 	virtual ScriptValueType Type(void) const;
@@ -310,7 +310,7 @@ public:
 	virtual int64_t IntAtIndex(int p_idx) const;
 	virtual double FloatAtIndex(int p_idx) const;
 	
-	void PushString(std::string p_string);
+	void PushString(const std::string &p_string);
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
@@ -569,9 +569,9 @@ public:
 	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value) = 0;
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
-	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const = 0;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
+	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const = 0;
+	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
 };
 
 class ScriptValue_Object_vector : public ScriptValue_Object
@@ -600,7 +600,7 @@ public:
 	
 	virtual ScriptValue *CopyValues(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
-	void SortBy(const std::string p_property, bool p_ascending);
+	void SortBy(const std::string &p_property, bool p_ascending);
 	
 	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
@@ -611,9 +611,9 @@ public:
 	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 class ScriptValue_Object_singleton_const : public ScriptValue_Object
@@ -650,9 +650,9 @@ public:
 	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 
@@ -688,8 +688,8 @@ public:
 	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 	
 	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
 	void TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask);

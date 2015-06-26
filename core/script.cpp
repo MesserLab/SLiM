@@ -106,7 +106,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 //
 #pragma mark ScriptToken
 
-ScriptToken::ScriptToken(TokenType p_token_type, string p_token_string, int p_token_start, int p_token_end) :
+ScriptToken::ScriptToken(TokenType p_token_type, const string &p_token_string, int p_token_start, int p_token_end) :
 	token_type_(p_token_type), token_string_(p_token_string), token_start_(p_token_start), token_end_(p_token_end)
 {
 }
@@ -188,22 +188,15 @@ void ScriptASTNode::ReplaceTokenWithToken(ScriptToken *p_token)
 void ScriptASTNode::PrintToken(std::ostream &p_outstream) const
 {
 	// We want to print some tokens differently when they are in the context of an AST, for readability
-	string token_string;
-	
 	switch (token_->token_type_)
 	{
-		case TokenType::kTokenLBrace: token_string = "BLOCK"; break;
-		case TokenType::kTokenSemicolon: token_string = "NULL_STATEMENT"; break;
-		case TokenType::kTokenLParen: token_string = "CALL"; break;
-		case TokenType::kTokenLBracket: token_string = "SUBSET"; break;
-		case TokenType::kTokenComma: token_string = "ARG_LIST"; break;
-		default: break;
+		case TokenType::kTokenLBrace:		p_outstream << "BLOCK";				break;
+		case TokenType::kTokenSemicolon:	p_outstream << "NULL_STATEMENT";	break;
+		case TokenType::kTokenLParen:		p_outstream << "CALL";				break;
+		case TokenType::kTokenLBracket:		p_outstream << "SUBSET";			break;
+		case TokenType::kTokenComma:		p_outstream << "ARG_LIST";			break;
+		default:							p_outstream << *token_;				break;
 	}
-	
-	if (token_string.length())
-		p_outstream << token_string;
-	else
-		p_outstream << *token_;
 }
 
 void ScriptASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const
@@ -281,7 +274,7 @@ void ScriptASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent)
 //
 #pragma mark Script
 
-Script::Script(string p_script_string, int p_start_index) :
+Script::Script(const string &p_script_string, int p_start_index) :
 	script_string_(p_script_string), start_character_index_(p_start_index)
 {
 }
@@ -823,7 +816,7 @@ ScriptASTNode *Script::Parse_InterpreterBlock(void)
 	Match(TokenType::kTokenEOF, "interpreter block");
 	
 	// swap in a new virtual token that encompasses all our children
-	std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
+	std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 	
 	virtual_token = new ScriptToken(TokenType::kTokenInterpreterBlock, token_string, token_start, token_end);
 	node->ReplaceTokenWithToken(virtual_token);

@@ -35,7 +35,7 @@ Script_PathElement::Script_PathElement(void) : base_path_("~")
 {
 }
 
-Script_PathElement::Script_PathElement(std::string p_base_path) : base_path_(p_base_path)
+Script_PathElement::Script_PathElement(const std::string &p_base_path) : base_path_(p_base_path)
 {
 }
 
@@ -113,7 +113,7 @@ std::vector<std::string> Script_PathElement::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Script_PathElement::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *Script_PathElement::SignatureForMethod(const std::string &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *filesSig = nullptr;
@@ -156,7 +156,7 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Script_PathElement::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	if (p_method_name.compare(gStr_files) == 0)
 	{

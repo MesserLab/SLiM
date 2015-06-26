@@ -575,25 +575,25 @@ ScriptValue_String::ScriptValue_String(std::vector<std::string> &p_stringvec)
 	values_ = p_stringvec;
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1)
 {
 	values_.push_back(p_string1);
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_string2)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1, const std::string &p_string2)
 {
 	values_.push_back(p_string1);
 	values_.push_back(p_string2);
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3)
 {
 	values_.push_back(p_string1);
 	values_.push_back(p_string2);
 	values_.push_back(p_string3);
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4)
 {
 	values_.push_back(p_string1);
 	values_.push_back(p_string2);
@@ -601,7 +601,7 @@ ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_stri
 	values_.push_back(p_string4);
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4, std::string p_string5)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5)
 {
 	values_.push_back(p_string1);
 	values_.push_back(p_string2);
@@ -610,7 +610,7 @@ ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_stri
 	values_.push_back(p_string5);
 }
 
-ScriptValue_String::ScriptValue_String(std::string p_string1, std::string p_string2, std::string p_string3, std::string p_string4, std::string p_string5, std::string p_string6)
+ScriptValue_String::ScriptValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6)
 {
 	values_.push_back(p_string1);
 	values_.push_back(p_string2);
@@ -644,7 +644,7 @@ void ScriptValue_String::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (string value : values_)
+		for (const string &value : values_)
 		{
 			if (first)
 				first = false;
@@ -673,19 +673,19 @@ std::string ScriptValue_String::StringAtIndex(int p_idx) const
 
 int64_t ScriptValue_String::IntAtIndex(int p_idx) const
 {
-	string index_str = values_.at(p_idx);
+	const string &index_str = values_.at(p_idx);
 	
 	return strtoll(index_str.c_str(), nullptr, 10);
 }
 
 double ScriptValue_String::FloatAtIndex(int p_idx) const
 {
-	string index_str = values_.at(p_idx);
+	const string &index_str = values_.at(p_idx);
 	
 	return strtod(index_str.c_str(), nullptr);
 }
 
-void ScriptValue_String::PushString(std::string p_string)
+void ScriptValue_String::PushString(const std::string &p_string)
 {
 	values_.push_back(p_string);
 }
@@ -1415,7 +1415,7 @@ bool CompareStringObjectSortPairsAscending(std::pair<std::string, ScriptObjectEl
 bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j);
 bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j)		{ return (i.first > j.first); }
 
-void ScriptValue_Object_vector::SortBy(const std::string p_property, bool p_ascending)
+void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)
 {
 	// length 0 is already sorted
 	if (values_.size() == 0)
@@ -1720,7 +1720,7 @@ std::vector<std::string> ScriptValue_Object_vector::MethodsOfElements(void) cons
 		return values_[0]->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements(const std::string &p_method_name) const
 {
 	if (values_.size() == 0)
 	{
@@ -1732,7 +1732,7 @@ const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
@@ -1750,7 +1750,7 @@ ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string
 	}
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	auto values_size = values_.size();
 	
@@ -1909,17 +1909,17 @@ std::vector<std::string> ScriptValue_Object_singleton_const::MethodsOfElements(v
 	return value_->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodOfElements(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodOfElements(const std::string &p_method_name) const
 {
 	return value_->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
@@ -2014,7 +2014,7 @@ std::vector<std::string> ScriptObjectElement::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *ScriptObjectElement::SignatureForMethod(const std::string &p_method_name) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *strSig = nullptr;
@@ -2046,7 +2046,7 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(std::string con
 	return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 }
 
-ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
 	if (p_method_name.compare(gStr_str) == 0)		// instance method
@@ -2065,7 +2065,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
 		{
-			const std::string member_name = *member_name_iter;
+			const std::string &member_name = *member_name_iter;
 			ScriptValue *member_value = GetValueForMember(member_name);
 			int member_count = member_value->Count();
 			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
@@ -2106,7 +2106,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
 		{
-			const std::string member_name = *member_name_iter;
+			const std::string &member_name = *member_name_iter;
 			
 			if (has_match_string && (member_name.compare(match_string) != 0))
 				continue;
@@ -2137,7 +2137,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(std::string const &p_method_name
 		
 		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
 		{
-			const std::string method_name = *method_name_iter;
+			const std::string &method_name = *method_name_iter;
 			
 			if (has_match_string && (method_name.compare(match_string) != 0))
 				continue;

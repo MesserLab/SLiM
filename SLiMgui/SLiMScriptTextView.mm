@@ -538,10 +538,10 @@ using std::string;
 	// First, a sorted list of globals
 	if (globalSymbolTable)
 	{
-		for (std::string symbol_name : globalSymbolTable->ReadOnlySymbols())
+		for (std::string &symbol_name : globalSymbolTable->ReadOnlySymbols())
 			[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 		
-		for (std::string symbol_name : globalSymbolTable->ReadWriteSymbols())
+		for (std::string &symbol_name : globalSymbolTable->ReadWriteSymbols())
 			[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 	}
 	
@@ -691,7 +691,7 @@ using std::string;
 	// OK, we've got an identifier chain in identifiers, in reverse order.  We want to start at the beginning of the key path,
 	// and follow it forward through the properties in the chain to arrive at the final type.
 	int key_path_index = (int)identifiers.size() - 1;
-	string identifier_name = identifiers[key_path_index];
+	string &identifier_name = identifiers[key_path_index];
 	
 	SymbolTable *globalSymbolTable = nullptr;
 	id delegate = [self delegate];
@@ -733,16 +733,16 @@ using std::string;
 	ScriptValue_Object *terminus = ((ScriptValue_Object *)key_path_value);
 	
 	// First, a sorted list of globals
-	for (std::string symbol_name : terminus->ReadOnlyMembersOfElements())
+	for (std::string &symbol_name : terminus->ReadOnlyMembersOfElements())
 		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 	
-	for (std::string symbol_name : terminus->ReadWriteMembersOfElements())
+	for (std::string &symbol_name : terminus->ReadWriteMembersOfElements())
 		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 	
 	[candidates sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of functions, with () appended
-	for (string method_name : terminus->MethodsOfElements())
+	for (string &method_name : terminus->MethodsOfElements())
 	{
 		NSString *methodName = [NSString stringWithUTF8String:method_name.c_str()];
 		

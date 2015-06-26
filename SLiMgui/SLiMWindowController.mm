@@ -161,7 +161,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)checkForSimulationTermination
 {
-	std::string terminationMessage = gSLiMTermination.str();
+	std::string &&terminationMessage = gSLiMTermination.str();
 	
 	if (!terminationMessage.empty())
 	{
@@ -331,7 +331,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)updateOutputTextView
 {
-	std::string newOutput = gSLiMOut.str();
+	std::string &&newOutput = gSLiMOut.str();
 	
 	if (!newOutput.empty())
 	{
@@ -1186,9 +1186,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		catch (std::runtime_error err)
 		{
-			std::string raise_msg = GetTrimmedRaiseMessage();
-			
-			errorDiagnostic = [[NSString stringWithUTF8String:raise_msg.c_str()] retain];
+			errorDiagnostic = [[NSString stringWithUTF8String:GetTrimmedRaiseMessage().c_str()] retain];
 		}
 	}
 	
@@ -1512,8 +1510,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
 			sim->population_.PrintAll(outstring);
 			
-			std::string pop_str = outstring.str();
-			NSString *populationDump = [NSString stringWithUTF8String:pop_str.c_str()];
+			NSString *populationDump = [NSString stringWithUTF8String:outstring.str().c_str()];
 			
 			[populationDump writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			

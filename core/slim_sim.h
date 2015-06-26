@@ -135,8 +135,8 @@ public:
 	void GenerateCachedSymbolTableEntry(void);
 	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
-	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	ScriptValue *FunctionDelegationFunnel(std::string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	ScriptValue *FunctionDelegationFunnel(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 	
 	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block);	// add SLiM constructs to an interpreter instance
 	std::vector<FunctionSignature*> *InjectedFunctionSignatures(void);
@@ -149,8 +149,8 @@ public:
 	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(std::string const &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
+	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 

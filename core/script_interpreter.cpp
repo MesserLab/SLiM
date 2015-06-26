@@ -1085,7 +1085,7 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 	}
 	
-	string member_name = second_child_node->token_->token_string_;
+	const string &member_name = second_child_node->token_->token_string_;
 	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_name);
 	
 	// free our operand
@@ -3019,7 +3019,7 @@ ScriptValue *ScriptInterpreter::Evaluate_Identifier(const ScriptASTNode *p_node)
 	if (p_node->children_.size() > 0)
 		SLIM_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << slim_terminate();
 	
-	string identifier_string = p_node->token_->token_string_;
+	const string &identifier_string = p_node->token_->token_string_;
 	ScriptValue *result = global_symbols_.GetValueForSymbol(identifier_string);
 	
 	// check result; this should never happen, since GetValueForSymbol should check
@@ -3265,7 +3265,7 @@ ScriptValue *ScriptInterpreter::Evaluate_For(const ScriptASTNode *p_node)
 	if (identifier_child->token_->token_type_ != TokenType::kTokenIdentifier)
 		SLIM_TERMINATION << "ERROR (Evaluate_For): the 'for' keyword requires an identifier for its left operand." << slim_terminate();
 	
-	string identifier_name = identifier_child->token_->token_string_;
+	const string &identifier_name = identifier_child->token_->token_string_;
 	ScriptValue *range_value = EvaluateNode(p_node->children_[1]);
 	int range_count = range_value->Count();
 	ScriptValue *result = nullptr;

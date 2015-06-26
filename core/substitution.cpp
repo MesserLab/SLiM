@@ -104,12 +104,12 @@ std::vector<std::string> Substitution::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Substitution::SignatureForMethod(std::string const &p_method_name) const
+const FunctionSignature *Substitution::SignatureForMethod(const std::string &p_method_name) const
 {
 	return ScriptObjectElement::SignatureForMethod(p_method_name);
 }
 
-ScriptValue *Substitution::ExecuteMethod(std::string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Substitution::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
