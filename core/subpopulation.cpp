@@ -376,16 +376,18 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 	
 	Genome *genome1 = &(parent_genomes_[p_genome_index1]);
 	Genome *genome2 = &(parent_genomes_[p_genome_index2]);
+	bool genome1_null = genome1->IsNull();
+	bool genome2_null = genome2->IsNull();
 	
-	if (genome1->IsNull() && genome2->IsNull())
+	if (genome1_null && genome2_null)
 	{
 		// SEX ONLY: both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
 		return w;
 	}
-	else if (genome1->IsNull() || genome2->IsNull())
+	else if (genome1_null || genome2_null)
 	{
 		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
-		const Genome *genome = genome1->IsNull() ? genome2 : genome1;
+		const Genome *genome = genome1_null ? genome2 : genome1;
 		Mutation **genome_iter = genome->begin_pointer();
 		Mutation **genome_max = genome->end_pointer();
 		

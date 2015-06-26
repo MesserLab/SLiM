@@ -933,18 +933,22 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 	}
 	
 	// check for null cases
-	if (child_genome.IsNull())
+	bool child_genome_null = child_genome.IsNull();
+	bool parent_genome_1_null = parent_genome_1->IsNull();
+	bool parent_genome_2_null = parent_genome_2->IsNull();
+	
+	if (child_genome_null)
 	{
 		if (!use_only_strand_1)
 		{
 			// If we're trying to cross over, both parental strands had better be null
-			if (!parent_genome_1->IsNull() || !parent_genome_2->IsNull())
+			if (!parent_genome_1_null || !parent_genome_2_null)
 				SLIM_TERMINATION << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << slim_terminate();
 		}
 		else
 		{
 			// So we are not crossing over, and we are supposed to use strand 1; it should also be null, otherwise something has gone wrong
-			if (!parent_genome_1->IsNull())
+			if (!parent_genome_1_null)
 				SLIM_TERMINATION << "Child genome is null, but the parental strand is not" << slim_terminate();
 		}
 		
@@ -952,10 +956,10 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		return;
 	}
 	
-	if (use_only_strand_1 && parent_genome_1->IsNull())
+	if (use_only_strand_1 && parent_genome_1_null)
 		SLIM_TERMINATION << "Child genome is non-null, but the parental strand is null" << slim_terminate();
 	
-	if (!use_only_strand_1 && (parent_genome_1->IsNull() || parent_genome_2->IsNull()))
+	if (!use_only_strand_1 && (parent_genome_1_null || parent_genome_2_null))
 		SLIM_TERMINATION << "Child genome is non-null, but a parental strand is null" << slim_terminate();
 	
 	//
