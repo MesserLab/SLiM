@@ -59,6 +59,7 @@ SLiMscript optimization:
 		0:18.5 after introducing ScriptValue_Float_singleton_const
 		0:18.0 after introducing ScriptValue_Int_singleton_const
 		0:18.4 after introducing ScriptValue_Object_singleton_const
+		0:17.6 after using stack-allocated ScriptValues in callbacks
 Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
 	
 SLiMgui work:

@@ -300,8 +300,8 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					ScriptValue *local_mut_ptr = nullptr;
-					ScriptValue *local_relFitness_ptr = nullptr;
+					ScriptValue_Object_singleton_const local_mut(p_mutation);
+					ScriptValue_Float_singleton_const local_relFitness(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
@@ -313,13 +313,13 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
 						if (fitness_callback->contains_mut_)
 						{
-							local_mut_ptr = (new ScriptValue_Object_singleton_const(p_mutation))->SetExternallyOwned();
-							global_symbols.InitializeConstantSymbolEntry(gStr_mut, local_mut_ptr);
+							local_mut.SetExternallyOwned();
+							global_symbols.InitializeConstantSymbolEntry(gStr_mut, &local_mut);
 						}
 						if (fitness_callback->contains_relFitness_)
 						{
-							local_relFitness_ptr = (new ScriptValue_Float_singleton_const(p_computed_fitness))->SetExternallyOwned();
-							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, local_relFitness_ptr);
+							local_relFitness.SetExternallyOwned();
+							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, &local_relFitness);
 						}
 						if (fitness_callback->contains_genome1_)
 							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, genome1->CachedScriptValue());
@@ -354,10 +354,6 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						if (!output_string.empty())
 							SLIM_OUTSTREAM << output_string;
 					}
-					
-					// Clean up any local ScriptValues that we allocated, after the symbol table is gone
-					delete local_mut_ptr;
-					delete local_relFitness_ptr;
 				}
 			}
 		}
