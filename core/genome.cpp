@@ -216,7 +216,7 @@ Genome::~Genome(void)
 
 void Genome::GenerateCachedScriptValue(void)
 {
-	self_value_ = (new ScriptValue_Object(this))->SetExternallyOwned();
+	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned();
 }
 
 std::string Genome::ElementType(void) const
@@ -275,7 +275,7 @@ ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
 		return ((mutations_ == nullptr) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 	if (p_member_name.compare(gStr_mutations) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
 			vec->PushElement(mutations_[mut_index]);
@@ -397,7 +397,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		insert_sorted_mutation(mutation);
 		sim->Population().mutation_registry_.push_back(mutation);
 		
-		return new ScriptValue_Object(mutation);
+		return new ScriptValue_Object_singleton_const(mutation);
 	}
 	
 	
@@ -428,7 +428,7 @@ ScriptValue *Genome::ExecuteMethod(std::string const &p_method_name, std::vector
 		insert_sorted_mutation(mutation);
 		sim->Population().mutation_registry_.push_back(mutation);
 
-		return new ScriptValue_Object(mutation);
+		return new ScriptValue_Object_singleton_const(mutation);
 	}
 	
 	

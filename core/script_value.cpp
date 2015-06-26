@@ -1264,27 +1264,45 @@ void ScriptValue_Float_singleton_const::Sort(bool p_ascending)
 //
 #pragma mark ScriptValue_Object
 
-ScriptValue_Object::ScriptValue_Object(const ScriptValue_Object &p_original)
+ScriptValue_Object::~ScriptValue_Object(void)
+{
+}
+
+ScriptValueType ScriptValue_Object::Type(void) const
+{
+	return ScriptValueType::kValueObject;
+}
+
+ScriptValue *ScriptValue_Object::NewMatchingType(void) const
+{
+	return new ScriptValue_Object_vector;
+}
+
+void ScriptValue_Object::Sort(bool p_ascending)
+{
+#pragma unused(p_ascending)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::Sort): Sort() is not defined for type object." << slim_terminate();
+}
+
+
+// ScriptValue_Object_vector
+
+ScriptValue_Object_vector::ScriptValue_Object_vector(const ScriptValue_Object_vector &p_original)
 {
 	for (auto value : p_original.values_)
 		values_.push_back(value->Retain());
 }
 
-ScriptValue_Object::ScriptValue_Object(void)
+ScriptValue_Object_vector::ScriptValue_Object_vector(void)
 {
 }
 
-ScriptValue_Object::ScriptValue_Object(std::vector<ScriptObjectElement *> &p_elementvec)
+ScriptValue_Object_vector::ScriptValue_Object_vector(std::vector<ScriptObjectElement *> &p_elementvec)
 {
-	values_ = p_elementvec;
+	values_ = p_elementvec;		// FIXME should this retain?
 }
 
-ScriptValue_Object::ScriptValue_Object(ScriptObjectElement *p_element1)
-{
-	values_.push_back(p_element1->Retain());
-}
-
-ScriptValue_Object::~ScriptValue_Object(void)
+ScriptValue_Object_vector::~ScriptValue_Object_vector(void)
 {
 	if (values_.size() != 0)
 	{
@@ -1293,12 +1311,7 @@ ScriptValue_Object::~ScriptValue_Object(void)
 	}
 }
 
-ScriptValueType ScriptValue_Object::Type(void) const
-{
-	return ScriptValueType::kValueObject;
-}
-
-std::string ScriptValue_Object::ElementType(void) const
+std::string ScriptValue_Object_vector::ElementType(void) const
 {
 	if (values_.size() == 0)
 		return gStr_undefined;
@@ -1306,12 +1319,12 @@ std::string ScriptValue_Object::ElementType(void) const
 		return values_[0]->ElementType();
 }
 
-int ScriptValue_Object::Count(void) const
+int ScriptValue_Object_vector::Count(void) const
 {
 	return (int)values_.size();
 }
 
-void ScriptValue_Object::Print(std::ostream &p_ostream) const
+void ScriptValue_Object_vector::Print(std::ostream &p_ostream) const
 {
 	if (values_.size() == 0)
 	{
@@ -1333,64 +1346,53 @@ void ScriptValue_Object::Print(std::ostream &p_ostream) const
 	}
 }
 
-ScriptObjectElement *ScriptValue_Object::ElementAtIndex(int p_idx) const
+ScriptObjectElement *ScriptValue_Object_vector::ElementAtIndex(int p_idx) const
 {
 	return values_.at(p_idx);
 }
 
-void ScriptValue_Object::PushElement(ScriptObjectElement *p_element)
+void ScriptValue_Object_vector::PushElement(ScriptObjectElement *p_element)
 {
 	if ((values_.size() > 0) && (ElementType().compare(p_element->ElementType()) != 0))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushElement): the type of an object cannot be changed." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::PushElement): the type of an object cannot be changed." << slim_terminate();
 	else
 		values_.push_back(p_element->Retain());
 }
 
-ScriptValue *ScriptValue_Object::GetValueAtIndex(const int p_idx) const
+ScriptValue *ScriptValue_Object_vector::GetValueAtIndex(const int p_idx) const
 {
-	return new ScriptValue_Object(values_.at(p_idx));
+	return new ScriptValue_Object_singleton_const(values_.at(p_idx));
 }
 
-void ScriptValue_Object::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+void ScriptValue_Object_vector::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	// can't change the type of element object we collect
 	if ((values_.size() > 0) && (ElementType().compare(p_value->ElementAtIndex(0)->ElementType()) != 0))
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueAtIndex): the type of an object cannot be changed." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << slim_terminate();
 	
 	values_.at(p_idx)->Release();
 	values_.at(p_idx) = p_value->ElementAtIndex(0)->Retain();
 }
 
-ScriptValue *ScriptValue_Object::CopyValues(void) const
+ScriptValue *ScriptValue_Object_vector::CopyValues(void) const
 {
-	return new ScriptValue_Object(*this);
+	return new ScriptValue_Object_vector(*this);
 }
 
-ScriptValue *ScriptValue_Object::NewMatchingType(void) const
-{
-	return new ScriptValue_Object;
-}
-
-void ScriptValue_Object::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+void ScriptValue_Object_vector::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
 {
 	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
 	{
 		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << slim_terminate();
 		else
 			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
 	}
 	else
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
-}
-
-void ScriptValue_Object::Sort(bool p_ascending)
-{
-#pragma unused(p_ascending)
-	SLIM_TERMINATION << "ERROR (ScriptValue_Object::Sort): Sort() is not defined for type object." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::PushValueFromIndexOfScriptValue): type mismatch." << slim_terminate();
 }
 
 bool CompareLogicalObjectSortPairsAscending(std::pair<bool, ScriptObjectElement*> i, std::pair<bool, ScriptObjectElement*> j);
@@ -1413,7 +1415,7 @@ bool CompareStringObjectSortPairsAscending(std::pair<std::string, ScriptObjectEl
 bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j);
 bool CompareStringObjectSortPairsDescending(std::pair<std::string, ScriptObjectElement*> i, std::pair<std::string, ScriptObjectElement*> j)		{ return (i.first > j.first); }
 
-void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
+void ScriptValue_Object_vector::SortBy(const std::string p_property, bool p_ascending)
 {
 	// length 0 is already sorted
 	if (values_.size() == 0)
@@ -1430,7 +1432,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 	{
 		case ScriptValueType::kValueNULL:
 		case ScriptValueType::kValueObject:
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << slim_terminate();
 			break;
 			
 		case ScriptValueType::kValueLogical:
@@ -1443,9 +1445,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<bool, ScriptObjectElement*>(temp_result->LogicalAtIndex(0), value));
 				
@@ -1477,9 +1479,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<int64_t, ScriptObjectElement*>(temp_result->IntAtIndex(0), value));
 				
@@ -1511,9 +1513,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<double, ScriptObjectElement*>(temp_result->FloatAtIndex(0), value));
 				
@@ -1545,9 +1547,9 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 				ScriptValue *temp_result = value->GetValueForMember(p_property);
 				
 				if (temp_result->Count() != 1)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
 				if (temp_result->Type() != property_type)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << slim_terminate();
 				
 				sortable_pairs.push_back(std::pair<std::string, ScriptObjectElement*>(temp_result->StringAtIndex(0), value));
 				
@@ -1571,7 +1573,7 @@ void ScriptValue_Object::SortBy(const std::string p_property, bool p_ascending)
 	}
 }
 
-std::vector<std::string> ScriptValue_Object::ReadOnlyMembersOfElements(void) const
+std::vector<std::string> ScriptValue_Object_vector::ReadOnlyMembersOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1579,7 +1581,7 @@ std::vector<std::string> ScriptValue_Object::ReadOnlyMembersOfElements(void) con
 		return values_[0]->ReadOnlyMembers();
 }
 
-std::vector<std::string> ScriptValue_Object::ReadWriteMembersOfElements(void) const
+std::vector<std::string> ScriptValue_Object_vector::ReadWriteMembersOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1587,13 +1589,13 @@ std::vector<std::string> ScriptValue_Object::ReadWriteMembersOfElements(void) co
 		return values_[0]->ReadWriteMembers();
 }
 
-ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::string &p_member_name) const
 {
 	auto values_size = values_.size();
 	
 	if (values_size == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
@@ -1602,7 +1604,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 		// the singleton case is very common, so it should be special-cased for speed
 		ScriptObjectElement *value = values_[0];
 		ScriptValue *result = value->GetValueForMember(p_member_name);
-			
+		
 		if (result->Count() != 1)
 		{
 			// We need to check that this property is const; if not, it is required to give a singleton return
@@ -1610,7 +1612,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 			bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
 			
 			if (!is_constant_member)
-				SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
 		}
 		
 		return result;
@@ -1632,7 +1634,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 				bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
 				
 				if (!is_constant_member)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
 				
 				checked_const_multivalued = true;
 			}
@@ -1655,7 +1657,7 @@ ScriptValue *ScriptValue_Object::GetValueForMemberOfElements(const std::string &
 // object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
 // that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
 // but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
-ScriptValue *ScriptValue_Object::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_vector::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
 {
 	if (values_.size())
 	{
@@ -1677,11 +1679,11 @@ ScriptValue *ScriptValue_Object::GetRepresentativeValueOrNullForMemberOfElements
 	return nullptr;
 }
 
-void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
+void ScriptValue_Object_vector::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
 	}
 	else
 	{
@@ -1706,11 +1708,11 @@ void ScriptValue_Object::SetValueForMemberOfElements(const std::string &p_member
 			}
 		}
 		else
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
 	}
 }
 
-std::vector<std::string> ScriptValue_Object::MethodsOfElements(void) const
+std::vector<std::string> ScriptValue_Object_vector::MethodsOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
@@ -1718,11 +1720,11 @@ std::vector<std::string> ScriptValue_Object::MethodsOfElements(void) const
 		return values_[0]->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::string const &p_method_name) const
+const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements(std::string const &p_method_name) const
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << slim_terminate();
 		
 		return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
@@ -1730,12 +1732,12 @@ const FunctionSignature *ScriptValue_Object::SignatureForMethodOfElements(std::s
 		return values_[0]->SignatureForMethod(p_method_name);
 }
 
-ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
-		// FIXME perhaps ScriptValue_Object should know its element type even when empty, so class methods can be called with no elements?
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
+		// FIXME perhaps ScriptValue_Object_vector should know its element type even when empty, so class methods can be called with no elements?
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
@@ -1748,13 +1750,13 @@ ScriptValue *ScriptValue_Object::ExecuteClassMethodOfElements(std::string const 
 	}
 }
 
-ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
 {
 	auto values_size = values_.size();
 	
 	if (values_size == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
@@ -1783,6 +1785,143 @@ ScriptValue *ScriptValue_Object::ExecuteInstanceMethodOfElements(std::string con
 		
 		return result;
 	}
+}
+
+
+// ScriptValue_Object_singleton_const
+
+ScriptValue_Object_singleton_const::ScriptValue_Object_singleton_const(ScriptObjectElement *p_element1) : value_(p_element1)
+{
+	p_element1->Retain();
+}
+
+ScriptValue_Object_singleton_const::~ScriptValue_Object_singleton_const(void)
+{
+	value_->Release();
+}
+
+std::string ScriptValue_Object_singleton_const::ElementType(void) const
+{
+	return value_->ElementType();
+}
+
+int ScriptValue_Object_singleton_const::Count(void) const
+{
+	return 1;
+}
+
+void ScriptValue_Object_singleton_const::Print(std::ostream &p_ostream) const
+{
+	p_ostream << *value_;
+}
+
+ScriptObjectElement *ScriptValue_Object_singleton_const::ElementAtIndex(int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::ElementAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return value_;
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::GetValueAtIndex(const int p_idx) const
+{
+	if (p_idx != 0)
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << slim_terminate();
+	
+	return new ScriptValue_Object_singleton_const(value_);
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::CopyValues(void) const
+{
+	return new ScriptValue_Object_singleton_const(value_);
+}
+
+void ScriptValue_Object_singleton_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
+{
+#pragma unused(p_idx, p_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::SetValueAtIndex): internal error: ScriptValue_Object_singleton_const is not modifiable." << slim_terminate();
+}
+
+void ScriptValue_Object_singleton_const::PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value)
+{
+#pragma unused(p_idx, p_source_script_value)
+	SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::PushValueFromIndexOfScriptValue): internal error: ScriptValue_Object_singleton_const is not modifiable." << slim_terminate();
+}
+
+std::vector<std::string> ScriptValue_Object_singleton_const::ReadOnlyMembersOfElements(void) const
+{
+	return value_->ReadOnlyMembers();
+}
+
+std::vector<std::string> ScriptValue_Object_singleton_const::ReadWriteMembersOfElements(void) const
+{
+	return value_->ReadWriteMembers();
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::GetValueForMemberOfElements(const std::string &p_member_name) const
+{
+	ScriptValue *result = value_->GetValueForMember(p_member_name);
+	
+	if (result->Count() != 1)
+	{
+		// We need to check that this property is const; if not, it is required to give a singleton return
+		std::vector<std::string> constant_members = value_->ReadOnlyMembers();
+		bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
+		
+		if (!is_constant_member)
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
+	}
+	
+	return result;
+}
+
+// This somewhat odd method returns one "representative" ScriptValue for the given property, by calling the first element in the
+// object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
+// that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
+// but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
+ScriptValue *ScriptValue_Object_singleton_const::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
+{
+	// check that the member is defined before we call our elements
+	std::vector<std::string> constant_members = value_->ReadOnlyMembers();
+	
+	if (std::find(constant_members.begin(), constant_members.end(), p_member_name) == constant_members.end())
+	{
+		std::vector<std::string> variable_members = value_->ReadWriteMembers();
+		
+		if (std::find(variable_members.begin(), variable_members.end(), p_member_name) == variable_members.end())
+			return nullptr;
+	}
+	
+	// get a value from the first element and return it; we only need to return one representative value
+	return value_->GetValueForMember(p_member_name);
+}
+
+void ScriptValue_Object_singleton_const::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
+{
+	if (p_value->Count() == 1)
+		value_->SetValueForMember(p_member_name, p_value);
+	else
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
+}
+
+std::vector<std::string> ScriptValue_Object_singleton_const::MethodsOfElements(void) const
+{
+	return value_->Methods();
+}
+
+const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodOfElements(std::string const &p_method_name) const
+{
+	return value_->SignatureForMethod(p_method_name);
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+{
+	return value_->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter)
+{
+	return value_->ExecuteMethod(p_method_name, p_arguments, p_interpreter);
 }
 
 

@@ -317,7 +317,7 @@ ScriptValue *ConcatenateScriptValues(string p_function_name, vector<ScriptValue*
 	}
 	else if (has_object_type)
 	{
-		ScriptValue_Object *result = new ScriptValue_Object();
+		ScriptValue_Object_vector *result = new ScriptValue_Object_vector();
 		
 		for (ScriptValue *arg_value : p_arguments)
 			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
@@ -1273,7 +1273,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark object
 		case FunctionIdentifier::objectFunction:
 		{
-			result = new ScriptValue_Object();
+			result = new ScriptValue_Object_vector();
 			break;
 		}
 			
@@ -1871,7 +1871,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 #pragma mark sortBy
 		case FunctionIdentifier::sortByFunction:
 		{
-			ScriptValue_Object *object_result = new ScriptValue_Object();
+			ScriptValue_Object_vector *object_result = new ScriptValue_Object_vector();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				object_result->PushElement(arg0_value->ElementAtIndex(value_index));
@@ -2096,7 +2096,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == ScriptValueType::kValueObject)
 			{
-				ScriptValue_Object *object_result = new ScriptValue_Object();
+				ScriptValue_Object_vector *object_result = new ScriptValue_Object_vector();
 				result = object_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -2521,7 +2521,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::PathFunction:
 		{
 			Script_PathElement *pathElement = (n_args == 1) ? (new Script_PathElement(arg0_value->StringAtIndex(0))) : (new Script_PathElement());
-			result = new ScriptValue_Object(pathElement);
+			result = new ScriptValue_Object_singleton_const(pathElement);
 			pathElement->Release();
 			break;
 		}

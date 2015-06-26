@@ -610,7 +610,7 @@ void SLiMSim::RunToEnd(void)
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
@@ -1110,7 +1110,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 {
 	// constants
 	if (p_member_name.compare(gStr_chromosome) == 0)
-		return new ScriptValue_Object(&chromosome_);
+		return new ScriptValue_Object_singleton_const(&chromosome_);
 	if (p_member_name.compare(gStr_chromosomeType) == 0)
 	{
 		switch (modeled_chromosome_type_)
@@ -1122,7 +1122,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_genomicElementTypes) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
 			vec->PushElement(ge_type->second);
@@ -1131,7 +1131,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_mutations) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		Genome &mutation_registry = population_.mutation_registry_;
 		int mutation_count = mutation_registry.size();
 		
@@ -1142,7 +1142,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_mutationTypes) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
 			vec->PushElement(mutation_type->second);
@@ -1151,7 +1151,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_scriptBlocks) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
 			vec->PushElement(*script_block);
@@ -1164,7 +1164,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 		return new ScriptValue_Int_singleton_const(time_start_);
 	if (p_member_name.compare(gStr_subpopulations) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto pop = population_.begin(); pop != population_.end(); ++pop)
 			vec->PushElement(pop->second);
@@ -1173,7 +1173,7 @@ ScriptValue *SLiMSim::GetValueForMember(const std::string &p_member_name)
 	}
 	if (p_member_name.compare(gStr_substitutions) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
 			vec->PushElement(*sub_iter);

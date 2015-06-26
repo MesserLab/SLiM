@@ -338,7 +338,7 @@ void SLiMScriptBlock::ScanTree(void)
 
 void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
 void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -350,7 +350,7 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
+	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
 std::string SLiMScriptBlock::ElementType(void) const

@@ -313,7 +313,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
 						if (fitness_callback->contains_mut_)
 						{
-							local_mut_ptr = (new ScriptValue_Object(p_mutation))->SetExternallyOwned();
+							local_mut_ptr = (new ScriptValue_Object_singleton_const(p_mutation))->SetExternallyOwned();
 							global_symbols.InitializeConstantSymbolEntry(gStr_mut, local_mut_ptr);
 						}
 						if (fitness_callback->contains_relFitness_)
@@ -903,7 +903,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
 std::string Subpopulation::ElementType(void) const
@@ -952,7 +952,7 @@ ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
 		return new ScriptValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
 	if (p_member_name.compare(gStr_genomes) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		if (child_generation_valid)
 			for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)

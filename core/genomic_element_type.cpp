@@ -124,7 +124,7 @@ void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 	
 	getype_stream << "g" << genomic_element_type_id_;
 	
-	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
 std::string GenomicElementType::ElementType(void) const
@@ -166,7 +166,7 @@ ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_n
 	}
 	if (p_member_name.compare(gStr_mutationTypes) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
 			vec->PushElement(*mut_type);

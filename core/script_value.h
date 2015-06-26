@@ -532,24 +532,62 @@ public:
 //	*********************************************************************************************************
 //
 //	ScriptValue_Object represents objects in SLiMscript: entities that have properties and can respond to
-//	methods.
+//	methods.  The subclass ScriptValue_Object_vector is the standard instance class, used to hold vectors
+//	of floats.  ScriptValue_Object_singleton_const is used for speed, to represent single constant values.
 //
 
 class ScriptValue_Object : public ScriptValue
+{
+protected:
+	ScriptValue_Object(const ScriptValue_Object &p_original) = default;				// can copy-construct
+	ScriptValue_Object(void) = default;												// default constructor
+	
+public:
+	ScriptValue_Object& operator=(const ScriptValue_Object&) = delete;				// no copying
+	virtual ~ScriptValue_Object(void);
+	
+	virtual ScriptValueType Type(void) const;
+	virtual std::string ElementType(void) const = 0;
+	virtual int Count(void) const = 0;
+	virtual void Print(std::ostream &p_ostream) const = 0;
+	
+	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const = 0;
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value) = 0;
+	
+	virtual ScriptValue *CopyValues(void) const = 0;
+	virtual ScriptValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;
+	virtual void Sort(bool p_ascending);
+	
+	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
+	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
+	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const = 0;
+	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const = 0;
+	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const = 0;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const = 0;			// used by code completion
+	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value) = 0;
+	
+	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
+	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const = 0;
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter) = 0;
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter) = 0;
+};
+
+class ScriptValue_Object_vector : public ScriptValue_Object
 {
 private:
 	std::vector<ScriptObjectElement *> values_;		// Whether these are owned or not depends on ScriptObjectElement::ExternallyOwned(); see below
 	
 public:
-	ScriptValue_Object(const ScriptValue_Object &p_original);				// can copy-construct, but it is not the default constructor since we need to deep copy
-	ScriptValue_Object& operator=(const ScriptValue_Object&) = delete;		// no copying
+	ScriptValue_Object_vector(const ScriptValue_Object_vector &p_original);				// can copy-construct, but it is not the default constructor since we need to deep copy
+	ScriptValue_Object_vector& operator=(const ScriptValue_Object_vector&) = delete;		// no copying
 	
-	ScriptValue_Object(void);
-	explicit ScriptValue_Object(std::vector<ScriptObjectElement *> &p_elementvec);
-	explicit ScriptValue_Object(ScriptObjectElement *p_element1);
-	virtual ~ScriptValue_Object(void);
+	ScriptValue_Object_vector(void);
+	explicit ScriptValue_Object_vector(std::vector<ScriptObjectElement *> &p_elementvec);
+	//explicit ScriptValue_Object_vector(ScriptObjectElement *p_element1);		// disabled to encourage use of ScriptValue_Object_singleton_const for this case
+	virtual ~ScriptValue_Object_vector(void);
 	
-	virtual ScriptValueType Type(void) const;
 	virtual std::string ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
@@ -561,23 +599,60 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	
 	virtual ScriptValue *CopyValues(void) const;
-	virtual ScriptValue *NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
-	virtual void Sort(bool p_ascending);
 	void SortBy(const std::string p_property, bool p_ascending);
 	
 	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
-	std::vector<std::string> ReadOnlyMembersOfElements(void) const;
-	std::vector<std::string> ReadWriteMembersOfElements(void) const;
-	ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
-	ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
-	void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
+	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
+	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
+	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
+	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
 	
-	std::vector<std::string> MethodsOfElements(void) const;
-	const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
-	ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
-	ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual std::vector<std::string> MethodsOfElements(void) const;
+	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+};
+
+class ScriptValue_Object_singleton_const : public ScriptValue_Object
+{
+private:
+	ScriptObjectElement *value_;		// Whether these are owned or not depends on ScriptObjectElement::ExternallyOwned(); see below
+	
+public:
+	ScriptValue_Object_singleton_const(const ScriptValue_Object_singleton_const &p_original) = delete;		// no copy-construct
+	ScriptValue_Object_singleton_const& operator=(const ScriptValue_Object_singleton_const&) = delete;		// no copying
+	ScriptValue_Object_singleton_const(void) = delete;
+	explicit ScriptValue_Object_singleton_const(ScriptObjectElement *p_element1);
+	virtual ~ScriptValue_Object_singleton_const(void);
+	
+	virtual std::string ElementType(void) const;
+	virtual int Count(void) const;
+	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const;
+	
+	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
+	virtual ScriptValue *CopyValues(void) const;
+	
+	// prohibited actions
+	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
+	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
+	
+	// Member and method support; defined only on ScriptValue_Object, not ScriptValue.  The methods that a
+	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
+	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
+	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
+	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
+	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
+	
+	virtual std::vector<std::string> MethodsOfElements(void) const;
+	virtual const FunctionSignature *SignatureForMethodOfElements(std::string const &p_method_name) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(std::string const &p_method_name, std::vector<ScriptValue*> const &p_arguments, ScriptInterpreter &p_interpreter);
 };
 
 

@@ -224,7 +224,7 @@ ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
 	// constants
 	if (p_member_name.compare(gStr_genomicElements) == 0)
 	{
-		ScriptValue_Object *vec = new ScriptValue_Object();
+		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
 		
 		for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
 			vec->PushElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
