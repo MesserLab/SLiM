@@ -135,37 +135,52 @@ Subpopulation::Subpopulation(Population &p_population, int p_subpopulation_id, i
 	GenerateChildrenToFit(true);
 	
 	// Set up to draw random individuals, based initially on equal fitnesses
-	double A[parent_subpop_size_];
+	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+	cached_fitness_capacity_ = parent_subpop_size_;
+	cached_fitness_size_ = parent_subpop_size_;
+	
+	double *fitness_buffer_ptr = cached_parental_fitness_;
 	
 	for (int i = 0; i < parent_subpop_size_; i++)
-		A[i] = 1.0;
+		*(fitness_buffer_ptr++) = 1.0;
 	
-	lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, A);
+	lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 }
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, int p_subpopulation_id, int p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
-	population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
+population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
 {
 	GenerateChildrenToFit(true);
 	
 	// Set up to draw random females, based initially on equal fitnesses
-	double A[parent_first_male_index_];
+	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+	cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+	cached_fitness_capacity_ = parent_subpop_size_;
+	cached_fitness_size_ = parent_subpop_size_;
 	
-	for (int i = 0; i < parent_first_male_index_; i++)
-		A[i] = 1.0;
+	double *fitness_buffer_ptr = cached_parental_fitness_;
+	double *male_buffer_ptr = cached_male_fitness_;
 	
-	lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, A);
+	for (int i = 0; i < parent_subpop_size_; i++)
+	{
+		*(fitness_buffer_ptr++) = 1.0;
+		*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
+	}
 	
 	// Set up to draw random males, based initially on equal fitnesses
 	int num_males = parent_subpop_size_ - parent_first_male_index_;
-	double B[num_males];
 	
 	for (int i = 0; i < num_males; i++)
-		B[i] = 1.0;
+	{
+		*(fitness_buffer_ptr++) = 1.0;
+		*(male_buffer_ptr++) = 1.0;
+	}
 	
-	lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, B);
+	lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+	lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 }
+
 
 Subpopulation::~Subpopulation(void)
 {
