@@ -353,7 +353,7 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-std::string SLiMScriptBlock::ElementType(void) const
+const std::string SLiMScriptBlock::ElementType(void) const
 {
 	return gStr_SLiMScriptBlock;
 }

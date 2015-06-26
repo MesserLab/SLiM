@@ -547,7 +547,7 @@ public:
 	virtual ~ScriptValue_Object(void);
 	
 	virtual ScriptValueType Type(void) const;
-	virtual std::string ElementType(void) const = 0;
+	virtual const std::string ElementType(void) const = 0;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -588,7 +588,7 @@ public:
 	//explicit ScriptValue_Object_vector(ScriptObjectElement *p_element1);		// disabled to encourage use of ScriptValue_Object_singleton_const for this case
 	virtual ~ScriptValue_Object_vector(void);
 	
-	virtual std::string ElementType(void) const;
+	virtual const std::string ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -628,7 +628,7 @@ public:
 	explicit ScriptValue_Object_singleton_const(ScriptObjectElement *p_element1);
 	virtual ~ScriptValue_Object_singleton_const(void);
 	
-	virtual std::string ElementType(void) const;
+	virtual const std::string ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -675,7 +675,7 @@ public:
 	ScriptObjectElement(void);
 	virtual ~ScriptObjectElement(void);
 	
-	virtual std::string ElementType(void) const = 0;
+	virtual const std::string ElementType(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
 	
 	// refcounting; virtual no-ops here (for externally-owned objects), implemented in ScriptObjectElementInternal

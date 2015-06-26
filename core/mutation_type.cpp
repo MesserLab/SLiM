@@ -112,7 +112,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-std::string MutationType::ElementType(void) const
+const std::string MutationType::ElementType(void) const
 {
 	return gStr_MutationType;
 }

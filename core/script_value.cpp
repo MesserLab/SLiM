@@ -1311,7 +1311,7 @@ ScriptValue_Object_vector::~ScriptValue_Object_vector(void)
 	}
 }
 
-std::string ScriptValue_Object_vector::ElementType(void) const
+const std::string ScriptValue_Object_vector::ElementType(void) const
 {
 	if (values_.size() == 0)
 		return gStr_undefined;
@@ -1800,7 +1800,7 @@ ScriptValue_Object_singleton_const::~ScriptValue_Object_singleton_const(void)
 	value_->Release();
 }
 
-std::string ScriptValue_Object_singleton_const::ElementType(void) const
+const std::string ScriptValue_Object_singleton_const::ElementType(void) const
 {
 	return value_->ElementType();
 }

@@ -42,7 +42,7 @@ void Substitution::print(std::ostream &p_out) const
 //
 // SLiMscript support
 //
-std::string Substitution::ElementType(void) const
+const std::string Substitution::ElementType(void) const
 {
 	return gStr_Substitution;
 }

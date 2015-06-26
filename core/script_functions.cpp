@@ -238,7 +238,7 @@ ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptV
 		{
 			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
 			{
-				string this_element_type = static_cast<ScriptValue_Object *>(arg_value)->ElementType();
+				const std::string this_element_type = static_cast<ScriptValue_Object *>(arg_value)->ElementType();
 				
 				if (element_type.length() == 0)
 				{

@@ -902,7 +902,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-std::string Subpopulation::ElementType(void) const
+const std::string Subpopulation::ElementType(void) const
 {
 	return gStr_Subpopulation;
 }

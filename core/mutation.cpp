@@ -58,7 +58,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 //
 // SLiMscript support
 //
-std::string Mutation::ElementType(void) const
+const std::string Mutation::ElementType(void) const
 {
 	return gStr_Mutation;
 }

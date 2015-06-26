@@ -39,7 +39,7 @@ Script_PathElement::Script_PathElement(const std::string &p_base_path) : base_pa
 {
 }
 
-std::string Script_PathElement::ElementType(void) const
+const std::string Script_PathElement::ElementType(void) const
 {
 	return gStr_Path;
 }

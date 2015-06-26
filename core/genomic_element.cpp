@@ -86,7 +86,7 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 //
 // SLiMscript support
 //
-std::string GenomicElement::ElementType(void) const
+const std::string GenomicElement::ElementType(void) const
 {
 	return gStr_GenomicElement;
 }

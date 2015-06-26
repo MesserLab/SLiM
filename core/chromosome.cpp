@@ -190,7 +190,7 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 //
 #pragma mark SLiMscript support
 
-std::string Chromosome::ElementType(void) const
+const std::string Chromosome::ElementType(void) const
 {
 	return gStr_Chromosome;
 }

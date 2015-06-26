@@ -127,7 +127,7 @@ void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-std::string GenomicElementType::ElementType(void) const
+const std::string GenomicElementType::ElementType(void) const
 {
 	return gStr_GenomicElementType;
 }

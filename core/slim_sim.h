@@ -141,7 +141,7 @@ public:
 	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block);	// add SLiM constructs to an interpreter instance
 	std::vector<FunctionSignature*> *InjectedFunctionSignatures(void);
 	
-	virtual std::string ElementType(void) const;
+	virtual const std::string ElementType(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;

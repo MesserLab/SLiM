@@ -220,7 +220,7 @@
 			if (type == ScriptValueType::kValueObject)
 			{
 				ScriptValue_Object *object_value = (ScriptValue_Object *)wrapper->wrappedValue;
-				std::string element_string = object_value->ElementType();
+				const std::string element_string = object_value->ElementType();
 				const char *element_cstr = element_string.c_str();
 				NSString *elementString = [NSString stringWithUTF8String:element_cstr];
 				

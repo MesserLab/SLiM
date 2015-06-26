@@ -55,8 +55,8 @@ bool TypeCheckAssignmentOfValueIntoValue(ScriptValue *base_value, ScriptValue *d
 	if (base_is_object && dest_is_object)
 	{
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
-		string base_element_type = static_cast<ScriptValue_Object *>(base_value)->ElementType();
-		string dest_element_type = static_cast<ScriptValue_Object *>(dest_value)->ElementType();
+		const std::string base_element_type = static_cast<ScriptValue_Object *>(base_value)->ElementType();
+		const std::string dest_element_type = static_cast<ScriptValue_Object *>(dest_value)->ElementType();
 		bool base_is_typeless = (base_element_type.length() == 0);
 		bool dest_is_typeless = (dest_element_type.length() == 0);
 		

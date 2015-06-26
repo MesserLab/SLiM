@@ -219,7 +219,7 @@ void Genome::GenerateCachedScriptValue(void)
 	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned();
 }
 
-std::string Genome::ElementType(void) const
+const std::string Genome::ElementType(void) const
 {
 	return gStr_Genome;
 }

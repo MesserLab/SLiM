@@ -1067,7 +1067,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	}
 }
 
-std::string SLiMSim::ElementType(void) const
+const std::string SLiMSim::ElementType(void) const
 {
 	return gStr_SLiMSim;
 }
