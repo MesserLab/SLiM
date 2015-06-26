@@ -995,38 +995,45 @@ ScriptValue *ScriptInterpreter::Evaluate_Subset(const ScriptASTNode *p_node)
 			SLIM_TERMINATION << "ERROR (Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << slim_terminate();
 		}
 		
-		// OK, we can definitely do this subset, so allocate the result value based on the type of the first operand
-		result = first_child_value->NewMatchingType();
+		// OK, we can definitely do this subset
+		int first_child_count = first_child_value->Count();
+		int second_child_count = second_child_value->Count();
 		
-		// Any subscript using NULL returns an empty vector
-		if (first_child_type != ScriptValueType::kValueNULL)
+		if (second_child_type == ScriptValueType::kValueLogical)
 		{
-			int first_child_count = first_child_value->Count();
-			int second_child_count = second_child_value->Count();
-			
-			if (second_child_type == ScriptValueType::kValueLogical)
+			// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
+			if (first_child_count != second_child_count)
 			{
-				// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
-				if (first_child_count != second_child_count)
-				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					if (result->IsTemporary()) delete result;
-					
-					SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
-				}
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
 				
-				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
-				{
-					bool bool_value = second_child_value->LogicalAtIndex(value_idx);
-					
-					if (bool_value)
-						result->PushValueFromIndexOfScriptValue(value_idx, first_child_value);
-				}
+				SLIM_TERMINATION << "ERROR (Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << slim_terminate();
+			}
+			
+			// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
+			result = first_child_value->NewMatchingType();
+			
+			for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+			{
+				bool bool_value = second_child_value->LogicalAtIndex(value_idx);
+				
+				if (bool_value)
+					result->PushValueFromIndexOfScriptValue(value_idx, first_child_value);
+			}
+		}
+		else
+		{
+			if (second_child_count == 1)
+			{
+				// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
+				// This is guaranteed to return a singleton value (when available), and bounds-checks for us
+				result = first_child_value->GetValueAtIndex((int)second_child_value->IntAtIndex(0));
 			}
 			else
 			{
 				// Subsetting with a int/float vector can use a vector of any length; the specific indices referenced will be taken
+				result = first_child_value->NewMatchingType();
+				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 				{
 					int64_t index_value = second_child_value->IntAtIndex(value_idx);
