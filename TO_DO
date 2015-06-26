@@ -65,6 +65,7 @@ SLiMscript optimization:
 		0:13.6 after getting rid of unnecessary std::string copies
 		0:13.5 after optimizing Evaluate_Subset() for singletons
 		0:13.4 after caching results of IsNull()
+		0:13.6 after changing Subpopulation's fitness caches to malloced buffers (this is actually faster, with optimization on)
 	Caching of integer indices for known identifiers (method/function names) so function/method lookup is just a switch(), no string compares
 	
 SLiMgui work:

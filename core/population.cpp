@@ -254,9 +254,9 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
 	bool sex_enabled = p_subpop->sex_enabled_;
-	std::vector<double> &standard_weights = (sex_enabled ? p_source_subpop->cached_male_fitness_ : p_source_subpop->cached_parental_fitness_);
-	std::vector<double> *current_weights = &standard_weights;
-	int weights_length = p_source_subpop->parent_subpop_size_;
+	double *standard_weights = (sex_enabled ? p_source_subpop->cached_male_fitness_ : p_source_subpop->cached_parental_fitness_);
+	double *current_weights = standard_weights;
+	int weights_length = p_source_subpop->cached_fitness_size_;
 	bool weights_modified = false;
 	
 	for (SLiMScriptBlock *mate_choice_callback : p_mate_choice_callbacks)
@@ -295,7 +295,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				
 				if (mate_choice_callback->contains_weights_)
 				{
-					local_weights_ptr = (new ScriptValue_Float_vector(*current_weights))->SetExternallyOwned();
+					local_weights_ptr = (new ScriptValue_Float_vector(current_weights, weights_length))->SetExternallyOwned();
 					global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
 				}
 				
@@ -320,7 +320,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 						// a non-zero float vector must match the size of the source subpop, and provides a new set of weights for us to use
 						if (!weights_modified)
 						{
-							current_weights = new std::vector<double>;		// need to allocate a new weights vector
+							current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
 							weights_modified = true;
 						}
 						
@@ -328,12 +328,9 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 						ScriptValue_Float_vector *result_vector_type = dynamic_cast<ScriptValue_Float_vector *>(result);
 						
 						if (result_vector_type)
-							*current_weights = result_vector_type->FloatVector();
+							memcpy(current_weights, result_vector_type->FloatVector().data(), sizeof(double) * weights_length);
 						else
-						{
-							(*current_weights).clear();
-							(*current_weights).push_back(result->FloatAtIndex(0));
-						}
+							current_weights[0] = result->FloatAtIndex(0);
 					}
 					else
 					{
@@ -373,8 +370,10 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 		int positive_count = 0;
 		
 		// first we assess the weights vector: get its sum, bounds-check it, etc.
-		for (double x : *current_weights)
+		for (int weight_index = 0; weight_index < weights_length; ++weight_index)
 		{
+			double x = current_weights[weight_index];
+			
 			if (!isfinite(x))
 				SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << slim_terminate();
 			if (x < 0.0)
@@ -395,7 +394,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			// there is only a single positive value, so the callback has chosen a parent for us; we just need to locate it
 			// we could have noted it above, but I don't want to slow down that loop, since many positive weights is the likely case
 			for (int weight_index = 0; weight_index < weights_length; ++weight_index)
-				if ((*current_weights)[weight_index] > 0.0)
+				if (current_weights[weight_index] > 0.0)
 				{
 					drawn_parent = weight_index;
 					break;
@@ -409,7 +408,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			
 			for (int weight_index = 0; weight_index < weights_length; ++weight_index)
 			{
-				bachelor_sum += (*current_weights)[weight_index];
+				bachelor_sum += current_weights[weight_index];
 				
 				if (the_rose_in_the_teeth <= bachelor_sum)
 				{

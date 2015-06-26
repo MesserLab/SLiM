@@ -183,6 +183,12 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_value_subpop_id_)
 		delete cached_value_subpop_id_;
+	
+	if (cached_parental_fitness_)
+		free(cached_parental_fitness_);
+	
+	if (cached_male_fitness_)
+		free(cached_male_fitness_);
 }
 
 void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callbacks)
@@ -193,74 +199,77 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 #endif
 	
 	// We cache the calculated fitness values, for use in PopulationView and mateChoice() callbacks and such
-	cached_parental_fitness_.clear();
+	if (cached_fitness_capacity_ < parent_subpop_size_)
+	{
+		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		if (sex_enabled_)
+			cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+		cached_fitness_capacity_ = parent_subpop_size_;
+	}
+	
+	cached_fitness_size_ = 0;	// while we're refilling, the fitness cache is invalid
 	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
 	{
 		// SEX ONLY
-		cached_male_fitness_.clear();
-		
 		gsl_ran_discrete_free(lookup_female_parent_);
 		gsl_ran_discrete_free(lookup_male_parent_);
 		
 		// Set up to draw random females
-		double A[parent_first_male_index_];
-		
 		for (int i = 0; i < parent_first_male_index_; i++)
 		{
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
-			A[i] = fitness;
-			cached_parental_fitness_.push_back(fitness);
-			cached_male_fitness_.push_back(0);				// this vector has 0 for all females, for mateChoice() callbacks
+			cached_parental_fitness_[i] = fitness;
+			cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
 			
 #ifdef SLIMGUI
 			totalFitness += fitness;
 #endif
 		}
 		
-		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, A);
+		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		
 		// Set up to draw random males
 		int num_males = parent_subpop_size_ - parent_first_male_index_;
-		double B[num_males];
 		
 		for (int i = 0; i < num_males; i++)
 		{
-			double fitness = FitnessOfParentWithGenomeIndices(2 * (i + parent_first_male_index_), 2 * (i + parent_first_male_index_) + 1, p_fitness_callbacks);
+			int individual_index = (i + parent_first_male_index_);
+			double fitness = FitnessOfParentWithGenomeIndices(2 * individual_index, 2 * individual_index + 1, p_fitness_callbacks);
 			
-			B[i] = fitness;
-			cached_parental_fitness_.push_back(fitness);
-			cached_male_fitness_.push_back(fitness);
+			cached_parental_fitness_[individual_index] = fitness;
+			cached_male_fitness_[individual_index] = fitness;
 			
 #ifdef SLIMGUI
 			totalFitness += fitness;
 #endif
 		}
 		
-		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, B);
+		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
 	else
 	{
-		gsl_ran_discrete_free(lookup_parent_);
+		double *fitness_buffer_ptr = cached_parental_fitness_;
 		
-		double A[parent_subpop_size_];
+		gsl_ran_discrete_free(lookup_parent_);
 		
 		for (int i = 0; i < parent_subpop_size_; i++)
 		{
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
-			A[i] = fitness;
-			cached_parental_fitness_.push_back(fitness);
+			*(fitness_buffer_ptr++) = fitness;
 			
 #ifdef SLIMGUI
 			totalFitness += fitness;
 #endif
 		}
 		
-		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, A);
+		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 	}
+	
+	cached_fitness_size_ = parent_subpop_size_;
 	
 #ifdef SLIMGUI
 	parental_total_fitness_ = totalFitness;
@@ -1151,6 +1160,8 @@ ScriptValue *Subpopulation::ExecuteMethod(const std::string &p_method_name, Scri
 	{
 		if (child_generation_valid)
 			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
+		if (cached_fitness_size_ == 0)
+			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << slim_terminate();
 		
 		bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
 		int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());

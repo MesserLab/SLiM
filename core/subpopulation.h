@@ -76,8 +76,10 @@ public:
 	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate
 	int child_first_male_index_ = INT_MAX;			// the index of the first male in the child Genome vector (NOT premultiplied by 2!); equal to the number of females
 	
-	std::vector<double> cached_parental_fitness_;	// cached in UpdateFitness(), used by SLiMgui and by the fitness() methods of Subpopulation
-	std::vector<double> cached_male_fitness_;		// SEX ONLY: used by mateChoice() callsbacks; same as cached_parental_fitness_ but with 0 for all females
+	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateFitness(), used by SLiMgui and by the fitness() methods of Subpopulation
+	double *cached_male_fitness_ = nullptr;			// OWNED POINTER: SEX ONLY: same as cached_parental_fitness_ but with 0 for all females
+	int cached_fitness_size_ = 0;					// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
+	int cached_fitness_capacity_ = 0;				// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...

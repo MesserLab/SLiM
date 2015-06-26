@@ -472,6 +472,7 @@ public:
 	
 	ScriptValue_Float_vector(void);
 	explicit ScriptValue_Float_vector(std::vector<double> &p_doublevec);
+	ScriptValue_Float_vector(double *p_doublebuf, int p_buffer_length);
 	//explicit ScriptValue_Float_vector(double p_float1);		// disabled to encourage use of ScriptValue_Float_singleton_const for this case
 	ScriptValue_Float_vector(double p_float1, double p_float2);
 	ScriptValue_Float_vector(double p_float1, double p_float2, double p_float3);

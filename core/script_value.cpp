@@ -1029,6 +1029,12 @@ ScriptValue_Float_vector::ScriptValue_Float_vector(std::vector<double> &p_double
 	values_ = p_doublevec;
 }
 
+ScriptValue_Float_vector::ScriptValue_Float_vector(double *p_doublebuf, int p_buffer_length)
+{
+	for (int index = 0; index < p_buffer_length; index++)
+		values_.push_back(p_doublebuf[index]);
+}
+
 ScriptValue_Float_vector::ScriptValue_Float_vector(double p_float1, double p_float2)
 {
 	values_.push_back(p_float1);
