@@ -1,3 +1,50 @@
+SLiMscript optimization:
+	Instrument first to see where the slow parts are
+		0:96 runtime for profile_fitness.txt
+		0:43 after making the built-in function map statically allocated
+		0:38 after adding statically allocated SLiMscript constants
+		0:24 after adding cached ScriptValue objects to represent SLiM globals
+		0:20 after optimizing SymbolTable setup with static cached std::pairs
+		0:19 after switching to lazy construction of output streams
+		0:15 after taking SymbolTable off std::map
+		0:10 after switching to external string pointers for predefined symbol names
+		0:03 after smart injection of symbols based on a pre-scan of the tree
+		0:01.7 after caching of pre-evaluated constant numbers and strings
+		0:01.4 after switching to static instances for NULLs
+		0:01.3 after making ScriptInterpreter use a SymbolTable reference
+		0:00.86 after adding smart injection to SymbolTable
+		0:00.59 after adding a built-in buffer to SymbolTable
+		0:00.27 after adding constant script short-circuiting
+	Instrumenting with MK_SLiMGUIsim4.txt (starts where the previous series ends, with a new script that takes much longer)
+		0:76 initial time
+		0:49 after special-casing singletons in GetValueForMemberOfElements()
+		0:45 after changing C strings to static global std::strings
+		0:44 after making static ScriptValue_NULL objects globals
+		0:32 after switching to static globals for singleton logical ScriptValues
+		0:28 after adding cached ScriptValues for object ids and generation
+		0:26 after optimizing for self_symbol_ use in fitness callbacks
+		0:26 after optimizing away checks for contains_wildcard_
+		0:24.9 after fixing leaks and resizing default Genome allocation to 4 instead of 16
+		0:24.1 after changing Genome to keep an internal Mutation* buffer to avoid malloc
+		0:23.7 after changing Genome to use its mutations_ pointer to indicate a null genome
+		0:23.0 after switching callbacks to use InitializeConstantSymbolEntry()
+		0:22.1 after inlining SetExternallyOwned()
+		0:21.9 after inlining AllocateNewSlot()
+		0:18.5 after introducing ScriptValue_Float_singleton_const
+		0:18.0 after introducing ScriptValue_Int_singleton_const
+		0:18.4 after introducing ScriptValue_Object_singleton_const
+		0:17.6 after using stack-allocated ScriptValues in callbacks
+		0:17.3 (opt = 7.16, 7.34, 7.37, 7.23, 7.52 = 7.324) after optimizing Evaluate_FunctionCall()
+		0:14.2 (opt = 6.57, 6.52, 6.68, 6.48, 6.68 = 6.586) after switching argument lists off of std::vector
+		0:13.6 (opt = 6.58, 6.49, 6.51, 6.40, 6.44 = 6.484) after getting rid of unnecessary std::string copies
+		0:13.5 (opt = 6.33, 6.36, 6.42, 6.39, 6.31 = 6.362) after optimizing Evaluate_Subset() for singletons
+		0:13.4 (opt = 6.49, 6.50, 6.49, 6.45, 6.48 = 6.482) after caching results of IsNull()
+		0:13.6 (opt = 6.27, 6.37, 6.47, 6.47, 6.43 = 6.402) after changing Subpopulation's fitness caches to malloced buffers
+		0:12.x (opt = 5.95, 6.01, 5.82, 5.89, 6.01 = 5.936) after adding caching of built-in strings, signatures, etc.
+		0:12.2 (opt = 5.90, 5.92, 5.88, 5.92, 5.95 = 5.914) after changing ElementType() to return a string pointer
+
+-------------------------------
+
 timings (user time, with g++ build executed on command line):
 1.8:	time ./slim input_example_3.txt		(seed == 1418961197)
 	18 Dec. 2014	4m22.112s
