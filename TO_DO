@@ -59,13 +59,13 @@ SLiMscript optimization:
 		0:18.0 after introducing ScriptValue_Int_singleton_const
 		0:18.4 after introducing ScriptValue_Object_singleton_const
 		0:17.6 after using stack-allocated ScriptValues in callbacks
-	*	0:17.3 after optimizing Evaluate_FunctionCall()
-		0:14.2 after switching argument lists off of std::vector
-		0:13.6 after getting rid of unnecessary std::string copies
-		0:13.5 after optimizing Evaluate_Subset() for singletons
-		0:13.4 after caching results of IsNull()
-		0:13.6 after changing Subpopulation's fitness caches to malloced buffers (this is actually faster, with optimization on)
-		0:12.8 after adding caching of built-in strings, signatures, etc.
+	*	0:17.3 (opt = 7.16, 7.34, 7.37, 7.23, 7.52 = 7.324) after optimizing Evaluate_FunctionCall()
+		0:14.2 (opt = 6.57, 6.52, 6.68, 6.48, 6.68 = 6.586) after switching argument lists off of std::vector
+		0:13.6 (opt = 6.58, 6.49, 6.51, 6.40, 6.44 = 6.484) after getting rid of unnecessary std::string copies
+		0:13.5 (opt = 6.33, 6.36, 6.42, 6.39, 6.31 = 6.362) after optimizing Evaluate_Subset() for singletons
+		0:13.4 (opt = 6.49, 6.50, 6.49, 6.45, 6.48 = 6.482) after caching results of IsNull()
+		0:13.6 (opt = 6.27, 6.37, 6.47, 6.47, 6.43 = 6.402) after changing Subpopulation's fitness caches to malloced buffers
+		0:12.6 (opt = 5.95, 6.01, 5.82, 5.89, 6.01 = 5.936) after adding caching of built-in strings, signatures, etc.
 	
 SLiMgui work:
 	SLiMscribe: continue work to make it completely independent of SLiM
