@@ -30,8 +30,11 @@
 #include <vector>
 #include <string>
 
+#include "slim_global.h"
+
 
 class ScriptValue;
+class FunctionSignature;
 
 
 // set these to true to get logging of tokens / AST / evaluation
@@ -98,11 +101,6 @@ enum class TokenType {
 	kTokenNext,			// next		loop jump to end
 	kTokenBreak,		// break	loop jump to completion
 	kTokenReturn,		// return	return a value from the enclosing block
-	
-	// SLiM keywords
-	kTokenFitness,		// fitness		fitness callback definition
-	kTokenMateChoice,	// mateChoice	mateChoice callback definition
-	kTokenModifyChild	// modifyChild	modifyChild callback definition
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type);
@@ -142,6 +140,8 @@ public:
 	
 	mutable ScriptValue *cached_value_ = nullptr;				// an optional pre-cached ScriptValue representing the node
 	mutable bool cached_value_is_owned_ = false;				// if T, this node owns its own cached_value_; if F, a descendant node owns it
+	mutable const FunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
+	mutable GlobalStringID cached_stringID = gID_none;			// a pre-cached identifier for the token string, for fast property/method lookup
 	
 	ScriptASTNode(const ScriptASTNode&) = delete;				// no copying
 	ScriptASTNode& operator=(const ScriptASTNode&) = delete;	// no copying
@@ -154,6 +154,10 @@ public:
 	void AddChild(ScriptASTNode *p_child_node);					// takes ownership of the passed node
 	void ReplaceTokenWithToken(ScriptToken *p_token);			// used to fix virtual token to encompass their children; takes ownership
 	
+	void OptimizeTree(void) const;								// perform various (required) optimizations on the AST
+	void _OptimizeConstants(void) const;						// cache ScriptValues for constants and propagate constants upward
+	void _OptimizeIdentifiers(void) const;						// cache function signatures, global strings for methods and properties, etc.
+	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;
 };
@@ -164,7 +168,7 @@ class Script
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
-private:
+protected:
 	
 	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
 	int start_character_index_;				// the index of the start brace in the SLiMSim script string
@@ -184,12 +188,11 @@ public:
 	Script(void) = delete;										// no null construction
 	Script(const std::string &p_script_string, int p_start_index);
 	
-	~Script(void);												// destructor
+	virtual ~Script(void);										// destructor
 	
 	void Tokenize(bool p_keep_nonsignificant = false);			// generate token stream from script string
 	void AddOptionalSemicolon(void);							// add a semicolon to unterminated input like "6+7" so it works in the console
 	
-	void ParseSLiMFileToAST(void);								// generate AST from token stream for a SLiM input file ( slim_script_block* EOF )
 	void ParseInterpreterBlockToAST(void);						// generate AST from token stream for an interpreter block ( statement* EOF )
 	
 	void PrintTokens(std::ostream &p_outstream) const;
@@ -202,10 +205,6 @@ public:
 	void Consume();
 	void SetErrorPositionFromCurrentToken(void);
 	void Match(TokenType p_token_type, const char *p_context_cstr);
-	
-	// Top-level parse methods for SLiM input files
-	ScriptASTNode *Parse_SLiMFile(void);
-	ScriptASTNode *Parse_SLiMScriptBlock(void);
 	
 	// Top-level parse method for the SLiMscript interpreter and other contexts
 	ScriptASTNode *Parse_InterpreterBlock(void);

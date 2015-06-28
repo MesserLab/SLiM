@@ -159,7 +159,8 @@
 			if (index < readOnlySymbols.size())
 			{
 				const std::string &symbolName = readOnlySymbols[index];
-				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
+				GlobalStringID symbolID = GlobalStringIDForString(symbolName);
+				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
@@ -170,7 +171,8 @@
 			else
 			{
 				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolName);
+				GlobalStringID symbolID = GlobalStringIDForString(symbolName);
+				ScriptValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				ScriptValueWrapper *childWrapper = [ScriptValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				

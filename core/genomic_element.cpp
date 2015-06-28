@@ -109,22 +109,44 @@ std::vector<std::string> GenomicElement::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *GenomicElement::GetValueForMember(const std::string &p_member_name)
+bool GenomicElement::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_genomicElementType) == 0)
-		return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
-	if (p_member_name.compare(gStr_startPosition) == 0)
-		return new ScriptValue_Int_singleton_const(start_position_);
-	if (p_member_name.compare(gStr_endPosition) == 0)
-		return new ScriptValue_Int_singleton_const(end_position_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
+	switch (p_member_id)
+	{
+			// constants
+		case gID_genomicElementType:
+		case gID_startPosition:
+		case gID_endPosition:
+			return true;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+	}
 }
 
-void GenomicElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *GenomicElement::GetValueForMember(GlobalStringID p_member_id)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
+	{
+			// constants
+		case gID_genomicElementType:
+			return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
+		case gID_startPosition:
+			return new ScriptValue_Int_singleton_const(start_position_);
+		case gID_endPosition:
+			return new ScriptValue_Int_singleton_const(end_position_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void GenomicElement::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> GenomicElement::Methods(void) const
@@ -136,7 +158,7 @@ std::vector<std::string> GenomicElement::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *GenomicElement::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *GenomicElement::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	static FunctionSignature *changeGenomicElementTypeSig = nullptr;
 	
@@ -145,13 +167,13 @@ const FunctionSignature *GenomicElement::SignatureForMethod(const std::string &p
 		changeGenomicElementTypeSig = (new FunctionSignature(gStr_changeGenomicElementType, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
 	}
 	
-	if (p_method_name.compare(gStr_changeGenomicElementType) == 0)
+	if (p_method_id == gID_changeGenomicElementType)
 		return changeGenomicElementTypeSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *GenomicElement::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *GenomicElement::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
@@ -160,7 +182,7 @@ ScriptValue *GenomicElement::ExecuteMethod(const std::string &p_method_name, Scr
 	//
 #pragma mark -changeGenomicElementType()
 	
-	if (p_method_name.compare(gStr_changeGenomicElementType) == 0)
+	if (p_method_id == gID_changeGenomicElementType)
 	{
 		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ElementAtIndex(0));
 		
@@ -170,8 +192,9 @@ ScriptValue *GenomicElement::ExecuteMethod(const std::string &p_method_name, Scr
 	}
 	
 	
+	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

@@ -259,36 +259,58 @@ std::vector<std::string> Genome::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *Genome::GetValueForMember(const std::string &p_member_name)
+bool Genome::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_genomeType) == 0)
+	switch (p_member_id)
 	{
-		switch (genome_type_)
-		{
-			case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
-			case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
-			case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
-		}
+			// constants
+		case gID_genomeType:
+		case gID_isNullGenome:
+		case gID_mutations:
+			return true;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_isNullGenome) == 0)
-		return ((mutations_ == nullptr) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
-	if (p_member_name.compare(gStr_mutations) == 0)
-	{
-		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
-		
-		for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
-			vec->PushElement(mutations_[mut_index]);
-		
-		return vec;
-	}
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void Genome::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
+	{
+			// constants
+		case gID_genomeType:
+		{
+			switch (genome_type_)
+			{
+				case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
+				case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
+				case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
+			}
+		}
+		case gID_isNullGenome:
+			return ((mutations_ == nullptr) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+		case gID_mutations:
+		{
+			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			
+			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
+				vec->PushElement(mutations_[mut_index]);
+			
+			return vec;
+		}
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void Genome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Genome::Methods(void) const
@@ -303,7 +325,7 @@ std::vector<std::string> Genome::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Genome::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *Genome::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	static FunctionSignature *addMutationsSig = nullptr;
 	static FunctionSignature *addNewDrawnMutationSig = nullptr;
@@ -318,19 +340,25 @@ const FunctionSignature *Genome::SignatureForMethod(const std::string &p_method_
 		removeMutationsSig = (new FunctionSignature(gStr_removeMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
 	}
 	
-	if (p_method_name.compare(gStr_addMutations) == 0)
-		return addMutationsSig;
-	else if (p_method_name.compare(gStr_addNewDrawnMutation) == 0)
-		return addNewDrawnMutationSig;
-	else if (p_method_name.compare(gStr_addNewMutation) == 0)
-		return addNewMutationSig;
-	else if (p_method_name.compare(gStr_removeMutations) == 0)
-		return removeMutationsSig;
-	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+		case gID_addMutations:
+			return addMutationsSig;
+		case gID_addNewDrawnMutation:
+			return addNewDrawnMutationSig;
+		case gID_addNewMutation:
+			return addNewMutationSig;
+		case gID_removeMutations:
+			return removeMutationsSig;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::SignatureForMethod(p_method_id);
+	}
 }
 
-ScriptValue *Genome::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
@@ -339,161 +367,166 @@ ScriptValue *Genome::ExecuteMethod(const std::string &p_method_name, ScriptValue
 	ScriptValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
 	
 
-	//
-	//	*********************	- (void)addMutations(object mutations)
-	//
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+			//
+			//	*********************	- (void)addMutations(object mutations)
+			//
 #pragma mark -addMutations()
-	
-	if (p_method_name.compare(gStr_addMutations) == 0)
-	{
-		int arg0_count = arg0_value->Count();
-		
-		if (arg0_count)
+			
+		case gID_addMutations:
 		{
-			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
-				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+			int arg0_count = arg0_value->Count();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			if (arg0_count)
 			{
-				Mutation *new_mutation = (Mutation *)(arg0_value->ElementAtIndex(value_index));
-				
-				insert_sorted_mutation_if_unique(new_mutation);
-				
-				// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
-				//if (!registry.contains_mutation(new_mutation))
-				//	registry.push_back(new_mutation);
-			}
-		}
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	
-	
-	//
-	//	*********************	- (object$)addNewDrawnMutation(object$ mutationType, integer$ originGeneration, integer$ position, integer$ originSubpopID)
-	//
-#pragma mark -addNewDrawnMutation()
-	
-	if (p_method_name.compare(gStr_addNewDrawnMutation) == 0)
-	{
-		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
-		int origin_generation = (int)arg1_value->IntAtIndex(0);
-		int position = (int)arg2_value->IntAtIndex(0);
-		int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
-		
-		if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
-			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
-		
-		MutationType *mut_type = (MutationType *)mut_type_value;
-		double selection_coeff = mut_type->DrawSelectionCoefficient();
-		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
-		
-		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-		// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-		SymbolTable &symbols = p_interpreter.GetSymbolTable();
-		ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
-		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
-		
-		insert_sorted_mutation(mutation);
-		sim->Population().mutation_registry_.push_back(mutation);
-		
-		return new ScriptValue_Object_singleton_const(mutation);
-	}
-	
-	
-	//
-	//	*********************	- (object$)addNewMutation(object$ mutationType, integer$ originGeneration, integer$ position, numeric$ selectionCoeff, integer$ originSubpopID)
-	//
-#pragma mark -addNewMutation()
-	
-	if (p_method_name.compare(gStr_addNewMutation) == 0)
-	{
-		ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
-		int origin_generation = (int)arg1_value->IntAtIndex(0);
-		int position = (int)arg2_value->IntAtIndex(0);
-		double selection_coeff = arg3_value->FloatAtIndex(0);
-		int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
-		
-		if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
-			SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
-		
-		MutationType *mut_type = (MutationType *)mut_type_value;
-		Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
-		
-		// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-		// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-		SymbolTable &symbols = p_interpreter.GetSymbolTable();
-		ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
-		SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
-		
-		insert_sorted_mutation(mutation);
-		sim->Population().mutation_registry_.push_back(mutation);
-
-		return new ScriptValue_Object_singleton_const(mutation);
-	}
-	
-	
-	//
-	//	*********************	- (void)removeMutations(object mutations)
-	//
-#pragma mark -removeMutations()
-	
-	if (p_method_name.compare(gStr_removeMutations) == 0)
-	{
-		int arg0_count = arg0_value->Count();
-		
-		if (arg0_count)
-		{
-			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
-				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
-			
-			if (mutations_ == nullptr)
-				NullGenomeAccessError();
-			
-			// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-			Mutation **genome_iter = begin_pointer();
-			Mutation **genome_backfill_iter = begin_pointer();
-			Mutation **genome_max = end_pointer();
-			
-			// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
-			while (genome_iter != genome_max)
-			{
-				Mutation *candidate_mutation = *genome_iter;
-				bool should_remove = false;
+				if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
+					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					if (arg0_value->ElementAtIndex(value_index) == candidate_mutation)
-					{
-						should_remove = true;
-						break;
-					}
-				
-				if (should_remove)
 				{
-					// Removed mutation; we want to omit it, so we just advance our pointer
-					++genome_iter;
-				}
-				else
-				{
-					// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-					if (genome_backfill_iter != genome_iter)
-						*genome_backfill_iter = *genome_iter;
+					Mutation *new_mutation = (Mutation *)(arg0_value->ElementAtIndex(value_index));
 					
-					++genome_backfill_iter;
-					++genome_iter;
+					insert_sorted_mutation_if_unique(new_mutation);
+					
+					// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
+					//if (!registry.contains_mutation(new_mutation))
+					//	registry.push_back(new_mutation);
 				}
 			}
 			
-			// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-			mutation_count_ -= (genome_iter - genome_backfill_iter);
+			return gStaticScriptValueNULLInvisible;
 		}
-		
-		return gStaticScriptValueNULLInvisible;
+			
+			
+			//
+			//	*********************	- (object$)addNewDrawnMutation(object$ mutationType, integer$ originGeneration, integer$ position, integer$ originSubpopID)
+			//
+#pragma mark -addNewDrawnMutation()
+			
+		case gID_addNewDrawnMutation:
+		{
+			ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			int origin_generation = (int)arg1_value->IntAtIndex(0);
+			int position = (int)arg2_value->IntAtIndex(0);
+			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
+			
+			if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
+				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+			
+			MutationType *mut_type = (MutationType *)mut_type_value;
+			double selection_coeff = mut_type->DrawSelectionCoefficient();
+			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
+			
+			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
+			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
+			SymbolTable &symbols = p_interpreter.GetSymbolTable();
+			ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
+			
+			insert_sorted_mutation(mutation);
+			sim->Population().mutation_registry_.push_back(mutation);
+			
+			return new ScriptValue_Object_singleton_const(mutation);
+		}
+			
+			
+			//
+			//	*********************	- (object$)addNewMutation(object$ mutationType, integer$ originGeneration, integer$ position, numeric$ selectionCoeff, integer$ originSubpopID)
+			//
+#pragma mark -addNewMutation()
+			
+		case gID_addNewMutation:
+		{
+			ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			int origin_generation = (int)arg1_value->IntAtIndex(0);
+			int position = (int)arg2_value->IntAtIndex(0);
+			double selection_coeff = arg3_value->FloatAtIndex(0);
+			int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
+			
+			if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
+				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+			
+			MutationType *mut_type = (MutationType *)mut_type_value;
+			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
+			
+			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
+			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
+			SymbolTable &symbols = p_interpreter.GetSymbolTable();
+			ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
+			
+			insert_sorted_mutation(mutation);
+			sim->Population().mutation_registry_.push_back(mutation);
+			
+			return new ScriptValue_Object_singleton_const(mutation);
+		}
+			
+			
+			//
+			//	*********************	- (void)removeMutations(object mutations)
+			//
+#pragma mark -removeMutations()
+			
+		case gID_removeMutations:
+		{
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_count)
+			{
+				if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
+					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+				
+				if (mutations_ == nullptr)
+					NullGenomeAccessError();
+				
+				// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
+				Mutation **genome_iter = begin_pointer();
+				Mutation **genome_backfill_iter = begin_pointer();
+				Mutation **genome_max = end_pointer();
+				
+				// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+				while (genome_iter != genome_max)
+				{
+					Mutation *candidate_mutation = *genome_iter;
+					bool should_remove = false;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						if (arg0_value->ElementAtIndex(value_index) == candidate_mutation)
+						{
+							should_remove = true;
+							break;
+						}
+					
+					if (should_remove)
+					{
+						// Removed mutation; we want to omit it, so we just advance our pointer
+						++genome_iter;
+					}
+					else
+					{
+						// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+						if (genome_backfill_iter != genome_iter)
+							*genome_backfill_iter = *genome_iter;
+						
+						++genome_backfill_iter;
+						++genome_iter;
+					}
+				}
+				
+				// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+				mutation_count_ -= (genome_iter - genome_backfill_iter);
+			}
+			
+			return gStaticScriptValueNULLInvisible;
+		}
+			
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
-	
-	
-	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

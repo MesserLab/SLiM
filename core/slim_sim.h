@@ -76,7 +76,7 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-	Script *script_;																// OWNED POINTER: the whole input file script
+	SLiMScript *script_;															// OWNED POINTER: the whole input file script
 	std::vector<SLiMScriptBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
 	std::vector<SLiMScriptBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
 	std::vector<FunctionSignature*> sim_0_signatures;								// OWNED POINTERS: SLiMscript function signatures
@@ -145,12 +145,13 @@ public:
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
+	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 

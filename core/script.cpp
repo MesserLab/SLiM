@@ -87,10 +87,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const TokenType p_token_type
 		case TokenType::kTokenBreak:		p_outstream << gStr_break;			break;
 		case TokenType::kTokenReturn:		p_outstream << gStr_return;		break;
 			
-		case TokenType::kTokenFitness:		p_outstream << gStr_fitness;		break;
-		case TokenType::kTokenMateChoice:	p_outstream << gStr_mateChoice;	break;
-		case TokenType::kTokenModifyChild:	p_outstream << gStr_modifyChild;	break;
-			
 		case TokenType::kTokenInterpreterBlock:		p_outstream << "$>";	break;
 		case TokenType::kTokenSLiMFile:				p_outstream << "###";	break;
 		case TokenType::kTokenSLiMScriptBlock:		p_outstream << "#>";	break;
@@ -183,6 +179,127 @@ void ScriptASTNode::ReplaceTokenWithToken(ScriptToken *p_token)
 	// used to fix virtual token to encompass their children; takes ownership
 	token_ = p_token;
 	token_is_owned_ = true;
+}
+
+void ScriptASTNode::OptimizeTree(void) const
+{
+	_OptimizeConstants();
+	_OptimizeIdentifiers();
+}
+
+void ScriptASTNode::_OptimizeConstants(void) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (const ScriptASTNode *child : children_)
+		child->_OptimizeConstants();
+	
+	// now find constant expressions and make ScriptValues for them
+	TokenType token_type = token_->token_type_;
+	
+	if (token_type == TokenType::kTokenNumber)
+	{
+		const std::string &number_string = token_->token_string_;
+		
+		// This is taken from ScriptInterpreter::Evaluate_Number and needs to match exactly!
+		ScriptValue *result = nullptr;
+		
+		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
+		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
+			result = new ScriptValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
+		else
+			result = new ScriptValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+		
+		result->SetExternallyOwned();
+		
+		cached_value_ = result;
+		cached_value_is_owned_ = true;
+	}
+	else if (token_type == TokenType::kTokenString)
+	{
+		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
+		ScriptValue *result = new ScriptValue_String(token_->token_string_);
+		
+		result->SetExternallyOwned();
+		
+		cached_value_ = result;
+		cached_value_is_owned_ = true;
+	}
+	else if ((token_type == TokenType::kTokenReturn) || (token_type == TokenType::kTokenLBrace))
+	{
+		// These are node types which can propagate a single constant value upward.  Note that this is not strictly
+		// true; both return and compound statements have side effects on the flow of execution.  It would therefore
+		// be inappropriate for their execution to be short-circuited in favor of a constant value in general; but
+		// that is not what this optimization means.  Rather, it means that these nodes are saying "I've got just a
+		// constant value inside me, so *if* nothing else is going on around me, I can be taken as equal to that
+		// constant."  We honor that conditional statement by only checking for the cached constant in specific places.
+		if (children_.size() == 1)
+		{
+			const ScriptASTNode *child = children_[0];
+			ScriptValue *cached_value = child->cached_value_;
+			
+			if (cached_value)
+			{
+				cached_value_ = cached_value;
+				cached_value_is_owned_ = false;	// somebody below us owns the value
+			}
+		}
+	}
+}
+
+void ScriptASTNode::_OptimizeIdentifiers(void) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : children_)
+		child->_OptimizeIdentifiers();
+	
+	if (token_->token_type_ == TokenType::kTokenIdentifier)
+	{
+		const std::string &token_string = token_->token_string_;
+		
+		// if the identifier's name matches that of a global function, cache the function signature
+		FunctionMap *function_map = ScriptInterpreter::BuiltInFunctionMap();
+		
+		auto signature_iter = function_map->find(token_string);
+		
+		if (signature_iter != function_map->end())
+			cached_signature_ = signature_iter->second;
+		
+		// if the identifier's name matches that of a property or method that we know about, cache an ID for it
+		cached_stringID = GlobalStringIDForString(token_string);
+	}
+	else if (token_->token_type_ == TokenType::kTokenLParen)
+	{
+		// If we are a function call node, check that our first child, if it is a simple identifier, has cached a signature.
+		// If we do not have children, or the first child is not an identifier, that is also problematic, but not our problem.
+		// If a function identifier does not have a cached signature, it must at least have a cached string ID; this allows
+		// zero-generation functions to pass our check, since they can't be set up before this check occurs.
+		int children_count = (int)children_.size();
+		
+		if (children_count >= 1)
+		{
+			const ScriptASTNode *first_child = children_[0];
+			
+			if (first_child->token_->token_type_ == TokenType::kTokenIdentifier)
+				if ((first_child->cached_signature_ == nullptr) && (first_child->cached_stringID == gID_none))
+					SLIM_TERMINATION << "ERROR (SLiMScriptBlock::_ScanNodeForIdentifiers): unrecognized function name \"" << first_child->token_->token_string_ << "\"." << slim_terminate();
+		}
+	}
+	else if (token_->token_type_ == TokenType::kTokenDot)
+	{
+		// If we are a dot-operator node, check that our second child has cached a string ID for the property or method being invoked.
+		// If we do not have children, or the second child is not an identifier, that is also problematic, but not our problem.
+		int children_count = (int)children_.size();
+		
+		if (children_count >= 2)
+		{
+			const ScriptASTNode *second_child = children_[1];
+			
+			if (second_child->token_->token_type_ == TokenType::kTokenIdentifier)
+				if (second_child->cached_stringID == gID_none)
+					SLIM_TERMINATION << "ERROR (SLiMScriptBlock::_ScanNodeForIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << slim_terminate();
+		}
+	}
 }
 
 void ScriptASTNode::PrintToken(std::ostream &p_outstream) const
@@ -547,11 +664,6 @@ void Script::Tokenize(bool p_keep_nonsignificant)
 				else if (token_string.compare(gStr_break) == 0) token_type = TokenType::kTokenBreak;
 				else if (token_string.compare(gStr_return) == 0) token_type = TokenType::kTokenReturn;
 				
-				// SLiM keywords
-				else if (token_string.compare(gStr_fitness) == 0) token_type = TokenType::kTokenFitness;
-				else if (token_string.compare(gStr_mateChoice) == 0) token_type = TokenType::kTokenMateChoice;
-				else if (token_string.compare(gStr_modifyChild) == 0) token_type = TokenType::kTokenModifyChild;
-				
 				if (token_type > TokenType::kFirstIdentifierLikeToken)
 					token_string = gStr_lessThanSign + token_string + gStr_greaterThanSign;
 			}
@@ -648,153 +760,6 @@ void Script::Match(TokenType p_token_type, const char *p_context_cstr)
 		SetErrorPositionFromCurrentToken();
 		SLIM_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << slim_terminate();
 	}
-}
-
-ScriptASTNode *Script::Parse_SLiMFile(void)
-{
-	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, gStr_empty_string, 0, 0);
-	ScriptASTNode *node = new ScriptASTNode(virtual_token, true);
-	
-	while (current_token_type_ != TokenType::kTokenEOF)
-	{
-		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
-		// Parsing of the optional generation range is done in Parse_SLiMScriptBlock() since it ends up as children of that node.
-		ScriptASTNode *script_block = Parse_SLiMScriptBlock();
-		
-		node->AddChild(script_block);
-	}
-	
-	Match(TokenType::kTokenEOF, "SLiM file");
-	
-	return node;
-}
-
-ScriptASTNode *Script::Parse_SLiMScriptBlock(void)
-{
-	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, gStr_empty_string, 0, 0);
-	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token, true);
-	
-	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
-	// We parse the slim_script_info section here, as part of the script block.
-	if (current_token_type_ == TokenType::kTokenString)
-	{
-		// a script identifier string is present; add it
-		ScriptASTNode *script_id_node = Parse_Constant();
-		
-		slim_script_block_node->AddChild(script_id_node);
-	}
-	
-	if (current_token_type_ == TokenType::kTokenNumber)
-	{
-		// A start generation is present; add it
-		ScriptASTNode *start_generation_node = Parse_Constant();
-		
-		slim_script_block_node->AddChild(start_generation_node);
-		
-		if (current_token_type_ == TokenType::kTokenColon)
-		{
-			// An end generation is present; add it
-			Match(TokenType::kTokenColon, "SLiM script block");
-			
-			if (current_token_type_ == TokenType::kTokenNumber)
-			{
-				ScriptASTNode *end_generation_node = Parse_Constant();
-				
-				slim_script_block_node->AddChild(end_generation_node);
-			}
-			else
-			{
-				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
-			}
-		}
-	}
-	
-	// Now we are to the point of parsing the actual slim_script_block
-	if (current_token_type_ == TokenType::kTokenFitness)
-	{
-		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
-		
-		Match(TokenType::kTokenFitness, "SLiM fitness() callback");
-		Match(TokenType::kTokenLParen, "SLiM fitness() callback");
-		
-		if (current_token_type_ == TokenType::kTokenNumber)
-		{
-			// A (required) mutation type id is present; add it
-			ScriptASTNode *mutation_type_id_node = Parse_Constant();
-			
-			callback_info_node->AddChild(mutation_type_id_node);
-		}
-		else
-		{
-			SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a mutation type id is required in fitness() callback definitions" << slim_terminate();
-		}
-		
-		if (current_token_type_ == TokenType::kTokenComma)
-		{
-			// A (optional) subpopulation id is present; add it
-			Match(TokenType::kTokenComma, "SLiM fitness() callback");
-			
-			if (current_token_type_ == TokenType::kTokenNumber)
-			{
-				ScriptASTNode *subpopulation_id_node = Parse_Constant();
-				
-				callback_info_node->AddChild(subpopulation_id_node);
-			}
-			else
-			{
-				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a subpopulation id is expected after a comma in fitness() callback definitions" << slim_terminate();
-			}
-		}
-		
-		Match(TokenType::kTokenRParen, "SLiM fitness() callback");
-		
-		slim_script_block_node->AddChild(callback_info_node);
-	}
-	else if (current_token_type_ == TokenType::kTokenMateChoice)
-	{
-		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
-		
-		Match(TokenType::kTokenMateChoice, "SLiM mateChoice() callback");
-		Match(TokenType::kTokenLParen, "SLiM mateChoice() callback");
-		
-		// A (optional) subpopulation id is present; add it
-		if (current_token_type_ == TokenType::kTokenNumber)
-		{
-			ScriptASTNode *subpopulation_id_node = Parse_Constant();
-			
-			callback_info_node->AddChild(subpopulation_id_node);
-		}
-		
-		Match(TokenType::kTokenRParen, "SLiM mateChoice() callback");
-		
-		slim_script_block_node->AddChild(callback_info_node);
-	}
-	else if (current_token_type_ == TokenType::kTokenModifyChild)
-	{
-		ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
-		
-		Match(TokenType::kTokenModifyChild, "SLiM modifyChild() callback");
-		Match(TokenType::kTokenLParen, "SLiM modifyChild() callback");
-		
-		// A (optional) subpopulation id is present; add it
-		if (current_token_type_ == TokenType::kTokenNumber)
-		{
-			ScriptASTNode *subpopulation_id_node = Parse_Constant();
-			
-			callback_info_node->AddChild(subpopulation_id_node);
-		}
-		
-		Match(TokenType::kTokenRParen, "SLiM modifyChild() callback");
-		
-		slim_script_block_node->AddChild(callback_info_node);
-	}
-	
-	// Regardless of what happened above, all SLiMscript blocks end with a compound statement, which is the last child of the node
-	ScriptASTNode *compound_statement_node = Parse_CompoundStatement();
-	
-	slim_script_block_node->AddChild(compound_statement_node);
-	
-	return slim_script_block_node;
 }
 
 ScriptASTNode *Script::Parse_InterpreterBlock(void)
@@ -1324,30 +1289,6 @@ ScriptASTNode *Script::Parse_Constant(void)
 	return node;
 }
 
-void Script::ParseSLiMFileToAST(void)
-{
-	// delete the existing AST
-	delete parse_root_;
-	parse_root_ = nullptr;
-	
-	// set up parse state
-	parse_index_ = 0;
-	current_token_ = token_stream_.at(parse_index_);		// should always have at least an EOF
-	current_token_type_ = current_token_->token_type_;
-	
-	// parse a new AST from our start token
-	ScriptASTNode *tree = Parse_SLiMFile();
-	
-	parse_root_ = tree;
-	
-	// if logging of the AST is requested, do that; always to cout, not to SLIM_OUTSTREAM
-	if (gSLiMScriptLogAST)
-	{
-		std::cout << "AST : \n";
-		this->PrintAST(std::cout);
-	}
-}
-
 void Script::ParseInterpreterBlockToAST(void)
 {
 	// delete the existing AST
@@ -1361,6 +1302,8 @@ void Script::ParseInterpreterBlockToAST(void)
 	
 	// parse a new AST from our start token
 	ScriptASTNode *tree = Parse_InterpreterBlock();
+
+	tree->OptimizeTree();
 	
 	parse_root_ = tree;
 	

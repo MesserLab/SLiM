@@ -281,7 +281,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 // private representations kept by external classes in SLiM).  In other words, assignment relies upon the fact that a temporary object
 // constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
 // assigning into the temporary also assigns into the original.
-void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, string *p_member_name_ptr, vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node)
+void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, GlobalStringID *p_member_string_id_ptr, vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
 	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
@@ -300,7 +300,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			vector<int> base_indices;
 			
 			// Recurse to find the symbol host and member name that we are ultimately subscripting off of
-			_ProcessSubscriptAssignment(p_base_value_ptr, p_member_name_ptr, &base_indices, left_operand);
+			_ProcessSubscriptAssignment(p_base_value_ptr, p_member_string_id_ptr, &base_indices, left_operand);
 			
 			// Find out which indices we're supposed to use within our base vector
 			ScriptValue *second_child_value = EvaluateNode(right_operand);
@@ -387,7 +387,7 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			}
 			
 			*p_base_value_ptr = first_child_value;
-			*p_member_name_ptr = right_operand->token_->token_string_;
+			*p_member_string_id_ptr = GlobalStringIDForString(right_operand->token_->token_string_);
 			
 			int number_of_elements = first_child_value->Count();	// member operations are guaranteed to produce one value per element
 			
@@ -436,17 +436,17 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 				SLIM_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << slim_terminate();
 			
 			ScriptValue *base_value;
-			string member_name;
+			GlobalStringID member_string_id = gID_none;
 			vector<int> indices;
 			
-			_ProcessSubscriptAssignment(&base_value, &member_name, &indices, p_lvalue_node);
+			_ProcessSubscriptAssignment(&base_value, &member_string_id, &indices, p_lvalue_node);
 			
 			int index_count = (int)indices.size();
 			int rvalue_count = rvalue->Count();
 			
 			if (rvalue_count == 1)
 			{
-				if (member_name.length() == 0)
+				if (member_string_id == gID_none)
 				{
 					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
 						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << slim_terminate();
@@ -467,7 +467,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
 							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << slim_terminate();
 						
-						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, rvalue);
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_string_id, rvalue);
 						
 						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 					}
@@ -475,7 +475,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			}
 			else if (index_count == rvalue_count)
 			{
-				if (member_name.length() == 0)
+				if (member_string_id == gID_none)
 				{
 					if (!TypeCheckAssignmentOfValueIntoValue(rvalue, base_value))
 						SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): type mismatch in assignment." << slim_terminate();
@@ -502,7 +502,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 						if (temp_lvalue->Type() != ScriptValueType::kValueObject)
 							SLIM_TERMINATION << "ERROR (ScriptInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << slim_terminate();
 						
-						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_name, temp_rvalue);
+						static_cast<ScriptValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_string_id, temp_rvalue);
 						
 						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
@@ -541,7 +541,7 @@ void ScriptInterpreter::_AssignRValueToLValue(ScriptValue *rvalue, const ScriptA
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<ScriptValue_Object *>(first_child_value)->SetValueForMemberOfElements(second_child_node->token_->token_string_, rvalue);
+			static_cast<ScriptValue_Object *>(first_child_value)->SetValueForMemberOfElements(second_child_node->cached_stringID, rvalue);
 			break;
 		}
 		case TokenType::kTokenIdentifier:
@@ -814,13 +814,16 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 	ScriptASTNode *function_name_node = p_node->children_[0];
 	TokenType function_name_token_type = function_name_node->token_->token_type_;
 	
-	const string *function_name;
+	const string *function_name = nullptr;
+	const FunctionSignature *function_signature = nullptr;
+	GlobalStringID method_id = gID_none;
 	ScriptValue_Object *method_object = nullptr;
 	
 	if (function_name_token_type == TokenType::kTokenIdentifier)
 	{
 		// OK, we have <identifier>(...); that's a well-formed function call
 		function_name = &(function_name_node->token_->token_string_);
+		function_signature = function_name_node->cached_signature_;
 	}
 	else if (function_name_token_type == TokenType::kTokenDot)
 	{
@@ -847,7 +850,7 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		}
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
-		function_name = &(second_child_node->token_->token_string_);
+		method_id = second_child_node->cached_stringID;
 		method_object = static_cast<ScriptValue_Object *>(first_child_value);	// guaranteed by the Type() call above
 	}
 	else
@@ -899,9 +902,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 		if (method_object)
-			result = ExecuteMethodCall(method_object, *function_name, arguments_array, arguments_count);
+			result = ExecuteMethodCall(method_object, method_id, arguments_array, arguments_count);
 		else
-			result = ExecuteFunctionCall(*function_name, arguments_array, arguments_count);
+			result = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
 		
 		// And now we can free the arguments
 		for (argument_index = 0; argument_index < arguments_count; ++argument_index)
@@ -940,9 +943,9 @@ ScriptValue *ScriptInterpreter::Evaluate_FunctionCall(const ScriptASTNode *p_nod
 		ScriptValue **arguments_ptr = arguments.data();
 		
 		if (method_object)
-			result = ExecuteMethodCall(method_object, *function_name, arguments_ptr, arguments_count);
+			result = ExecuteMethodCall(method_object, method_id, arguments_ptr, arguments_count);
 		else
-			result = ExecuteFunctionCall(*function_name, arguments_ptr, arguments_count);
+			result = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
 		
 		// And now we can free the arguments
 		for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
@@ -1092,15 +1095,15 @@ ScriptValue *ScriptInterpreter::Evaluate_MemberRef(const ScriptASTNode *p_node)
 		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << slim_terminate();
 	}
 	
-	const string &member_name = second_child_node->token_->token_string_;
-	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_name);
+	GlobalStringID member_string_ID = second_child_node->cached_stringID;
+	result = static_cast<ScriptValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_string_ID);
 	
 	// free our operand
 	if (first_child_value->IsTemporary()) delete first_child_value;
 	
 	// check result; this should never happen, since GetValueForMember should check
 	if (!result)
-		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << member_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << StringForGlobalStringID(member_string_ID) << "." << slim_terminate();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";

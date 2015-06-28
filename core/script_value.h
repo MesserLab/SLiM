@@ -33,6 +33,7 @@
 #include <string>
 
 #include "script_symbols.h"
+#include "slim_global.h"
 
 
 class ScriptValue;
@@ -565,14 +566,14 @@ public:
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
 	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const = 0;
 	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const = 0;
-	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const = 0;
-	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const = 0;			// used by code completion
-	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value) = 0;
+	virtual ScriptValue *GetValueForMemberOfElements(GlobalStringID p_member_id) const = 0;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(GlobalStringID p_member_id) const = 0;			// used by code completion
+	virtual void SetValueForMemberOfElements(GlobalStringID p_member_id, ScriptValue *p_value) = 0;
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
-	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const = 0;
-	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
+	virtual const FunctionSignature *SignatureForMethodOfElements(GlobalStringID p_method_id) const = 0;
+	virtual ScriptValue *ExecuteClassMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter) = 0;
 };
 
 class ScriptValue_Object_vector : public ScriptValue_Object
@@ -607,14 +608,14 @@ public:
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
 	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
 	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
-	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
-	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
-	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
+	virtual ScriptValue *GetValueForMemberOfElements(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(GlobalStringID p_member_id) const;			// used by code completion
+	virtual void SetValueForMemberOfElements(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethodOfElements(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 class ScriptValue_Object_singleton_const : public ScriptValue_Object
@@ -646,14 +647,14 @@ public:
 	// ScriptValue_Object instance defines depend upon the type of the ScriptObjectElement objects it contains.
 	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
 	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
-	virtual ScriptValue *GetValueForMemberOfElements(const std::string &p_member_name) const;
-	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const;			// used by code completion
-	virtual void SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value);
+	virtual ScriptValue *GetValueForMemberOfElements(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetRepresentativeValueOrNullForMemberOfElements(GlobalStringID p_member_id) const;			// used by code completion
+	virtual void SetValueForMemberOfElements(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const FunctionSignature *SignatureForMethodOfElements(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	virtual ScriptValue *ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethodOfElements(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteClassMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual ScriptValue *ExecuteInstanceMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 
@@ -685,16 +686,17 @@ public:
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
+	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 	
 	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
-	void TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask);
-	void RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range);
+	void TypeCheckValue(const std::string &p_method_name, GlobalStringID p_member_id, ScriptValue *p_value, ScriptValueMask p_type_mask);
+	void RangeCheckValue(const std::string &p_method_name, GlobalStringID p_member_id, bool p_in_range);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element);

@@ -349,29 +349,34 @@ ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptV
 	return nullptr;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count)
+ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_name, const FunctionSignature *p_function_signature, ScriptValue *const *const p_arguments, int p_argument_count)
 {
 	ScriptValue *result = nullptr;
 	
-	// Get the function signature and check our arguments against it
-	auto signature_iter = function_map_->find(p_function_name);
+	// If the function call is a built-in SLiMscript function, we might already have a pointer to its signature cached; if not, we'll have to look it up
+	if (!p_function_signature)
+	{
+		// Get the function signature and check our arguments against it
+		auto signature_iter = function_map_->find(p_function_name);
+		
+		if (signature_iter == function_map_->end())
+			SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << slim_terminate();
+		
+		p_function_signature = signature_iter->second;
+	}
 	
-	if (signature_iter == function_map_->end())
-		SLIM_TERMINATION << "ERROR (ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << slim_terminate();
-	
-	const FunctionSignature *signature = signature_iter->second;
-	bool class_method = signature->is_class_method;
-	bool instance_method = signature->is_instance_method;
+	bool class_method = p_function_signature->is_class_method;
+	bool instance_method = p_function_signature->is_instance_method;
 	
 	if (class_method || instance_method)
 		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << slim_terminate();
 	
-	signature->CheckArguments(gStr_function, p_arguments, p_argument_count);
+	p_function_signature->CheckArguments(gStr_function, p_arguments, p_argument_count);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	ScriptValue_NULL *null_result = nullptr;
 	ScriptValue_String *string_result = nullptr;
-	ScriptValueMask return_type_mask = signature->return_mask_ & kScriptValueMaskFlagStrip;
+	ScriptValueMask return_type_mask = p_function_signature->return_mask_ & kScriptValueMaskFlagStrip;
 	
 	if (return_type_mask == kScriptValueMaskNULL)
 	{
@@ -401,7 +406,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	*/
 	
 	// Now we look up the function again and actually execute it
-	switch (signature->function_id_)
+	switch (p_function_signature->function_id_)
 	{
 		case FunctionIdentifier::kNoFunction:
 		{
@@ -411,7 +416,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 		case FunctionIdentifier::kDelegatedFunction:
 		{
-			result = signature->delegate_function_(signature->delegate_object_, p_function_name, p_arguments, p_argument_count, *this);
+			result = p_function_signature->delegate_function_(p_function_signature->delegate_object_, p_function_name, p_arguments, p_argument_count, *this);
 			break;
 		}
 			
@@ -2524,32 +2529,32 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	if (string_result && (string_result != result)) delete string_result;
 	
 	// Check the return value against the signature
-	signature->CheckReturn(gStr_function, result);
+	p_function_signature->CheckReturn(gStr_function, result);
 	
 	return result;
 }
 
-ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, string const &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count)
+ScriptValue *ScriptInterpreter::ExecuteMethodCall(ScriptValue_Object *method_object, GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count)
 {
 	ScriptValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	const FunctionSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_name);
+	const FunctionSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_id);
 	bool class_method = method_signature->is_class_method;
 	bool instance_method = method_signature->is_instance_method;
 	
 	if (!class_method && !instance_method)
-		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is not designated as a class method or instance method." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << StringForGlobalStringID(p_method_id) << " is not designated as a class method or instance method." << slim_terminate();
 	if (class_method && instance_method)
-		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << p_method_name << " is designated as both a class method and an instance method." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptInterpreter::ExecuteMethodCall): internal error: " << StringForGlobalStringID(p_method_id) << " is designated as both a class method and an instance method." << slim_terminate();
 	
 	method_signature->CheckArguments(gStr_method, p_arguments, p_argument_count);
 	
 	// Make the method call
 	if (class_method)
-		result = method_object->ExecuteClassMethodOfElements(p_method_name, p_arguments, p_argument_count, *this);
+		result = method_object->ExecuteClassMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	else
-		result = method_object->ExecuteInstanceMethodOfElements(p_method_name, p_arguments, p_argument_count, *this);
+		result = method_object->ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn(gStr_method, result);

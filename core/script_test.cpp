@@ -148,7 +148,10 @@ void AssertScriptRaise(const string &p_script_string)
 	{
 		gTestSuccessCount++;
 		
-		//std::cerr << p_script_string << " == (expected raise) " << GetTrimmedRaiseMessage() << " : \e[32mSUCCESS\e[0m" << endl;
+		// We need to call GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+		std::string raise_message = GetTrimmedRaiseMessage();
+		
+		//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
 		return;
 	}
 }

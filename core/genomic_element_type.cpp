@@ -155,33 +155,55 @@ std::vector<std::string> GenomicElementType::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *GenomicElementType::GetValueForMember(const std::string &p_member_name)
+bool GenomicElementType::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_id) == 0)
+	switch (p_member_id)
 	{
-		if (!cached_value_getype_id_)
-			cached_value_getype_id_ = (new ScriptValue_Int_singleton_const(genomic_element_type_id_))->SetExternallyOwned();
-		return cached_value_getype_id_;
+			// constants
+		case gID_id:
+		case gID_mutationTypes:
+		case gID_mutationFractions:
+			return true;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_mutationTypes) == 0)
-	{
-		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
-		
-		for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
-			vec->PushElement(*mut_type);
-		
-		return vec;
-	}
-	if (p_member_name.compare(gStr_mutationFractions) == 0)
-		return new ScriptValue_Float_vector(mutation_fractions_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void GenomicElementType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *GenomicElementType::GetValueForMember(GlobalStringID p_member_id)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
+	{
+			// constants
+		case gID_id:
+		{
+			if (!cached_value_getype_id_)
+				cached_value_getype_id_ = (new ScriptValue_Int_singleton_const(genomic_element_type_id_))->SetExternallyOwned();
+			return cached_value_getype_id_;
+		}
+		case gID_mutationTypes:
+		{
+			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			
+			for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
+				vec->PushElement(*mut_type);
+			
+			return vec;
+		}
+		case gID_mutationFractions:
+			return new ScriptValue_Float_vector(mutation_fractions_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void GenomicElementType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> GenomicElementType::Methods(void) const
@@ -193,7 +215,7 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *GenomicElementType::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *GenomicElementType::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	static FunctionSignature *changeMutationFractionsSig = nullptr;
 	
@@ -202,13 +224,13 @@ const FunctionSignature *GenomicElementType::SignatureForMethod(const std::strin
 		changeMutationFractionsSig = (new FunctionSignature(gStr_changeMutationFractions, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
 	}
 	
-	if (p_method_name.compare(gStr_changeMutationFractions) == 0)
+	if (p_method_id == gID_changeMutationFractions)
 		return changeMutationFractionsSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *GenomicElementType::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *GenomicElementType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
@@ -218,7 +240,7 @@ ScriptValue *GenomicElementType::ExecuteMethod(const std::string &p_method_name,
 	//
 #pragma mark -changeMutationFractions()
 	
-	if (p_method_name.compare(gStr_changeMutationFractions) == 0)
+	if (p_method_id == gID_changeMutationFractions)
 	{
 		int mut_type_id_count = arg0_value->Count();
 		int proportion_count = arg1_value->Count();
@@ -249,8 +271,9 @@ ScriptValue *GenomicElementType::ExecuteMethod(const std::string &p_method_name,
 	}
 	
 	
+	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

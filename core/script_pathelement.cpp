@@ -75,17 +75,27 @@ std::vector<std::string> Script_PathElement::ReadWriteMembers(void) const
 	return members;
 }
 
-ScriptValue *Script_PathElement::GetValueForMember(const std::string &p_member_name)
+bool Script_PathElement::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	if (p_member_name.compare(gStr_path) == 0)
-		return new ScriptValue_String(base_path_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
+	if (p_member_id == gID_path)
+		return false;
+	else
+		return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 }
 
-void Script_PathElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *Script_PathElement::GetValueForMember(GlobalStringID p_member_id)
 {
-	if (p_member_name.compare(gStr_path) == 0)
+	if (p_member_id == gID_path)
+		return new ScriptValue_String(base_path_);
+	
+	// all others, including gID_none
+	else
+		return ScriptObjectElement::GetValueForMember(p_member_id);
+}
+
+void Script_PathElement::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	if (p_member_id == gID_path)
 	{
 		ScriptValueType value_type = p_value->Type();
 		int value_count = p_value->Count();
@@ -99,7 +109,9 @@ void Script_PathElement::SetValueForMember(const std::string &p_member_name, Scr
 		return;
 	}
 	
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// all others, including gID_none
+	else
+		return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Script_PathElement::Methods(void) const
@@ -113,7 +125,7 @@ std::vector<std::string> Script_PathElement::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Script_PathElement::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *Script_PathElement::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *filesSig = nullptr;
@@ -127,14 +139,20 @@ const FunctionSignature *Script_PathElement::SignatureForMethod(const std::strin
 		writeFileSig = (new FunctionSignature(gStr_writeFile, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddString();
 	}
 	
-	if (p_method_name.compare(gStr_files) == 0)
-		return filesSig;
-	else if (p_method_name.compare(gStr_readFile) == 0)
-		return readFileSig;
-	else if (p_method_name.compare(gStr_writeFile) == 0)
-		return writeFileSig;
-	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+		case gID_files:
+			return filesSig;
+		case gID_readFile:
+			return readFileSig;
+		case gID_writeFile:
+			return writeFileSig;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::SignatureForMethod(p_method_id);
+	}
 }
 
 std::string Script_PathElement::ResolvedBasePath(void) const
@@ -156,118 +174,122 @@ std::string Script_PathElement::ResolvedBasePath(void) const
 	return path;
 }
 
-ScriptValue *Script_PathElement::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Script_PathElement::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	if (p_method_name.compare(gStr_files) == 0)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
 	{
-		string path = ResolvedBasePath();
-		
-		// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
-		// I'm not sure if it works on Windows... sigh...
-		DIR *dp;
-		struct dirent *ep;
-		
-		dp = opendir(path.c_str());
-		
-		if (dp != NULL)
+		case gID_files:
 		{
-			ScriptValue_String *return_string = new ScriptValue_String();
+			string path = ResolvedBasePath();
 			
-			while ((ep = readdir(dp)))
-				return_string->PushString(ep->d_name);
+			// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
+			// I'm not sure if it works on Windows... sigh...
+			DIR *dp;
+			struct dirent *ep;
 			
-			(void)closedir(dp);
+			dp = opendir(path.c_str());
 			
-			return return_string;
+			if (dp != NULL)
+			{
+				ScriptValue_String *return_string = new ScriptValue_String();
+				
+				while ((ep = readdir(dp)))
+					return_string->PushString(ep->d_name);
+				
+				(void)closedir(dp);
+				
+				return return_string;
+			}
+			else
+			{
+				// would be nice to emit an error message, but at present we don't have access to the stream...
+				//p_output_stream << "Path " << path << " could not be opened." << endl;
+				return gStaticScriptValueNULLInvisible;
+			}
 		}
-		else
+		case gID_readFile:
 		{
-			// would be nice to emit an error message, but at present we don't have access to the stream...
-			//p_output_stream << "Path " << path << " could not be opened." << endl;
+			// the first argument is the filename
+			ScriptValue *arg0_value = p_arguments[0];
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_count != 1)
+				SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << StringForGlobalStringID(p_method_id) << "() requires that its first argument's size() == 1." << slim_terminate();
+			
+			string filename = arg0_value->StringAtIndex(0);
+			string file_path = ResolvedBasePath() + "/" + filename;
+			
+			// read the contents in
+			std::ifstream file_stream(file_path.c_str());
+			
+			if (!file_stream.is_open())
+			{
+				// not a fatal error, just a warning log
+				p_interpreter.ExecutionOutputStream() << "WARNING: File at path " << file_path << " could not be read." << endl;
+				return gStaticScriptValueNULLInvisible;
+			}
+			
+			ScriptValue_String *string_result = new ScriptValue_String();
+			string line;
+			
+			while (getline(file_stream, line))
+				string_result->PushString(line);
+			
+			if (file_stream.bad())
+			{
+				// not a fatal error, just a warning log
+				p_interpreter.ExecutionOutputStream() << "WARNING: Stream errors occurred while reading file at path " << file_path << "." << endl;
+			}
+			
+			return string_result;
+		}
+		case gID_writeFile:
+		{
+			// the first argument is the filename
+			ScriptValue *arg0_value = p_arguments[0];
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_count != 1)
+				SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << StringForGlobalStringID(p_method_id) << "() requires that its first argument's size() == 1." << slim_terminate();
+			
+			string filename = arg0_value->StringAtIndex(0);
+			string file_path = ResolvedBasePath() + "/" + filename;
+			
+			// the second argument is the file contents to write
+			ScriptValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			// write the contents out
+			std::ofstream file_stream(file_path.c_str());
+			
+			if (!file_stream.is_open())
+			{
+				// Not a fatal error, just a warning log
+				p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
+				return gStaticScriptValueNULLInvisible;
+			}
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+			{
+				if (value_index > 0)
+					file_stream << endl;
+				
+				file_stream << arg1_value->StringAtIndex(value_index);
+			}
+			
+			if (file_stream.bad())
+			{
+				// Not a fatal error, just a warning log
+				p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
+			}
+			
 			return gStaticScriptValueNULLInvisible;
 		}
-	}
-	else if (p_method_name.compare(gStr_readFile) == 0)
-	{
-		// the first argument is the filename
-		ScriptValue *arg0_value = p_arguments[0];
-		int arg0_count = arg0_value->Count();
-		
-		if (arg0_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << slim_terminate();
-		
-		string filename = arg0_value->StringAtIndex(0);
-		string file_path = ResolvedBasePath() + "/" + filename;
-		
-		// read the contents in
-		std::ifstream file_stream(file_path.c_str());
-		
-		if (!file_stream.is_open())
-		{
-			// not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "WARNING: File at path " << file_path << " could not be read." << endl;
-			return gStaticScriptValueNULLInvisible;
-		}
-		
-		ScriptValue_String *string_result = new ScriptValue_String();
-		string line;
-		
-		while (getline(file_stream, line))
-			string_result->PushString(line);
-		
-		if (file_stream.bad())
-		{
-			// not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "WARNING: Stream errors occurred while reading file at path " << file_path << "." << endl;
-		}
-		
-		return string_result;
-	}
-	else if (p_method_name.compare(gStr_writeFile) == 0)
-	{
-		// the first argument is the filename
-		ScriptValue *arg0_value = p_arguments[0];
-		int arg0_count = arg0_value->Count();
-		
-		if (arg0_count != 1)
-			SLIM_TERMINATION << "ERROR (Script_PathElement::ExecuteMethod): method " << p_method_name << "() requires that its first argument's size() == 1." << slim_terminate();
-		
-		string filename = arg0_value->StringAtIndex(0);
-		string file_path = ResolvedBasePath() + "/" + filename;
-		
-		// the second argument is the file contents to write
-		ScriptValue *arg1_value = p_arguments[1];
-		int arg1_count = arg1_value->Count();
-		
-		// write the contents out
-		std::ofstream file_stream(file_path.c_str());
-		
-		if (!file_stream.is_open())
-		{
-			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): File at path " << file_path << " could not be opened." << endl;
-			return gStaticScriptValueNULLInvisible;
-		}
-		
-		for (int value_index = 0; value_index < arg1_count; ++value_index)
-		{
-			if (value_index > 0)
-				file_stream << endl;
 			
-			file_stream << arg1_value->StringAtIndex(value_index);
-		}
-		
-		if (file_stream.bad())
-		{
-			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "WARNING (Script_PathElement::ExecuteMethod): Stream errors occurred while reading file at path " << file_path << "." << endl;
-		}
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	else
-	{
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 

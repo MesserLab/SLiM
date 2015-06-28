@@ -1,9 +1,9 @@
 //
-//  slim_global.cpp
+//  script_globals.cpp
 //  SLiM
 //
-//  Created by Ben Haller on 1/4/15.
-//  Copyright (c) 2014 Philipp Messer.  All rights reserved.
+//  Created by Ben Haller on 6/28/15.
+//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 
@@ -18,13 +18,15 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "slim_global.h"
+#include "script_globals.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <ctype.h>
 #include <stdexcept>
+#include <string>
+#include <map>
 
 
 // the part of the input file that caused an error; set by CheckInputFile() and used by SLiMgui
@@ -270,93 +272,7 @@ const std::string gStr_function = "function";
 const std::string gStr_method = "method";
 const std::string gStr_executeLambda = "executeLambda";
 const std::string gStr_globals = "globals";
-
-// mostly property names
-const std::string gStr_genomicElements = "genomicElements";
-const std::string gStr_lastPosition = "lastPosition";
-const std::string gStr_overallRecombinationRate = "overallRecombinationRate";
-const std::string gStr_recombinationEndPositions = "recombinationEndPositions";
-const std::string gStr_recombinationRates = "recombinationRates";
-const std::string gStr_geneConversionFraction = "geneConversionFraction";
-const std::string gStr_geneConversionMeanLength = "geneConversionMeanLength";
-const std::string gStr_overallMutationRate = "overallMutationRate";
-const std::string gStr_genomeType = "genomeType";
-const std::string gStr_isNullGenome = "isNullGenome";
-const std::string gStr_mutations = "mutations";
-const std::string gStr_genomicElementType = "genomicElementType";
-const std::string gStr_startPosition = "startPosition";
-const std::string gStr_endPosition = "endPosition";
-const std::string gStr_id = "id";
-const std::string gStr_mutationTypes = "mutationTypes";
-const std::string gStr_mutationFractions = "mutationFractions";
-const std::string gStr_mutationType = "mutationType";
-const std::string gStr_originGeneration = "originGeneration";
-const std::string gStr_position = "position";
-const std::string gStr_selectionCoeff = "selectionCoeff";
-const std::string gStr_subpopID = "subpopID";
-const std::string gStr_distributionType = "distributionType";
-const std::string gStr_distributionParams = "distributionParams";
-const std::string gStr_dominanceCoeff = "dominanceCoeff";
-const std::string gStr_path = "path";
-const std::string gStr_start = "start";
-const std::string gStr_end = "end";
-const std::string gStr_type = "type";
-const std::string gStr_source = "source";
-const std::string gStr_active = "active";
-const std::string gStr_chromosome = "chromosome";
-const std::string gStr_chromosomeType = "chromosomeType";
-const std::string gStr_genomicElementTypes = "genomicElementTypes";
-const std::string gStr_scriptBlocks = "scriptBlocks";
-const std::string gStr_sexEnabled = "sexEnabled";
-const std::string gStr_subpopulations = "subpopulations";
-const std::string gStr_substitutions = "substitutions";
-const std::string gStr_dominanceCoeffX = "dominanceCoeffX";
-const std::string gStr_duration = "duration";
-const std::string gStr_generation = "generation";
-const std::string gStr_randomSeed = "randomSeed";
-const std::string gStr_firstMaleIndex = "firstMaleIndex";
-const std::string gStr_genomes = "genomes";
-const std::string gStr_immigrantSubpopIDs = "immigrantSubpopIDs";
-const std::string gStr_immigrantSubpopFractions = "immigrantSubpopFractions";
-const std::string gStr_selfingFraction = "selfingFraction";
-const std::string gStr_sexRatio = "sexRatio";
-const std::string gStr_size = "size";
-const std::string gStr_fixationTime = "fixationTime";
-
-// mostly method names
-const std::string gStr_property = "property";
-const std::string gStr_str = "str";
-const std::string gStr_changeRecombinationIntervals = "changeRecombinationIntervals";
-const std::string gStr_addMutations = "addMutations";
-const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
-const std::string gStr_addNewMutation = "addNewMutation";
-const std::string gStr_removeMutations = "removeMutations";
-const std::string gStr_changeGenomicElementType = "changeGenomicElementType";
-const std::string gStr_changeMutationFractions = "changeMutationFractions";
-const std::string gStr_setSelectionCoeff = "setSelectionCoeff";
-const std::string gStr_changeDistribution = "changeDistribution";
-const std::string gStr_files = "files";
-const std::string gStr_readFile = "readFile";
-const std::string gStr_writeFile = "writeFile";
-const std::string gStr_addSubpop = "addSubpop";
-const std::string gStr_addSubpopSplit = "addSubpopSplit";
-const std::string gStr_deregisterScriptBlock = "deregisterScriptBlock";
-const std::string gStr_mutationFrequencies = "mutationFrequencies";
-const std::string gStr_outputFixedMutations = "outputFixedMutations";
-const std::string gStr_outputFull = "outputFull";
-const std::string gStr_outputMutations = "outputMutations";
-const std::string gStr_readFromPopulationFile = "readFromPopulationFile";
-const std::string gStr_registerScriptEvent = "registerScriptEvent";
-const std::string gStr_registerScriptFitnessCallback = "registerScriptFitnessCallback";
-const std::string gStr_registerScriptMateChoiceCallback = "registerScriptMateChoiceCallback";
-const std::string gStr_registerScriptModifyChildCallback = "registerScriptModifyChildCallback";
-const std::string gStr_changeMigrationRates = "changeMigrationRates";
-const std::string gStr_changeSelfingRate = "changeSelfingRate";
-const std::string gStr_changeSexRatio = "changeSexRatio";
-const std::string gStr_changeSubpopulationSize = "changeSubpopulationSize";
-const std::string gStr_fitness = "fitness";
-const std::string gStr_outputMSSample = "outputMSSample";
-const std::string gStr_outputSample = "outputSample";
+const std::string gStr_Path = "Path";
 
 // mostly language keywords
 const std::string gStr_if = "if";
@@ -378,7 +294,7 @@ const std::string gStr_E = "E";
 const std::string gStr_INF = "INF";
 const std::string gStr_NAN = "NAN";
 
-// mostly SLiM type names
+// mostly SLiMscript type names
 const std::string gStr_void = "void";
 const std::string gStr_logical = "logical";
 const std::string gStr_string = "string";
@@ -387,55 +303,81 @@ const std::string gStr_float = "float";
 const std::string gStr_object = "object";
 const std::string gStr_numeric = "numeric";
 
-// mostly SLiMscript variable names used in callbacks and such
-const std::string gStr_sim = "sim";
-const std::string gStr_self = "self";
-const std::string gStr_genome1 = "genome1";
-const std::string gStr_genome2 = "genome2";
-const std::string gStr_subpop = "subpop";
-const std::string gStr_sourceSubpop = "sourceSubpop";
-const std::string gStr_weights = "weights";
-const std::string gStr_childGenome1 = "childGenome1";
-const std::string gStr_childGenome2 = "childGenome2";
-const std::string gStr_childIsFemale = "childIsFemale";
-const std::string gStr_parent1Genome1 = "parent1Genome1";
-const std::string gStr_parent1Genome2 = "parent1Genome2";
-const std::string gStr_isSelfing = "isSelfing";
-const std::string gStr_parent2Genome1 = "parent2Genome1";
-const std::string gStr_parent2Genome2 = "parent2Genome2";
-const std::string gStr_mut = "mut";
-const std::string gStr_relFitness = "relFitness";
-const std::string gStr_homozygous = "homozygous";
+// SLiMscript function names, property names, and method names
+const std::string gStr_size = "size";
+const std::string gStr_type = "type";
+const std::string gStr_property = "property";
+const std::string gStr_str = "str";
+const std::string gStr_path = "path";
+const std::string gStr_files = "files";
+const std::string gStr_readFile = "readFile";
+const std::string gStr_writeFile = "writeFile";
 
-// mostly SLiM element types
-const std::string gStr_Chromosome = "Chromosome";
-const std::string gStr_Genome = "Genome";
-const std::string gStr_GenomicElement = "GenomicElement";
-const std::string gStr_GenomicElementType = "GenomicElementType";
-const std::string gStr_Mutation = "Mutation";
-const std::string gStr_MutationType = "MutationType";
-const std::string gStr_Path = "Path";
-const std::string gStr_undefined = "undefined";
-const std::string gStr_SLiMScriptBlock = "SLiMScriptBlock";
-const std::string gStr_SLiMSim = "SLiMSim";
-const std::string gStr_Subpopulation = "Subpopulation";
-const std::string gStr_Substitution = "Substitution";
-
-
-// mostly other fixed strings
-const std::string gStr_Autosome = "Autosome";
-const std::string gStr_X_chromosome = "X chromosome";
-const std::string gStr_Y_chromosome = "Y chromosome";
-const std::string gStr_event = "event";
-const std::string gStr_mateChoice = "mateChoice";
-const std::string gStr_modifyChild = "modifyChild";
-const std::string gStr_lessThanSign = "<";
-const std::string gStr_greaterThanSign = ">";
+// other miscellaneous strings
 const std::string gStr_GetValueForMemberOfElements = "GetValueForMemberOfElements";
 const std::string gStr_ExecuteMethod = "ExecuteMethod";
+const std::string gStr_lessThanSign = "<";
+const std::string gStr_greaterThanSign = ">";
+const std::string gStr_undefined = "undefined";
 
 
+static std::map<const std::string, GlobalStringID> gStringToID;
+static std::map<GlobalStringID, const std::string *> gIDToString;
 
+void SLiMScript_RegisterStringForGlobalID(const std::string &p_string, GlobalStringID p_string_id)
+{
+	if (gStringToID.find(p_string) != gStringToID.end())
+		SLIM_TERMINATION << "ERROR (SLiM_RegisterStringForGlobalID): string " << p_string << " has already been registered." << slim_terminate();
+	
+	if (gIDToString.find(p_string_id) != gIDToString.end())
+		SLIM_TERMINATION << "ERROR (SLiM_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << slim_terminate();
+	
+	gStringToID[p_string] = p_string_id;
+	gIDToString[p_string_id] = &p_string;
+}
+
+void SLiMScript_RegisterGlobalStringsAndIDs(void)
+{
+	static bool been_here = false;
+	
+	if (!been_here)
+	{
+		been_here = true;
+		
+		SLiMScript_RegisterStringForGlobalID(gStr_method, gID_method);
+		SLiMScript_RegisterStringForGlobalID(gStr_Path, gID_Path);
+		SLiMScript_RegisterStringForGlobalID(gStr_size, gID_size);
+		SLiMScript_RegisterStringForGlobalID(gStr_type, gID_type);
+		SLiMScript_RegisterStringForGlobalID(gStr_property, gID_property);
+		SLiMScript_RegisterStringForGlobalID(gStr_str, gID_str);
+		SLiMScript_RegisterStringForGlobalID(gStr_path, gID_path);
+		SLiMScript_RegisterStringForGlobalID(gStr_files, gID_files);
+		SLiMScript_RegisterStringForGlobalID(gStr_readFile, gID_readFile);
+		SLiMScript_RegisterStringForGlobalID(gStr_writeFile, gID_writeFile);
+	}
+}
+
+GlobalStringID GlobalStringIDForString(const std::string &p_string)
+{
+	//std::cerr << "GlobalStringIDForString: " << p_string << std::endl;
+	auto found_iter = gStringToID.find(p_string);
+	
+	if (found_iter == gStringToID.end())
+		return gID_none;
+	else
+		return found_iter->second;
+}
+
+const std::string &StringForGlobalStringID(GlobalStringID p_string_id)
+{
+	//std::cerr << "StringForGlobalStringID: " << p_string_id << std::endl;
+	auto found_iter = gIDToString.find(p_string_id);
+	
+	if (found_iter == gIDToString.end())
+		return gStr_undefined;
+	else
+		return *(found_iter->second);
+}
 
 
 

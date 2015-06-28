@@ -73,28 +73,53 @@ std::vector<std::string> Substitution::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *Substitution::GetValueForMember(const std::string &p_member_name)
+bool Substitution::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_mutationType) == 0)
-		return mutation_type_ptr_->CachedSymbolTableEntry()->second;
-	if (p_member_name.compare(gStr_position) == 0)
-		return new ScriptValue_Int_singleton_const(position_);
-	if (p_member_name.compare(gStr_selectionCoeff) == 0)
-		return new ScriptValue_Float_singleton_const(selection_coeff_);
-	if (p_member_name.compare(gStr_subpopID) == 0)
-		return new ScriptValue_Int_singleton_const(subpop_index_);
-	if (p_member_name.compare(gStr_originGeneration) == 0)
-		return new ScriptValue_Int_singleton_const(generation_);
-	if (p_member_name.compare(gStr_fixationTime) == 0)
-		return new ScriptValue_Int_singleton_const(fixation_time_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
+	switch (p_member_id)
+	{
+			// constants
+		case gID_mutationType:
+		case gID_position:
+		case gID_selectionCoeff:
+		case gID_subpopID:
+		case gID_originGeneration:
+		case gID_fixationTime:
+			return true;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+	}
 }
 
-void Substitution::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *Substitution::GetValueForMember(GlobalStringID p_member_id)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
+	{
+			// constants
+		case gID_mutationType:
+			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
+		case gID_position:
+			return new ScriptValue_Int_singleton_const(position_);
+		case gID_selectionCoeff:
+			return new ScriptValue_Float_singleton_const(selection_coeff_);
+		case gID_subpopID:
+			return new ScriptValue_Int_singleton_const(subpop_index_);
+		case gID_originGeneration:
+			return new ScriptValue_Int_singleton_const(generation_);
+		case gID_fixationTime:
+			return new ScriptValue_Int_singleton_const(fixation_time_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void Substitution::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Substitution::Methods(void) const
@@ -104,14 +129,14 @@ std::vector<std::string> Substitution::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Substitution::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *Substitution::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *Substitution::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Substitution::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+	return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

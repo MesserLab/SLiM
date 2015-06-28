@@ -70,12 +70,13 @@ public:
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
+	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 // true if M1 has an earlier (smaller) position than M2

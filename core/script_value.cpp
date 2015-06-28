@@ -1428,7 +1428,8 @@ void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_asc
 		return;
 	
 	// figure out what type the property returns
-	ScriptValue *first_result = values_[0]->GetValueForMember(p_property);
+	GlobalStringID property_string_id = GlobalStringIDForString(p_property);
+	ScriptValue *first_result = values_[0]->GetValueForMember(property_string_id);
 	ScriptValueType property_type = first_result->Type();
 	
 	if (first_result->IsTemporary()) delete first_result;
@@ -1448,7 +1449,7 @@ void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_asc
 			
 			for (auto value : values_)
 			{
-				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				ScriptValue *temp_result = value->GetValueForMember(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
@@ -1482,7 +1483,7 @@ void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_asc
 			
 			for (auto value : values_)
 			{
-				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				ScriptValue *temp_result = value->GetValueForMember(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
@@ -1516,7 +1517,7 @@ void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_asc
 			
 			for (auto value : values_)
 			{
-				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				ScriptValue *temp_result = value->GetValueForMember(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
@@ -1550,7 +1551,7 @@ void ScriptValue_Object_vector::SortBy(const std::string &p_property, bool p_asc
 			
 			for (auto value : values_)
 			{
-				ScriptValue *temp_result = value->GetValueForMember(p_property);
+				ScriptValue *temp_result = value->GetValueForMember(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << slim_terminate();
@@ -1595,13 +1596,13 @@ std::vector<std::string> ScriptValue_Object_vector::ReadWriteMembersOfElements(v
 		return values_[0]->ReadWriteMembers();
 }
 
-ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(GlobalStringID p_member_id) const
 {
 	auto values_size = values_.size();
 	
 	if (values_size == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): unrecognized member name \"" << StringForGlobalStringID(p_member_id) << "\" (no elements, thus no element type defined)." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
@@ -1609,16 +1610,13 @@ ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::s
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		ScriptObjectElement *value = values_[0];
-		ScriptValue *result = value->GetValueForMember(p_member_name);
+		ScriptValue *result = value->GetValueForMember(p_member_id);
 		
 		if (result->Count() != 1)
 		{
 			// We need to check that this property is const; if not, it is required to give a singleton return
-			std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
-			bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
-			
-			if (!is_constant_member)
-				SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
+			if (!values_[0]->MemberIsReadOnly(p_member_id))
+				SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << StringForGlobalStringID(p_member_id) << " produced " << result->Count() << " values for a single element." << slim_terminate();
 		}
 		
 		return result;
@@ -1631,16 +1629,13 @@ ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::s
 		
 		for (auto value : values_)
 		{
-			ScriptValue *temp_result = value->GetValueForMember(p_member_name);
+			ScriptValue *temp_result = value->GetValueForMember(p_member_id);
 			
 			if (!checked_const_multivalued && (temp_result->Count() != 1))
 			{
 				// We need to check that this property is const; if not, it is required to give a singleton return
-				std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
-				bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
-				
-				if (!is_constant_member)
-					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
+				if (!values_[0]->MemberIsReadOnly(p_member_id))
+					SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << StringForGlobalStringID(p_member_id) << " produced " << temp_result->Count() << " values for a single element." << slim_terminate();
 				
 				checked_const_multivalued = true;
 			}
@@ -1663,33 +1658,34 @@ ScriptValue *ScriptValue_Object_vector::GetValueForMemberOfElements(const std::s
 // object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
 // that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
 // but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
-ScriptValue *ScriptValue_Object_vector::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_vector::GetRepresentativeValueOrNullForMemberOfElements(GlobalStringID p_member_id) const
 {
 	if (values_.size())
 	{
 		// check that the member is defined before we call our elements
+		const std::string &member_name = StringForGlobalStringID(p_member_id);
 		std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
 		
-		if (std::find(constant_members.begin(), constant_members.end(), p_member_name) == constant_members.end())
+		if (std::find(constant_members.begin(), constant_members.end(), member_name) == constant_members.end())
 		{
 			std::vector<std::string> variable_members = values_[0]->ReadWriteMembers();
 			
-			if (std::find(variable_members.begin(), variable_members.end(), p_member_name) == variable_members.end())
+			if (std::find(variable_members.begin(), variable_members.end(), member_name) == variable_members.end())
 				return nullptr;
 		}
 		
 		// get a value from the first element and return it; we only need to return one representative value
-		return values_[0]->GetValueForMember(p_member_name);
+		return values_[0]->GetValueForMember(p_member_id);
 	}
 	
 	return nullptr;
 }
 
-void ScriptValue_Object_vector::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
+void ScriptValue_Object_vector::SetValueForMemberOfElements(GlobalStringID p_member_id, ScriptValue *p_value)
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueForMemberOfElements): unrecognized member name " << p_member_name << " (no elements, thus no element type defined)." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueForMemberOfElements): unrecognized member name \"" << StringForGlobalStringID(p_member_id) << "\" (no elements, thus no element type defined)." << slim_terminate();
 	}
 	else
 	{
@@ -1699,7 +1695,7 @@ void ScriptValue_Object_vector::SetValueForMemberOfElements(const std::string &p
 		{
 			// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
 			for (auto value : values_)
-				value->SetValueForMember(p_member_name, p_value);
+				value->SetValueForMember(p_member_id, p_value);
 		}
 		else if (p_value_count == Count())
 		{
@@ -1708,7 +1704,7 @@ void ScriptValue_Object_vector::SetValueForMemberOfElements(const std::string &p
 			{
 				ScriptValue *temp_rvalue = p_value->GetValueAtIndex(value_idx);
 				
-				values_[value_idx]->SetValueForMember(p_member_name, temp_rvalue);
+				values_[value_idx]->SetValueForMember(p_member_id, temp_rvalue);
 				
 				if (temp_rvalue->IsTemporary()) delete temp_rvalue;
 			}
@@ -1726,43 +1722,43 @@ std::vector<std::string> ScriptValue_Object_vector::MethodsOfElements(void) cons
 		return values_[0]->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements(const std::string &p_method_name) const
+const FunctionSignature *ScriptValue_Object_vector::SignatureForMethodOfElements(GlobalStringID p_method_id) const
 {
 	if (values_.size() == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SignatureForMethodOfElements): unrecognized method name " << p_method_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SignatureForMethodOfElements): unrecognized method name " << StringForGlobalStringID(p_method_id) << "." << slim_terminate();
 		
 		return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
 	else
-		return values_[0]->SignatureForMethod(p_method_name);
+		return values_[0]->SignatureForMethod(p_method_id);
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteClassMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	if (values_.size() == 0)
 	{
 		// FIXME perhaps ScriptValue_Object_vector should know its element type even when empty, so class methods can be called with no elements?
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteClassMethodOfElements): unrecognized class method name " << p_method_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteClassMethodOfElements): unrecognized class method name " << StringForGlobalStringID(p_method_id) << "." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
 	else
 	{
 		// call the method on one member only, since it is a class method
-		ScriptValue* result = values_[0]->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		ScriptValue* result = values_[0]->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		
 		return result;
 	}
 }
 
-ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	auto values_size = values_.size();
 	
 	if (values_size == 0)
 	{
-		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteInstanceMethodOfElements): unrecognized instance method name " << p_method_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::ExecuteInstanceMethodOfElements): unrecognized instance method name " << StringForGlobalStringID(p_method_id) << "." << slim_terminate();
 		
 		return gStaticScriptValueNULLInvisible;
 	}
@@ -1770,7 +1766,7 @@ ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(const st
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		ScriptObjectElement *value = values_[0];
-		ScriptValue *result = value->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		ScriptValue *result = value->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		
 		return result;
 	}
@@ -1780,7 +1776,7 @@ ScriptValue *ScriptValue_Object_vector::ExecuteInstanceMethodOfElements(const st
 		vector<ScriptValue*> results;
 		
 		for (auto value : values_)
-			results.push_back(value->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter));
+			results.push_back(value->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
 		
 		// concatenate the results using ConcatenateScriptValues(); we pass our own name as p_function_name, which just makes errors be in our name
 		ScriptValue *result = ConcatenateScriptValues(gStr_ExecuteMethod, results.data(), (int)results.size());
@@ -1864,18 +1860,15 @@ std::vector<std::string> ScriptValue_Object_singleton_const::ReadWriteMembersOfE
 	return value_->ReadWriteMembers();
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::GetValueForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_singleton_const::GetValueForMemberOfElements(GlobalStringID p_member_id) const
 {
-	ScriptValue *result = value_->GetValueForMember(p_member_name);
+	ScriptValue *result = value_->GetValueForMember(p_member_id);
 	
 	if (result->Count() != 1)
 	{
 		// We need to check that this property is const; if not, it is required to give a singleton return
-		std::vector<std::string> constant_members = value_->ReadOnlyMembers();
-		bool is_constant_member = (std::find(constant_members.begin(), constant_members.end(), p_member_name) != constant_members.end());
-		
-		if (!is_constant_member)
-			SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::GetValueForMemberOfElements): internal error: non-const member " << p_member_name << " produced " << result->Count() << " values for a single element." << slim_terminate();
+		if (!value_->MemberIsReadOnly(p_member_id))
+			SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::GetValueForMemberOfElements): internal error: non-const member " << StringForGlobalStringID(p_member_id) << " produced " << result->Count() << " values for a single element." << slim_terminate();
 	}
 	
 	return result;
@@ -1885,27 +1878,28 @@ ScriptValue *ScriptValue_Object_singleton_const::GetValueForMemberOfElements(con
 // object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
 // that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
 // but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
-ScriptValue *ScriptValue_Object_singleton_const::GetRepresentativeValueOrNullForMemberOfElements(const std::string &p_member_name) const
+ScriptValue *ScriptValue_Object_singleton_const::GetRepresentativeValueOrNullForMemberOfElements(GlobalStringID p_member_id) const
 {
 	// check that the member is defined before we call our elements
+	const std::string &member_name = StringForGlobalStringID(p_member_id);
 	std::vector<std::string> constant_members = value_->ReadOnlyMembers();
 	
-	if (std::find(constant_members.begin(), constant_members.end(), p_member_name) == constant_members.end())
+	if (std::find(constant_members.begin(), constant_members.end(), member_name) == constant_members.end())
 	{
 		std::vector<std::string> variable_members = value_->ReadWriteMembers();
 		
-		if (std::find(variable_members.begin(), variable_members.end(), p_member_name) == variable_members.end())
+		if (std::find(variable_members.begin(), variable_members.end(), member_name) == variable_members.end())
 			return nullptr;
 	}
 	
 	// get a value from the first element and return it; we only need to return one representative value
-	return value_->GetValueForMember(p_member_name);
+	return value_->GetValueForMember(p_member_id);
 }
 
-void ScriptValue_Object_singleton_const::SetValueForMemberOfElements(const std::string &p_member_name, ScriptValue *p_value)
+void ScriptValue_Object_singleton_const::SetValueForMemberOfElements(GlobalStringID p_member_id, ScriptValue *p_value)
 {
 	if (p_value->Count() == 1)
-		value_->SetValueForMember(p_member_name, p_value);
+		value_->SetValueForMember(p_member_id, p_value);
 	else
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object_singleton_const::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << slim_terminate();
 }
@@ -1915,19 +1909,19 @@ std::vector<std::string> ScriptValue_Object_singleton_const::MethodsOfElements(v
 	return value_->Methods();
 }
 
-const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodOfElements(const std::string &p_method_name) const
+const FunctionSignature *ScriptValue_Object_singleton_const::SignatureForMethodOfElements(GlobalStringID p_method_id) const
 {
-	return value_->SignatureForMethod(p_method_name);
+	return value_->SignatureForMethod(p_method_id);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteClassMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+	return value_->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
-ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptValue_Object_singleton_const::ExecuteInstanceMethodOfElements(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return value_->ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+	return value_->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 
@@ -1971,42 +1965,31 @@ std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
 	return std::vector<std::string>();	// no read-write members
 }
 
-ScriptValue *ScriptObjectElement::GetValueForMember(const std::string &p_member_name)
+bool ScriptObjectElement::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// Check whether getting a constant failed due to a bad subclass implementation
-	std::vector<std::string> constants = ReadOnlyMembers();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::MemberIsReadOnly for " << ElementType() << "): unrecognized member name \"" << StringForGlobalStringID(p_member_id) << "\"." << slim_terminate();
+	return true;
+}
+
+ScriptValue *ScriptObjectElement::GetValueForMember(GlobalStringID p_member_id)
+{
+	bool readonly = MemberIsReadOnly(p_member_id);	// will raise if the member does not exist at all
 	
-	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-only member " << p_member_name << " was not handled by subclass." << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for " << (readonly ? "read-only member " : "read-write member ") << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
 	
-	// Check whether getting a variable failed due to a bad subclass implementation
-	std::vector<std::string> variables = ReadWriteMembers();
-	
-	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for read-write member " << p_member_name << " was not handled by subclass." << slim_terminate();
-	
-	// Otherwise, we have an unrecognized member, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << slim_terminate();
 	return nullptr;
 }
 
-void ScriptObjectElement::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+void ScriptObjectElement::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 {
 #pragma unused(p_value)
+	bool readonly = MemberIsReadOnly(p_member_id);	// will raise if the member does not exist at all
+	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
-	std::vector<std::string> constants = ReadOnlyMembers();
-	
-	if (std::find(constants.begin(), constants.end(), p_member_name) != constants.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << p_member_name << "." << slim_terminate();
-	
-	// Check whether setting a variable failed due to a bad subclass implementation
-	std::vector<std::string> variables = ReadWriteMembers();
-	
-	if (std::find(variables.begin(), variables.end(), p_member_name) != variables.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << p_member_name << " was not handled by subclass." << slim_terminate();
-	
-	// Otherwise, we have an unrecognized member, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): unrecognized member name " << p_member_name << "." << slim_terminate();
+	if (readonly)
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
+	else
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
 }
 
 std::vector<std::string> ScriptObjectElement::Methods(void) const
@@ -2020,7 +2003,7 @@ std::vector<std::string> ScriptObjectElement::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *ScriptObjectElement::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *ScriptObjectElement::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *strSig = nullptr;
@@ -2034,147 +2017,164 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(const std::stri
 		strSig = (new FunctionSignature(gStr_str, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
 	}
 	
-	if (p_method_name.compare(gStr_method) == 0)
-		return methodsSig;
-	else if (p_method_name.compare(gStr_property) == 0)
-		return propertySig;
-	else if (p_method_name.compare(gStr_str) == 0)
-		return strSig;
-	
-	// Check whether the method signature request failed due to a bad subclass implementation
-	std::vector<std::string> methods = Methods();
-	
-	if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << p_method_name << " was not provided by subclass." << slim_terminate();
-	
-	// Otherwise, we have an unrecognized method, so throw
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
-	return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+		case gID_method:
+			return methodsSig;
+		case gID_property:
+			return propertySig;
+		case gID_str:
+			return strSig;
+			
+			// all others, including gID_none
+		default:
+			// Check whether the method signature request failed due to a bad subclass implementation
+			std::vector<std::string> methods = Methods();
+			const std::string &method_name = StringForGlobalStringID(p_method_id);
+			
+			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
+				SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << slim_terminate();
+			
+			// Otherwise, we have an unrecognized method, so throw
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << &method_name << "." << slim_terminate();
+			return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
+	}
 }
 
-ScriptValue *ScriptObjectElement::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *ScriptObjectElement::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_interpreter)
-	if (p_method_name.compare(gStr_str) == 0)		// instance method
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
 	{
-		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-		
-		output_stream << ElementType() << ":" << endl;
-		
-		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
-		std::vector<std::string> read_write_member_names = ReadWriteMembers();
-		std::vector<std::string> member_names;
-		
-		member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
-		member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
-		std::sort(member_names.begin(), member_names.end());
-		
-		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
+		case gID_str:		// instance method
 		{
-			const std::string &member_name = *member_name_iter;
-			ScriptValue *member_value = GetValueForMember(member_name);
-			int member_count = member_value->Count();
-			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
-			output_stream << "\t";
+			output_stream << ElementType() << ":" << endl;
 			
-			if (member_count <= 2)
-				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
-			else
+			std::vector<std::string> read_only_member_names = ReadOnlyMembers();
+			std::vector<std::string> read_write_member_names = ReadWriteMembers();
+			std::vector<std::string> member_names;
+			
+			member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
+			member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
+			std::sort(member_names.begin(), member_names.end());
+			
+			for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
 			{
-				ScriptValue *first_value = member_value->GetValueAtIndex(0);
-				ScriptValue *second_value = member_value->GetValueAtIndex(1);
+				const std::string &member_name = *member_name_iter;
+				GlobalStringID member_id = GlobalStringIDForString(member_name);
+				ScriptValue *member_value = GetValueForMember(member_id);
+				int member_count = member_value->Count();
+				bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
 				
-				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+				output_stream << "\t";
 				
-				if (first_value->IsTemporary()) delete first_value;
-				if (second_value->IsTemporary()) delete second_value;
+				if (member_count <= 2)
+					output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
+				else
+				{
+					ScriptValue *first_value = member_value->GetValueAtIndex(0);
+					ScriptValue *second_value = member_value->GetValueAtIndex(1);
+					
+					output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+					
+					if (first_value->IsTemporary()) delete first_value;
+					if (second_value->IsTemporary()) delete second_value;
+				}
+				
+				if (member_value->IsTemporary()) delete member_value;
 			}
 			
-			if (member_value->IsTemporary()) delete member_value;
+			return gStaticScriptValueNULLInvisible;
 		}
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	else if (p_method_name.compare(gStr_property) == 0)		// class method
-	{
-		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-		bool has_match_string = (p_argument_count == 1);
-		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
-		std::vector<std::string> read_only_member_names = ReadOnlyMembers();
-		std::vector<std::string> read_write_member_names = ReadWriteMembers();
-		std::vector<std::string> member_names;
-		bool signature_found = false;
-		
-		member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
-		member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
-		std::sort(member_names.begin(), member_names.end());
-		
-		for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
+		case gID_property:		// class method
 		{
-			const std::string &member_name = *member_name_iter;
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			bool has_match_string = (p_argument_count == 1);
+			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
+			std::vector<std::string> read_only_member_names = ReadOnlyMembers();
+			std::vector<std::string> read_write_member_names = ReadWriteMembers();
+			std::vector<std::string> member_names;
+			bool signature_found = false;
 			
-			if (has_match_string && (member_name.compare(match_string) != 0))
-				continue;
+			member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
+			member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
+			std::sort(member_names.begin(), member_names.end());
 			
-			ScriptValue *member_value = GetValueForMember(member_name);
-			bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
+			for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
+			{
+				const std::string &member_name = *member_name_iter;
+				GlobalStringID member_id = GlobalStringIDForString(member_name);
+				
+				if (has_match_string && (member_name.compare(match_string) != 0))
+					continue;
+				
+				ScriptValue *member_value = GetValueForMember(member_id);
+				bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
+				
+				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
+				
+				if (member_value->IsTemporary()) delete member_value;
+				signature_found = true;
+			}
 			
-			output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
+			if (has_match_string && !signature_found)
+				output_stream << "No property found for \"" << match_string << "\"." << endl;
 			
-			if (member_value->IsTemporary()) delete member_value;
-			signature_found = true;
+			return gStaticScriptValueNULLInvisible;
 		}
-		
-		if (has_match_string && !signature_found)
-			output_stream << "No property found for \"" << match_string << "\"." << endl;
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	else if (p_method_name.compare(gStr_method) == 0)		// class method
-	{
-		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-		bool has_match_string = (p_argument_count == 1);
-		string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
-		std::vector<std::string> method_names = Methods();
-		bool signature_found = false;
-		
-		std::sort(method_names.begin(), method_names.end());
-		
-		for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
+		case gID_method:		// class method
 		{
-			const std::string &method_name = *method_name_iter;
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			bool has_match_string = (p_argument_count == 1);
+			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
+			std::vector<std::string> method_names = Methods();
+			bool signature_found = false;
 			
-			if (has_match_string && (method_name.compare(match_string) != 0))
-				continue;
+			std::sort(method_names.begin(), method_names.end());
 			
-			const FunctionSignature *method_signature = SignatureForMethod(method_name);
+			for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
+			{
+				const std::string &method_name = *method_name_iter;
+				GlobalStringID method_id = GlobalStringIDForString(method_name);
+				
+				if (has_match_string && (method_name.compare(match_string) != 0))
+					continue;
+				
+				const FunctionSignature *method_signature = SignatureForMethod(method_id);
+				
+				output_stream << *method_signature << endl;
+				signature_found = true;
+			}
 			
-			output_stream << *method_signature << endl;
-			signature_found = true;
+			if (has_match_string && !signature_found)
+				output_stream << "No method signature found for \"" << match_string << "\"." << endl;
+			
+			return gStaticScriptValueNULLInvisible;
 		}
-		
-		if (has_match_string && !signature_found)
-			output_stream << "No method signature found for \"" << match_string << "\"." << endl;
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	else
-	{
-		// Check whether the method call failed due to a bad subclass implementation
-		std::vector<std::string> methods = Methods();
-		
-		if (std::find(methods.begin(), methods.end(), p_method_name) != methods.end())
-			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << p_method_name << " was not handled by subclass." << slim_terminate();
-		
-		// Otherwise, we have an unrecognized method, so throw
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << p_method_name << "." << slim_terminate();
-		
-		return gStaticScriptValueNULLInvisible;
+			
+			// all others, including gID_none
+		default:
+		{
+			// Check whether the method call failed due to a bad subclass implementation
+			std::vector<std::string> methods = Methods();
+			const std::string &method_name = StringForGlobalStringID(p_method_id);
+			
+			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
+				SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << slim_terminate();
+			
+			// Otherwise, we have an unrecognized method, so throw
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << method_name << "." << slim_terminate();
+			
+			return gStaticScriptValueNULLInvisible;
+		}
 	}
 }
 
-void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const std::string &p_member_name, ScriptValue *p_value, ScriptValueMask p_type_mask)
+void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, GlobalStringID p_member_id, ScriptValue *p_value, ScriptValueMask p_type_mask)
 {
 	uint32_t typemask = p_type_mask;
 	bool type_ok = true;
@@ -2190,13 +2190,13 @@ void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, const
 	}
 	
 	if (!type_ok)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << p_member_name << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
 }
 
-void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, const std::string &p_member_name, bool p_in_range)
+void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, GlobalStringID p_member_id, bool p_in_range)
 {
 	if (!p_in_range)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << p_member_name << " is illegal." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << StringForGlobalStringID(p_member_id) << " is illegal." << slim_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)

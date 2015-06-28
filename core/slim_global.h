@@ -27,32 +27,8 @@
 #define __SLiM__slim_global__
 
 #include <stdio.h>
-#include <iostream>
-#include <sstream>
 
-
-// If we're running inside SLiMgui, we use a global ostringstream to capture all output to both the output and error streams.
-// This stream gets emptied out after every call out to SLiMSim, so a single stream can be safely used by all of the SLiMSim
-// instances running inside SLiMgui (because we do not multithread).  We also have a special stream for termination messages.
-#if defined(SLIMGUI) || defined(SLIMSCRIBE)
-
-extern std::ostringstream gSLiMOut;
-extern std::ostringstream gSLiMTermination;
-#define SLIM_OUTSTREAM		(gSLiMOut)
-#define SLIM_ERRSTREAM		(gSLiMOut)
-#define SLIM_TERMINATION	(gSLiMTermination)
-
-#else
-
-#define SLIM_OUTSTREAM		(std::cout)
-#define SLIM_ERRSTREAM		(std::cerr)
-#define SLIM_TERMINATION	(std::cerr)
-
-#endif
-
-
-// the part of the input file that caused an error; set by CheckInputFile() and used by SLiMgui
-extern int gCharacterStartOfParseError, gCharacterEndOfParseError;
+#include "script_globals.h"
 
 
 // Debugging #defines that can be turned on
@@ -60,28 +36,6 @@ extern int gCharacterStartOfParseError, gCharacterEndOfParseError;
 #define DEBUG_MUTATION_ZOMBIES	0		// avoid destroying Mutation objects; keep them as zombies
 #define DEBUG_INPUT				1		// additional output for debugging of input file parsing
 
-
-// Print a demangled stack backtrace of the caller function to FILE* out; see slim_global.cpp for credits and comments.
-void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63);
-
-
-// This little class is used as a stream manipulator that causes SLiM to terminate with EXIT_FAILURE, optionally
-// with a backtrace.  This is nice since it lets us log and terminate in a single line of code.  It also allows
-// the GUI to intercept the exit() call and do something more graceful with it.
-class slim_terminate
-{
-public:
-	bool print_backtrace_ = false;
-	
-	slim_terminate(void) = default;														// default constructor, no backtrace
-	slim_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace) {};	// optionally request a backtrace
-};
-
-std::ostream& operator<<(std::ostream& p_out, const slim_terminate &p_terminator);	// note this returns void, not std::ostream&; that is deliberate
-
-// Get the message from the last raise out of gSLiMTermination, optionally with newlines trimmed from the ends
-std::string GetTrimmedRaiseMessage(void);
-std::string GetUntrimmedRaiseMessage(void);
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
@@ -130,22 +84,21 @@ inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 
 
 //
-//	Global std::string objects.  This is kind of gross, but there are several rationales for it.  First of all, it makes
-//	a speed difference; converting a C string to a std::string is done every time it is hit in the code; C++ does not
-//	treat that as a constant expression and cache it for you, at least with the current generation of compilers.  The
-//	conversion is surprisingly slow; it has shown up repeatedly in profiles I have done.  Second, there is the issue of
-//	uniqueness; many of these strings occur in multiple places in the code, and a typo in one of those multiple occurrences
-//	would cause a bug that would be very difficult to find.  If multiple places in the code intend to refer to the same
-//	conceptual string, and rely on those references being the same, then a shared constant should be used.  So... oh well.
+//	Additional global std::string objects.  See script_globals.h for details.
 //
 
-extern const std::string gStr_empty_string;
-extern const std::string gStr_space_string;
+void SLiM_RegisterGlobalStringsAndIDs(void);
 
-extern const std::string gStr_function;
-extern const std::string gStr_method;
-extern const std::string gStr_executeLambda;
-extern const std::string gStr_globals;
+
+extern const std::string gStr_addGenomicElement0;
+extern const std::string gStr_addGenomicElementType0;
+extern const std::string gStr_addMutationType0;
+extern const std::string gStr_addRecombinationIntervals0;
+extern const std::string gStr_setGeneConversion0;
+extern const std::string gStr_setGenerationRange0;
+extern const std::string gStr_setMutationRate0;
+extern const std::string gStr_setRandomSeed0;
+extern const std::string gStr_setSexEnabled0;
 
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
@@ -173,11 +126,9 @@ extern const std::string gStr_id;
 extern const std::string gStr_distributionType;
 extern const std::string gStr_distributionParams;
 extern const std::string gStr_dominanceCoeff;
-extern const std::string gStr_path;
 extern const std::string gStr_id;
 extern const std::string gStr_start;
 extern const std::string gStr_end;
-extern const std::string gStr_type;
 extern const std::string gStr_source;
 extern const std::string gStr_active;
 extern const std::string gStr_chromosome;
@@ -201,7 +152,6 @@ extern const std::string gStr_immigrantSubpopIDs;
 extern const std::string gStr_immigrantSubpopFractions;
 extern const std::string gStr_selfingFraction;
 extern const std::string gStr_sexRatio;
-extern const std::string gStr_size;
 extern const std::string gStr_mutationType;
 extern const std::string gStr_position;
 extern const std::string gStr_selectionCoeff;
@@ -209,8 +159,6 @@ extern const std::string gStr_subpopID;
 extern const std::string gStr_originGeneration;
 extern const std::string gStr_fixationTime;
 
-extern const std::string gStr_property;
-extern const std::string gStr_str;
 extern const std::string gStr_changeRecombinationIntervals;
 extern const std::string gStr_addMutations;
 extern const std::string gStr_addNewDrawnMutation;
@@ -220,9 +168,6 @@ extern const std::string gStr_changeGenomicElementType;
 extern const std::string gStr_changeMutationFractions;
 extern const std::string gStr_setSelectionCoeff;
 extern const std::string gStr_changeDistribution;
-extern const std::string gStr_files;
-extern const std::string gStr_readFile;
-extern const std::string gStr_writeFile;
 extern const std::string gStr_addSubpop;
 extern const std::string gStr_addSubpopSplit;
 extern const std::string gStr_deregisterScriptBlock;
@@ -242,32 +187,6 @@ extern const std::string gStr_changeSubpopulationSize;
 extern const std::string gStr_fitness;
 extern const std::string gStr_outputMSSample;
 extern const std::string gStr_outputSample;
-
-extern const std::string gStr_if;
-extern const std::string gStr_else;
-extern const std::string gStr_do;
-extern const std::string gStr_while;
-extern const std::string gStr_for;
-extern const std::string gStr_in;
-extern const std::string gStr_next;
-extern const std::string gStr_break;
-extern const std::string gStr_return;
-
-extern const std::string gStr_T;
-extern const std::string gStr_F;
-extern const std::string gStr_NULL;
-extern const std::string gStr_PI;
-extern const std::string gStr_E;
-extern const std::string gStr_INF;
-extern const std::string gStr_NAN;
-
-extern const std::string gStr_void;
-extern const std::string gStr_logical;
-extern const std::string gStr_string;
-extern const std::string gStr_integer;
-extern const std::string gStr_float;
-extern const std::string gStr_object;
-extern const std::string gStr_numeric;
 
 extern const std::string gStr_sim;
 extern const std::string gStr_self;
@@ -294,8 +213,6 @@ extern const std::string gStr_GenomicElement;
 extern const std::string gStr_GenomicElementType;
 extern const std::string gStr_Mutation;
 extern const std::string gStr_MutationType;
-extern const std::string gStr_Path;
-extern const std::string gStr_undefined;
 extern const std::string gStr_SLiMScriptBlock;
 extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
@@ -307,11 +224,94 @@ extern const std::string gStr_Y_chromosome;
 extern const std::string gStr_event;
 extern const std::string gStr_mateChoice;
 extern const std::string gStr_modifyChild;
-extern const std::string gStr_lessThanSign;
-extern const std::string gStr_greaterThanSign;
-extern const std::string gStr_GetValueForMemberOfElements;
-extern const std::string gStr_ExecuteMethod;
 
+
+enum _SLiMGlobalStringID : int {
+	gID_addGenomicElement0 = gID_LastSLiMScriptEntry + 1,
+	gID_addGenomicElementType0,
+	gID_addMutationType0,
+	gID_addRecombinationIntervals0,
+	gID_setGeneConversion0,
+	gID_setGenerationRange0,
+	gID_setMutationRate0,
+	gID_setRandomSeed0,
+	gID_setSexEnabled0,
+	gID_genomicElements,
+	gID_lastPosition,
+	gID_overallRecombinationRate,
+	gID_recombinationEndPositions,
+	gID_recombinationRates,
+	gID_geneConversionFraction,
+	gID_geneConversionMeanLength,
+	gID_overallMutationRate,
+	gID_genomeType,
+	gID_isNullGenome,
+	gID_mutations,
+	gID_genomicElementType,
+	gID_startPosition,
+	gID_endPosition,
+	gID_id,
+	gID_mutationTypes,
+	gID_mutationFractions,
+	gID_mutationType,
+	gID_originGeneration,
+	gID_position,
+	gID_selectionCoeff,
+	gID_subpopID,
+	gID_distributionType,
+	gID_distributionParams,
+	gID_dominanceCoeff,
+	gID_start,
+	gID_end,
+	gID_source,
+	gID_active,
+	gID_chromosome,
+	gID_chromosomeType,
+	gID_genomicElementTypes,
+	gID_scriptBlocks,
+	gID_sexEnabled,
+	gID_subpopulations,
+	gID_substitutions,
+	gID_dominanceCoeffX,
+	gID_duration,
+	gID_generation,
+	gID_randomSeed,
+	gID_firstMaleIndex,
+	gID_genomes,
+	gID_immigrantSubpopIDs,
+	gID_immigrantSubpopFractions,
+	gID_selfingFraction,
+	gID_sexRatio,
+	gID_fixationTime,
+	gID_changeRecombinationIntervals,
+	gID_addMutations,
+	gID_addNewDrawnMutation,
+	gID_addNewMutation,
+	gID_removeMutations,
+	gID_changeGenomicElementType,
+	gID_changeMutationFractions,
+	gID_setSelectionCoeff,
+	gID_changeDistribution,
+	gID_addSubpop,
+	gID_addSubpopSplit,
+	gID_deregisterScriptBlock,
+	gID_mutationFrequencies,
+	gID_outputFixedMutations,
+	gID_outputFull,
+	gID_outputMutations,
+	gID_readFromPopulationFile,
+	gID_registerScriptEvent,
+	gID_registerScriptFitnessCallback,
+	gID_registerScriptMateChoiceCallback,
+	gID_registerScriptModifyChildCallback,
+	gID_changeMigrationRates,
+	gID_changeSelfingRate,
+	gID_changeSexRatio,
+	gID_changeSubpopulationSize,
+	gID_fitness,
+	gID_outputMSSample,
+	gID_outputSample,
+};
 
 #endif /* defined(__SLiM__slim_global__) */
 

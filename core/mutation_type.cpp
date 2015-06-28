@@ -142,32 +142,58 @@ std::vector<std::string> MutationType::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *MutationType::GetValueForMember(const std::string &p_member_name)
+bool MutationType::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_id) == 0)
+	switch (p_member_id)
 	{
-		if (!cached_value_muttype_id_)
-			cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternallyOwned();
-		return cached_value_muttype_id_;
+			// constants
+		case gID_id:
+		case gID_distributionType:
+		case gID_distributionParams:
+			return true;
+			
+			// variables
+		case gID_dominanceCoeff:
+			return false;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_distributionType) == 0)
-		return new ScriptValue_String(std::string(1, dfe_type_));
-	if (p_member_name.compare(gStr_distributionParams) == 0)
-		return new ScriptValue_Float_vector(dfe_parameters_);
-	
-	// variables
-	if (p_member_name.compare(gStr_dominanceCoeff) == 0)
-		return new ScriptValue_Float_singleton_const(dominance_coeff_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void MutationType::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
 {
-	if (p_member_name.compare(gStr_dominanceCoeff) == 0)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			// constants
+		case gID_id:
+		{
+			if (!cached_value_muttype_id_)
+				cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternallyOwned();
+			return cached_value_muttype_id_;
+		}
+		case gID_distributionType:
+			return new ScriptValue_String(std::string(1, dfe_type_));
+		case gID_distributionParams:
+			return new ScriptValue_Float_vector(dfe_parameters_);
+			
+			// variables
+		case gID_dominanceCoeff:
+			return new ScriptValue_Float_singleton_const(dominance_coeff_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void MutationType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	if (p_member_id == gID_dominanceCoeff)
+	{
+		TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
 		
 		double value = p_value->FloatAtIndex(0);
 		
@@ -175,7 +201,7 @@ void MutationType::SetValueForMember(const std::string &p_member_name, ScriptVal
 		return;
 	}
 	
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> MutationType::Methods(void) const
@@ -187,7 +213,7 @@ std::vector<std::string> MutationType::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *MutationType::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *MutationType::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	static FunctionSignature *changeDistributionSig = nullptr;
 	
@@ -196,13 +222,13 @@ const FunctionSignature *MutationType::SignatureForMethod(const std::string &p_m
 		changeDistributionSig = (new FunctionSignature(gStr_changeDistribution, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
 	}
 	
-	if (p_method_name.compare(gStr_changeDistribution) == 0)
+	if (p_method_id == gID_changeDistribution)
 		return changeDistributionSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *MutationType::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
@@ -211,7 +237,7 @@ ScriptValue *MutationType::ExecuteMethod(const std::string &p_method_name, Scrip
 	//
 #pragma mark -changeDistribution()
 	
-	if (p_method_name.compare(gStr_changeDistribution) == 0)
+	if (p_method_id == gID_changeDistribution)
 	{
 		string dfe_type_string = arg0_value->StringAtIndex(0);
 		int expected_dfe_param_count = 0;
@@ -242,8 +268,9 @@ ScriptValue *MutationType::ExecuteMethod(const std::string &p_method_name, Scrip
 	}
 	
 	
+	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

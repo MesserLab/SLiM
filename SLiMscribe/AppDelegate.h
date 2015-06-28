@@ -21,23 +21,14 @@
 #import <Cocoa/Cocoa.h>
 #include "ConsoleWindowController.h"
 
-#include "script.h"
-#include "script_value.h"
-#include "script_interpreter.h"
-#include "slim_sim.h"
-
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, ConsoleControllerDelegate>
 {
 	// About window cruft
 	IBOutlet NSWindow *aboutWindow;
 	IBOutlet NSTextField *aboutVersionTextField;
-	
-	// SLiMSim instance created using the script from the prefs window
-	SLiMSim *sim;
 }
 
-@property (retain) IBOutlet SLiMScriptTextView *launchSLiMScriptTextView;
 @property (retain) IBOutlet ConsoleWindowController *consoleController;
 
 // for ConsoleControllerDelegate

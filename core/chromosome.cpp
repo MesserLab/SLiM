@@ -219,78 +219,112 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *Chromosome::GetValueForMember(const std::string &p_member_name)
+bool Chromosome::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_genomicElements) == 0)
+	switch (p_member_id)
 	{
-		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
-		
-		for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
-			vec->PushElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
-		
-		return vec;
+			// constants
+		case gID_genomicElements:
+		case gID_lastPosition:
+		case gID_overallRecombinationRate:
+		case gID_recombinationEndPositions:
+		case gID_recombinationRates:
+			return true;
+			
+			// variables
+		case gID_geneConversionFraction:
+		case gID_geneConversionMeanLength:
+		case gID_overallMutationRate:
+			return false;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_lastPosition) == 0)
-	{
-		if (!cached_value_lastpos_)
-			cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternallyOwned();
-		return cached_value_lastpos_;
-	}
-	if (p_member_name.compare(gStr_overallRecombinationRate) == 0)
-		return new ScriptValue_Float_singleton_const(overall_recombination_rate_);
-	if (p_member_name.compare(gStr_recombinationEndPositions) == 0)
-		return new ScriptValue_Int_vector(recombination_end_positions_);
-	if (p_member_name.compare(gStr_recombinationRates) == 0)
-		return new ScriptValue_Float_vector(recombination_rates_);
-	
-	// variables
-	if (p_member_name.compare(gStr_geneConversionFraction) == 0)
-		return new ScriptValue_Float_singleton_const(gene_conversion_fraction_);
-	if (p_member_name.compare(gStr_geneConversionMeanLength) == 0)
-		return new ScriptValue_Float_singleton_const(gene_conversion_avg_length_);
-	if (p_member_name.compare(gStr_overallMutationRate) == 0)
-		return new ScriptValue_Float_singleton_const(overall_mutation_rate_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void Chromosome::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
 {
-	if (p_member_name.compare(gStr_geneConversionFraction) == 0)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
-		
-		double value = p_value->FloatAtIndex(0);
-		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
-		
-		gene_conversion_fraction_ = value;
-		return;
+			// constants
+		case gID_genomicElements:
+		{
+			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			
+			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
+				vec->PushElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
+			
+			return vec;
+		}
+		case gID_lastPosition:
+		{
+			if (!cached_value_lastpos_)
+				cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternallyOwned();
+			return cached_value_lastpos_;
+		}
+		case gID_overallRecombinationRate:
+			return new ScriptValue_Float_singleton_const(overall_recombination_rate_);
+		case gID_recombinationEndPositions:
+			return new ScriptValue_Int_vector(recombination_end_positions_);
+		case gID_recombinationRates:
+			return new ScriptValue_Float_vector(recombination_rates_);
+			
+			// variables
+		case gID_geneConversionFraction:
+			return new ScriptValue_Float_singleton_const(gene_conversion_fraction_);
+		case gID_geneConversionMeanLength:
+			return new ScriptValue_Float_singleton_const(gene_conversion_avg_length_);
+		case gID_overallMutationRate:
+			return new ScriptValue_Float_singleton_const(overall_mutation_rate_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
 	}
-	
-	if (p_member_name.compare(gStr_geneConversionMeanLength) == 0)
+}
+
+void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
-		
-		double value = p_value->FloatAtIndex(0);
-		RangeCheckValue(__func__, p_member_name, value >= 0);
-		
-		gene_conversion_avg_length_ = value;
-		return;
+		case gID_geneConversionFraction:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			
+			double value = p_value->FloatAtIndex(0);
+			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
+			
+			gene_conversion_fraction_ = value;
+			return;
+		}
+		case gID_geneConversionMeanLength:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			
+			double value = p_value->FloatAtIndex(0);
+			RangeCheckValue(__func__, p_member_id, value >= 0);
+			
+			gene_conversion_avg_length_ = value;
+			return;
+		}
+		case gID_overallMutationRate:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskFloat);
+			
+			double value = p_value->FloatAtIndex(0);
+			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
+			
+			overall_mutation_rate_ = value;
+			return;
+		}
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 	}
-	
-	if (p_member_name.compare(gStr_overallMutationRate) == 0)
-	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskFloat);
-		
-		double value = p_value->FloatAtIndex(0);
-		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
-		
-		overall_mutation_rate_ = value;
-		return;
-	}
-	
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
 }
 
 std::vector<std::string> Chromosome::Methods(void) const
@@ -302,7 +336,7 @@ std::vector<std::string> Chromosome::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Chromosome::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *Chromosome::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	static FunctionSignature *changeRecombinationIntervalsSig = nullptr;
 	
@@ -311,13 +345,13 @@ const FunctionSignature *Chromosome::SignatureForMethod(const std::string &p_met
 		changeRecombinationIntervalsSig = (new FunctionSignature(gStr_changeRecombinationIntervals, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
 	}
 	
-	if (p_method_name.compare(gStr_changeRecombinationIntervals) == 0)
+	if (p_method_id == gID_changeRecombinationIntervals)
 		return changeRecombinationIntervalsSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *Chromosome::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
@@ -327,7 +361,7 @@ ScriptValue *Chromosome::ExecuteMethod(const std::string &p_method_name, ScriptV
 	//
 #pragma mark -changeRecombinationIntervals()
 	
-	if (p_method_name.compare(gStr_changeRecombinationIntervals) == 0)
+	if (p_method_id == gID_changeRecombinationIntervals)
 	{
 		int ends_count = arg0_value->Count();
 		int rates_count = arg1_value->Count();
@@ -372,8 +406,9 @@ ScriptValue *Chromosome::ExecuteMethod(const std::string &p_method_name, ScriptV
 	}
 	
 	
+	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

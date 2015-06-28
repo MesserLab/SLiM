@@ -713,7 +713,12 @@ using std::string;
 	{
 		identifier_name = identifiers[key_path_index];
 		
-		ScriptValue *property_value = ((ScriptValue_Object *)key_path_value)->GetRepresentativeValueOrNullForMemberOfElements(identifier_name);
+		GlobalStringID identifier_id = GlobalStringIDForString(identifier_name);
+		
+		if (identifier_id == gID_none)
+			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
+		
+		ScriptValue *property_value = ((ScriptValue_Object *)key_path_value)->GetRepresentativeValueOrNullForMemberOfElements(identifier_id);
 		
 		if (key_path_value->IsTemporary()) delete key_path_value;
 		key_path_value = property_value;
@@ -784,9 +789,6 @@ using std::string;
 		case TokenType::kTokenNext:
 		case TokenType::kTokenBreak:
 		case TokenType::kTokenReturn:
-		case TokenType::kTokenFitness:
-		case TokenType::kTokenMateChoice:
-		case TokenType::kTokenModifyChild:
 			if (canExtend)
 			{
 				NSMutableArray *completions = nil;
@@ -972,7 +974,7 @@ using std::string;
 			
 			// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 			// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-			if ((token_type == TokenType::kTokenNumber) || (token_type == TokenType::kTokenString) || (token_type == TokenType::kTokenRParen) || (token_type == TokenType::kTokenRBracket) || (token_type == TokenType::kTokenIdentifier) || (token_type == TokenType::kTokenIf) || (token_type == TokenType::kTokenWhile) || (token_type == TokenType::kTokenFor) || (token_type == TokenType::kTokenNext) || (token_type == TokenType::kTokenBreak) || (token_type == TokenType::kTokenReturn) || (token_type == TokenType::kTokenFitness) || (token_type == TokenType::kTokenMateChoice) || (token_type == TokenType::kTokenModifyChild))
+			if ((token_type == TokenType::kTokenNumber) || (token_type == TokenType::kTokenString) || (token_type == TokenType::kTokenRParen) || (token_type == TokenType::kTokenRBracket) || (token_type == TokenType::kTokenIdentifier) || (token_type == TokenType::kTokenIf) || (token_type == TokenType::kTokenWhile) || (token_type == TokenType::kTokenFor) || (token_type == TokenType::kTokenNext) || (token_type == TokenType::kTokenBreak) || (token_type == TokenType::kTokenReturn))
 			{
 				if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 				if (completions) *completions = nil;

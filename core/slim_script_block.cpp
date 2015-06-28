@@ -7,12 +7,199 @@
 //
 
 #include "slim_script_block.h"
+#include "script_interpreter.h"
 
 #include "errno.h"
 
 
 using std::endl;
 using std::string;
+
+
+SLiMScript::SLiMScript(const string &p_script_string, int p_start_index) : Script(p_script_string, p_start_index)
+{
+}
+
+SLiMScript::~SLiMScript(void)
+{
+}
+
+ScriptASTNode *SLiMScript::Parse_SLiMFile(void)
+{
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMFile, gStr_empty_string, 0, 0);
+	ScriptASTNode *node = new ScriptASTNode(virtual_token, true);
+	
+	while (current_token_type_ != TokenType::kTokenEOF)
+	{
+		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
+		// Parsing of the optional generation range is done in Parse_SLiMScriptBlock() since it ends up as children of that node.
+		ScriptASTNode *script_block = Parse_SLiMScriptBlock();
+		
+		node->AddChild(script_block);
+	}
+	
+	Match(TokenType::kTokenEOF, "SLiM file");
+	
+	return node;
+}
+
+ScriptASTNode *SLiMScript::Parse_SLiMScriptBlock(void)
+{
+	ScriptToken *virtual_token = new ScriptToken(TokenType::kTokenSLiMScriptBlock, gStr_empty_string, 0, 0);
+	ScriptASTNode *slim_script_block_node = new ScriptASTNode(virtual_token, true);
+	
+	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
+	// We parse the slim_script_info section here, as part of the script block.
+	if (current_token_type_ == TokenType::kTokenString)
+	{
+		// a script identifier string is present; add it
+		ScriptASTNode *script_id_node = Parse_Constant();
+		
+		slim_script_block_node->AddChild(script_id_node);
+	}
+	
+	if (current_token_type_ == TokenType::kTokenNumber)
+	{
+		// A start generation is present; add it
+		ScriptASTNode *start_generation_node = Parse_Constant();
+		
+		slim_script_block_node->AddChild(start_generation_node);
+		
+		if (current_token_type_ == TokenType::kTokenColon)
+		{
+			// An end generation is present; add it
+			Match(TokenType::kTokenColon, "SLiM script block");
+			
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				ScriptASTNode *end_generation_node = Parse_Constant();
+				
+				slim_script_block_node->AddChild(end_generation_node);
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock" << slim_terminate();
+			}
+		}
+	}
+	
+	// Now we are to the point of parsing the actual slim_script_block
+	if (current_token_type_ == TokenType::kTokenIdentifier)
+	{
+		if (current_token_->token_string_.compare(gStr_fitness) == 0)
+		{
+			ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+			
+			Match(TokenType::kTokenIdentifier, "SLiM fitness() callback");
+			Match(TokenType::kTokenLParen, "SLiM fitness() callback");
+			
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				// A (required) mutation type id is present; add it
+				ScriptASTNode *mutation_type_id_node = Parse_Constant();
+				
+				callback_info_node->AddChild(mutation_type_id_node);
+			}
+			else
+			{
+				SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a mutation type id is required in fitness() callback definitions" << slim_terminate();
+			}
+			
+			if (current_token_type_ == TokenType::kTokenComma)
+			{
+				// A (optional) subpopulation id is present; add it
+				Match(TokenType::kTokenComma, "SLiM fitness() callback");
+				
+				if (current_token_type_ == TokenType::kTokenNumber)
+				{
+					ScriptASTNode *subpopulation_id_node = Parse_Constant();
+					
+					callback_info_node->AddChild(subpopulation_id_node);
+				}
+				else
+				{
+					SLIM_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMScriptBlock; a subpopulation id is expected after a comma in fitness() callback definitions" << slim_terminate();
+				}
+			}
+			
+			Match(TokenType::kTokenRParen, "SLiM fitness() callback");
+			
+			slim_script_block_node->AddChild(callback_info_node);
+		}
+		else if (current_token_->token_string_.compare(gStr_mateChoice) == 0)
+		{
+			ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+			
+			Match(TokenType::kTokenIdentifier, "SLiM mateChoice() callback");
+			Match(TokenType::kTokenLParen, "SLiM mateChoice() callback");
+			
+			// A (optional) subpopulation id is present; add it
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				ScriptASTNode *subpopulation_id_node = Parse_Constant();
+				
+				callback_info_node->AddChild(subpopulation_id_node);
+			}
+			
+			Match(TokenType::kTokenRParen, "SLiM mateChoice() callback");
+			
+			slim_script_block_node->AddChild(callback_info_node);
+		}
+		else if (current_token_->token_string_.compare(gStr_modifyChild) == 0)
+		{
+			ScriptASTNode *callback_info_node = new ScriptASTNode(current_token_);
+			
+			Match(TokenType::kTokenIdentifier, "SLiM modifyChild() callback");
+			Match(TokenType::kTokenLParen, "SLiM modifyChild() callback");
+			
+			// A (optional) subpopulation id is present; add it
+			if (current_token_type_ == TokenType::kTokenNumber)
+			{
+				ScriptASTNode *subpopulation_id_node = Parse_Constant();
+				
+				callback_info_node->AddChild(subpopulation_id_node);
+			}
+			
+			Match(TokenType::kTokenRParen, "SLiM modifyChild() callback");
+			
+			slim_script_block_node->AddChild(callback_info_node);
+		}
+	}
+	
+	// Regardless of what happened above, all SLiMscript blocks end with a compound statement, which is the last child of the node
+	ScriptASTNode *compound_statement_node = Parse_CompoundStatement();
+	
+	slim_script_block_node->AddChild(compound_statement_node);
+	
+	return slim_script_block_node;
+}
+
+void SLiMScript::ParseSLiMFileToAST(void)
+{
+	// delete the existing AST
+	delete parse_root_;
+	parse_root_ = nullptr;
+	
+	// set up parse state
+	parse_index_ = 0;
+	current_token_ = token_stream_.at(parse_index_);		// should always have at least an EOF
+	current_token_type_ = current_token_->token_type_;
+	
+	// parse a new AST from our start token
+	ScriptASTNode *tree = Parse_SLiMFile();
+	
+	tree->OptimizeTree();
+	
+	parse_root_ = tree;
+	
+	// if logging of the AST is requested, do that; always to cout, not to SLIM_OUTSTREAM
+	if (gSLiMScriptLogAST)
+	{
+		std::cout << "AST : \n";
+		this->PrintAST(std::cout);
+	}
+}
+
 
 
 SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root_node)
@@ -71,10 +258,11 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 		const ScriptASTNode *callback_node = block_children[child_index];
 		const ScriptToken *callback_token = callback_node->token_;
 		TokenType callback_type = callback_token->token_type_;
+		const std::string &callback_name = callback_token->token_string_;
 		const std::vector<ScriptASTNode *> &callback_children = callback_node->children_;
 		int n_callback_children = (int)callback_children.size();
 		
-		if (callback_type == TokenType::kTokenFitness)
+		if ((callback_type == TokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
 		{
 			if ((n_callback_children != 1) && (n_callback_children != 2))
 				SLIM_TERMINATION << "ERROR (InitializeFromFile): fitness() callback needs 1 or 2 parameters" << slim_terminate();
@@ -86,7 +274,7 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			
 			type_ = SLiMScriptBlockType::SLiMScriptFitnessCallback;
 		}
-		else if (callback_type == TokenType::kTokenMateChoice)
+		else if ((callback_type == TokenType::kTokenIdentifier) && (callback_name.compare(gStr_mateChoice) == 0))
 		{
 			if ((n_callback_children != 0) && (n_callback_children != 1))
 				SLIM_TERMINATION << "ERROR (InitializeFromFile): mateChoice() callback needs 0 or 1 parameters" << slim_terminate();
@@ -96,7 +284,7 @@ SLiMScriptBlock::SLiMScriptBlock(ScriptASTNode *p_root_node) : root_node_(p_root
 			
 			type_ = SLiMScriptBlockType::SLiMScriptMateChoiceCallback;
 		}
-		else if (callback_type == TokenType::kTokenModifyChild)
+		else if ((callback_type == TokenType::kTokenIdentifier) && (callback_name.compare(gStr_modifyChild) == 0))
 		{
 			if ((n_callback_children != 0) && (n_callback_children != 1))
 				SLIM_TERMINATION << "ERROR (InitializeFromFile): modifyChild() callback needs 0 or 1 parameters" << slim_terminate();
@@ -169,8 +357,12 @@ SLiMScriptBlock::~SLiMScriptBlock(void)
 		delete cached_value_block_id_;
 }
 
-void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
+void SLiMScriptBlock::_ScanNodeForIdentifiersUsed(const ScriptASTNode *p_scan_node)
 {
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : p_scan_node->children_)
+		_ScanNodeForIdentifiersUsed(child);
+	
 	if (p_scan_node->token_->token_type_ == TokenType::kTokenIdentifier)
 	{
 		const std::string &token_string = p_scan_node->token_->token_string_;
@@ -224,76 +416,11 @@ void SLiMScriptBlock::_ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node)
 		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
 		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
 	}
-	
-	// recurse down the tree
-	for (auto child : p_scan_node->children_)
-		_ScanNodeForIdentifiers(child);
-}
-
-void SLiMScriptBlock::_ScanNodeForConstants(const ScriptASTNode *p_scan_node)
-{
-	// recurse down the tree; determine our children, then ourselves
-	for (const ScriptASTNode *child : p_scan_node->children_)
-		_ScanNodeForConstants(child);
-	
-	// now find constant expressions and make ScriptValues for them
-	TokenType token_type = p_scan_node->token_->token_type_;
-	
-	if (token_type == TokenType::kTokenNumber)
-	{
-		const std::string &number_string = p_scan_node->token_->token_string_;
-		
-		// This is taken from ScriptInterpreter::Evaluate_Number and needs to match exactly!
-		ScriptValue *result = nullptr;
-		
-		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new ScriptValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
-		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-			result = new ScriptValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
-		else
-			result = new ScriptValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
-		
-		result->SetExternallyOwned();
-		
-		p_scan_node->cached_value_ = result;
-		p_scan_node->cached_value_is_owned_ = true;
-	}
-	else if (token_type == TokenType::kTokenString)
-	{
-		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
-		ScriptValue *result = new ScriptValue_String(p_scan_node->token_->token_string_);
-		
-		result->SetExternallyOwned();
-		
-		p_scan_node->cached_value_ = result;
-		p_scan_node->cached_value_is_owned_ = true;
-	}
-	else if ((token_type == TokenType::kTokenReturn) || (token_type == TokenType::kTokenLBrace))
-	{
-		// These are node types which can propagate a single constant value upward.  Note that this is not strictly
-		// true; both return and compound statements have side effects on the flow of execution.  It would therefore
-		// be inappropriate for their execution to be short-circuited in favor of a constant value in general; but
-		// that is not what this optimization means.  Rather, it means that these nodes are saying "I've got just a
-		// constant value inside me, so *if* nothing else is going on around me, I can be taken as equal to that
-		// constant."  We honor that conditional statement by only checking for the cached constant in specific places.
-		if (p_scan_node->children_.size() == 1)
-		{
-			const ScriptASTNode *child = p_scan_node->children_[0];
-			ScriptValue *cached_value = child->cached_value_;
-			
-			if (cached_value)
-			{
-				p_scan_node->cached_value_ = cached_value;
-				p_scan_node->cached_value_is_owned_ = false;	// somebody below us owns the value
-			}
-		}
-	}
 }
 
 void SLiMScriptBlock::ScanTree(void)
 {
-	_ScanNodeForIdentifiers(compound_statement_node_);
-	_ScanNodeForConstants(compound_statement_node_);
+	_ScanNodeForIdentifiersUsed(compound_statement_node_);
 	
 	// If the script block contains a "wildcard" – an identifier that signifies that any other identifier could be accessed – then
 	// we just set all of our "contains_" flags to T.  Any new flag that is added must be added here too!
@@ -398,51 +525,81 @@ std::vector<std::string> SLiMScriptBlock::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *SLiMScriptBlock::GetValueForMember(const std::string &p_member_name)
+bool SLiMScriptBlock::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_id) == 0)
+	switch (p_member_id)
 	{
-		if (!cached_value_block_id_)
-			cached_value_block_id_ = (new ScriptValue_Int_singleton_const(block_id_))->SetExternallyOwned();
-		return cached_value_block_id_;
+			// constants
+		case gID_id:
+		case gID_start:
+		case gID_end:
+		case gID_type:
+		case gID_source:
+			return true;
+			
+			// variables
+		case gID_active:
+			return false;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_start) == 0)
-		return new ScriptValue_Int_singleton_const(start_generation_);
-	if (p_member_name.compare(gStr_end) == 0)
-		return new ScriptValue_Int_singleton_const(end_generation_);
-	if (p_member_name.compare(gStr_type) == 0)
-	{
-		switch (type_)
-		{
-			case SLiMScriptBlockType::SLiMScriptEvent:					return new ScriptValue_String(gStr_event);
-			case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return new ScriptValue_String(gStr_fitness);
-			case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return new ScriptValue_String(gStr_mateChoice);
-			case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return new ScriptValue_String(gStr_modifyChild);
-		}
-	}
-	if (p_member_name.compare(gStr_source) == 0)
-		return new ScriptValue_String(compound_statement_node_->token_->token_string_);
-	
-	// variables
-	if (p_member_name.compare(gStr_active) == 0)
-		return new ScriptValue_Int_singleton_const(active_);
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void SLiMScriptBlock::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *SLiMScriptBlock::GetValueForMember(GlobalStringID p_member_id)
 {
-	if (p_member_name.compare(gStr_active) == 0)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt);
+			// constants
+		case gID_id:
+		{
+			if (!cached_value_block_id_)
+				cached_value_block_id_ = (new ScriptValue_Int_singleton_const(block_id_))->SetExternallyOwned();
+			return cached_value_block_id_;
+		}
+		case gID_start:
+			return new ScriptValue_Int_singleton_const(start_generation_);
+		case gID_end:
+			return new ScriptValue_Int_singleton_const(end_generation_);
+		case gID_type:
+		{
+			switch (type_)
+			{
+				case SLiMScriptBlockType::SLiMScriptEvent:					return new ScriptValue_String(gStr_event);
+				case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return new ScriptValue_String(gStr_fitness);
+				case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return new ScriptValue_String(gStr_mateChoice);
+				case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return new ScriptValue_String(gStr_modifyChild);
+			}
+		}
+		case gID_source:
+			return new ScriptValue_String(compound_statement_node_->token_->token_string_);
+			
+			// variables
+		case gID_active:
+			return new ScriptValue_Int_singleton_const(active_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
+	}
+}
+
+void SLiMScriptBlock::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	if (p_member_id == gID_active)
+	{
+		TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
 		
 		active_ = p_value->IntAtIndex(0);
 		
 		return;
 	}
 	
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+	// all others, including gID_none
+	else
+		return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> SLiMScriptBlock::Methods(void) const
@@ -452,14 +609,14 @@ std::vector<std::string> SLiMScriptBlock::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *SLiMScriptBlock::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *SLiMScriptBlock::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_name);
+	return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *SLiMScriptBlock::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *SLiMScriptBlock::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
+	return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

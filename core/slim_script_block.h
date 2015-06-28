@@ -41,6 +41,24 @@ enum class SLiMScriptBlockType {
 };
 
 
+class SLiMScript : public Script
+{
+public:
+	SLiMScript(const SLiMScript&) = delete;							// no copying
+	SLiMScript& operator=(const Script&) = delete;					// no copying
+	SLiMScript(void) = delete;										// no null construction
+	SLiMScript(const std::string &p_script_string, int p_start_index);
+	
+	virtual ~SLiMScript(void);										// destructor
+	
+	void ParseSLiMFileToAST(void);									// generate AST from token stream for a SLiM input file ( slim_script_block* EOF )
+	
+	// Top-level parse methods for SLiM input files
+	ScriptASTNode *Parse_SLiMFile(void);
+	ScriptASTNode *Parse_SLiMScriptBlock(void);
+};
+
+
 class SLiMScriptBlock : public ScriptObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -108,8 +126,7 @@ public:
 	~SLiMScriptBlock(void);												// destructor
 	
 	// Scan the tree for optimization purposes, called by the constructors
-	void _ScanNodeForIdentifiers(const ScriptASTNode *p_scan_node);
-	void _ScanNodeForConstants(const ScriptASTNode *p_scan_node);
+	void _ScanNodeForIdentifiersUsed(const ScriptASTNode *p_scan_node);
 	void ScanTree(void);
 	
 	//
@@ -126,12 +143,13 @@ public:
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual ScriptValue *GetValueForMember(const std::string &p_member_name);
-	virtual void SetValueForMember(const std::string &p_member_name, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
+	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
+	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(const std::string &p_method_name) const;
-	virtual ScriptValue *ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
+	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
 };
 
 

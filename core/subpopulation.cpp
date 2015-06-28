@@ -961,75 +961,88 @@ std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 	return variables;
 }
 
-ScriptValue *Subpopulation::GetValueForMember(const std::string &p_member_name)
+bool Subpopulation::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	// constants
-	if (p_member_name.compare(gStr_id) == 0)
+	switch (p_member_id)
 	{
-		if (!cached_value_subpop_id_)
-			cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternallyOwned();
-		return cached_value_subpop_id_;
+			// constants
+		case gID_id:
+		case gID_firstMaleIndex:
+		case gID_genomes:
+		case gID_immigrantSubpopIDs:
+		case gID_immigrantSubpopFractions:
+		case gID_selfingFraction:
+		case gID_sexRatio:
+		case gID_size:
+			return true;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
 	}
-	if (p_member_name.compare(gStr_firstMaleIndex) == 0)
-		return new ScriptValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
-	if (p_member_name.compare(gStr_genomes) == 0)
-	{
-		ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
-		
-		if (child_generation_valid)
-			for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-				vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
-		else
-			for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-				vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
-		
-		return vec;
-	}
-	if (p_member_name.compare(gStr_immigrantSubpopIDs) == 0)
-	{
-		ScriptValue_Int_vector *vec = new ScriptValue_Int_vector();
-		
-		for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-			vec->PushInt(migrant_pair->first);
-		
-		return vec;
-	}
-	if (p_member_name.compare(gStr_immigrantSubpopFractions) == 0)
-	{
-		ScriptValue_Float_vector *vec = new ScriptValue_Float_vector();
-		
-		for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-			vec->PushFloat(migrant_pair->second);
-		
-		return vec;
-	}
-	if (p_member_name.compare(gStr_selfingFraction) == 0)
-		return new ScriptValue_Float_singleton_const(selfing_fraction_);
-	if (p_member_name.compare(gStr_sexRatio) == 0)
-		return new ScriptValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
-	if (p_member_name.compare(gStr_size) == 0)
-		return new ScriptValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
-	
-	// variables
-	
-	return ScriptObjectElement::GetValueForMember(p_member_name);
 }
 
-void Subpopulation::SetValueForMember(const std::string &p_member_name, ScriptValue *p_value)
+ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 {
-	// remove this FIXME – no longer a writeable property
-	if (p_member_name.compare(gStr_selfingFraction) == 0)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_name, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
-		
-		double value = p_value->FloatAtIndex(0);
-		RangeCheckValue(__func__, p_member_name, (value >= 0.0) && (value <= 1.0));
-		
-		selfing_fraction_ = (int)value;
-		return;
+			// constants
+		case gID_id:
+		{
+			if (!cached_value_subpop_id_)
+				cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternallyOwned();
+			return cached_value_subpop_id_;
+		}
+		case gID_firstMaleIndex:
+			return new ScriptValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
+		case gID_genomes:
+		{
+			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			
+			if (child_generation_valid)
+				for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
+					vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+			else
+				for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
+					vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+			
+			return vec;
+		}
+		case gID_immigrantSubpopIDs:
+		{
+			ScriptValue_Int_vector *vec = new ScriptValue_Int_vector();
+			
+			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
+				vec->PushInt(migrant_pair->first);
+			
+			return vec;
+		}
+		case gID_immigrantSubpopFractions:
+		{
+			ScriptValue_Float_vector *vec = new ScriptValue_Float_vector();
+			
+			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
+				vec->PushFloat(migrant_pair->second);
+			
+			return vec;
+		}
+		case gID_selfingFraction:
+			return new ScriptValue_Float_singleton_const(selfing_fraction_);
+		case gID_sexRatio:
+			return new ScriptValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
+		case gID_size:
+			return new ScriptValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::GetValueForMember(p_member_id);
 	}
-	
-	return ScriptObjectElement::SetValueForMember(p_member_name, p_value);
+}
+
+void Subpopulation::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+{
+	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Subpopulation::Methods(void) const
@@ -1047,7 +1060,7 @@ std::vector<std::string> Subpopulation::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Subpopulation::SignatureForMethod(const std::string &p_method_name) const
+const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *changeMigrationRatesSig = nullptr;
@@ -1069,186 +1082,197 @@ const FunctionSignature *Subpopulation::SignatureForMethod(const std::string &p_
 		outputSampleSig = (new FunctionSignature(gStr_outputSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
 	}
 	
-	if (p_method_name.compare(gStr_changeMigrationRates) == 0)
-		return changeMigrationRatesSig;
-	else if (p_method_name.compare(gStr_changeSelfingRate) == 0)
-		return changeSelfingRateSig;
-	else if (p_method_name.compare(gStr_changeSexRatio) == 0)
-		return changeSexRatioSig;
-	else if (p_method_name.compare(gStr_changeSubpopulationSize) == 0)
-		return changeSubpopulationSizeSig;
-	else if (p_method_name.compare(gStr_fitness) == 0)
-		return fitnessSig;
-	else if (p_method_name.compare(gStr_outputMSSample) == 0)
-		return outputMSSampleSig;
-	else if (p_method_name.compare(gStr_outputSample) == 0)
-		return outputSampleSig;
-	else
-		return ScriptObjectElement::SignatureForMethod(p_method_name);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+		case gID_changeMigrationRates:
+			return changeMigrationRatesSig;
+		case gID_changeSelfingRate:
+			return changeSelfingRateSig;
+		case gID_changeSexRatio:
+			return changeSexRatioSig;
+		case gID_changeSubpopulationSize:
+			return changeSubpopulationSizeSig;
+		case gID_fitness:
+			return fitnessSig;
+		case gID_outputMSSample:
+			return outputMSSampleSig;
+		case gID_outputSample:
+			return outputSampleSig;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::SignatureForMethod(p_method_id);
+	}
 }
 
-ScriptValue *Subpopulation::ExecuteMethod(const std::string &p_method_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
 {
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	
-	//
-	//	*********************	- (void)changeMigrationRates(object sourceSubpops, numeric rates)
-	//
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+			//
+			//	*********************	- (void)changeMigrationRates(object sourceSubpops, numeric rates)
+			//
 #pragma mark -changeMigrationRates()
-	
-	if (p_method_name.compare(gStr_changeMigrationRates) == 0)
-	{
-		int source_subpops_count = arg0_value->Count();
-		int rates_count = arg1_value->Count();
-		
-		if (source_subpops_count != rates_count)
-			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
-		if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
-			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
-		
-		for (int value_index = 0; value_index < source_subpops_count; ++value_index)
-		{
-			ScriptObjectElement *source_subpop = arg0_value->ElementAtIndex(value_index);
-			int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
-			double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 			
-			population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
-		}
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	
-	
-	//
-	//	*********************	- (void)changeSelfingRate(numeric$ rate)
-	//
-#pragma mark -changeSelfingRate()
-	
-	else if (p_method_name.compare(gStr_changeSelfingRate) == 0)
-	{
-		double selfing_fraction = arg0_value->FloatAtIndex(0);
-		
-		population_.SetSelfing(subpopulation_id_, selfing_fraction);
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	
-	
-	//
-	//	*********************	- (void)changeSexRatio(float$ sexRatio)
-	//
-#pragma mark -changeSexRatio()
-	
-	else if (p_method_name.compare(gStr_changeSexRatio) == 0)
-	{
-		double sex_ratio = arg0_value->FloatAtIndex(0);
-		
-		population_.SetSexRatio(subpopulation_id_, sex_ratio);
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	
-	
-	//
-	//	*********************	- (void)changeSubpopulationSize(integer$ size)
-	//
-#pragma mark -changeSubpopulationSize()
-	
-	else if (p_method_name.compare(gStr_changeSubpopulationSize) == 0)
-	{
-		int subpop_size = (int)arg0_value->IntAtIndex(0);
-		
-		population_.SetSize(subpopulation_id_, subpop_size);
-		
-		return gStaticScriptValueNULLInvisible;
-	}
-	
-	
-	//
-	//	*********************	- (float)fitness(integer indices)
-	//
-#pragma mark -fitness()
-	
-	else if (p_method_name.compare(gStr_fitness) == 0)
-	{
-		if (child_generation_valid)
-			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
-		if (cached_fitness_size_ == 0)
-			SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << slim_terminate();
-		
-		bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
-		int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
-		
-		if (index_count == 1)
+		case gID_changeMigrationRates:
 		{
-			int index = (do_all_indices ? 0 : (int)arg0_value->IntAtIndex(0));
-			double fitness = cached_parental_fitness_[index];
+			int source_subpops_count = arg0_value->Count();
+			int rates_count = arg1_value->Count();
 			
-			return new ScriptValue_Float_singleton_const(fitness);
-		}
-		else
-		{
-			ScriptValue_Float_vector *float_return = new ScriptValue_Float_vector();
+			if (source_subpops_count != rates_count)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
+			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
 			
-			for (int value_index = 0; value_index < index_count; value_index++)
+			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
-				int index = (do_all_indices ? value_index : (int)arg0_value->IntAtIndex(value_index));
-				double fitness = cached_parental_fitness_[index];
+				ScriptObjectElement *source_subpop = arg0_value->ElementAtIndex(value_index);
+				int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
+				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				
-				float_return->PushFloat(fitness);
+				population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
 			}
 			
-			return float_return;
+			return gStaticScriptValueNULLInvisible;
 		}
-	}
-	
-	
-	//
-	//	*********************	- (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
-	//	*********************	- (void)outputSample(integer$ sampleSize, [string$ requestedSex])
-	//
+			
+			
+			//
+			//	*********************	- (void)changeSelfingRate(numeric$ rate)
+			//
+#pragma mark -changeSelfingRate()
+			
+		case gID_changeSelfingRate:
+		{
+			double selfing_fraction = arg0_value->FloatAtIndex(0);
+			
+			population_.SetSelfing(subpopulation_id_, selfing_fraction);
+			
+			return gStaticScriptValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	- (void)changeSexRatio(float$ sexRatio)
+			//
+#pragma mark -changeSexRatio()
+			
+		case gID_changeSexRatio:
+		{
+			double sex_ratio = arg0_value->FloatAtIndex(0);
+			
+			population_.SetSexRatio(subpopulation_id_, sex_ratio);
+			
+			return gStaticScriptValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	- (void)changeSubpopulationSize(integer$ size)
+			//
+#pragma mark -changeSubpopulationSize()
+			
+		case gID_changeSubpopulationSize:
+		{
+			int subpop_size = (int)arg0_value->IntAtIndex(0);
+			
+			population_.SetSize(subpopulation_id_, subpop_size);
+			
+			return gStaticScriptValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	- (float)fitness(integer indices)
+			//
+#pragma mark -fitness()
+			
+		case gID_fitness:
+		{
+			if (child_generation_valid)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
+			if (cached_fitness_size_ == 0)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << slim_terminate();
+			
+			bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
+			int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
+			
+			if (index_count == 1)
+			{
+				int index = (do_all_indices ? 0 : (int)arg0_value->IntAtIndex(0));
+				double fitness = cached_parental_fitness_[index];
+				
+				return new ScriptValue_Float_singleton_const(fitness);
+			}
+			else
+			{
+				ScriptValue_Float_vector *float_return = new ScriptValue_Float_vector();
+				
+				for (int value_index = 0; value_index < index_count; value_index++)
+				{
+					int index = (do_all_indices ? value_index : (int)arg0_value->IntAtIndex(value_index));
+					double fitness = cached_parental_fitness_[index];
+					
+					float_return->PushFloat(fitness);
+				}
+				
+				return float_return;
+			}
+		}
+			
+			
+			//
+			//	*********************	- (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
+			//	*********************	- (void)outputSample(integer$ sampleSize, [string$ requestedSex])
+			//
 #pragma mark -outputMSSample()
 #pragma mark -outputSample()
-	
-	else if ((p_method_name.compare(gStr_outputMSSample) == 0) || (p_method_name.compare(gStr_outputSample) == 0))
-	{
-		int sample_size = (int)arg0_value->IntAtIndex(0);
-		IndividualSex requested_sex = IndividualSex::kUnspecified;
-		
-		if (p_argument_count == 2)
-		{
-			string sex_string = arg1_value->StringAtIndex(0);
 			
-			if (sex_string.compare("M") == 0)
-				requested_sex = IndividualSex::kMale;
-			else if (sex_string.compare("F") == 0)
-				requested_sex = IndividualSex::kFemale;
-			else if (sex_string.compare("*") == 0)
-				requested_sex = IndividualSex::kUnspecified;
+		case gID_outputMSSample:
+		case gID_outputSample:
+		{
+			int sample_size = (int)arg0_value->IntAtIndex(0);
+			IndividualSex requested_sex = IndividualSex::kUnspecified;
+			
+			if (p_argument_count == 2)
+			{
+				string sex_string = arg1_value->StringAtIndex(0);
+				
+				if (sex_string.compare("M") == 0)
+					requested_sex = IndividualSex::kMale;
+				else if (sex_string.compare("F") == 0)
+					requested_sex = IndividualSex::kFemale;
+				else if (sex_string.compare("*") == 0)
+					requested_sex = IndividualSex::kUnspecified;
+			}
+			
+			SLiMSim &sim = population_.sim_;
+			
+			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
+			
+			if (sim.SexEnabled())
+				SLIM_OUTSTREAM << " " << requested_sex;
+			
+			SLIM_OUTSTREAM << endl;
+			
+			if (p_method_id == gID_outputSample)
+				population_.PrintSample(subpopulation_id_, sample_size, requested_sex);
+			else
+				population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);
+			
+			return gStaticScriptValueNULLInvisible;
 		}
-		
-		SLiMSim &sim = population_.sim_;
-		
-		SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
-		
-		if (sim.SexEnabled())
-			SLIM_OUTSTREAM << " " << requested_sex;
-		
-		SLIM_OUTSTREAM << endl;
-		
-		if (p_method_name.compare(gStr_outputSample) == 0)
-			population_.PrintSample(subpopulation_id_, sample_size, requested_sex);
-		else
-			population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);
-		
-		return gStaticScriptValueNULLInvisible;
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
-	
-	
-	else
-		return ScriptObjectElement::ExecuteMethod(p_method_name, p_arguments, p_argument_count, p_interpreter);
 }
 
 

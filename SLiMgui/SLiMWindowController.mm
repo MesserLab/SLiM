@@ -1178,7 +1178,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 	else
 	{
-		Script script(cstr, 0);
+		SLiMScript script(cstr, 0);
 		
 		try {
 			script.Tokenize();

@@ -97,7 +97,7 @@ public:
 	ScriptValue *EvaluateScriptBlock(void);			// the starting point for script blocks in SLiM simulations, which require braces
 	ScriptValue *EvaluateInterpreterBlock(void);	// the starting point for executed blocks in SLiMscript, which do not require braces
 	
-	void _ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, std::string *p_member_name_ptr, std::vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node);
+	void _ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, GlobalStringID *p_member_string_id_ptr, std::vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node);
 	void _AssignRValueToLValue(ScriptValue *rvalue, const ScriptASTNode *p_lvalue_node);
 	
 	ScriptValue *EvaluateNode(const ScriptASTNode *p_node);
@@ -141,8 +141,8 @@ public:
 	
 	inline void RegisterFunctionMap(FunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
-	ScriptValue *ExecuteFunctionCall(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count);
-	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, const std::string &_method_name, ScriptValue *const *const p_arguments, int p_argument_count);
+	ScriptValue *ExecuteFunctionCall(const std::string &p_function_name, const FunctionSignature *p_function_signature, ScriptValue *const *const p_arguments, int p_argument_count);
+	ScriptValue *ExecuteMethodCall(ScriptValue_Object *method_object, GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count);
 	
 	// Utility static methods
 	static int64_t IntForNumberToken(const ScriptToken *p_token);
