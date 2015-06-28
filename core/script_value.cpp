@@ -1317,10 +1317,10 @@ ScriptValue_Object_vector::~ScriptValue_Object_vector(void)
 	}
 }
 
-const std::string ScriptValue_Object_vector::ElementType(void) const
+const std::string *ScriptValue_Object_vector::ElementType(void) const
 {
 	if (values_.size() == 0)
-		return gStr_undefined;
+		return &gStr_undefined;		// this is relied upon by the type-check machinery
 	else
 		return values_[0]->ElementType();
 }
@@ -1359,7 +1359,7 @@ ScriptObjectElement *ScriptValue_Object_vector::ElementAtIndex(int p_idx) const
 
 void ScriptValue_Object_vector::PushElement(ScriptObjectElement *p_element)
 {
-	if ((values_.size() > 0) && (ElementType().compare(p_element->ElementType()) != 0))
+	if ((values_.size() > 0) && (ElementType() != p_element->ElementType()))
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::PushElement): the type of an object cannot be changed." << slim_terminate();
 	else
 		values_.push_back(p_element->Retain());
@@ -1376,7 +1376,7 @@ void ScriptValue_Object_vector::SetValueAtIndex(const int p_idx, ScriptValue *p_
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << slim_terminate();
 	
 	// can't change the type of element object we collect
-	if ((values_.size() > 0) && (ElementType().compare(p_value->ElementAtIndex(0)->ElementType()) != 0))
+	if ((values_.size() > 0) && (ElementType() != p_value->ElementAtIndex(0)->ElementType()))
 		SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << slim_terminate();
 	
 	values_.at(p_idx)->Release();
@@ -1392,7 +1392,7 @@ void ScriptValue_Object_vector::PushValueFromIndexOfScriptValue(int p_idx, const
 {
 	if (p_source_script_value->Type() == ScriptValueType::kValueObject)
 	{
-		if ((values_.size() > 0) && (ElementType().compare(p_source_script_value->ElementAtIndex(p_idx)->ElementType()) != 0))
+		if ((values_.size() > 0) && (ElementType() != p_source_script_value->ElementAtIndex(p_idx)->ElementType()))
 			SLIM_TERMINATION << "ERROR (ScriptValue_Object_vector::PushValueFromIndexOfScriptValue): the type of an object cannot be changed." << slim_terminate();
 		else
 			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
@@ -1802,7 +1802,7 @@ ScriptValue_Object_singleton_const::~ScriptValue_Object_singleton_const(void)
 	value_->Release();
 }
 
-const std::string ScriptValue_Object_singleton_const::ElementType(void) const
+const std::string *ScriptValue_Object_singleton_const::ElementType(void) const
 {
 	return value_->ElementType();
 }
@@ -1940,7 +1940,7 @@ ScriptObjectElement::~ScriptObjectElement(void)
 
 void ScriptObjectElement::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType();
+	p_ostream << *ElementType();
 }
 
 ScriptObjectElement *ScriptObjectElement::Retain(void)
@@ -1967,7 +1967,7 @@ std::vector<std::string> ScriptObjectElement::ReadWriteMembers(void) const
 
 bool ScriptObjectElement::MemberIsReadOnly(GlobalStringID p_member_id) const
 {
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::MemberIsReadOnly for " << ElementType() << "): unrecognized member name \"" << StringForGlobalStringID(p_member_id) << "\"." << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::MemberIsReadOnly for " << *ElementType() << "): unrecognized member name \"" << StringForGlobalStringID(p_member_id) << "\"." << slim_terminate();
 	return true;
 }
 
@@ -1975,7 +1975,7 @@ ScriptValue *ScriptObjectElement::GetValueForMember(GlobalStringID p_member_id)
 {
 	bool readonly = MemberIsReadOnly(p_member_id);	// will raise if the member does not exist at all
 	
-	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << ElementType() << "): internal error: attempt to get a value for " << (readonly ? "read-only member " : "read-write member ") << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
+	SLIM_TERMINATION << "ERROR (ScriptObjectElement::GetValueForMember for " << *ElementType() << "): internal error: attempt to get a value for " << (readonly ? "read-only member " : "read-write member ") << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
 	
 	return nullptr;
 }
@@ -1987,9 +1987,9 @@ void ScriptObjectElement::SetValueForMember(GlobalStringID p_member_id, ScriptVa
 	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): attempt to set a new value for read-only member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << *ElementType() << "): attempt to set a new value for read-only member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
 	else
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << ElementType() << "): internal error: setting a new value for read-write member " << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::SetValueForMember for " << *ElementType() << "): internal error: setting a new value for read-write member " << StringForGlobalStringID(p_member_id) << " was not handled by subclass." << slim_terminate();
 }
 
 std::vector<std::string> ScriptObjectElement::Methods(void) const
@@ -2034,10 +2034,10 @@ const FunctionSignature *ScriptObjectElement::SignatureForMethod(GlobalStringID 
 			const std::string &method_name = StringForGlobalStringID(p_method_id);
 			
 			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
-				SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << *ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << slim_terminate();
 			
 			// Otherwise, we have an unrecognized method, so throw
-			SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << ElementType() << "): unrecognized method name " << &method_name << "." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::SignatureForMethod for " << *ElementType() << "): unrecognized method name " << &method_name << "." << slim_terminate();
 			return new FunctionSignature(gStr_empty_string, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL);
 	}
 }
@@ -2052,7 +2052,7 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(GlobalStringID p_method_id, Scri
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
-			output_stream << ElementType() << ":" << endl;
+			output_stream << *ElementType() << ":" << endl;
 			
 			std::vector<std::string> read_only_member_names = ReadOnlyMembers();
 			std::vector<std::string> read_write_member_names = ReadWriteMembers();
@@ -2164,10 +2164,10 @@ ScriptValue *ScriptObjectElement::ExecuteMethod(GlobalStringID p_method_id, Scri
 			const std::string &method_name = StringForGlobalStringID(p_method_id);
 			
 			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
-				SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << *ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << slim_terminate();
 			
 			// Otherwise, we have an unrecognized method, so throw
-			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << ElementType() << "): unrecognized method name " << method_name << "." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (ScriptObjectElement::ExecuteMethod for " << *ElementType() << "): unrecognized method name " << method_name << "." << slim_terminate();
 			
 			return gStaticScriptValueNULLInvisible;
 		}
@@ -2190,13 +2190,13 @@ void ScriptObjectElement::TypeCheckValue(const std::string &p_method_name, Globa
 	}
 	
 	if (!type_ok)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::TypeCheckValue for " << *ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << StringForGlobalStringID(p_member_id) << "." << slim_terminate();
 }
 
 void ScriptObjectElement::RangeCheckValue(const std::string &p_method_name, GlobalStringID p_member_id, bool p_in_range)
 {
 	if (!p_in_range)
-		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << ElementType() << "::" << p_method_name << "): new value for member " << StringForGlobalStringID(p_member_id) << " is illegal." << slim_terminate();
+		SLIM_TERMINATION << "ERROR (ScriptObjectElement::RangeCheckValue for" << *ElementType() << "::" << p_method_name << "): new value for member " << StringForGlobalStringID(p_member_id) << " is illegal." << slim_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptObjectElement &p_element)

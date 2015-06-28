@@ -58,14 +58,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 //
 // SLiMscript support
 //
-const std::string Mutation::ElementType(void) const
+const std::string *Mutation::ElementType(void) const
 {
-	return gStr_Mutation;
+	return &gStr_Mutation;
 }
 
 void Mutation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
 }
 
 std::vector<std::string> Mutation::ReadOnlyMembers(void) const

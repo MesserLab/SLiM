@@ -44,7 +44,7 @@ public:
 	Script_PathElement(void);
 	explicit Script_PathElement(const std::string &p_base_path);
 	
-	virtual const std::string ElementType(void) const;
+	virtual const std::string *ElementType(void) const;
 	
 	virtual bool ExternallyOwned(void) const;
 	virtual ScriptObjectElement *ScriptCopy(void);

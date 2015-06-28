@@ -42,14 +42,14 @@ void Substitution::print(std::ostream &p_out) const
 //
 // SLiMscript support
 //
-const std::string Substitution::ElementType(void) const
+const std::string *Substitution::ElementType(void) const
 {
-	return gStr_Substitution;
+	return &gStr_Substitution;
 }
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
 }
 
 std::vector<std::string> Substitution::ReadOnlyMembers(void) const

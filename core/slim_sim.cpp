@@ -1075,9 +1075,9 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	}
 }
 
-const std::string SLiMSim::ElementType(void) const
+const std::string *SLiMSim::ElementType(void) const
 {
-	return gStr_SLiMSim;
+	return &gStr_SLiMSim;
 }
 
 std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
@@ -1494,7 +1494,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 				
 				if (requested_subpop_count)
 				{
-					if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
+					if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
 						SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << slim_terminate();
 					
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
@@ -1537,7 +1537,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 				
 				if (arg1_count)
 				{
-					if (((ScriptValue_Object *)arg1_value)->ElementType().compare(gStr_Mutation) != 0)
+					if (((ScriptValue_Object *)arg1_value)->ElementType() != &gStr_Mutation)
 						SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << slim_terminate();
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)

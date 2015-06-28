@@ -220,7 +220,7 @@ ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptV
 #pragma unused(p_function_name)
 	ScriptValueType highest_type = ScriptValueType::kValueNULL;
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
-	string element_type;
+	const std::string *element_type = nullptr;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
 	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
@@ -238,9 +238,9 @@ ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptV
 		{
 			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
 			{
-				const std::string this_element_type = static_cast<ScriptValue_Object *>(arg_value)->ElementType();
+				const std::string *this_element_type = static_cast<ScriptValue_Object *>(arg_value)->ElementType();
 				
-				if (element_type.length() == 0)
+				if (!element_type)
 				{
 					// we haven't seen a (non-empty) object type yet, so remember what type we're dealing with
 					element_type = this_element_type;
@@ -248,7 +248,7 @@ ScriptValue *ConcatenateScriptValues(const std::string &p_function_name, ScriptV
 				else
 				{
 					// we've already seen a object type, so check that this one is the same type
-					if (element_type.compare(this_element_type) != 0)
+					if (element_type != this_element_type)
 						SLIM_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << slim_terminate();
 				}
 			}
@@ -2310,7 +2310,7 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case FunctionIdentifier::elementFunction:
 		{
 			if (arg0_value->Type() == ScriptValueType::kValueObject)
-				string_result->PushString(((ScriptValue_Object *)arg0_value)->ElementType());
+				string_result->PushString(*((ScriptValue_Object *)arg0_value)->ElementType());
 			else
 				string_result->PushString(StringForScriptValueType(arg0_value->Type()));
 			break;

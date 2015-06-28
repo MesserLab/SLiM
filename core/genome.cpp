@@ -219,14 +219,14 @@ void Genome::GenerateCachedScriptValue(void)
 	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned();
 }
 
-const std::string Genome::ElementType(void) const
+const std::string *Genome::ElementType(void) const
 {
-	return gStr_Genome;
+	return &gStr_Genome;
 }
 
 void Genome::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<";
+	p_ostream << *ElementType() << "<";
 	
 	switch (genome_type_)
 	{
@@ -381,7 +381,7 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 			if (arg0_count)
 			{
-				if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
+				if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
 					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -412,7 +412,7 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			int position = (int)arg2_value->IntAtIndex(0);
 			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
 			
-			if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
+			if (mut_type_value->ElementType() != &gStr_MutationType)
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
@@ -445,7 +445,7 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			double selection_coeff = arg3_value->FloatAtIndex(0);
 			int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
 			
-			if (mut_type_value->ElementType().compare(gStr_MutationType) != 0)
+			if (mut_type_value->ElementType() != &gStr_MutationType)
 				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
@@ -475,7 +475,7 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 			if (arg0_count)
 			{
-				if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Mutation) != 0)
+				if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
 					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
 				
 				if (mutations_ == nullptr)

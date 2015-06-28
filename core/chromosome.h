@@ -85,7 +85,7 @@ public:
 	//
 	// SLiMscript support
 	//
-	virtual const std::string ElementType(void) const;
+	virtual const std::string *ElementType(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;

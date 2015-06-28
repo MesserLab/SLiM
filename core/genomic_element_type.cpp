@@ -127,14 +127,14 @@ void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-const std::string GenomicElementType::ElementType(void) const
+const std::string *GenomicElementType::ElementType(void) const
 {
-	return gStr_GenomicElementType;
+	return &gStr_GenomicElementType;
 }
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<g" << genomic_element_type_id_ << ">";
+	p_ostream << *ElementType() << "<g" << genomic_element_type_id_ << ">";
 }
 
 std::vector<std::string> GenomicElementType::ReadOnlyMembers(void) const

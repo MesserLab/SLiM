@@ -480,14 +480,14 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-const std::string SLiMScriptBlock::ElementType(void) const
+const std::string *SLiMScriptBlock::ElementType(void) const
 {
-	return gStr_SLiMScriptBlock;
+	return &gStr_SLiMScriptBlock;
 }
 
 void SLiMScriptBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<" << start_generation_;
+	p_ostream << *ElementType() << "<" << start_generation_;
 	
 	if (end_generation_ != start_generation_)
 		p_ostream << ":" << end_generation_;

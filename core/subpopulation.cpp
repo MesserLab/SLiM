@@ -928,14 +928,14 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-const std::string Subpopulation::ElementType(void) const
+const std::string *Subpopulation::ElementType(void) const
 {
-	return gStr_Subpopulation;
+	return &gStr_Subpopulation;
 }
 
 void Subpopulation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<p" << subpopulation_id_ << ">";
+	p_ostream << *ElementType() << "<p" << subpopulation_id_ << ">";
 }
 
 std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
@@ -1127,7 +1127,7 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			if (source_subpops_count != rates_count)
 				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
-			if (((ScriptValue_Object *)arg0_value)->ElementType().compare(gStr_Subpopulation) != 0)
+			if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
 				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)

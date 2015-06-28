@@ -120,7 +120,7 @@ public:
 	void GenerateCachedSymbolTableEntry(void);
 	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
-	virtual const std::string ElementType(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;

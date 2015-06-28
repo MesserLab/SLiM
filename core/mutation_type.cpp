@@ -112,14 +112,14 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
 }
 
-const std::string MutationType::ElementType(void) const
+const std::string *MutationType::ElementType(void) const
 {
-	return gStr_MutationType;
+	return &gStr_MutationType;
 }
 
 void MutationType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << ElementType() << "<m" << mutation_type_id_ << ">";
+	p_ostream << *ElementType() << "<m" << mutation_type_id_ << ">";
 }
 
 std::vector<std::string> MutationType::ReadOnlyMembers(void) const

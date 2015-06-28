@@ -65,7 +65,8 @@ SLiMscript optimization:
 		0:13.5 (opt = 6.33, 6.36, 6.42, 6.39, 6.31 = 6.362) after optimizing Evaluate_Subset() for singletons
 		0:13.4 (opt = 6.49, 6.50, 6.49, 6.45, 6.48 = 6.482) after caching results of IsNull()
 		0:13.6 (opt = 6.27, 6.37, 6.47, 6.47, 6.43 = 6.402) after changing Subpopulation's fitness caches to malloced buffers
-		0:12.6 (opt = 5.95, 6.01, 5.82, 5.89, 6.01 = 5.936) after adding caching of built-in strings, signatures, etc.
+		0:12.x (opt = 5.95, 6.01, 5.82, 5.89, 6.01 = 5.936) after adding caching of built-in strings, signatures, etc.
+		0:12.2 (opt = 5.90, 5.92, 5.88, 5.92, 5.95 = 5.914) after changing ElementType() to return a string pointer
 	
 SLiMgui work:
 	SLiMscribe: continue work to make it completely independent of SLiM
