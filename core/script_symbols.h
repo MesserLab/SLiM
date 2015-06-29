@@ -85,8 +85,9 @@ public:
 	void SetConstantForSymbol(const std::string &p_symbol_name, ScriptValue *p_value);
 	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
 	
-	// special-purpose methods used for fast setup of new symbol tables; requires an externally-owned, non-invisible ScriptValue
-	// the name string in the SymbolTableEntry is assumed to be statically defined, or long-lived enough that we can take a pointer to it
+	// Special-purpose methods used for fast setup of new symbol tables; these methods require an externally-owned, non-invisible
+	// ScriptValue that is guaranteed by the caller to live longer than we will live; no copy is made of the value!
+	// The name string in the SymbolTableEntry is assumed to be statically defined, or long-lived enough that we can take a pointer to it
 	// for our entire lifetime; so these are not general-purpose methods, they are specifically for a very specialized init case!
 	void InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry);
 	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, ScriptValue *p_value);

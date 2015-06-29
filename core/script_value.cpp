@@ -169,7 +169,7 @@ int CompareScriptValues(const ScriptValue *p_value1, int p_index1, const ScriptV
 //
 #pragma mark ScriptValue
 
-ScriptValue::ScriptValue(const ScriptValue &p_original) : in_symbol_table_(false), externally_owned_(false), invisible_(false)	// doesn't use original for these flags
+ScriptValue::ScriptValue(const ScriptValue &p_original) : external_temporary_(false), external_permanent_(false), invisible_(false)	// doesn't use original for these flags
 {
 #pragma unused(p_original)
 }
@@ -302,8 +302,9 @@ ScriptValue_NULL_const::~ScriptValue_NULL_const(void)
 	
 	if (!static_null)
 	{
+		// this is a truly permanent constant object
 		static_null = new ScriptValue_NULL_const();
-		static_null->SetExternallyOwned();
+		static_null->SetExternalPermanent();
 	}
 	
 	return static_null;
@@ -315,9 +316,10 @@ ScriptValue_NULL_const::~ScriptValue_NULL_const(void)
 	
 	if (!static_null)
 	{
+		// this is a truly permanent constant object
 		static_null = new ScriptValue_NULL_const();
 		static_null->invisible_ = true;
-		static_null->SetExternallyOwned();
+		static_null->SetExternalPermanent();
 	}
 	
 	return static_null;
@@ -510,8 +512,9 @@ ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
 	
 	if (!static_T)
 	{
+		// this is a truly permanent constant object
 		static_T = new ScriptValue_Logical_const(true);
-		static_T->SetExternallyOwned();
+		static_T->SetExternalPermanent();
 	}
 	
 	return static_T;
@@ -523,8 +526,9 @@ ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
 	
 	if (!static_F)
 	{
+		// this is a truly permanent constant object
 		static_F = new ScriptValue_Logical_const(false);
-		static_F->SetExternallyOwned();
+		static_F->SetExternalPermanent();
 	}
 	
 	return static_F;

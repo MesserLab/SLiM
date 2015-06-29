@@ -60,15 +60,17 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 		trueConstant = new SymbolTableEntry(gStr_T, gStaticScriptValue_LogicalT);
 		falseConstant = new SymbolTableEntry(gStr_F, gStaticScriptValue_LogicalF);
 		nullConstant = new SymbolTableEntry(gStr_NULL, gStaticScriptValueNULL);
-		piConstant = new SymbolTableEntry(gStr_PI, (new ScriptValue_Float_singleton_const(M_PI))->SetExternallyOwned());
-		eConstant = new SymbolTableEntry(gStr_E, (new ScriptValue_Float_singleton_const(M_E))->SetExternallyOwned());
-		infConstant = new SymbolTableEntry(gStr_INF, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::infinity()))->SetExternallyOwned());
-		nanConstant = new SymbolTableEntry(gStr_NAN, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::quiet_NaN()))->SetExternallyOwned());
+		piConstant = new SymbolTableEntry(gStr_PI, (new ScriptValue_Float_singleton_const(M_PI))->SetExternalPermanent());
+		eConstant = new SymbolTableEntry(gStr_E, (new ScriptValue_Float_singleton_const(M_E))->SetExternalPermanent());
+		infConstant = new SymbolTableEntry(gStr_INF, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::infinity()))->SetExternalPermanent());
+		nanConstant = new SymbolTableEntry(gStr_NAN, (new ScriptValue_Float_singleton_const(std::numeric_limits<double>::quiet_NaN()))->SetExternalPermanent());
 	}
 	
+	// We can use InitializeConstantSymbolEntry() here because we know the objects will live longer than the symbol table, and
+	// we know that their values will not change, so we meet the requirements for that method.  Be careful changing this code!
 	if (script_block)
 	{
-		// Include symbols only if they are used by the script block we are being created to interpret
+		// Include symbols only if they are used by the script block we are being created to interpret.
 		if (script_block->contains_T_)
 			InitializeConstantSymbolEntry(trueConstant);
 		if (script_block->contains_F_)
@@ -98,13 +100,15 @@ SymbolTable::SymbolTable(SLiMScriptBlock *script_block)
 
 SymbolTable::~SymbolTable(void)
 {
-	// We delete all values that are not marked as externally owned; those that are externally owned are someone else's problem.
+	// We delete all values that are not marked as externally owned permanent; those are someone else's problem.
+	// Note that we assume that objects marked externally owned temporary are owned BY US; we must make sure that
+	// is true, otherwise we will end up deleting somebody else's pointer.
 	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
 		SymbolTableSlot *symbol_slot = symbols_ + symbol_index;
 		ScriptValue *value = symbol_slot->symbol_value_;
 		
-		if (!value->ExternallyOwned())
+		if (!value->ExternalPermanent())
 			delete value;
 		
 		if (!symbol_slot->symbol_name_externally_owned_)
@@ -208,7 +212,7 @@ int SymbolTable::_SlotIndexForSymbol(const std::string &p_symbol_name, int p_key
 	return -1;
 }
 
-// increases capacity to accommodate the addition of new symbols
+// increases capacity (by a factor of two) to accommodate the addition of new symbols
 void SymbolTable::_CapacityIncrease(void)
 {
 	int new_symbol_capacity = symbol_capacity_ << 1;
@@ -238,22 +242,28 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 		SLIM_TERMINATION << "ERROR (SymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << slim_terminate();
 	
 	// get a version of the value that is suitable for insertion into the symbol table
-	if (p_value->InSymbolTable())
+	if (p_value->ExternalTemporary() || p_value->Invisible())
 	{
-		// If it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue.
-		// This is because we don't refcount; if a ScriptValue were shared, it would be freed when the first reference was deleted.
-		// This is not a concern for externally owned ScriptValues, since we don't free them anyway, so we don't need to copy them.
-		if (!p_value->ExternallyOwned())
-			p_value = p_value->CopyValues();
-	}
-	else if (p_value->Invisible())
-	{
-		// if it's invisible, then we need to copy it, since the original needs to stay invisible to make sure it displays correctly
+		// If it is marked as external-temporary, somebody else owns it, but it might go away at any time.  In that case,
+		// we need to copy it.  This is not a concern for external-permanent ScriptValues, since they are guaranteed to
+		// live longer than us.  Probably these two flags should never be set at the same time, but who knows.  Similarly,
+		// if it's invisible then we need to copy it, since the original needs to stay invisible to display correctly.
 		p_value = p_value->CopyValues();
+		
+		// We set the external temporary flag on our copy so the pointer won't be deleted or reused by anybody else.
+		p_value->SetExternalTemporary();
 	}
-	
-	// we set the symbol table flag so the pointer won't be deleted or reused by anybody else
-	p_value->SetInSymbolTable(true);
+	else if (!p_value->ExternalPermanent())
+	{
+		// TAKING OWNERSHIP!  The object was a temporary; now it is ours!  The fact that we are allowed to do this to
+		// temporary objects is part of our contract with our caller.  This means that anybody who creates a temporary
+		// object, or gets handed a pointer to one, cannot assume that it will remain temporary; if there is any chance
+		// that a symbol table has gotten its sticky hands on the object, then the caller must check IsTemporary() before
+		// deleting their pointer.
+		p_value->SetExternalTemporary();
+	}
+	// else p_value->ExternalPermanent(), which means we can just use the pointer.  Note we do not set ExternalTemporary() on
+	// the object in this case; it is not ours, we are just keeping a pointer to it, and we don't want both flags set at once.
 	
 	// and now set the value in the symbol table
 	if (symbol_slot == -1)
@@ -275,7 +285,7 @@ void SymbolTable::SetValueForSymbol(const std::string &p_symbol_name, ScriptValu
 		
 		// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
 		// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
-		if (!existing_value->ExternallyOwned())
+		if (!existing_value->ExternalPermanent())
 			delete existing_value;
 		
 		existing_symbol_slot_ptr->symbol_value_ = p_value;
@@ -299,22 +309,28 @@ void SymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, ScriptV
 	}
 	
 	// get a version of the value that is suitable for insertion into the symbol table
-	if (p_value->InSymbolTable())
+	if (p_value->ExternalTemporary() || p_value->Invisible())
 	{
-		// If it's already in a symbol table, then we need to copy it, to avoid two references to the same ScriptValue.
-		// This is because we don't refcount; if a ScriptValue were shared, it would be freed when the first reference was deleted.
-		// This is not a concern for externally owned ScriptValues, since we don't free them anyway, so we don't need to copy them.
-		if (!p_value->ExternallyOwned())
-			p_value = p_value->CopyValues();
-	}
-	else if (p_value->Invisible())
-	{
-		// if it's invisible, then we need to copy it, since the original needs to stay invisible to make sure it displays correctly
+		// If it is marked as external-temporary, somebody else owns it, but it might go away at any time.  In that case,
+		// we need to copy it.  This is not a concern for external-permanent ScriptValues, since they are guaranteed to
+		// live longer than us.  Probably these two flags should never be set at the same time, but who knows.  Similarly,
+		// if it's invisible then we need to copy it, since the original needs to stay invisible to display correctly.
 		p_value = p_value->CopyValues();
+		
+		// We set the external temporary flag on our copy so the pointer won't be deleted or reused by anybody else.
+		p_value->SetExternalTemporary();
 	}
-	
-	// we set the symbol table flag so the pointer won't be deleted or reused by anybody else
-	p_value->SetInSymbolTable(true);
+	else if (!p_value->ExternalPermanent())
+	{
+		// TAKING OWNERSHIP!  The object was a temporary; now it is ours!  The fact that we are allowed to do this to
+		// temporary objects is part of our contract with our caller.  This means that anybody who creates a temporary
+		// object, or gets handed a pointer to one, cannot assume that it will remain temporary; if there is any chance
+		// that a symbol table has gotten its sticky hands on the object, then the caller must check IsTemporary() before
+		// deleting their pointer.
+		p_value->SetExternalTemporary();
+	}
+	// else p_value->ExternalPermanent(), which means we can just use the pointer.  Note we do not set ExternalTemporary() on
+	// the object in this case; it is not ours, we are just keeping a pointer to it, and we don't want both flags set at once.
 	
 	// and now set the value in the symbol table; we know, from the check above, that we're in a new slot
 	symbol_slot = AllocateNewSlot();
@@ -343,13 +359,14 @@ void SymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool re
 		if (symbol_slot_ptr->symbol_is_const_ && !remove_constant)
 			SLIM_TERMINATION << "ERROR (SymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << slim_terminate();
 		
-		if (!value->ExternallyOwned())
+		// see comment on our destructor, above
+		if (!value->ExternalPermanent())
 			delete value;
 		
+		// delete the slot and free the name string; if we're removing the last slot, that's all we have to do
 		if (!symbol_slot_ptr->symbol_name_externally_owned_)
 			delete symbol_slot_ptr->symbol_name_;
 		
-		// delete the slot and free the name string; if we're removing the last slot, that's all we have to do
 		--symbol_count_;
 		
 		// if we're removing an interior value, we can just replace this slot with the last slot, since we don't sort our entries
@@ -363,8 +380,10 @@ void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 	const std::string &entry_name = p_new_entry->first;
 	ScriptValue *entry_value = p_new_entry->second;
 	
-	if (!entry_value->ExternallyOwned() || !entry_value->InSymbolTable() || entry_value->Invisible())
-		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
+#ifdef DEBUG
+	if (!entry_value->ExternalPermanent() || entry_value->Invisible())
+		SLIM_TERMINATION << "ERROR (SymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << slim_terminate();
+#endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
 	int symbol_slot = AllocateNewSlot();
@@ -376,12 +395,20 @@ void SymbolTable::InitializeConstantSymbolEntry(SymbolTableEntry *p_new_entry)
 	new_symbol_slot_ptr->symbol_value_ = entry_value;
 	new_symbol_slot_ptr->symbol_is_const_ = true;
 	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+	
+	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
+	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
+	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
+	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
+	// in script_value.h, and the comments above.
 }
 
 void SymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name, ScriptValue *p_value)
 {
-	if (!p_value->ExternallyOwned() || !p_value->InSymbolTable() || p_value->Invisible())
-		SLIM_TERMINATION << "ERROR (SymbolTable::ReplaceConstantSymbolEntry): (internal error) this method should be called only for externally-owned, non-invisible objects that are already marked as belonging to a symbol table." << slim_terminate();
+#ifdef DEBUG
+	if (!p_value->ExternalPermanent() || p_value->Invisible())
+		SLIM_TERMINATION << "ERROR (SymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << slim_terminate();
+#endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
 	int symbol_slot = AllocateNewSlot();
@@ -393,6 +420,12 @@ void SymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name
 	new_symbol_slot_ptr->symbol_value_ = p_value;
 	new_symbol_slot_ptr->symbol_is_const_ = true;
 	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+	
+	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
+	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
+	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
+	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
+	// in script_value.h, and the comments above.
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const SymbolTable &p_symbols)

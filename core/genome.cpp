@@ -216,7 +216,9 @@ Genome::~Genome(void)
 
 void Genome::GenerateCachedScriptValue(void)
 {
-	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned();
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
+	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent();
 }
 
 const std::string *Genome::ElementType(void) const

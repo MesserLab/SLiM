@@ -465,11 +465,15 @@ void SLiMScriptBlock::ScanTree(void)
 
 void SLiMScriptBlock::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
+	self_symbol_ = new SymbolTableEntry(gStr_self, (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 {
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
 	if (block_id_ == -1)
 		SLIM_TERMINATION << "ERROR (SLiMScriptBlock::GenerateCachedSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << slim_terminate();
 	
@@ -477,7 +481,7 @@ void SLiMScriptBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	script_block_symbol_ = new SymbolTableEntry(script_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *SLiMScriptBlock::ElementType(void) const
@@ -555,8 +559,10 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(GlobalStringID p_member_id)
 			// constants
 		case gID_id:
 		{
+			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = (new ScriptValue_Int_singleton_const(block_id_))->SetExternallyOwned();
+				cached_value_block_id_ = (new ScriptValue_Int_singleton_const(block_id_))->SetExternalPermanent();
 			return cached_value_block_id_;
 		}
 		case gID_start:

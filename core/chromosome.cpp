@@ -260,8 +260,10 @@ ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_lastPosition:
 		{
+			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternallyOwned();
+				cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternalPermanent();
 			return cached_value_lastpos_;
 		}
 		case gID_overallRecombinationRate:
@@ -383,7 +385,9 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 				SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires rates to be >= 0." << slim_terminate();
 		}
 		
-		// FIXME is this required? or does it just need to be less than length?
+		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
+		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
+		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
 		if (arg0_value->IntAtIndex(ends_count - 1) != last_position_)
 			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << slim_terminate();
 		

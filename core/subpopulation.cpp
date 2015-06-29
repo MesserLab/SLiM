@@ -334,15 +334,18 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						
 						sim.InjectIntoInterpreter(interpreter, fitness_callback);
 						
-						// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
+						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+						// We can use that method because we know the lifetime of the symbol table is shorter than that of
+						// the value objects, and we know that the values we are setting here will not change (the objects
+						// referred to by the values may change, but the values themselves will not change).
 						if (fitness_callback->contains_mut_)
 						{
-							local_mut.SetExternallyOwned();
+							local_mut.SetExternalPermanent();
 							global_symbols.InitializeConstantSymbolEntry(gStr_mut, &local_mut);
 						}
 						if (fitness_callback->contains_relFitness_)
 						{
-							local_relFitness.SetExternallyOwned();
+							local_relFitness.SetExternalPermanent();
 							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, &local_relFitness);
 						}
 						if (fitness_callback->contains_genome1_)
@@ -921,11 +924,13 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 
 void Subpopulation::GenerateCachedSymbolTableEntry(void)
 {
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
 	std::ostringstream subpop_stream;
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *Subpopulation::ElementType(void) const
@@ -990,8 +995,10 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 			// constants
 		case gID_id:
 		{
+			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternallyOwned();
+				cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternalPermanent();
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:

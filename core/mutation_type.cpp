@@ -105,11 +105,13 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 
 void MutationType::GenerateCachedSymbolTableEntry(void)
 {
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
 	std::ostringstream mut_type_stream;
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *MutationType::ElementType(void) const
@@ -170,8 +172,10 @@ ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
 			// constants
 		case gID_id:
 		{
+			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_muttype_id_)
-				cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternallyOwned();
+				cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternalPermanent();
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:

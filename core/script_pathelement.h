@@ -46,7 +46,6 @@ public:
 	
 	virtual const std::string *ElementType(void) const;
 	
-	virtual bool ExternallyOwned(void) const;
 	virtual ScriptObjectElement *ScriptCopy(void);
 	virtual void ScriptDelete(void) const;
 	

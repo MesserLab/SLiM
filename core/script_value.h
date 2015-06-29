@@ -110,8 +110,8 @@ class ScriptValue
 	//	This class has its assignment operator disabled, to prevent accidental copying.
 private:
 	
-	bool in_symbol_table_ = false;							// if true, the value should not be deleted, as it is owned by the symbol table
-	bool externally_owned_ = false;							// if true, even the symbol table should not delete this ScriptValue; it is owned or statically allocated
+	bool external_temporary_ = false;						// if true, the value should not be deleted, as it is owned by someone else
+	bool external_permanent_ = false;						// if true, the value is owned but guaranteed long-lived; see below
 	
 protected:
 	
@@ -133,12 +133,55 @@ public:
 	// getter only; invisible objects must be made through construction or InvisibleCopy()
 	inline bool Invisible(void) const							{ return invisible_; }
 	
-	// memory management flags; see the comment in script_symbols.h
-	inline bool IsTemporary(void) const							{ return !(in_symbol_table_ || externally_owned_); };
-	inline bool InSymbolTable(void) const						{ return in_symbol_table_; };
-	inline bool ExternallyOwned(void) const						{ return externally_owned_; };
-	inline ScriptValue *SetInSymbolTable(bool p_in_table)		{ in_symbol_table_ = p_in_table; return this; };
-	inline ScriptValue *SetExternallyOwned()					{ externally_owned_ = true; in_symbol_table_ = true; return this; };
+	// Memory management flags for ScriptValue objects.  This is a complex topic.  There are basically three
+	// statuses that a ScriptValue can have:
+	//
+	// Temporary: the object is referred to by a single pointer, typically, and is handed off from method to
+	// method.  Whoever has the pointer owns the object and is responsible for deleting it.  Anybody who is
+	// given the pointer can take ownership of the object by setting it to one of the other two statuses.  If
+	// you give the pointer to a temporary object to somebody who might do that, then you need to check the
+	// value of IsTemporary() before deleting your pointer to it.  This pattern of usage is common in the
+	// interpreter's execution methods; values are created by executing script nodes, and are passed around
+	// until they are either deleted or are taken by a symbol table.
+	//
+	// Externally-owned permanent: the pointer to the object is owned by a specific owner (they know who they
+	// are), and others must respect that.  The object is guaranteed to be permanent and constant, however,
+	// so anybody may keep the pointer and continue using it (allowing for lots of optimization).  "Permanent"
+	// has a specific sense: the value must be guaranteed to live longer than the symbol table for the current
+	// interpreter, so that as far as any code running in the interpreter is concerned, the value is guaranteed
+	// to exist "forever".  Keeping a reference to even these objects is unsafe beyond the end of the current
+	// interpreter context, though.
+	//
+	// Externally-owned temporary: again, the pointer is owned by a specific owner (they know who they are),
+	// and others must respect that.  Here, the object is guaranteed to be constant, but only to have the same
+	// lifetime as a temporary value.  So if you are given a pointer, feel free to use that pointer without
+	// copying it, and to return that pointer to whoever called you, but do not keep a copy of the pointer for
+	// yourself for any longer duration.  This is conceptually rather like an autoreleased pointer in Obj-C,
+	// although it does not involve retain counts or an autorelease pool; at some nebulous time in the future,
+	// after you yourself return, the object may go away without warning, but that is not your problem.
+	//
+	// The "externally-owned temporary" flag used to be called "in symbol table", because when a symbol table
+	// took ownership of a value, that object then became owned (not temporary) but not permanent (and thus
+	// in need of being copied if someone else also wanted a safe long-term pointer to it).  The new term is
+	// a bit more clear on what the semantics really means, though, I think.
+	//
+	// Setting externally owned permanent is basically a promise that the value object will live longer than the
+	// symbol table that it might end up in.  That is a hard guarantee to make.  Either the object has to be truly
+	// permanent, or you have to be setting up the symbol table yourself so you know its lifetime.  SLiM can make
+	// that guarantee for its own objects, because keeping a reference to a SLiM object past the end of any given
+	// SLiM script event or callback is not possible.  Apart from these very restricted situations, calling
+	// SetExternalPermanent() is unsafe.  Notably, setting up an externally owned cached ScriptValue* for a given
+	// property value is NOT SAFE unless the cache never needs to be invalidated, since the user could put the
+	// cached value into the symbol table, and the symbol table would assume that the value will never go away.
+	// Instead, use the externally owned temporary flag.
+	//
+	// And yes, this would be much simpler if I used refcounted pointers; perhaps I will be forced to that
+	// eventually, but I really don't want to pay the speed penalty unless I absolutely must.
+	inline bool IsTemporary(void) const							{ return !(external_temporary_ || external_permanent_); };
+	inline bool ExternalTemporary(void) const					{ return external_temporary_; };
+	inline bool ExternalPermanent(void) const					{ return external_permanent_; };
+	inline ScriptValue *SetExternalTemporary()					{ external_temporary_ = true; return this; };
+	inline ScriptValue *SetExternalPermanent()					{ external_permanent_ = true; return this; };
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const = 0;
@@ -152,7 +195,7 @@ public:
 	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const;
 	
 	// methods to allow type-agnostic manipulation of ScriptValues
-	virtual ScriptValue *CopyValues(void) const = 0;			// a deep copy of the receiver with in_symbol_table_ == invisible_ == false
+	virtual ScriptValue *CopyValues(void) const = 0;			// a deep copy of the receiver with external_temporary_ == invisible_ == false
 	virtual ScriptValue *NewMatchingType(void) const = 0;		// a new ScriptValue instance of the same type as the receiver
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;	// copy a value from another object of the same type
 	virtual void Sort(bool p_ascending) = 0;
@@ -579,7 +622,7 @@ public:
 class ScriptValue_Object_vector : public ScriptValue_Object
 {
 private:
-	std::vector<ScriptObjectElement *> values_;		// Whether these are owned or not depends on ScriptObjectElement::ExternallyOwned(); see below
+	std::vector<ScriptObjectElement *> values_;		// these use a retain/release system of ownership; see below
 	
 public:
 	ScriptValue_Object_vector(const ScriptValue_Object_vector &p_original);				// can copy-construct, but it is not the default constructor since we need to deep copy
@@ -621,7 +664,7 @@ public:
 class ScriptValue_Object_singleton_const : public ScriptValue_Object
 {
 private:
-	ScriptObjectElement *value_;		// Whether these are owned or not depends on ScriptObjectElement::ExternallyOwned(); see below
+	ScriptObjectElement *value_;		// these use a retain/release system of ownership; see below
 	
 public:
 	ScriptValue_Object_singleton_const(const ScriptValue_Object_singleton_const &p_original) = delete;		// no copy-construct

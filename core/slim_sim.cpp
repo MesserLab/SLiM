@@ -615,7 +615,9 @@ void SLiMSim::RunToEnd(void)
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
-	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
+	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
@@ -1023,6 +1025,14 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 {
 	SymbolTable &global_symbols = p_interpreter.GetSymbolTable();
 	
+	// Note that we can use InitializeConstantSymbolEntry() here only because the objects we are setting are guaranteed by
+	// SLiM's design to live longer than the symbol table we are injecting into!  Every new execution of a script block
+	// makes a new symbol table that receives a fresh injection.  Nothing that happens during the execution of a script
+	// block can invalidate existing entries during the execution of the block; subpopulations do not get deleted immediately,
+	// deregistered script blocks stick around until the end of the script execution, etc.  This is a very important stake!
+	// We also need to guarantee here that the values we are setting will not change for the lifetime of the symbol table;
+	// the objects referred to by the values may change, but the ScriptValue objects themselves will not.  Be careful!
+	
 	// A constant for reference to the SLiMScriptBlock, self
 	if (p_script_block && p_script_block->contains_self_)
 		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
@@ -1225,8 +1235,11 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 			return new ScriptValue_Int_singleton_const(time_duration_);
 		case gID_generation:
 		{
+			// We use external-temporary here because the value of generation_ can change, but it is permanent enough that
+			// we can cache it – it can't change within the execution of a single statement, and if the value lives longer
+			// than the context of a single statement that means it has been placed into a symbol table, and thus copied.
 			if (!cached_value_generation_)
-				cached_value_generation_ = (new ScriptValue_Int_singleton_const(generation_))->SetExternallyOwned();
+				cached_value_generation_ = (new ScriptValue_Int_singleton_const(generation_))->SetExternalTemporary();
 			return cached_value_generation_;
 		}
 		case gID_randomSeed:

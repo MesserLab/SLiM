@@ -120,11 +120,13 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 
 void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 {
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
 	std::ostringstream getype_stream;
 	
 	getype_stream << "g" << genomic_element_type_id_;
 	
-	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternallyOwned());
+	self_symbol_ = new SymbolTableEntry(getype_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *GenomicElementType::ElementType(void) const
@@ -179,8 +181,10 @@ ScriptValue *GenomicElementType::GetValueForMember(GlobalStringID p_member_id)
 			// constants
 		case gID_id:
 		{
+			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_getype_id_)
-				cached_value_getype_id_ = (new ScriptValue_Int_singleton_const(genomic_element_type_id_))->SetExternallyOwned();
+				cached_value_getype_id_ = (new ScriptValue_Int_singleton_const(genomic_element_type_id_))->SetExternalPermanent();
 			return cached_value_getype_id_;
 		}
 		case gID_mutationTypes:

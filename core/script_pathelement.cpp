@@ -44,11 +44,6 @@ const std::string *Script_PathElement::ElementType(void) const
 	return &gStr_Path;
 }
 
-bool Script_PathElement::ExternallyOwned(void) const
-{
-	return false;
-}
-
 ScriptObjectElement *Script_PathElement::ScriptCopy(void)
 {
 	return new Script_PathElement(base_path_);

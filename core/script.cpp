@@ -210,7 +210,16 @@ void ScriptASTNode::_OptimizeConstants(void) const
 		else
 			result = new ScriptValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
 		
-		result->SetExternallyOwned();
+		// OK, so this is a weird thing.  We don't call SetExternalPermanent(), because that guarantees that the object set will
+		// live longer than the symbol table it might end up in, and we cannot make that guarantee here; the tree we are setting
+		// this value in might be short-lived, whereas the symbol table might be long-lived (in an interactive interpreter
+		// context, for example).  Instead, we call SetExternalTemporary().  Basically, we are pretending that we ourselves
+		// (meaning the AST) are a symbol table, and that we "own" this object.  That will make the real symbol table make
+		// its own copy of the object, rather than using ours.  It will also prevent the object from being regarded as a
+		// temporary object and deleted by somebody, though.  So we get the best of both worlds; external ownership, but without
+		// having to make the usual guarantee about the lifetime of the object.  The downside of this is that the value will
+		// be copied if it is put into a symbol table, even though it is constant and could be shared in most circumstances.
+		result->SetExternalTemporary();
 		
 		cached_value_ = result;
 		cached_value_is_owned_ = true;
@@ -220,7 +229,8 @@ void ScriptASTNode::_OptimizeConstants(void) const
 		// This is taken from ScriptInterpreter::Evaluate_String and needs to match exactly!
 		ScriptValue *result = new ScriptValue_String(token_->token_string_);
 		
-		result->SetExternallyOwned();
+		// See the above comment that begins "OK, so this is a weird thing".  It is still a weird thing down here, too.
+		result->SetExternalTemporary();
 		
 		cached_value_ = result;
 		cached_value_is_owned_ = true;

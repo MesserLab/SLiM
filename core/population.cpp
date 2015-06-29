@@ -274,7 +274,10 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				
 				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
 				
-				// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
+				// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+				// We can use that method because we know the lifetime of the symbol table is shorter than that of
+				// the value objects, and we know that the values we are setting here will not change (the objects
+				// referred to by the values may change, but the values themselves will not change).
 				if (mate_choice_callback->contains_genome1_)
 				{
 					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
@@ -295,7 +298,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				
 				if (mate_choice_callback->contains_weights_)
 				{
-					local_weights_ptr = (new ScriptValue_Float_vector(current_weights, weights_length))->SetExternallyOwned();
+					local_weights_ptr = (new ScriptValue_Float_vector(current_weights, weights_length))->SetExternalPermanent();
 					global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
 				}
 				
@@ -444,7 +447,10 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			
 			sim_.InjectIntoInterpreter(interpreter, modify_child_callback);
 			
-			// set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed
+			// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+			// We can use that method because we know the lifetime of the symbol table is shorter than that of
+			// the value objects, and we know that the values we are setting here will not change (the objects
+			// referred to by the values may change, but the values themselves will not change).
 			if (modify_child_callback->contains_childGenome1_)
 			{
 				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
