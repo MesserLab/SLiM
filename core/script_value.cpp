@@ -217,6 +217,16 @@ ScriptObjectElement *ScriptValue::ElementAtIndex(int p_idx) const
 	return nullptr;
 }
 
+bool ScriptValue::IsMutable(void) const
+{
+	return true;
+}
+
+ScriptValue *ScriptValue::MutableCopy(void) const
+{
+	return CopyValues();
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const ScriptValue &p_value)
 {
 	p_value.Print(p_outstream);		// get dynamic dispatch
@@ -532,6 +542,16 @@ ScriptValue_Logical_const::~ScriptValue_Logical_const(void)
 	}
 	
 	return static_F;
+}
+
+bool ScriptValue_Logical_const::IsMutable(void) const
+{
+	return false;
+}
+
+ScriptValue *ScriptValue_Logical_const::MutableCopy(void) const
+{
+	return new ScriptValue_Logical(*this);	// same as ScriptValue_Logical::, but let's not rely on that
 }
 
 void ScriptValue_Logical_const::PushLogical(bool p_logical)
@@ -983,6 +1003,20 @@ ScriptValue *ScriptValue_Int_singleton_const::CopyValues(void) const
 	return new ScriptValue_Int_singleton_const(value_);
 }
 
+bool ScriptValue_Int_singleton_const::IsMutable(void) const
+{
+	return false;
+}
+
+ScriptValue *ScriptValue_Int_singleton_const::MutableCopy(void) const
+{
+	ScriptValue_Int_vector *new_vec = new ScriptValue_Int_vector();
+	
+	new_vec->PushInt(value_);
+	
+	return new_vec;
+}
+
 void ScriptValue_Int_singleton_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
 {
 #pragma unused(p_idx, p_value)
@@ -1248,6 +1282,20 @@ ScriptValue *ScriptValue_Float_singleton_const::GetValueAtIndex(const int p_idx)
 ScriptValue *ScriptValue_Float_singleton_const::CopyValues(void) const
 {
 	return new ScriptValue_Float_singleton_const(value_);
+}
+
+bool ScriptValue_Float_singleton_const::IsMutable(void) const
+{
+	return false;
+}
+
+ScriptValue *ScriptValue_Float_singleton_const::MutableCopy(void) const
+{
+	ScriptValue_Float_vector *new_vec = new ScriptValue_Float_vector();
+	
+	new_vec->PushFloat(value_);
+	
+	return new_vec;
 }
 
 void ScriptValue_Float_singleton_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)
@@ -1840,6 +1888,20 @@ ScriptValue *ScriptValue_Object_singleton_const::GetValueAtIndex(const int p_idx
 ScriptValue *ScriptValue_Object_singleton_const::CopyValues(void) const
 {
 	return new ScriptValue_Object_singleton_const(value_);
+}
+
+bool ScriptValue_Object_singleton_const::IsMutable(void) const
+{
+	return false;
+}
+
+ScriptValue *ScriptValue_Object_singleton_const::MutableCopy(void) const
+{
+	ScriptValue_Object_vector *new_vec = new ScriptValue_Object_vector();
+	
+	new_vec->PushElement(value_);
+	
+	return new_vec;
 }
 
 void ScriptValue_Object_singleton_const::SetValueAtIndex(const int p_idx, ScriptValue *p_value)

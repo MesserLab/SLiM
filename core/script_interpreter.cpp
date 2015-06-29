@@ -401,7 +401,21 @@ void ScriptInterpreter::_ProcessSubscriptAssignment(ScriptValue **p_base_value_p
 			if (p_parent_node->children_.size() != 0)
 				SLIM_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << slim_terminate();
 			
-			ScriptValue *identifier_value = global_symbols_.GetValueForSymbol(p_parent_node->token_->token_string_);
+			const std::string &symbol_name = p_parent_node->token_->token_string_;
+			ScriptValue *identifier_value = global_symbols_.GetValueForSymbol(symbol_name);
+			
+			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
+			// could be one of our const singleton subclasses, for speed.  We almost never change ScriptValue instances once
+			// they are constructed, which is why we can use immutable subclasses so pervasively.  But this is one place –
+			// the only place, in fact, I think – where that can bite us, because we do in fact need to modify the original
+			// ScriptValue.  The fix is to detect that we have an immutable value, and actually replace it in the symbol table
+			// with a mutable copy that we can manipulate.  A little gross, but this is the price we pay for speed...
+			if (!identifier_value->IsMutable())
+			{
+				identifier_value = identifier_value->MutableCopy();
+				global_symbols_.SetValueForSymbol(symbol_name, identifier_value);	// takes ownership from us
+			}
+			
 			*p_base_value_ptr = identifier_value;
 			
 			int number_of_elements = identifier_value->Count();	// this value is already defined, so this is fast

@@ -178,8 +178,8 @@ public:
 	// And yes, this would be much simpler if I used refcounted pointers; perhaps I will be forced to that
 	// eventually, but I really don't want to pay the speed penalty unless I absolutely must.
 	inline bool IsTemporary(void) const							{ return !(external_temporary_ || external_permanent_); };
-	inline bool ExternalTemporary(void) const					{ return external_temporary_; };
-	inline bool ExternalPermanent(void) const					{ return external_permanent_; };
+	inline bool IsExternalTemporary(void) const					{ return external_temporary_; };
+	inline bool IsExternalPermanent(void) const					{ return external_permanent_; };
 	inline ScriptValue *SetExternalTemporary()					{ external_temporary_ = true; return this; };
 	inline ScriptValue *SetExternalPermanent()					{ external_permanent_ = true; return this; };
 	
@@ -195,6 +195,8 @@ public:
 	virtual ScriptObjectElement *ElementAtIndex(int p_idx) const;
 	
 	// methods to allow type-agnostic manipulation of ScriptValues
+	virtual bool IsMutable(void) const;							// returns true by default, but we have some immutable subclasses that return false
+	virtual ScriptValue *MutableCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
 	virtual ScriptValue *CopyValues(void) const = 0;			// a deep copy of the receiver with external_temporary_ == invisible_ == false
 	virtual ScriptValue *NewMatchingType(void) const = 0;		// a new ScriptValue instance of the same type as the receiver
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value) = 0;	// copy a value from another object of the same type
@@ -308,6 +310,9 @@ public:
 	
 	static ScriptValue_Logical *Static_ScriptValue_Logical_T(void);
 	static ScriptValue_Logical *Static_ScriptValue_Logical_F(void);
+	
+	virtual bool IsMutable(void) const;
+	virtual ScriptValue *MutableCopy(void) const;
 	
 	// prohibited actions
 	virtual void PushLogical(bool p_logical);
@@ -463,6 +468,9 @@ public:
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual ScriptValue *CopyValues(void) const;
 	
+	virtual bool IsMutable(void) const;
+	virtual ScriptValue *MutableCopy(void) const;
+	
 	// prohibited actions
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
 	virtual void PushValueFromIndexOfScriptValue(int p_idx, const ScriptValue *p_source_script_value);
@@ -566,6 +574,9 @@ public:
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual ScriptValue *CopyValues(void) const;
+	
+	virtual bool IsMutable(void) const;
+	virtual ScriptValue *MutableCopy(void) const;
 	
 	// prohibited actions
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);
@@ -681,6 +692,9 @@ public:
 	
 	virtual ScriptValue *GetValueAtIndex(const int p_idx) const;
 	virtual ScriptValue *CopyValues(void) const;
+	
+	virtual bool IsMutable(void) const;
+	virtual ScriptValue *MutableCopy(void) const;
 	
 	// prohibited actions
 	virtual void SetValueAtIndex(const int p_idx, ScriptValue *p_value);

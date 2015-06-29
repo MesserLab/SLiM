@@ -353,6 +353,12 @@ void RunSLiMScriptTests(void)
 	AssertScriptSuccess("x = c(\"a\", \"b\", \"c\"); x[1] = 1; x;", new ScriptValue_String("a", "1", "c"));
 	AssertScriptRaise("x = 1:5; x[3] = 1.5; x;");
 	AssertScriptRaise("x = 1:5; x[3] = \"foo\"; x;");
+	AssertScriptSuccess("x = 5; x[0] = 10; x;", new ScriptValue_Int_singleton_const(10));
+	AssertScriptSuccess("x = 5.0; x[0] = 10.0; x;", new ScriptValue_Float_singleton_const(10));
+	AssertScriptRaise("x = 5; x[0] = 10.0; x;");
+	AssertScriptSuccess("x = 5.0; x[0] = 10; x;", new ScriptValue_Float_singleton_const(10));
+	AssertScriptSuccess("x = T; x[0] = F; x;", new ScriptValue_Logical(false));
+	AssertScriptSuccess("x = \"foo\"; x[0] = \"bar\"; x;", new ScriptValue_String("bar"));
 	
 	// operator = (especially in conjunction with operator .)
 	AssertScriptSuccess("x=Path(); x.path;", new ScriptValue_String("~"));
