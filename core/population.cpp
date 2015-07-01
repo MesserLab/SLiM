@@ -187,32 +187,6 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 	}
 }
 
-// set sex ratio of subpopulation p_subpop_id to p_sex_ratio
-void Population::SetSexRatio(int p_subpop_id, double p_sex_ratio)
-{
-	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
-	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
-	if (child_generation_valid)
-		SLIM_TERMINATION << "ERROR (SetSexRatio): called when the child generation was valid" << slim_terminate();
-	if (count(p_subpop_id) == 0)
-		SLIM_TERMINATION << "ERROR (SetSexRatio): no subpopulation p" << p_subpop_id << slim_terminate();
-	
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-	
-	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
-	subpop.child_sex_ratio_ = p_sex_ratio;
-	subpop.GenerateChildrenToFit(false);	// false means generate only new children, not new parents
-}
-
-// set fraction selfing_fraction of p_subpop_id that reproduces by selfing
-void Population::SetSelfing(int p_subpop_id, double p_selfing_fraction) 
-{ 
-	if (p_selfing_fraction < 0.0 || p_selfing_fraction > 1.0)
-		SLIM_TERMINATION << "ERROR (SetSelfing): selfing fraction has to be within [0,1]" << slim_terminate();
-	
-	SubpopulationWithID(p_subpop_id).selfing_fraction_ = p_selfing_fraction; 
-}
-
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
 { 
@@ -435,7 +409,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 }
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_female, int p_parent1_index, int p_parent2_index, bool p_is_selfing, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks)
 {
 	for (SLiMScriptBlock *modify_child_callback : p_modify_child_callbacks)
 	{
@@ -465,10 +439,10 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			
 			if (modify_child_callback->contains_childIsFemale_)
 			{
-				if (p_child_is_female == -1)
+				if (p_child_sex == IndividualSex::kHermaphrodite)
 					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, gStaticScriptValueNULL);
 				else
-					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, (p_child_is_female != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			}
 			
 			if (modify_child_callback->contains_parent1Genome1_)
@@ -485,6 +459,9 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 			
 			if (modify_child_callback->contains_isSelfing_)
 				global_symbols.InitializeConstantSymbolEntry(gStr_isSelfing, p_is_selfing ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			
+			if (modify_child_callback->contains_isCloning_)
+				global_symbols.InitializeConstantSymbolEntry(gStr_isCloning, p_is_cloning ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{
@@ -527,314 +504,197 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, int p_child_is_fem
 }
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks)
+void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
 {
-	// Are any mateChoice() callbacks active this generation?  These are handled in the main-line case, since they are checked only once
-	// per mating – the speed hit is trivial.  However, they have to be handled in every spot below where a biparental mating occurs.
-	bool mate_choice_callbacks_exist = (p_mate_choice_callbacks.size() > 0);
-	
-	// Are any modifyChild() callbacks active this generation?  These are handled in the main-line case, since they are checked only once
-	// per child generated – the speed hit is trivial.  However, they have to be handled in every spot below where a child is made.
-	bool modify_child_callbacks_exist = (p_modify_child_callbacks.size() > 0);
-	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	bool sex_enabled = subpop.sex_enabled_;
-	int child_genome1, child_genome2, parent1, parent2;
-	double sex_ratio = 0.0;
-	int total_children = subpop.child_subpop_size_, total_male_children = 0, total_female_children = 0;
+	int total_children = subpop.child_subpop_size_;
 	
-	// SEX ONLY
+	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
+	// Any code that chooses individuals from the population should choose randomly to avoid order-dependency!
+	
+	// set up to draw migrants; this works the same in the sex and asex cases, and for males / females / hermaphrodites
+	// the way the code is now structured, "migrant" really includes everybody; we are a migrant source subpop for ourselves
+	int migrant_source_count = static_cast<int>(subpop.migrant_fractions_.size());
+	double migration_rates[migrant_source_count + 1];
+	Subpopulation *migration_sources[migrant_source_count + 1];
+	unsigned int num_migrants[migrant_source_count + 1];			// used by client code below
+	
+	if (migrant_source_count > 0)
+	{
+		double migration_rate_sum = 0.0;
+		int pop_count = 0;
+		
+		for (const std::pair<const int,double> &fractions_pair : subpop.migrant_fractions_)
+		{
+			migration_rates[pop_count] = fractions_pair.second;
+			migration_sources[pop_count] = &SubpopulationWithID(fractions_pair.first);
+			migration_rate_sum += fractions_pair.second;
+			pop_count++;
+		}
+		
+		if (migration_rate_sum <= 1.0)
+		{
+			// the remaining fraction is within-subpopulation mating
+			migration_rates[pop_count] = 1.0 - migration_rate_sum;
+			migration_sources[pop_count] = &subpop;
+		}
+		else
+			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << "; migration fractions must sum to <= 1.0" << slim_terminate();
+	}
+	else
+	{
+		migration_rates[0] = 1.0;
+		migration_sources[0] = &subpop;
+	}
+	
+	// SEX ONLY: the sex and asex cases share code but work a bit differently; the sex cases generates females and then males in
+	// separate passes, and selfing is disabled in the sex case.  This block sets up for the sex case to diverge in these ways.
+	int total_female_children = 0, total_male_children = 0, number_of_sexes = 1;
+	
 	if (sex_enabled)
 	{
-		sex_ratio = subpop.child_sex_ratio_;
-		total_male_children = static_cast<int>(lround(total_children * sex_ratio));
+		double sex_ratio = subpop.child_sex_ratio_;
+		
+		total_male_children = static_cast<int>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male
 		total_female_children = total_children - total_male_children;
+		number_of_sexes = 2;
 		
 		if (total_male_children <= 0 || total_female_children <= 0)
 			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << slim_terminate();
 	}
 	
-	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
-	// Any code that chooses individuals from the population should choose randomly to avoid order-dependency!
-	int child_count = 0; // counter over all subpop_size_ children
-	int male_child_count = 0, female_child_count = 0;
+	// Mow we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
+	// males second (sex_index == 1).  In nonsexual simulations number_of_sexes == 1 and this loops just once.
+	int child_count = 0;	// counter over all subpop_size_ children
 	
-	// draw number of migrant individuals
-	int migrant_source_count = static_cast<int>(subpop.migrant_fractions_.size());
-	double migration_rates[migrant_source_count + 1];
-	unsigned int num_migrants[migrant_source_count + 1];
-	double migration_rate_sum = 0.0;
-	int pop_count = 0;
-	
-	for (const std::pair<const int,double> &fractions_pair : subpop.migrant_fractions_)
+	for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 	{
-		migration_rates[pop_count] = fractions_pair.second;
-		migration_rate_sum += fractions_pair.second;
-		pop_count++;
-	}
-	
-	if (migration_rate_sum <= 1.0)
-		migration_rates[pop_count] = 1.0 - migration_rate_sum;		// the remaining fraction is within-subpopulation mating
-	else
-		SLIM_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << slim_terminate();
-	
-	gsl_ran_multinomial(g_rng, migrant_source_count + 1, total_children, migration_rates, num_migrants);
-	
-	// loop over all migration source populations and generate their offspring
-	pop_count = 0;
-	
-	for (const std::pair<const int,double> &fractions_pair : subpop.migrant_fractions_)
-	{
-		int source_subpop_id = fractions_pair.first;
-		Subpopulation &source_subpop = SubpopulationWithID(source_subpop_id);
-		double selfing_fraction = source_subpop.selfing_fraction_;
-		int migrant_count = 0, migrants_to_generate = num_migrants[pop_count];
-		int number_to_self = static_cast<int>(lround(migrants_to_generate * selfing_fraction));
+		int total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
+		IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
 		
-		if (sex_enabled)
-		{
-			// SEX ONLY
-			int male_migrants = static_cast<int>(lround(migrants_to_generate * sex_ratio));
-			int female_migrants = migrants_to_generate - male_migrants;
-			
-			if (male_migrants < 0 || female_migrants < 0)
-				SLIM_TERMINATION << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << slim_terminate();
-			if (female_migrants < number_to_self)
-				SLIM_TERMINATION << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_migrants << " to satisfy selfing demand " << number_to_self << slim_terminate();
-			
-			// generate females first
-			while (migrant_count < female_migrants)
-			{
-				bool selfed = false;
-				int child_index = female_child_count;
-				child_genome1 = 2 * child_index;
-				child_genome2 = child_genome1 + 1;
-				
-				do
-				{
-					// draw parents in source population
-					parent1 = source_subpop.DrawFemaleParentUsingFitness();
-					
-					if (number_to_self > 0)
-						parent2 = parent1, selfed = true;		// self
-					else if (mate_choice_callbacks_exist)
-						parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, p_mate_choice_callbacks);
-					else
-						parent2 = source_subpop.DrawMaleParentUsingFitness();
-				}
-				while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
-				
-				// recombination, gene-conversion, mutation
-				CrossoverMutation(&subpop, &source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kFemale);
-				CrossoverMutation(&subpop, &source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kFemale);
-				
-				if (modify_child_callbacks_exist)
-					if (!ApplyModifyChildCallbacks(child_index, true, parent1, parent2, selfed, &subpop, &source_subpop, p_modify_child_callbacks))
-						continue;
-				
-				if (selfed)
-					--number_to_self;
-				migrant_count++;
-				female_child_count++;
-			}
-			
-			// then generate males
-			while (migrant_count < female_migrants + male_migrants)
-			{
-				int child_index = male_child_count + subpop.child_first_male_index_;
-				child_genome1 = 2 * child_index;
-				child_genome2 = child_genome1 + 1;
-				
-				do
-				{
-					// draw parents in source population
-					parent1 = source_subpop.DrawFemaleParentUsingFitness();
-					
-					if (mate_choice_callbacks_exist)
-						parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, p_mate_choice_callbacks);
-					else
-						parent2 = source_subpop.DrawMaleParentUsingFitness();
-				}
-				while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
-				
-				// recombination, gene-conversion, mutation
-				CrossoverMutation(&subpop, &source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kMale);
-				CrossoverMutation(&subpop, &source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kMale);
-				
-				if (modify_child_callbacks_exist)
-					if (!ApplyModifyChildCallbacks(child_index, false, parent1, parent2, false, &subpop, &source_subpop, p_modify_child_callbacks))
-						continue;
-				
-				migrant_count++;
-				male_child_count++;
-			}
-		}
+		// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
+		if (migrant_source_count == 0)
+			num_migrants[0] = total_children_of_sex;
 		else
+			gsl_ran_multinomial(g_rng, migrant_source_count + 1, total_children_of_sex, migration_rates, num_migrants);
+		
+		// loop over all source subpops, including ourselves
+		for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
 		{
-			while (migrant_count < migrants_to_generate)
+			int migrants_to_generate = num_migrants[pop_count];
+			
+			if (migrants_to_generate > 0)
 			{
-				bool selfed = false;
-				child_genome1 = 2 * child_count;
-				child_genome2 = child_genome1 + 1;
+				Subpopulation &source_subpop = *(migration_sources[pop_count]);
+				int subpop_id = source_subpop.subpopulation_id_;
+				double selfing_fraction = sex_enabled ? source_subpop.selfing_fraction_ : 0.0;
+				double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
 				
-				do
+				// figure out how many from this source subpop are the result of selfing and/or cloning
+				int number_to_self = 0, number_to_clone = 0;
+				
+				if (selfing_fraction > 0)
 				{
-					// draw parents in source population
-					parent1 = source_subpop.DrawParentUsingFitness();
-					
-					if (number_to_self > 0)
-						parent2 = parent1, selfed = true;	// self
-					else if (mate_choice_callbacks_exist)
-						parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, p_mate_choice_callbacks);
+					if (cloning_fraction > 0)
+					{
+						double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
+						unsigned int counts[3] = {0, 0, 0};
+						
+						gsl_ran_multinomial(g_rng, 3, migrants_to_generate, fractions, counts);
+						
+						number_to_self = counts[0];
+						number_to_clone = counts[1];
+					}
 					else
-						parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+						number_to_self = gsl_ran_binomial(g_rng, selfing_fraction, migrants_to_generate);
 				}
-				while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
+				else if (cloning_fraction > 0)
+					number_to_clone = gsl_ran_binomial(g_rng, cloning_fraction, migrants_to_generate);
 				
-				// recombination, gene-conversion, mutation
-				CrossoverMutation(&subpop, &source_subpop, child_genome1, source_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
-				CrossoverMutation(&subpop, &source_subpop, child_genome2, source_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
+				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
+				std::vector<SLiMScriptBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
 				
-				if (modify_child_callbacks_exist)
-					if (!ApplyModifyChildCallbacks(child_count, -1, parent1, parent2, selfed, &subpop, &source_subpop, p_modify_child_callbacks))
-						continue;
+				if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
+					mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
+				if (p_modify_child_callbacks_present && source_subpop.registered_modify_child_callbacks_.size())
+					modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
 				
-				if (selfed)
-					--number_to_self;
-				migrant_count++;
-				child_count++;
-			}
-		}
-		
-		pop_count++;
-	}
-	
-	// the remainder of the children are generated by within-population matings
-	double selfing_fraction = subpop.selfing_fraction_;
-	int native_count = 0, natives_to_generate = num_migrants[migrant_source_count];
-	int number_to_self = static_cast<int>(lround(natives_to_generate * selfing_fraction));
-	
-	if (sex_enabled)
-	{
-		// SEX ONLY
-		int male_natives = static_cast<int>(lround(natives_to_generate * sex_ratio));
-		int female_natives = natives_to_generate - male_natives;
-		
-		if (male_natives < 0 || female_natives < 0)
-			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): negative number of migrants of one sex" << slim_terminate();
-		if (female_natives < number_to_self)
-			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): insufficient female migrants " << female_natives << " to satisfy selfing demand " << number_to_self << slim_terminate();
-		
-		// generate females first
-		while (native_count < female_natives) 
-		{
-			bool selfed = false;
-			int child_index = female_child_count;
-			child_genome1 = 2 * child_index;
-			child_genome2 = child_genome1 + 1;
-			
-			do
-			{
-				// draw parents from this subpopulation
-				parent1 = subpop.DrawFemaleParentUsingFitness();
+				// generate all selfed, cloned, and autogamous offspring in one shared loop
+				int migrant_count = 0;
 				
-				if (number_to_self > 0)
-					parent2 = parent1, selfed = true;	// self
-				else if (mate_choice_callbacks_exist)
-					parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &subpop, p_mate_choice_callbacks);
+				if ((number_to_self == 0) && (number_to_clone == 0) && !mate_choice_callbacks && !modify_child_callbacks)
+				{
+					// a simple loop for the base case with no selfing, no cloning, and no callbacks
+					while (migrant_count < migrants_to_generate)
+					{
+						int parent1 = source_subpop.DrawParentUsingFitness();
+						int parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+						
+						// recombination, gene-conversion, mutation
+						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+						
+						migrant_count++;
+						child_count++;
+					}
+				}
 				else
-					parent2 = subpop.DrawMaleParentUsingFitness();
+				{
+					// the full loop with support for selfing/ cloning, and callbacks
+					while (migrant_count < migrants_to_generate)
+					{
+						bool selfed = false, cloned = false;
+						int parent1 = source_subpop.DrawParentUsingFitness(), parent2;
+						
+						if (number_to_self > 0)				parent2 = parent1, selfed = true;
+						else if (number_to_clone > 0)		parent2 = parent1, cloned = true;
+						else if (!mate_choice_callbacks)	parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+						else
+						{
+							while (true)	// loop while parent2 == -1, indicating a request for a new first parent
+							{
+								parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, *mate_choice_callbacks);
+								
+								if (parent2 != -1)
+									break;
+								
+								parent1 = source_subpop.DrawParentUsingFitness();
+							}
+						}
+						
+						// recombination, gene-conversion, mutation
+						if (cloned)
+						{
+							DoClonalMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+							DoClonalMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						}
+						else
+						{
+							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+						}
+						
+						if (modify_child_callbacks)
+							if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &subpop, &source_subpop, *modify_child_callbacks))
+								continue;
+						
+						// if the child was accepted, change all our counters; can't be done before the modifyChild() callback!
+						if (cloned)
+							--number_to_clone;
+						else if (selfed)
+							--number_to_self;
+						migrant_count++;
+						child_count++;
+					}
+				}
 			}
-			while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
-
-			// recombination, gene-conversion, mutation
-			CrossoverMutation(&subpop, &subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kFemale);
-			CrossoverMutation(&subpop, &subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kFemale);
-			
-			if (modify_child_callbacks_exist)
-				if (!ApplyModifyChildCallbacks(child_index, true, parent1, parent2, selfed, &subpop, &subpop, p_modify_child_callbacks))
-					continue;
-			
-			if (selfed)
-				--number_to_self;
-			native_count++;
-			female_child_count++;
-		}
-		
-		// then generate males
-		while (native_count < female_natives + male_natives) 
-		{
-			int child_index = male_child_count + subpop.child_first_male_index_;
-			child_genome1 = 2 * child_index;
-			child_genome2 = child_genome1 + 1;
-			
-			do
-			{
-				// draw parents from this subpopulation
-				parent1 = subpop.DrawFemaleParentUsingFitness();
-				
-				if (mate_choice_callbacks_exist)
-					parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &subpop, p_mate_choice_callbacks);
-				else
-					parent2 = subpop.DrawMaleParentUsingFitness();
-			}
-			while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
-			
-			// recombination, gene-conversion, mutation
-			CrossoverMutation(&subpop, &subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kMale);
-			CrossoverMutation(&subpop, &subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kMale);
-			
-			if (modify_child_callbacks_exist)
-				if (!ApplyModifyChildCallbacks(child_index, false, parent1, parent2, false, &subpop, &subpop, p_modify_child_callbacks))
-					continue;
-			
-			native_count++;
-			male_child_count++;
 		}
 	}
-	else
-	{
-		while (native_count < natives_to_generate) 
-		{
-			bool selfed = false;
-			child_genome1 = 2 * child_count;
-			child_genome2 = child_genome1 + 1;
-			
-			do
-			{
-				// draw parents from this subpopulation
-				parent1 = subpop.DrawParentUsingFitness();
-				
-				if (number_to_self > 0)
-					parent2 = parent1, selfed = true;	// self
-				else if (mate_choice_callbacks_exist)
-					parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &subpop, p_mate_choice_callbacks);
-				else
-					parent2 = subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
-			}
-			while (parent2 == -1);	// -1 is a flag value returned by ApplyMateChoiceCallbacks, requesting a new first parent
-			
-			// recombination, gene-conversion, mutation
-			CrossoverMutation(&subpop, &subpop, child_genome1, p_subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
-			CrossoverMutation(&subpop, &subpop, child_genome2, p_subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
-			
-			if (modify_child_callbacks_exist)
-				if (!ApplyModifyChildCallbacks(child_count, -1, parent1, parent2, selfed, &subpop, &subpop, p_modify_child_callbacks))
-					continue;
-			
-			if (selfed)
-				--number_to_self;
-			native_count++;
-			child_count++;
-		}
-	}
-	
-	child_generation_valid = true;
-	subpop.child_generation_valid = true;
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
+void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -1085,8 +945,6 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 		Mutation **parent_iter_max	= parent1_iter_max;
 		
 		int break_index_max = static_cast<int>(all_breakpoints.size());
-		int num_mutations_added = 0;
-		bool present;
 		
 		for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
 		{
@@ -1118,24 +976,8 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 				// while an old mutation in the parent is before the breakpoint and before the next new mutation...
 				while (parent_iter_pos < breakpoint && parent_iter_pos <= mutation_iter_pos)
 				{
-					present = false;
-					
-					// search back through the mutations already added to see if the one we intend to add is already present
-					if (num_mutations_added != 0 && child_genome.back()->position_ == parent_iter_pos)
-						for (int k = num_mutations_added - 1; k >= 0; k--)
-							if (child_genome[k] == parent_iter_mutation)
-							{
-								present = true;
-								break;
-							}
-					
-					// if the mutation was not present, add it
-					if (!present)
-					{
-						child_genome.push_back(parent_iter_mutation);
-						num_mutations_added++;
-					}
-					
+					// add the mutation; we know it is not already present
+					child_genome.push_back(parent_iter_mutation);
 					parent_iter++;
 					
 					if (parent_iter != parent_iter_max) {
@@ -1150,24 +992,8 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 				// while a new mutation is before the breakpoint and before the next old mutation in the parent...
 				while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
 				{
-					present = false;
-					
-					// search back through the mutations already added to see if the one we intend to add is already present
-					if (num_mutations_added != 0 && child_genome.back()->position_ == mutation_iter_pos)
-						for (int k = num_mutations_added - 1; k >= 0; k--)
-							if (child_genome[k] == mutation_iter_mutation)
-							{
-								present = true;
-								break;
-							}
-					
-					// if the mutation was not present, add it
-					if (!present)
-					{
-						child_genome.push_back(mutation_iter_mutation);
-						num_mutations_added++;
-					}
-					
+					// add the mutation; we know it is not already present
+					child_genome.push_back(mutation_iter_mutation);
 					mutation_iter++;
 					
 					if (mutation_iter != mutation_iter_max) {
@@ -1181,7 +1007,7 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			}
 			// NOTE ...to here
 			
-			// these statements complete our for loop; the are here so that if we have no breakpoints we do not touch the second strand below
+			// these statements complete our for loop; they are here so that if we have no breakpoints we do not touch the second strand below
 			break_index++;
 			
 			if (break_index == break_index_max)
@@ -1195,6 +1021,91 @@ void Population::CrossoverMutation(Subpopulation *subpop, Subpopulation *source_
 			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
 			while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
 				parent_iter++;
+		}
+	}
+}
+
+void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
+{
+	if (p_child_sex == IndividualSex::kUnspecified)
+		SLIM_TERMINATION << "ERROR (DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << slim_terminate();
+	
+	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
+	GenomeType child_genome_type = child_genome.GenomeType();
+	Genome *parent_genome = &(source_subpop->parent_genomes_[p_parent_genome_index]);
+	GenomeType parent_genome_type = parent_genome->GenomeType();
+	
+	if (child_genome_type != parent_genome_type)
+		SLIM_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (type != type)" << slim_terminate();
+	
+	// check for null cases
+	bool child_genome_null = child_genome.IsNull();
+	bool parent_genome_null = parent_genome->IsNull();
+	
+	if (child_genome_null != parent_genome_null)
+		SLIM_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (null != null)" << slim_terminate();
+	
+	if (child_genome_null)
+	{
+		// a null strand cannot mutate, so we are done
+		return;
+	}
+	
+	// start with a clean slate in the child genome
+	child_genome.clear();
+	
+	// determine how many mutations and breakpoints we have
+	int num_mutations = p_chromosome.DrawMutationCount();
+	
+	// mutations are usually rare, so let's streamline the case where none occur
+	if (num_mutations == 0)
+	{
+		// no mutations, so the child genome is just a copy of the parental genome
+		child_genome.copy_from_genome(source_subpop->parent_genomes_[p_parent_genome_index]);
+	}
+	else
+	{
+		// create vector with the mutations to be added
+		Genome mutations_to_add;
+		
+		for (int k = 0; k < num_mutations; k++)
+		{
+			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
+			
+			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+			mutation_registry_.push_back(new_mutation);
+		}
+		
+		// interleave the parental genome with the new mutations
+		Mutation **parent_iter		= source_subpop->parent_genomes_[p_parent_genome_index].begin_pointer();
+		Mutation **parent_iter_max	= source_subpop->parent_genomes_[p_parent_genome_index].end_pointer();
+		Mutation **mutation_iter		= mutations_to_add.begin_pointer();
+		Mutation **mutation_iter_max	= mutations_to_add.end_pointer();
+		
+		// while there are still old mutations in the parent, or new mutations to be added, before the end...
+		while ((parent_iter != parent_iter_max) || (mutation_iter != mutation_iter_max))
+		{
+			// while an old mutation in the parent is before or at the next new mutation...
+			int mutation_iter_pos = (mutation_iter == mutation_iter_max) ? INT_MAX : (*mutation_iter)->position_;
+			
+			while ((parent_iter != parent_iter_max) && ((*parent_iter)->position_ <= mutation_iter_pos))
+			{
+				// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
+				// and new mutations are, by definition, new and thus cannot match the existing mutations
+				child_genome.push_back(*parent_iter);
+				parent_iter++;
+			}
+			
+			// while a new mutation is before or at the next old mutation in the parent...
+			int parent_iter_pos = (parent_iter == parent_iter_max) ? INT_MAX : (*parent_iter)->position_;
+			
+			while ((mutation_iter != mutation_iter_max) && ((*mutation_iter)->position_ <= parent_iter_pos))
+			{
+				// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
+				// and new mutations are, by definition, new and thus cannot match the existing mutations
+				child_genome.push_back(*mutation_iter);
+				mutation_iter++;
+			}
 		}
 	}
 }

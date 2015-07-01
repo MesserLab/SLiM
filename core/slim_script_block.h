@@ -113,6 +113,7 @@ public:
 	bool contains_childIsFemale_ = false;		// "childIsFemale" (modifyChild callback parameter)
 	bool contains_parent1Genome1_ = false;		// "parent1Genome1" (modifyChild callback parameter)
 	bool contains_parent1Genome2_ = false;		// "parent1Genome2" (modifyChild callback parameter)
+	bool contains_isCloning_ = false;			// "isCloning" (modifyChild callback parameter)
 	bool contains_isSelfing_ = false;			// "isSelfing" (modifyChild callback parameter)
 	bool contains_parent2Genome1_ = false;		// "parent2Genome1" (modifyChild callback parameter)
 	bool contains_parent2Genome2_ = false;		// "parent2Genome2" (modifyChild callback parameter)

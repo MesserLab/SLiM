@@ -96,12 +96,6 @@ public:
 	// set size of subpopulation p_subpop_id to p_subpop_size
 	void SetSize(int p_subpop_id, unsigned int p_subpop_size);
 	
-	// set sex ratio of subpopulation p_subpop_id to p_sex_ratio
-	void SetSexRatio(int p_subpop_id, double p_sex_ratio);
-	
-	// set fraction selfing_fraction of p_subpop_id that reproduces by selfing
-	void SetSelfing(int p_subpop_id, double p_selfing_fraction);
-	
 	// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
@@ -112,13 +106,16 @@ public:
 	int ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks);
 	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-	bool ApplyModifyChildCallbacks(int p_child_index, int p_child_is_female, int p_parent1_index, int p_parent2_index, bool p_is_selfing, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
+	bool ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
+	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-	void CrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex);
+	void DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex);
+	
+	// generate a child genome from a single parental genome, without recombination or gene conversion, but with mutation
+	void DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex);
 	
 	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
 	void SwapGenerations();

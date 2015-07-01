@@ -104,6 +104,7 @@ const std::string gStr_registerScriptFitnessCallback = "registerScriptFitnessCal
 const std::string gStr_registerScriptMateChoiceCallback = "registerScriptMateChoiceCallback";
 const std::string gStr_registerScriptModifyChildCallback = "registerScriptModifyChildCallback";
 const std::string gStr_changeMigrationRates = "changeMigrationRates";
+const std::string gStr_changeCloningRate = "changeCloningRate";
 const std::string gStr_changeSelfingRate = "changeSelfingRate";
 const std::string gStr_changeSexRatio = "changeSexRatio";
 const std::string gStr_changeSubpopulationSize = "changeSubpopulationSize";
@@ -124,6 +125,7 @@ const std::string gStr_childGenome2 = "childGenome2";
 const std::string gStr_childIsFemale = "childIsFemale";
 const std::string gStr_parent1Genome1 = "parent1Genome1";
 const std::string gStr_parent1Genome2 = "parent1Genome2";
+const std::string gStr_isCloning = "isCloning";
 const std::string gStr_isSelfing = "isSelfing";
 const std::string gStr_parent2Genome1 = "parent2Genome1";
 const std::string gStr_parent2Genome2 = "parent2Genome2";
@@ -238,6 +240,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		SLiMScript_RegisterStringForGlobalID(gStr_registerScriptMateChoiceCallback, gID_registerScriptMateChoiceCallback);
 		SLiMScript_RegisterStringForGlobalID(gStr_registerScriptModifyChildCallback, gID_registerScriptModifyChildCallback);
 		SLiMScript_RegisterStringForGlobalID(gStr_changeMigrationRates, gID_changeMigrationRates);
+		SLiMScript_RegisterStringForGlobalID(gStr_changeCloningRate, gID_changeCloningRate);
 		SLiMScript_RegisterStringForGlobalID(gStr_changeSelfingRate, gID_changeSelfingRate);
 		SLiMScript_RegisterStringForGlobalID(gStr_changeSexRatio, gID_changeSexRatio);
 		SLiMScript_RegisterStringForGlobalID(gStr_changeSubpopulationSize, gID_changeSubpopulationSize);

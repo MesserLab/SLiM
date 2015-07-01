@@ -522,8 +522,9 @@ bool SLiMSim::RunOneGeneration(void)
 				}
 				else
 				{
+					// ******************************************************************
 					//
-					// Stage 1: execute script events for the current generation
+					// Stage 1: Execute script events for the current generation
 					//
 					std::vector<SLiMScriptBlock*> blocks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptEvent, -1, -1);
 					
@@ -531,19 +532,24 @@ bool SLiMSim::RunOneGeneration(void)
 						if (script_block->active_)
 							population_.ExecuteScript(script_block, generation_, chromosome_);
 					
+					// the stage is done, so deregister script blocks as requested
 					DeregisterScheduledScriptBlocks();
 					
+					
+					// ******************************************************************
 					//
-					// Stage 2: evolve all subpopulations
+					// Stage 2: Evolve all subpopulations
 					//
 					std::vector<SLiMScriptBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptMateChoiceCallback, -1, -1);
 					std::vector<SLiMScriptBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptModifyChildCallback, -1, -1);
+					bool mate_choice_callbacks_present = mate_choice_callbacks.size();
+					bool modify_child_callbacks_present = modify_child_callbacks.size();
 					
+					// cache a list of callbacks registered for each subpop
 					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
 					{
 						int subpop_id = subpop_pair.first;
-						std::vector<SLiMScriptBlock*> subpop_mate_choice_callbacks;
-						std::vector<SLiMScriptBlock*> subpop_modify_child_callbacks;
+						Subpopulation *subpop = subpop_pair.second;
 						
 						// Get mateChoice() callbacks that apply to this subpopulation
 						for (SLiMScriptBlock *callback : mate_choice_callbacks)
@@ -551,7 +557,7 @@ bool SLiMSim::RunOneGeneration(void)
 							int callback_subpop_id = callback->subpopulation_id_;
 							
 							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop_mate_choice_callbacks.push_back(callback);
+								subpop->registered_mate_choice_callbacks_.push_back(callback);
 						}
 						
 						// Get modifyChild() callbacks that apply to this subpopulation
@@ -560,17 +566,36 @@ bool SLiMSim::RunOneGeneration(void)
 							int callback_subpop_id = callback->subpopulation_id_;
 							
 							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop_modify_child_callbacks.push_back(callback);
+								subpop->registered_modify_child_callbacks_.push_back(callback);
 						}
-						
-						// Update fitness values, using the callbacks
-						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, subpop_mate_choice_callbacks, subpop_modify_child_callbacks);
 					}
 					
+					// then evolve each subpop
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
+					
+					// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					{
+						Subpopulation *subpop = subpop_pair.second;
+						
+						subpop->registered_mate_choice_callbacks_.clear();
+						subpop->registered_modify_child_callbacks_.clear();
+					}
+					
+					// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+						subpop_pair.second->child_generation_valid = true;
+					
+					population_.child_generation_valid = true;
+					
+					// the stage is done, so deregister script blocks as requested
 					DeregisterScheduledScriptBlocks();
 					
+					
+					// ******************************************************************
 					//
-					// Stage 3: swap generations
+					// Stage 3: Swap generations and advance to the next generation
 					//
 					population_.SwapGenerations();
 					

@@ -181,6 +181,7 @@ extern const std::string gStr_registerScriptFitnessCallback;
 extern const std::string gStr_registerScriptMateChoiceCallback;
 extern const std::string gStr_registerScriptModifyChildCallback;
 extern const std::string gStr_changeMigrationRates;
+extern const std::string gStr_changeCloningRate;
 extern const std::string gStr_changeSelfingRate;
 extern const std::string gStr_changeSexRatio;
 extern const std::string gStr_changeSubpopulationSize;
@@ -200,6 +201,7 @@ extern const std::string gStr_childGenome2;
 extern const std::string gStr_childIsFemale;
 extern const std::string gStr_parent1Genome1;
 extern const std::string gStr_parent1Genome2;
+extern const std::string gStr_isCloning;
 extern const std::string gStr_isSelfing;
 extern const std::string gStr_parent2Genome1;
 extern const std::string gStr_parent2Genome2;
@@ -305,6 +307,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerScriptMateChoiceCallback,
 	gID_registerScriptModifyChildCallback,
 	gID_changeMigrationRates,
+	gID_changeCloningRate,
 	gID_changeSelfingRate,
 	gID_changeSexRatio,
 	gID_changeSubpopulationSize,

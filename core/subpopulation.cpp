@@ -1057,6 +1057,7 @@ std::vector<std::string> Subpopulation::Methods(void) const
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
 	methods.push_back(gStr_changeMigrationRates);
+	methods.push_back(gStr_changeCloningRate);
 	methods.push_back(gStr_changeSelfingRate);
 	methods.push_back(gStr_changeSexRatio);
 	methods.push_back(gStr_changeSubpopulationSize);
@@ -1071,6 +1072,7 @@ const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_meth
 {
 	// Signatures are all preallocated, for speed
 	static FunctionSignature *changeMigrationRatesSig = nullptr;
+	static FunctionSignature *changeCloningRateSig = nullptr;
 	static FunctionSignature *changeSelfingRateSig = nullptr;
 	static FunctionSignature *changeSexRatioSig = nullptr;
 	static FunctionSignature *changeSubpopulationSizeSig = nullptr;
@@ -1081,6 +1083,7 @@ const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_meth
 	if (!changeMigrationRatesSig)
 	{
 		changeMigrationRatesSig = (new FunctionSignature(gStr_changeMigrationRates, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		changeCloningRateSig = (new FunctionSignature(gStr_changeCloningRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric();
 		changeSelfingRateSig = (new FunctionSignature(gStr_changeSelfingRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
 		changeSexRatioSig = (new FunctionSignature(gStr_changeSexRatio, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
 		changeSubpopulationSizeSig = (new FunctionSignature(gStr_changeSubpopulationSize, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
@@ -1094,6 +1097,8 @@ const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_meth
 	{
 		case gID_changeMigrationRates:
 			return changeMigrationRatesSig;
+		case gID_changeCloningRate:
+			return changeCloningRateSig;
 		case gID_changeSelfingRate:
 			return changeSelfingRateSig;
 		case gID_changeSexRatio:
@@ -1151,6 +1156,51 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			
 			//
+			//	*********************	- (void)changeCloningRate(numeric rate)
+			//
+#pragma mark -changeCloningRate()
+			
+		case gID_changeCloningRate:
+		{
+			int value_count = arg0_value->Count();
+			
+			if (sex_enabled_)
+			{
+				// SEX ONLY: either one or two values may be specified; if two, it is female at 0, male at 1
+				if ((value_count < 1) || (value_count > 2))
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << slim_terminate();
+				
+				double female_cloning_fraction = arg0_value->FloatAtIndex(0);
+				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1) : female_cloning_fraction;
+				
+				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+				if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+				
+				female_clone_fraction_ = female_cloning_fraction;
+				male_clone_fraction_ = male_cloning_fraction;
+			}
+			else
+			{
+				// ASEX ONLY: only one value may be specified
+				if (value_count != 1)
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << slim_terminate();
+				
+				double cloning_fraction = arg0_value->FloatAtIndex(0);
+				
+				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+				
+				female_clone_fraction_ = cloning_fraction;
+				male_clone_fraction_ = cloning_fraction;
+			}
+			
+			return gStaticScriptValueNULLInvisible;
+		}			
+			
+			
+			//
 			//	*********************	- (void)changeSelfingRate(numeric$ rate)
 			//
 #pragma mark -changeSelfingRate()
@@ -1159,10 +1209,16 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 		{
 			double selfing_fraction = arg0_value->FloatAtIndex(0);
 			
-			population_.SetSelfing(subpopulation_id_, selfing_fraction);
+			if ((selfing_fraction != 0.0) && sex_enabled_)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << slim_terminate();
+			
+			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSelfingRate() requires a selfing fraction within [0,1]." << slim_terminate();
+			
+			selfing_fraction_ = selfing_fraction;
 			
 			return gStaticScriptValueNULLInvisible;
-		}
+		}			
 			
 			
 			//
@@ -1172,9 +1228,16 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 		case gID_changeSexRatio:
 		{
+			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
+			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
+			if (child_generation_valid)
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSexRatio() called when the child generation was valid" << slim_terminate();
+			
 			double sex_ratio = arg0_value->FloatAtIndex(0);
 			
-			population_.SetSexRatio(subpopulation_id_, sex_ratio);
+			// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
+			child_sex_ratio_ = sex_ratio;
+			GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 			
 			return gStaticScriptValueNULLInvisible;
 		}

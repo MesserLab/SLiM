@@ -412,6 +412,7 @@ void SLiMScriptBlock::_ScanNodeForIdentifiersUsed(const ScriptASTNode *p_scan_no
 		if (token_string.compare(gStr_childIsFemale) == 0)		contains_childIsFemale_ = true;
 		if (token_string.compare(gStr_parent1Genome1) == 0)		contains_parent1Genome1_ = true;
 		if (token_string.compare(gStr_parent1Genome2) == 0)		contains_parent1Genome2_ = true;
+		if (token_string.compare(gStr_isCloning) == 0)			contains_isCloning_ = true;
 		if (token_string.compare(gStr_isSelfing) == 0)			contains_isSelfing_ = true;
 		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
 		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
@@ -452,6 +453,7 @@ void SLiMScriptBlock::ScanTree(void)
 		contains_childIsFemale_ = true;
 		contains_parent1Genome1_ = true;
 		contains_parent1Genome2_ = true;
+		contains_isCloning_ = true;
 		contains_isSelfing_ = true;
 		contains_parent2Genome1_ = true;
 		contains_parent2Genome2_ = true;
