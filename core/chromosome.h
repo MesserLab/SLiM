@@ -70,6 +70,8 @@ public:
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
+	int64_t tag_value_;										// a user-defined tag value
+	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void);														// supplied null constructor

@@ -140,6 +140,7 @@ std::vector<std::string> MutationType::ReadWriteMembers(void) const
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_dominanceCoeff);		// dominance_coeff_
+	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
 }
@@ -156,6 +157,7 @@ bool MutationType::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// variables
 		case gID_dominanceCoeff:
+		case gID_tag:
 			return false;
 			
 			// all others, including gID_none
@@ -186,6 +188,8 @@ ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
 			// variables
 		case gID_dominanceCoeff:
 			return new ScriptValue_Float_singleton_const(dominance_coeff_);
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -195,17 +199,34 @@ ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
 
 void MutationType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 {
-	if (p_member_id == gID_dominanceCoeff)
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
-		
-		double value = p_value->FloatAtIndex(0);
-		
-		dominance_coeff_ = static_cast<typeof(dominance_coeff_)>(value);	// float, at present, but I don't want to hard-code that
-		return;
+		case gID_dominanceCoeff:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			
+			double value = p_value->FloatAtIndex(0);
+			
+			dominance_coeff_ = static_cast<typeof(dominance_coeff_)>(value);	// float, at present, but I don't want to hard-code that
+			return;
+		}
+			
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
+			return;
+		}
+			
+		default:
+		{
+			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+		}
 	}
-	
-	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> MutationType::Methods(void) const

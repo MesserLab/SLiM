@@ -40,13 +40,15 @@ class GenomicElement : public ScriptObjectElement
 	
 private:
 	
-	static bool s_log_copy_and_assign_;									// true if logging is disabled (see below)
+	static bool s_log_copy_and_assign_;						// true if logging is disabled (see below)
 	
 public:
 	
 	GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
-	int start_position_;												// the start position of the element
-	int end_position_;													// the end position of the element
+	int start_position_;									// the start position of the element
+	int end_position_;										// the end position of the element
+	
+	int64_t tag_value_;										// a user-defined tag value
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely

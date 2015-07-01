@@ -103,6 +103,8 @@ private:
 	
 	SymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
 	
+	int64_t tag_value_;																// a user-defined tag value
+	
 public:
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying

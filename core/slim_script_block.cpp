@@ -527,6 +527,7 @@ std::vector<std::string> SLiMScriptBlock::ReadWriteMembers(void) const
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_active);		// active_
+	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
 }
@@ -545,6 +546,7 @@ bool SLiMScriptBlock::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// variables
 		case gID_active:
+		case gID_tag:
 			return false;
 			
 			// all others, including gID_none
@@ -587,6 +589,8 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(GlobalStringID p_member_id)
 			// variables
 		case gID_active:
 			return new ScriptValue_Int_singleton_const(active_);
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -596,18 +600,31 @@ ScriptValue *SLiMScriptBlock::GetValueForMember(GlobalStringID p_member_id)
 
 void SLiMScriptBlock::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 {
-	if (p_member_id == gID_active)
+	switch (p_member_id)
 	{
-		TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
-		
-		active_ = p_value->IntAtIndex(0);
-		
-		return;
-	}
+		case gID_active:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			active_ = p_value->IntAtIndex(0);
+			
+			return;
+		}
 	
-	// all others, including gID_none
-	else
-		return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
+			return;
+		}
+			
+			// all others, including gID_none
+		default:
+			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+	}
 }
 
 std::vector<std::string> SLiMScriptBlock::Methods(void) const

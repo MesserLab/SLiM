@@ -213,8 +213,9 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
-	variables.push_back(gStr_geneConversionMeanLength);		// gene_conversion_avg_length_
+	variables.push_back(gStr_geneConversionMeanLength);			// gene_conversion_avg_length_
 	variables.push_back(gStr_overallMutationRate);				// overall_mutation_rate_
+	variables.push_back(gStr_tag);								// tag_value_
 	
 	return variables;
 }
@@ -235,6 +236,7 @@ bool Chromosome::MemberIsReadOnly(GlobalStringID p_member_id) const
 		case gID_geneConversionFraction:
 		case gID_geneConversionMeanLength:
 		case gID_overallMutationRate:
+		case gID_tag:
 			return false;
 			
 			// all others, including gID_none
@@ -280,6 +282,8 @@ ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
 			return new ScriptValue_Float_singleton_const(gene_conversion_avg_length_);
 		case gID_overallMutationRate:
 			return new ScriptValue_Float_singleton_const(overall_mutation_rate_);
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -320,6 +324,15 @@ void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_va
 			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
 			
 			overall_mutation_rate_ = value;
+			return;
+		}
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
 			return;
 		}
 			

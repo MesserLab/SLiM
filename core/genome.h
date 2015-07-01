@@ -60,6 +60,7 @@ private:
 	Mutation *(mutations_buffer_[GENOME_MUT_BUFFER_SIZE]);	// a built-in buffer to prevent the need for malloc with few mutations
 	Mutation **mutations_ = mutations_buffer_;			// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
 														// note that mutations_ == nullptr indicates a null (i.e. placeholder) genome
+	int64_t tag_value_;									// a user-defined tag value
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)

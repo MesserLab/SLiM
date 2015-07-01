@@ -963,6 +963,8 @@ std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
+	variables.push_back(gStr_tag);					// tag_value_
+	
 	return variables;
 }
 
@@ -980,6 +982,10 @@ bool Subpopulation::MemberIsReadOnly(GlobalStringID p_member_id) const
 		case gID_sexRatio:
 		case gID_size:
 			return true;
+			
+			// variables
+		case gID_tag:
+			return false;
 			
 			// all others, including gID_none
 		default:
@@ -1041,6 +1047,10 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 		case gID_size:
 			return new ScriptValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 			
+			// variables
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
+			
 			// all others, including gID_none
 		default:
 			return ScriptObjectElement::GetValueForMember(p_member_id);
@@ -1049,7 +1059,23 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 
 void Subpopulation::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+	switch (p_member_id)
+	{
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
+			return;
+		}
+			
+		default:
+		{
+			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+		}
+	}
 }
 
 std::vector<std::string> Subpopulation::Methods(void) const

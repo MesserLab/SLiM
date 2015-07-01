@@ -258,6 +258,8 @@ std::vector<std::string> Genome::ReadWriteMembers(void) const
 {
 	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
 	
+	variables.push_back(gStr_tag);					// tag_value_
+	
 	return variables;
 }
 
@@ -270,6 +272,10 @@ bool Genome::MemberIsReadOnly(GlobalStringID p_member_id) const
 		case gID_isNullGenome:
 		case gID_mutations:
 			return true;
+			
+			// variables
+		case gID_tag:
+			return false;
 			
 			// all others, including gID_none
 		default:
@@ -304,6 +310,10 @@ ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
 			return vec;
 		}
 			
+			// variables
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
+			
 			// all others, including gID_none
 		default:
 			return ScriptObjectElement::GetValueForMember(p_member_id);
@@ -312,7 +322,23 @@ ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
 
 void Genome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+	switch (p_member_id)
+	{
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
+			return;
+		}
+			
+		default:
+		{
+			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+		}
+	}
 }
 
 std::vector<std::string> Genome::Methods(void) const

@@ -73,6 +73,7 @@ const std::string gStr_dominanceCoeffX = "dominanceCoeffX";
 const std::string gStr_duration = "duration";
 const std::string gStr_generation = "generation";
 const std::string gStr_randomSeed = "randomSeed";
+const std::string gStr_tag = "tag";
 const std::string gStr_firstMaleIndex = "firstMaleIndex";
 const std::string gStr_genomes = "genomes";
 const std::string gStr_immigrantSubpopIDs = "immigrantSubpopIDs";
@@ -211,6 +212,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		SLiMScript_RegisterStringForGlobalID(gStr_duration, gID_duration);
 		SLiMScript_RegisterStringForGlobalID(gStr_generation, gID_generation);
 		SLiMScript_RegisterStringForGlobalID(gStr_randomSeed, gID_randomSeed);
+		SLiMScript_RegisterStringForGlobalID(gStr_tag, gID_tag);
 		SLiMScript_RegisterStringForGlobalID(gStr_firstMaleIndex, gID_firstMaleIndex);
 		SLiMScript_RegisterStringForGlobalID(gStr_genomes, gID_genomes);
 		SLiMScript_RegisterStringForGlobalID(gStr_immigrantSubpopIDs, gID_immigrantSubpopIDs);

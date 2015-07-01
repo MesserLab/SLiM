@@ -57,6 +57,8 @@ public:
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
+	int64_t tag_value_;							// a user-defined tag value
+
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
 #endif

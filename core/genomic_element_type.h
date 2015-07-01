@@ -57,6 +57,8 @@ public:
 	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
 	
+	int64_t tag_value_;													// a user-defined tag value
+	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
 	GenomicElementType(void) = delete;									// no null construction

@@ -1141,6 +1141,7 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	variables.push_back(gStr_duration);			// time_duration_
 	variables.push_back(gStr_generation);			// generation_
 	variables.push_back(gStr_randomSeed);			// rng_seed_
+	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
 }
@@ -1167,6 +1168,7 @@ bool SLiMSim::MemberIsReadOnly(GlobalStringID p_member_id) const
 		case gID_duration:
 		case gID_generation:
 		case gID_randomSeed:
+		case gID_tag:
 			return false;
 			
 			// all others, including gID_none
@@ -1269,6 +1271,8 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_randomSeed:
 			return new ScriptValue_Int_singleton_const(rng_seed_);
+		case gID_tag:
+			return new ScriptValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -1333,6 +1337,16 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 			// Reseed; note that rng_seed_supplied_to_constructor_ prevents setRandomSeed0() but does not prevent this, by design
 			InitializeRNGFromSeed(rng_seed_);
 			
+			return;
+		}
+
+		case gID_tag:
+		{
+			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			
+			int64_t value = p_value->IntAtIndex(0);
+			
+			tag_value_ = value;
 			return;
 		}
 			
