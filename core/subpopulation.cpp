@@ -1056,11 +1056,11 @@ std::vector<std::string> Subpopulation::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back(gStr_changeMigrationRates);
-	methods.push_back(gStr_changeCloningRate);
-	methods.push_back(gStr_changeSelfingRate);
-	methods.push_back(gStr_changeSexRatio);
-	methods.push_back(gStr_changeSubpopulationSize);
+	methods.push_back(gStr_setMigrationRates);
+	methods.push_back(gStr_setCloningRate);
+	methods.push_back(gStr_setSelfingRate);
+	methods.push_back(gStr_setSexRatio);
+	methods.push_back(gStr_setSubpopulationSize);
 	methods.push_back(gStr_fitness);
 	methods.push_back(gStr_outputMSSample);
 	methods.push_back(gStr_outputSample);
@@ -1071,22 +1071,22 @@ std::vector<std::string> Subpopulation::Methods(void) const
 const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static FunctionSignature *changeMigrationRatesSig = nullptr;
-	static FunctionSignature *changeCloningRateSig = nullptr;
-	static FunctionSignature *changeSelfingRateSig = nullptr;
-	static FunctionSignature *changeSexRatioSig = nullptr;
-	static FunctionSignature *changeSubpopulationSizeSig = nullptr;
+	static FunctionSignature *setMigrationRatesSig = nullptr;
+	static FunctionSignature *setCloningRateSig = nullptr;
+	static FunctionSignature *setSelfingRateSig = nullptr;
+	static FunctionSignature *setSexRatioSig = nullptr;
+	static FunctionSignature *setSubpopulationSizeSig = nullptr;
 	static FunctionSignature *fitnessSig = nullptr;
 	static FunctionSignature *outputMSSampleSig = nullptr;
 	static FunctionSignature *outputSampleSig = nullptr;
 	
-	if (!changeMigrationRatesSig)
+	if (!setMigrationRatesSig)
 	{
-		changeMigrationRatesSig = (new FunctionSignature(gStr_changeMigrationRates, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
-		changeCloningRateSig = (new FunctionSignature(gStr_changeCloningRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric();
-		changeSelfingRateSig = (new FunctionSignature(gStr_changeSelfingRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
-		changeSexRatioSig = (new FunctionSignature(gStr_changeSexRatio, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
-		changeSubpopulationSizeSig = (new FunctionSignature(gStr_changeSubpopulationSize, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
+		setMigrationRatesSig = (new FunctionSignature(gStr_setMigrationRates, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		setCloningRateSig = (new FunctionSignature(gStr_setCloningRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric();
+		setSelfingRateSig = (new FunctionSignature(gStr_setSelfingRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
+		setSexRatioSig = (new FunctionSignature(gStr_setSexRatio, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		setSubpopulationSizeSig = (new FunctionSignature(gStr_setSubpopulationSize, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
 		fitnessSig = (new FunctionSignature(gStr_fitness, FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddInt();
 		outputMSSampleSig = (new FunctionSignature(gStr_outputMSSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
 		outputSampleSig = (new FunctionSignature(gStr_outputSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
@@ -1095,16 +1095,16 @@ const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_meth
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_changeMigrationRates:
-			return changeMigrationRatesSig;
-		case gID_changeCloningRate:
-			return changeCloningRateSig;
-		case gID_changeSelfingRate:
-			return changeSelfingRateSig;
-		case gID_changeSexRatio:
-			return changeSexRatioSig;
-		case gID_changeSubpopulationSize:
-			return changeSubpopulationSizeSig;
+		case gID_setMigrationRates:
+			return setMigrationRatesSig;
+		case gID_setCloningRate:
+			return setCloningRateSig;
+		case gID_setSelfingRate:
+			return setSelfingRateSig;
+		case gID_setSexRatio:
+			return setSexRatioSig;
+		case gID_setSubpopulationSize:
+			return setSubpopulationSizeSig;
 		case gID_fitness:
 			return fitnessSig;
 		case gID_outputMSSample:
@@ -1128,19 +1128,19 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 	switch (p_method_id)
 	{
 			//
-			//	*********************	- (void)changeMigrationRates(object sourceSubpops, numeric rates)
+			//	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
 			//
-#pragma mark -changeMigrationRates()
+#pragma mark -setMigrationRates()
 			
-		case gID_changeMigrationRates:
+		case gID_setMigrationRates:
 		{
 			int source_subpops_count = arg0_value->Count();
 			int rates_count = arg1_value->Count();
 			
 			if (source_subpops_count != rates_count)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
 			if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
@@ -1156,11 +1156,11 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			
 			//
-			//	*********************	- (void)changeCloningRate(numeric rate)
+			//	*********************	- (void)setCloningRate(numeric rate)
 			//
-#pragma mark -changeCloningRate()
+#pragma mark -setCloningRate()
 			
-		case gID_changeCloningRate:
+		case gID_setCloningRate:
 		{
 			int value_count = arg0_value->Count();
 			
@@ -1168,15 +1168,15 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			{
 				// SEX ONLY: either one or two values may be specified; if two, it is female at 0, male at 1
 				if ((value_count < 1) || (value_count > 2))
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << slim_terminate();
 				
 				double female_cloning_fraction = arg0_value->FloatAtIndex(0);
 				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1) : female_cloning_fraction;
 				
 				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
 				if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
 				
 				female_clone_fraction_ = female_cloning_fraction;
 				male_clone_fraction_ = male_cloning_fraction;
@@ -1185,12 +1185,12 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			{
 				// ASEX ONLY: only one value may be specified
 				if (value_count != 1)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << slim_terminate();
 				
 				double cloning_fraction = arg0_value->FloatAtIndex(0);
 				
 				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
 				
 				female_clone_fraction_ = cloning_fraction;
 				male_clone_fraction_ = cloning_fraction;
@@ -1201,19 +1201,19 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			
 			//
-			//	*********************	- (void)changeSelfingRate(numeric$ rate)
+			//	*********************	- (void)setSelfingRate(numeric$ rate)
 			//
-#pragma mark -changeSelfingRate()
+#pragma mark -setSelfingRate()
 			
-		case gID_changeSelfingRate:
+		case gID_setSelfingRate:
 		{
 			double selfing_fraction = arg0_value->FloatAtIndex(0);
 			
 			if ((selfing_fraction != 0.0) && sex_enabled_)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << slim_terminate();
 			
 			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSelfingRate() requires a selfing fraction within [0,1]." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() requires a selfing fraction within [0,1]." << slim_terminate();
 			
 			selfing_fraction_ = selfing_fraction;
 			
@@ -1222,16 +1222,16 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			
 			//
-			//	*********************	- (void)changeSexRatio(float$ sexRatio)
+			//	*********************	- (void)setSexRatio(float$ sexRatio)
 			//
-#pragma mark -changeSexRatio()
+#pragma mark -setSexRatio()
 			
-		case gID_changeSexRatio:
+		case gID_setSexRatio:
 		{
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): changeSexRatio() called when the child generation was valid" << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() called when the child generation was valid" << slim_terminate();
 			
 			double sex_ratio = arg0_value->FloatAtIndex(0);
 			
@@ -1244,11 +1244,11 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			
 			//
-			//	*********************	- (void)changeSubpopulationSize(integer$ size)
+			//	*********************	- (void)setSubpopulationSize(integer$ size)
 			//
-#pragma mark -changeSubpopulationSize()
+#pragma mark -setSubpopulationSize()
 			
-		case gID_changeSubpopulationSize:
+		case gID_setSubpopulationSize:
 		{
 			int subpop_size = (int)arg0_value->IntAtIndex(0);
 			

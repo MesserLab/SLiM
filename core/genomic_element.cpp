@@ -153,22 +153,22 @@ std::vector<std::string> GenomicElement::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back(gStr_changeGenomicElementType);
+	methods.push_back(gStr_setGenomicElementType);
 	
 	return methods;
 }
 
 const FunctionSignature *GenomicElement::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	static FunctionSignature *changeGenomicElementTypeSig = nullptr;
+	static FunctionSignature *setGenomicElementTypeSig = nullptr;
 	
-	if (!changeGenomicElementTypeSig)
+	if (!setGenomicElementTypeSig)
 	{
-		changeGenomicElementTypeSig = (new FunctionSignature(gStr_changeGenomicElementType, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
+		setGenomicElementTypeSig = (new FunctionSignature(gStr_setGenomicElementType, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
 	}
 	
-	if (p_method_id == gID_changeGenomicElementType)
-		return changeGenomicElementTypeSig;
+	if (p_method_id == gID_setGenomicElementType)
+		return setGenomicElementTypeSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
@@ -178,11 +178,11 @@ ScriptValue *GenomicElement::ExecuteMethod(GlobalStringID p_method_id, ScriptVal
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
-	//	*********************	- (void)changeGenomicElementType(object$ genomicElementType)
+	//	*********************	- (void)setGenomicElementType(object$ genomicElementType)
 	//
-#pragma mark -changeGenomicElementType()
+#pragma mark -setGenomicElementType()
 	
-	if (p_method_id == gID_changeGenomicElementType)
+	if (p_method_id == gID_setGenomicElementType)
 	{
 		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ElementAtIndex(0));
 		

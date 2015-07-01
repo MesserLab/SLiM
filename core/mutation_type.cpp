@@ -212,22 +212,22 @@ std::vector<std::string> MutationType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back(gStr_changeDistribution);
+	methods.push_back(gStr_setDistribution);
 	
 	return methods;
 }
 
 const FunctionSignature *MutationType::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	static FunctionSignature *changeDistributionSig = nullptr;
+	static FunctionSignature *setDistributionSig = nullptr;
 	
-	if (!changeDistributionSig)
+	if (!setDistributionSig)
 	{
-		changeDistributionSig = (new FunctionSignature(gStr_changeDistribution, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
+		setDistributionSig = (new FunctionSignature(gStr_setDistribution, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
 	}
 	
-	if (p_method_id == gID_changeDistribution)
-		return changeDistributionSig;
+	if (p_method_id == gID_setDistribution)
+		return setDistributionSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
@@ -237,11 +237,11 @@ ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue
 	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
-	//	*********************	- (void)changeDistribution(string$ distributionType, ...)
+	//	*********************	- (void)setDistribution(string$ distributionType, ...)
 	//
-#pragma mark -changeDistribution()
+#pragma mark -setDistribution()
 	
-	if (p_method_id == gID_changeDistribution)
+	if (p_method_id == gID_setDistribution)
 	{
 		string dfe_type_string = arg0_value->StringAtIndex(0);
 		int expected_dfe_param_count = 0;
@@ -254,12 +254,12 @@ ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue
 		else if (dfe_type_string.compare("e") == 0)
 			expected_dfe_param_count = 1;
 		else
-			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): changeDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << slim_terminate();
 		
 		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 1 + expected_dfe_param_count)
-			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): changeDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));

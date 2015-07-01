@@ -214,22 +214,22 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back(gStr_changeMutationFractions);
+	methods.push_back(gStr_setMutationFractions);
 	
 	return methods;
 }
 
 const FunctionSignature *GenomicElementType::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	static FunctionSignature *changeMutationFractionsSig = nullptr;
+	static FunctionSignature *setMutationFractionsSig = nullptr;
 	
-	if (!changeMutationFractionsSig)
+	if (!setMutationFractionsSig)
 	{
-		changeMutationFractionsSig = (new FunctionSignature(gStr_changeMutationFractions, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		setMutationFractionsSig = (new FunctionSignature(gStr_setMutationFractions, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
 	}
 	
-	if (p_method_id == gID_changeMutationFractions)
-		return changeMutationFractionsSig;
+	if (p_method_id == gID_setMutationFractions)
+		return setMutationFractionsSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
@@ -240,17 +240,17 @@ ScriptValue *GenomicElementType::ExecuteMethod(GlobalStringID p_method_id, Scrip
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	//
-	//	*********************	- (void)changeMutationFractions(object mutationTypes, numeric proportions)
+	//	*********************	- (void)setMutationFractions(object mutationTypes, numeric proportions)
 	//
-#pragma mark -changeMutationFractions()
+#pragma mark -setMutationFractions()
 	
-	if (p_method_id == gID_changeMutationFractions)
+	if (p_method_id == gID_setMutationFractions)
 	{
 		int mut_type_id_count = arg0_value->Count();
 		int proportion_count = arg1_value->Count();
 		
 		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
-			SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): changeMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): setMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << slim_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -261,7 +261,7 @@ ScriptValue *GenomicElementType::ExecuteMethod(GlobalStringID p_method_id, Scrip
 			double proportion = arg1_value->FloatAtIndex(mut_type_index);
 			
 			if (proportion <= 0)
-				SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): changeMutationFractions() proportions must be greater than zero." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod): setMutationFractions() proportions must be greater than zero." << slim_terminate();
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);

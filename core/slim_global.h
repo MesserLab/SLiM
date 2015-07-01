@@ -159,15 +159,15 @@ extern const std::string gStr_subpopID;
 extern const std::string gStr_originGeneration;
 extern const std::string gStr_fixationTime;
 
-extern const std::string gStr_changeRecombinationIntervals;
+extern const std::string gStr_setRecombinationIntervals;
 extern const std::string gStr_addMutations;
 extern const std::string gStr_addNewDrawnMutation;
 extern const std::string gStr_addNewMutation;
 extern const std::string gStr_removeMutations;
-extern const std::string gStr_changeGenomicElementType;
-extern const std::string gStr_changeMutationFractions;
+extern const std::string gStr_setGenomicElementType;
+extern const std::string gStr_setMutationFractions;
 extern const std::string gStr_setSelectionCoeff;
-extern const std::string gStr_changeDistribution;
+extern const std::string gStr_setDistribution;
 extern const std::string gStr_addSubpop;
 extern const std::string gStr_addSubpopSplit;
 extern const std::string gStr_deregisterScriptBlock;
@@ -180,11 +180,11 @@ extern const std::string gStr_registerScriptEvent;
 extern const std::string gStr_registerScriptFitnessCallback;
 extern const std::string gStr_registerScriptMateChoiceCallback;
 extern const std::string gStr_registerScriptModifyChildCallback;
-extern const std::string gStr_changeMigrationRates;
-extern const std::string gStr_changeCloningRate;
-extern const std::string gStr_changeSelfingRate;
-extern const std::string gStr_changeSexRatio;
-extern const std::string gStr_changeSubpopulationSize;
+extern const std::string gStr_setMigrationRates;
+extern const std::string gStr_setCloningRate;
+extern const std::string gStr_setSelfingRate;
+extern const std::string gStr_setSexRatio;
+extern const std::string gStr_setSubpopulationSize;
 extern const std::string gStr_fitness;
 extern const std::string gStr_outputMSSample;
 extern const std::string gStr_outputSample;
@@ -285,15 +285,15 @@ enum _SLiMGlobalStringID : int {
 	gID_selfingFraction,
 	gID_sexRatio,
 	gID_fixationTime,
-	gID_changeRecombinationIntervals,
+	gID_setRecombinationIntervals,
 	gID_addMutations,
 	gID_addNewDrawnMutation,
 	gID_addNewMutation,
 	gID_removeMutations,
-	gID_changeGenomicElementType,
-	gID_changeMutationFractions,
+	gID_setGenomicElementType,
+	gID_setMutationFractions,
 	gID_setSelectionCoeff,
-	gID_changeDistribution,
+	gID_setDistribution,
 	gID_addSubpop,
 	gID_addSubpopSplit,
 	gID_deregisterScriptBlock,
@@ -306,11 +306,11 @@ enum _SLiMGlobalStringID : int {
 	gID_registerScriptFitnessCallback,
 	gID_registerScriptMateChoiceCallback,
 	gID_registerScriptModifyChildCallback,
-	gID_changeMigrationRates,
-	gID_changeCloningRate,
-	gID_changeSelfingRate,
-	gID_changeSexRatio,
-	gID_changeSubpopulationSize,
+	gID_setMigrationRates,
+	gID_setCloningRate,
+	gID_setSelfingRate,
+	gID_setSexRatio,
+	gID_setSubpopulationSize,
 	gID_fitness,
 	gID_outputMSSample,
 	gID_outputSample,

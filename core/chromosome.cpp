@@ -333,22 +333,22 @@ std::vector<std::string> Chromosome::Methods(void) const
 {
 	std::vector<std::string> methods = ScriptObjectElement::Methods();
 	
-	methods.push_back(gStr_changeRecombinationIntervals);
+	methods.push_back(gStr_setRecombinationIntervals);
 	
 	return methods;
 }
 
 const FunctionSignature *Chromosome::SignatureForMethod(GlobalStringID p_method_id) const
 {
-	static FunctionSignature *changeRecombinationIntervalsSig = nullptr;
+	static FunctionSignature *setRecombinationIntervalsSig = nullptr;
 	
-	if (!changeRecombinationIntervalsSig)
+	if (!setRecombinationIntervalsSig)
 	{
-		changeRecombinationIntervalsSig = (new FunctionSignature(gStr_changeRecombinationIntervals, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
+		setRecombinationIntervalsSig = (new FunctionSignature(gStr_setRecombinationIntervals, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
 	}
 	
-	if (p_method_id == gID_changeRecombinationIntervals)
-		return changeRecombinationIntervalsSig;
+	if (p_method_id == gID_setRecombinationIntervals)
+		return setRecombinationIntervalsSig;
 	else
 		return ScriptObjectElement::SignatureForMethod(p_method_id);
 }
@@ -359,18 +359,18 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	//
-	//	*********************	- (void)changeRecombinationIntervals(integer ends, numeric rates)
+	//	*********************	- (void)setRecombinationIntervals(integer ends, numeric rates)
 	//
-#pragma mark -changeRecombinationIntervals()
+#pragma mark -setRecombinationIntervals()
 	
-	if (p_method_id == gID_changeRecombinationIntervals)
+	if (p_method_id == gID_setRecombinationIntervals)
 	{
 		int ends_count = arg0_value->Count();
 		int rates_count = arg1_value->Count();
 		
 		// check first
 		if ((ends_count == 0) || (ends_count != rates_count))
-			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << slim_terminate();
 		
 		for (int value_index = 0; value_index < ends_count; ++value_index)
 		{
@@ -379,17 +379,17 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 			
 			if (value_index > 0)
 				if (end <= arg0_value->IntAtIndex(value_index - 1))
-					SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires ends to be in ascending order." << slim_terminate();
+					SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends to be in ascending order." << slim_terminate();
 			
 			if (rate < 0.0)
-				SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires rates to be >= 0." << slim_terminate();
+				SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires rates to be >= 0." << slim_terminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
 		if (arg0_value->IntAtIndex(ends_count - 1) != last_position_)
-			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): changeRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << slim_terminate();
+			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << slim_terminate();
 		
 		// then adopt them
 		recombination_end_positions_.clear();
