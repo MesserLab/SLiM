@@ -95,7 +95,7 @@ public:
 	
 	// Evaluation methods; the caller owns the returned ScriptValue object
 	ScriptValue *EvaluateScriptBlock(void);			// the starting point for script blocks in SLiM simulations, which require braces
-	ScriptValue *EvaluateInterpreterBlock(void);	// the starting point for executed blocks in SLiMscript, which do not require braces
+	ScriptValue *EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in SLiMscript, which do not require braces
 	
 	void _ProcessSubscriptAssignment(ScriptValue **p_base_value_ptr, GlobalStringID *p_member_string_id_ptr, std::vector<int> *p_indices_ptr, const ScriptASTNode *p_parent_node);
 	void _AssignRValueToLValue(ScriptValue *rvalue, const ScriptASTNode *p_lvalue_node);

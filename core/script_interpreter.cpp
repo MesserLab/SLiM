@@ -215,7 +215,7 @@ ScriptValue *ScriptInterpreter::EvaluateScriptBlock(void)
 }
 
 // the starting point for script blocks in SLiMscript, which does not require braces
-ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
+ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 {
 	if (logging_execution_)
 	{
@@ -240,7 +240,7 @@ ScriptValue *ScriptInterpreter::EvaluateInterpreterBlock(void)
 		}
 		
 		// send the result of the block to our output stream
-		if (!result->Invisible())
+		if (p_print_output && !result->Invisible())
 		{
 			std::ostringstream &execution_output = ExecutionOutputStream();
 			

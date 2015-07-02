@@ -252,7 +252,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		if (executionString)
 			interpreter.SetShouldLogExecution(true);
 		
-		result = interpreter.EvaluateInterpreterBlock();
+		result = interpreter.EvaluateInterpreterBlock(true);
 		output = interpreter.ExecutionOutput();
 		
 		// reload outline view to show new global symbols, in case they have changed

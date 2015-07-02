@@ -166,6 +166,7 @@ vector<const FunctionSignature *> &ScriptInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((new FunctionSignature("date",		FunctionIdentifier::dateFunction,		kScriptValueMaskString | kScriptValueMaskSingleton)));
+		signatures->push_back((new FunctionSignature("executeLambda",	FunctionIdentifier::executeLambdaFunction,	kScriptValueMaskAny))->AddString_S());
 		signatures->push_back((new FunctionSignature("function",	FunctionIdentifier::functionFunction,	kScriptValueMaskNULL))->AddString_OS());
 		signatures->push_back((new FunctionSignature(gStr_globals,		FunctionIdentifier::globalsFunction,	kScriptValueMaskNULL)));
 		signatures->push_back((new FunctionSignature("help",		FunctionIdentifier::helpFunction,		kScriptValueMaskNULL))->AddString_OS());
@@ -2384,6 +2385,24 @@ ScriptValue *ScriptInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			strftime(buffer, 25, "%d-%m-%Y", timeinfo);
 			
 			string_result->PushString(string(buffer));
+			break;
+		}
+			
+#pragma mark executeLambda
+		case FunctionIdentifier::executeLambdaFunction:
+		{
+			Script script(arg0_value->StringAtIndex(0), 0);
+			
+			script.Tokenize();
+			script.ParseInterpreterBlockToAST();
+			
+			SymbolTable &symbols = GetSymbolTable();			// get our own symbol table
+			ScriptInterpreter interpreter(script, symbols);		// give the interpreter the symbol table
+			
+			result = interpreter.EvaluateInterpreterBlock(false);
+			
+			ExecutionOutputStream() << interpreter.ExecutionOutput();
+			
 			break;
 		}
 			

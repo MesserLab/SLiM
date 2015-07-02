@@ -126,6 +126,7 @@ enum class FunctionIdentifier {
 	
 	// bookkeeping functions
 	dateFunction,
+	executeLambdaFunction,
 	functionFunction,
 	globalsFunction,
 	helpFunction,
