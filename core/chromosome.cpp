@@ -28,7 +28,7 @@
 #include "eidos_function_signature.h"
 
 
-Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
 {
 }
 
@@ -50,11 +50,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		EIDOS_TERMINATION << "ERROR (Initialize): empty chromosome" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome" << eidos_terminate();
 	if (recombination_rates_.size() == 0)
-		EIDOS_TERMINATION << "ERROR (Initialize): recombination rate not specified" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination rate not specified" << eidos_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-		EIDOS_TERMINATION << "ERROR (Initialize): invalid mutation rate" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): invalid mutation rate" << eidos_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	if (cached_value_lastpos_)
@@ -82,7 +82,18 @@ void Chromosome::InitializeDraws(void)
 		gsl_ran_discrete_free(lookup_mutation);
 	
 	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
-	overall_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
+	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
+	
+	// patch the recombination interval end vector if it is empty; see setRecombinationRate() and setRecombinationRate0()
+	// basically, the length of the chromosome might not have been known yet when the user set the rate
+	if (recombination_end_positions_.size() == 0)
+	{
+		// patching can only be done when a single uniform rate is specified
+		if (recombination_rates_.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified" << eidos_terminate();
+		
+		recombination_end_positions_.push_back(last_position_);
+	}
 	
 	// calculate the overall recombination rate and the lookup table for breakpoints
 	double B[recombination_rates_.size()];
@@ -101,6 +112,9 @@ void Chromosome::InitializeDraws(void)
 			last_position_ = recombination_end_positions_[i];
 	}
 	
+	if (recombination_end_positions_[recombination_rates_.size() - 1] < last_position_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover all genomic elements" << eidos_terminate();
+	
 	// EIDOS_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
 	
 	if (lookup_recombination)
@@ -109,7 +123,7 @@ void Chromosome::InitializeDraws(void)
 	lookup_recombination = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
-	double prob_mutation_0 = exp(-overall_mutation_rate_);
+	double prob_mutation_0 = exp(-element_mutation_rate_);
 	double prob_breakpoint_0 = exp(-overall_recombination_rate_);
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
 	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
@@ -117,7 +131,7 @@ void Chromosome::InitializeDraws(void)
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
-//	EIDOS_OUTSTREAM << "overall_mutation_rate_ == " << overall_mutation_rate_ << std::endl;
+//	EIDOS_OUTSTREAM << "element_mutation_rate_ == " << element_mutation_rate_ << std::endl;
 //	EIDOS_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
 //	EIDOS_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
 //	EIDOS_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
@@ -126,7 +140,7 @@ void Chromosome::InitializeDraws(void)
 //	EIDOS_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
 //	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
-	exp_neg_overall_mutation_rate_ = prob_mutation_0;
+	exp_neg_element_mutation_rate_ = prob_mutation_0;
 	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
 	
 	probability_both_0 = prob_both_0;
@@ -324,6 +338,7 @@ void Chromosome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *
 			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
 			
 			overall_mutation_rate_ = value;
+			InitializeDraws();
 			return;
 		}
 		case gID_tag:
@@ -346,22 +361,22 @@ std::vector<std::string> Chromosome::Methods(void) const
 {
 	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
-	methods.push_back(gStr_setRecombinationIntervals);
+	methods.push_back(gStr_setRecombinationRate);
 	
 	return methods;
 }
 
 const EidosFunctionSignature *Chromosome::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setRecombinationIntervalsSig = nullptr;
+	static EidosFunctionSignature *setRecombinationRateSig = nullptr;
 	
-	if (!setRecombinationIntervalsSig)
+	if (!setRecombinationRateSig)
 	{
-		setRecombinationIntervalsSig = (new EidosFunctionSignature(gStr_setRecombinationIntervals, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
+		setRecombinationRateSig = (new EidosFunctionSignature(gStr_setRecombinationRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric()->AddInt_O();
 	}
 	
-	if (p_method_id == gID_setRecombinationIntervals)
-		return setRecombinationIntervalsSig;
+	if (p_method_id == gID_setRecombinationRate)
+		return setRecombinationRateSig;
 	else
 		return EidosObjectElement::SignatureForMethod(p_method_id);
 }
@@ -372,49 +387,71 @@ EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValu
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	//
-	//	*********************	- (void)setRecombinationIntervals(integer ends, numeric rates)
+	//	*********************	- (void)setRecombinationRate(numeric rates, [integer ends])
 	//
-#pragma mark -setRecombinationIntervals()
+#pragma mark -setRecombinationRate()
 	
-	if (p_method_id == gID_setRecombinationIntervals)
+	if (p_method_id == gID_setRecombinationRate)
 	{
-		int ends_count = arg0_value->Count();
-		int rates_count = arg1_value->Count();
+		int rate_count = arg0_value->Count();
 		
-		// check first
-		if ((ends_count == 0) || (ends_count != rates_count))
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << eidos_terminate();
-		
-		for (int value_index = 0; value_index < ends_count; ++value_index)
+		if (p_argument_count == 1)
 		{
-			int64_t end = arg0_value->IntAtIndex(value_index);
-			double rate = arg1_value->FloatAtIndex(value_index);
+			if (rate_count != 1)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
-			if (value_index > 0)
-				if (end <= arg0_value->IntAtIndex(value_index - 1))
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends to be in ascending order." << eidos_terminate();
+			double recombination_rate = arg0_value->FloatAtIndex(0);
 			
-			if (rate < 0.0)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires rates to be >= 0." << eidos_terminate();
+			// check values
+			if (recombination_rate < 0.0)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+			
+			// then adopt them
+			recombination_rates_.clear();
+			recombination_end_positions_.clear();
+			
+			recombination_rates_.push_back(recombination_rate);
+			//recombination_end_positions_.push_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
-		
-		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
-		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
-		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-		if (arg0_value->IntAtIndex(ends_count - 1) != last_position_)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
-		
-		// then adopt them
-		recombination_end_positions_.clear();
-		recombination_rates_.clear();
-		
-		for (int value_index = 0; value_index < ends_count; ++value_index)
+		else if (p_argument_count == 2)
 		{
-			int64_t end = arg0_value->IntAtIndex(value_index);
-			double rate = arg1_value->FloatAtIndex(value_index);
+			int end_count = arg1_value->Count();
 			
-			recombination_end_positions_.push_back((int)end);
-			recombination_rates_.push_back(rate);
+			if ((end_count != rate_count) || (end_count == 0))
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			
+			// check values
+			for (int value_index = 0; value_index < end_count; ++value_index)
+			{
+				double recombination_rate = arg0_value->FloatAtIndex(value_index);
+				int64_t recombination_end_position = arg1_value->IntAtIndex(value_index);
+				
+				if (value_index > 0)
+					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
+						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+				
+				if (recombination_rate < 0.0)
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+			}
+			
+			// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
+			// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
+			// with the same answer that we got before, otherwise our last_position_ cache is invalid.
+			if (arg1_value->IntAtIndex(end_count - 1) != last_position_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
+			
+			// then adopt them
+			recombination_rates_.clear();
+			recombination_end_positions_.clear();
+			
+			for (int interval_index = 0; interval_index < end_count; ++interval_index)
+			{
+				double recombination_rate = arg0_value->FloatAtIndex(interval_index);
+				int64_t recombination_end_position = arg1_value->IntAtIndex(interval_index);	// used to have a -1; switched to zero-based
+				
+				recombination_rates_.push_back(recombination_rate);
+				recombination_end_positions_.push_back((int)recombination_end_position);
+			}
 		}
 		
 		InitializeDraws();

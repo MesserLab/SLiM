@@ -25,11 +25,11 @@
 const std::string gStr_addGenomicElement0 = "addGenomicElement0";
 const std::string gStr_addGenomicElementType0 = "addGenomicElementType0";
 const std::string gStr_addMutationType0 = "addMutationType0";
-const std::string gStr_addRecombinationIntervals0 = "addRecombinationIntervals0";
 const std::string gStr_setGeneConversion0 = "setGeneConversion0";
 const std::string gStr_setGenerationRange0 = "setGenerationRange0";
 const std::string gStr_setMutationRate0 = "setMutationRate0";
 const std::string gStr_setRandomSeed0 = "setRandomSeed0";
+const std::string gStr_setRecombinationRate0 = "setRecombinationRate0";
 const std::string gStr_setSexEnabled0 = "setSexEnabled0";
 
 // mostly property names
@@ -83,7 +83,7 @@ const std::string gStr_sexRatio = "sexRatio";
 const std::string gStr_fixationTime = "fixationTime";
 
 // mostly method names
-const std::string gStr_setRecombinationIntervals = "setRecombinationIntervals";
+const std::string gStr_setRecombinationRate = "setRecombinationRate";
 const std::string gStr_addMutations = "addMutations";
 const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
 const std::string gStr_addNewMutation = "addNewMutation";
@@ -169,11 +169,11 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addGenomicElement0, gID_addGenomicElement0);
 		Eidos_RegisterStringForGlobalID(gStr_addGenomicElementType0, gID_addGenomicElementType0);
 		Eidos_RegisterStringForGlobalID(gStr_addMutationType0, gID_addMutationType0);
-		Eidos_RegisterStringForGlobalID(gStr_addRecombinationIntervals0, gID_addRecombinationIntervals0);
 		Eidos_RegisterStringForGlobalID(gStr_setGeneConversion0, gID_setGeneConversion0);
 		Eidos_RegisterStringForGlobalID(gStr_setGenerationRange0, gID_setGenerationRange0);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate0, gID_setMutationRate0);
 		Eidos_RegisterStringForGlobalID(gStr_setRandomSeed0, gID_setRandomSeed0);
+		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate0, gID_setRecombinationRate0);
 		Eidos_RegisterStringForGlobalID(gStr_setSexEnabled0, gID_setSexEnabled0);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
@@ -223,7 +223,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_selfingFraction, gID_selfingFraction);
 		Eidos_RegisterStringForGlobalID(gStr_sexRatio, gID_sexRatio);
 		Eidos_RegisterStringForGlobalID(gStr_fixationTime, gID_fixationTime);
-		Eidos_RegisterStringForGlobalID(gStr_setRecombinationIntervals, gID_setRecombinationIntervals);
+		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);
 		Eidos_RegisterStringForGlobalID(gStr_addNewMutation, gID_addNewMutation);

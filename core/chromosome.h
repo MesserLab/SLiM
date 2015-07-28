@@ -50,7 +50,7 @@ private:
 	gsl_ran_discrete_t *lookup_recombination = nullptr;		// OWNED POINTER: lookup table for drawing recombination breakpoints
 	
 	// caches to speed up Poisson draws in CrossoverMutation()
-	double exp_neg_overall_mutation_rate_;
+	double exp_neg_element_mutation_rate_;
 	double exp_neg_overall_recombination_rate_;
 	
 	double probability_both_0;
@@ -65,7 +65,8 @@ public:
 	int last_position_;										// last position; used to be called length_ but it is (length - 1) really
 	EidosValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
 	
-	double overall_mutation_rate_;							// overall mutation rate
+	double overall_mutation_rate_;							// overall mutation rate, as specified by setMutationRate0()
+	double element_mutation_rate_;							// overall rate * number of nucleotides in elements; the practical mutation rate for SLiM
 	double overall_recombination_rate_;						// overall recombination rate
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
@@ -103,8 +104,8 @@ public:
 // draw the number of mutations that occur, based on the overall mutation rate
 inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
 {
-	return eidos_fast_ran_poisson(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
-	//return gsl_ran_poisson(gEidos_rng, overall_mutation_rate_);
+	return eidos_fast_ran_poisson(element_mutation_rate_, exp_neg_element_mutation_rate_);
+	//return gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
@@ -131,12 +132,12 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 	}
 	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
 	{
-		*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
 		*p_break_count = 0;
 	}
 	else
 	{
-		*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
 		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
 	}
 }

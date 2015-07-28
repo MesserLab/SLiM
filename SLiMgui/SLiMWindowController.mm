@@ -61,7 +61,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 										"	\n"
 										"	// uniform chromosome of length 100 kb with uniform recombination\n"
 										"	addGenomicElement0(1, 0, 99999);\n"
-										"	addRecombinationIntervals0(99999, 1e-8);\n"
+										"	setRecombinationRate0(1e-8);\n"
 										"}\n"
 										"\n"
 										"// create a population of 500 individuals\n"

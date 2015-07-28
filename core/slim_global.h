@@ -93,11 +93,11 @@ void SLiM_RegisterGlobalStringsAndIDs(void);
 extern const std::string gStr_addGenomicElement0;
 extern const std::string gStr_addGenomicElementType0;
 extern const std::string gStr_addMutationType0;
-extern const std::string gStr_addRecombinationIntervals0;
 extern const std::string gStr_setGeneConversion0;
 extern const std::string gStr_setGenerationRange0;
 extern const std::string gStr_setMutationRate0;
 extern const std::string gStr_setRandomSeed0;
+extern const std::string gStr_setRecombinationRate0;
 extern const std::string gStr_setSexEnabled0;
 
 extern const std::string gStr_genomicElements;
@@ -160,7 +160,7 @@ extern const std::string gStr_subpopID;
 extern const std::string gStr_originGeneration;
 extern const std::string gStr_fixationTime;
 
-extern const std::string gStr_setRecombinationIntervals;
+extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_addMutations;
 extern const std::string gStr_addNewDrawnMutation;
 extern const std::string gStr_addNewMutation;
@@ -233,11 +233,11 @@ enum _SLiMGlobalStringID : int {
 	gID_addGenomicElement0 = gID_LastEidosEntry + 1,
 	gID_addGenomicElementType0,
 	gID_addMutationType0,
-	gID_addRecombinationIntervals0,
 	gID_setGeneConversion0,
 	gID_setGenerationRange0,
 	gID_setMutationRate0,
 	gID_setRandomSeed0,
+	gID_setRecombinationRate0,
 	gID_setSexEnabled0,
 	gID_genomicElements,
 	gID_lastPosition,
@@ -287,7 +287,7 @@ enum _SLiMGlobalStringID : int {
 	gID_selfingFraction,
 	gID_sexRatio,
 	gID_fixationTime,
-	gID_setRecombinationIntervals,
+	gID_setRecombinationRate,
 	gID_addMutations,
 	gID_addNewDrawnMutation,
 	gID_addNewMutation,

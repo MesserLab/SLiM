@@ -489,7 +489,7 @@ void SLiMSim::RunZeroGeneration(void)
 		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one genomic element must be defined in generation 0 with addGenomicElement0()." << eidos_terminate();
 	
 	if (num_recombination_rates == 0)
-		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one recombination rate interval must be defined in generation 0 with addRecombinationIntervals0()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one recombination rate interval must be defined in generation 0 with setRecombinationRate0()." << eidos_terminate();
 	
 	if (num_generations == 0)
 		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): The simulation duration must be defined in generation 0 with setGenerationRange0()." << eidos_terminate();
@@ -672,7 +672,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark addGenomicElement0()
 	
-	if (p_function_name.compare("addGenomicElement0") == 0)
+	if (p_function_name.compare(gStr_addGenomicElement0) == 0)
 	{
 		int genomic_element_type = (int)arg0_value->IntAtIndex(0);
 		int start_position = (int)arg1_value->IntAtIndex(0);		// used to have a -1; switched to zero-based
@@ -705,7 +705,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark addGenomicElementType0()
 	
-	else if (p_function_name.compare("addGenomicElementType0") == 0)
+	else if (p_function_name.compare(gStr_addGenomicElementType0) == 0)
 	{
 		int map_identifier = (int)arg0_value->IntAtIndex(0);
 		
@@ -765,7 +765,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark addMutationType0()
 	
-	else if (p_function_name.compare("addMutationType0") == 0)
+	else if (p_function_name.compare(gStr_addMutationType0) == 0)
 	{
 		int map_identifier = (int)arg0_value->IntAtIndex(0);
 		double dominance_coeff = arg1_value->FloatAtIndex(0);
@@ -820,50 +820,94 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	addRecombinationIntervals0(integer ends, numeric rates)
+	//	*********************	setRecombinationRate0(numeric rates, [integer ends])
 	//
-	#pragma mark addRecombinationIntervals0()
+	#pragma mark setRecombinationRate0()
 	
-	else if (p_function_name.compare("addRecombinationIntervals0") == 0)
+	else if (p_function_name.compare(gStr_setRecombinationRate0) == 0)
 	{
-		int end_count = arg0_value->Count();
-		int rate_count = arg1_value->Count();
+		int rate_count = arg0_value->Count();
 		
-		if ((end_count != rate_count) || (end_count == 0))
-			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addRecombinationIntervals0() requires the sizes of ends and rates to be equal and nonzero." << eidos_terminate();
-		
-		for (int interval_index = 0; interval_index < end_count; ++interval_index)
+		if (p_argument_count == 1)
 		{
-			int recombination_end_position = (int)arg0_value->IntAtIndex(interval_index);	// used to have a -1; switched to zero-based
-			double recombination_rate = arg1_value->FloatAtIndex(interval_index);
+			if (rate_count != 1)
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setRecombinationRate0() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
-			// FIXME bounds-check position and rate
+			double recombination_rate = arg0_value->FloatAtIndex(0);
 			
-			chromosome_.recombination_end_positions_.push_back(recombination_end_position);
+			// check values
+			if (recombination_rate < 0.0)
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setRecombinationRate0() requires rates to be >= 0." << eidos_terminate();
+			
+			// then adopt them
+			chromosome_.recombination_rates_.clear();
+			chromosome_.recombination_end_positions_.clear();
+			
 			chromosome_.recombination_rates_.push_back(recombination_rate);
+			//chromosome_.recombination_end_positions_.push_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+		}
+		else if (p_argument_count == 2)
+		{
+			int end_count = arg1_value->Count();
+			
+			if ((end_count != rate_count) || (end_count == 0))
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setRecombinationRate0() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			
+			// check values
+			for (int value_index = 0; value_index < end_count; ++value_index)
+			{
+				double recombination_rate = arg0_value->FloatAtIndex(value_index);
+				int64_t recombination_end_position = arg1_value->IntAtIndex(value_index);
+				
+				if (value_index > 0)
+					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
+						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+				
+				if (recombination_rate < 0.0)
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+			}
+			
+			// then adopt them
+			chromosome_.recombination_rates_.clear();
+			chromosome_.recombination_end_positions_.clear();
+			
+			for (int interval_index = 0; interval_index < end_count; ++interval_index)
+			{
+				double recombination_rate = arg0_value->FloatAtIndex(interval_index);
+				int64_t recombination_end_position = arg1_value->IntAtIndex(interval_index);	// used to have a -1; switched to zero-based
+				
+				chromosome_.recombination_rates_.push_back(recombination_rate);
+				chromosome_.recombination_end_positions_.push_back((int)recombination_end_position);
+			}
 		}
 		
 		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
 		{
-			EIDOS_OUTSTREAM << "addRecombinationIntervals0(";
+			int ratesSize = (int)chromosome_.recombination_rates_.size();
+			int endsSize = (int)chromosome_.recombination_end_positions_.size();
 			
-			if (end_count > 1)
+			EIDOS_OUTSTREAM << "setRecombinationRate0(";
+			
+			if (ratesSize > 1)
 				EIDOS_OUTSTREAM << "c(";
-			for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << (int)arg0_value->IntAtIndex(interval_index);
-			if (end_count > 1)
+			for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
+				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_rates_[interval_index];
+			if (ratesSize > 1)
 				EIDOS_OUTSTREAM << ")";
 			
-			EIDOS_OUTSTREAM << ", ";
-			
-			if (end_count > 1)
-				EIDOS_OUTSTREAM << "c(";
-			for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << arg1_value->FloatAtIndex(interval_index);
-			if (end_count > 1)
-				EIDOS_OUTSTREAM << ")";
+			if (endsSize > 0)
+			{
+				EIDOS_OUTSTREAM << ", ";
+				
+				if (endsSize > 1)
+					EIDOS_OUTSTREAM << "c(";
+				for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+					EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_end_positions_[interval_index];
+				if (endsSize > 1)
+					EIDOS_OUTSTREAM << ")";
+			}
 			
 			EIDOS_OUTSTREAM << ");" << endl;
 		}
@@ -877,7 +921,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark setGeneConversion0()
 	
-	else if (p_function_name.compare("setGeneConversion0") == 0)
+	else if (p_function_name.compare(gStr_setGeneConversion0) == 0)
 	{
 		if (num_gene_conversions > 0)
 			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() may be called only once." << eidos_terminate();
@@ -905,7 +949,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark setGenerationRange0()
 	
-	else if (p_function_name.compare("setGenerationRange0") == 0)
+	else if (p_function_name.compare(gStr_setGenerationRange0) == 0)
 	{
 		if (num_generations > 0)
 			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() may be called only once." << eidos_terminate();
@@ -933,7 +977,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 #pragma mark setMutationRate0()
 	
-	else if (p_function_name.compare("setMutationRate0") == 0)
+	else if (p_function_name.compare(gStr_setMutationRate0) == 0)
 	{
 		if (num_mutation_rates > 0)
 			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setMutationRate0() may be called only once." << eidos_terminate();
@@ -957,7 +1001,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 #pragma mark setRandomSeed0()
 	
-	else if (p_function_name.compare("setRandomSeed0") == 0)
+	else if (p_function_name.compare(gStr_setRandomSeed0) == 0)
 	{
 		if (rng_seed_supplied_to_constructor_)
 		{
@@ -980,7 +1024,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	//
 	#pragma mark setSexEnabled0()
 	
-	else if (p_function_name.compare("setSexEnabled0") == 0)
+	else if (p_function_name.compare(gStr_setSexEnabled0) == 0)
 	{
 		if (num_sex_declarations > 0)
 			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() may be called only once." << eidos_terminate();
@@ -1029,15 +1073,15 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 		// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 		if (!sim_0_signatures.size())
 		{
-			sim_0_signatures.push_back((new EidosFunctionSignature("addGenomicElement0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_S()->AddInt_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature("addGenomicElementType0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt()->AddNumeric());
-			sim_0_signatures.push_back((new EidosFunctionSignature("addMutationType0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddNumeric_S()->AddString_S()->AddEllipsis());
-			sim_0_signatures.push_back((new EidosFunctionSignature("addRecombinationIntervals0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt()->AddNumeric());
-			sim_0_signatures.push_back((new EidosFunctionSignature("setGeneConversion0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature("setGenerationRange0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
-			sim_0_signatures.push_back((new EidosFunctionSignature("setMutationRate0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature("setRandomSeed0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature("setSexEnabled0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_addGenomicElement0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_S()->AddInt_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_addGenomicElementType0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt()->AddNumeric());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_addMutationType0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddNumeric_S()->AddString_S()->AddEllipsis());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setRecombinationRate0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric()->AddInt_O());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGeneConversion0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGenerationRange0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setMutationRate0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setRandomSeed0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setSexEnabled0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
 		}
 		
 		return &sim_0_signatures;
