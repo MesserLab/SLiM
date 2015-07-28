@@ -25,9 +25,9 @@
 
 #include "slim_sim.h"
 #include "slim_global.h"
-#include "script.h"
-#include "script_interpreter.h"
-#include "script_symbols.h"
+#include "eidos_script.h"
+#include "eidos_interpreter.h"
+#include "eidos_symbol_table.h"
 
 
 using std::endl;
@@ -41,7 +41,7 @@ Population::Population(SLiMSim &p_sim) : sim_(p_sim)
 
 Population::~Population(void)
 {
-	//SLIM_ERRSTREAM << "Population::~Population" << std::endl;
+	//EIDOS_ERRSTREAM << "Population::~Population" << std::endl;
 	
 	for (auto subpopulation : *this)
 		delete subpopulation.second;
@@ -84,9 +84,9 @@ Population::~Population(void)
 Subpopulation *Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, double p_initial_sex_ratio) 
 { 
 	if (count(p_subpop_id) != 0)
-		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
 	if (p_subpop_size < 1)
-		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -107,9 +107,9 @@ Subpopulation *Population::AddSubpopulation(int p_subpop_id, unsigned int p_subp
 Subpopulation *Population::AddSubpopulation(int p_subpop_id, Subpopulation &p_source_subpop, unsigned int p_subpop_size, double p_initial_sex_ratio)
 {
 	if (count(p_subpop_id) != 0)
-		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
 	if (p_subpop_size < 1)
-		SLIM_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -166,9 +166,9 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid)
-		SLIM_TERMINATION << "ERROR (SetSize): called when the child generation was valid" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (SetSize): called when the child generation was valid" << eidos_terminate();
 	if (count(p_subpop_id) == 0)
-		SLIM_TERMINATION << "ERROR (SetSize): no subpopulation p" << p_subpop_id << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (SetSize): no subpopulation p" << p_subpop_id << eidos_terminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
@@ -191,9 +191,9 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
-		SLIM_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << eidos_terminate();
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
-		SLIM_TERMINATION << "ERROR (SetMigration): migration fraction has to be within [0,1]" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (SetMigration): migration fraction has to be within [0,1]" << eidos_terminate();
 	
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
@@ -205,25 +205,25 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 }
 
 // execute a script event in the population; the script is assumed to be due to trigger
-void Population::ExecuteScript(SLiMScriptBlock *p_script_block, int p_generation, const Chromosome &p_chromosome)
+void Population::ExecuteScript(SLiMEidosBlock *p_script_block, int p_generation, const Chromosome &p_chromosome)
 {
 #pragma unused(p_generation, p_chromosome)
-	SymbolTable global_symbols(p_script_block);
-	ScriptInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols);
+	EidosSymbolTable global_symbols(&p_script_block->eidos_contains_);
+	EidosInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols);
 	
 	sim_.InjectIntoInterpreter(interpreter, p_script_block);
 	
 	// Interpret the script; the result from the interpretation is not used for anything
-	ScriptValue *result = interpreter.EvaluateScriptBlock();
+	EidosValue *result = interpreter.EvaluateInternalBlock();
 	
 	if (result->IsTemporary()) delete result;
 	
 	// Output generated by the interpreter goes to our output stream
-	SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+	EIDOS_OUTSTREAM << interpreter.ExecutionOutput();
 }
 
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
-int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks)
+int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
@@ -233,18 +233,18 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 	int weights_length = p_source_subpop->cached_fitness_size_;
 	bool weights_modified = false;
 	
-	for (SLiMScriptBlock *mate_choice_callback : p_mate_choice_callbacks)
+	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
 		if (mate_choice_callback->active_)
 		{
 			// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-			ScriptValue *local_weights_ptr = nullptr;
+			EidosValue *local_weights_ptr = nullptr;
 			bool redraw_mating = false;
 			
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
-				SymbolTable global_symbols(mate_choice_callback);
-				ScriptInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
+				EidosSymbolTable global_symbols(&mate_choice_callback->eidos_contains_);
+				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
 				
 				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
 				
@@ -255,13 +255,13 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				if (mate_choice_callback->contains_genome1_)
 				{
 					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-					global_symbols.InitializeConstantSymbolEntry(gStr_genome1, parent1_genome1->CachedScriptValue());
+					global_symbols.InitializeConstantSymbolEntry(gStr_genome1, parent1_genome1->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_genome2_)
 				{
 					Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-					global_symbols.InitializeConstantSymbolEntry(gStr_genome2, parent1_genome2->CachedScriptValue());
+					global_symbols.InitializeConstantSymbolEntry(gStr_genome2, parent1_genome2->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_subpop_)
@@ -272,18 +272,18 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				
 				if (mate_choice_callback->contains_weights_)
 				{
-					local_weights_ptr = (new ScriptValue_Float_vector(current_weights, weights_length))->SetExternalPermanent();
+					local_weights_ptr = (new EidosValue_Float_vector(current_weights, weights_length))->SetExternalPermanent();
 					global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
 				}
 				
 				// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
-				ScriptValue *result = interpreter.EvaluateScriptBlock();
+				EidosValue *result = interpreter.EvaluateInternalBlock();
 				
-				if (result->Type() == ScriptValueType::kValueNULL)
+				if (result->Type() == EidosValueType::kValueNULL)
 				{
 					// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we do nothing
 				}
-				else if (result->Type() == ScriptValueType::kValueFloat)
+				else if (result->Type() == EidosValueType::kValueFloat)
 				{
 					int result_count = result->Count();
 					
@@ -301,8 +301,8 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 							weights_modified = true;
 						}
 						
-						// We really want to use ScriptValue_Float_vector's FloatVector() method to get the values
-						ScriptValue_Float_vector *result_vector_type = dynamic_cast<ScriptValue_Float_vector *>(result);
+						// We really want to use EidosValue_Float_vector's FloatVector() method to get the values
+						EidosValue_Float_vector *result_vector_type = dynamic_cast<EidosValue_Float_vector *>(result);
 						
 						if (result_vector_type)
 							memcpy(current_weights, result_vector_type->FloatVector().data(), sizeof(double) * weights_length);
@@ -311,21 +311,21 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 					}
 					else
 					{
-						SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << slim_terminate();
+						EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
 					}
 				}
 				else
 				{
-					SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
 				}
 				
 				if (result->IsTemporary()) delete result;
 				
 				// Output generated by the interpreter goes to our output stream
-				SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+				EIDOS_OUTSTREAM << interpreter.ExecutionOutput();
 			}
 			
-			// Clean up any local ScriptValues that we allocated, after the symbol table is gone
+			// Clean up any local EidosValues that we allocated, after the symbol table is gone
 			delete local_weights_ptr;
 			
 			// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
@@ -352,9 +352,9 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			double x = current_weights[weight_index];
 			
 			if (!isfinite(x))
-				SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate();
 			if (x < 0.0)
-				SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate();
 			
 			if (x > 0.0)
 				positive_count++;
@@ -363,7 +363,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 		}
 		
 		if (weights_sum <= 0.0)
-			SLIM_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate();
 		
 		// then we draw from the weights vector
 		if (positive_count == 1)
@@ -380,7 +380,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 		else
 		{
 			// there are multiple positive values, so we need to do a uniform draw and see who gets the rose
-			double the_rose_in_the_teeth = gsl_rng_uniform_pos(g_rng) * weights_sum;
+			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (int weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -409,15 +409,15 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 }
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
-	for (SLiMScriptBlock *modify_child_callback : p_modify_child_callbacks)
+	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
 		if (modify_child_callback->active_)
 		{
 			// The callback is active, so we need to execute it
-			SymbolTable global_symbols(modify_child_callback);
-			ScriptInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
+			EidosSymbolTable global_symbols(&modify_child_callback->eidos_contains_);
+			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
 			
 			sim_.InjectIntoInterpreter(interpreter, modify_child_callback);
 			
@@ -428,51 +428,51 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_ch
 			if (modify_child_callback->contains_childGenome1_)
 			{
 				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_childGenome1, child_genome1->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_childGenome1, child_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_childGenome2_)
 			{
 				Genome *child_genome2 = &(p_subpop->child_genomes_[p_child_index * 2 + 1]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_childGenome2, child_genome2->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_childGenome2, child_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_childIsFemale_)
 			{
 				if (p_child_sex == IndividualSex::kHermaphrodite)
-					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, gStaticScriptValueNULL);
+					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, gStaticEidosValueNULL);
 				else
-					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+					global_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			
 			if (modify_child_callback->contains_parent1Genome1_)
 			{
 				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome1, parent1_genome1->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome1, parent1_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent1Genome2_)
 			{
 				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome2, parent1_genome2->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome2, parent1_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_isSelfing_)
-				global_symbols.InitializeConstantSymbolEntry(gStr_isSelfing, p_is_selfing ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+				global_symbols.InitializeConstantSymbolEntry(gStr_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			
 			if (modify_child_callback->contains_isCloning_)
-				global_symbols.InitializeConstantSymbolEntry(gStr_isCloning, p_is_cloning ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+				global_symbols.InitializeConstantSymbolEntry(gStr_isCloning, p_is_cloning ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{
 				Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome1, parent2_genome1->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome1, parent2_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent2Genome2_)
 			{
 				Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
-				global_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome2, parent2_genome2->CachedScriptValue());
+				global_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome2, parent2_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_subpop_)
@@ -482,17 +482,17 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_ch
 				global_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-			ScriptValue *result = interpreter.EvaluateScriptBlock();
+			EidosValue *result = interpreter.EvaluateInternalBlock();
 			
-			if ((result->Type() != ScriptValueType::kValueLogical) || (result->Count() != 1))
-				SLIM_TERMINATION << "ERROR (ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << slim_terminate();
+			if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
+				EIDOS_TERMINATION << "ERROR (ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate();
 			
 			bool generate_child = result->LogicalAtIndex(0);
 			
 			if (result->IsTemporary()) delete result;
 			
 			// Output generated by the interpreter goes to our output stream
-			SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+			EIDOS_OUTSTREAM << interpreter.ExecutionOutput();
 			
 			// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 			if (!generate_child)
@@ -540,7 +540,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			migration_sources[pop_count] = &subpop;
 		}
 		else
-			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << "; migration fractions must sum to <= 1.0" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << "; migration fractions must sum to <= 1.0" << eidos_terminate();
 	}
 	else
 	{
@@ -561,7 +561,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 		number_of_sexes = 2;
 		
 		if (total_male_children <= 0 || total_female_children <= 0)
-			SLIM_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << eidos_terminate();
 	}
 	
 	// Mow we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
@@ -577,7 +577,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 		if (migrant_source_count == 0)
 			num_migrants[0] = total_children_of_sex;
 		else
-			gsl_ran_multinomial(g_rng, migrant_source_count + 1, total_children_of_sex, migration_rates, num_migrants);
+			gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, total_children_of_sex, migration_rates, num_migrants);
 		
 		// loop over all source subpops, including ourselves
 		for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
@@ -601,19 +601,19 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 						double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 						unsigned int counts[3] = {0, 0, 0};
 						
-						gsl_ran_multinomial(g_rng, 3, migrants_to_generate, fractions, counts);
+						gsl_ran_multinomial(gEidos_rng, 3, migrants_to_generate, fractions, counts);
 						
 						number_to_self = counts[0];
 						number_to_clone = counts[1];
 					}
 					else
-						number_to_self = gsl_ran_binomial(g_rng, selfing_fraction, migrants_to_generate);
+						number_to_self = gsl_ran_binomial(gEidos_rng, selfing_fraction, migrants_to_generate);
 				}
 				else if (cloning_fraction > 0)
-					number_to_clone = gsl_ran_binomial(g_rng, cloning_fraction, migrants_to_generate);
+					number_to_clone = gsl_ran_binomial(gEidos_rng, cloning_fraction, migrants_to_generate);
 				
 				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-				std::vector<SLiMScriptBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
+				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
 				
 				if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
 					mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
@@ -706,7 +706,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	// mutations (r2 <= x     ) assigned from p1
 	
 	if (p_child_sex == IndividualSex::kUnspecified)
-		SLIM_TERMINATION << "ERROR (CrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (CrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
 	
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
@@ -722,16 +722,16 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
-			SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 1)" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 1)" << eidos_terminate();
 	}
 	else
 	{
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
 		if (p_child_sex == IndividualSex::kHermaphrodite)
-			SLIM_TERMINATION << "ERROR (CrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (CrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << eidos_terminate();
 		
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
-			SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 2)" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 2)" << eidos_terminate();
 		
 		if (child_genome_type == GenomeType::kXChromosome)
 		{
@@ -739,7 +739,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			{
 				// If our parent is male (XY or YX), then we have a mismatch, because we're supposed to be male and we're supposed to be getting an X chromosome, but the X must come from the female
 				if (parent1_genome_type == GenomeType::kYChromosome || parent2_genome_type == GenomeType::kYChromosome)
-					SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 3)" << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 3)" << eidos_terminate();
 				
 				// else: we're doing inheritance from the female (XX) to get our X chromosome; we treat this just like the autosomal case
 			}
@@ -761,7 +761,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		else // (child_genome_type == GenomeType::kYChromosome), so p_child_sex == IndividualSex::kMale
 		{
 			if (p_child_sex == IndividualSex::kFemale)
-				SLIM_TERMINATION << "ERROR (CrossoverMutation): A female child is requested but the child genome is a Y chromosome" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (CrossoverMutation): A female child is requested but the child genome is a Y chromosome" << eidos_terminate();
 			
 			if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 			{
@@ -776,13 +776,13 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			else
 			{
 				// else: we're doing inheritance from the female (XX) to get a Y chromosome, so this is a mismatch
-				SLIM_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 4)" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 4)" << eidos_terminate();
 			}
 		}
 	}
 	
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
-	if (do_swap && (use_only_strand_1 || g_rng_bool(g_rng)))
+	if (do_swap && (use_only_strand_1 || eidos_random_bool(gEidos_rng)))
 	{
 		int swap = p_parent1_genome_index;
 		p_parent1_genome_index = p_parent2_genome_index;
@@ -808,13 +808,13 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		{
 			// If we're trying to cross over, both parental strands had better be null
 			if (!parent_genome_1_null || !parent_genome_2_null)
-				SLIM_TERMINATION << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << eidos_terminate();
 		}
 		else
 		{
 			// So we are not crossing over, and we are supposed to use strand 1; it should also be null, otherwise something has gone wrong
 			if (!parent_genome_1_null)
-				SLIM_TERMINATION << "Child genome is null, but the parental strand is not" << slim_terminate();
+				EIDOS_TERMINATION << "Child genome is null, but the parental strand is not" << eidos_terminate();
 		}
 		
 		// a null strand cannot cross over and cannot mutate, so we are done
@@ -822,10 +822,10 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	}
 	
 	if (use_only_strand_1 && parent_genome_1_null)
-		SLIM_TERMINATION << "Child genome is non-null, but the parental strand is null" << slim_terminate();
+		EIDOS_TERMINATION << "Child genome is non-null, but the parental strand is null" << eidos_terminate();
 	
 	if (!use_only_strand_1 && (parent_genome_1_null || parent_genome_2_null))
-		SLIM_TERMINATION << "Child genome is non-null, but a parental strand is null" << slim_terminate();
+		EIDOS_TERMINATION << "Child genome is non-null, but a parental strand is null" << eidos_terminate();
 	
 	//
 	//	OK!  We should have covered all error cases above, so we can now proceed with more alacrity.  We just need to follow
@@ -1028,7 +1028,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
 {
 	if (p_child_sex == IndividualSex::kUnspecified)
-		SLIM_TERMINATION << "ERROR (DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
 	
 	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.GenomeType();
@@ -1036,14 +1036,14 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 	GenomeType parent_genome_type = parent_genome->GenomeType();
 	
 	if (child_genome_type != parent_genome_type)
-		SLIM_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (type != type)" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (type != type)" << eidos_terminate();
 	
 	// check for null cases
 	bool child_genome_null = child_genome.IsNull();
 	bool parent_genome_null = parent_genome->IsNull();
 	
 	if (child_genome_null != parent_genome_null)
-		SLIM_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (null != null)" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (null != null)" << eidos_terminate();
 	
 	if (child_genome_null)
 	{
@@ -1200,16 +1200,16 @@ void Population::SwapGenerations()
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
 	// note that generation+1 is used; we are computing fitnesses for the next generation
-	std::vector<SLiMScriptBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(sim_.Generation() + 1, SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, -1);
+	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(sim_.Generation() + 1, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1);
 	
 	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
 	{
 		int subpop_id = subpop_pair.first;
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMScriptBlock*> subpop_fitness_callbacks;
+		std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
 		
 		// Get fitness callbacks that apply to this subpopulation
-		for (SLiMScriptBlock *callback : fitness_callbacks)
+		for (SLiMEidosBlock *callback : fitness_callbacks)
 		{
 			int callback_subpop_id = callback->subpopulation_id_;
 			
@@ -1340,7 +1340,7 @@ void Population::RemoveFixedMutations()
 		if (reference_count == 0)
 		{
 #if DEBUG_MUTATIONS
-			SLIM_ERRSTREAM << "Mutation unreferenced, will remove: " << mutation << endl;
+			EIDOS_ERRSTREAM << "Mutation unreferenced, will remove: " << mutation << endl;
 #endif
 
 #ifdef SLIMGUI
@@ -1356,7 +1356,7 @@ void Population::RemoveFixedMutations()
 		else if (reference_count == total_genome_count_)
 		{
 #if DEBUG_MUTATIONS
-			SLIM_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;
+			EIDOS_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;
 #endif
 			
 #ifdef SLIMGUI
@@ -1443,7 +1443,7 @@ void Population::CheckMutationRegistry(void)
 	// first check that we don't have any zombies in our registry
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		if ((*registry_iter)->reference_count_ == -1)
-			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
+			EIDOS_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
 	
 	// then check that we don't have any zombies in any genomes
 	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
@@ -1463,7 +1463,7 @@ void Population::CheckMutationRegistry(void)
 				
 				for (; genome_iter != genome_end_iter; ++genome_iter)
 					if ((*genome_iter)->reference_count_ == -1)
-						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
+						EIDOS_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
 			}
 		}
 	}
@@ -1586,7 +1586,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 	std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop.child_genomes_ : subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		SLIM_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<int> sample; 
@@ -1598,7 +1598,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<int>(gsl_rng_uniform_int(g_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
+			j = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
@@ -1608,23 +1608,23 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 	}
 	
 	// print the sample's polymorphisms
-	SLIM_OUTSTREAM << "Mutations:"  << endl;
+	EIDOS_OUTSTREAM << "Mutations:"  << endl;
 	
 	for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first);
+		polymorphism_pair.second.print(EIDOS_OUTSTREAM, polymorphism_pair.first);
 	
 	// print the sample's genomes
-	SLIM_OUTSTREAM << "Genomes:" << endl;
+	EIDOS_OUTSTREAM << "Genomes:" << endl;
 	
 	for (int j = 0; j < sample.size(); j++)														// go through all individuals
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
+		EIDOS_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
 		
 		if (genome.IsNull())
 		{
-			SLIM_OUTSTREAM << " <null>";
+			EIDOS_OUTSTREAM << " <null>";
 		}
 		else
 		{
@@ -1632,11 +1632,11 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 			{
 				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, *genome[k]);
 				
-				SLIM_OUTSTREAM << " " << mutation_id;
+				EIDOS_OUTSTREAM << " " << mutation_id;
 			}
 		}
 		
-		SLIM_OUTSTREAM << endl;
+		EIDOS_OUTSTREAM << endl;
 	}
 }
 
@@ -1649,7 +1649,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop.child_genomes_ : subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		SLIM_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<int> sample; 
@@ -1661,7 +1661,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<int>(gsl_rng_uniform_int(g_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
+			j = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
@@ -1671,17 +1671,17 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	}
 	
 	// print header
-	SLIM_OUTSTREAM << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
+	EIDOS_OUTSTREAM << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
 	
 	// print the sample's positions
 	if (polymorphisms.size() > 0)
 	{
-		SLIM_OUTSTREAM << "positions:";
+		EIDOS_OUTSTREAM << "positions:";
 		
 		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
-			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+			EIDOS_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
-		SLIM_OUTSTREAM << endl;
+		EIDOS_OUTSTREAM << endl;
 	}
 	
 	// print the sample's genotypes
@@ -1707,7 +1707,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 			}
 		}
 		
-		SLIM_OUTSTREAM << genotype << endl;
+		EIDOS_OUTSTREAM << genotype << endl;
 	}
 }
 

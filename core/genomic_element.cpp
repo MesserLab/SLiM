@@ -20,7 +20,7 @@
 
 #include "genomic_element.h"
 #include "slim_global.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 
 
 bool GenomicElement::s_log_copy_and_assign_ = true;
@@ -47,9 +47,9 @@ GenomicElement::GenomicElement(const GenomicElement& p_original)
 {
 	if (s_log_copy_and_assign_)
 	{
-		SLIM_ERRSTREAM << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
-		print_stacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
+		EIDOS_ERRSTREAM << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
+		eidos_print_stacktrace(stderr);
+		EIDOS_ERRSTREAM << "************************************************" << std::endl;
 	}
 	
 	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
@@ -61,9 +61,9 @@ GenomicElement& GenomicElement::operator= (const GenomicElement& p_original)
 {
 	if (s_log_copy_and_assign_)
 	{
-		SLIM_ERRSTREAM << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
-		print_stacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
+		EIDOS_ERRSTREAM << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
+		eidos_print_stacktrace(stderr);
+		EIDOS_ERRSTREAM << "************************************************" << std::endl;
 	}
 	
 	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
@@ -84,7 +84,7 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 
 
 //
-// SLiMscript support
+// Eidos support
 //
 const std::string *GenomicElement::ElementType(void) const
 {
@@ -93,7 +93,7 @@ const std::string *GenomicElement::ElementType(void) const
 
 std::vector<std::string> GenomicElement::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_genomicElementType);		// genomic_element_type_ptr_
 	constants.push_back(gStr_startPosition);			// start_position_
@@ -104,14 +104,14 @@ std::vector<std::string> GenomicElement::ReadOnlyMembers(void) const
 
 std::vector<std::string> GenomicElement::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_tag);						// tag_value_
 	
 	return variables;
 }
 
-bool GenomicElement::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool GenomicElement::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -127,11 +127,11 @@ bool GenomicElement::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *GenomicElement::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *GenomicElement::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -140,27 +140,27 @@ ScriptValue *GenomicElement::GetValueForMember(GlobalStringID p_member_id)
 		case gID_genomicElementType:
 			return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_startPosition:
-			return new ScriptValue_Int_singleton_const(start_position_);
+			return new EidosValue_Int_singleton_const(start_position_);
 		case gID_endPosition:
-			return new ScriptValue_Int_singleton_const(end_position_);
+			return new EidosValue_Int_singleton_const(end_position_);
 			
 			// variables
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void GenomicElement::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void GenomicElement::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	switch (p_member_id)
 	{
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -170,38 +170,38 @@ void GenomicElement::SetValueForMember(GlobalStringID p_member_id, ScriptValue *
 			
 		default:
 		{
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 		}
 	}
 }
 
 std::vector<std::string> GenomicElement::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_setGenomicElementType);
 	
 	return methods;
 }
 
-const FunctionSignature *GenomicElement::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *GenomicElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static FunctionSignature *setGenomicElementTypeSig = nullptr;
+	static EidosFunctionSignature *setGenomicElementTypeSig = nullptr;
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (new FunctionSignature(gStr_setGenomicElementType, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject_S();
+		setGenomicElementTypeSig = (new EidosFunctionSignature(gStr_setGenomicElementType, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject_S();
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)
 		return setGenomicElementTypeSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_id);
+		return EidosObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *GenomicElement::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *GenomicElement::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
 	//	*********************	- (void)setGenomicElementType(object$ genomicElementType)
@@ -214,13 +214,13 @@ ScriptValue *GenomicElement::ExecuteMethod(GlobalStringID p_method_id, ScriptVal
 		
 		genomic_element_type_ptr_ = getype;
 		
-		return gStaticScriptValueNULLInvisible;
+		return gStaticEidosValueNULLInvisible;
 	}
 	
 	
 	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

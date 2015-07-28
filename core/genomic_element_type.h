@@ -34,12 +34,12 @@
 #include <iostream>
 
 #include "slim_global.h"
-#include "g_rng.h"
+#include "eidos_rng.h"
 #include "mutation_type.h"
-#include "script_value.h"
+#include "eidos_value.h"
 
 
-class GenomicElementType : public ScriptObjectElement
+class GenomicElementType : public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -47,12 +47,12 @@ private:
 	
 	gsl_ran_discrete_t *lookup_mutation_type = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
 	
-	SymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	EidosSymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
 	
 public:
 	
 	int genomic_element_type_id_;										// the id by which this genomic element type is indexed in the chromosome
-	ScriptValue *cached_value_getype_id_ = nullptr;						// OWNED POINTER: a cached value for genomic_element_type_id_; delete and nil if that changes
+	EidosValue *cached_value_getype_id_ = nullptr;						// OWNED POINTER: a cached value for genomic_element_type_id_; delete and nil if that changes
 	
 	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
@@ -68,23 +68,23 @@ public:
 	MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
 	
 	//
-	// SLiMscript support
+	// Eidos support
 	//
 	void GenerateCachedSymbolTableEntry(void);
-	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
 	virtual const std::string *ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
-	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
-	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
+	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
+	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
-	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // support stream output of GenomicElementType, for debugging

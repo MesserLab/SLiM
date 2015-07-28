@@ -20,7 +20,7 @@
 
 #include "genome.h"
 #include "slim_global.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 #include "slim_sim.h"	// we need to register mutations in the simulation...
 
 
@@ -48,7 +48,7 @@ Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Genome::NullGenomeAccessError(void) const
 {
-	SLIM_TERMINATION << "********* Genome::NullGenomeAccessError() called!" << std::endl << slim_terminate(true);
+	EIDOS_TERMINATION << "********* Genome::NullGenomeAccessError() called!" << std::endl << eidos_terminate(true);
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
@@ -96,9 +96,9 @@ Genome::Genome(const Genome &p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		SLIM_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
-		print_stacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
+		EIDOS_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
+		eidos_print_stacktrace(stderr);
+		EIDOS_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
 	
@@ -142,9 +142,9 @@ Genome& Genome::operator= (const Genome& p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		SLIM_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
-		print_stacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
+		EIDOS_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
+		eidos_print_stacktrace(stderr);
+		EIDOS_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
 	
@@ -211,14 +211,14 @@ Genome::~Genome(void)
 
 
 //
-// SLiMscript support
+// Eidos support
 //
 
-void Genome::GenerateCachedScriptValue(void)
+void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_value_ = (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent();
+	self_value_ = (new EidosValue_Object_singleton_const(this))->SetExternalPermanent();
 }
 
 const std::string *Genome::ElementType(void) const
@@ -245,7 +245,7 @@ void Genome::Print(std::ostream &p_ostream) const
 
 std::vector<std::string> Genome::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_genomeType);			// genome_type_
 	constants.push_back(gStr_isNullGenome);			// (mutations_ == nullptr)
@@ -256,14 +256,14 @@ std::vector<std::string> Genome::ReadOnlyMembers(void) const
 
 std::vector<std::string> Genome::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
 }
 
-bool Genome::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool Genome::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -279,11 +279,11 @@ bool Genome::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *Genome::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -293,16 +293,16 @@ ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
-				case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
-				case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
+				case GenomeType::kAutosome:		return new EidosValue_String(gStr_Autosome);
+				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X_chromosome);
+				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y_chromosome);
 			}
 		}
 		case gID_isNullGenome:
-			return ((mutations_ == nullptr) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			return ((mutations_ == nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
 				vec->PushElement(mutations_[mut_index]);
@@ -312,21 +312,21 @@ ScriptValue *Genome::GetValueForMember(GlobalStringID p_member_id)
 			
 			// variables
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void Genome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void Genome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	switch (p_member_id)
 	{
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -336,14 +336,14 @@ void Genome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
 			
 		default:
 		{
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 		}
 	}
 }
 
 std::vector<std::string> Genome::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_addMutations);
 	methods.push_back(gStr_addNewDrawnMutation);
@@ -353,19 +353,19 @@ std::vector<std::string> Genome::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Genome::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *Genome::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static FunctionSignature *addMutationsSig = nullptr;
-	static FunctionSignature *addNewDrawnMutationSig = nullptr;
-	static FunctionSignature *addNewMutationSig = nullptr;
-	static FunctionSignature *removeMutationsSig = nullptr;
+	static EidosFunctionSignature *addMutationsSig = nullptr;
+	static EidosFunctionSignature *addNewDrawnMutationSig = nullptr;
+	static EidosFunctionSignature *addNewMutationSig = nullptr;
+	static EidosFunctionSignature *removeMutationsSig = nullptr;
 	
 	if (!addMutationsSig)
 	{
-		addMutationsSig = (new FunctionSignature(gStr_addMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		addNewDrawnMutationSig = (new FunctionSignature(gStr_addNewDrawnMutation, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
-		addNewMutationSig = (new FunctionSignature(gStr_addNewMutation, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
-		removeMutationsSig = (new FunctionSignature(gStr_removeMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addMutationsSig = (new EidosFunctionSignature(gStr_addMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addNewDrawnMutationSig = (new EidosFunctionSignature(gStr_addNewDrawnMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
+		addNewMutationSig = (new EidosFunctionSignature(gStr_addNewMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
+		removeMutationsSig = (new EidosFunctionSignature(gStr_removeMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -382,17 +382,17 @@ const FunctionSignature *Genome::SignatureForMethod(GlobalStringID p_method_id) 
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::SignatureForMethod(p_method_id);
+			return EidosObjectElement::SignatureForMethod(p_method_id);
 	}
 }
 
-ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
-	ScriptValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
-	ScriptValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
 	
 
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -409,8 +409,8 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 			if (arg0_count)
 			{
-				if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
-					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+				if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
@@ -424,7 +424,7 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 				}
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -435,13 +435,13 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 		case gID_addNewDrawnMutation:
 		{
-			ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			EidosObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
 			int origin_generation = (int)arg1_value->IntAtIndex(0);
 			int position = (int)arg2_value->IntAtIndex(0);
 			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
 			
 			if (mut_type_value->ElementType() != &gStr_MutationType)
-				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << eidos_terminate();
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			double selection_coeff = mut_type->DrawSelectionCoefficient();
@@ -449,14 +449,14 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-			SymbolTable &symbols = p_interpreter.GetSymbolTable();
-			ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
 			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new ScriptValue_Object_singleton_const(mutation);
+			return new EidosValue_Object_singleton_const(mutation);
 		}
 			
 			
@@ -467,28 +467,28 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 		case gID_addNewMutation:
 		{
-			ScriptObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			EidosObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
 			int origin_generation = (int)arg1_value->IntAtIndex(0);
 			int position = (int)arg2_value->IntAtIndex(0);
 			double selection_coeff = arg3_value->FloatAtIndex(0);
 			int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
 			
 			if (mut_type_value->ElementType() != &gStr_MutationType)
-				SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << eidos_terminate();
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-			SymbolTable &symbols = p_interpreter.GetSymbolTable();
-			ScriptValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
 			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new ScriptValue_Object_singleton_const(mutation);
+			return new EidosValue_Object_singleton_const(mutation);
 		}
 			
 			
@@ -503,8 +503,8 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 			
 			if (arg0_count)
 			{
-				if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
-					SLIM_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << slim_terminate();
+				if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
 				
 				if (mutations_ == nullptr)
 					NullGenomeAccessError();
@@ -547,13 +547,13 @@ ScriptValue *Genome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *cons
 				mutation_count_ -= (genome_iter - genome_backfill_iter);
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 

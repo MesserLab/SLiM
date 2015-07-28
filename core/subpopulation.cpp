@@ -24,7 +24,7 @@
 #include "subpopulation.h"
 #include "slim_sim.h"
 #include "slim_global.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 
 
 using std::string;
@@ -50,18 +50,18 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = static_cast<int>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
-			SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << eidos_terminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-			SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << eidos_terminate();
 		
 		if (p_parents_also)
 		{
 			parent_first_male_index_ = static_cast<int>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
-				SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << eidos_terminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-				SLIM_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << eidos_terminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -184,7 +184,7 @@ population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(t
 
 Subpopulation::~Subpopulation(void)
 {
-	//SLIM_ERRSTREAM << "Subpopulation::~Subpopulation" << std::endl;
+	//EIDOS_ERRSTREAM << "Subpopulation::~Subpopulation" << std::endl;
 	
 	gsl_ran_discrete_free(lookup_parent_);
 	gsl_ran_discrete_free(lookup_female_parent_);
@@ -206,7 +206,7 @@ Subpopulation::~Subpopulation(void)
 		free(cached_male_fitness_);
 }
 
-void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callbacks)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
 {
 #ifdef SLIMGUI
 	// When running under SLiMgui, this function calculates the population mean fitness as a side effect
@@ -291,12 +291,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMScriptBlock*> &p_fitness_callb
 #endif
 }
 
-double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMScriptBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2)
+double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2)
 {
 	int mutation_type_id = p_mutation->mutation_type_ptr_->mutation_type_id_;
 	SLiMSim &sim = population_.sim_;
 	
-	for (SLiMScriptBlock *fitness_callback : p_fitness_callbacks)
+	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
 		if (fitness_callback->active_)
 		{
@@ -306,15 +306,15 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 			{
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we inject some additional values, and we use the return value
-				const ScriptASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_value_)
 				{
 					// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
-					ScriptValue *result = compound_statement_node->cached_value_;
+					EidosValue *result = compound_statement_node->cached_value_;
 					
-					if ((result->Type() != ScriptValueType::kValueFloat) || (result->Count() != 1))
-						SLIM_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << slim_terminate();
+					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+						EIDOS_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 					
 					p_computed_fitness = result->FloatAtIndex(0);
 					
@@ -324,13 +324,13 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					ScriptValue_Object_singleton_const local_mut(p_mutation);
-					ScriptValue_Float_singleton_const local_relFitness(p_computed_fitness);
+					EidosValue_Object_singleton_const local_mut(p_mutation);
+					EidosValue_Float_singleton_const local_relFitness(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
-						SymbolTable global_symbols(fitness_callback);
-						ScriptInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols);
+						EidosSymbolTable global_symbols(&fitness_callback->eidos_contains_);
+						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols);
 						
 						sim.InjectIntoInterpreter(interpreter, fitness_callback);
 						
@@ -349,27 +349,27 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, &local_relFitness);
 						}
 						if (fitness_callback->contains_genome1_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, genome1->CachedScriptValue());
+							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, genome1->CachedEidosValue());
 						if (fitness_callback->contains_genome2_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome2, genome2->CachedScriptValue());
+							global_symbols.InitializeConstantSymbolEntry(gStr_genome2, genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
 							global_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
-						// that gets translated into SLiMScript values of NULL, F, and T, respectively
+						// that gets translated into Eidos values of NULL, F, and T, respectively
 						if (fitness_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)
-								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticScriptValueNULL);
+								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticEidosValueNULL);
 							else
-								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 						}
 						
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-						ScriptValue *result = interpreter.EvaluateScriptBlock();
+						EidosValue *result = interpreter.EvaluateInternalBlock();
 						
-						if ((result->Type() != ScriptValueType::kValueFloat) || (result->Count() != 1))
-							SLIM_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << slim_terminate();
+						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+							EIDOS_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 						
 						p_computed_fitness = result->FloatAtIndex(0);
 						
@@ -379,7 +379,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						std::string &&output_string = interpreter.ExecutionOutput();
 						
 						if (!output_string.empty())
-							SLIM_OUTSTREAM << output_string;
+							EIDOS_OUTSTREAM << output_string;
 					}
 				}
 			}
@@ -389,7 +389,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 	return p_computed_fitness;
 }
 
-double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2, std::vector<SLiMScriptBlock*> &p_fitness_callbacks)
+double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
 {
 	// Are any fitness() callbacks active this generation?  Unfortunately, all the code below is bifurcated based on this flag.  This is for two reasons.  First,
 	// it allows the case without fitness() callbacks to run at full speed; testing the flag each time around the loop through the mutations in the genomes
@@ -919,7 +919,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 }
 
 //
-// SLiMscript support
+// Eidos support
 //
 
 void Subpopulation::GenerateCachedSymbolTableEntry(void)
@@ -930,7 +930,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new SymbolTableEntry(subpop_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *Subpopulation::ElementType(void) const
@@ -945,7 +945,7 @@ void Subpopulation::Print(std::ostream &p_ostream) const
 
 std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_id);								// subpopulation_id_
 	constants.push_back(gStr_firstMaleIndex);					// parent_first_male_index_ / child_first_male_index_
@@ -961,14 +961,14 @@ std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
 
 std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
 }
 
-bool Subpopulation::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool Subpopulation::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -989,11 +989,11 @@ bool Subpopulation::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *Subpopulation::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -1004,14 +1004,14 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = (new ScriptValue_Int_singleton_const(subpopulation_id_))->SetExternalPermanent();
+				cached_value_subpop_id_ = (new EidosValue_Int_singleton_const(subpopulation_id_))->SetExternalPermanent();
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:
-			return new ScriptValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
+			return new EidosValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
 		case gID_genomes:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			if (child_generation_valid)
 				for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
@@ -1024,7 +1024,7 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_immigrantSubpopIDs:
 		{
-			ScriptValue_Int_vector *vec = new ScriptValue_Int_vector();
+			EidosValue_Int_vector *vec = new EidosValue_Int_vector();
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
 				vec->PushInt(migrant_pair->first);
@@ -1033,7 +1033,7 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_immigrantSubpopFractions:
 		{
-			ScriptValue_Float_vector *vec = new ScriptValue_Float_vector();
+			EidosValue_Float_vector *vec = new EidosValue_Float_vector();
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
 				vec->PushFloat(migrant_pair->second);
@@ -1041,29 +1041,29 @@ ScriptValue *Subpopulation::GetValueForMember(GlobalStringID p_member_id)
 			return vec;
 		}
 		case gID_selfingFraction:
-			return new ScriptValue_Float_singleton_const(selfing_fraction_);
+			return new EidosValue_Float_singleton_const(selfing_fraction_);
 		case gID_sexRatio:
-			return new ScriptValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
+			return new EidosValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
 		case gID_size:
-			return new ScriptValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
+			return new EidosValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 			
 			// variables
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void Subpopulation::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void Subpopulation::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	switch (p_member_id)
 	{
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -1073,14 +1073,14 @@ void Subpopulation::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p
 			
 		default:
 		{
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 		}
 	}
 }
 
 std::vector<std::string> Subpopulation::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_setMigrationRates);
 	methods.push_back(gStr_setCloningRate);
@@ -1094,28 +1094,28 @@ std::vector<std::string> Subpopulation::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *Subpopulation::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static FunctionSignature *setMigrationRatesSig = nullptr;
-	static FunctionSignature *setCloningRateSig = nullptr;
-	static FunctionSignature *setSelfingRateSig = nullptr;
-	static FunctionSignature *setSexRatioSig = nullptr;
-	static FunctionSignature *setSubpopulationSizeSig = nullptr;
-	static FunctionSignature *fitnessSig = nullptr;
-	static FunctionSignature *outputMSSampleSig = nullptr;
-	static FunctionSignature *outputSampleSig = nullptr;
+	static EidosFunctionSignature *setMigrationRatesSig = nullptr;
+	static EidosFunctionSignature *setCloningRateSig = nullptr;
+	static EidosFunctionSignature *setSelfingRateSig = nullptr;
+	static EidosFunctionSignature *setSexRatioSig = nullptr;
+	static EidosFunctionSignature *setSubpopulationSizeSig = nullptr;
+	static EidosFunctionSignature *fitnessSig = nullptr;
+	static EidosFunctionSignature *outputMSSampleSig = nullptr;
+	static EidosFunctionSignature *outputSampleSig = nullptr;
 	
 	if (!setMigrationRatesSig)
 	{
-		setMigrationRatesSig = (new FunctionSignature(gStr_setMigrationRates, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
-		setCloningRateSig = (new FunctionSignature(gStr_setCloningRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric();
-		setSelfingRateSig = (new FunctionSignature(gStr_setSelfingRate, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
-		setSexRatioSig = (new FunctionSignature(gStr_setSexRatio, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
-		setSubpopulationSizeSig = (new FunctionSignature(gStr_setSubpopulationSize, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S();
-		fitnessSig = (new FunctionSignature(gStr_fitness, FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddInt();
-		outputMSSampleSig = (new FunctionSignature(gStr_outputMSSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
-		outputSampleSig = (new FunctionSignature(gStr_outputSample, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
+		setMigrationRatesSig = (new EidosFunctionSignature(gStr_setMigrationRates, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		setCloningRateSig = (new EidosFunctionSignature(gStr_setCloningRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric();
+		setSelfingRateSig = (new EidosFunctionSignature(gStr_setSelfingRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
+		setSexRatioSig = (new EidosFunctionSignature(gStr_setSexRatio, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		setSubpopulationSizeSig = (new EidosFunctionSignature(gStr_setSubpopulationSize, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S();
+		fitnessSig = (new EidosFunctionSignature(gStr_fitness, EidosFunctionIdentifier::kNoFunction, kValueMaskFloat))->SetInstanceMethod()->AddInt();
+		outputMSSampleSig = (new EidosFunctionSignature(gStr_outputMSSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
+		outputSampleSig = (new EidosFunctionSignature(gStr_outputSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1140,14 +1140,14 @@ const FunctionSignature *Subpopulation::SignatureForMethod(GlobalStringID p_meth
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::SignatureForMethod(p_method_id);
+			return EidosObjectElement::SignatureForMethod(p_method_id);
 	}
 }
 
-ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1164,20 +1164,20 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			int rates_count = arg1_value->Count();
 			
 			if (source_subpops_count != rates_count)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << slim_terminate();
-			if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops to be a Subpopulation object." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
+			if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops to be a Subpopulation object." << eidos_terminate();
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
-				ScriptObjectElement *source_subpop = arg0_value->ElementAtIndex(value_index);
+				EidosObjectElement *source_subpop = arg0_value->ElementAtIndex(value_index);
 				int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				
 				population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1194,15 +1194,15 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			{
 				// SEX ONLY: either one or two values may be specified; if two, it is female at 0, male at 1
 				if ((value_count < 1) || (value_count > 2))
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << eidos_terminate();
 				
 				double female_cloning_fraction = arg0_value->FloatAtIndex(0);
 				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1) : female_cloning_fraction;
 				
 				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				
 				female_clone_fraction_ = female_cloning_fraction;
 				male_clone_fraction_ = male_cloning_fraction;
@@ -1211,18 +1211,18 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			{
 				// ASEX ONLY: only one value may be specified
 				if (value_count != 1)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << eidos_terminate();
 				
 				double cloning_fraction = arg0_value->FloatAtIndex(0);
 				
 				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-					SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				
 				female_clone_fraction_ = cloning_fraction;
 				male_clone_fraction_ = cloning_fraction;
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}			
 			
 			
@@ -1236,14 +1236,14 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			double selfing_fraction = arg0_value->FloatAtIndex(0);
 			
 			if ((selfing_fraction != 0.0) && sex_enabled_)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << eidos_terminate();
 			
 			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() requires a selfing fraction within [0,1]." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() requires a selfing fraction within [0,1]." << eidos_terminate();
 			
 			selfing_fraction_ = selfing_fraction;
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}			
 			
 			
@@ -1257,7 +1257,7 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() called when the child generation was valid" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() called when the child generation was valid" << eidos_terminate();
 			
 			double sex_ratio = arg0_value->FloatAtIndex(0);
 			
@@ -1265,7 +1265,7 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			child_sex_ratio_ = sex_ratio;
 			GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1280,7 +1280,7 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			population_.SetSize(subpopulation_id_, subpop_size);
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1292,11 +1292,11 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 		case gID_fitness:
 		{
 			if (child_generation_valid)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
 			if (cached_fitness_size_ == 0)
-				SLIM_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
 			
-			bool do_all_indices = (arg0_value->Type() == ScriptValueType::kValueNULL);
+			bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
 			int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
 			
 			if (index_count == 1)
@@ -1304,11 +1304,11 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 				int index = (do_all_indices ? 0 : (int)arg0_value->IntAtIndex(0));
 				double fitness = cached_parental_fitness_[index];
 				
-				return new ScriptValue_Float_singleton_const(fitness);
+				return new EidosValue_Float_singleton_const(fitness);
 			}
 			else
 			{
-				ScriptValue_Float_vector *float_return = new ScriptValue_Float_vector();
+				EidosValue_Float_vector *float_return = new EidosValue_Float_vector();
 				
 				for (int value_index = 0; value_index < index_count; value_index++)
 				{
@@ -1350,24 +1350,24 @@ ScriptValue *Subpopulation::ExecuteMethod(GlobalStringID p_method_id, ScriptValu
 			
 			SLiMSim &sim = population_.sim_;
 			
-			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
+			EIDOS_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
 			
 			if (sim.SexEnabled())
-				SLIM_OUTSTREAM << " " << requested_sex;
+				EIDOS_OUTSTREAM << " " << requested_sex;
 			
-			SLIM_OUTSTREAM << endl;
+			EIDOS_OUTSTREAM << endl;
 			
 			if (p_method_id == gID_outputSample)
 				population_.PrintSample(subpopulation_id_, sample_size, requested_sex);
 			else
 				population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 

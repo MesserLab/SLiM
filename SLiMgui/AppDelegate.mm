@@ -244,7 +244,7 @@ NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 		{
 			[scriptSyntaxTextView setString:scriptString];
 			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:9.0]];
-			[scriptSyntaxTextView syntaxColorForSLiMInput];
+			[scriptSyntaxTextView syntaxColorForOutput];
 		}
 	}
 	

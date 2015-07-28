@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 
-#include "script_globals.h"
+#include "eidos_global.h"
 
 
 // Debugging #defines that can be turned on
@@ -216,7 +216,7 @@ extern const std::string gStr_GenomicElement;
 extern const std::string gStr_GenomicElementType;
 extern const std::string gStr_Mutation;
 extern const std::string gStr_MutationType;
-extern const std::string gStr_SLiMScriptBlock;
+extern const std::string gStr_SLiMEidosBlock;
 extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
 extern const std::string gStr_Substitution;
@@ -230,7 +230,7 @@ extern const std::string gStr_modifyChild;
 
 
 enum _SLiMGlobalStringID : int {
-	gID_addGenomicElement0 = gID_LastSLiMScriptEntry + 1,
+	gID_addGenomicElement0 = gID_LastEidosEntry + 1,
 	gID_addGenomicElementType0,
 	gID_addMutationType0,
 	gID_addRecombinationIntervals0,

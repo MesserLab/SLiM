@@ -24,9 +24,9 @@
 #include <fstream>
 #include <stdexcept>
 
-#include "script_test.h"
-#include "script_interpreter.h"
-#include "script_functionsignature.h"
+#include "eidos_test.h"
+#include "eidos_interpreter.h"
+#include "eidos_function_signature.h"
 
 
 using std::multimap;
@@ -52,8 +52,8 @@ SLiMSim::SLiMSim(std::istream &infile, int *p_override_seed_ptr) : population_(*
 		rng_seed_supplied_to_constructor_ = false;
 	}
 	
-	// set up SLiM registrations in SLiMscript
-	SLiMScript_RegisterGlobalStringsAndIDs();
+	// set up SLiM registrations in Eidos
+	Eidos_RegisterGlobalStringsAndIDs();
 	SLiM_RegisterGlobalStringsAndIDs();
 	
 	// read all configuration information from the input file
@@ -76,8 +76,8 @@ SLiMSim::SLiMSim(const char *p_input_file, int *p_override_seed_ptr) : populatio
 		rng_seed_supplied_to_constructor_ = false;
 	}
 	
-	// set up SLiM registrations in SLiMscript
-	SLiMScript_RegisterGlobalStringsAndIDs();
+	// set up SLiM registrations in Eidos
+	Eidos_RegisterGlobalStringsAndIDs();
 	SLiM_RegisterGlobalStringsAndIDs();
 	
 	// Open our file stream
@@ -85,9 +85,9 @@ SLiMSim::SLiMSim(const char *p_input_file, int *p_override_seed_ptr) : populatio
 	
 	if (!infile.is_open())
 	{
-		SLIM_TERMINATION << std::endl;
-		SLIM_TERMINATION << "ERROR (parameter file): could not open: " << p_input_file << std::endl << std::endl;
-		SLIM_TERMINATION << slim_terminate();
+		EIDOS_TERMINATION << std::endl;
+		EIDOS_TERMINATION << "ERROR (parameter file): could not open: " << p_input_file << std::endl << std::endl;
+		EIDOS_TERMINATION << eidos_terminate();
 	}
 	
 	// read all configuration information from the input file
@@ -97,7 +97,7 @@ SLiMSim::SLiMSim(const char *p_input_file, int *p_override_seed_ptr) : populatio
 
 SLiMSim::~SLiMSim(void)
 {
-	//SLIM_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
+	//EIDOS_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -112,7 +112,7 @@ SLiMSim::~SLiMSim(void)
 	delete script_;
 	
 	// We should not have any interpreter instances that still refer to us
-	for (FunctionSignature *signature : sim_0_signatures)
+	for (EidosFunctionSignature *signature : sim_0_signatures)
 		delete signature;
 	
 	if (self_symbol_)
@@ -131,11 +131,11 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 		rng_seed_ = GenerateSeedFromPIDAndTime();
 	
 	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// InitializeFromFile()" << endl << endl;
+		EIDOS_OUTSTREAM << "// InitializeFromFile()" << endl << endl;
 	
 	// Reset error position indicators used by SLiMgui
-	gCharacterStartOfParseError = -1;
-	gCharacterEndOfParseError = -1;
+	gEidosCharacterStartOfParseError = -1;
+	gEidosCharacterEndOfParseError = -1;
 	
 	// Read in the file; going through stringstream is fast...
 	std::stringstream buffer;
@@ -143,24 +143,24 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	buffer << infile.rdbuf();
 	
 	// Tokenize and parse
-	script_ = new SLiMScript(buffer.str(), 0);
+	script_ = new SLiMEidosScript(buffer.str(), 0);
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
 	
-	// Extract SLiMScriptBlocks from the parse tree
-	const ScriptASTNode *root_node = script_->AST();
+	// Extract SLiMEidosBlocks from the parse tree
+	const EidosASTNode *root_node = script_->AST();
 	
-	for (ScriptASTNode *script_block_node : root_node->children_)
+	for (EidosASTNode *script_block_node : root_node->children_)
 	{
-		SLiMScriptBlock *script_block = new SLiMScriptBlock(script_block_node);
+		SLiMEidosBlock *script_block = new SLiMEidosBlock(script_block_node);
 		
 		script_blocks_.push_back(script_block);
 	}
 	
 	// Reset error position indicators used by SLiMgui
-	gCharacterStartOfParseError = -1;
-	gCharacterEndOfParseError = -1;
+	gEidosCharacterStartOfParseError = -1;
+	gEidosCharacterEndOfParseError = -1;
 	
 	// initialize rng; this is either a value given at the command line, or the value generate above by GenerateSeedFromPIDAndTime()
 	InitializeRNGFromSeed(rng_seed_);
@@ -189,7 +189,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 	ifstream infile(p_file);
 	
 	if (!infile.is_open())
-		SLIM_TERMINATION << "ERROR (Initialize): could not open initialization file" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): could not open initialization file" << eidos_terminate();
 	
 	// Read and ignore initial stuff until we hit the Populations section
 	while (!infile.eof())
@@ -276,7 +276,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << eidos_terminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
@@ -334,25 +334,25 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
 				if (genome_type == 'A' && genome.GenomeType() != GenomeType::kAutosome)
-					SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << eidos_terminate();
 				if (genome_type == 'X' && genome.GenomeType() != GenomeType::kXChromosome)
-					SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << eidos_terminate();
 				if (genome_type == 'Y' && genome.GenomeType() != GenomeType::kYChromosome)
-					SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << eidos_terminate();
 				
 				if (iss >> sub)
 				{
 					if (sub == "<null>")
 					{
 						if (!genome.IsNull())
-							SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as null, but the instantiated genome is non-null" << slim_terminate();
+							EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as null, but the instantiated genome is non-null" << eidos_terminate();
 						
 						continue;	// this line is over
 					}
 					else
 					{
 						if (genome.IsNull())
-							SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as non-null, but the instantiated genome is null" << slim_terminate();
+							EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): genome is specified as non-null, but the instantiated genome is null" << eidos_terminate();
 						
 						// drop through, and sub will be interpreted as a mutation id below
 					}
@@ -368,7 +368,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 				auto found_mut_pair = mutations.find(id);
 				
 				if (found_mut_pair == mutations.end()) 
-					SLIM_TERMINATION << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (InitializePopulationFromFile): mutation " << id << " has not been defined" << eidos_terminate();
 				
 				Mutation *mutation = found_mut_pair->second;
 				
@@ -384,17 +384,17 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 	{
 		int subpop_id = subpop_pair.first;
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMScriptBlock*> fitness_callbacks = ScriptBlocksMatching(generation_ + 1, SLiMScriptBlockType::SLiMScriptFitnessCallback, -1, subpop_id);
+		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_ + 1, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, subpop_id);
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
 }
 
-std::vector<SLiMScriptBlock*> SLiMSim::ScriptBlocksMatching(int p_generation, SLiMScriptBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id)
+std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(int p_generation, SLiMEidosBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id)
 {
-	std::vector<SLiMScriptBlock*> matches;
+	std::vector<SLiMEidosBlock*> matches;
 	
-	for (SLiMScriptBlock *script_block : script_blocks_)
+	for (SLiMEidosBlock *script_block : script_blocks_)
 	{
 		// check that the generation is in range
 		if ((script_block->start_generation_ > p_generation) || (script_block->end_generation_ < p_generation))
@@ -436,7 +436,7 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 	// cause a crash; it also guarantees that script blocks are applied consistently across each generation stage.  A single block
 	// might be scheduled for deregistration more than once, but should only occur in script_blocks_ once, so we have to be careful
 	// with our deallocations here; we deallocate a block only when we find it in script_blocks_.
-	for (SLiMScriptBlock *block_to_dereg : scheduled_deregistrations_)
+	for (SLiMEidosBlock *block_to_dereg : scheduled_deregistrations_)
 	{
 		auto script_block_position = std::find(script_blocks_.begin(), script_blocks_.end(), block_to_dereg);
 		
@@ -462,10 +462,10 @@ void SLiMSim::RunZeroGeneration(void)
 	num_sex_declarations = 0;
 	
 	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// RunZeroGeneration():" << endl;
+		EIDOS_OUTSTREAM << "// RunZeroGeneration():" << endl;
 	
 	// execute script events for generation 0
-	std::vector<SLiMScriptBlock*> blocks = ScriptBlocksMatching(0, SLiMScriptBlockType::SLiMScriptEvent, -1, -1);
+	std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
 	
 	for (auto script_block : blocks)
 	{
@@ -477,25 +477,25 @@ void SLiMSim::RunZeroGeneration(void)
 	
 	// check for complete initialization
 	if (num_mutation_rates == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): A mutation rate must be supplied in generation 0 with setMutationRate0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): A mutation rate must be supplied in generation 0 with setMutationRate0()." << eidos_terminate();
 	
 	if (num_mutation_types == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): At least one mutation type must be defined in generation 0 with addMutationType0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one mutation type must be defined in generation 0 with addMutationType0()." << eidos_terminate();
 	
 	if (num_genomic_element_types == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): At least one genomic element type must be defined in generation 0 with addGenomicElementType0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one genomic element type must be defined in generation 0 with addGenomicElementType0()." << eidos_terminate();
 	
 	if (num_genomic_elements == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): At least one genomic element must be defined in generation 0 with addGenomicElement0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one genomic element must be defined in generation 0 with addGenomicElement0()." << eidos_terminate();
 	
 	if (num_recombination_rates == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): At least one recombination rate interval must be defined in generation 0 with addRecombinationIntervals0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one recombination rate interval must be defined in generation 0 with addRecombinationIntervals0()." << eidos_terminate();
 	
 	if (num_generations == 0)
-		SLIM_TERMINATION << "ERROR (RunZeroGeneration): The simulation duration must be defined in generation 0 with setGenerationRange0()." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): The simulation duration must be defined in generation 0 with setGenerationRange0()." << eidos_terminate();
 	
 	// emit our start log
-	SLIM_OUTSTREAM << "\n// Starting run with <start> <duration>:\n" << time_start_ << " " << time_duration_ << "\n" << std::endl;
+	EIDOS_OUTSTREAM << "\n// Starting run with <start> <duration>:\n" << time_start_ << " " << time_duration_ << "\n" << std::endl;
 	
 	// start at the beginning
 	generation_ = time_start_;
@@ -526,7 +526,7 @@ bool SLiMSim::RunOneGeneration(void)
 					//
 					// Stage 1: Execute script events for the current generation
 					//
-					std::vector<SLiMScriptBlock*> blocks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptEvent, -1, -1);
+					std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
 					
 					for (auto script_block : blocks)
 						if (script_block->active_)
@@ -540,8 +540,8 @@ bool SLiMSim::RunOneGeneration(void)
 					//
 					// Stage 2: Evolve all subpopulations
 					//
-					std::vector<SLiMScriptBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptMateChoiceCallback, -1, -1);
-					std::vector<SLiMScriptBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMScriptBlockType::SLiMScriptModifyChildCallback, -1, -1);
+					std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
+					std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
 					bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 					bool modify_child_callbacks_present = modify_child_callbacks.size();
 					
@@ -552,7 +552,7 @@ bool SLiMSim::RunOneGeneration(void)
 						Subpopulation *subpop = subpop_pair.second;
 						
 						// Get mateChoice() callbacks that apply to this subpopulation
-						for (SLiMScriptBlock *callback : mate_choice_callbacks)
+						for (SLiMEidosBlock *callback : mate_choice_callbacks)
 						{
 							int callback_subpop_id = callback->subpopulation_id_;
 							
@@ -561,7 +561,7 @@ bool SLiMSim::RunOneGeneration(void)
 						}
 						
 						// Get modifyChild() callbacks that apply to this subpopulation
-						for (SLiMScriptBlock *callback : modify_child_callbacks)
+						for (SLiMEidosBlock *callback : modify_child_callbacks)
 						{
 							int callback_subpop_id = callback->subpopulation_id_;
 							
@@ -634,19 +634,19 @@ void SLiMSim::RunToEnd(void)
 
 
 //
-//	SLiMscript support
+//	Eidos support
 //
-#pragma mark SLiMscript support
+#pragma mark Eidos support
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new SymbolTableEntry(gStr_sim, (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
 	
@@ -654,17 +654,17 @@ ScriptValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, const std::
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_interpreter)
 	
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
 	
 	// we only define zero-generation functions; so we must be in generation zero
 	if (generation_ != 0)
-		SLIM_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): FunctionDelegationFunnel() called outside of generation 0." << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): FunctionDelegationFunnel() called outside of generation 0." << eidos_terminate();
 	
 	
 	//
@@ -680,7 +680,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 		
 		if (found_getype_pair == genomic_element_types_.end())
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElement0() genomic element type g" << genomic_element_type << " not defined" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElement0() genomic element type g" << genomic_element_type << " not defined" << eidos_terminate();
 		
 		// FIXME bounds-check start and end
 		
@@ -694,7 +694,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
-			SLIM_OUTSTREAM << "addGenomicElement0(" << genomic_element_type << ", " << start_position << ", " << end_position << ");" << endl;
+			EIDOS_OUTSTREAM << "addGenomicElement0(" << genomic_element_type << ", " << start_position << ", " << end_position << ");" << endl;
 		
 		num_genomic_elements++;
 	}
@@ -710,15 +710,15 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		int map_identifier = (int)arg0_value->IntAtIndex(0);
 		
 		if (map_identifier < 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() requires id >= 0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() requires id >= 0." << eidos_terminate();
 		if (genomic_element_types_.count(map_identifier) > 0) 
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() genomic element type g" << map_identifier << " already defined." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
 		
 		int mut_type_id_count = arg1_value->Count();
 		int proportion_count = arg2_value->Count();
 		
 		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -729,12 +729,12 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 			double proportion = arg2_value->FloatAtIndex(mut_type_index);
 			
 			if (proportion <= 0)
-				SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() proportions must be greater than zero." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() proportions must be greater than zero." << eidos_terminate();
 			
 			auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 			
 			if (found_muttype_pair == mutation_types_.end())
-				SLIM_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() mutation type m" << mutation_type_id << " not defined" << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addGenomicElementType0() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
 			
 			MutationType *mutation_type_ptr = found_muttype_pair->second;
 			
@@ -748,12 +748,12 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		
 		if (DEBUG_INPUT)
 		{
-			SLIM_OUTSTREAM << "addGenomicElementType0(" << map_identifier;
+			EIDOS_OUTSTREAM << "addGenomicElementType0(" << map_identifier;
 			
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				SLIM_OUTSTREAM << ", " << arg1_value->IntAtIndex(mut_type_index) << ", " << arg2_value->FloatAtIndex(mut_type_index);
+				EIDOS_OUTSTREAM << ", " << arg1_value->IntAtIndex(mut_type_index) << ", " << arg2_value->FloatAtIndex(mut_type_index);
 			
-			SLIM_OUTSTREAM << ");" << endl;
+			EIDOS_OUTSTREAM << ");" << endl;
 		}
 		
 		num_genomic_element_types++;
@@ -774,9 +774,9 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		std::vector<double> dfe_parameters;
 		
 		if (map_identifier < 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() requires id >= 0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() requires id >= 0." << eidos_terminate();
 		if (mutation_types_.count(map_identifier) > 0) 
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() mutation type m" << map_identifier << " already defined" << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() mutation type m" << map_identifier << " already defined" << eidos_terminate();
 		
 		if (dfe_type_string.compare("f") == 0)
 			expected_dfe_param_count = 1;
@@ -785,12 +785,12 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		else if (dfe_type_string.compare("e") == 0)
 			expected_dfe_param_count = 1;
 		else
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << eidos_terminate();
 		
 		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addMutationType0() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
@@ -807,12 +807,12 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		
 		if (DEBUG_INPUT)
 		{
-			SLIM_OUTSTREAM << "addMutationType0(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
+			EIDOS_OUTSTREAM << "addMutationType0(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
 			
 			for (double dfe_param : dfe_parameters)
-				SLIM_OUTSTREAM << ", " << dfe_param;
+				EIDOS_OUTSTREAM << ", " << dfe_param;
 			
-			SLIM_OUTSTREAM << ");" << endl;
+			EIDOS_OUTSTREAM << ");" << endl;
 		}
 		
 		num_mutation_types++;
@@ -830,7 +830,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		int rate_count = arg1_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): addRecombinationIntervals0() requires the sizes of ends and rates to be equal and nonzero." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): addRecombinationIntervals0() requires the sizes of ends and rates to be equal and nonzero." << eidos_terminate();
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
@@ -847,25 +847,25 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		
 		if (DEBUG_INPUT)
 		{
-			SLIM_OUTSTREAM << "addRecombinationIntervals0(";
+			EIDOS_OUTSTREAM << "addRecombinationIntervals0(";
 			
 			if (end_count > 1)
-				SLIM_OUTSTREAM << "c(";
+				EIDOS_OUTSTREAM << "c(";
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				SLIM_OUTSTREAM << (interval_index == 0 ? "" : ", ") << (int)arg0_value->IntAtIndex(interval_index);
+				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << (int)arg0_value->IntAtIndex(interval_index);
 			if (end_count > 1)
-				SLIM_OUTSTREAM << ")";
+				EIDOS_OUTSTREAM << ")";
 			
-			SLIM_OUTSTREAM << ", ";
+			EIDOS_OUTSTREAM << ", ";
 			
 			if (end_count > 1)
-				SLIM_OUTSTREAM << "c(";
+				EIDOS_OUTSTREAM << "c(";
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				SLIM_OUTSTREAM << (interval_index == 0 ? "" : ", ") << arg1_value->FloatAtIndex(interval_index);
+				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << arg1_value->FloatAtIndex(interval_index);
 			if (end_count > 1)
-				SLIM_OUTSTREAM << ")";
+				EIDOS_OUTSTREAM << ")";
 			
-			SLIM_OUTSTREAM << ");" << endl;
+			EIDOS_OUTSTREAM << ");" << endl;
 		}
 		
 		num_recombination_rates++;
@@ -880,21 +880,21 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 	else if (p_function_name.compare("setGeneConversion0") == 0)
 	{
 		if (num_gene_conversions > 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() may be called only once." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() may be called only once." << eidos_terminate();
 		
 		double gene_conversion_fraction = arg0_value->FloatAtIndex(0);
 		double gene_conversion_avg_length = arg1_value->FloatAtIndex(0);
 		
 		if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() conversionFraction must be between 0.0 and 1.0 (inclusive)." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() conversionFraction must be between 0.0 and 1.0 (inclusive)." << eidos_terminate();
 		if (gene_conversion_avg_length <= 0.0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() meanLength must be greater than 0.0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGeneConversion0() meanLength must be greater than 0.0." << eidos_terminate();
 		
 		chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
 		chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
 		
 		if (DEBUG_INPUT)
-			SLIM_OUTSTREAM << "setGeneConversion0(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
+			EIDOS_OUTSTREAM << "setGeneConversion0(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
 		
 		num_gene_conversions++;
 	}
@@ -908,21 +908,21 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 	else if (p_function_name.compare("setGenerationRange0") == 0)
 	{
 		if (num_generations > 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() may be called only once." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() may be called only once." << eidos_terminate();
 		
 		int duration = (int)arg0_value->IntAtIndex(0);
 		int start = (p_argument_count == 2 ? (int)arg1_value->IntAtIndex(0) : 1);
 		
 		if (duration <= 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires duration greater than 0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires duration greater than 0." << eidos_terminate();
 		if (start <= 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires startGeneration greater than 0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires startGeneration greater than 0." << eidos_terminate();
 		
 		time_duration_ = duration;
 		time_start_ = start;
 		
 		if (DEBUG_INPUT)
-			SLIM_OUTSTREAM << "setGenerationRange0(" << duration << ", " << start << ");" << endl;
+			EIDOS_OUTSTREAM << "setGenerationRange0(" << duration << ", " << start << ");" << endl;
 		
 		num_generations++;
 	}
@@ -936,17 +936,17 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 	else if (p_function_name.compare("setMutationRate0") == 0)
 	{
 		if (num_mutation_rates > 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setMutationRate0() may be called only once." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setMutationRate0() may be called only once." << eidos_terminate();
 		
 		double rate = arg0_value->FloatAtIndex(0);
 		
 		if (rate < 0.0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setMutationRate0() requires rate >= 0." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setMutationRate0() requires rate >= 0." << eidos_terminate();
 		
 		chromosome_.overall_mutation_rate_ = rate;
 		
 		if (DEBUG_INPUT)
-			SLIM_OUTSTREAM << "setMutationRate0(" << chromosome_.overall_mutation_rate_ << ");" << endl;
+			EIDOS_OUTSTREAM << "setMutationRate0(" << chromosome_.overall_mutation_rate_ << ");" << endl;
 		
 		num_mutation_rates++;
 	}
@@ -962,7 +962,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		if (rng_seed_supplied_to_constructor_)
 		{
 			if (DEBUG_INPUT)
-				SLIM_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");\t\t// override by -seed option" << endl;
+				EIDOS_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");\t\t// override by -seed option" << endl;
 		}
 		else
 		{
@@ -970,7 +970,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 			InitializeRNGFromSeed(rng_seed_);
 			
 			if (DEBUG_INPUT)
-				SLIM_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");" << endl;
+				EIDOS_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");" << endl;
 		}
 	}
 	
@@ -983,7 +983,7 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 	else if (p_function_name.compare("setSexEnabled0") == 0)
 	{
 		if (num_sex_declarations > 0)
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() may be called only once." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() may be called only once." << eidos_terminate();
 		
 		string chromosome_type = arg0_value->StringAtIndex(0);
 		
@@ -994,24 +994,24 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 		else if (chromosome_type.compare("Y") == 0)
 			modeled_chromosome_type_ = GenomeType::kYChromosome;
 		else
-			SLIM_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setSexEnabled0() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << eidos_terminate();
 		
 		if (p_argument_count == 2)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0);
 			else
-				SLIM_TERMINATION << "ERROR (RunZeroGeneration): xDominanceCoeff may be supplied to setSexEnabled0() only for chromosomeType \"X\"." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (RunZeroGeneration): xDominanceCoeff may be supplied to setSexEnabled0() only for chromosomeType \"X\"." << eidos_terminate();
 		}
 		
 		if (DEBUG_INPUT)
 		{
-			SLIM_OUTSTREAM << "setSexEnabled0(\"" << chromosome_type << "\"";
+			EIDOS_OUTSTREAM << "setSexEnabled0(\"" << chromosome_type << "\"";
 			
 			if (p_argument_count == 2)
-				SLIM_OUTSTREAM << ", " << x_chromosome_dominance_coeff_;
+				EIDOS_OUTSTREAM << ", " << x_chromosome_dominance_coeff_;
 			
-			SLIM_OUTSTREAM << ");" << endl;
+			EIDOS_OUTSTREAM << ");" << endl;
 		}
 		
 		sex_enabled_ = true;
@@ -1019,25 +1019,25 @@ ScriptValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_nam
 	}
 	
 	// the zero-generation functions all return invisible NULL
-	return gStaticScriptValueNULLInvisible;
+	return gStaticEidosValueNULLInvisible;
 }
 
-std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
+std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 {
 	if (generation_ == 0)
 	{
-		// Allocate our own FunctionSignature objects; they cannot be statically allocated since they point to us
+		// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 		if (!sim_0_signatures.size())
 		{
-			sim_0_signatures.push_back((new FunctionSignature("addGenomicElement0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_S()->AddInt_S());
-			sim_0_signatures.push_back((new FunctionSignature("addGenomicElementType0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt()->AddNumeric());
-			sim_0_signatures.push_back((new FunctionSignature("addMutationType0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddNumeric_S()->AddString_S()->AddEllipsis());
-			sim_0_signatures.push_back((new FunctionSignature("addRecombinationIntervals0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt()->AddNumeric());
-			sim_0_signatures.push_back((new FunctionSignature("setGeneConversion0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
-			sim_0_signatures.push_back((new FunctionSignature("setGenerationRange0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
-			sim_0_signatures.push_back((new FunctionSignature("setMutationRate0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
-			sim_0_signatures.push_back((new FunctionSignature("setRandomSeed0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S());
-			sim_0_signatures.push_back((new FunctionSignature("setSexEnabled0", FunctionIdentifier::kDelegatedFunction, kScriptValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
+			sim_0_signatures.push_back((new EidosFunctionSignature("addGenomicElement0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_S()->AddInt_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature("addGenomicElementType0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt()->AddNumeric());
+			sim_0_signatures.push_back((new EidosFunctionSignature("addMutationType0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddNumeric_S()->AddString_S()->AddEllipsis());
+			sim_0_signatures.push_back((new EidosFunctionSignature("addRecombinationIntervals0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt()->AddNumeric());
+			sim_0_signatures.push_back((new EidosFunctionSignature("setGeneConversion0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature("setGenerationRange0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
+			sim_0_signatures.push_back((new EidosFunctionSignature("setMutationRate0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature("setRandomSeed0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S());
+			sim_0_signatures.push_back((new EidosFunctionSignature("setSexEnabled0", EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
 		}
 		
 		return &sim_0_signatures;
@@ -1046,9 +1046,9 @@ std::vector<FunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 	return nullptr;
 }
 
-void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block)
+void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block)
 {
-	SymbolTable &global_symbols = p_interpreter.GetSymbolTable();
+	EidosSymbolTable &global_symbols = p_interpreter.GetSymbolTable();
 	
 	// Note that we can use InitializeConstantSymbolEntry() here only because the objects we are setting are guaranteed by
 	// SLiM's design to live longer than the symbol table we are injecting into!  Every new execution of a script block
@@ -1056,25 +1056,25 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 	// block can invalidate existing entries during the execution of the block; subpopulations do not get deleted immediately,
 	// deregistered script blocks stick around until the end of the script execution, etc.  This is a very important stake!
 	// We also need to guarantee here that the values we are setting will not change for the lifetime of the symbol table;
-	// the objects referred to by the values may change, but the ScriptValue objects themselves will not.  Be careful!
+	// the objects referred to by the values may change, but the EidosValue objects themselves will not.  Be careful!
 	
-	// A constant for reference to the SLiMScriptBlock, self
+	// A constant for reference to the SLiMEidosBlock, self
 	if (p_script_block && p_script_block->contains_self_)
 		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
 	
 	// Add signatures for functions we define – zero-generation functions only, right now
 	if (generation_ == 0)
 	{
-		std::vector<FunctionSignature*> *signatures = InjectedFunctionSignatures();
+		std::vector<EidosFunctionSignature*> *signatures = InjectedFunctionSignatures();
 		
 		if (signatures)
 		{
 			// construct a new map based on the built-in map, add our functions, and register it, which gives the pointer to the interpreter
 			// this is slow, but it doesn't matter; if we start adding functions outside of zero-gen, this will need to be revisited
-			FunctionMap *derived_function_map = new FunctionMap(*ScriptInterpreter::BuiltInFunctionMap());
+			EidosFunctionMap *derived_function_map = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
 			
-			for (FunctionSignature *signature : *signatures)
-				derived_function_map->insert(FunctionMapPair(signature->function_name_, signature));
+			for (EidosFunctionSignature *signature : *signatures)
+				derived_function_map->insert(EidosFunctionMapPair(signature->function_name_, signature));
 			
 			p_interpreter.RegisterFunctionMap(derived_function_map);
 		}
@@ -1104,7 +1104,7 @@ void SLiMSim::InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScript
 		
 		// Add constants for our scripts, like s1, s2, ...
 		if (!p_script_block || p_script_block->contains_sX_)
-			for (SLiMScriptBlock *script_block : script_blocks_)
+			for (SLiMEidosBlock *script_block : script_blocks_)
 				if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
 					global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 	}
@@ -1117,7 +1117,7 @@ const std::string *SLiMSim::ElementType(void) const
 
 std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_chromosome);			// chromosome_
 	constants.push_back(gStr_chromosomeType);		// modeled_chromosome_type_
@@ -1135,7 +1135,7 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 
 std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
 	variables.push_back(gStr_duration);			// time_duration_
@@ -1146,7 +1146,7 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	return variables;
 }
 
-bool SLiMSim::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool SLiMSim::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -1173,30 +1173,30 @@ bool SLiMSim::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
 	{
 			// constants
 		case gID_chromosome:
-			return new ScriptValue_Object_singleton_const(&chromosome_);
+			return new EidosValue_Object_singleton_const(&chromosome_);
 		case gID_chromosomeType:
 		{
 			switch (modeled_chromosome_type_)
 			{
-				case GenomeType::kAutosome:		return new ScriptValue_String(gStr_Autosome);
-				case GenomeType::kXChromosome:	return new ScriptValue_String(gStr_X_chromosome);
-				case GenomeType::kYChromosome:	return new ScriptValue_String(gStr_Y_chromosome);
+				case GenomeType::kAutosome:		return new EidosValue_String(gStr_Autosome);
+				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X_chromosome);
+				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y_chromosome);
 			}
 		}
 		case gID_genomicElementTypes:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
 				vec->PushElement(ge_type->second);
@@ -1205,7 +1205,7 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_mutations:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			Genome &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			
@@ -1216,7 +1216,7 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_mutationTypes:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
 				vec->PushElement(mutation_type->second);
@@ -1225,7 +1225,7 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_scriptBlocks:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
 				vec->PushElement(*script_block);
@@ -1233,12 +1233,12 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 			return vec;
 		}
 		case gID_sexEnabled:
-			return (sex_enabled_ ? gStaticScriptValue_LogicalT : gStaticScriptValue_LogicalF);
+			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_start:
-			return new ScriptValue_Int_singleton_const(time_start_);
+			return new EidosValue_Int_singleton_const(time_start_);
 		case gID_subpopulations:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
 				vec->PushElement(pop->second);
@@ -1247,7 +1247,7 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 		}
 		case gID_substitutions:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
 				vec->PushElement(*sub_iter);
@@ -1257,37 +1257,37 @@ ScriptValue *SLiMSim::GetValueForMember(GlobalStringID p_member_id)
 			
 			// variables
 		case gID_dominanceCoeffX:
-			return new ScriptValue_Float_singleton_const(x_chromosome_dominance_coeff_);
+			return new EidosValue_Float_singleton_const(x_chromosome_dominance_coeff_);
 		case gID_duration:
-			return new ScriptValue_Int_singleton_const(time_duration_);
+			return new EidosValue_Int_singleton_const(time_duration_);
 		case gID_generation:
 		{
 			// We use external-temporary here because the value of generation_ can change, but it is permanent enough that
 			// we can cache it – it can't change within the execution of a single statement, and if the value lives longer
 			// than the context of a single statement that means it has been placed into a symbol table, and thus copied.
 			if (!cached_value_generation_)
-				cached_value_generation_ = (new ScriptValue_Int_singleton_const(generation_))->SetExternalTemporary();
+				cached_value_generation_ = (new EidosValue_Int_singleton_const(generation_))->SetExternalTemporary();
 			return cached_value_generation_;
 		}
 		case gID_randomSeed:
-			return new ScriptValue_Int_singleton_const(rng_seed_);
+			return new EidosValue_Int_singleton_const(rng_seed_);
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
 	{
 		case gID_duration:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			RangeCheckValue(__func__, p_member_id, (value > 0) && (value <= 1000000000));
@@ -1298,7 +1298,7 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 			
 		case gID_generation:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			RangeCheckValue(__func__, p_member_id, (value >= time_start_) && (value <= time_start_ + time_duration_));
@@ -1316,9 +1316,9 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 		case gID_dominanceCoeffX:
 		{
 			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
-				SLIM_TERMINATION << "ERROR (SLiMSim::SetValueForMember): attempt to set member dominanceCoeffX when not simulating an X chromosome." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::SetValueForMember): attempt to set member dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
 			
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
 			
 			double value = p_value->FloatAtIndex(0);
 			
@@ -1328,7 +1328,7 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 			
 		case gID_randomSeed:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -1342,7 +1342,7 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -1352,13 +1352,13 @@ void SLiMSim::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 	}
 }
 
 std::vector<std::string> SLiMSim::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_addSubpop);
 	methods.push_back(gStr_addSubpopSplit);
@@ -1376,36 +1376,36 @@ std::vector<std::string> SLiMSim::Methods(void) const
 	return methods;
 }
 
-const FunctionSignature *SLiMSim::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *SLiMSim::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static FunctionSignature *addSubpopSig = nullptr;
-	static FunctionSignature *addSubpopSplitSig = nullptr;
-	static FunctionSignature *deregisterScriptBlockSig = nullptr;
-	static FunctionSignature *mutationFrequenciesSig = nullptr;
-	static FunctionSignature *outputFixedMutationsSig = nullptr;
-	static FunctionSignature *outputFullSig = nullptr;
-	static FunctionSignature *outputMutationsSig = nullptr;
-	static FunctionSignature *readFromPopulationFileSig = nullptr;
-	static FunctionSignature *registerScriptEventSig = nullptr;
-	static FunctionSignature *registerScriptFitnessCallbackSig = nullptr;
-	static FunctionSignature *registerScriptMateChoiceCallbackSig = nullptr;
-	static FunctionSignature *registerScriptModifyChildCallbackSig = nullptr;
+	static EidosFunctionSignature *addSubpopSig = nullptr;
+	static EidosFunctionSignature *addSubpopSplitSig = nullptr;
+	static EidosFunctionSignature *deregisterScriptBlockSig = nullptr;
+	static EidosFunctionSignature *mutationFrequenciesSig = nullptr;
+	static EidosFunctionSignature *outputFixedMutationsSig = nullptr;
+	static EidosFunctionSignature *outputFullSig = nullptr;
+	static EidosFunctionSignature *outputMutationsSig = nullptr;
+	static EidosFunctionSignature *readFromPopulationFileSig = nullptr;
+	static EidosFunctionSignature *registerScriptEventSig = nullptr;
+	static EidosFunctionSignature *registerScriptFitnessCallbackSig = nullptr;
+	static EidosFunctionSignature *registerScriptMateChoiceCallbackSig = nullptr;
+	static EidosFunctionSignature *registerScriptModifyChildCallbackSig = nullptr;
 	
 	if (!addSubpopSig)
 	{
-		addSubpopSig = (new FunctionSignature(gStr_addSubpop, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddFloat_OS();
-		addSubpopSplitSig = (new FunctionSignature(gStr_addSubpopSplit, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddObject_S()->AddFloat_OS();
-		deregisterScriptBlockSig = (new FunctionSignature(gStr_deregisterScriptBlock, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		mutationFrequenciesSig = (new FunctionSignature(gStr_mutationFrequencies, FunctionIdentifier::kNoFunction, kScriptValueMaskFloat))->SetInstanceMethod()->AddObject()->AddObject_O();
-		outputFixedMutationsSig = (new FunctionSignature(gStr_outputFixedMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod();
-		outputFullSig = (new FunctionSignature(gStr_outputFull, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_OS();
-		outputMutationsSig = (new FunctionSignature(gStr_outputMutations, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddObject();
-		readFromPopulationFileSig = (new FunctionSignature(gStr_readFromPopulationFile, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S();
-		registerScriptEventSig = (new FunctionSignature(gStr_registerScriptEvent, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS();
-		registerScriptFitnessCallbackSig = (new FunctionSignature(gStr_registerScriptFitnessCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
-		registerScriptMateChoiceCallbackSig = (new FunctionSignature(gStr_registerScriptMateChoiceCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
-		registerScriptModifyChildCallbackSig = (new FunctionSignature(gStr_registerScriptModifyChildCallback, FunctionIdentifier::kNoFunction, kScriptValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		addSubpopSig = (new EidosFunctionSignature(gStr_addSubpop, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddFloat_OS();
+		addSubpopSplitSig = (new EidosFunctionSignature(gStr_addSubpopSplit, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_S()->AddInt_S()->AddObject_S()->AddFloat_OS();
+		deregisterScriptBlockSig = (new EidosFunctionSignature(gStr_deregisterScriptBlock, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
+		mutationFrequenciesSig = (new EidosFunctionSignature(gStr_mutationFrequencies, EidosFunctionIdentifier::kNoFunction, kValueMaskFloat))->SetInstanceMethod()->AddObject()->AddObject_O();
+		outputFixedMutationsSig = (new EidosFunctionSignature(gStr_outputFixedMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod();
+		outputFullSig = (new EidosFunctionSignature(gStr_outputFull, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_OS();
+		outputMutationsSig = (new EidosFunctionSignature(gStr_outputMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
+		readFromPopulationFileSig = (new EidosFunctionSignature(gStr_readFromPopulationFile, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S();
+		registerScriptEventSig = (new EidosFunctionSignature(gStr_registerScriptEvent, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS();
+		registerScriptFitnessCallbackSig = (new EidosFunctionSignature(gStr_registerScriptFitnessCallback, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		registerScriptMateChoiceCallbackSig = (new EidosFunctionSignature(gStr_registerScriptMateChoiceCallback, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
+		registerScriptModifyChildCallbackSig = (new EidosFunctionSignature(gStr_registerScriptModifyChildCallback, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddInt_SN()->AddString_S()->AddInt_OS()->AddInt_OS()->AddInt_OS();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1438,18 +1438,18 @@ const FunctionSignature *SLiMSim::SignatureForMethod(GlobalStringID p_method_id)
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::SignatureForMethod(p_method_id);
+			return EidosObjectElement::SignatureForMethod(p_method_id);
 	}
 }
 
-ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	ScriptValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
-	ScriptValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
-	ScriptValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
-	ScriptValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
+	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5] : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1503,9 +1503,9 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			
 			// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 			for (int block_index = 0; block_index < block_count; ++block_index)
-				scheduled_deregistrations_.push_back((SLiMScriptBlock *)(arg0_value->ElementAtIndex(block_index)));
+				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ElementAtIndex(block_index)));
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1521,7 +1521,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			// The code below blows away the reference counts kept by Mutation, which must be valid at the end of each generation for
 			// SLiM's internal machinery to work properly, so for simplicity we require that we're in the parental generation.
 			if (population_.child_generation_valid)
-				SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() may only be called when the parental generation is active (before offspring generation)." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() may only be called when the parental generation is active (before offspring generation)." << eidos_terminate();
 			
 			// first zero out the refcounts in all registered Mutation objects
 			Mutation **registry_iter = population_.mutation_registry_.begin_pointer();
@@ -1533,7 +1533,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			// figure out which subpopulations we are supposed to tally across
 			vector<Subpopulation*> subpops_to_tally;
 			
-			if (arg0_value->Type() == ScriptValueType::kValueNULL)
+			if (arg0_value->Type() == EidosValueType::kValueNULL)
 			{
 				// no requested subpops, so we should loop over all subpops
 				for (const std::pair<const int,Subpopulation*> &subpop_pair : population_)
@@ -1546,8 +1546,8 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 				
 				if (requested_subpop_count)
 				{
-					if (((ScriptValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
-						SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << slim_terminate();
+					if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << eidos_terminate();
 					
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
 						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ElementAtIndex(requested_subpop_index)));
@@ -1579,7 +1579,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			}
 			
 			// OK, now construct our result vector from the tallies for just the requested mutations
-			ScriptValue_Float_vector *float_result = new ScriptValue_Float_vector();
+			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 			double denominator = 1.0 / total_genome_count;
 			
 			if (arg1_value)
@@ -1589,8 +1589,8 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 				
 				if (arg1_count)
 				{
-					if (((ScriptValue_Object *)arg1_value)->ElementType() != &gStr_Mutation)
-						SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << slim_terminate();
+					if (((EidosValue_Object *)arg1_value)->ElementType() != &gStr_Mutation)
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << eidos_terminate();
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
 						float_result->PushFloat(((Mutation *)(arg1_value->ElementAtIndex(value_index)))->reference_count_ * denominator);
@@ -1614,18 +1614,18 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			
 		case gID_outputFixedMutations:
 		{
-			SLIM_OUTSTREAM << "#OUT: " << generation_ << " F " << endl;
-			SLIM_OUTSTREAM << "Mutations:" << endl;
+			EIDOS_OUTSTREAM << "#OUT: " << generation_ << " F " << endl;
+			EIDOS_OUTSTREAM << "Mutations:" << endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
 			for (int i = 0; i < subs.size(); i++)
 			{
-				SLIM_OUTSTREAM << i;				// used to have a +1; switched to zero-based
-				subs[i]->print(SLIM_OUTSTREAM);
+				EIDOS_OUTSTREAM << i;				// used to have a +1; switched to zero-based
+				subs[i]->print(EIDOS_OUTSTREAM);
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1638,8 +1638,8 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 		{
 			if (p_argument_count == 0)
 			{
-				SLIM_OUTSTREAM << "#OUT: " << generation_ << " A" << endl;
-				population_.PrintAll(SLIM_OUTSTREAM);
+				EIDOS_OUTSTREAM << "#OUT: " << generation_ << " A" << endl;
+				population_.PrintAll(EIDOS_OUTSTREAM);
 			}
 			else if (p_argument_count == 1)
 			{
@@ -1661,11 +1661,11 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 				}
 				else
 				{
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): outputFull() could not open "<< outfile_path << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): outputFull() could not open "<< outfile_path << endl << eidos_terminate();
 				}
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1677,7 +1677,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 		case gID_outputMutations:
 		{
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
-			ScriptValue_Object *mutations_object = (ScriptValue_Object *)arg0_value;
+			EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;
 			int mutations_count = mutations_object->Count();
 			std::vector<Mutation*> mutations;
 			
@@ -1710,13 +1710,13 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 					// FIXME the format here comes from the old tracked mutations code; what format do we actually want?
 					for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
 					{ 
-						SLIM_OUTSTREAM << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-						polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first, false /* no id */);
+						EIDOS_OUTSTREAM << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
+						polymorphism_pair.second.print(EIDOS_OUTSTREAM, polymorphism_pair.first, false /* no id */);
 					}
 				}
 			}
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1731,7 +1731,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			
 			InitializePopulationFromFile(file_path.c_str());
 			
-			return gStaticScriptValueNULLInvisible;
+			return gStaticEidosValueNULLInvisible;
 		}
 			
 			
@@ -1747,18 +1747,18 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			int start_generation = (arg2_value ? (int)arg2_value->IntAtIndex(0) : 1);
 			int end_generation = (arg3_value ? (int)arg3_value->IntAtIndex(0) : INT_MAX);
 			
-			if (arg0_value->Type() != ScriptValueType::kValueNULL)
+			if (arg0_value->Type() != EidosValueType::kValueNULL)
 			{
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptEvent() requires an id >= 0 (or -1, or NULL)." << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptEvent() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
-				SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
 			
-			SLiMScriptBlock *script_block = new SLiMScriptBlock(script_id, script_string, SLiMScriptBlockType::SLiMScriptEvent, start_generation, end_generation);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			
 			script_blocks_.push_back(script_block);		// takes ownership form us
 			scripts_changed_ = true;
@@ -1781,29 +1781,29 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			int start_generation = (arg4_value ? (int)arg4_value->IntAtIndex(0) : 1);
 			int end_generation = (arg5_value ? (int)arg5_value->IntAtIndex(0) : INT_MAX);
 			
-			if (arg0_value->Type() != ScriptValueType::kValueNULL)
+			if (arg0_value->Type() != EidosValueType::kValueNULL)
 			{
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
 			if (mut_type_id < 0)
-				SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires a mutTypeID >= 0." << endl << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires a mutTypeID >= 0." << endl << eidos_terminate();
 			
-			if (arg3_value && (arg3_value->Type() != ScriptValueType::kValueNULL))
+			if (arg3_value && (arg3_value->Type() != EidosValueType::kValueNULL))
 			{
 				subpop_id = (int)arg3_value->IntAtIndex(0);
 				
 				if (subpop_id < -1)
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an subpopID >= 0 (or -1, or NULL)." << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an subpopID >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
-				SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
 			
-			SLiMScriptBlock *script_block = new SLiMScriptBlock(script_id, script_string, SLiMScriptBlockType::SLiMScriptFitnessCallback, start_generation, end_generation);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosFitnessCallback, start_generation, end_generation);
 			
 			script_block->mutation_type_id_ = mut_type_id;
 			script_block->subpopulation_id_ = subpop_id;
@@ -1831,27 +1831,27 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			int start_generation = (arg3_value ? (int)arg3_value->IntAtIndex(0) : 1);
 			int end_generation = (arg4_value ? (int)arg4_value->IntAtIndex(0) : INT_MAX);
 			
-			if (arg0_value->Type() != ScriptValueType::kValueNULL)
+			if (arg0_value->Type() != EidosValueType::kValueNULL)
 			{
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
-			if (arg2_value && (arg2_value->Type() != ScriptValueType::kValueNULL))
+			if (arg2_value && (arg2_value->Type() != EidosValueType::kValueNULL))
 			{
 				subpop_id = (int)arg2_value->IntAtIndex(0);
 				
 				if (subpop_id < -1)
-					SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an subpopID >= 0 (or -1, or NULL)." << endl << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an subpopID >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
-				SLIM_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
 			
-			SLiMScriptBlockType block_type = ((p_method_id == gID_registerScriptMateChoiceCallback) ? SLiMScriptBlockType::SLiMScriptMateChoiceCallback : SLiMScriptBlockType::SLiMScriptModifyChildCallback);
-			SLiMScriptBlock *script_block = new SLiMScriptBlock(script_id, script_string, block_type, start_generation, end_generation);
+			SLiMEidosBlockType block_type = ((p_method_id == gID_registerScriptMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 			
 			script_block->subpopulation_id_ = subpop_id;
 			
@@ -1863,7 +1863,7 @@ ScriptValue *SLiMSim::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *con
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 

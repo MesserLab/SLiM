@@ -19,7 +19,7 @@
 
 
 #include "mutation.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 
 
 #ifdef SLIMGUI
@@ -37,14 +37,14 @@ Mutation::Mutation(MutationType *p_mutation_type_ptr, int p_position, double p_s
 #endif
 {
 #if DEBUG_MUTATIONS
-	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+	EIDOS_OUTSTREAM << "Mutation constructed: " << this << std::endl;
 #endif
 }
 
 #if DEBUG_MUTATIONS
 Mutation::~Mutation()
 {
-	SLIM_OUTSTREAM << "Mutation destructed: " << this << std::endl;
+	EIDOS_OUTSTREAM << "Mutation destructed: " << this << std::endl;
 }
 #endif
 
@@ -56,7 +56,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 }
 
 //
-// SLiMscript support
+// Eidos support
 //
 const std::string *Mutation::ElementType(void) const
 {
@@ -70,7 +70,7 @@ void Mutation::Print(std::ostream &p_ostream) const
 
 std::vector<std::string> Mutation::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_mutationType);		// mutation_type_ptr_
 	constants.push_back(gStr_originGeneration);	// generation_
@@ -83,12 +83,12 @@ std::vector<std::string> Mutation::ReadOnlyMembers(void) const
 
 std::vector<std::string> Mutation::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	return variables;
 }
 
-bool Mutation::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool Mutation::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -102,11 +102,11 @@ bool Mutation::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *Mutation::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *Mutation::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -115,52 +115,52 @@ ScriptValue *Mutation::GetValueForMember(GlobalStringID p_member_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_originGeneration:
-			return new ScriptValue_Int_singleton_const(generation_);
+			return new EidosValue_Int_singleton_const(generation_);
 		case gID_position:
-			return new ScriptValue_Int_singleton_const(position_);
+			return new EidosValue_Int_singleton_const(position_);
 		case gID_selectionCoeff:
-			return new ScriptValue_Float_singleton_const(selection_coeff_);
+			return new EidosValue_Float_singleton_const(selection_coeff_);
 		case gID_subpopID:
-			return new ScriptValue_Int_singleton_const(subpop_index_);
+			return new EidosValue_Int_singleton_const(subpop_index_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void Mutation::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void Mutation::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+	return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Mutation::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_setSelectionCoeff);
 	
 	return methods;
 }
 
-const FunctionSignature *Mutation::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *Mutation::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static FunctionSignature *setSelectionCoeffSig = nullptr;
+	static EidosFunctionSignature *setSelectionCoeffSig = nullptr;
 	
 	if (!setSelectionCoeffSig)
 	{
-		setSelectionCoeffSig = (new FunctionSignature(gStr_setSelectionCoeff, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		setSelectionCoeffSig = (new EidosFunctionSignature(gStr_setSelectionCoeff, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
 	}
 	
 	if (p_method_id == gID_setSelectionCoeff)
 		return setSelectionCoeffSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_id);
+		return EidosObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *Mutation::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *Mutation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
 	//	*********************	- (void)setSelectionCoeff(float$ selectionCoeff)
@@ -173,13 +173,13 @@ ScriptValue *Mutation::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *co
 		
 		selection_coeff_ = static_cast<typeof(selection_coeff_)>(value);	// float, at present, but I don't want to hard-code that
 		
-		return gStaticScriptValueNULLInvisible;
+		return gStaticEidosValueNULLInvisible;
 	}
 	
 	
 	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

@@ -13,7 +13,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="SLiM Script Syntax" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
+        <window title="Eidos Syntax" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="QvC-M9-y7g" userLabel="Eidos Syntax" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" utility="YES"/>
             <windowPositionMask key="initialPositionMask" rightStrut="YES"/>
             <rect key="contentRect" x="2183" y="438" width="295" height="818"/>
@@ -35,7 +35,7 @@
             </view>
             <point key="canvasLocation" x="512" y="635.5"/>
         </window>
-        <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="panel" allowsNonContiguousLayout="YES" id="bqS-Wh-Qw9" customClass="SLiMScriptTextView">
+        <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="panel" allowsNonContiguousLayout="YES" id="bqS-Wh-Qw9" userLabel="Eidos Text View" customClass="EidosTextView">
             <rect key="frame" x="0.0" y="0.0" width="330" height="818"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>

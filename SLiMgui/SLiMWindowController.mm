@@ -161,15 +161,15 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)checkForSimulationTermination
 {
-	std::string &&terminationMessage = gSLiMTermination.str();
+	std::string &&terminationMessage = gEidosTermination.str();
 	
 	if (!terminationMessage.empty())
 	{
 		const char *cstr = terminationMessage.c_str();
 		NSString *str = [NSString stringWithUTF8String:cstr];
 		
-		gSLiMTermination.clear();
-		gSLiMTermination.str("");
+		gEidosTermination.clear();
+		gEidosTermination.str("");
 		
 		[self performSelector:@selector(showTerminationMessage:) withObject:[str retain] afterDelay:0.0];	// showTerminationMessage: will release the string
 		
@@ -205,8 +205,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		sim_random_bool_bit_buffer = 0;
 	}
 	
-	if (g_rng)
-		NSLog(@"g_rng already set up in startNewSimulationFromScript!");
+	if (gEidos_rng)
+		NSLog(@"gEidos_rng already set up in startNewSimulationFromScript!");
 	
 	std::istringstream infile([scriptString UTF8String]);
 	
@@ -215,11 +215,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		sim = new SLiMSim(infile);
 		
 		// We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
-		sim_rng = g_rng;
-		sim_random_bool_bit_counter = g_random_bool_bit_counter;
-		sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
+		sim_rng = gEidos_rng;
+		sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
+		sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
 		
-		g_rng = NULL;
+		gEidos_rng = NULL;
 		
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
@@ -256,7 +256,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightScriptKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightScriptKey])
-				[scriptTextView syntaxColorForSLiMScript];
+				[scriptTextView syntaxColorForEidos];
 			else
 				[scriptTextView clearSyntaxColoring];
 		}
@@ -264,7 +264,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightOutputKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightOutputKey])
-				[outputTextView syntaxColorForSLiMInput];
+				[outputTextView syntaxColorForOutput];
 			else
 				[outputTextView clearSyntaxColoring];
 		}
@@ -331,7 +331,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)updateOutputTextView
 {
-	std::string &&newOutput = gSLiMOut.str();
+	std::string &&newOutput = gEidosOut.str();
 	
 	if (!newOutput.empty())
 	{
@@ -343,15 +343,15 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
 		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
-			[outputTextView syntaxColorForSLiMInput];
+			[outputTextView syntaxColorForOutput];
 		
 		// if the user was scrolled to the bottom, we keep them there; otherwise, we let them stay where they were
 		if (scrolledToBottom)
 			[outputTextView scrollRangeToVisible:NSMakeRange([[outputTextView string] length], 0)];
 		
 		// clear any error flags set on the stream and empty out its string so it is ready to receive new output
-		gSLiMOut.clear();
-		gSLiMOut.str("");
+		gEidosOut.clear();
+		gEidosOut.str("");
 	}
 }
 
@@ -526,7 +526,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[scriptTextView setString:scriptString];
 	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[scriptTextView syntaxColorForSLiMScript];
+		[scriptTextView syntaxColorForEidos];
 	
 	// Set up our chromosome views to show the proper stuff
 	[chromosomeOverview setReferenceChromosomeView:nil];
@@ -1178,7 +1178,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 	else
 	{
-		SLiMScript script(cstr, 0);
+		SLiMEidosScript script(cstr, 0);
 		
 		try {
 			script.Tokenize();
@@ -1186,7 +1186,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		catch (std::runtime_error err)
 		{
-			errorDiagnostic = [[NSString stringWithUTF8String:GetTrimmedRaiseMessage().c_str()] retain];
+			errorDiagnostic = [[NSString stringWithUTF8String:EidosGetTrimmedRaiseMessage().c_str()] retain];
 		}
 	}
 	
@@ -1255,21 +1255,21 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	try
 	{
 		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM);
+		EIDOS_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
+		sim->population_.PrintAll(EIDOS_OUTSTREAM);
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like output events 'A' + 'F'
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
-		SLIM_OUTSTREAM << "Mutations:" << std::endl;
+		EIDOS_OUTSTREAM << std::endl;
+		EIDOS_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
+		EIDOS_OUTSTREAM << "Mutations:" << std::endl;
 		
 		for (int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
-			SLIM_OUTSTREAM << i;	// used to have a +1; switched to zero-based
-			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
+			EIDOS_OUTSTREAM << i;	// used to have a +1; switched to zero-based
+			sim->population_.substitutions_[i]->print(EIDOS_OUTSTREAM);
 		}
 		
-		// now send SLIM_OUTSTREAM to the output textview
+		// now send EIDOS_OUTSTREAM to the output textview
 		[self updateOutputTextView];
 	}
 	catch (std::runtime_error err)
@@ -1395,8 +1395,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 								int newGeneration = [generationString intValue];
 								
 								// Mark that we have imported
-								SLIM_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
-								SLIM_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
+								EIDOS_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
+								EIDOS_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
 								hasImported = YES;
 								success = YES;
 								
@@ -1527,10 +1527,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)appendWelcomeMessageAddendum
 {
-	ConsoleTextView *textView = [_consoleController textView];
+	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
-	NSDictionary *outputAttrs = [ConsoleTextView outputAttrs];
-	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\n" attributes:outputAttrs];
+	NSDictionary *outputAttrs = [EidosConsoleTextView outputAttrs];
+	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\nSLiM version 2.0a3.\n" attributes:outputAttrs];
 	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];
@@ -1542,18 +1542,23 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[dividerString release];
 }
 
-- (void)injectIntoInterpreter:(ScriptInterpreter *)interpreter
+- (void)injectIntoInterpreter:(EidosInterpreter *)interpreter
 {
 	if (sim && !invalidSimulation)
 		sim->InjectIntoInterpreter(*interpreter, nullptr);
 }
 
-- (SymbolTable *)globalSymbolsForCompletion
+- (EidosSymbolTable *)globalSymbolTableForCompletion
 {
 	return [_consoleController symbols];
 }
 
-- (std::vector<FunctionSignature*> *)injectedFunctionSignatures
+- (NSArray *)languageKeywordsForCompletion
+{
+	return [NSArray arrayWithObjects:@"fitness", @"mateChoice", @"modifyChild", nil];
+}
+
+- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures
 {
 	if (sim && !invalidSimulation)
 		return sim->InjectedFunctionSignatures();
@@ -1579,24 +1584,24 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)willExecuteScript
 {
-	// Whenever we are about to execute script, we swap in our random number generator; at other times, g_rng is NULL.
+	// Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
 	// The goal here is to keep each SLiM window independent in its random number sequence.
-	if (g_rng)
-		NSLog(@"willExecuteScript: g_rng already set up!");
+	if (gEidos_rng)
+		NSLog(@"willExecuteScript: gEidos_rng already set up!");
 	
-	g_rng = sim_rng;
-	g_random_bool_bit_counter = sim_random_bool_bit_counter;
-	g_random_bool_bit_buffer = sim_random_bool_bit_buffer;
+	gEidos_rng = sim_rng;
+	gEidos_random_bool_bit_counter = sim_random_bool_bit_counter;
+	gEidos_random_bool_bit_buffer = sim_random_bool_bit_buffer;
 }
 
 - (void)didExecuteScript
 {
 	// Swap our random number generator back out again; see -willExecuteScript
-	sim_rng = g_rng;
-	sim_random_bool_bit_counter = g_random_bool_bit_counter;
-	sim_random_bool_bit_buffer = g_random_bool_bit_buffer;
+	sim_rng = gEidos_rng;
+	sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
+	sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
 	
-	g_rng = NULL;
+	gEidos_rng = NULL;
 }
 
 - (void)consoleWindowWillClose
@@ -1678,9 +1683,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
 	{
 		if (textView == scriptTextView)
-			[scriptTextView syntaxColorForSLiMScript];
+			[scriptTextView syntaxColorForEidos];
 		else if (textView == outputTextView)
-			[outputTextView syntaxColorForSLiMInput];
+			[outputTextView syntaxColorForOutput];
 	}
 	
 	if (textView == scriptTextView)
@@ -1909,12 +1914,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
-			std::vector<SLiMScriptBlock*> &scriptBlocks = sim->script_blocks_;
+			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
 			int scriptBlockCount = (int)scriptBlocks.size();
 			
 			if (rowIndex < scriptBlockCount)
 			{
-				SLiMScriptBlock *scriptBlock = scriptBlocks[rowIndex];
+				SLiMEidosBlock *scriptBlock = scriptBlocks[rowIndex];
 				
 				if (aTableColumn == scriptBlocksIDColumn)
 				{
@@ -1940,10 +1945,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				{
 					switch (scriptBlock->type_)
 					{
-						case SLiMScriptBlockType::SLiMScriptEvent:					return @"event";
-						case SLiMScriptBlockType::SLiMScriptFitnessCallback:		return @"fitness()";
-						case SLiMScriptBlockType::SLiMScriptMateChoiceCallback:		return @"mateChoice()";
-						case SLiMScriptBlockType::SLiMScriptModifyChildCallback:	return @"modifyChild()";
+						case SLiMEidosBlockType::SLiMEidosEvent:				return @"event";
+						case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return @"fitness()";
+						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return @"mateChoice()";
+						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return @"modifyChild()";
 					}
 				}
 			}
@@ -1957,12 +1962,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 {
 	if (aTableView == scriptBlocksTableView)
 	{
-		std::vector<SLiMScriptBlock*> &scriptBlocks = sim->script_blocks_;
+		std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
 		int scriptBlockCount = (int)scriptBlocks.size();
 		
 		if (rowIndex < scriptBlockCount)
 		{
-			SLiMScriptBlock *scriptBlock = scriptBlocks[rowIndex];
+			SLiMEidosBlock *scriptBlock = scriptBlocks[rowIndex];
 			const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
 			NSString *ns_script_string = [NSString stringWithUTF8String:script_string];
 			

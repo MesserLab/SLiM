@@ -8,7 +8,8 @@ command-line tool:
 	should be using strtod, strtol, etc. in all code instead of atoi, atof
 	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
 
-SLiMscript:
+Eidos:
+	EidosScribe: continue work to make it completely independent of SLiM
 	extensions for Daphnia model
 		add a "modify generated child" event that can be used to make resting eggs by (1) setting a flag saying that the generated child should not be used, and (2) scheduling a new script event for the future that wakes up the resting egg
 		add a "generate child" event that can be used to wake up a resting egg by taking values defining the mutations present and creating a child out of them
@@ -21,10 +22,8 @@ SLiMscript:
 	
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
-	make it possible to drive a graph from script – maybe done as a callback into SLiMscript, like the rule idea?
 
 SLiMgui work:
-	SLiMscribe: continue work to make it completely independent of SLiM
 	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
@@ -51,7 +50,7 @@ changes to mention in docs:
 	fix to zero out gene_conversion_fraction_; in version 1.8 gene conversion might have turned on without being requested (see my email to Philipp); added Chromosome constructor to fix this
 	more than one mutation with a negative fitness could result in a positive fitness, since the two negatives would multiply to make a positive; fixed in a revision to 1.8, and in 2.0
 	predetermined mutations doc says you can specify a selection coefficient and dominance coefficient, but you can't; doc error, apparently
-	addition of SLiMscript, SLiMscribe
+	addition of Eidos, EidosScribe
 	mutation equality defined by pointer equality
 	MS output slightly changed, now outputs positions spanning the interval [0,1] instead of (0,1]
 

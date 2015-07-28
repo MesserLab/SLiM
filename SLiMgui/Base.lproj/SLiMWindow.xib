@@ -652,13 +652,13 @@
                                 <rect key="frame" x="0.0" y="0.0" width="570" height="547"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
-                                    <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yeL-B5-ZLS">
+                                    <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yeL-B5-ZLS" userLabel="Bordered Scroll View - Eidos Text View">
                                         <rect key="frame" x="0.0" y="0.0" width="570" height="521"/>
                                         <clipView key="contentView" id="lOc-28-sSJ">
                                             <rect key="frame" x="1" y="1" width="223" height="133"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="N45-af-9rm" customClass="SLiMScriptTextView">
+                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
                                                     <rect key="frame" x="0.0" y="0.0" width="223" height="519"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -747,7 +747,7 @@
                                             <action selector="showScriptHelp:" target="-2" id="R6V-TU-6uQ"/>
                                         </connections>
                                     </button>
-                                    <button toolTip="show/hide SLiMscript console" translatesAutoresizingMaskIntoConstraints="NO" id="aPl-XV-6R5">
+                                    <button toolTip="show/hide Eidos console" translatesAutoresizingMaskIntoConstraints="NO" id="aPl-XV-6R5">
                                         <rect key="frame" x="46" y="524" width="20" height="20"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="20" id="Fln-18-1SY"/>
@@ -782,13 +782,13 @@
                                 <rect key="frame" x="579" y="0.0" width="561" height="547"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
-                                    <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Fql-QB-8ET">
+                                    <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Fql-QB-8ET" userLabel="Bordered Scroll View - Eidos Text View">
                                         <rect key="frame" x="0.0" y="0.0" width="561" height="521"/>
                                         <clipView key="contentView" id="Fsf-qx-R06">
                                             <rect key="frame" x="1" y="1" width="223" height="133"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="z1f-09-60b" customClass="SLiMScriptTextView">
+                                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="z1f-09-60b" userLabel="Eidos Text View" customClass="EidosTextView">
                                                     <rect key="frame" x="0.0" y="0.0" width="223" height="519"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -1428,7 +1428,7 @@
                 </scrollView>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
                     <rect key="frame" x="18" y="167" width="129" height="17"/>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="SLiMScript Blocks:" id="OOa-Ar-p63">
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos Blocks:" id="OOa-Ar-p63">
                         <font key="font" metaFont="systemBold"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>

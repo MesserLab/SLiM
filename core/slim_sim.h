@@ -37,16 +37,16 @@
 #include "mutation_type.h"
 #include "population.h"
 #include "chromosome.h"
-#include "script.h"
-#include "script_value.h"
-#include "script_functions.h"
-#include "slim_script_block.h"
+#include "eidos_script.h"
+#include "eidos_value.h"
+#include "eidos_functions.h"
+#include "slim_eidos_block.h"
 
 
-class ScriptInterpreter;
+class EidosInterpreter;
 
 
-class SLiMSim : public ScriptObjectElement
+class SLiMSim : public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -62,7 +62,7 @@ private:
 	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
 	
 	int generation_ = 0;															// the current generation reached in simulation
-	ScriptValue *cached_value_generation_ = nullptr;								// OWNED POINTER: a cached value for generation_; delete and nil if changed
+	EidosValue *cached_value_generation_ = nullptr;								// OWNED POINTER: a cached value for generation_; delete and nil if changed
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
@@ -76,10 +76,10 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-	SLiMScript *script_;															// OWNED POINTER: the whole input file script
-	std::vector<SLiMScriptBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
-	std::vector<SLiMScriptBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<FunctionSignature*> sim_0_signatures;								// OWNED POINTERS: SLiMscript function signatures
+	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
+	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
+	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
+	std::vector<EidosFunctionSignature*> sim_0_signatures;								// OWNED POINTERS: Eidos function signatures
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
@@ -101,7 +101,7 @@ private:
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
 	
-	SymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: SymbolTableEntry object for fast setup of the symbol table
+	EidosSymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
 	
 	int64_t tag_value_;																// a user-defined tag value
 	
@@ -114,7 +114,7 @@ public:
 	~SLiMSim(void);																	// destructor
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
-	std::vector<SLiMScriptBlock*> ScriptBlocksMatching(int p_generation, SLiMScriptBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(int p_generation, SLiMEidosBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id);
 	void DeregisterScheduledScriptBlocks(void);
 	
 	void RunZeroGeneration(void);													// run generation zero and check for complete initialization
@@ -132,28 +132,28 @@ public:
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	
 	//
-	// SLiMscript support
+	// Eidos support
 	//
 	void GenerateCachedSymbolTableEntry(void);
-	inline SymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
-	static ScriptValue *StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
-	ScriptValue *FunctionDelegationFunnel(const std::string &p_function_name, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	static EidosValue *StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
-	void InjectIntoInterpreter(ScriptInterpreter &p_interpreter, SLiMScriptBlock *p_script_block);	// add SLiM constructs to an interpreter instance
-	std::vector<FunctionSignature*> *InjectedFunctionSignatures(void);
+	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block);	// add SLiM constructs to an interpreter instance
+	std::vector<EidosFunctionSignature*> *InjectedFunctionSignatures(void);
 	
 	virtual const std::string *ElementType(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
-	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
-	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
+	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
+	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
-	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

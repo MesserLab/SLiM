@@ -40,7 +40,7 @@ void Substitution::print(std::ostream &p_out) const
 }
 
 //
-// SLiMscript support
+// Eidos support
 //
 const std::string *Substitution::ElementType(void) const
 {
@@ -54,7 +54,7 @@ void Substitution::Print(std::ostream &p_ostream) const
 
 std::vector<std::string> Substitution::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_mutationType);		// mutation_type_ptr_
 	constants.push_back(gStr_position);			// position_
@@ -68,12 +68,12 @@ std::vector<std::string> Substitution::ReadOnlyMembers(void) const
 
 std::vector<std::string> Substitution::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	return variables;
 }
 
-bool Substitution::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool Substitution::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -88,11 +88,11 @@ bool Substitution::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *Substitution::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *Substitution::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -101,42 +101,42 @@ ScriptValue *Substitution::GetValueForMember(GlobalStringID p_member_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_position:
-			return new ScriptValue_Int_singleton_const(position_);
+			return new EidosValue_Int_singleton_const(position_);
 		case gID_selectionCoeff:
-			return new ScriptValue_Float_singleton_const(selection_coeff_);
+			return new EidosValue_Float_singleton_const(selection_coeff_);
 		case gID_subpopID:
-			return new ScriptValue_Int_singleton_const(subpop_index_);
+			return new EidosValue_Int_singleton_const(subpop_index_);
 		case gID_originGeneration:
-			return new ScriptValue_Int_singleton_const(generation_);
+			return new EidosValue_Int_singleton_const(generation_);
 		case gID_fixationTime:
-			return new ScriptValue_Int_singleton_const(fixation_time_);
+			return new EidosValue_Int_singleton_const(fixation_time_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void Substitution::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void Substitution::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
-	return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+	return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 }
 
 std::vector<std::string> Substitution::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	return methods;
 }
 
-const FunctionSignature *Substitution::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *Substitution::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	return ScriptObjectElement::SignatureForMethod(p_method_id);
+	return EidosObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *Substitution::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *Substitution::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

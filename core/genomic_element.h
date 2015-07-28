@@ -31,10 +31,10 @@
 #include <iostream>
 
 #include "genomic_element_type.h"
-#include "script_value.h"
+#include "eidos_value.h"
 
 
-class GenomicElement : public ScriptObjectElement
+class GenomicElement : public EidosObjectElement
 {
 	// This class has a restricted copying policy; see below
 	
@@ -64,19 +64,19 @@ public:
 	GenomicElement(GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
 	
 	//
-	// SLiMscript support
+	// Eidos support
 	//
 	virtual const std::string *ElementType(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
-	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
-	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
+	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
+	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
-	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // support stream output of GenomicElement, for debugging

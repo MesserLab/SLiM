@@ -23,9 +23,9 @@
 #include <sstream>
 
 #include "mutation_type.h"
-#include "g_rng.h"
+#include "eidos_rng.h"
 #include "slim_global.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 
 
 using std::endl;
@@ -43,9 +43,9 @@ MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, cha
 	static string possible_dfe_types = "fge";
 	
 	if (possible_dfe_types.find(dfe_type_) == string::npos)
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): invalid mutation type '" << dfe_type_ << "'" << eidos_terminate();
 	if (dfe_parameters_.size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): invalid mutation type parameters" << eidos_terminate();
 }
 
 MutationType::~MutationType(void)
@@ -65,9 +65,9 @@ double MutationType::DrawSelectionCoefficient() const
 	switch (dfe_type_)
 	{
 		case 'f': return dfe_parameters_[0];
-		case 'g': return gsl_ran_gamma(g_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
-		case 'e': return gsl_ran_exponential(g_rng, dfe_parameters_[0]);
-		default: SLIM_TERMINATION << "ERROR (DrawSelectionCoefficient): invalid DFE type" << slim_terminate(); return 0;
+		case 'g': return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		case 'e': return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
+		default: EIDOS_TERMINATION << "ERROR (DrawSelectionCoefficient): invalid DFE type" << eidos_terminate(); return 0;
 	}
 }
 
@@ -100,7 +100,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 }
 
 //
-// SLiMscript support
+// Eidos support
 //
 
 void MutationType::GenerateCachedSymbolTableEntry(void)
@@ -111,7 +111,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new SymbolTableEntry(mut_type_stream.str(), (new ScriptValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
 const std::string *MutationType::ElementType(void) const
@@ -126,7 +126,7 @@ void MutationType::Print(std::ostream &p_ostream) const
 
 std::vector<std::string> MutationType::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_id);						// mutation_type_id_
 	constants.push_back(gStr_distributionType);		// dfe_type_
@@ -137,7 +137,7 @@ std::vector<std::string> MutationType::ReadOnlyMembers(void) const
 
 std::vector<std::string> MutationType::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_dominanceCoeff);		// dominance_coeff_
 	variables.push_back(gStr_tag);					// tag_value_
@@ -145,7 +145,7 @@ std::vector<std::string> MutationType::ReadWriteMembers(void) const
 	return variables;
 }
 
-bool MutationType::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool MutationType::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -162,11 +162,11 @@ bool MutationType::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *MutationType::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -177,34 +177,34 @@ ScriptValue *MutationType::GetValueForMember(GlobalStringID p_member_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_muttype_id_)
-				cached_value_muttype_id_ = (new ScriptValue_Int_singleton_const(mutation_type_id_))->SetExternalPermanent();
+				cached_value_muttype_id_ = (new EidosValue_Int_singleton_const(mutation_type_id_))->SetExternalPermanent();
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
-			return new ScriptValue_String(std::string(1, dfe_type_));
+			return new EidosValue_String(std::string(1, dfe_type_));
 		case gID_distributionParams:
-			return new ScriptValue_Float_vector(dfe_parameters_);
+			return new EidosValue_Float_vector(dfe_parameters_);
 			
 			// variables
 		case gID_dominanceCoeff:
-			return new ScriptValue_Float_singleton_const(dominance_coeff_);
+			return new EidosValue_Float_singleton_const(dominance_coeff_);
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void MutationType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void MutationType::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
 	{
 		case gID_dominanceCoeff:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
 			
 			double value = p_value->FloatAtIndex(0);
 			
@@ -214,7 +214,7 @@ void MutationType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_
 			
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -224,38 +224,38 @@ void MutationType::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_
 			
 		default:
 		{
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 		}
 	}
 }
 
 std::vector<std::string> MutationType::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_setDistribution);
 	
 	return methods;
 }
 
-const FunctionSignature *MutationType::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *MutationType::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static FunctionSignature *setDistributionSig = nullptr;
+	static EidosFunctionSignature *setDistributionSig = nullptr;
 	
 	if (!setDistributionSig)
 	{
-		setDistributionSig = (new FunctionSignature(gStr_setDistribution, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
+		setDistributionSig = (new EidosFunctionSignature(gStr_setDistribution, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
 	}
 	
 	if (p_method_id == gID_setDistribution)
 		return setDistributionSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_id);
+		return EidosObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *MutationType::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
 	//	*********************	- (void)setDistribution(string$ distributionType, ...)
@@ -275,12 +275,12 @@ ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue
 		else if (dfe_type_string.compare("e") == 0)
 			expected_dfe_param_count = 1;
 		else
-			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << eidos_terminate();
 		
 		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 1 + expected_dfe_param_count)
-			SLIM_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
@@ -289,13 +289,13 @@ ScriptValue *MutationType::ExecuteMethod(GlobalStringID p_method_id, ScriptValue
 		dfe_type_ = dfe_type;
 		dfe_parameters_ = dfe_parameters;
 		
-		return gStaticScriptValueNULLInvisible;
+		return gStaticEidosValueNULLInvisible;
 	}
 	
 	
 	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

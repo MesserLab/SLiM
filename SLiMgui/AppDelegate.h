@@ -25,7 +25,7 @@
 
 @class SLiMWhiteView;
 @class SLiMWindowController;
-@class SLiMScriptTextView;
+@class EidosTextView;
 
 
 // User defaults keys
@@ -50,7 +50,7 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 	// Script Syntax Help
 	IBOutlet NSWindow *scriptSyntaxWindow;
 	IBOutlet SLiMWhiteView *scriptSyntaxWhiteView;
-	IBOutlet SLiMScriptTextView *scriptSyntaxTextView;
+	IBOutlet EidosTextView *scriptSyntaxTextView;
 }
 
 - (IBAction)newDocument:(id)sender;

@@ -38,7 +38,7 @@
 #include "chromosome.h"
 #include "polymorphism.h"
 #include "slim_global.h"
-#include "slim_script_block.h"
+#include "slim_eidos_block.h"
 
 
 class SLiMSim;
@@ -81,7 +81,7 @@ public:
 		auto found_pair = find(p_subpop_id);
 		
 		if (found_pair == this->end())
-			SLIM_TERMINATION << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl << slim_terminate(true);
+			EIDOS_TERMINATION << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl << eidos_terminate(true);
 		
 		return *(found_pair->second);
 	}
@@ -100,13 +100,13 @@ public:
 	void SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a script event in the population; the script is assumed to be due to trigger
-	void ExecuteScript(SLiMScriptBlock *p_script_block, int p_generation, const Chromosome &p_chromosome);
+	void ExecuteScript(SLiMEidosBlock *p_script_block, int p_generation, const Chromosome &p_chromosome);
 	
 	// apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
-	int ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_mate_choice_callbacks);
+	int ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks);
 	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-	bool ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMScriptBlock*> &p_modify_child_callbacks);
+	bool ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 	void EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present);

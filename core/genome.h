@@ -32,7 +32,7 @@
 
 #include "mutation.h"
 #include "slim_global.h"
-#include "script_value.h"
+#include "eidos_value.h"
 
 
 // Genome now has an internal buffer that it can use to hold mutation pointers.  This makes every Genome object a bit bigger;
@@ -41,11 +41,11 @@
 #define GENOME_MUT_BUFFER_SIZE	4
 
 
-class Genome : public ScriptObjectElement
+class Genome : public EidosObjectElement
 {
 	// This class has a restricted copying policy; see below
 	
-	ScriptValue *self_value_ = nullptr;					// OWNED POINTER: cached ScriptValue object for speed
+	EidosValue *self_value_ = nullptr;					// OWNED POINTER: cached EidosValue object for speed
 	
 #ifdef SLIMGUI
 public:
@@ -328,23 +328,23 @@ public:
 	}
 	
 	//
-	// SLiMscript support
+	// Eidos support
 	//
-	void GenerateCachedScriptValue(void);
-	inline ScriptValue *CachedScriptValue(void) { if (!self_value_) GenerateCachedScriptValue(); return self_value_; };
+	void GenerateCachedEidosValue(void);
+	inline EidosValue *CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const std::string *ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
-	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
-	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
+	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
+	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
-	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 #endif /* defined(__SLiM__genome__) */

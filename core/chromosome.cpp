@@ -23,9 +23,9 @@
 #include <iostream>
 #include "math.h"
 
-#include "g_rng.h"
+#include "eidos_rng.h"
 #include "slim_global.h"
-#include "script_functionsignature.h"
+#include "eidos_function_signature.h"
 
 
 Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_overall_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
@@ -34,7 +34,7 @@ Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nu
 
 Chromosome::~Chromosome(void)
 {
-	//SLIM_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
+	//EIDOS_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
 	
 	if (lookup_mutation)
 		gsl_ran_discrete_free(lookup_mutation);
@@ -50,11 +50,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): empty chromosome" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): empty chromosome" << eidos_terminate();
 	if (recombination_rates_.size() == 0)
-		SLIM_TERMINATION << "ERROR (Initialize): recombination rate not specified" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): recombination rate not specified" << eidos_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-		SLIM_TERMINATION << "ERROR (Initialize): invalid mutation rate" << slim_terminate();
+		EIDOS_TERMINATION << "ERROR (Initialize): invalid mutation rate" << eidos_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	if (cached_value_lastpos_)
@@ -101,7 +101,7 @@ void Chromosome::InitializeDraws(void)
 			last_position_ = recombination_end_positions_[i];
 	}
 	
-	// SLIM_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
+	// EIDOS_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
 	
 	if (lookup_recombination)
 		gsl_ran_discrete_free(lookup_recombination);
@@ -117,14 +117,14 @@ void Chromosome::InitializeDraws(void)
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
-//	SLIM_OUTSTREAM << "overall_mutation_rate_ == " << overall_mutation_rate_ << std::endl;
-//	SLIM_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
-//	SLIM_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
+//	EIDOS_OUTSTREAM << "overall_mutation_rate_ == " << overall_mutation_rate_ << std::endl;
+//	EIDOS_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
+//	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	exp_neg_overall_mutation_rate_ = prob_mutation_0;
 	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
@@ -137,12 +137,12 @@ void Chromosome::InitializeDraws(void)
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
 Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
 {
-	int genomic_element = static_cast<int>(gsl_ran_discrete(g_rng, lookup_mutation));
+	int genomic_element = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation));
 	const GenomicElement &source_element = (*this)[genomic_element];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(g_rng, source_element.end_position_ - source_element.start_position_ + 1));  
+	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(gEidos_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
@@ -158,23 +158,23 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		int breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(g_rng, lookup_recombination));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
-			breakpoint = static_cast<int>(gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval]));
+			breakpoint = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]));
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<int>(gsl_rng_uniform_int(g_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<int>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
 		
 		breakpoints.push_back(breakpoint);
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
 		{
-			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(g_rng) < gene_conversion_fraction_))
+			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
 			{
 				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
-				int breakpoint2 = breakpoint + gsl_ran_geometric(g_rng, 1.0 / gene_conversion_avg_length_);
+				int breakpoint2 = breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_);
 				
 				breakpoints.push_back(breakpoint2);
 			}
@@ -186,9 +186,9 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 
 
 //
-// SLiMscript support
+// Eidos support
 //
-#pragma mark SLiMscript support
+#pragma mark Eidos support
 
 const std::string *Chromosome::ElementType(void) const
 {
@@ -197,7 +197,7 @@ const std::string *Chromosome::ElementType(void) const
 
 std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
 {
-	std::vector<std::string> constants = ScriptObjectElement::ReadOnlyMembers();
+	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
 	
 	constants.push_back(gStr_genomicElements);					// this
 	constants.push_back(gStr_lastPosition);					// last_position_
@@ -210,7 +210,7 @@ std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
 
 std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 {
-	std::vector<std::string> variables = ScriptObjectElement::ReadWriteMembers();
+	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
 	variables.push_back(gStr_geneConversionMeanLength);			// gene_conversion_avg_length_
@@ -220,7 +220,7 @@ std::vector<std::string> Chromosome::ReadWriteMembers(void) const
 	return variables;
 }
 
-bool Chromosome::MemberIsReadOnly(GlobalStringID p_member_id) const
+bool Chromosome::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 {
 	switch (p_member_id)
 	{
@@ -241,11 +241,11 @@ bool Chromosome::MemberIsReadOnly(GlobalStringID p_member_id) const
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::MemberIsReadOnly(p_member_id);
 	}
 }
 
-ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
+EidosValue *Chromosome::GetValueForMember(EidosGlobalStringID p_member_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
@@ -253,7 +253,7 @@ ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
 			// constants
 		case gID_genomicElements:
 		{
-			ScriptValue_Object_vector *vec = new ScriptValue_Object_vector();
+			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
 				vec->PushElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
@@ -265,40 +265,40 @@ ScriptValue *Chromosome::GetValueForMember(GlobalStringID p_member_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = (new ScriptValue_Int_singleton_const(last_position_))->SetExternalPermanent();
+				cached_value_lastpos_ = (new EidosValue_Int_singleton_const(last_position_))->SetExternalPermanent();
 			return cached_value_lastpos_;
 		}
 		case gID_overallRecombinationRate:
-			return new ScriptValue_Float_singleton_const(overall_recombination_rate_);
+			return new EidosValue_Float_singleton_const(overall_recombination_rate_);
 		case gID_recombinationEndPositions:
-			return new ScriptValue_Int_vector(recombination_end_positions_);
+			return new EidosValue_Int_vector(recombination_end_positions_);
 		case gID_recombinationRates:
-			return new ScriptValue_Float_vector(recombination_rates_);
+			return new EidosValue_Float_vector(recombination_rates_);
 			
 			// variables
 		case gID_geneConversionFraction:
-			return new ScriptValue_Float_singleton_const(gene_conversion_fraction_);
+			return new EidosValue_Float_singleton_const(gene_conversion_fraction_);
 		case gID_geneConversionMeanLength:
-			return new ScriptValue_Float_singleton_const(gene_conversion_avg_length_);
+			return new EidosValue_Float_singleton_const(gene_conversion_avg_length_);
 		case gID_overallMutationRate:
-			return new ScriptValue_Float_singleton_const(overall_mutation_rate_);
+			return new EidosValue_Float_singleton_const(overall_mutation_rate_);
 		case gID_tag:
-			return new ScriptValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton_const(tag_value_);
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetValueForMember(p_member_id);
 	}
 }
 
-void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value)
+void Chromosome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
 	{
 		case gID_geneConversionFraction:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
 			
 			double value = p_value->FloatAtIndex(0);
 			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
@@ -308,7 +308,7 @@ void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_va
 		}
 		case gID_geneConversionMeanLength:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt | kScriptValueMaskFloat);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
 			
 			double value = p_value->FloatAtIndex(0);
 			RangeCheckValue(__func__, p_member_id, value >= 0);
@@ -318,7 +318,7 @@ void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_va
 		}
 		case gID_overallMutationRate:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskFloat);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskFloat);
 			
 			double value = p_value->FloatAtIndex(0);
 			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
@@ -328,7 +328,7 @@ void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_va
 		}
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kScriptValueMaskInt);
+			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
 			
@@ -338,38 +338,38 @@ void Chromosome::SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_va
 			
 			// all others, including gID_none
 		default:
-			return ScriptObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
 	}
 }
 
 std::vector<std::string> Chromosome::Methods(void) const
 {
-	std::vector<std::string> methods = ScriptObjectElement::Methods();
+	std::vector<std::string> methods = EidosObjectElement::Methods();
 	
 	methods.push_back(gStr_setRecombinationIntervals);
 	
 	return methods;
 }
 
-const FunctionSignature *Chromosome::SignatureForMethod(GlobalStringID p_method_id) const
+const EidosFunctionSignature *Chromosome::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static FunctionSignature *setRecombinationIntervalsSig = nullptr;
+	static EidosFunctionSignature *setRecombinationIntervalsSig = nullptr;
 	
 	if (!setRecombinationIntervalsSig)
 	{
-		setRecombinationIntervalsSig = (new FunctionSignature(gStr_setRecombinationIntervals, FunctionIdentifier::kNoFunction, kScriptValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
+		setRecombinationIntervalsSig = (new EidosFunctionSignature(gStr_setRecombinationIntervals, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt()->AddNumeric();
 	}
 	
 	if (p_method_id == gID_setRecombinationIntervals)
 		return setRecombinationIntervalsSig;
 	else
-		return ScriptObjectElement::SignatureForMethod(p_method_id);
+		return EidosObjectElement::SignatureForMethod(p_method_id);
 }
 
-ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter)
+EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	ScriptValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	ScriptValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	//
 	//	*********************	- (void)setRecombinationIntervals(integer ends, numeric rates)
@@ -383,7 +383,7 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 		
 		// check first
 		if ((ends_count == 0) || (ends_count != rates_count))
-			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends and rates to be equal in size, containing at least one entry." << eidos_terminate();
 		
 		for (int value_index = 0; value_index < ends_count; ++value_index)
 		{
@@ -392,17 +392,17 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 			
 			if (value_index > 0)
 				if (end <= arg0_value->IntAtIndex(value_index - 1))
-					SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends to be in ascending order." << slim_terminate();
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires ends to be in ascending order." << eidos_terminate();
 			
 			if (rate < 0.0)
-				SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires rates to be >= 0." << slim_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires rates to be >= 0." << eidos_terminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
 		if (arg0_value->IntAtIndex(ends_count - 1) != last_position_)
-			SLIM_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << slim_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationIntervals() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
 		
 		// then adopt them
 		recombination_end_positions_.clear();
@@ -419,13 +419,13 @@ ScriptValue *Chromosome::ExecuteMethod(GlobalStringID p_method_id, ScriptValue *
 		
 		InitializeDraws();
 		
-		return gStaticScriptValueNULLInvisible;
+		return gStaticEidosValueNULLInvisible;
 	}
 	
 	
 	// all others, including gID_none
 	else
-		return ScriptObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

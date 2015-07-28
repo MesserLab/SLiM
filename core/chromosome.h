@@ -36,11 +36,11 @@
 #include "mutation_type.h"
 #include "genomic_element.h"
 #include "genomic_element_type.h"
-#include "g_rng.h"
-#include "script_value.h"
+#include "eidos_rng.h"
+#include "eidos_value.h"
 
 
-class Chromosome : public std::vector<GenomicElement>, public ScriptObjectElement
+class Chromosome : public std::vector<GenomicElement>, public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -63,7 +63,7 @@ public:
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
 	int last_position_;										// last position; used to be called length_ but it is (length - 1) really
-	ScriptValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
+	EidosValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
 	
 	double overall_mutation_rate_;							// overall mutation rate
 	double overall_recombination_rate_;						// overall recombination rate
@@ -85,39 +85,39 @@ public:
 	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
 	
 	//
-	// SLiMscript support
+	// Eidos support
 	//
 	virtual const std::string *ElementType(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(GlobalStringID p_member_id) const;
-	virtual ScriptValue *GetValueForMember(GlobalStringID p_member_id);
-	virtual void SetValueForMember(GlobalStringID p_member_id, ScriptValue *p_value);
+	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
+	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
+	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const FunctionSignature *SignatureForMethod(GlobalStringID p_method_id) const;
-	virtual ScriptValue *ExecuteMethod(GlobalStringID p_method_id, ScriptValue *const *const p_arguments, int p_argument_count, ScriptInterpreter &p_interpreter);
+	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // draw the number of mutations that occur, based on the overall mutation rate
 inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
 {
-	return slim_fast_ran_poisson(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
-	//return gsl_ran_poisson(g_rng, overall_mutation_rate_);
+	return eidos_fast_ran_poisson(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+	//return gsl_ran_poisson(gEidos_rng, overall_mutation_rate_);
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
 inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount() const
 {
-	return slim_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
-	//return gsl_ran_poisson(g_rng, overall_recombination_rate_);
+	return eidos_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+	//return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
 }
 
 // determine both the mutation count and the breakpoint count with (usually) a single RNG draw
 inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const
 {
-	double u = gsl_rng_uniform(g_rng);
+	double u = gsl_rng_uniform(gEidos_rng);
 	
 	if (u <= probability_both_0)
 	{
@@ -127,17 +127,17 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 	else if (u <= probability_both_0_OR_mut_0_break_non0)
 	{
 		*p_mut_count = 0;
-		*p_break_count = slim_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
 	}
 	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
 	{
-		*p_mut_count = slim_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
 		*p_break_count = 0;
 	}
 	else
 	{
-		*p_mut_count = slim_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
-		*p_break_count = slim_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+		*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_, exp_neg_overall_mutation_rate_);
+		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
 	}
 }
 

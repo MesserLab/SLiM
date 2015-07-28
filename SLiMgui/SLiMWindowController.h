@@ -23,15 +23,15 @@
 #include <gsl/gsl_randist.h>
 
 #include "slim_sim.h"
-#include "ChromosomeView.h"
-#include "PopulationView.h"
-#include "GraphView.h"
-#include "CocoaExtra.h"
-#import "ConsoleTextView.h"
-#include "ConsoleWindowController.h"
+#import "ChromosomeView.h"
+#import "PopulationView.h"
+#import "GraphView.h"
+#import "CocoaExtra.h"
+#import "EidosConsoleTextView.h"
+#import "EidosConsoleWindowController.h"
 
 
-@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, ConsoleControllerDelegate>
+@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleControllerDelegate>
 {
 @public
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
@@ -90,8 +90,8 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
-	IBOutlet SLiMScriptTextView *scriptTextView;
-	IBOutlet SLiMScriptTextView *outputTextView;
+	IBOutlet EidosTextView *scriptTextView;
+	IBOutlet EidosTextView *outputTextView;
 	IBOutlet NSButton *consoleButton;
 	
 	IBOutlet NSTableView *subpopTableView;
@@ -151,7 +151,7 @@
 @property (nonatomic) BOOL reachedSimulationEnd;
 @property (nonatomic, readonly) NSColor *colorForWindowLabels;
 
-@property (retain) IBOutlet ConsoleWindowController *consoleController;
+@property (retain) IBOutlet EidosConsoleWindowController *consoleController;
 
 //
 //	Actions

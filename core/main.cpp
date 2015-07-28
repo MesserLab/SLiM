@@ -34,7 +34,7 @@ void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	SLIM_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <script file>" << slim_terminate();
+	EIDOS_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <script file>" << eidos_terminate();
 }
 
 int main(int argc, char *argv[])
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			SLIM_ERRSTREAM << "SLiM version 2.0a2, built " << __DATE__ << " " __TIME__ << std::endl;
+			EIDOS_ERRSTREAM << "SLiM version 2.0a3, built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	
 	// announce if we are running a debug build
 #ifdef DEBUG
-	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+	EIDOS_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context
 		//delete sim;
-		//gsl_rng_free(g_rng);
+		//gsl_rng_free(gEidos_rng);
 	}
 	
 	// end timing and print elapsed time
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
-		SLIM_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
+		EIDOS_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
 	
 	return EXIT_SUCCESS;
 }
