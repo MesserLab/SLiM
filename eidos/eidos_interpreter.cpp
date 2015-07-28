@@ -91,19 +91,20 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, Eidos
 
 EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols) : root_node_(p_script.AST()), global_symbols_(p_symbols)
 {
-	SharedInitialization();
+	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
+	
+	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
+	// initialize the RNG itself, with its own seed; we don't want to override that.
+	if (!gEidos_rng)
+		InitializeRNGFromSeed(GenerateSeedFromPIDAndTime());
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
 {
-	SharedInitialization();
-}
-
-void EidosInterpreter::SharedInitialization(void)
-{
 	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
 	
-	// Initialize the random number generator if and only if it has not already been initialized
+	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
+	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
 		InitializeRNGFromSeed(GenerateSeedFromPIDAndTime());
 }

@@ -77,7 +77,6 @@ public:
 	
 	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols);				// we use the passed symbol table but do not own it
 	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols);		// we use the passed symbol table but do not own it
-	void SharedInitialization(void);
 	
 	~EidosInterpreter(void);												// destructor
 	
