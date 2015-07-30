@@ -142,8 +142,8 @@ const EidosFunctionSignature *Eidos_PathElement::SignatureForMethod(EidosGlobalS
 	if (!filesSig)
 	{
 		filesSig = (new EidosFunctionSignature(gStr_files, EidosFunctionIdentifier::kNoFunction, kValueMaskString))->SetInstanceMethod();
-		readFileSig = (new EidosFunctionSignature(gStr_readFile, EidosFunctionIdentifier::kNoFunction, kValueMaskString))->SetInstanceMethod()->AddString_S();
-		writeFileSig = (new EidosFunctionSignature(gStr_writeFile, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddString();
+		readFileSig = (new EidosFunctionSignature(gStr_readFile, EidosFunctionIdentifier::kNoFunction, kValueMaskString))->SetInstanceMethod()->AddString_S("fileName");
+		writeFileSig = (new EidosFunctionSignature(gStr_writeFile, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S("fileName")->AddString("contents");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

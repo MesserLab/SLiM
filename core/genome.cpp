@@ -362,10 +362,10 @@ const EidosFunctionSignature *Genome::SignatureForMethod(EidosGlobalStringID p_m
 	
 	if (!addMutationsSig)
 	{
-		addMutationsSig = (new EidosFunctionSignature(gStr_addMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
-		addNewDrawnMutationSig = (new EidosFunctionSignature(gStr_addNewDrawnMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddInt_S();
-		addNewMutationSig = (new EidosFunctionSignature(gStr_addNewMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S()->AddInt_S()->AddInt_S()->AddNumeric_S()->AddInt_S();
-		removeMutationsSig = (new EidosFunctionSignature(gStr_removeMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject();
+		addMutationsSig = (new EidosFunctionSignature(gStr_addMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("mutations");
+		addNewDrawnMutationSig = (new EidosFunctionSignature(gStr_addNewDrawnMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S("mutationType")->AddInt_S("originGeneration")->AddInt_S("position")->AddInt_S("originSubpopID");
+		addNewMutationSig = (new EidosFunctionSignature(gStr_addNewMutation, EidosFunctionIdentifier::kNoFunction, kValueMaskObject))->SetInstanceMethod()->AddObject_S("mutationType")->AddInt_S("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddInt_S("originSubpopID");
+		removeMutationsSig = (new EidosFunctionSignature(gStr_removeMutations, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("mutations");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

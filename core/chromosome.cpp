@@ -372,7 +372,7 @@ const EidosFunctionSignature *Chromosome::SignatureForMethod(EidosGlobalStringID
 	
 	if (!setRecombinationRateSig)
 	{
-		setRecombinationRateSig = (new EidosFunctionSignature(gStr_setRecombinationRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric()->AddInt_O();
+		setRecombinationRateSig = (new EidosFunctionSignature(gStr_setRecombinationRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric("rates")->AddInt_O("ends");
 	}
 	
 	if (p_method_id == gID_setRecombinationRate)

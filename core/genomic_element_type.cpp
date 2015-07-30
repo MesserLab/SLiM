@@ -251,7 +251,7 @@ const EidosFunctionSignature *GenomicElementType::SignatureForMethod(EidosGlobal
 	
 	if (!setMutationFractionsSig)
 	{
-		setMutationFractionsSig = (new EidosFunctionSignature(gStr_setMutationFractions, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
+		setMutationFractionsSig = (new EidosFunctionSignature(gStr_setMutationFractions, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("mutationTypes")->AddNumeric("proportions");
 	}
 	
 	if (p_method_id == gID_setMutationFractions)

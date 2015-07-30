@@ -1108,14 +1108,14 @@ const EidosFunctionSignature *Subpopulation::SignatureForMethod(EidosGlobalStrin
 	
 	if (!setMigrationRatesSig)
 	{
-		setMigrationRatesSig = (new EidosFunctionSignature(gStr_setMigrationRates, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject()->AddNumeric();
-		setCloningRateSig = (new EidosFunctionSignature(gStr_setCloningRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric();
-		setSelfingRateSig = (new EidosFunctionSignature(gStr_setSelfingRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric_S();
-		setSexRatioSig = (new EidosFunctionSignature(gStr_setSexRatio, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
-		setSubpopulationSizeSig = (new EidosFunctionSignature(gStr_setSubpopulationSize, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S();
-		fitnessSig = (new EidosFunctionSignature(gStr_fitness, EidosFunctionIdentifier::kNoFunction, kValueMaskFloat))->SetInstanceMethod()->AddInt();
-		outputMSSampleSig = (new EidosFunctionSignature(gStr_outputMSSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
-		outputSampleSig = (new EidosFunctionSignature(gStr_outputSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S()->AddString_OS();
+		setMigrationRatesSig = (new EidosFunctionSignature(gStr_setMigrationRates, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("sourceSubpops")->AddNumeric("rates");
+		setCloningRateSig = (new EidosFunctionSignature(gStr_setCloningRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric("rate");
+		setSelfingRateSig = (new EidosFunctionSignature(gStr_setSelfingRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric_S("rate");
+		setSexRatioSig = (new EidosFunctionSignature(gStr_setSexRatio, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S("sexRatio");
+		setSubpopulationSizeSig = (new EidosFunctionSignature(gStr_setSubpopulationSize, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("size");
+		fitnessSig = (new EidosFunctionSignature(gStr_fitness, EidosFunctionIdentifier::kNoFunction, kValueMaskFloat))->SetInstanceMethod()->AddInt("indices");
+		outputMSSampleSig = (new EidosFunctionSignature(gStr_outputMSSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+		outputSampleSig = (new EidosFunctionSignature(gStr_outputSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

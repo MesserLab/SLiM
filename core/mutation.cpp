@@ -149,7 +149,7 @@ const EidosFunctionSignature *Mutation::SignatureForMethod(EidosGlobalStringID p
 	
 	if (!setSelectionCoeffSig)
 	{
-		setSelectionCoeffSig = (new EidosFunctionSignature(gStr_setSelectionCoeff, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S();
+		setSelectionCoeffSig = (new EidosFunctionSignature(gStr_setSelectionCoeff, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S("selectionCoeff");
 	}
 	
 	if (p_method_id == gID_setSelectionCoeff)

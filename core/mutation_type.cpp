@@ -244,7 +244,7 @@ const EidosFunctionSignature *MutationType::SignatureForMethod(EidosGlobalString
 	
 	if (!setDistributionSig)
 	{
-		setDistributionSig = (new EidosFunctionSignature(gStr_setDistribution, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S()->AddEllipsis();
+		setDistributionSig = (new EidosFunctionSignature(gStr_setDistribution, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S("distributionType")->AddEllipsis();
 	}
 	
 	if (p_method_id == gID_setDistribution)

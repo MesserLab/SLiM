@@ -33,12 +33,13 @@ class EidosFunctionSignature
 public:
 	std::string function_name_;
 	EidosFunctionIdentifier function_id_;
-	EidosValueMask return_mask_;					// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
+	EidosValueMask return_mask_;				// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
 	std::vector<EidosValueMask> arg_masks_;		// the expected types for each argument, as a mask
-	bool is_class_method = false;					// if true, the function is a class method and so will not be multiplexed
-	bool is_instance_method = false;				// if true, the function is an instance method (affects operator << only, right now)
-	bool has_optional_args_ = false;				// if true, at least one optional argument has been added
-	bool has_ellipsis_ = false;						// if true, the function accepts arbitrary varargs after the specified arguments
+	std::vector<std::string> arg_names_;		// the expected types for each argument, as a mask
+	bool is_class_method = false;				// if true, the function is a class method and so will not be multiplexed
+	bool is_instance_method = false;			// if true, the function is an instance method (affects operator << only, right now)
+	bool has_optional_args_ = false;			// if true, at least one optional argument has been added
+	bool has_ellipsis_ = false;					// if true, the function accepts arbitrary varargs after the specified arguments
 	
 	// ivars related to delegated function implementations
 	EidosDelegateFunctionPtr delegate_function_ = nullptr;
@@ -55,88 +56,88 @@ public:
 	EidosFunctionSignature *SetClassMethod();
 	EidosFunctionSignature *SetInstanceMethod();
 	
-	EidosFunctionSignature *AddArg(EidosValueMask p_arg_mask);
+	EidosFunctionSignature *AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name);
 	EidosFunctionSignature *AddEllipsis();
 	
 	// vanilla type-specified arguments
-	EidosFunctionSignature *AddLogical();
-	EidosFunctionSignature *AddInt();
-	EidosFunctionSignature *AddFloat();
-	EidosFunctionSignature *AddString();
-	EidosFunctionSignature *AddObject();
-	EidosFunctionSignature *AddNumeric();
-	EidosFunctionSignature *AddLogicalEquiv();
-	EidosFunctionSignature *AddAnyBase();
-	EidosFunctionSignature *AddAny();
+	EidosFunctionSignature *AddLogical(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAnyBase(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAny(const std::string &p_argument_name);
 	
 	// optional arguments
-	EidosFunctionSignature *AddLogical_O();
-	EidosFunctionSignature *AddInt_O();
-	EidosFunctionSignature *AddFloat_O();
-	EidosFunctionSignature *AddString_O();
-	EidosFunctionSignature *AddObject_O();
-	EidosFunctionSignature *AddNumeric_O();
-	EidosFunctionSignature *AddLogicalEquiv_O();
-	EidosFunctionSignature *AddAnyBase_O();
-	EidosFunctionSignature *AddAny_O();
+	EidosFunctionSignature *AddLogical_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAnyBase_O(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAny_O(const std::string &p_argument_name);
 	
 	// singleton arguments (i.e. required to have a size of exactly 1)
-	EidosFunctionSignature *AddLogical_S();
-	EidosFunctionSignature *AddInt_S();
-	EidosFunctionSignature *AddFloat_S();
-	EidosFunctionSignature *AddString_S();
-	EidosFunctionSignature *AddObject_S();
-	EidosFunctionSignature *AddNumeric_S();
-	EidosFunctionSignature *AddLogicalEquiv_S();
-	EidosFunctionSignature *AddAnyBase_S();
-	EidosFunctionSignature *AddAny_S();
+	EidosFunctionSignature *AddLogical_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAnyBase_S(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAny_S(const std::string &p_argument_name);
 	
 	// optional singleton arguments
-	EidosFunctionSignature *AddLogical_OS();
-	EidosFunctionSignature *AddInt_OS();
-	EidosFunctionSignature *AddFloat_OS();
-	EidosFunctionSignature *AddString_OS();
-	EidosFunctionSignature *AddObject_OS();
-	EidosFunctionSignature *AddNumeric_OS();
-	EidosFunctionSignature *AddLogicalEquiv_OS();
-	EidosFunctionSignature *AddAnyBase_OS();
-	EidosFunctionSignature *AddAny_OS();
+	EidosFunctionSignature *AddLogical_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAnyBase_OS(const std::string &p_argument_name);
+	EidosFunctionSignature *AddAny_OS(const std::string &p_argument_name);
 	
 	// type-specified or NULL
-	EidosFunctionSignature *AddLogical_N();
-	EidosFunctionSignature *AddInt_N();
-	EidosFunctionSignature *AddFloat_N();
-	EidosFunctionSignature *AddString_N();
-	EidosFunctionSignature *AddObject_N();
-	EidosFunctionSignature *AddNumeric_N();
-	EidosFunctionSignature *AddLogicalEquiv_N();
+	EidosFunctionSignature *AddLogical_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_N(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_N(const std::string &p_argument_name);
 	
 	// optional type-specified or NULL
-	EidosFunctionSignature *AddLogical_ON();
-	EidosFunctionSignature *AddInt_ON();
-	EidosFunctionSignature *AddFloat_ON();
-	EidosFunctionSignature *AddString_ON();
-	EidosFunctionSignature *AddObject_ON();
-	EidosFunctionSignature *AddNumeric_ON();
-	EidosFunctionSignature *AddLogicalEquiv_ON();
+	EidosFunctionSignature *AddLogical_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_ON(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_ON(const std::string &p_argument_name);
 	
 	// singleton type-specified or NULL
-	EidosFunctionSignature *AddLogical_SN();
-	EidosFunctionSignature *AddInt_SN();
-	EidosFunctionSignature *AddFloat_SN();
-	EidosFunctionSignature *AddString_SN();
-	EidosFunctionSignature *AddObject_SN();
-	EidosFunctionSignature *AddNumeric_SN();
-	EidosFunctionSignature *AddLogicalEquiv_SN();
+	EidosFunctionSignature *AddLogical_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_SN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_SN(const std::string &p_argument_name);
 	
 	// optional singleton type-specified or NULL
-	EidosFunctionSignature *AddLogical_OSN();
-	EidosFunctionSignature *AddInt_OSN();
-	EidosFunctionSignature *AddFloat_OSN();
-	EidosFunctionSignature *AddString_OSN();
-	EidosFunctionSignature *AddObject_OSN();
-	EidosFunctionSignature *AddNumeric_OSN();
-	EidosFunctionSignature *AddLogicalEquiv_OSN();
+	EidosFunctionSignature *AddLogical_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddInt_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddFloat_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddString_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddObject_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddNumeric_OSN(const std::string &p_argument_name);
+	EidosFunctionSignature *AddLogicalEquiv_OSN(const std::string &p_argument_name);
 	
 	// check an argument list; p_call_type should be "function" or "method", for error output only
 	void CheckArguments(const std::string &p_call_type, EidosValue *const *const p_arguments, int p_argument_count) const;

@@ -94,7 +94,7 @@ const EidosValueMask kValueMaskLogicalEquiv =	(kValueMaskLogical | kValueMaskInt
 const EidosValueMask kValueMaskAnyBase =			(kValueMaskNULL | kValueMaskLogicalEquiv | kValueMaskString);		// any type except object
 const EidosValueMask kValueMaskAny =				(kValueMaskAnyBase | kValueMaskObject);									// any type including object
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask);
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string &p_name);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
 
 

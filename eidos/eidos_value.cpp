@@ -63,7 +63,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 	return p_outstream;
 }
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask)
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string &p_name)
 {
 	std::string out_string;
 	bool is_optional = !!(p_mask & kValueMaskOptional);
@@ -95,6 +95,12 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask)
 	
 	if (requires_singleton)
 		out_string += "$";
+	
+	if (p_name.length() > 0)
+	{
+		out_string += " ";
+		out_string += p_name;
+	}
 	
 	if (is_optional)
 		out_string += "]";
@@ -2077,8 +2083,8 @@ const EidosFunctionSignature *EidosObjectElement::SignatureForMethod(EidosGlobal
 	
 	if (!strSig)
 	{
-		methodsSig = (new EidosFunctionSignature(gStr_method, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS();
-		propertySig = (new EidosFunctionSignature(gStr_property, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS();
+		methodsSig = (new EidosFunctionSignature(gStr_method, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS("methodName");
+		propertySig = (new EidosFunctionSignature(gStr_property, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS("propertyName");
 		strSig = (new EidosFunctionSignature(gStr_str, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod();
 	}
 	
