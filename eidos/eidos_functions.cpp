@@ -173,7 +173,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new EidosFunctionSignature("license",		EidosFunctionIdentifier::licenseFunction,		kValueMaskNULL)));
 		signatures->push_back((new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kValueMaskNULL))->AddString_O());
 		signatures->push_back((new EidosFunctionSignature("setSeed",		EidosFunctionIdentifier::setSeedFunction,		kValueMaskNULL))->AddInt_S());
-		signatures->push_back((new EidosFunctionSignature("getSeed",		EidosFunctionIdentifier::getSeedFunction,		kValueMaskInt)));
+		signatures->push_back((new EidosFunctionSignature("getSeed",		EidosFunctionIdentifier::getSeedFunction,		kValueMaskInt | kValueMaskSingleton)));
 		signatures->push_back((new EidosFunctionSignature("stop",			EidosFunctionIdentifier::stopFunction,			kValueMaskNULL))->AddString_OS());
 		signatures->push_back((new EidosFunctionSignature("time",			EidosFunctionIdentifier::timeFunction,			kValueMaskString | kValueMaskSingleton)));
 		signatures->push_back((new EidosFunctionSignature("version",		EidosFunctionIdentifier::versionFunction,		kValueMaskNULL)));
