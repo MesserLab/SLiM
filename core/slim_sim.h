@@ -60,7 +60,7 @@ private:
 	
 	int time_start_ = 0;															// the first generation number for which the simulation will run
 	int generation_ = 0;															// the current generation reached in simulation
-	EidosValue *cached_value_generation_ = nullptr;								// OWNED POINTER: a cached value for generation_; delete and nil if changed
+	EidosValue *cached_value_generation_ = nullptr;									// OWNED POINTER: a cached value for generation_; delete and nil if changed
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
@@ -77,13 +77,13 @@ private:
 	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
 	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
 	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<EidosFunctionSignature*> sim_0_signatures;								// OWNED POINTERS: Eidos function signatures
+	std::vector<EidosFunctionSignature*> sim_0_signatures;							// OWNED POINTERS: Eidos function signatures
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
 	void InitializeFromFile(std::istream &infile);									// parse a input file and set up the simulation state from its contents
 	
-	// initialization completeness check counts; used only in generation 0
+	// initialization completeness check counts; used only when running initialize() callbacks
 	int num_mutation_types;
 	int num_mutation_rates;
 	int num_genomic_element_types;
@@ -98,7 +98,7 @@ private:
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
 	
-	EidosSymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
+	EidosSymbolTableEntry *self_symbol_ = nullptr;									// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
 	
 	int64_t tag_value_;																// a user-defined tag value
 	
@@ -114,7 +114,7 @@ public:
 	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(int p_generation, SLiMEidosBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id);
 	void DeregisterScheduledScriptBlocks(void);
 	
-	void RunZeroGeneration(void);													// run generation zero and check for complete initialization
+	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end
 	int EstimatedLastGeneration();													// derived from the last generation in which an Eidos block is registered

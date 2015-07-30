@@ -65,7 +65,7 @@ public:
 	int last_position_;										// last position; used to be called length_ but it is (length - 1) really
 	EidosValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
 	
-	double overall_mutation_rate_;							// overall mutation rate, as specified by setMutationRate0()
+	double overall_mutation_rate_;							// overall mutation rate, as specified by initializeMutationRate()
 	double element_mutation_rate_;							// overall rate * number of nucleotides in elements; the practical mutation rate for SLiM
 	double overall_recombination_rate_;						// overall recombination rate
 	double gene_conversion_fraction_;						// gene conversion fraction

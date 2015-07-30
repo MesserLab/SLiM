@@ -90,13 +90,13 @@ inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 void SLiM_RegisterGlobalStringsAndIDs(void);
 
 
-extern const std::string gStr_addGenomicElement0;
-extern const std::string gStr_addGenomicElementType0;
-extern const std::string gStr_addMutationType0;
-extern const std::string gStr_setGeneConversion0;
-extern const std::string gStr_setMutationRate0;
-extern const std::string gStr_setRecombinationRate0;
-extern const std::string gStr_setSexEnabled0;
+extern const std::string gStr_initializeGenomicElement;
+extern const std::string gStr_initializeGenomicElementType;
+extern const std::string gStr_initializeMutationType;
+extern const std::string gStr_initializeGeneConversion;
+extern const std::string gStr_initializeMutationRate;
+extern const std::string gStr_initializeRecombinationRate;
+extern const std::string gStr_initializeSex;
 
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
@@ -227,13 +227,13 @@ extern const std::string gStr_modifyChild;
 
 
 enum _SLiMGlobalStringID : int {
-	gID_addGenomicElement0 = gID_LastEidosEntry + 1,
-	gID_addGenomicElementType0,
-	gID_addMutationType0,
-	gID_setGeneConversion0,
-	gID_setMutationRate0,
-	gID_setRecombinationRate0,
-	gID_setSexEnabled0,
+	gID_initializeGenomicElement = gID_LastEidosEntry + 1,
+	gID_initializeGenomicElementType,
+	gID_initializeMutationType,
+	gID_initializeGeneConversion,
+	gID_initializeMutationRate,
+	gID_initializeRecombinationRate,
+	gID_initializeSex,
 	gID_genomicElements,
 	gID_lastPosition,
 	gID_overallRecombinationRate,

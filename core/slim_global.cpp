@@ -21,14 +21,14 @@
 #include "slim_global.h"
 
 
-// zero-generation functions defined by SLiMSim
-const std::string gStr_addGenomicElement0 = "addGenomicElement0";
-const std::string gStr_addGenomicElementType0 = "addGenomicElementType0";
-const std::string gStr_addMutationType0 = "addMutationType0";
-const std::string gStr_setGeneConversion0 = "setGeneConversion0";
-const std::string gStr_setMutationRate0 = "setMutationRate0";
-const std::string gStr_setRecombinationRate0 = "setRecombinationRate0";
-const std::string gStr_setSexEnabled0 = "setSexEnabled0";
+// initialize...() functions defined by SLiMSim
+const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
+const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";
+const std::string gStr_initializeMutationType = "initializeMutationType";
+const std::string gStr_initializeGeneConversion = "initializeGeneConversion";
+const std::string gStr_initializeMutationRate = "initializeMutationRate";
+const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
+const std::string gStr_initializeSex = "initializeSex";
 
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
@@ -163,13 +163,13 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		gEidosContextVersion = "SLiM version 2.0a3";
 		gEidosContextLicense = "SLiM is free software: you can redistribute it and/or\nmodify it under the terms of the GNU General Public\nLicense as published by the Free Software Foundation,\neither version 3 of the License, or (at your option)\nany later version.\n\nSLiM is distributed in the hope that it will be\nuseful, but WITHOUT ANY WARRANTY; without even the\nimplied warranty of MERCHANTABILITY or FITNESS FOR\nA PARTICULAR PURPOSE.  See the GNU General Public\nLicense for more details.\n\nYou should have received a copy of the GNU General\nPublic License along with SLiM.  If not, see\n<http://www.gnu.org/licenses/>.";
 		
-		Eidos_RegisterStringForGlobalID(gStr_addGenomicElement0, gID_addGenomicElement0);
-		Eidos_RegisterStringForGlobalID(gStr_addGenomicElementType0, gID_addGenomicElementType0);
-		Eidos_RegisterStringForGlobalID(gStr_addMutationType0, gID_addMutationType0);
-		Eidos_RegisterStringForGlobalID(gStr_setGeneConversion0, gID_setGeneConversion0);
-		Eidos_RegisterStringForGlobalID(gStr_setMutationRate0, gID_setMutationRate0);
-		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate0, gID_setRecombinationRate0);
-		Eidos_RegisterStringForGlobalID(gStr_setSexEnabled0, gID_setSexEnabled0);
+		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
+		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElementType, gID_initializeGenomicElementType);
+		Eidos_RegisterStringForGlobalID(gStr_initializeMutationType, gID_initializeMutationType);
+		Eidos_RegisterStringForGlobalID(gStr_initializeGeneConversion, gID_initializeGeneConversion);
+		Eidos_RegisterStringForGlobalID(gStr_initializeMutationRate, gID_initializeMutationRate);
+		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
+		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
 		Eidos_RegisterStringForGlobalID(gStr_overallRecombinationRate, gID_overallRecombinationRate);

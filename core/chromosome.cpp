@@ -84,7 +84,7 @@ void Chromosome::InitializeDraws(void)
 	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
 	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
-	// patch the recombination interval end vector if it is empty; see setRecombinationRate() and setRecombinationRate0()
+	// patch the recombination interval end vector if it is empty; see setRecombinationRate() and initializeRecombinationRate()
 	// basically, the length of the chromosome might not have been known yet when the user set the rate
 	if (recombination_end_positions_.size() == 0)
 	{

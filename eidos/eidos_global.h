@@ -155,7 +155,7 @@ extern const std::string gStr_undefined;
 
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
-// such as property and method names, as well as zero-generation function names (since signatures can't be cached for them).
+// such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
 enum _EidosGlobalStringID : int {
 	gID_none = 0,
 	gID_method,

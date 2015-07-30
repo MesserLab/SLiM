@@ -179,7 +179,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 		// If we are a function call node, check that our first child, if it is a simple identifier, has cached a signature.
 		// If we do not have children, or the first child is not an identifier, that is also problematic, but not our problem.
 		// If a function identifier does not have a cached signature, it must at least have a cached string ID; this allows
-		// zero-generation functions to pass our check, since they can't be set up before this check occurs.
+		// initialize...() functions to pass our check, since they can't be set up before this check occurs.
 		int children_count = (int)children_.size();
 		
 		if (children_count >= 1)

@@ -50,17 +50,17 @@
 
 static NSString *defaultScriptString = @"// set up a simple neutral simulation\n"
 										"initialize() {\n"
-										"	setMutationRate0(1e-7);\n"
+										"	initializeMutationRate(1e-7);\n"
 										"	\n"
 										"	// m1 mutation type: neutral\n"
-										"	addMutationType0(1, 0.5, \"f\", 0.0);\n"
+										"	initializeMutationType(1, 0.5, \"f\", 0.0);\n"
 										"	\n"
 										"	// g1 genomic element type: uses m1 for all mutations\n"
-										"	addGenomicElementType0(1, 1, 1.0);\n"
+										"	initializeGenomicElementType(1, 1, 1.0);\n"
 										"	\n"
 										"	// uniform chromosome of length 100 kb with uniform recombination\n"
-										"	addGenomicElement0(1, 0, 99999);\n"
-										"	setRecombinationRate0(1e-8);\n"
+										"	initializeGenomicElement(1, 0, 99999);\n"
+										"	initializeRecombinationRate(1e-8);\n"
 										"}\n"
 										"\n"
 										"// create a population of 500 individuals\n"
@@ -360,7 +360,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 {
 	//NSLog(@"updating after generation %d, generationTextField %p", sim->generation_, generationTextField);
 	if (!invalidSimulation)
-		[generationTextField setIntegerValue:sim->generation_];
+	{
+		if (sim->generation_ == 0)
+			[generationTextField setStringValue:@"initialize()"];
+		else
+			[generationTextField setIntegerValue:sim->generation_];
+	}
 	else
 		[generationTextField setStringValue:@""];
 }
