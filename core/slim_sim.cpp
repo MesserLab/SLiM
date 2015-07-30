@@ -458,16 +458,15 @@ void SLiMSim::RunZeroGeneration(void)
 	num_genomic_elements = 0;
 	num_recombination_rates = 0;
 	num_gene_conversions = 0;
-	num_generations = 0;
 	num_sex_declarations = 0;
 	
 	if (DEBUG_INPUT)
 		EIDOS_OUTSTREAM << "// RunZeroGeneration():" << endl;
 	
 	// execute script events for generation 0
-	std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
+	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1);
 	
-	for (auto script_block : blocks)
+	for (auto script_block : init_blocks)
 	{
 		if (script_block->active_)
 			population_.ExecuteScript(script_block, generation_, chromosome_);
@@ -491,11 +490,19 @@ void SLiMSim::RunZeroGeneration(void)
 	if (num_recombination_rates == 0)
 		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): At least one recombination rate interval must be defined in generation 0 with setRecombinationRate0()." << eidos_terminate();
 	
-	if (num_generations == 0)
-		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): The simulation duration must be defined in generation 0 with setGenerationRange0()." << eidos_terminate();
+	// figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
+	// since an Eidos event that adds a subpopulation is necessary to get things started
+	time_start_ = INT_MAX;
+	
+	for (auto script_block : script_blocks_)
+		if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosEvent) && (script_block->start_generation_ < time_start_) && (script_block->start_generation_ > 0))
+			time_start_ = script_block->start_generation_;
+	
+	if (time_start_ == INT_MAX)
+		EIDOS_TERMINATION << "ERROR (RunZeroGeneration): No Eidos event found to start the simulation." << eidos_terminate();
 	
 	// emit our start log
-	EIDOS_OUTSTREAM << "\n// Starting run with <start> <duration>:\n" << time_start_ << " " << time_duration_ << "\n" << std::endl;
+	EIDOS_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 	
 	// start at the beginning
 	generation_ = time_start_;
@@ -504,122 +511,132 @@ void SLiMSim::RunZeroGeneration(void)
 	chromosome_.InitializeDraws();
 }
 
+int SLiMSim::EstimatedLastGeneration()
+{
+	int last_gen = 1;
+	
+	// The estimate is derived from the last generation in which an Eidos block is registered.
+	// Any block type works, since the simulation could plausibly be stopped within a callback.
+	// However, blocks that do not specify an end generation don't count.
+	for (auto script_block : script_blocks_)
+		if ((script_block->end_generation_ > last_gen) && (script_block->end_generation_ != INT_MAX))
+			last_gen = script_block->end_generation_;
+	
+	return last_gen;
+}
+
 bool SLiMSim::RunOneGeneration(void)
 {
 #ifdef SLIMGUI
 	if (simulationValid)
 	{
-#endif
-		if ((generation_ == 0) || (generation_ < time_start_ + time_duration_))		// at generation 0 we don't know start or duration yet
+		try
 		{
-#ifdef SLIMGUI
-			try
-			{
 #endif
-				if (generation_ == 0)
+			if (generation_ == 0)
+			{
+				RunZeroGeneration();
+				return true;
+			}
+			else
+			{
+				// ******************************************************************
+				//
+				// Stage 1: Execute script events for the current generation
+				//
+				std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
+				
+				for (auto script_block : blocks)
+					if (script_block->active_)
+						population_.ExecuteScript(script_block, generation_, chromosome_);
+				
+				// the stage is done, so deregister script blocks as requested
+				DeregisterScheduledScriptBlocks();
+				
+				
+				// ******************************************************************
+				//
+				// Stage 2: Evolve all subpopulations
+				//
+				std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
+				std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
+				bool mate_choice_callbacks_present = mate_choice_callbacks.size();
+				bool modify_child_callbacks_present = modify_child_callbacks.size();
+				
+				// cache a list of callbacks registered for each subpop
+				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
 				{
-					RunZeroGeneration();
-				}
-				else
-				{
-					// ******************************************************************
-					//
-					// Stage 1: Execute script events for the current generation
-					//
-					std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
+					int subpop_id = subpop_pair.first;
+					Subpopulation *subpop = subpop_pair.second;
 					
-					for (auto script_block : blocks)
-						if (script_block->active_)
-							population_.ExecuteScript(script_block, generation_, chromosome_);
-					
-					// the stage is done, so deregister script blocks as requested
-					DeregisterScheduledScriptBlocks();
-					
-					
-					// ******************************************************************
-					//
-					// Stage 2: Evolve all subpopulations
-					//
-					std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
-					std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
-					bool mate_choice_callbacks_present = mate_choice_callbacks.size();
-					bool modify_child_callbacks_present = modify_child_callbacks.size();
-					
-					// cache a list of callbacks registered for each subpop
-					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					// Get mateChoice() callbacks that apply to this subpopulation
+					for (SLiMEidosBlock *callback : mate_choice_callbacks)
 					{
-						int subpop_id = subpop_pair.first;
-						Subpopulation *subpop = subpop_pair.second;
+						int callback_subpop_id = callback->subpopulation_id_;
 						
-						// Get mateChoice() callbacks that apply to this subpopulation
-						for (SLiMEidosBlock *callback : mate_choice_callbacks)
-						{
-							int callback_subpop_id = callback->subpopulation_id_;
-							
-							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop->registered_mate_choice_callbacks_.push_back(callback);
-						}
-						
-						// Get modifyChild() callbacks that apply to this subpopulation
-						for (SLiMEidosBlock *callback : modify_child_callbacks)
-						{
-							int callback_subpop_id = callback->subpopulation_id_;
-							
-							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop->registered_modify_child_callbacks_.push_back(callback);
-						}
+						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+							subpop->registered_mate_choice_callbacks_.push_back(callback);
 					}
 					
-					// then evolve each subpop
-					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
-					
-					// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
-					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					// Get modifyChild() callbacks that apply to this subpopulation
+					for (SLiMEidosBlock *callback : modify_child_callbacks)
 					{
-						Subpopulation *subpop = subpop_pair.second;
+						int callback_subpop_id = callback->subpopulation_id_;
 						
-						subpop->registered_mate_choice_callbacks_.clear();
-						subpop->registered_modify_child_callbacks_.clear();
+						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+							subpop->registered_modify_child_callbacks_.push_back(callback);
 					}
-					
-					// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
-					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
-						subpop_pair.second->child_generation_valid = true;
-					
-					population_.child_generation_valid = true;
-					
-					// the stage is done, so deregister script blocks as requested
-					DeregisterScheduledScriptBlocks();
-					
-					
-					// ******************************************************************
-					//
-					// Stage 3: Swap generations and advance to the next generation
-					//
-					population_.SwapGenerations();
-					
-					// advance the generation counter as soon as the generation is done
-					if (cached_value_generation_)
-					{
-						delete cached_value_generation_;
-						cached_value_generation_ = nullptr;
-					}
-					generation_++;
 				}
 				
-				return (generation_ < time_start_ + time_duration_);
-#ifdef SLIMGUI
-			}
-			catch (std::runtime_error err)
-			{
-				simulationValid = false;
+				// then evolve each subpop
+				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
 				
-				return false;
+				// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
+				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+				{
+					Subpopulation *subpop = subpop_pair.second;
+					
+					subpop->registered_mate_choice_callbacks_.clear();
+					subpop->registered_modify_child_callbacks_.clear();
+				}
+				
+				// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
+				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					subpop_pair.second->child_generation_valid = true;
+				
+				population_.child_generation_valid = true;
+				
+				// the stage is done, so deregister script blocks as requested
+				DeregisterScheduledScriptBlocks();
+				
+				
+				// ******************************************************************
+				//
+				// Stage 3: Swap generations and advance to the next generation
+				//
+				population_.SwapGenerations();
+				
+				// advance the generation counter as soon as the generation is done
+				if (cached_value_generation_)
+				{
+					delete cached_value_generation_;
+					cached_value_generation_ = nullptr;
+				}
+				generation_++;
+				
+				// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
+				// cache it, because it can change based upon changes in script registration / deregistration.
+				return (generation_ <= EstimatedLastGeneration());
 			}
-#endif
+#ifdef SLIMGUI
 		}
-#ifdef SLIMGUI
+		catch (std::runtime_error err)
+		{
+			simulationValid = false;
+			
+			return false;
+		}
 	}
 #endif
 	
@@ -628,8 +645,7 @@ bool SLiMSim::RunOneGeneration(void)
 
 void SLiMSim::RunToEnd(void)
 {
-	while ((generation_ == 0) || (generation_ < time_start_ + time_duration_))		// at generation 0 we don't know start or duration yet
-		RunOneGeneration();
+	while (RunOneGeneration());
 }
 
 
@@ -945,34 +961,6 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	setGenerationRange0(integer$ duration, [integer$ startGeneration])
-	//
-	#pragma mark setGenerationRange0()
-	
-	else if (p_function_name.compare(gStr_setGenerationRange0) == 0)
-	{
-		if (num_generations > 0)
-			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() may be called only once." << eidos_terminate();
-		
-		int duration = (int)arg0_value->IntAtIndex(0);
-		int start = (p_argument_count == 2 ? (int)arg1_value->IntAtIndex(0) : 1);
-		
-		if (duration <= 0)
-			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires duration greater than 0." << eidos_terminate();
-		if (start <= 0)
-			EIDOS_TERMINATION << "ERROR (RunZeroGeneration): setGenerationRange0() requires startGeneration greater than 0." << eidos_terminate();
-		
-		time_duration_ = duration;
-		time_start_ = start;
-		
-		if (DEBUG_INPUT)
-			EIDOS_OUTSTREAM << "setGenerationRange0(" << duration << ", " << start << ");" << endl;
-		
-		num_generations++;
-	}
-	
-	
-	//
 	//	*********************	setMutationRate0(numeric$ rate)
 	//
 #pragma mark setMutationRate0()
@@ -1055,7 +1043,6 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_addMutationType0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddNumeric_S()->AddString_S()->AddEllipsis());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setRecombinationRate0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric()->AddInt_O());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGeneConversion0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGenerationRange0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setMutationRate0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setSexEnabled0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
 		}
@@ -1158,7 +1145,6 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
 	
 	variables.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
-	variables.push_back(gStr_duration);			// time_duration_
 	variables.push_back(gStr_generation);			// generation_
 	variables.push_back(gStr_tag);					// tag_value_
 	
@@ -1177,14 +1163,12 @@ bool SLiMSim::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 		case gID_mutationTypes:
 		case gID_scriptBlocks:
 		case gID_sexEnabled:
-		case gID_start:
 		case gID_subpopulations:
 		case gID_substitutions:
 			return true;
 			
 			// variables
 		case gID_dominanceCoeffX:
-		case gID_duration:
 		case gID_generation:
 		case gID_tag:
 			return false;
@@ -1252,8 +1236,6 @@ EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
 		}
 		case gID_sexEnabled:
 			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		case gID_start:
-			return new EidosValue_Int_singleton_const(time_start_);
 		case gID_subpopulations:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
@@ -1276,8 +1258,6 @@ EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
 			// variables
 		case gID_dominanceCoeffX:
 			return new EidosValue_Float_singleton_const(x_chromosome_dominance_coeff_);
-		case gID_duration:
-			return new EidosValue_Int_singleton_const(time_duration_);
 		case gID_generation:
 		{
 			// We use external-temporary here because the value of generation_ can change, but it is permanent enough that
@@ -1301,23 +1281,12 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_member_id)
 	{
-		case gID_duration:
-		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
-			int64_t value = p_value->IntAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value > 0) && (value <= 1000000000));
-			
-			time_duration_ = (int)value;
-			return;
-		}
-			
 		case gID_generation:
 		{
 			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value >= time_start_) && (value <= time_start_ + time_duration_));
+			RangeCheckValue(__func__, p_member_id, (value >= 1) && (value <= 1000000000000L));
 			
 			if (cached_value_generation_)
 			{

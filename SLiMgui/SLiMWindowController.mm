@@ -49,9 +49,8 @@
 #include <stdexcept>
 
 static NSString *defaultScriptString = @"// set up a simple neutral simulation\n"
-										"0 {\n"
+										"initialize() {\n"
 										"	setMutationRate0(1e-7);\n"
-										"	setGenerationRange0(10000);\n"
 										"	\n"
 										"	// m1 mutation type: neutral\n"
 										"	addMutationType0(1, 0.5, \"f\", 0.0);\n"
@@ -1557,7 +1556,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (NSArray *)languageKeywordsForCompletion
 {
-	return [NSArray arrayWithObjects:@"fitness", @"mateChoice", @"modifyChild", nil];
+	return [NSArray arrayWithObjects:@"initialize", @"fitness", @"mateChoice", @"modifyChild", nil];
 }
 
 - (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures
@@ -1936,7 +1935,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				}
 				else if (aTableColumn == scriptBlocksStartColumn)
 				{
-					return [NSString stringWithFormat:@"%d", scriptBlock->start_generation_];
+					if (scriptBlock->start_generation_ == -1)
+						return @"MIN";
+					else
+						return [NSString stringWithFormat:@"%d", scriptBlock->start_generation_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
@@ -1950,6 +1952,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 					switch (scriptBlock->type_)
 					{
 						case SLiMEidosBlockType::SLiMEidosEvent:				return @"event";
+						case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return @"initialize()";
 						case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return @"fitness()";
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return @"modifyChild()";

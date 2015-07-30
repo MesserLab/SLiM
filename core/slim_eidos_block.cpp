@@ -87,7 +87,17 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	// Now we are to the point of parsing the actual slim_script_block
 	if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 	{
-		if (current_token_->token_string_.compare(gStr_fitness) == 0)
+		if (current_token_->token_string_.compare(gStr_initialize) == 0)
+		{
+			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+			
+			Match(EidosTokenType::kTokenIdentifier, "SLiM initialize() callback");
+			Match(EidosTokenType::kTokenLParen, "SLiM initialize() callback");
+			Match(EidosTokenType::kTokenRParen, "SLiM initialize() callback");
+			
+			slim_script_block_node->AddChild(callback_info_node);
+		}
+		else if (current_token_->token_string_.compare(gStr_fitness) == 0)
 		{
 			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
 			
@@ -244,6 +254,9 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		start_generation_ = (int)EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		end_generation_ = start_generation_;	// if a start is given, the default end is the same as the start
 		child_index++;
+		
+		if ((start_generation_ < 1) || (start_generation_ > 1000000000L))
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << start_generation_ << " was out of range." << eidos_terminate();
 	}
 	
 	// eat a number, for the end generation, if present
@@ -251,6 +264,9 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	{
 		end_generation_ = (int)EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		child_index++;
+		
+		if ((end_generation_ < 1) || (end_generation_ > 1000000000L))
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_generation_ << " was out of range." << eidos_terminate();
 	}
 	
 	// eat the callback info node, if present
@@ -263,10 +279,22 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		const std::vector<EidosASTNode *> &callback_children = callback_node->children_;
 		int n_callback_children = (int)callback_children.size();
 		
-		if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
+		if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
+		{
+			if (n_callback_children != 0)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters" << eidos_terminate();
+			
+			if ((start_generation_ != -1) || (end_generation_ != INT_MAX))
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback" << eidos_terminate();
+			
+			start_generation_ = 0;
+			end_generation_ = 0;
+			type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+		}
+		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
 		{
 			if ((n_callback_children != 1) && (n_callback_children != 2))
-				EIDOS_TERMINATION << "ERROR (InitializeFromFile): fitness() callback needs 1 or 2 parameters" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate();
 			
 			mutation_type_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
 			
@@ -278,7 +306,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mateChoice) == 0))
 		{
 			if ((n_callback_children != 0) && (n_callback_children != 1))
-				EIDOS_TERMINATION << "ERROR (InitializeFromFile): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
 				subpopulation_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
@@ -288,7 +316,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_modifyChild) == 0))
 		{
 			if ((n_callback_children != 0) && (n_callback_children != 1))
-				EIDOS_TERMINATION << "ERROR (InitializeFromFile): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
 				subpopulation_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
@@ -297,7 +325,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (InitializeFromFile): unknown callback type" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type" << eidos_terminate();
 		}
 		
 		child_index++;
@@ -311,10 +339,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	}
 	
 	if (!compound_statement_node_)
-		EIDOS_TERMINATION << "ERROR (InitializeFromFile): no compound statement found for SLiMEidosBlock" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): no compound statement found for SLiMEidosBlock" << eidos_terminate();
 	
 	if (child_index != n_children)
-		EIDOS_TERMINATION << "ERROR (InitializeFromFile): unexpected node in SLiMEidosBlock" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unexpected node in SLiMEidosBlock" << eidos_terminate();
 	
 	ScanTree();
 }
@@ -494,17 +522,25 @@ const std::string *SLiMEidosBlock::ElementType(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *ElementType() << "<" << start_generation_;
+	p_ostream << *ElementType() << "<";
 	
-	if (end_generation_ != start_generation_)
-		p_ostream << ":" << end_generation_;
+	if (start_generation_ > 0)
+	{
+		p_ostream << start_generation_;
+		
+		if (end_generation_ != start_generation_)
+			p_ostream << ":" << end_generation_;
+		
+		p_ostream << " : ";
+	}
 	
 	switch (type_)
 	{
-		case SLiMEidosBlockType::SLiMEidosEvent:				break;
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:		p_ostream << " : fitness"; break;
-		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	p_ostream << " : mateChoice"; break;
-		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	p_ostream << " : modifyChild"; break;
+		case SLiMEidosBlockType::SLiMEidosEvent:				p_ostream << gStr_event; break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:	p_ostream << gStr_initialize; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessCallback:		p_ostream << gStr_fitness; break;
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	p_ostream << gStr_mateChoice; break;
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	p_ostream << gStr_modifyChild; break;
 	}
 	
 	p_ostream << ">";
@@ -579,6 +615,7 @@ EidosValue *SLiMEidosBlock::GetValueForMember(EidosGlobalStringID p_member_id)
 			switch (type_)
 			{
 				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String(gStr_event);
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String(gStr_initialize);
 				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String(gStr_fitness);
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String(gStr_mateChoice);
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String(gStr_modifyChild);

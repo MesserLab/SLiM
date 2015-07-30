@@ -616,7 +616,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 - (NSArray *)languageKeywordsForCompletion
 {
-	return [NSArray arrayWithObjects:@"fitness", @"mateChoice", @"modifyChild", nil];
+	return [NSArray arrayWithObjects:@"initialize", @"fitness", @"mateChoice", @"modifyChild", nil];
 }
 
 - (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures

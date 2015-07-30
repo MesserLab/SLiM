@@ -44,7 +44,9 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		[self setXAxisMax:[self slimWindowController]->sim->time_duration_];
+		SLiMSim *sim = [self slimWindowController]->sim;
+		
+		[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
 		[self setXAxisMajorTickInterval:10000];
 		[self setXAxisMinorTickInterval:1000];
 		[self setXAxisMajorTickModulus:10];
@@ -71,10 +73,12 @@
 	
 	if (![controller invalidSimulation])
 	{
+		SLiMSim *sim = controller->sim;
+		
 		if (![self yAxisIsUserRescaled])
 			[self setDefaultYAxisRange];
 		if (![self xAxisIsUserRescaled])
-			[self setXAxisMax:controller->sim->time_duration_];
+			[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
 		
 		[self setNeedsDisplay:YES];
 	}

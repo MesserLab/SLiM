@@ -59,8 +59,6 @@ private:
 #endif
 	
 	int time_start_ = 0;															// the first generation number for which the simulation will run
-	int time_duration_ = 0;															// the duration for which the simulation will run, in generations
-	
 	int generation_ = 0;															// the current generation reached in simulation
 	EidosValue *cached_value_generation_ = nullptr;								// OWNED POINTER: a cached value for generation_; delete and nil if changed
 	
@@ -92,7 +90,6 @@ private:
 	int num_genomic_elements;
 	int num_recombination_rates;
 	int num_gene_conversions;
-	int num_generations;
 	int num_sex_declarations;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
@@ -120,6 +117,7 @@ public:
 	void RunZeroGeneration(void);													// run generation zero and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	void RunToEnd(void);															// run the simulation to the end
+	int EstimatedLastGeneration();													// derived from the last generation in which an Eidos block is registered
 	
 	// accessors
 	inline int Generation(void) const												{ return generation_; }
