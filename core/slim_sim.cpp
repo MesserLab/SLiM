@@ -559,43 +559,71 @@ bool SLiMSim::RunOneGeneration(void)
 				std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
 				bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 				bool modify_child_callbacks_present = modify_child_callbacks.size();
+				bool no_active_callbacks = true;
 				
-				// cache a list of callbacks registered for each subpop
-				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+				// if there are no active callbacks, we can pretend there are no callbacks at all
+				if (mate_choice_callbacks_present || modify_child_callbacks_present)
 				{
-					int subpop_id = subpop_pair.first;
-					Subpopulation *subpop = subpop_pair.second;
-					
-					// Get mateChoice() callbacks that apply to this subpopulation
 					for (SLiMEidosBlock *callback : mate_choice_callbacks)
-					{
-						int callback_subpop_id = callback->subpopulation_id_;
-						
-						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-							subpop->registered_mate_choice_callbacks_.push_back(callback);
-					}
+						if (callback->active_ != 0)
+						{
+							no_active_callbacks = false;
+							break;
+						}
 					
-					// Get modifyChild() callbacks that apply to this subpopulation
-					for (SLiMEidosBlock *callback : modify_child_callbacks)
-					{
-						int callback_subpop_id = callback->subpopulation_id_;
-						
-						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-							subpop->registered_modify_child_callbacks_.push_back(callback);
-					}
+					if (no_active_callbacks)
+						for (SLiMEidosBlock *callback : modify_child_callbacks)
+							if (callback->active_ != 0)
+							{
+								no_active_callbacks = false;
+								break;
+							}
 				}
 				
-				// then evolve each subpop
-				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
-					population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
-				
-				// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
-				for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+				if (no_active_callbacks)
 				{
-					Subpopulation *subpop = subpop_pair.second;
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, false, false);
+				}
+				else
+				{
+					// cache a list of callbacks registered for each subpop
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					{
+						int subpop_id = subpop_pair.first;
+						Subpopulation *subpop = subpop_pair.second;
+						
+						// Get mateChoice() callbacks that apply to this subpopulation
+						for (SLiMEidosBlock *callback : mate_choice_callbacks)
+						{
+							int callback_subpop_id = callback->subpopulation_id_;
+							
+							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+								subpop->registered_mate_choice_callbacks_.push_back(callback);
+						}
+						
+						// Get modifyChild() callbacks that apply to this subpopulation
+						for (SLiMEidosBlock *callback : modify_child_callbacks)
+						{
+							int callback_subpop_id = callback->subpopulation_id_;
+							
+							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+								subpop->registered_modify_child_callbacks_.push_back(callback);
+						}
+					}
 					
-					subpop->registered_mate_choice_callbacks_.clear();
-					subpop->registered_modify_child_callbacks_.clear();
+					// then evolve each subpop
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
+					
+					// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
+					for (std::pair<const int,Subpopulation*> &subpop_pair : population_)
+					{
+						Subpopulation *subpop = subpop_pair.second;
+						
+						subpop->registered_mate_choice_callbacks_.clear();
+						subpop->registered_modify_child_callbacks_.clear();
+					}
 				}
 				
 				// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops

@@ -1201,24 +1201,42 @@ void Population::SwapGenerations()
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
 	// note that generation+1 is used; we are computing fitnesses for the next generation
 	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(sim_.Generation() + 1, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1);
+	bool no_active_callbacks = true;
 	
-	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
-	{
-		int subpop_id = subpop_pair.first;
-		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
-		
-		// Get fitness callbacks that apply to this subpopulation
-		for (SLiMEidosBlock *callback : fitness_callbacks)
+	for (SLiMEidosBlock *callback : fitness_callbacks)
+		if (callback->active_ != 0)
 		{
-			int callback_subpop_id = callback->subpopulation_id_;
-			
-			if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-				subpop_fitness_callbacks.push_back(callback);
+			no_active_callbacks = false;
+			break;
 		}
+	
+	if (no_active_callbacks)
+	{
+		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
 		
-		// Update fitness values, using the callbacks
-		subpop->UpdateFitness(subpop_fitness_callbacks);
+		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+			subpop_pair.second->UpdateFitness(no_fitness_callbacks);
+	}
+	else
+	{
+		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+		{
+			int subpop_id = subpop_pair.first;
+			Subpopulation *subpop = subpop_pair.second;
+			std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
+			
+			// Get fitness callbacks that apply to this subpopulation
+			for (SLiMEidosBlock *callback : fitness_callbacks)
+			{
+				int callback_subpop_id = callback->subpopulation_id_;
+				
+				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+					subpop_fitness_callbacks.push_back(callback);
+			}
+			
+			// Update fitness values, using the callbacks
+			subpop->UpdateFitness(subpop_fitness_callbacks);
+		}
 	}
 	
 	sim_.DeregisterScheduledScriptBlocks();
