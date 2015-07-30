@@ -96,7 +96,6 @@ extern const std::string gStr_addMutationType0;
 extern const std::string gStr_setGeneConversion0;
 extern const std::string gStr_setGenerationRange0;
 extern const std::string gStr_setMutationRate0;
-extern const std::string gStr_setRandomSeed0;
 extern const std::string gStr_setRecombinationRate0;
 extern const std::string gStr_setSexEnabled0;
 
@@ -144,7 +143,6 @@ extern const std::string gStr_substitutions;
 extern const std::string gStr_dominanceCoeffX;
 extern const std::string gStr_duration;
 extern const std::string gStr_generation;
-extern const std::string gStr_randomSeed;
 extern const std::string gStr_tag;
 extern const std::string gStr_id;
 extern const std::string gStr_firstMaleIndex;
@@ -236,7 +234,6 @@ enum _SLiMGlobalStringID : int {
 	gID_setGeneConversion0,
 	gID_setGenerationRange0,
 	gID_setMutationRate0,
-	gID_setRandomSeed0,
 	gID_setRecombinationRate0,
 	gID_setSexEnabled0,
 	gID_genomicElements,
@@ -278,7 +275,6 @@ enum _SLiMGlobalStringID : int {
 	gID_dominanceCoeffX,
 	gID_duration,
 	gID_generation,
-	gID_randomSeed,
 	gID_tag,
 	gID_firstMaleIndex,
 	gID_genomes,

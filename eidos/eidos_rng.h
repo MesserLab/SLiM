@@ -34,14 +34,18 @@
 
 // This is a globally shared random number generator.  Note that the globals for random bit generation below are also
 // considered to be part of the RNG state; if the Context plays games with swapping different RNGs in and out, those
-// globals need to get swapped as well.
+// globals need to get swapped as well.  Likewise for the last seed value; this is part of the RNG state in Eidos.
 extern gsl_rng *gEidos_rng;
+extern int gEidos_random_bool_bit_counter;
+extern unsigned long int gEidos_random_bool_bit_buffer;
+extern int gEidos_rng_last_seed;
+
 
 // generate a new random number seed from the PID and clock time
-int GenerateSeedFromPIDAndTime(void);
+int EidosGenerateSeedFromPIDAndTime(void);
 
 // set up the random number generator with a given seed
-void InitializeRNGFromSeed(int p_seed);
+void EidosInitializeRNGFromSeed(int p_seed);
 
 
 // get a random bool from a random number generator
@@ -49,9 +53,6 @@ void InitializeRNGFromSeed(int p_seed);
 
 // optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
 // I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
-extern int gEidos_random_bool_bit_counter;
-extern unsigned long int gEidos_random_bool_bit_buffer;
-
 static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
 {
 	bool retval;

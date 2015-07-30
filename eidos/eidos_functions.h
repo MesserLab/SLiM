@@ -133,6 +133,7 @@ enum class EidosFunctionIdentifier {
 	licenseFunction,
 	rmFunction,
 	setSeedFunction,
+	getSeedFunction,
 	stopFunction,
 	timeFunction,
 	versionFunction,

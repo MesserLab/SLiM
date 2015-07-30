@@ -23,6 +23,7 @@
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
 #include "eidos_global.h"
+#include "eidos_rng.h"
 
 #include <iostream>
 #include <string>
@@ -769,6 +770,8 @@ void RunEidosTests(void)
 	
 	// setSeed()
 	
+	// getSeed()
+	
 	// stop()
 	
 	// time()
@@ -784,6 +787,9 @@ void RunEidosTests(void)
     if (gTestFailureCount)
         std::cerr << "\e[31mFAILURE\e[0m count: " << gTestFailureCount << endl;
     std::cerr << "\e[32mSUCCESS\e[0m count: " << gTestSuccessCount << endl;
+	
+	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
+	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
 

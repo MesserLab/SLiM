@@ -24,12 +24,13 @@
 #include <time.h>
 
 
-gsl_rng *gEidos_rng;
+gsl_rng *gEidos_rng = nullptr;
 int gEidos_random_bool_bit_counter = 0;
 unsigned long int gEidos_random_bool_bit_buffer = 0;
+int gEidos_rng_last_seed = 0;
 
 
-int GenerateSeedFromPIDAndTime(void)
+int EidosGenerateSeedFromPIDAndTime(void)
 {
 	long pid = getpid();
 	time_t t;
@@ -40,7 +41,7 @@ int GenerateSeedFromPIDAndTime(void)
 	return static_cast<int>(t);
 }
 
-void InitializeRNGFromSeed(int p_seed)
+void EidosInitializeRNGFromSeed(int p_seed)
 {
 	// Allocate the RNG if needed
 	if (!gEidos_rng)
@@ -48,6 +49,9 @@ void InitializeRNGFromSeed(int p_seed)
 	
 	// Then set the seed as requested
 	gsl_rng_set(gEidos_rng, static_cast<long>(p_seed));
+	
+	// remember the seed as part of the RNG state
+	gEidos_rng_last_seed = p_seed;
 	
 	// These need to be zeroed out, too; they are part of our RNG state
 	gEidos_random_bool_bit_counter = 0;

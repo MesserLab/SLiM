@@ -128,7 +128,7 @@ SLiMSim::~SLiMSim(void)
 void SLiMSim::InitializeFromFile(std::istream &infile)
 {
 	if (!rng_seed_supplied_to_constructor_)
-		rng_seed_ = GenerateSeedFromPIDAndTime();
+		rng_seed_ = EidosGenerateSeedFromPIDAndTime();
 	
 	if (DEBUG_INPUT)
 		EIDOS_OUTSTREAM << "// InitializeFromFile()" << endl << endl;
@@ -162,8 +162,8 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	gEidosCharacterStartOfParseError = -1;
 	gEidosCharacterEndOfParseError = -1;
 	
-	// initialize rng; this is either a value given at the command line, or the value generate above by GenerateSeedFromPIDAndTime()
-	InitializeRNGFromSeed(rng_seed_);
+	// initialize rng; this is either a value given at the command line, or the value generate above by EidosGenerateSeedFromPIDAndTime()
+	EidosInitializeRNGFromSeed(rng_seed_);
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by SLiMSim::InitializePopulationFromFile
@@ -997,29 +997,6 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	setRandomSeed0(integer$ seed)
-	//
-#pragma mark setRandomSeed0()
-	
-	else if (p_function_name.compare(gStr_setRandomSeed0) == 0)
-	{
-		if (rng_seed_supplied_to_constructor_)
-		{
-			if (DEBUG_INPUT)
-				EIDOS_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");\t\t// override by -seed option" << endl;
-		}
-		else
-		{
-			rng_seed_ = (int)arg0_value->IntAtIndex(0);
-			InitializeRNGFromSeed(rng_seed_);
-			
-			if (DEBUG_INPUT)
-				EIDOS_OUTSTREAM << "setRandomSeed0(" << rng_seed_ << ");" << endl;
-		}
-	}
-	
-	
-	//
 	//	*********************	setSexEnabled0(string$ chromosomeType, [numeric$ xDominanceCoeff])
 	//
 	#pragma mark setSexEnabled0()
@@ -1080,7 +1057,6 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGeneConversion0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S()->AddNumeric_S());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setGenerationRange0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S()->AddInt_OS());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setMutationRate0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S());
-			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setRandomSeed0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S());
 			sim_0_signatures.push_back((new EidosFunctionSignature(gStr_setSexEnabled0, EidosFunctionIdentifier::kDelegatedFunction, kValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddString_S()->AddNumeric_OS());
 		}
 		
@@ -1184,7 +1160,6 @@ std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
 	variables.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
 	variables.push_back(gStr_duration);			// time_duration_
 	variables.push_back(gStr_generation);			// generation_
-	variables.push_back(gStr_randomSeed);			// rng_seed_
 	variables.push_back(gStr_tag);					// tag_value_
 	
 	return variables;
@@ -1211,7 +1186,6 @@ bool SLiMSim::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
 		case gID_dominanceCoeffX:
 		case gID_duration:
 		case gID_generation:
-		case gID_randomSeed:
 		case gID_tag:
 			return false;
 			
@@ -1313,8 +1287,6 @@ EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
 				cached_value_generation_ = (new EidosValue_Int_singleton_const(generation_))->SetExternalTemporary();
 			return cached_value_generation_;
 		}
-		case gID_randomSeed:
-			return new EidosValue_Int_singleton_const(rng_seed_);
 		case gID_tag:
 			return new EidosValue_Int_singleton_const(tag_value_);
 			
@@ -1370,20 +1342,6 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 			return;
 		}
 			
-		case gID_randomSeed:
-		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
-			int64_t value = p_value->IntAtIndex(0);
-			
-			rng_seed_ = (int)value;
-			
-			// Reseed; note that rng_seed_supplied_to_constructor_ prevents setRandomSeed0() but does not prevent this, by design
-			InitializeRNGFromSeed(rng_seed_);
-			
-			return;
-		}
-
 		case gID_tag:
 		{
 			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);

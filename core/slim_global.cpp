@@ -28,7 +28,6 @@ const std::string gStr_addMutationType0 = "addMutationType0";
 const std::string gStr_setGeneConversion0 = "setGeneConversion0";
 const std::string gStr_setGenerationRange0 = "setGenerationRange0";
 const std::string gStr_setMutationRate0 = "setMutationRate0";
-const std::string gStr_setRandomSeed0 = "setRandomSeed0";
 const std::string gStr_setRecombinationRate0 = "setRecombinationRate0";
 const std::string gStr_setSexEnabled0 = "setSexEnabled0";
 
@@ -72,7 +71,6 @@ const std::string gStr_substitutions = "substitutions";
 const std::string gStr_dominanceCoeffX = "dominanceCoeffX";
 const std::string gStr_duration = "duration";
 const std::string gStr_generation = "generation";
-const std::string gStr_randomSeed = "randomSeed";
 const std::string gStr_tag = "tag";
 const std::string gStr_firstMaleIndex = "firstMaleIndex";
 const std::string gStr_genomes = "genomes";
@@ -172,7 +170,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setGeneConversion0, gID_setGeneConversion0);
 		Eidos_RegisterStringForGlobalID(gStr_setGenerationRange0, gID_setGenerationRange0);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate0, gID_setMutationRate0);
-		Eidos_RegisterStringForGlobalID(gStr_setRandomSeed0, gID_setRandomSeed0);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate0, gID_setRecombinationRate0);
 		Eidos_RegisterStringForGlobalID(gStr_setSexEnabled0, gID_setSexEnabled0);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
@@ -214,7 +211,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeffX, gID_dominanceCoeffX);
 		Eidos_RegisterStringForGlobalID(gStr_duration, gID_duration);
 		Eidos_RegisterStringForGlobalID(gStr_generation, gID_generation);
-		Eidos_RegisterStringForGlobalID(gStr_randomSeed, gID_randomSeed);
 		Eidos_RegisterStringForGlobalID(gStr_tag, gID_tag);
 		Eidos_RegisterStringForGlobalID(gStr_firstMaleIndex, gID_firstMaleIndex);
 		Eidos_RegisterStringForGlobalID(gStr_genomes, gID_genomes);

@@ -173,6 +173,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((new EidosFunctionSignature("license",		EidosFunctionIdentifier::licenseFunction,		kValueMaskNULL)));
 		signatures->push_back((new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kValueMaskNULL))->AddString_O());
 		signatures->push_back((new EidosFunctionSignature("setSeed",		EidosFunctionIdentifier::setSeedFunction,		kValueMaskNULL))->AddInt_S());
+		signatures->push_back((new EidosFunctionSignature("getSeed",		EidosFunctionIdentifier::getSeedFunction,		kValueMaskInt)));
 		signatures->push_back((new EidosFunctionSignature("stop",			EidosFunctionIdentifier::stopFunction,			kValueMaskNULL))->AddString_OS());
 		signatures->push_back((new EidosFunctionSignature("time",			EidosFunctionIdentifier::timeFunction,			kValueMaskString | kValueMaskSingleton)));
 		signatures->push_back((new EidosFunctionSignature("version",		EidosFunctionIdentifier::versionFunction,		kValueMaskNULL)));
@@ -2495,7 +2496,14 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark setSeed
 		case EidosFunctionIdentifier::setSeedFunction:
 		{
-			InitializeRNGFromSeed((int)(arg0_value->IntAtIndex(0)));
+			EidosInitializeRNGFromSeed((int)(arg0_value->IntAtIndex(0)));
+			break;
+		}
+			
+#pragma mark getSeed
+		case EidosFunctionIdentifier::getSeedFunction:
+		{
+			result = new EidosValue_Int_singleton_const(gEidos_rng_last_seed);
 			break;
 		}
 			

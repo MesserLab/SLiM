@@ -180,10 +180,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		if (sim_rng)
 		{
 			gsl_rng_free(sim_rng);
-			sim_rng = nil;
+			sim_rng = NULL;
 			
 			sim_random_bool_bit_counter = 0;
 			sim_random_bool_bit_buffer = 0;
+			sim_rng_last_seed = 0;
 		}
 		
 		[self setReachedSimulationEnd:YES];
@@ -199,7 +200,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	if (sim_rng)
 	{
 		gsl_rng_free(sim_rng);
-		sim_rng = nil;
+		sim_rng = NULL;
 		
 		sim_random_bool_bit_counter = 0;
 		sim_random_bool_bit_buffer = 0;
@@ -218,6 +219,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		sim_rng = gEidos_rng;
 		sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
 		sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
+		sim_rng_last_seed = gEidos_rng_last_seed;
 		
 		gEidos_rng = NULL;
 		
@@ -1592,6 +1594,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	gEidos_rng = sim_rng;
 	gEidos_random_bool_bit_counter = sim_random_bool_bit_counter;
 	gEidos_random_bool_bit_buffer = sim_random_bool_bit_buffer;
+	gEidos_rng_last_seed = sim_rng_last_seed;
 }
 
 - (void)didExecuteScript
@@ -1600,6 +1603,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	sim_rng = gEidos_rng;
 	sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
 	sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
+	sim_rng_last_seed = gEidos_rng_last_seed;
 	
 	gEidos_rng = NULL;
 }

@@ -37,10 +37,11 @@
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
 	SLiMSim *sim;				// the simulation instance for this window
 	
-	// random number generator variables that are globals in the back end code; we swap these in and out as needed
+	// random number generator variables that are globals in Eidos; we swap these in and out as needed
 	gsl_rng *sim_rng;
 	int sim_random_bool_bit_counter;
 	unsigned long int sim_random_bool_bit_buffer;
+	int sim_rng_last_seed;
 
 	// play-related variables
 	BOOL invalidSimulation, continuousPlayOn, generationPlayOn, reachedSimulationEnd, hasImported;

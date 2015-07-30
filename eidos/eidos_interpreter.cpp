@@ -96,7 +96,7 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
-		InitializeRNGFromSeed(GenerateSeedFromPIDAndTime());
+		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
@@ -106,7 +106,7 @@ EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbol
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
-		InitializeRNGFromSeed(GenerateSeedFromPIDAndTime());
+		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
 EidosInterpreter::~EidosInterpreter(void)
