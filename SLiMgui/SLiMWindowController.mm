@@ -1551,7 +1551,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (void)injectIntoInterpreter:(EidosInterpreter *)interpreter
 {
 	if (sim && !invalidSimulation)
-		sim->InjectIntoInterpreter(*interpreter, nullptr);
+		sim->InjectIntoInterpreter(*interpreter, nullptr, false);
 }
 
 - (EidosSymbolTable *)globalSymbolTableForCompletion

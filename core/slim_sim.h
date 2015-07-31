@@ -138,7 +138,7 @@ public:
 	static EidosValue *StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
-	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block);	// add SLiM constructs to an interpreter instance
+	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance
 	std::vector<EidosFunctionSignature*> *InjectedFunctionSignatures(void);
 	
 	virtual const std::string *ElementType(void) const;

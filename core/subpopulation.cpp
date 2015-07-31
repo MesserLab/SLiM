@@ -332,7 +332,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						EidosSymbolTable global_symbols(&fitness_callback->eidos_contains_);
 						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols);
 						
-						sim.InjectIntoInterpreter(interpreter, fitness_callback);
+						sim.InjectIntoInterpreter(interpreter, fitness_callback, true);
 						
 						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of

@@ -90,7 +90,7 @@
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
-	EidosSymbolTable *symbols = [_delegate EidosSymbolTable];
+	EidosSymbolTable *symbols = [_delegate symbolTable];
 	
 	if (symbols)
 	{
@@ -117,7 +117,7 @@
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item
 {
-	EidosSymbolTable *symbols = [_delegate EidosSymbolTable];
+	EidosSymbolTable *symbols = [_delegate symbolTable];
 	
 	if (symbols)
 	{

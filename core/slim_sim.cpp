@@ -1078,7 +1078,7 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 	return nullptr;
 }
 
-void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block)
+void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table)
 {
 	EidosSymbolTable &global_symbols = p_interpreter.GetSymbolTable();
 	
@@ -1090,9 +1090,19 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 	// We also need to guarantee here that the values we are setting will not change for the lifetime of the symbol table;
 	// the objects referred to by the values may change, but the EidosValue objects themselves will not.  Be careful!
 	
+	// Also, we can use InitializeConstantSymbolEntry only when we have a fresh symbol table (which is always the case within
+	// SLiM events and callbacks); when we don't have a fresh symbol table (such as when working in the Eidos interpreter,
+	// which carries over the same symbol table from one interpreter to the next), we need to avoid making duplicates,
+	// so we have to use ReinitializeConstantSymbolEntry instead.
+	
 	// A constant for reference to the SLiMEidosBlock, self
 	if (p_script_block && p_script_block->contains_self_)
-		global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
+	{
+		if (p_fresh_symbol_table)
+			global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
+		else
+			global_symbols.ReinitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
+	}
 	
 	// Add signatures for functions we define – initialize...() functions only, right now
 	if (generation_ == 0)
@@ -1115,30 +1125,60 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 	// Inject for generations > 0 : no initialize...() functions, but global symbols
 	if (generation_ != 0)
 	{
-		// A constant for reference to the simulation, sim
-		if (!p_script_block || p_script_block->contains_sim_)
-			global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
-		
-		// Add constants for our genomic element types, like g1, g2, ...
-		if (!p_script_block || p_script_block->contains_gX_)
-			for (auto getype_pair : genomic_element_types_)
-				global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
-		
-		// Add constants for our mutation types, like m1, m2, ...
-		if (!p_script_block || p_script_block->contains_mX_)
-			for (auto mut_type_pair : mutation_types_)
-				global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
-		
-		// Add constants for our subpopulations, like p1, p2, ...
-		if (!p_script_block || p_script_block->contains_pX_)
-			for (auto pop_pair : population_)
-				global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
-		
-		// Add constants for our scripts, like s1, s2, ...
-		if (!p_script_block || p_script_block->contains_sX_)
-			for (SLiMEidosBlock *script_block : script_blocks_)
-				if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
-					global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
+		if (p_fresh_symbol_table)
+		{
+			// A constant for reference to the simulation, sim
+			if (!p_script_block || p_script_block->contains_sim_)
+				global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
+			
+			// Add constants for our genomic element types, like g1, g2, ...
+			if (!p_script_block || p_script_block->contains_gX_)
+				for (auto getype_pair : genomic_element_types_)
+					global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our mutation types, like m1, m2, ...
+			if (!p_script_block || p_script_block->contains_mX_)
+				for (auto mut_type_pair : mutation_types_)
+					global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our subpopulations, like p1, p2, ...
+			if (!p_script_block || p_script_block->contains_pX_)
+				for (auto pop_pair : population_)
+					global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our scripts, like s1, s2, ...
+			if (!p_script_block || p_script_block->contains_sX_)
+				for (SLiMEidosBlock *script_block : script_blocks_)
+					if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
+						global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
+		}
+		else
+		{
+			// A constant for reference to the simulation, sim
+			if (!p_script_block || p_script_block->contains_sim_)
+				global_symbols.ReinitializeConstantSymbolEntry(CachedSymbolTableEntry());
+			
+			// Add constants for our genomic element types, like g1, g2, ...
+			if (!p_script_block || p_script_block->contains_gX_)
+				for (auto getype_pair : genomic_element_types_)
+					global_symbols.ReinitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our mutation types, like m1, m2, ...
+			if (!p_script_block || p_script_block->contains_mX_)
+				for (auto mut_type_pair : mutation_types_)
+					global_symbols.ReinitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our subpopulations, like p1, p2, ...
+			if (!p_script_block || p_script_block->contains_pX_)
+				for (auto pop_pair : population_)
+					global_symbols.ReinitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
+			
+			// Add constants for our scripts, like s1, s2, ...
+			if (!p_script_block || p_script_block->contains_sX_)
+				for (SLiMEidosBlock *script_block : script_blocks_)
+					if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
+						global_symbols.ReinitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
+		}
 	}
 }
 

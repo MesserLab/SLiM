@@ -100,6 +100,10 @@ public:
 	void InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
 	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value);
 	
+	// Slightly slower versions of the above that check for the pre-existence of the symbol to avoid reinserting it
+	void ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
+	void ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value);
+	
 	// internal
 	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);
 	inline int AllocateNewSlot(void)	{ if (symbol_count_ == symbol_capacity_) _CapacityIncrease(); return symbol_count_++; };

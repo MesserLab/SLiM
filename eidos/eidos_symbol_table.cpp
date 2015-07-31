@@ -428,6 +428,89 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol
 	// in script_value.h, and the comments above.
 }
 
+void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry)
+{
+	const std::string &entry_name = p_new_entry->first;
+	EidosValue *entry_value = p_new_entry->second;
+	
+#ifdef DEBUG
+	if (!entry_value->IsExternalPermanent() || entry_value->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+#endif
+	
+	// check whether the symbol is already defined; if so, it should be identical or we raise
+	int key_length = (int)entry_name.length();
+	int symbol_slot = _SlotIndexForSymbol(entry_name, key_length);
+	
+	if (symbol_slot >= 0)
+	{
+		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
+		
+		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != entry_value))
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): Identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate();
+		
+		// a matching slot already exists, so we can just return
+		return;
+	}
+	
+	// ok, it is not defined so we need to define it
+	symbol_slot = AllocateNewSlot();
+	
+	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	
+	new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.length();
+	new_symbol_slot_ptr->symbol_value_ = entry_value;
+	new_symbol_slot_ptr->symbol_is_const_ = true;
+	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+	
+	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
+	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
+	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
+	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
+	// in script_value.h, and the comments above.
+}
+
+void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value)
+{
+#ifdef DEBUG
+	if (!p_value->IsExternalPermanent() || p_value->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+#endif
+	
+	// check whether the symbol is already defined; if so, it should be identical or we raise
+	int key_length = (int)p_symbol_name.length();
+	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
+	
+	if (symbol_slot >= 0)
+	{
+		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
+		
+		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != p_value))
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): Identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate();
+		
+		// a matching slot already exists, so we can just return
+		return;
+	}
+	
+	// ok, it is not defined so we need to define it
+	symbol_slot = AllocateNewSlot();
+	
+	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	
+	new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.length();
+	new_symbol_slot_ptr->symbol_value_ = p_value;
+	new_symbol_slot_ptr->symbol_is_const_ = true;
+	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+	
+	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
+	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
+	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
+	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
+	// in script_value.h, and the comments above.
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols)
 {
 	std::vector<std::string> read_only_symbol_names = p_symbols.ReadOnlySymbols();

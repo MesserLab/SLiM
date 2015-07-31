@@ -55,7 +55,7 @@ void AssertScriptSuccess(const string &p_script_string, EidosValue *p_correct_re
 {
 	EidosScript script(p_script_string, 0);
 	EidosValue *result = nullptr;
-	EidosSymbolTable EidosSymbolTable;
+	EidosSymbolTable symbol_table;
 	
 	gTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
@@ -78,7 +78,7 @@ void AssertScriptSuccess(const string &p_script_string, EidosValue *p_correct_re
 	}
 	
 	try {
-		EidosInterpreter interpreter(script, EidosSymbolTable);
+		EidosInterpreter interpreter(script, symbol_table);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		
@@ -129,13 +129,13 @@ void AssertScriptSuccess(const string &p_script_string, EidosValue *p_correct_re
 void AssertScriptRaise(const string &p_script_string)
 {
 	EidosScript script(p_script_string, 0);
-	EidosSymbolTable EidosSymbolTable;
+	EidosSymbolTable symbol_table;
 	
 	try {
 		script.Tokenize();
 		script.ParseInterpreterBlockToAST();
 		
-		EidosInterpreter interpreter(script, EidosSymbolTable);
+		EidosInterpreter interpreter(script, symbol_table);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		

@@ -211,7 +211,7 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, int p_generation,
 	EidosSymbolTable global_symbols(&p_script_block->eidos_contains_);
 	EidosInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols);
 	
-	sim_.InjectIntoInterpreter(interpreter, p_script_block);
+	sim_.InjectIntoInterpreter(interpreter, p_script_block, true);
 	
 	// Interpret the script; the result from the interpretation is not used for anything
 	EidosValue *result = interpreter.EvaluateInternalBlock();
@@ -246,7 +246,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 				EidosSymbolTable global_symbols(&mate_choice_callback->eidos_contains_);
 				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
 				
-				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback);
+				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback, true);
 				
 				// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 				// We can use that method because we know the lifetime of the symbol table is shorter than that of
@@ -419,7 +419,7 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_ch
 			EidosSymbolTable global_symbols(&modify_child_callback->eidos_contains_);
 			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
 			
-			sim_.InjectIntoInterpreter(interpreter, modify_child_callback);
+			sim_.InjectIntoInterpreter(interpreter, modify_child_callback, true);
 			
 			// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 			// We can use that method because we know the lifetime of the symbol table is shorter than that of

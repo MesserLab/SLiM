@@ -24,7 +24,7 @@
 
 
 @protocol EidosVariableBrowserDelegate <NSObject>
-- (EidosSymbolTable *)EidosSymbolTable;
+- (EidosSymbolTable *)symbolTable;
 @end
 
 

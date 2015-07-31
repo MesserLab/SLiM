@@ -233,7 +233,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		return nil;
 	}
 	
-	// Ensure that we have a symbol table; this used to be done by EidosInterpreter but now we're responsible
+	// Ensure that we have a symbol table; this used to be done by EidosInterpreter but now we're responsible.
 	if (!global_symbols)
 		global_symbols = new EidosSymbolTable();
 	
@@ -551,7 +551,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 #pragma mark VariableBrowserController delegate
 
-- (EidosSymbolTable *)EidosSymbolTable
+- (EidosSymbolTable *)symbolTable
 {
 	return global_symbols;
 }
