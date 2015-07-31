@@ -19,7 +19,7 @@
 
 #include "eidos_value.h"
 #include "eidos_functions.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 using std::string;
@@ -1779,13 +1779,13 @@ std::vector<std::string> EidosValue_Object_vector::MethodsOfElements(void) const
 		return values_[0]->Methods();
 }
 
-const EidosFunctionSignature *EidosValue_Object_vector::SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *EidosValue_Object_vector::SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const
 {
 	if (values_.size() == 0)
 	{
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SignatureForMethodOfElements): unrecognized method name " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate();
 		
-		return new EidosFunctionSignature(gStr_empty_string, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL);
+		return new EidosInstanceMethodSignature(gStr_empty_string, kValueMaskNULL);
 	}
 	else
 		return values_[0]->SignatureForMethod(p_method_id);
@@ -1980,7 +1980,7 @@ std::vector<std::string> EidosValue_Object_singleton_const::MethodsOfElements(vo
 	return value_->Methods();
 }
 
-const EidosFunctionSignature *EidosValue_Object_singleton_const::SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *EidosValue_Object_singleton_const::SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const
 {
 	return value_->SignatureForMethod(p_method_id);
 }
@@ -2074,18 +2074,18 @@ std::vector<std::string> EidosObjectElement::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *EidosObjectElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *EidosObjectElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static EidosFunctionSignature *strSig = nullptr;
-	static EidosFunctionSignature *propertySig = nullptr;
-	static EidosFunctionSignature *methodsSig = nullptr;
+	static EidosInstanceMethodSignature *strSig = nullptr;
+	static EidosClassMethodSignature *propertySig = nullptr;
+	static EidosClassMethodSignature *methodsSig = nullptr;
 	
 	if (!strSig)
 	{
-		methodsSig = (new EidosFunctionSignature(gStr_method, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS("methodName");
-		propertySig = (new EidosFunctionSignature(gStr_property, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetClassMethod()->AddString_OS("propertyName");
-		strSig = (new EidosFunctionSignature(gStr_str, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod();
+		methodsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_method, kValueMaskNULL))->AddString_OS("methodName");
+		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_property, kValueMaskNULL))->AddString_OS("propertyName");
+		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_str, kValueMaskNULL));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2109,7 +2109,7 @@ const EidosFunctionSignature *EidosObjectElement::SignatureForMethod(EidosGlobal
 			
 			// Otherwise, we have an unrecognized method, so throw
 			EIDOS_TERMINATION << "ERROR (EidosObjectElement::SignatureForMethod for " << *ElementType() << "): unrecognized method name " << &method_name << "." << eidos_terminate();
-			return new EidosFunctionSignature(gStr_empty_string, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL);
+			return new EidosInstanceMethodSignature(gStr_empty_string, kValueMaskNULL);
 	}
 }
 
@@ -2215,7 +2215,7 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
 				
-				const EidosFunctionSignature *method_signature = SignatureForMethod(method_id);
+				const EidosMethodSignature *method_signature = SignatureForMethod(method_id);
 				
 				output_stream << *method_signature << endl;
 				signature_found = true;

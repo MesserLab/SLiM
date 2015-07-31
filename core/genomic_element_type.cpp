@@ -22,7 +22,7 @@
 
 #include "slim_global.h"
 #include "mutation_type.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
@@ -245,13 +245,13 @@ std::vector<std::string> GenomicElementType::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *GenomicElementType::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *GenomicElementType::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setMutationFractionsSig = nullptr;
+	static EidosInstanceMethodSignature *setMutationFractionsSig = nullptr;
 	
 	if (!setMutationFractionsSig)
 	{
-		setMutationFractionsSig = (new EidosFunctionSignature(gStr_setMutationFractions, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("mutationTypes")->AddNumeric("proportions");
+		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kValueMaskNULL))->AddObject("mutationTypes")->AddNumeric("proportions");
 	}
 	
 	if (p_method_id == gID_setMutationFractions)

@@ -19,7 +19,7 @@
 
 
 #include "eidos_functions.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 #include "eidos_path_element.h"
 #include "eidos_interpreter.h"
 #include "eidos_rng.h"
@@ -57,28 +57,28 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	math functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("abs",			EidosFunctionIdentifier::absFunction,			kValueMaskNumeric))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("acos",			EidosFunctionIdentifier::acosFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("asin",			EidosFunctionIdentifier::asinFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("atan",			EidosFunctionIdentifier::atanFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("atan2",			EidosFunctionIdentifier::atan2Function,			kValueMaskFloat))->AddNumeric("x")->AddNumeric("y"));
-		signatures->push_back((new EidosFunctionSignature("ceil",			EidosFunctionIdentifier::ceilFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("cos",			EidosFunctionIdentifier::cosFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("exp",			EidosFunctionIdentifier::expFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("isFinite",		EidosFunctionIdentifier::isFiniteFunction,		kValueMaskLogical))->AddFloat("x"));
-		signatures->push_back((new EidosFunctionSignature("isInfinite",		EidosFunctionIdentifier::isInfiniteFunction,	kValueMaskLogical))->AddFloat("x"));
-		signatures->push_back((new EidosFunctionSignature("isNAN",			EidosFunctionIdentifier::isNaNFunction,			kValueMaskLogical))->AddFloat("x"));
-		signatures->push_back((new EidosFunctionSignature("log",			EidosFunctionIdentifier::logFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("log10",			EidosFunctionIdentifier::log10Function,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("log2",			EidosFunctionIdentifier::log2Function,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("product",		EidosFunctionIdentifier::productFunction,		kValueMaskNumeric | kValueMaskSingleton))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("round",			EidosFunctionIdentifier::roundFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("sin",			EidosFunctionIdentifier::sinFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("sqrt",			EidosFunctionIdentifier::sqrtFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("sum",			EidosFunctionIdentifier::sumFunction,			kValueMaskNumeric | kValueMaskSingleton))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("tan",			EidosFunctionIdentifier::tanFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("trunc",			EidosFunctionIdentifier::truncFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("abs",				EidosFunctionIdentifier::absFunction,			kValueMaskNumeric))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("acos",				EidosFunctionIdentifier::acosFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asin",				EidosFunctionIdentifier::asinFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("atan",				EidosFunctionIdentifier::atanFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("atan2",			EidosFunctionIdentifier::atan2Function,			kValueMaskFloat))->AddNumeric("x")->AddNumeric("y"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ceil",				EidosFunctionIdentifier::ceilFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cos",				EidosFunctionIdentifier::cosFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("exp",				EidosFunctionIdentifier::expFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFinite",			EidosFunctionIdentifier::isFiniteFunction,		kValueMaskLogical))->AddFloat("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInfinite",		EidosFunctionIdentifier::isInfiniteFunction,	kValueMaskLogical))->AddFloat("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isNAN",			EidosFunctionIdentifier::isNaNFunction,			kValueMaskLogical))->AddFloat("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("log",				EidosFunctionIdentifier::logFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("log10",			EidosFunctionIdentifier::log10Function,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("log2",				EidosFunctionIdentifier::log2Function,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("product",			EidosFunctionIdentifier::productFunction,		kValueMaskNumeric | kValueMaskSingleton))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("round",			EidosFunctionIdentifier::roundFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sin",				EidosFunctionIdentifier::sinFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sqrt",				EidosFunctionIdentifier::sqrtFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				EidosFunctionIdentifier::sumFunction,			kValueMaskNumeric | kValueMaskSingleton))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("tan",				EidosFunctionIdentifier::tanFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("trunc",			EidosFunctionIdentifier::truncFunction,			kValueMaskFloat))->AddNumeric("x"));
 		
 		
 		// ************************************************************************************
@@ -86,11 +86,11 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	summary statistics functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("max",			EidosFunctionIdentifier::maxFunction,			kValueMaskAnyBase | kValueMaskSingleton))->AddAnyBase("x"));
-		signatures->push_back((new EidosFunctionSignature("mean",			EidosFunctionIdentifier::meanFunction,			kValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("min",			EidosFunctionIdentifier::minFunction,			kValueMaskAnyBase | kValueMaskSingleton))->AddAnyBase("x"));
-		signatures->push_back((new EidosFunctionSignature("range",			EidosFunctionIdentifier::rangeFunction,			kValueMaskNumeric))->AddNumeric("x"));
-		signatures->push_back((new EidosFunctionSignature("sd",				EidosFunctionIdentifier::sdFunction,			kValueMaskFloat | kValueMaskSingleton))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				EidosFunctionIdentifier::maxFunction,			kValueMaskAnyBase | kValueMaskSingleton))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				EidosFunctionIdentifier::meanFunction,			kValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				EidosFunctionIdentifier::minFunction,			kValueMaskAnyBase | kValueMaskSingleton))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",			EidosFunctionIdentifier::rangeFunction,			kValueMaskNumeric))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				EidosFunctionIdentifier::sdFunction,			kValueMaskFloat | kValueMaskSingleton))->AddNumeric("x"));
 		
 		
 		// ************************************************************************************
@@ -98,22 +98,22 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	vector construction functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("c",				EidosFunctionIdentifier::cFunction,				kValueMaskAny))->AddEllipsis());
-		signatures->push_back((new EidosFunctionSignature(gStr_float,		EidosFunctionIdentifier::floatFunction,			kValueMaskFloat))->AddInt_S("length"));
-		signatures->push_back((new EidosFunctionSignature(gStr_integer,		EidosFunctionIdentifier::integerFunction,		kValueMaskInt))->AddInt_S("length"));
-		signatures->push_back((new EidosFunctionSignature(gStr_logical,		EidosFunctionIdentifier::logicalFunction,		kValueMaskLogical))->AddInt_S("length"));
-		signatures->push_back((new EidosFunctionSignature(gStr_object,		EidosFunctionIdentifier::objectFunction,		kValueMaskObject)));
-		signatures->push_back((new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
-		signatures->push_back((new EidosFunctionSignature("rep",			EidosFunctionIdentifier::repFunction,			kValueMaskAny))->AddAny("x")->AddInt_S("count"));
-		signatures->push_back((new EidosFunctionSignature("repEach",		EidosFunctionIdentifier::repEachFunction,		kValueMaskAny))->AddAny("x")->AddInt("count"));
-		signatures->push_back((new EidosFunctionSignature("rexp",			EidosFunctionIdentifier::rexpFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
-		signatures->push_back((new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
-		signatures->push_back((new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
-		signatures->push_back((new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
-		signatures->push_back((new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kValueMaskAny))->AddAny("x")->AddInt("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
-		signatures->push_back((new EidosFunctionSignature("seq",			EidosFunctionIdentifier::seqFunction,			kValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OS("by"));
-		signatures->push_back((new EidosFunctionSignature("seqAlong",		EidosFunctionIdentifier::seqAlongFunction,		kValueMaskInt))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature(gStr_string,		EidosFunctionIdentifier::stringFunction,		kValueMaskString))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("c",				EidosFunctionIdentifier::cFunction,				kValueMaskAny))->AddEllipsis());
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_float,			EidosFunctionIdentifier::floatFunction,			kValueMaskFloat))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_integer,		EidosFunctionIdentifier::integerFunction,		kValueMaskInt))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_logical,		EidosFunctionIdentifier::logicalFunction,		kValueMaskLogical))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_object,		EidosFunctionIdentifier::objectFunction,		kValueMaskObject)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				EidosFunctionIdentifier::repFunction,			kValueMaskAny))->AddAny("x")->AddInt_S("count"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			EidosFunctionIdentifier::repEachFunction,		kValueMaskAny))->AddAny("x")->AddInt("count"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kValueMaskAny))->AddAny("x")->AddInt("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				EidosFunctionIdentifier::seqFunction,			kValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OS("by"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			EidosFunctionIdentifier::seqAlongFunction,		kValueMaskInt))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_string,		EidosFunctionIdentifier::stringFunction,		kValueMaskString))->AddInt_S("length"));
 		
 		
 		// ************************************************************************************
@@ -121,24 +121,24 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	value inspection/manipulation functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("all",			EidosFunctionIdentifier::allFunction,			kValueMaskLogical | kValueMaskSingleton))->AddLogical("x"));
-		signatures->push_back((new EidosFunctionSignature("any",			EidosFunctionIdentifier::anyFunction,			kValueMaskLogical | kValueMaskSingleton))->AddLogical("x"));
-		signatures->push_back((new EidosFunctionSignature("cat",			EidosFunctionIdentifier::catFunction,			kValueMaskNULL))->AddAny("x")->AddString_OS("sep"));
-		signatures->push_back((new EidosFunctionSignature("ifelse",			EidosFunctionIdentifier::ifelseFunction,		kValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
-		signatures->push_back((new EidosFunctionSignature("nchar",			EidosFunctionIdentifier::ncharFunction,			kValueMaskInt))->AddString("x"));
-		signatures->push_back((new EidosFunctionSignature("paste",			EidosFunctionIdentifier::pasteFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x")->AddString_OS("sep"));
-		signatures->push_back((new EidosFunctionSignature("print",			EidosFunctionIdentifier::printFunction,			kValueMaskNULL))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("rev",			EidosFunctionIdentifier::revFunction,			kValueMaskAny))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature(gStr_size,		EidosFunctionIdentifier::sizeFunction,			kValueMaskInt | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("sort",			EidosFunctionIdentifier::sortFunction,			kValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending"));
-		signatures->push_back((new EidosFunctionSignature("sortBy",			EidosFunctionIdentifier::sortByFunction,		kValueMaskObject))->AddObject("x")->AddString_S("property")->AddLogical_OS("ascending"));
-		signatures->push_back((new EidosFunctionSignature(gStr_str,			EidosFunctionIdentifier::strFunction,			kValueMaskNULL))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("strsplit",		EidosFunctionIdentifier::strsplitFunction,		kValueMaskString))->AddString_S("x")->AddString_OS("sep"));
-		signatures->push_back((new EidosFunctionSignature("substr",			EidosFunctionIdentifier::substrFunction,		kValueMaskString))->AddString("x")->AddInt("first")->AddInt_O("last"));
-		signatures->push_back((new EidosFunctionSignature("unique",			EidosFunctionIdentifier::uniqueFunction,		kValueMaskAny))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("which",			EidosFunctionIdentifier::whichFunction,			kValueMaskInt))->AddLogical("x"));
-		signatures->push_back((new EidosFunctionSignature("whichMax",		EidosFunctionIdentifier::whichMaxFunction,		kValueMaskInt))->AddAnyBase("x"));
-		signatures->push_back((new EidosFunctionSignature("whichMin",		EidosFunctionIdentifier::whichMinFunction,		kValueMaskInt))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				EidosFunctionIdentifier::allFunction,			kValueMaskLogical | kValueMaskSingleton))->AddLogical("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				EidosFunctionIdentifier::anyFunction,			kValueMaskLogical | kValueMaskSingleton))->AddLogical("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				EidosFunctionIdentifier::catFunction,			kValueMaskNULL))->AddAny("x")->AddString_OS("sep"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			EidosFunctionIdentifier::ifelseFunction,		kValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",			EidosFunctionIdentifier::ncharFunction,			kValueMaskInt))->AddString("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			EidosFunctionIdentifier::pasteFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x")->AddString_OS("sep"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			EidosFunctionIdentifier::printFunction,			kValueMaskNULL))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				EidosFunctionIdentifier::revFunction,			kValueMaskAny))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_size,			EidosFunctionIdentifier::sizeFunction,			kValueMaskInt | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sort",				EidosFunctionIdentifier::sortFunction,			kValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			EidosFunctionIdentifier::sortByFunction,		kValueMaskObject))->AddObject("x")->AddString_S("property")->AddLogical_OS("ascending"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_str,			EidosFunctionIdentifier::strFunction,			kValueMaskNULL))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			EidosFunctionIdentifier::strsplitFunction,		kValueMaskString))->AddString_S("x")->AddString_OS("sep"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			EidosFunctionIdentifier::substrFunction,		kValueMaskString))->AddString("x")->AddInt("first")->AddInt_O("last"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			EidosFunctionIdentifier::uniqueFunction,		kValueMaskAny))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("which",			EidosFunctionIdentifier::whichFunction,			kValueMaskInt))->AddLogical("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMax",			EidosFunctionIdentifier::whichMaxFunction,		kValueMaskInt))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMin",			EidosFunctionIdentifier::whichMinFunction,		kValueMaskInt))->AddAnyBase("x"));
 		
 		
 		// ************************************************************************************
@@ -146,18 +146,18 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	value type testing/coercion functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("asFloat",		EidosFunctionIdentifier::asFloatFunction,		kValueMaskFloat))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("asInteger",		EidosFunctionIdentifier::asIntegerFunction,		kValueMaskInt))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("asLogical",		EidosFunctionIdentifier::asLogicalFunction,		kValueMaskLogical))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("asString",		EidosFunctionIdentifier::asStringFunction,		kValueMaskString))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("element",		EidosFunctionIdentifier::elementFunction,		kValueMaskString | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isFloat",		EidosFunctionIdentifier::isFloatFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isInteger",		EidosFunctionIdentifier::isIntegerFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isLogical",		EidosFunctionIdentifier::isLogicalFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isNULL",			EidosFunctionIdentifier::isNULLFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isObject",		EidosFunctionIdentifier::isObjectFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature("isString",		EidosFunctionIdentifier::isStringFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((new EidosFunctionSignature(gStr_type,		EidosFunctionIdentifier::typeFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asFloat",			EidosFunctionIdentifier::asFloatFunction,		kValueMaskFloat))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asInteger",		EidosFunctionIdentifier::asIntegerFunction,		kValueMaskInt))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asLogical",		EidosFunctionIdentifier::asLogicalFunction,		kValueMaskLogical))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asString",			EidosFunctionIdentifier::asStringFunction,		kValueMaskString))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("element",			EidosFunctionIdentifier::elementFunction,		kValueMaskString | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFloat",			EidosFunctionIdentifier::isFloatFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInteger",		EidosFunctionIdentifier::isIntegerFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isLogical",		EidosFunctionIdentifier::isLogicalFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isNULL",			EidosFunctionIdentifier::isNULLFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isObject",			EidosFunctionIdentifier::isObjectFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isString",			EidosFunctionIdentifier::isStringFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_type,			EidosFunctionIdentifier::typeFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x"));
 		
 		
 		// ************************************************************************************
@@ -165,18 +165,18 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	bookkeeping functions
 		//
 		
-		signatures->push_back((new EidosFunctionSignature("date",			EidosFunctionIdentifier::dateFunction,			kValueMaskString | kValueMaskSingleton)));
-		signatures->push_back((new EidosFunctionSignature("executeLambda",	EidosFunctionIdentifier::executeLambdaFunction,	kValueMaskAny))->AddString_S("lambdaSource"));
-		signatures->push_back((new EidosFunctionSignature("function",		EidosFunctionIdentifier::functionFunction,		kValueMaskNULL))->AddString_OS("functionName"));
-		signatures->push_back((new EidosFunctionSignature(gStr_globals,		EidosFunctionIdentifier::globalsFunction,		kValueMaskNULL)));
-		signatures->push_back((new EidosFunctionSignature("help",			EidosFunctionIdentifier::helpFunction,			kValueMaskNULL))->AddString_OS("topic"));
-		signatures->push_back((new EidosFunctionSignature("license",		EidosFunctionIdentifier::licenseFunction,		kValueMaskNULL)));
-		signatures->push_back((new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kValueMaskNULL))->AddString_O("variableNames"));
-		signatures->push_back((new EidosFunctionSignature("setSeed",		EidosFunctionIdentifier::setSeedFunction,		kValueMaskNULL))->AddInt_S("seed"));
-		signatures->push_back((new EidosFunctionSignature("getSeed",		EidosFunctionIdentifier::getSeedFunction,		kValueMaskInt | kValueMaskSingleton)));
-		signatures->push_back((new EidosFunctionSignature("stop",			EidosFunctionIdentifier::stopFunction,			kValueMaskNULL))->AddString_OS("message"));
-		signatures->push_back((new EidosFunctionSignature("time",			EidosFunctionIdentifier::timeFunction,			kValueMaskString | kValueMaskSingleton)));
-		signatures->push_back((new EidosFunctionSignature("version",		EidosFunctionIdentifier::versionFunction,		kValueMaskNULL)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kValueMaskString | kValueMaskSingleton)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("executeLambda",	EidosFunctionIdentifier::executeLambdaFunction,	kValueMaskAny))->AddString_S("lambdaSource"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kValueMaskNULL))->AddString_OS("functionName"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_globals,		EidosFunctionIdentifier::globalsFunction,		kValueMaskNULL)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kValueMaskNULL))->AddString_OS("topic"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kValueMaskNULL)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kValueMaskNULL))->AddString_O("variableNames"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			EidosFunctionIdentifier::setSeedFunction,		kValueMaskNULL))->AddInt_S("seed"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			EidosFunctionIdentifier::getSeedFunction,		kValueMaskInt | kValueMaskSingleton)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				EidosFunctionIdentifier::stopFunction,			kValueMaskNULL))->AddString_OS("message"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				EidosFunctionIdentifier::timeFunction,			kValueMaskString | kValueMaskSingleton)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			EidosFunctionIdentifier::versionFunction,		kValueMaskNULL)));
 		
 		
 		// ************************************************************************************
@@ -184,11 +184,11 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((new EidosFunctionSignature(gStr_Path,		EidosFunctionIdentifier::PathFunction,			kValueMaskObject | kValueMaskSingleton))->AddString_OS("path"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_Path,		EidosFunctionIdentifier::PathFunction,			kValueMaskObject | kValueMaskSingleton))->AddString_OS("path"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
-		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignatures);
+		std::sort(signatures->begin(), signatures->end(), CompareEidosCallSignatures);
 	}
 	
 	return *signatures;
@@ -367,13 +367,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		p_function_signature = signature_iter->second;
 	}
 	
-	bool class_method = p_function_signature->is_class_method;
-	bool instance_method = p_function_signature->is_instance_method;
-	
-	if (class_method || instance_method)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): internal error: " << p_function_name << " is designated as a class method or instance method." << eidos_terminate();
-	
-	p_function_signature->CheckArguments(gStr_function, p_arguments, p_argument_count);
+	p_function_signature->CheckArguments(p_arguments, p_argument_count);
 	
 	// We predefine variables for the return types, and preallocate them here if possible.  This is for code brevity below.
 	EidosValue_NULL *null_result = nullptr;
@@ -2568,7 +2562,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 	if (string_result && (string_result != result)) delete string_result;
 	
 	// Check the return value against the signature
-	p_function_signature->CheckReturn(gStr_function, result);
+	p_function_signature->CheckReturn(result);
 	
 	return result;
 }
@@ -2578,25 +2572,18 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	EidosValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	const EidosFunctionSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_id);
-	bool class_method = method_signature->is_class_method;
-	bool instance_method = method_signature->is_instance_method;
+	const EidosMethodSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_id);
 	
-	if (!class_method && !instance_method)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): internal error: " << StringForEidosGlobalStringID(p_method_id) << " is not designated as a class method or instance method." << eidos_terminate();
-	if (class_method && instance_method)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): internal error: " << StringForEidosGlobalStringID(p_method_id) << " is designated as both a class method and an instance method." << eidos_terminate();
-	
-	method_signature->CheckArguments(gStr_method, p_arguments, p_argument_count);
+	method_signature->CheckArguments(p_arguments, p_argument_count);
 	
 	// Make the method call
-	if (class_method)
+	if (method_signature->is_class_method)
 		result = method_object->ExecuteClassMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	else
 		result = method_object->ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	
 	// Check the return value against the signature
-	method_signature->CheckReturn(gStr_method, result);
+	method_signature->CheckReturn(result);
 	
 	return result;
 }

@@ -19,7 +19,7 @@
 
 
 #include "mutation.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 #ifdef SLIMGUI
@@ -143,13 +143,13 @@ std::vector<std::string> Mutation::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *Mutation::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Mutation::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setSelectionCoeffSig = nullptr;
+	static EidosInstanceMethodSignature *setSelectionCoeffSig = nullptr;
 	
 	if (!setSelectionCoeffSig)
 	{
-		setSelectionCoeffSig = (new EidosFunctionSignature(gStr_setSelectionCoeff, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S("selectionCoeff");
+		setSelectionCoeffSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kValueMaskNULL))->AddFloat_S("selectionCoeff");
 	}
 	
 	if (p_method_id == gID_setSelectionCoeff)

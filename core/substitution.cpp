@@ -129,7 +129,7 @@ std::vector<std::string> Substitution::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *Substitution::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Substitution::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	return EidosObjectElement::SignatureForMethod(p_method_id);
 }

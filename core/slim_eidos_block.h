@@ -146,7 +146,7 @@ public:
 	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 

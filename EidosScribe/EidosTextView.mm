@@ -21,7 +21,7 @@
 #import "EidosTextView.h"
 
 #include "eidos_script.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 #include <stdexcept>
 

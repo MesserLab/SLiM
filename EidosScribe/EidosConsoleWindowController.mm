@@ -24,7 +24,7 @@
 #include "eidos_script.h"
 #include "eidos_global.h"
 #include "eidos_interpreter.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 #include <iostream>
 #include <sstream>

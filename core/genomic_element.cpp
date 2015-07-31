@@ -20,7 +20,7 @@
 
 #include "genomic_element.h"
 #include "slim_global.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 bool GenomicElement::s_log_copy_and_assign_ = true;
@@ -184,13 +184,13 @@ std::vector<std::string> GenomicElement::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *GenomicElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *GenomicElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setGenomicElementTypeSig = nullptr;
+	static EidosInstanceMethodSignature *setGenomicElementTypeSig = nullptr;
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (new EidosFunctionSignature(gStr_setGenomicElementType, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject_S("genomicElementType");
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kValueMaskNULL))->AddObject_S("genomicElementType");
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)

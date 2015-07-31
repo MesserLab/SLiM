@@ -25,7 +25,7 @@
 
 #include "eidos_rng.h"
 #include "slim_global.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
@@ -366,13 +366,13 @@ std::vector<std::string> Chromosome::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *Chromosome::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Chromosome::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setRecombinationRateSig = nullptr;
+	static EidosInstanceMethodSignature *setRecombinationRateSig = nullptr;
 	
 	if (!setRecombinationRateSig)
 	{
-		setRecombinationRateSig = (new EidosFunctionSignature(gStr_setRecombinationRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric("rates")->AddInt_O("ends");
+		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends");
 	}
 	
 	if (p_method_id == gID_setRecombinationRate)

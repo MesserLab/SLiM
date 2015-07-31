@@ -20,7 +20,7 @@
 
 #include "eidos_path_element.h"
 #include "eidos_functions.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 #include "eidos_global.h"
 
 #include <stdio.h>
@@ -132,18 +132,18 @@ std::vector<std::string> Eidos_PathElement::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *Eidos_PathElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Eidos_PathElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static EidosFunctionSignature *filesSig = nullptr;
-	static EidosFunctionSignature *readFileSig = nullptr;
-	static EidosFunctionSignature *writeFileSig = nullptr;
+	static EidosInstanceMethodSignature *filesSig = nullptr;
+	static EidosInstanceMethodSignature *readFileSig = nullptr;
+	static EidosInstanceMethodSignature *writeFileSig = nullptr;
 	
 	if (!filesSig)
 	{
-		filesSig = (new EidosFunctionSignature(gStr_files, EidosFunctionIdentifier::kNoFunction, kValueMaskString))->SetInstanceMethod();
-		readFileSig = (new EidosFunctionSignature(gStr_readFile, EidosFunctionIdentifier::kNoFunction, kValueMaskString))->SetInstanceMethod()->AddString_S("fileName");
-		writeFileSig = (new EidosFunctionSignature(gStr_writeFile, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S("fileName")->AddString("contents");
+		filesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_files, kValueMaskString));
+		readFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFile, kValueMaskString))->AddString_S("fileName");
+		writeFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_writeFile, kValueMaskNULL))->AddString_S("fileName")->AddString("contents");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

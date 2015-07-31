@@ -25,7 +25,7 @@
 #include "mutation_type.h"
 #include "eidos_rng.h"
 #include "slim_global.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 using std::endl;
@@ -238,13 +238,13 @@ std::vector<std::string> MutationType::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *MutationType::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *MutationType::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosFunctionSignature *setDistributionSig = nullptr;
+	static EidosInstanceMethodSignature *setDistributionSig = nullptr;
 	
 	if (!setDistributionSig)
 	{
-		setDistributionSig = (new EidosFunctionSignature(gStr_setDistribution, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddString_S("distributionType")->AddEllipsis();
+		setDistributionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kValueMaskNULL))->AddString_S("distributionType")->AddEllipsis();
 	}
 	
 	if (p_method_id == gID_setDistribution)

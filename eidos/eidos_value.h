@@ -40,6 +40,7 @@ class EidosValue_NULL;
 class EidosValue_Logical;
 
 struct EidosFunctionSignature;
+struct EidosMethodSignature;
 class EidosInterpreter;
 
 class EidosObjectElement;	// the value type for EidosValue_Object; defined at the bottom of this file
@@ -622,7 +623,7 @@ public:
 	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value) = 0;
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
-	virtual const EidosFunctionSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const = 0;
+	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const = 0;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 };
@@ -664,7 +665,7 @@ public:
 	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const EidosFunctionSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
+	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
@@ -706,7 +707,7 @@ public:
 	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
-	virtual const EidosFunctionSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
+	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
@@ -745,7 +746,7 @@ public:
 	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
-	virtual const EidosFunctionSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible

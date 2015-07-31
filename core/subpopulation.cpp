@@ -24,7 +24,7 @@
 #include "subpopulation.h"
 #include "slim_sim.h"
 #include "slim_global.h"
-#include "eidos_function_signature.h"
+#include "eidos_call_signature.h"
 
 
 using std::string;
@@ -1094,28 +1094,28 @@ std::vector<std::string> Subpopulation::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *Subpopulation::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Subpopulation::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static EidosFunctionSignature *setMigrationRatesSig = nullptr;
-	static EidosFunctionSignature *setCloningRateSig = nullptr;
-	static EidosFunctionSignature *setSelfingRateSig = nullptr;
-	static EidosFunctionSignature *setSexRatioSig = nullptr;
-	static EidosFunctionSignature *setSubpopulationSizeSig = nullptr;
-	static EidosFunctionSignature *fitnessSig = nullptr;
-	static EidosFunctionSignature *outputMSSampleSig = nullptr;
-	static EidosFunctionSignature *outputSampleSig = nullptr;
+	static EidosInstanceMethodSignature *setMigrationRatesSig = nullptr;
+	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
+	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
+	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
+	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
+	static EidosInstanceMethodSignature *fitnessSig = nullptr;
+	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
+	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
 	
 	if (!setMigrationRatesSig)
 	{
-		setMigrationRatesSig = (new EidosFunctionSignature(gStr_setMigrationRates, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddObject("sourceSubpops")->AddNumeric("rates");
-		setCloningRateSig = (new EidosFunctionSignature(gStr_setCloningRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric("rate");
-		setSelfingRateSig = (new EidosFunctionSignature(gStr_setSelfingRate, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddNumeric_S("rate");
-		setSexRatioSig = (new EidosFunctionSignature(gStr_setSexRatio, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddFloat_S("sexRatio");
-		setSubpopulationSizeSig = (new EidosFunctionSignature(gStr_setSubpopulationSize, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("size");
-		fitnessSig = (new EidosFunctionSignature(gStr_fitness, EidosFunctionIdentifier::kNoFunction, kValueMaskFloat))->SetInstanceMethod()->AddInt("indices");
-		outputMSSampleSig = (new EidosFunctionSignature(gStr_outputMSSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("sampleSize")->AddString_OS("requestedSex");
-		outputSampleSig = (new EidosFunctionSignature(gStr_outputSample, EidosFunctionIdentifier::kNoFunction, kValueMaskNULL))->SetInstanceMethod()->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kValueMaskNULL))->AddObject("sourceSubpops")->AddNumeric("rates");
+		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kValueMaskNULL))->AddNumeric("rate");
+		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kValueMaskNULL))->AddNumeric_S("rate");
+		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kValueMaskNULL))->AddFloat_S("sexRatio");
+		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kValueMaskNULL))->AddInt_S("size");
+		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kValueMaskFloat))->AddInt("indices");
+		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

@@ -672,7 +672,7 @@ std::vector<std::string> SLiMEidosBlock::Methods(void) const
 	return methods;
 }
 
-const EidosFunctionSignature *SLiMEidosBlock::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *SLiMEidosBlock::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	return EidosObjectElement::SignatureForMethod(p_method_id);
 }
