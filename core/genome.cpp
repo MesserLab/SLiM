@@ -362,10 +362,10 @@ const EidosMethodSignature *Genome::SignatureForMethod(EidosGlobalStringID p_met
 	
 	if (!addMutationsSig)
 	{
-		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kValueMaskNULL))->AddObject("mutations");
-		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kValueMaskObject))->AddObject_S("mutationType")->AddInt_S("originGeneration")->AddInt_S("position")->AddInt_S("originSubpopID");
-		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kValueMaskObject))->AddObject_S("mutationType")->AddInt_S("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddInt_S("originSubpopID");
-		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kValueMaskNULL))->AddObject("mutations");
+		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kValueMaskNULL))->AddObject("mutations", &gStr_Mutation);
+		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kValueMaskObject, &gStr_Mutation))->AddObject_S("mutationType", &gStr_MutationType)->AddInt_S("originGeneration")->AddInt_S("position")->AddInt_S("originSubpopID");
+		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kValueMaskObject, &gStr_Mutation))->AddObject_S("mutationType", &gStr_MutationType)->AddInt_S("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddInt_S("originSubpopID");
+		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kValueMaskNULL))->AddObject("mutations", &gStr_Mutation);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -409,9 +409,6 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 			if (arg0_count)
 			{
-				if (arg0_value->ElementType() != &gStr_Mutation)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
-				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
 					Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index));
@@ -439,9 +436,6 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			int origin_generation = (int)arg1_value->IntAtIndex(0);
 			int position = (int)arg2_value->IntAtIndex(0);
 			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
-			
-			if (mut_type_value->ElementType() != &gStr_MutationType)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << eidos_terminate();
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			double selection_coeff = mut_type->DrawSelectionCoefficient();
@@ -473,9 +467,6 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			double selection_coeff = arg3_value->FloatAtIndex(0);
 			int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
 			
-			if (mut_type_value->ElementType() != &gStr_MutationType)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addNewMutation() requires that mutationType has object element type MutationType." << eidos_terminate();
-			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 			
@@ -503,9 +494,6 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 			if (arg0_count)
 			{
-				if (arg0_value->ElementType() != &gStr_Mutation)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
-				
 				if (mutations_ == nullptr)
 					NullGenomeAccessError();
 				

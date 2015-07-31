@@ -190,7 +190,7 @@ const EidosMethodSignature *GenomicElement::SignatureForMethod(EidosGlobalString
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kValueMaskNULL))->AddObject_S("genomicElementType");
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)

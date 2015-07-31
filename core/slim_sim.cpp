@@ -1390,18 +1390,18 @@ const EidosMethodSignature *SLiMSim::SignatureForMethod(EidosGlobalStringID p_me
 	
 	if (!addSubpopSig)
 	{
-		addSubpopSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kValueMaskObject))->AddInt_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio");
-		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kValueMaskObject))->AddInt_S("subpopID")->AddInt_S("size")->AddObject_S("sourceSubpop")->AddFloat_OS("sexRatio");
-		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kValueMaskNULL))->AddObject("scriptBlocks");
-		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kValueMaskFloat))->AddObject("subpops")->AddObject_O("mutations");
+		addSubpopSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kValueMaskObject, &gStr_Subpopulation))->AddInt_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio");
+		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kValueMaskObject, &gStr_Subpopulation))->AddInt_S("subpopID")->AddInt_S("size")->AddObject_S("sourceSubpop", &gStr_Subpopulation)->AddFloat_OS("sexRatio");
+		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kValueMaskNULL))->AddObject("scriptBlocks", &gStr_SLiMEidosBlock);
+		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kValueMaskFloat))->AddObject("subpops", &gStr_Subpopulation)->AddObject_O("mutations", &gStr_Mutation);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kValueMaskNULL));
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kValueMaskNULL))->AddString_OS("filePath");
-		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kValueMaskNULL))->AddObject("mutations");
+		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kValueMaskNULL))->AddObject("mutations", &gStr_Mutation);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kValueMaskNULL))->AddString_S("filePath");
-		registerScriptEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptEvent, kValueMaskObject))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kValueMaskObject))->AddInt_SN("id")->AddString_S("source")->AddInt_S("mutTypeID")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kValueMaskObject))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptModifyChildCallback, kValueMaskObject))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptEvent, kValueMaskObject, &gStr_SLiMEidosBlock))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kValueMaskObject, &gStr_SLiMEidosBlock))->AddInt_SN("id")->AddString_S("source")->AddInt_S("mutTypeID")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kValueMaskObject, &gStr_SLiMEidosBlock))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptModifyChildCallback, kValueMaskObject, &gStr_SLiMEidosBlock))->AddInt_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1542,9 +1542,6 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				
 				if (requested_subpop_count)
 				{
-					if (arg0_value->ElementType() != &gStr_Subpopulation)
-						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << eidos_terminate();
-					
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
 						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index)));
 				}
@@ -1585,9 +1582,6 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				
 				if (arg1_count)
 				{
-					if (arg1_value->ElementType() != &gStr_Mutation)
-						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << eidos_terminate();
-					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
 						float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index)))->reference_count_ * denominator);
 				}
@@ -1752,7 +1746,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptEvent() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
 			
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			

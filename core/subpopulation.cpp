@@ -1108,7 +1108,7 @@ const EidosMethodSignature *Subpopulation::SignatureForMethod(EidosGlobalStringI
 	
 	if (!setMigrationRatesSig)
 	{
-		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kValueMaskNULL))->AddObject("sourceSubpops")->AddNumeric("rates");
+		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kValueMaskNULL))->AddObject("sourceSubpops", &gStr_Subpopulation)->AddNumeric("rates");
 		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kValueMaskNULL))->AddNumeric("rate");
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kValueMaskNULL))->AddNumeric_S("rate");
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kValueMaskNULL))->AddFloat_S("sexRatio");
@@ -1165,8 +1165,6 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			
 			if (source_subpops_count != rates_count)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
-			if (arg0_value->ElementType() != &gStr_Subpopulation)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops to be a Subpopulation object." << eidos_terminate();
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{

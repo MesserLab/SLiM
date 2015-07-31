@@ -63,7 +63,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 	return p_outstream;
 }
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string &p_name)
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string *p_object_element_type, const std::string &p_name)
 {
 	std::string out_string;
 	bool is_optional = !!(p_mask & kValueMaskOptional);
@@ -91,6 +91,13 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::stri
 		if (type_mask & kValueMaskFloat)		out_string += "f";
 		if (type_mask & kValueMaskString)		out_string += "s";
 		if (type_mask & kValueMaskObject)		out_string += "o";
+	}
+	
+	if (p_object_element_type && (type_mask & kValueMaskObject))
+	{
+		out_string += "<";
+		out_string += *p_object_element_type;
+		out_string += ">";
 	}
 	
 	if (requires_singleton)

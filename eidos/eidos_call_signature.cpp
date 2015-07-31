@@ -32,8 +32,13 @@ using std::ostream;
 //
 #pragma mark EidosCallSignature
 
-EidosCallSignature::EidosCallSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask) :
-function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask)
+EidosCallSignature::EidosCallSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask)
+	: function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), return_object_element_type_(nullptr)
+{
+}
+
+EidosCallSignature::EidosCallSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const std::string *p_return_object_element_type)
+	: function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), return_object_element_type_(p_return_object_element_type)
 {
 }
 
@@ -41,7 +46,7 @@ EidosCallSignature::~EidosCallSignature(void)
 {
 }
 
-EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name)
+EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name, const std::string *p_object_element_type)
 {
 	bool is_optional = !!(p_arg_mask & kValueMaskOptional);
 	
@@ -54,8 +59,12 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	if (p_argument_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArg): an argument name is required." << eidos_terminate();
 	
+	if (p_object_element_type && !(p_arg_mask & kValueMaskObject))
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArg): an object element type may only be supplied for an argument of object type." << eidos_terminate();
+	
 	arg_masks_.push_back(p_arg_mask);
 	arg_names_.push_back(p_argument_name);
+	arg_obj_types_.push_back(p_object_element_type);
 	
 	if (is_optional)
 		has_optional_args_ = true;
@@ -76,77 +85,77 @@ EidosCallSignature *EidosCallSignature::AddEllipsis()
 	return this;
 }
 
-EidosCallSignature *EidosCallSignature::AddLogical(const std::string &p_argument_name)			{ return AddArg(kValueMaskLogical, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt(const std::string &p_argument_name)				{ return AddArg(kValueMaskInt, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString(const std::string &p_argument_name)			{ return AddArg(kValueMaskString, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject(const std::string &p_argument_name)			{ return AddArg(kValueMaskObject, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric(const std::string &p_argument_name)			{ return AddArg(kValueMaskNumeric, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogicalEquiv, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAnyBase(const std::string &p_argument_name)			{ return AddArg(kValueMaskAnyBase, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAny(const std::string &p_argument_name)				{ return AddArg(kValueMaskAny, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical(const std::string &p_argument_name)			{ return AddArg(kValueMaskLogical, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt(const std::string &p_argument_name)				{ return AddArg(kValueMaskInt, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString(const std::string &p_argument_name)			{ return AddArg(kValueMaskString, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric(const std::string &p_argument_name)			{ return AddArg(kValueMaskNumeric, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogicalEquiv, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAnyBase(const std::string &p_argument_name)			{ return AddArg(kValueMaskAnyBase, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAny(const std::string &p_argument_name)				{ return AddArg(kValueMaskAny, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject(const std::string &p_argument_name, const std::string *p_object_element_type)			{ return AddArg(kValueMaskObject, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskObject | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_O(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAnyBase_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskOptional, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAny_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskOptional, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_O(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAnyBase_O(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAny_O(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskOptional, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_O(const std::string &p_argument_name, const std::string *p_object_element_type)			{ return AddArg(kValueMaskObject | kValueMaskOptional, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskObject | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_S(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAnyBase_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAny_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskSingleton, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_S(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAnyBase_S(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAny_S(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_S(const std::string &p_argument_name, const std::string *p_object_element_type)			{ return AddArg(kValueMaskObject | kValueMaskSingleton, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskObject | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OS(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAnyBase_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskOptSingleton, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddAny_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskOptSingleton, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OS(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAnyBase_OS(const std::string &p_argument_name)		{ return AddArg(kValueMaskAnyBase | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddAny_OS(const std::string &p_argument_name)			{ return AddArg(kValueMaskAny | kValueMaskOptSingleton, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_OS(const std::string &p_argument_name, const std::string *p_object_element_type)		{ return AddArg(kValueMaskObject | kValueMaskOptSingleton, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_N(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskObject | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_N(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_N(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskNULL, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_N(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_N(const std::string &p_argument_name)			{ return AddArg(kValueMaskString | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_N(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_N(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_N(const std::string &p_argument_name, const std::string *p_object_element_type)			{ return AddArg(kValueMaskObject | kValueMaskNULL, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_ON(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_ON(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskObject | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_ON(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptional | kValueMaskNULL, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_ON(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_ON(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_ON(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_ON(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptional | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_ON(const std::string &p_argument_name, const std::string *p_object_element_type)		{ return AddArg(kValueMaskObject | kValueMaskOptional | kValueMaskNULL, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_SN(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_SN(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskObject | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_SN(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskSingleton | kValueMaskNULL, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_SN(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_SN(const std::string &p_argument_name)			{ return AddArg(kValueMaskFloat | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_SN(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_SN(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_SN(const std::string &p_argument_name, const std::string *p_object_element_type)		{ return AddArg(kValueMaskObject | kValueMaskSingleton | kValueMaskNULL, p_argument_name, p_object_element_type); }
 
-EidosCallSignature *EidosCallSignature::AddLogical_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddInt_OSN(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddFloat_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskFloat | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddString_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskObject | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddNumeric_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
-EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name); }
+EidosCallSignature *EidosCallSignature::AddLogical_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskLogical | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddInt_OSN(const std::string &p_argument_name)			{ return AddArg(kValueMaskInt | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddFloat_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskFloat | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddString_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskString | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddNumeric_OSN(const std::string &p_argument_name)		{ return AddArg(kValueMaskNumeric | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p_argument_name)	{ return AddArg(kValueMaskLogicalEquiv | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, nullptr); }
+EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name, const std::string *p_object_element_type)		{ return AddArg(kValueMaskObject | kValueMaskOptSingleton | kValueMaskNULL, p_argument_name, p_object_element_type); }
 
 void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, int p_argument_count) const
 {
@@ -185,12 +194,24 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 			
 			switch (arg_type)
 			{
-				case EidosValueType::kValueNULL:		type_ok = !!(type_mask & kValueMaskNULL);		break;
+				case EidosValueType::kValueNULL:	type_ok = !!(type_mask & kValueMaskNULL);		break;
 				case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kValueMaskLogical);	break;
-				case EidosValueType::kValueString:		type_ok = !!(type_mask & kValueMaskString);	break;
+				case EidosValueType::kValueString:	type_ok = !!(type_mask & kValueMaskString);		break;
 				case EidosValueType::kValueInt:		type_ok = !!(type_mask & kValueMaskInt);		break;
-				case EidosValueType::kValueFloat:		type_ok = !!(type_mask & kValueMaskFloat);	break;
-				case EidosValueType::kValueObject:		type_ok = !!(type_mask & kValueMaskObject);	break;
+				case EidosValueType::kValueFloat:	type_ok = !!(type_mask & kValueMaskFloat);		break;
+				case EidosValueType::kValueObject:
+					type_ok = !!(type_mask & kValueMaskObject);
+					
+					// If the argument is object type, and is allowed to be object type, and an object element type was specified
+					// in the signature, check the object element type of the argument.  Note this uses pointer equality!
+					const string *arg_obj_type = arg_obj_types_[arg_index];
+					
+					if (type_ok && arg_obj_type && (argument->ElementType() != arg_obj_type))
+					{
+						type_ok = false;
+						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << *argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << *arg_obj_type << "." << eidos_terminate();
+					}
+					break;
 			}
 			
 			if (!type_ok)
@@ -217,9 +238,19 @@ void EidosCallSignature::CheckReturn(EidosValue *p_result) const
 			return;
 		case EidosValueType::kValueLogical:	return_type_ok = !!(retmask & kValueMaskLogical);	break;
 		case EidosValueType::kValueInt:		return_type_ok = !!(retmask & kValueMaskInt);		break;
-		case EidosValueType::kValueFloat:		return_type_ok = !!(retmask & kValueMaskFloat);		break;
-		case EidosValueType::kValueString:		return_type_ok = !!(retmask & kValueMaskString);	break;
-		case EidosValueType::kValueObject:		return_type_ok = !!(retmask & kValueMaskObject);		break;
+		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kValueMaskFloat);		break;
+		case EidosValueType::kValueString:	return_type_ok = !!(retmask & kValueMaskString);	break;
+		case EidosValueType::kValueObject:
+			return_type_ok = !!(retmask & kValueMaskObject);
+			
+			// If the return is object type, and is allowed to be object type, and an object element type was specified
+			// in the signature, check the object element type of the return.  Note this uses pointer equality!
+			if (return_type_ok && return_object_element_type_ && (p_result->ElementType() != return_object_element_type_))
+			{
+				return_type_ok = false;
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: object return value cannot be element type " << *p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << *return_object_element_type_ << "." << eidos_terminate();
+			}
+			break;
 	}
 	
 	if (!return_type_ok)
@@ -240,7 +271,9 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 {
 	p_outstream << p_signature.CallPrefix();	// "", "- ", or "+ " depending on our subclass
 	
-	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, "") << ")" << p_signature.function_name_ << "(";
+	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_object_element_type_, "");
+	
+	p_outstream << ")" << p_signature.function_name_ << "(";
 	
 	int arg_mask_count = (int)p_signature.arg_masks_.size();
 	
@@ -255,11 +288,12 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 		{
 			EidosValueMask type_mask = p_signature.arg_masks_[arg_index];
 			const string &arg_name = p_signature.arg_names_[arg_index];
+			const string *arg_obj_type = p_signature.arg_obj_types_[arg_index];
 			
 			if (arg_index > 0)
 				p_outstream << ", ";
 			
-			p_outstream << StringForEidosValueMask(type_mask, arg_name);
+			p_outstream << StringForEidosValueMask(type_mask, arg_obj_type, arg_name);
 		}
 	}
 	
@@ -292,6 +326,11 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 
 EidosFunctionSignature::EidosFunctionSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const string &p_delegate_name)
 	: EidosCallSignature(p_function_name, p_function_id, p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
+{
+}
+
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const std::string *p_return_object_element_type)
+	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_object_element_type)
 {
 }
 
@@ -331,8 +370,13 @@ std::string EidosFunctionSignature::CallDelegate(void) const
 //
 #pragma mark EidosMethodSignature
 
-EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, bool p_is_class_method)
-: EidosCallSignature(p_function_name, p_function_id, p_return_mask), is_class_method(p_is_class_method)
+EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, bool p_is_class_method)
+	: EidosCallSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask), is_class_method(p_is_class_method)
+{
+}
+
+EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const std::string *p_return_object_element_type, bool p_is_class_method)
+	: EidosCallSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask, p_return_object_element_type), is_class_method(p_is_class_method)
 {
 }
 
@@ -352,7 +396,12 @@ EidosMethodSignature::~EidosMethodSignature(void)
 #pragma mark EidosInstanceMethodSignature
 
 EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask)
-: EidosMethodSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask, false)
+	: EidosMethodSignature(p_function_name, p_return_mask, false)
+{
+}
+
+EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const std::string *p_return_object_element_type)
+	: EidosMethodSignature(p_function_name, p_return_mask, p_return_object_element_type, false)
 {
 }
 
@@ -372,7 +421,12 @@ EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
 #pragma mark EidosClassMethodSignature
 
 EidosClassMethodSignature::EidosClassMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask)
-	: EidosMethodSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask, true)
+	: EidosMethodSignature(p_function_name, p_return_mask, true)
+{
+}
+
+EidosClassMethodSignature::EidosClassMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const std::string *p_return_object_element_type)
+	: EidosMethodSignature(p_function_name, p_return_mask, p_return_object_element_type, true)
 {
 }
 

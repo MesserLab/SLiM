@@ -131,7 +131,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				EidosFunctionIdentifier::revFunction,			kValueMaskAny))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_size,			EidosFunctionIdentifier::sizeFunction,			kValueMaskInt | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sort",				EidosFunctionIdentifier::sortFunction,			kValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			EidosFunctionIdentifier::sortByFunction,		kValueMaskObject))->AddObject("x")->AddString_S("property")->AddLogical_OS("ascending"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			EidosFunctionIdentifier::sortByFunction,		kValueMaskObject))->AddObject("x", nullptr)->AddString_S("property")->AddLogical_OS("ascending"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_str,			EidosFunctionIdentifier::strFunction,			kValueMaskNULL))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			EidosFunctionIdentifier::strsplitFunction,		kValueMaskString))->AddString_S("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			EidosFunctionIdentifier::substrFunction,		kValueMaskString))->AddString("x")->AddInt("first")->AddInt_O("last"));
@@ -184,7 +184,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_Path,		EidosFunctionIdentifier::PathFunction,			kValueMaskObject | kValueMaskSingleton))->AddString_OS("path"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_Path,			EidosFunctionIdentifier::PathFunction,			kValueMaskObject | kValueMaskSingleton, &gStr_Path))->AddString_OS("path"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
