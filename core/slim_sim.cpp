@@ -1542,7 +1542,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				
 				if (requested_subpop_count)
 				{
-					if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Subpopulation)
+					if (arg0_value->ElementType() != &gStr_Subpopulation)
 						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << eidos_terminate();
 					
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
@@ -1585,7 +1585,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				
 				if (arg1_count)
 				{
-					if (((EidosValue_Object *)arg1_value)->ElementType() != &gStr_Mutation)
+					if (arg1_value->ElementType() != &gStr_Mutation)
 						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << eidos_terminate();
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)

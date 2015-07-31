@@ -126,7 +126,8 @@ public:
 	virtual ~EidosValue(void) = 0;							// virtual destructor
 	
 	// basic methods
-	virtual EidosValueType Type(void) const = 0;			// the type contained by the vector
+	virtual EidosValueType Type(void) const = 0;			// the type of the vector
+	virtual const std::string *ElementType(void) const = 0;	// the type of the elements contained by the vector
 	virtual int Count(void) const = 0;						// the number of values in the vector
 	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
 	
@@ -220,6 +221,7 @@ public:
 	virtual ~EidosValue_NULL(void);
 	
 	virtual EidosValueType Type(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -274,6 +276,7 @@ public:
 	virtual ~EidosValue_Logical(void);
 	
 	virtual EidosValueType Type(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -348,6 +351,7 @@ public:
 	virtual ~EidosValue_String(void);
 	
 	virtual EidosValueType Type(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -387,6 +391,7 @@ public:
 	virtual ~EidosValue_Int(void);
 	
 	virtual EidosValueType Type(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -494,6 +499,7 @@ public:
 	virtual ~EidosValue_Float(void);
 	
 	virtual EidosValueType Type(void) const;
+	virtual const std::string *ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	

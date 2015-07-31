@@ -54,8 +54,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, Eidos
 	if (base_is_object && dest_is_object)
 	{
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
-		const std::string *base_element_type = static_cast<EidosValue_Object *>(base_value)->ElementType();
-		const std::string *dest_element_type = static_cast<EidosValue_Object *>(dest_value)->ElementType();
+		const std::string *base_element_type = base_value->ElementType();
+		const std::string *dest_element_type = dest_value->ElementType();
 		bool base_is_typeless = (base_element_type == &gStr_undefined);
 		bool dest_is_typeless = (dest_element_type == &gStr_undefined);
 		

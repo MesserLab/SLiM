@@ -258,6 +258,11 @@ EidosValueType EidosValue_NULL::Type(void) const
 	return EidosValueType::kValueNULL;
 }
 
+const std::string *EidosValue_NULL::ElementType(void) const
+{
+	return &gStr_NULL;
+}
+
 int EidosValue_NULL::Count(void) const
 {
 	return 0;
@@ -408,6 +413,11 @@ EidosValue_Logical::~EidosValue_Logical(void)
 EidosValueType EidosValue_Logical::Type(void) const
 {
 	return EidosValueType::kValueLogical;
+}
+
+const std::string *EidosValue_Logical::ElementType(void) const
+{
+	return &gStr_logical;
 }
 
 int EidosValue_Logical::Count(void) const
@@ -658,6 +668,11 @@ EidosValueType EidosValue_String::Type(void) const
 	return EidosValueType::kValueString;
 }
 
+const std::string *EidosValue_String::ElementType(void) const
+{
+	return &gStr_string;
+}
+
 int EidosValue_String::Count(void) const
 {
 	return (int)values_.size();
@@ -771,6 +786,11 @@ EidosValue_Int::~EidosValue_Int(void)
 EidosValueType EidosValue_Int::Type(void) const
 {
 	return EidosValueType::kValueInt;
+}
+
+const std::string *EidosValue_Int::ElementType(void) const
+{
+	return &gStr_integer;
 }
 
 EidosValue *EidosValue_Int::NewMatchingType(void) const
@@ -1053,6 +1073,11 @@ EidosValue_Float::~EidosValue_Float(void)
 EidosValueType EidosValue_Float::Type(void) const
 {
 	return EidosValueType::kValueFloat;
+}
+
+const std::string *EidosValue_Float::ElementType(void) const
+{
+	return &gStr_float;
 }
 
 EidosValue *EidosValue_Float::NewMatchingType(void) const

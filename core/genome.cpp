@@ -409,7 +409,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 			if (arg0_count)
 			{
-				if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
+				if (arg0_value->ElementType() != &gStr_Mutation)
 					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -503,7 +503,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 			if (arg0_count)
 			{
-				if (((EidosValue_Object *)arg0_value)->ElementType() != &gStr_Mutation)
+				if (arg0_value->ElementType() != &gStr_Mutation)
 					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): addMutations() requires that mutations has object element type Mutation." << eidos_terminate();
 				
 				if (mutations_ == nullptr)

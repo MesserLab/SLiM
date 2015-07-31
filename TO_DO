@@ -9,7 +9,6 @@ command-line tool:
 	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
 
 Eidos:
-	EidosScribe: continue work to make it completely independent of SLiM
 	extensions for Daphnia model
 		add a "modify generated child" event that can be used to make resting eggs by (1) setting a flag saying that the generated child should not be used, and (2) scheduling a new script event for the future that wakes up the resting egg
 		add a "generate child" event that can be used to wake up a resting egg by taking values defining the mutations present and creating a child out of them

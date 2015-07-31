@@ -240,7 +240,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 		{
 			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
 			{
-				const std::string *this_element_type = static_cast<EidosValue_Object *>(arg_value)->ElementType();
+				const std::string *this_element_type = arg_value->ElementType();
 				
 				if (!element_type)
 				{
@@ -2305,10 +2305,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark element
 		case EidosFunctionIdentifier::elementFunction:
 		{
-			if (arg0_value->Type() == EidosValueType::kValueObject)
-				string_result->PushString(*((EidosValue_Object *)arg0_value)->ElementType());
-			else
-				string_result->PushString(StringForEidosValueType(arg0_value->Type()));
+			string_result->PushString(*arg0_value->ElementType());
 			break;
 		}
 			
