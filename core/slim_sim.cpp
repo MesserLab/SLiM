@@ -1156,9 +1156,8 @@ std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
 	constants.push_back(gStr_genomicElementTypes);	// genomic_element_types_
 	constants.push_back(gStr_mutations);			// population_.mutation_registry_
 	constants.push_back(gStr_mutationTypes);		// mutation_types_
-	constants.push_back(gStr_scriptBlocks);		// script_blocks_
+	constants.push_back(gStr_scriptBlocks);			// script_blocks_
 	constants.push_back(gStr_sexEnabled);			// sex_enabled_
-	constants.push_back(gStr_start);				// time_start_
 	constants.push_back(gStr_subpopulations);		// population_
 	constants.push_back(gStr_substitutions);		// population_.substitutions_
 	
