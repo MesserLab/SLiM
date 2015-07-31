@@ -115,7 +115,7 @@ enum class EidosFunctionIdentifier {
 	asIntegerFunction,
 	asLogicalFunction,
 	asStringFunction,
-	elementFunction,
+	elementTypeFunction,
 	isFloatFunction,
 	isIntegerFunction,
 	isLogicalFunction,

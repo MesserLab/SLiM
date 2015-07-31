@@ -150,7 +150,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asInteger",		EidosFunctionIdentifier::asIntegerFunction,		kValueMaskInt))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asLogical",		EidosFunctionIdentifier::asLogicalFunction,		kValueMaskLogical))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asString",			EidosFunctionIdentifier::asStringFunction,		kValueMaskString))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("element",			EidosFunctionIdentifier::elementFunction,		kValueMaskString | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("elementType",		EidosFunctionIdentifier::elementTypeFunction,	kValueMaskString | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFloat",			EidosFunctionIdentifier::isFloatFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInteger",		EidosFunctionIdentifier::isIntegerFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isLogical",		EidosFunctionIdentifier::isLogicalFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
@@ -2302,8 +2302,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
             break;
 		}
 			
-#pragma mark element
-		case EidosFunctionIdentifier::elementFunction:
+#pragma mark elementType
+		case EidosFunctionIdentifier::elementTypeFunction:
 		{
 			string_result->PushString(*arg0_value->ElementType());
 			break;
