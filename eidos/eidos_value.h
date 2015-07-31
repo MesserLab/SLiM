@@ -191,7 +191,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx) const;
 	virtual int64_t IntAtIndex(int p_idx) const;
 	virtual double FloatAtIndex(int p_idx) const;
-	virtual EidosObjectElement *ElementAtIndex(int p_idx) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx) const;
 	
 	// methods to allow type-agnostic manipulation of EidosValues
 	virtual bool IsMutable(void) const;							// returns true by default, but we have some immutable subclasses that return false
@@ -611,7 +611,7 @@ public:
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
-	virtual EidosObjectElement *ElementAtIndex(int p_idx) const = 0;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx) const = 0;
 	virtual EidosValue *GetValueAtIndex(const int p_idx) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value) = 0;
 	
@@ -652,7 +652,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosObjectElement *ElementAtIndex(int p_idx) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx) const;
 	void PushElement(EidosObjectElement *p_element);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx) const;
@@ -692,7 +692,7 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosObjectElement *ElementAtIndex(int p_idx) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx) const;
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx) const;
 	virtual EidosValue *CopyValues(void) const;

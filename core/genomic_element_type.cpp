@@ -283,7 +283,7 @@ EidosValue *GenomicElementType::ExecuteMethod(EidosGlobalStringID p_method_id, E
 		
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 		{ 
-			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ElementAtIndex(mut_type_index);
+			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ObjectElementAtIndex(mut_type_index);
 			double proportion = arg1_value->FloatAtIndex(mut_type_index);
 			
 			if (proportion <= 0)

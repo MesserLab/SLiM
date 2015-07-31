@@ -338,7 +338,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			EidosValue *arg_value = p_arguments[arg_index];
 			
 			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-				result->PushElement(arg_value->ElementAtIndex(value_index));
+				result->PushElement(arg_value->ObjectElementAtIndex(value_index));
 		}
 		
 		return result;
@@ -1864,7 +1864,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_Object_vector *object_result = new EidosValue_Object_vector();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				object_result->PushElement(arg0_value->ElementAtIndex(value_index));
+				object_result->PushElement(arg0_value->ObjectElementAtIndex(value_index));
 			
 			object_result->SortBy(p_arguments[1]->StringAtIndex(0), (p_argument_count == 2) ? true : p_arguments[2]->LogicalAtIndex(0));
 			
@@ -2091,12 +2091,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					EidosObjectElement *value = arg0_value->ElementAtIndex(value_index);
+					EidosObjectElement *value = arg0_value->ObjectElementAtIndex(value_index);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->ElementAtIndex(scan_index))
+						if (value == arg0_value->ObjectElementAtIndex(scan_index))
 							break;
 					}
 					

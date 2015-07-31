@@ -414,7 +414,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					Mutation *new_mutation = (Mutation *)(arg0_value->ElementAtIndex(value_index));
+					Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index));
 					
 					insert_sorted_mutation_if_unique(new_mutation);
 					
@@ -435,7 +435,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 		case gID_addNewDrawnMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
 			int origin_generation = (int)arg1_value->IntAtIndex(0);
 			int position = (int)arg2_value->IntAtIndex(0);
 			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
@@ -451,7 +451,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
-			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
+			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -467,7 +467,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			
 		case gID_addNewMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ElementAtIndex(0);
+			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
 			int origin_generation = (int)arg1_value->IntAtIndex(0);
 			int position = (int)arg2_value->IntAtIndex(0);
 			double selection_coeff = arg3_value->FloatAtIndex(0);
@@ -483,7 +483,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
-			SLiMSim *sim = (SLiMSim *)(sim_value->ElementAtIndex(0));
+			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -521,7 +521,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 					bool should_remove = false;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						if (arg0_value->ElementAtIndex(value_index) == candidate_mutation)
+						if (arg0_value->ObjectElementAtIndex(value_index) == candidate_mutation)
 						{
 							should_remove = true;
 							break;

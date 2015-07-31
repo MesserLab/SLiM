@@ -1170,7 +1170,7 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
-				EidosObjectElement *source_subpop = arg0_value->ElementAtIndex(value_index);
+				EidosObjectElement *source_subpop = arg0_value->ObjectElementAtIndex(value_index);
 				int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				

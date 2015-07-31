@@ -1478,7 +1478,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 		{
 			int subpop_id = (int)arg0_value->IntAtIndex(0);
 			int subpop_size = (int)arg1_value->IntAtIndex(0);
-			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ElementAtIndex(0));
+			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0));
 			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
@@ -1499,7 +1499,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 			// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 			for (int block_index = 0; block_index < block_count; ++block_index)
-				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ElementAtIndex(block_index)));
+				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index)));
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -1546,7 +1546,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that subpops have object element type Subpopulation." << eidos_terminate();
 					
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ElementAtIndex(requested_subpop_index)));
+						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index)));
 				}
 			}
 			
@@ -1589,7 +1589,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): mutationFrequencies() requires that mutations has object element type Mutation." << eidos_terminate();
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
-						float_result->PushFloat(((Mutation *)(arg1_value->ElementAtIndex(value_index)))->reference_count_ * denominator);
+						float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index)))->reference_count_ * denominator);
 				}
 			}
 			else
@@ -1678,7 +1678,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			std::vector<Mutation*> mutations;
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
-				mutations.push_back((Mutation *)(mutations_object->ElementAtIndex(mutation_index)));
+				mutations.push_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index)));
 			
 			// find all polymorphism of the mutations that are to be tracked
 			if (mutations_count > 0)

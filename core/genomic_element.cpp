@@ -210,7 +210,7 @@ EidosValue *GenomicElement::ExecuteMethod(EidosGlobalStringID p_method_id, Eidos
 	
 	if (p_method_id == gID_setGenomicElementType)
 	{
-		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ElementAtIndex(0));
+		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ObjectElementAtIndex(0));
 		
 		genomic_element_type_ptr_ = getype;
 		

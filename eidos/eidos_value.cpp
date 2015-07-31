@@ -120,8 +120,8 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((type1 == EidosValueType::kValueObject) && (type2 == EidosValueType::kValueObject))
 	{
-		EidosObjectElement *element1 = p_value1->ElementAtIndex(p_index1);
-		EidosObjectElement *element2 = p_value2->ElementAtIndex(p_index2);
+		EidosObjectElement *element1 = p_value1->ObjectElementAtIndex(p_index1);
+		EidosObjectElement *element2 = p_value2->ObjectElementAtIndex(p_index2);
 		
 		return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
 	}
@@ -215,7 +215,7 @@ double EidosValue::FloatAtIndex(int p_idx) const
 	return 0.0;
 }
 
-EidosObjectElement *EidosValue::ElementAtIndex(int p_idx) const
+EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type object." << eidos_terminate();
@@ -1434,7 +1434,7 @@ void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-EidosObjectElement *EidosValue_Object_vector::ElementAtIndex(int p_idx) const
+EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx) const
 {
 	return values_.at(p_idx);
 }
@@ -1458,11 +1458,11 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, EidosValue *p_va
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate();
 	
 	// can't change the type of element object we collect
-	if ((values_.size() > 0) && (ElementType() != p_value->ElementAtIndex(0)->ElementType()))
+	if ((values_.size() > 0) && (ElementType() != p_value->ObjectElementAtIndex(0)->ElementType()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << eidos_terminate();
 	
 	values_.at(p_idx)->Release();
-	values_.at(p_idx) = p_value->ElementAtIndex(0)->Retain();
+	values_.at(p_idx) = p_value->ObjectElementAtIndex(0)->Retain();
 }
 
 EidosValue *EidosValue_Object_vector::CopyValues(void) const
@@ -1474,10 +1474,10 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 {
 	if (p_source_script_value->Type() == EidosValueType::kValueObject)
 	{
-		if ((values_.size() > 0) && (ElementType() != p_source_script_value->ElementAtIndex(p_idx)->ElementType()))
+		if ((values_.size() > 0) && (ElementType() != p_source_script_value->ObjectElementAtIndex(p_idx)->ElementType()))
 			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): the type of an object cannot be changed." << eidos_terminate();
 		else
-			values_.push_back(p_source_script_value->ElementAtIndex(p_idx)->Retain());
+			values_.push_back(p_source_script_value->ObjectElementAtIndex(p_idx)->Retain());
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate();
@@ -1899,10 +1899,10 @@ void EidosValue_Object_singleton_const::Print(std::ostream &p_ostream) const
 	p_ostream << *value_;
 }
 
-EidosObjectElement *EidosValue_Object_singleton_const::ElementAtIndex(int p_idx) const
+EidosObjectElement *EidosValue_Object_singleton_const::ObjectElementAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ElementAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ObjectElementAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
