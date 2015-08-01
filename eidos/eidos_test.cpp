@@ -362,17 +362,17 @@ void RunEidosTests(void)
 	AssertScriptSuccess("x = \"foo\"; x[0] = \"bar\"; x;", new EidosValue_String("bar"));
 	
 	// operator = (especially in conjunction with operator .)
-	AssertScriptSuccess("x=Path(); x.path;", new EidosValue_String("~"));
-	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path;", new EidosValue_String("~", "~", "~", "~"));
-	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z[3].path=\"foo\"; z.path;", new EidosValue_String("~", "foo", "~", "foo"));
-	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path[3]=\"bar\"; z.path;", new EidosValue_String("~", "bar", "~", "bar"));
-	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z[c(1,0)].path=c(\"a\",\"b\"); z.path;", new EidosValue_String("b", "a", "b", "a"));
-	AssertScriptSuccess("x=Path(); y=Path(); z=c(x,y,x,y); z.path[c(1,0)]=c(\"c\",\"d\"); z.path;", new EidosValue_String("d", "c", "d", "c"));
-	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[3].path=73; z.path;");
-	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[3]=73; z.path;");
-	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2:3].path=73; z.path;");
-	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z.path[2:3]=73; z.path;");
-	AssertScriptRaise("x=Path(); y=Path(); z=c(x,y,x,y); z[2]=73; z.path;");
+	AssertScriptSuccess("x=_Test(9); x._yolk;", new EidosValue_Int_singleton_const(9));
+	AssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk;", new EidosValue_Int_vector(9, 7, 9, 7));
+	AssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[3]._yolk=2; z._yolk;", new EidosValue_Int_vector(9, 2, 9, 2));
+	AssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=2; z._yolk;", new EidosValue_Int_vector(9, 2, 9, 2));
+	AssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[c(1,0)]._yolk=c(2, 5); z._yolk;", new EidosValue_Int_vector(5, 2, 5, 2));
+	AssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[c(1,0)]=c(3, 6); z._yolk;", new EidosValue_Int_vector(6, 3, 6, 3));
+	AssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[3]._yolk=6.5; z._yolk;");
+	AssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=6.5; z._yolk;");
+	AssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2:3]._yolk=6.5; z._yolk;");
+	AssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[2:3]=6.5; z._yolk;");
+	AssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2]=6.5; z._yolk;");
 	
 	// operator >
 	AssertScriptSuccess("T > F;", new EidosValue_Logical(true));
@@ -401,8 +401,8 @@ void RunEidosTests(void)
 	AssertScriptSuccess("10 > \"120\";", new EidosValue_Logical(false));
 	AssertScriptSuccess("120 > \"15\";", new EidosValue_Logical(false));
 	AssertScriptSuccess("15 > \"120\";", new EidosValue_Logical(true));
-	AssertScriptRaise("Path() > 5");
-	AssertScriptRaise("5 > Path()");
+	AssertScriptRaise("_Test(9) > 5");
+	AssertScriptRaise("5 > _Test(9)");
 	AssertScriptSuccess("NULL > 5;", new EidosValue_Logical());
 	AssertScriptSuccess("NULL > 5.0;", new EidosValue_Logical());
 	AssertScriptSuccess("NULL > \"foo\";", new EidosValue_Logical());
@@ -437,8 +437,8 @@ void RunEidosTests(void)
 	AssertScriptSuccess("10 < \"120\";", new EidosValue_Logical(true));
 	AssertScriptSuccess("120 < \"15\";", new EidosValue_Logical(true));
 	AssertScriptSuccess("15 < \"120\";", new EidosValue_Logical(false));
-	AssertScriptRaise("Path() < 5");
-	AssertScriptRaise("5 < Path()");
+	AssertScriptRaise("_Test(9) < 5");
+	AssertScriptRaise("5 < _Test(9)");
 	AssertScriptSuccess("NULL < 5;", new EidosValue_Logical());
 	AssertScriptSuccess("NULL < 5.0;", new EidosValue_Logical());
 	AssertScriptSuccess("NULL < \"foo\";", new EidosValue_Logical());

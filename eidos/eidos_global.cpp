@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <string>
 #include <map>
+#include <pwd.h>
 
 
 // Information on the Context within which Eidos is running (if any).
@@ -269,6 +270,27 @@ std::string EidosGetUntrimmedRaiseMessage(void)
 }
 
 
+// resolve a leading ~ in a filesystem path to the user's home directory
+std::string EidosResolvedPath(const std::string p_path)
+{
+	std::string path = p_path;
+	
+	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
+	if ((path.length() > 0) && (path.at(0) == '~'))
+	{
+		const char *homedir;
+		
+		if ((homedir = getenv("HOME")) == NULL)
+			homedir = getpwuid(getuid())->pw_dir;
+		
+		if (strlen(homedir))
+			path.replace(0, 1, homedir);
+	}
+	
+	return path;
+}
+
+
 //	Global std::string objects.
 const std::string gStr_empty_string = "";
 const std::string gStr_space_string = " ";
@@ -278,7 +300,6 @@ const std::string gStr_function = "function";
 const std::string gStr_method = "method";
 const std::string gStr_executeLambda = "executeLambda";
 const std::string gStr_globals = "globals";
-const std::string gStr_Path = "Path";
 
 // mostly language keywords
 const std::string gStr_if = "if";
@@ -314,10 +335,6 @@ const std::string gStr_size = "size";
 const std::string gStr_type = "type";
 const std::string gStr_property = "property";
 const std::string gStr_str = "str";
-const std::string gStr_path = "path";
-const std::string gStr_files = "files";
-const std::string gStr_readFile = "readFile";
-const std::string gStr_writeFile = "writeFile";
 
 // other miscellaneous strings
 const std::string gStr_GetValueForMemberOfElements = "GetValueForMemberOfElements";
@@ -325,6 +342,11 @@ const std::string gStr_ExecuteMethod = "ExecuteMethod";
 const std::string gStr_lessThanSign = "<";
 const std::string gStr_greaterThanSign = ">";
 const std::string gStr_undefined = "undefined";
+
+// strings for Eidos_TestElement
+const std::string gStr__TestElement = "_TestElement";
+const std::string gStr__yolk = "_yolk";
+const std::string gStr__cubicYolk = "_cubicYolk";
 
 
 static std::map<const std::string, EidosGlobalStringID> gStringToID;
@@ -351,15 +373,14 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		been_here = true;
 		
 		Eidos_RegisterStringForGlobalID(gStr_method, gID_method);
-		Eidos_RegisterStringForGlobalID(gStr_Path, gID_Path);
 		Eidos_RegisterStringForGlobalID(gStr_size, gID_size);
 		Eidos_RegisterStringForGlobalID(gStr_type, gID_type);
 		Eidos_RegisterStringForGlobalID(gStr_property, gID_property);
 		Eidos_RegisterStringForGlobalID(gStr_str, gID_str);
-		Eidos_RegisterStringForGlobalID(gStr_path, gID_path);
-		Eidos_RegisterStringForGlobalID(gStr_files, gID_files);
-		Eidos_RegisterStringForGlobalID(gStr_readFile, gID_readFile);
-		Eidos_RegisterStringForGlobalID(gStr_writeFile, gID_writeFile);
+		
+		Eidos_RegisterStringForGlobalID(gStr__TestElement, gID__TestElement);
+		Eidos_RegisterStringForGlobalID(gStr__yolk, gID__yolk);
+		Eidos_RegisterStringForGlobalID(gStr__cubicYolk, gID__cubicYolk);
 	}
 }
 

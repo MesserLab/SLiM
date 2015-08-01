@@ -124,7 +124,12 @@ enum class EidosFunctionIdentifier {
 	isStringFunction,
 	typeFunction,
 	
-	// bookkeeping functions
+	// filesystem access functions
+	filesAtPathFunction,
+	readFileFunction,
+	writeFileFunction,
+	
+	// miscellaneous functions
 	dateFunction,
 	executeLambdaFunction,
 	functionFunction,
@@ -139,7 +144,7 @@ enum class EidosFunctionIdentifier {
 	versionFunction,
 	
 	// object instantiation
-	PathFunction
+	_TestFunction
 };
 
 // Functions that are built into Eidos are handled internally.  However, it is also possible for external agents to register their own

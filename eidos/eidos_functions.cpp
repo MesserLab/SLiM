@@ -20,13 +20,19 @@
 
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
-#include "eidos_path_element.h"
+#include "eidos_test_element.h"
 #include "eidos_interpreter.h"
 #include "eidos_rng.h"
 
 #include "math.h"
 
 #include <ctime>
+#include <stdio.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <fstream>
 
 
 using std::string;
@@ -162,7 +168,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
-		//	bookkeeping functions
+		//	miscellaneous functions
 		//
 		
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kValueMaskString | kValueMaskSingleton)));
@@ -181,10 +187,20 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
+		//	filesystem access functions
+		//
+		
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		EidosFunctionIdentifier::filesAtPathFunction,	kValueMaskString))->AddString_S("path")->AddString_OS("fullPaths"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			EidosFunctionIdentifier::readFileFunction,		kValueMaskString))->AddString_S("filePath"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kValueMaskNULL))->AddString_S("filePath")->AddString("contents"));
+
+		
+		// ************************************************************************************
+		//
 		//	object instantiation
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_Path,			EidosFunctionIdentifier::PathFunction,			kValueMaskObject | kValueMaskSingleton, &gStr_Path))->AddString_OS("path"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",	EidosFunctionIdentifier::_TestFunction,			kValueMaskObject | kValueMaskSingleton, &gStr__TestElement))->AddInt_OS("yolk"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -1648,9 +1664,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double by_value = (arg2_value ? arg2_value->FloatAtIndex(0) : default_by);
 				
 				if (by_value == 0.0)
-					EIDOS_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate();
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate();
 				
 				if (by_value > 0)
 					for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -1671,9 +1687,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0) : default_by);
 				
 				if (by_value == 0)
-					EIDOS_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " requires a by argument != 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate();
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (Execute_seq): function " << p_function_name << " by argument has incorrect sign." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate();
 				
 				if (by_value > 0)
 					for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -2361,9 +2377,121 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 		// ************************************************************************************
 		//
-		//	bookkeeping functions
+		//	filesystem access functions
 		//
-#pragma mark *** Bookkeeping functions
+#pragma mark *** Filesystem access functions
+			
+#pragma mark filesAtPath
+		case EidosFunctionIdentifier::filesAtPathFunction:
+		{
+			string base_path = arg0_value->StringAtIndex(0);
+			string path = EidosResolvedPath(base_path);
+			bool fullPaths = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0) : false;
+			
+			// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
+			// I'm not sure if it works on Windows... sigh...
+			DIR *dp;
+			struct dirent *ep;
+			
+			dp = opendir(path.c_str());
+			
+			if (dp != NULL)
+			{
+				while ((ep = readdir(dp)))
+				{
+					string filename = ep->d_name;
+					
+					if (fullPaths)
+						filename = base_path + "/" + filename;
+					
+					string_result->PushString(filename);
+				}
+				
+				(void)closedir(dp);
+			}
+			else
+			{
+				// not a fatal error, just a warning log
+				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function filesAtPath() could not open path " << path << "." << endl;
+				result = gStaticEidosValueNULLInvisible;
+			}
+			break;
+		}
+			
+#pragma mark readFile
+		case EidosFunctionIdentifier::readFileFunction:
+		{
+			string base_path = arg0_value->StringAtIndex(0);
+			string file_path = EidosResolvedPath(base_path);
+			
+			// read the contents in
+			std::ifstream file_stream(file_path.c_str());
+			
+			if (!file_stream.is_open())
+			{
+				// not a fatal error, just a warning log
+				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() could not read file at path " << file_path << "." << endl;
+				result = gStaticEidosValueNULLInvisible;
+			}
+			else
+			{
+				string line;
+				
+				while (getline(file_stream, line))
+					string_result->PushString(line);
+				
+				if (file_stream.bad())
+				{
+					// not a fatal error, just a warning log
+					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() encountered stream errors while reading file at path " << file_path << "." << endl;
+				}
+			}
+			break;
+		}
+			
+#pragma mark writeFile
+		case EidosFunctionIdentifier::writeFileFunction:
+		{
+			string base_path = arg0_value->StringAtIndex(0);
+			string file_path = EidosResolvedPath(base_path);
+			
+			// the second argument is the file contents to write
+			EidosValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			// write the contents out
+			std::ofstream file_stream(file_path.c_str());
+			
+			if (!file_stream.is_open())
+			{
+				// Not a fatal error, just a warning log
+				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() could not write to file at path " << file_path << "." << endl;
+			}
+			else
+			{
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				{
+					if (value_index > 0)
+						file_stream << endl;
+					
+					file_stream << arg1_value->StringAtIndex(value_index);
+				}
+				
+				if (file_stream.bad())
+				{
+					// Not a fatal error, just a warning log
+					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+				}
+			}
+			break;
+		}
+			
+			
+		// ************************************************************************************
+		//
+		//	miscellaneous functions
+		//
+#pragma mark *** Miscellaneous functions
 			
 #pragma mark date
 		case EidosFunctionIdentifier::dateFunction:
@@ -2413,12 +2541,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (arg0_value && (iter_signature->function_name_.compare(match_string) != 0))
 					continue;
 				
+				if (!arg0_value && (iter_signature->function_name_.substr(0, 1).compare("_") == 0))
+					continue;	// skip internal functions that start with an underscore, unless specifically requested
+				
 				output_stream << *iter_signature << endl;
 				signature_found = true;
 			}
 			
 			if (arg0_value && !signature_found)
-				output_stream << "No function signature found for \"" << match_string << "\"." << endl;
+				output_stream << "WARNING (ExecuteFunctionCall): function function() could not find a function signature for \"" << match_string << "\"." << endl;
 			
 			break;
 		}
@@ -2541,12 +2672,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//	object instantiation
 		//
 			
-#pragma mark Path
-		case EidosFunctionIdentifier::PathFunction:
+		case EidosFunctionIdentifier::_TestFunction:
 		{
-			Eidos_PathElement *pathElement = (p_argument_count == 1) ? (new Eidos_PathElement(arg0_value->StringAtIndex(0))) : (new Eidos_PathElement());
-			result = new EidosValue_Object_singleton_const(pathElement);
-			pathElement->Release();
+			Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0));
+			result = new EidosValue_Object_singleton_const(testElement);
+			testElement->Release();
 			break;
 		}
 	}

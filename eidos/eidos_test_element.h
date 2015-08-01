@@ -1,5 +1,5 @@
 //
-//  eidos_path_element.h
+//  eidos_test_element.h
 //  Eidos
 //
 //  Created by Ben Haller on 5/1/15.
@@ -19,10 +19,8 @@
 
 /*
  
- The class Eidos_PathElement is an object element class (i.e. an element class for EidosValue_Object) that encapsulates a
- filesystem directory.  It is quite primitive; you can list contents, read a file, or white a file.  That functionality
- may be useful in itself, but the main purpose is as a proof of concept for Eidos's support of object elements, including
- instance variables, method calls, and instantiation.
+ The class Eidos_TestElement is an object element class (i.e. an element class for EidosValue_Object) for testing of Eidos's objects.
+ It just encapsulates an integer value, so it is not useful for anything but testing.
  
  */
 
@@ -32,22 +30,18 @@
 #include "eidos_value.h"
 
 
-class Eidos_PathElement : public EidosObjectElementInternal
+class Eidos_TestElement : public EidosObjectElementInternal
 {
 private:
-	std::string base_path_;
+	int64_t yolk_;
 	
 public:
-	Eidos_PathElement(const Eidos_PathElement &p_original) = delete;	// can copy-construct
-	Eidos_PathElement& operator=(const Eidos_PathElement&) = delete;	// no copying
+	Eidos_TestElement(const Eidos_TestElement &p_original) = delete;	// can copy-construct
+	Eidos_TestElement& operator=(const Eidos_TestElement&) = delete;	// no copying
 	
-	Eidos_PathElement(void);
-	explicit Eidos_PathElement(const std::string &p_base_path);
+	explicit Eidos_TestElement(int64_t p_value);
 	
 	virtual const std::string *ElementType(void) const;
-	
-	virtual EidosObjectElement *ScriptCopy(void);
-	virtual void ScriptDelete(void) const;
 	
 	virtual std::vector<std::string> ReadOnlyMembers(void) const;
 	virtual std::vector<std::string> ReadWriteMembers(void) const;
@@ -58,8 +52,6 @@ public:
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	
-	std::string ResolvedBasePath(void) const;
 };
 
 

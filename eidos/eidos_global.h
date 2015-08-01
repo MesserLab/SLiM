@@ -84,6 +84,10 @@ std::string EidosGetTrimmedRaiseMessage(void);
 std::string EidosGetUntrimmedRaiseMessage(void);
 
 
+// Resolve a leading ~ in a filesystem path to the user's home directory
+std::string EidosResolvedPath(const std::string p_path);
+
+
 //
 //	Global std::string objects.  This is kind of gross, but there are several rationales for it.  First of all, it makes
 //	a speed difference; converting a C string to a std::string is done every time it is hit in the code (C++ does not
@@ -110,7 +114,6 @@ extern const std::string gStr_function;
 extern const std::string gStr_method;
 extern const std::string gStr_executeLambda;
 extern const std::string gStr_globals;
-extern const std::string gStr_Path;
 
 extern const std::string gStr_if;
 extern const std::string gStr_else;
@@ -142,10 +145,6 @@ extern const std::string gStr_size;
 extern const std::string gStr_type;
 extern const std::string gStr_property;
 extern const std::string gStr_str;
-extern const std::string gStr_path;
-extern const std::string gStr_files;
-extern const std::string gStr_readFile;
-extern const std::string gStr_writeFile;
 
 extern const std::string gStr_GetValueForMemberOfElements;
 extern const std::string gStr_ExecuteMethod;
@@ -153,21 +152,24 @@ extern const std::string gStr_lessThanSign;
 extern const std::string gStr_greaterThanSign;
 extern const std::string gStr_undefined;
 
+extern const std::string gStr__TestElement;
+extern const std::string gStr__yolk;
+extern const std::string gStr__cubicYolk;
+
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
 // such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
 enum _EidosGlobalStringID : int {
 	gID_none = 0,
 	gID_method,
-	gID_Path,
 	gID_size,
 	gID_type,
 	gID_property,
 	gID_str,
-	gID_path,
-	gID_files,
-	gID_readFile,
-	gID_writeFile,
+	
+	gID__TestElement,
+	gID__yolk,
+	gID__cubicYolk,
 	
 	gID_LastEidosEntry
 };

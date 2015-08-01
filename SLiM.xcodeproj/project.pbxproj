@@ -105,9 +105,9 @@
 		987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */; };
 		987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
-		989790DA1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_path_element.cpp */; };
-		989790DB1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_path_element.cpp */; };
-		989790DC1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_path_element.cpp */; };
+		989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
+		989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
+		989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
 		98A4EC941B67C1CD00CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
 		98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
@@ -335,8 +335,8 @@
 		987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosVariableBrowserController.mm; sourceTree = "<group>"; };
 		987AD8881B2CDBB80035D6C8 /* EidosConsoleWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowController.h; sourceTree = "<group>"; };
 		987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosConsoleWindowController.mm; sourceTree = "<group>"; };
-		989790D81AF3D0E100C6B14C /* eidos_path_element.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_path_element.cpp; sourceTree = "<group>"; };
-		989790D91AF3D0E100C6B14C /* eidos_path_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_path_element.h; sourceTree = "<group>"; };
+		989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_element.cpp; sourceTree = "<group>"; };
+		989790D91AF3D0E100C6B14C /* eidos_test_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test_element.h; sourceTree = "<group>"; };
 		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
 		9898172E1A59750300F7417C /* slim_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_global.h; sourceTree = "<group>"; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ConsoleWindow.xib; sourceTree = "<group>"; };
@@ -578,8 +578,6 @@
 				98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */,
 				985724A41AD435310047C223 /* eidos_value.h */,
 				985724A31AD435310047C223 /* eidos_value.cpp */,
-				989790D91AF3D0E100C6B14C /* eidos_path_element.h */,
-				989790D81AF3D0E100C6B14C /* eidos_path_element.cpp */,
 				986D73E71B07E89E007FBB70 /* eidos_call_signature.h */,
 				986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */,
 				9857249B1AD08A810047C223 /* eidos_interpreter.h */,
@@ -588,6 +586,8 @@
 				9857249F1AD34B740047C223 /* eidos_functions.cpp */,
 				985724A81AD4551C0047C223 /* eidos_test.h */,
 				985724A71AD4551C0047C223 /* eidos_test.cpp */,
+				989790D91AF3D0E100C6B14C /* eidos_test_element.h */,
+				989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */,
 			);
 			name = Eidos;
 			path = eidos;
@@ -970,7 +970,7 @@
 				985724A51AD435310047C223 /* eidos_value.cpp in Sources */,
 				985724A11AD34B740047C223 /* eidos_functions.cpp in Sources */,
 				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
-				989790DA1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */,
+				989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
 				98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */,
 				98321F941B406B67007337A3 /* eidos_global.cpp in Sources */,
@@ -1001,7 +1001,7 @@
 				985724D31AD479010047C223 /* eidos_test.cpp in Sources */,
 				985724B51AD478630047C223 /* AppDelegate.mm in Sources */,
 				985724E71AD622880047C223 /* EidosConsoleTextView.mm in Sources */,
-				989790DC1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */,
+				989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				985724D11AD479010047C223 /* eidos_interpreter.cpp in Sources */,
 				987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
 			);
@@ -1012,7 +1012,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				98321F951B406B67007337A3 /* eidos_global.cpp in Sources */,
-				989790DB1AF3D0E100C6B14C /* eidos_path_element.cpp in Sources */,
+				989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				98AB597C1B2531F10077CB4A /* slim_eidos_block.cpp in Sources */,
 				981BAC6B1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */,
 				98D4C1BB1A6F537B00FFB083 /* main.m in Sources */,
