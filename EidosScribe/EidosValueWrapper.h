@@ -26,13 +26,16 @@
 @interface EidosValueWrapper : NSObject
 {
 @public
-	NSString *wrappedName;
-	EidosValue *wrappedValue;
+	NSString *wrappedName;		// the displayed name
+	EidosValue *wrappedValue;	// the value upon which the row is based
+	int wrappedIndex;			// the index of wrappedValue upon which the row is based; -1 if the row represents the whole value
+	BOOL valueIsOurs;			// if YES, we dispose of the wrapped value ourselves, if NO, the Context owns it
 }
 
 + (instancetype)wrapperForName:(NSString *)aName value:(EidosValue *)aValue;
++ (instancetype)wrapperForName:(NSString *)aName value:(EidosValue *)aValue index:(int)anIndex;
 
-- (instancetype)initWithWrappedName:(NSString *)aName value:(EidosValue *)aValue;
+- (instancetype)initWithWrappedName:(NSString *)aName value:(EidosValue *)aValue index:(int)anIndex;
 
 @end
 

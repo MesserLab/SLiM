@@ -24,15 +24,23 @@
 
 + (instancetype)wrapperForName:(NSString *)aName value:(EidosValue *)aValue
 {
-	return [[[self alloc] initWithWrappedName:aName value:aValue] autorelease];
+	return [[[self alloc] initWithWrappedName:aName value:aValue index:-1] autorelease];
 }
 
-- (instancetype)initWithWrappedName:(NSString *)aName value:(EidosValue *)aValue
++ (instancetype)wrapperForName:(NSString *)aName value:(EidosValue *)aValue index:(int)anIndex
+{
+	return [[[self alloc] initWithWrappedName:aName value:aValue index:anIndex] autorelease];
+}
+
+- (instancetype)initWithWrappedName:(NSString *)aName value:(EidosValue *)aValue index:(int)anIndex
 {
 	if (self = [super init])
 	{
 		wrappedName = [aName retain];
 		wrappedValue = aValue;
+		wrappedIndex = anIndex;
+		
+		valueIsOurs = wrappedValue->IsTemporary();
 	}
 	
 	return self;
@@ -40,6 +48,17 @@
 
 - (void)dealloc
 {
+	// At the point that dealloc gets called, the value object that we wrap may already be gone.  This happens if
+	// the Context is responsible for the object and something happened to make the object go away.  We therefore
+	// can't touch the value pointer at all here unless we own it.  This is why we mark the ones that we own ahead
+	// of time, instead of just checking the IsTemporary() flag here.
+	
+	if ((wrappedIndex == -1) && valueIsOurs)
+	{
+		delete wrappedValue;
+		wrappedValue = nullptr;
+	}
+	
 	[wrappedName release];
 	wrappedName = nil;
 	
@@ -47,3 +66,54 @@
 }
 
 @end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

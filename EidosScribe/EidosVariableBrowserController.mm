@@ -105,10 +105,20 @@
 		{
 			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
 			EidosValue_Object *value = (EidosValue_Object *)(wrapper->wrappedValue);
-			std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
-			std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+			int elementCount = value->Count();
 			
-			return (readOnlySymbols.size() + readWriteSymbols.size());
+			// values which are of object type and contain more than one element get displayed as a list of elements
+			if (elementCount > 1)
+			{
+				return elementCount;
+			}
+			else
+			{
+				std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
+				std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+				
+				return (readOnlySymbols.size() + readWriteSymbols.size());
+			}
 		}
 	}
 	
@@ -153,16 +163,15 @@
 		{
 			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
 			EidosValue_Object *value = (EidosValue_Object *)(wrapper->wrappedValue);
-			std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
-			std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+			int elementCount = value->Count();
 			
-			if (index < readOnlySymbols.size())
+			// values which are of object type and contain more than one element get displayed as a list of elements
+			if (elementCount > 1)
 			{
-				const std::string &symbolName = readOnlySymbols[index];
-				EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
-				EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
-				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
+				NSString *parentName = wrapper->wrappedName;
+				NSString *childName = [NSString stringWithFormat:@"%@[%ld]", parentName, (long)index];
+				EidosValue *childValue = value->GetValueAtIndex((int)index);
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName value:childValue index:(int)index];
 				
 				[browserWrappers addObject:childWrapper];
 				
@@ -170,15 +179,33 @@
 			}
 			else
 			{
-				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-				EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
-				EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
-				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
+				std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
+				std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
 				
-				[browserWrappers addObject:childWrapper];
-				
-				return childWrapper;
+				if (index < readOnlySymbols.size())
+				{
+					const std::string &symbolName = readOnlySymbols[index];
+					EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
+					EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
+					NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+					EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
+					
+					[browserWrappers addObject:childWrapper];
+					
+					return childWrapper;
+				}
+				else
+				{
+					const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+					EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
+					EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
+					NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+					EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
+					
+					[browserWrappers addObject:childWrapper];
+					
+					return childWrapper;
+				}
 			}
 		}
 	}
@@ -195,6 +222,7 @@
 		
 		if (value->Type() == EidosValueType::kValueObject)
 		{
+			// if it has >1 element, expansion will show a list of elements; if it has one element, expansion shows property values
 			return YES;
 		}
 	}
@@ -207,6 +235,30 @@
 	if ([item isKindOfClass:[EidosValueWrapper class]])
 	{
 		EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
+		int valueIndex = wrapper->wrappedIndex;
+		
+		if (valueIndex != -1)
+		{
+			// This row is a marker for an element within an object, so we treat it specially
+			if (tableColumn == _symbolColumn)
+			{
+				static NSDictionary *indexLineAttrs = nil;
+				
+				if (!indexLineAttrs)
+				{
+					NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
+					NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
+					
+					indexLineAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
+				}
+				
+				NSAttributedString *attrName = [[NSAttributedString alloc] initWithString:wrapper->wrappedName attributes:indexLineAttrs];
+				
+				return [attrName autorelease];
+			}
+			
+			return @"";
+		}
 		
 		if (tableColumn == _symbolColumn)
 		{
