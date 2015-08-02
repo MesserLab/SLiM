@@ -57,6 +57,11 @@ public:
 	// Top-level parse methods for SLiM input files
 	EidosASTNode *Parse_SLiMFile(void);
 	EidosASTNode *Parse_SLiMEidosBlock(void);
+	
+	// A utility method for extracting the numeric component of an identifier like 'p2', 's3', 'm17', or 'g5'
+	// This raises if the expected character prefix is not present, or if anything but numeric digits are present, or if the ID is out of range
+	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
+	static int ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
 };
 
 

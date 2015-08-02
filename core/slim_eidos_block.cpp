@@ -51,14 +51,19 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 	// We parse the slim_script_info section here, as part of the script block.
-	if (current_token_type_ == EidosTokenType::kTokenString)
+	
+	// The first element is an optional script identifier like s1; we check here that an identifier matches the
+	// pattern sX before eating it, since an identifier here could also be a callback tag like "fitness".
+	if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
 	{
-		// a script identifier string is present; add it
-		EidosASTNode *script_id_node = Parse_Constant();
+		// a script identifier like s1 is present; add it
+		EidosASTNode *script_id_node = new EidosASTNode(current_token_);
 		
+		Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
 		slim_script_block_node->AddChild(script_id_node);
 	}
 	
+	// Next comes an optional generation X or generation range X:Y
 	if (current_token_type_ == EidosTokenType::kTokenNumber)
 	{
 		// A start generation is present; add it
@@ -79,7 +84,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; expected an integer for the generation range end" << eidos_terminate();
 			}
 		}
 	}
@@ -104,11 +109,12 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
 			Match(EidosTokenType::kTokenLParen, "SLiM fitness() callback");
 			
-			if (current_token_type_ == EidosTokenType::kTokenNumber)
+			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 			{
 				// A (required) mutation type id is present; add it
-				EidosASTNode *mutation_type_id_node = Parse_Constant();
+				EidosASTNode *mutation_type_id_node = new EidosASTNode(current_token_);
 				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
 				callback_info_node->AddChild(mutation_type_id_node);
 			}
 			else
@@ -121,10 +127,11 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				// A (optional) subpopulation id is present; add it
 				Match(EidosTokenType::kTokenComma, "SLiM fitness() callback");
 				
-				if (current_token_type_ == EidosTokenType::kTokenNumber)
+				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
-					EidosASTNode *subpopulation_id_node = Parse_Constant();
+					EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
 					
+					Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
 					callback_info_node->AddChild(subpopulation_id_node);
 				}
 				else
@@ -145,10 +152,11 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			Match(EidosTokenType::kTokenLParen, "SLiM mateChoice() callback");
 			
 			// A (optional) subpopulation id is present; add it
-			if (current_token_type_ == EidosTokenType::kTokenNumber)
+			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 			{
-				EidosASTNode *subpopulation_id_node = Parse_Constant();
+				EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
 				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
 				callback_info_node->AddChild(subpopulation_id_node);
 			}
 			
@@ -164,16 +172,21 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			Match(EidosTokenType::kTokenLParen, "SLiM modifyChild() callback");
 			
 			// A (optional) subpopulation id is present; add it
-			if (current_token_type_ == EidosTokenType::kTokenNumber)
+			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 			{
-				EidosASTNode *subpopulation_id_node = Parse_Constant();
+				EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
 				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
 				callback_info_node->AddChild(subpopulation_id_node);
 			}
 			
 			Match(EidosTokenType::kTokenRParen, "SLiM modifyChild() callback");
 			
 			slim_script_block_node->AddChild(callback_info_node);
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Parse): unexpected identifier " << *current_token_ << " in Parse_SLiMEidosBlock; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate();
 		}
 	}
 	
@@ -211,6 +224,45 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 	}
 }
 
+bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, char p_prefix_char)
+{
+	const char *id_cstr = p_identifier_string.c_str();
+	int id_cstr_len = (int)strlen(id_cstr);
+	
+	// the criteria here are pretty loose, because we want SLiMEidosScript::ExtractIDFromStringWithPrefix to be
+	// called and generate a raise if the string appears to be intended to be an ID but is malformed
+	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
+		return false;
+	
+	return true;
+}
+
+int SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char)
+{
+	const char *id_cstr = p_identifier_string.c_str();
+	int id_cstr_len = (int)strlen(id_cstr);
+	
+	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate();
+	
+	for (int str_index = 1; str_index < id_cstr_len; ++str_index)
+		if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << eidos_terminate();
+	
+	if (id_cstr_len < 2)
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << eidos_terminate();
+	
+	errno = 0;
+	long long_block_id = strtol(id_cstr + 1, NULL, 10);	// +1 to omit the prefix character
+	
+	if (errno)
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was not parseable." << eidos_terminate();
+	
+	if ((long_block_id < 0) || (long_block_id > SLIM_MAX_ID_VALUE))
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was out of range." << eidos_terminate();
+	
+	return (int)long_block_id;
+}
 
 
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node)
@@ -218,33 +270,12 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
 	
-	// eat a string, for the script id, if present
+	// eat a string, for the script id, if present; an identifier token must follow the sX format to be taken as an id here, as in the parse code
 	block_id_ = -1;	// the default unless it is set below
 	
-	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenString))
+	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(block_children[child_index]->token_->token_string_, 's'))
 	{
-		const string &id_string = block_children[child_index]->token_->token_string_;
-		const char *id_cstr = id_string.c_str();
-		int id_cstr_len = (int)strlen(id_cstr);
-		
-		if (*id_cstr != 's')
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the script block id must be a string that begins with \"s\"." << eidos_terminate();
-		for (int str_index = 1; str_index < id_cstr_len; ++str_index)
-			if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the script block id after the \"s\" prefix must be a simple integer." << eidos_terminate();
-		
-		if (id_cstr_len < 2)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the script block id must have an integer identifier after the \"s\" prefix." << eidos_terminate();
-		
-		errno = 0;
-		long long_block_id = strtol(id_cstr + 1, NULL, 10);	// +1 to omit the leading "s"
-		
-		if (errno)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the script block id " << id_string << " was not parseable." << eidos_terminate();
-		if (long_block_id > INT_MAX)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the script block id " << id_string << " was out of range." << eidos_terminate();
-		
-		block_id_ = (int)long_block_id;
+		block_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(block_children[child_index]->token_->token_string_, 's');
 		child_index++;
 	}
 	
@@ -296,10 +327,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			if ((n_callback_children != 1) && (n_callback_children != 2))
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate();
 			
-			mutation_type_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
+			mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'm');
 			
 			if (n_callback_children == 2)
-				subpopulation_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[1]->token_);
+				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[1]->token_->token_string_, 'p');
 			
 			type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
 		}
@@ -309,7 +340,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
-				subpopulation_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
+				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'p');
 			
 			type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 		}
@@ -319,7 +350,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
-				subpopulation_id_ = (int)EidosInterpreter::IntForNumberToken(callback_children[0]->token_);
+				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'p');
 			
 			type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 		}
