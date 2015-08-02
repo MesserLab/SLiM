@@ -53,15 +53,15 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:SLIM_MAX_GENERATION];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
-	BOOL subpopValid = [ScriptMod validIntValueInTextField:subpopTextField withMin:1 max:1000000000] && [self isAvailableSubpopID:[subpopTextField intValue]];
+	BOOL subpopValid = [ScriptMod validIntValueInTextField:subpopTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableSubpopID:[subpopTextField intValue]];
 	validInput = validInput && subpopValid;
 	[subpopTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:subpopValid]];
 	
-	BOOL sizeValid = [ScriptMod validIntWithScientificNotationValueInTextField:subpopSizeTextField withMin:1 max:1000000000];
+	BOOL sizeValid = [ScriptMod validIntWithScientificNotationValueInTextField:subpopSizeTextField withMin:1 max:SLIM_MAX_SUBPOP_SIZE];
 	validInput = validInput && sizeValid;
 	[subpopSizeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sizeValid]];
 	

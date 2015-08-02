@@ -77,11 +77,11 @@
 	int startPosition = (int)[startPositionTextField doubleValue];	// handle scientific notation
 	int endPosition = (int)[endPositionTextField doubleValue];		// handle scientific notation
 	
-	BOOL startValid = [ScriptMod validIntWithScientificNotationValueInTextField:startPositionTextField withMin:1 max:1000000000];
+	BOOL startValid = [ScriptMod validIntWithScientificNotationValueInTextField:startPositionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
 	validInput = validInput && startValid;
 	[startPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:startValid]];
 	
-	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:endPositionTextField withMin:1 max:1000000000];
+	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:endPositionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
 	endValid = endValid && (!startValid || !endValid || (startPosition <= endPosition));		// no inverted ranges
 	validInput = validInput && endValid;
 	[endPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];

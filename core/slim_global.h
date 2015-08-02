@@ -31,6 +31,14 @@
 #include "eidos_global.h"
 
 
+// Some maximum values enforced by SLiM, comfortably under INT_MAX for 32-bit ints
+// If one of these things changes to be stored in an int64_t, these limits can be changed
+#define SLIM_MAX_GENERATION		(1000000000)	// generation ranges from 0 (init time) to this
+#define SLIM_MAX_BASE_POSITION	(1000000000)	// base positions in the chromosome can range from 0 to this
+#define SLIM_MAX_ID_VALUE		(1000000000)	// IDs for subpops, genomic elements, etc. can range from 1 to this
+#define SLIM_MAX_SUBPOP_SIZE	(1000000000)	// subpopulations can range in size from 0 to this
+
+
 // Debugging #defines that can be turned on
 #define DEBUG_MUTATIONS			0		// turn on logging of mutation construction and destruction
 #define DEBUG_MUTATION_ZOMBIES	0		// avoid destroying Mutation objects; keep them as zombies

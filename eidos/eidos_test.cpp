@@ -790,6 +790,8 @@ void RunEidosTests(void)
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	
+	std::cerr << "INT_MAX == " << INT_MAX << endl;
 }
 
 

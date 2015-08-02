@@ -62,7 +62,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:1000000000];
+	BOOL generationValid = [ScriptMod validIntWithScientificNotationValueInTextField:generationTextField withMin:1 max:SLIM_MAX_GENERATION];
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
@@ -70,7 +70,7 @@
 	validInput = validInput && mutationTypeValid;
 	[mutationTypePopUpButton slimSetTintColor:(mutationTypeValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	BOOL positionValid = [ScriptMod validIntWithScientificNotationValueInTextField:positionTextField withMin:1 max:1000000000];
+	BOOL positionValid = [ScriptMod validIntWithScientificNotationValueInTextField:positionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
 	validInput = validInput && positionValid;
 	[positionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:positionValid]];
 	
@@ -82,11 +82,11 @@
 	int nHeterozygotes = [numHeterozygotesTextField intValue];
 	BOOL bothZero = ((nHomozygotes == 0) && (nHeterozygotes == 0));
 	
-	BOOL nHomozygotesValid = [ScriptMod validIntValueInTextField:numHomozygotesTextField withMin:0 max:1000000000] && !bothZero;
+	BOOL nHomozygotesValid = [ScriptMod validIntValueInTextField:numHomozygotesTextField withMin:0 max:SLIM_MAX_SUBPOP_SIZE] && !bothZero;
 	validInput = validInput && nHomozygotesValid;
 	[numHomozygotesTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:nHomozygotesValid]];
 	
-	BOOL nHeterozygotesValid = [ScriptMod validIntValueInTextField:numHeterozygotesTextField withMin:0 max:1000000000] && !bothZero;
+	BOOL nHeterozygotesValid = [ScriptMod validIntValueInTextField:numHeterozygotesTextField withMin:0 max:SLIM_MAX_SUBPOP_SIZE] && !bothZero;
 	validInput = validInput && nHeterozygotesValid;
 	[numHeterozygotesTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:nHeterozygotesValid]];
 	

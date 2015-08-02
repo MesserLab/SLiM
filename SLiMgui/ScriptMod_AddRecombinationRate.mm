@@ -77,7 +77,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:intervalEndPositionTextField withMin:1 max:1000000000];
+	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:intervalEndPositionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
 	endValid = endValid && (!endValid || (endPosition > lastDefinedPosition));
 	validInput = validInput && endValid;
 	[intervalEndPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];

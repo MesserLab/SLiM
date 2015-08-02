@@ -64,7 +64,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL genomicElementTypeValid = [ScriptMod validIntValueInTextField:genomicElementTypeTextField withMin:1 max:1000000000] && [self isAvailableGenomicElementTypeID:[genomicElementTypeTextField intValue]];
+	BOOL genomicElementTypeValid = [ScriptMod validIntValueInTextField:genomicElementTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableGenomicElementTypeID:[genomicElementTypeTextField intValue]];
 	validInput = validInput && genomicElementTypeValid;
 	[genomicElementTypeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:genomicElementTypeValid]];
 	

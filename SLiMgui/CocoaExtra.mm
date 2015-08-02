@@ -479,7 +479,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		[view release];
 		
 		_tipPoint = NSMakePoint(round(contentRect.origin.x + contentRect.size.width / 2.0), contentRect.origin.y);
-		_label = [@"10000000000" retain];
+		_label = [@"1000000000" retain];
 	}
 	
 	return self;

@@ -129,7 +129,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; a subpopulation id is expected after a comma in fitness() callback definitions" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; subpopulation id expected" << eidos_terminate();
 				}
 			}
 			
@@ -255,7 +255,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		end_generation_ = start_generation_;	// if a start is given, the default end is the same as the start
 		child_index++;
 		
-		if ((start_generation_ < 1) || (start_generation_ > 1000000000L))
+		if ((start_generation_ < 1) || (start_generation_ > SLIM_MAX_GENERATION))
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << start_generation_ << " was out of range." << eidos_terminate();
 	}
 	
@@ -265,7 +265,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		end_generation_ = (int)EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		child_index++;
 		
-		if ((end_generation_ < 1) || (end_generation_ > 1000000000L))
+		if ((end_generation_ < 1) || (end_generation_ > SLIM_MAX_GENERATION))
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_generation_ << " was out of range." << eidos_terminate();
 	}
 	

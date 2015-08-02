@@ -1350,7 +1350,7 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
 			
 			int64_t value = p_value->IntAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value >= 1) && (value <= 1000000000000L));
+			RangeCheckValue(__func__, p_member_id, (value >= 1) && (value <= SLIM_MAX_GENERATION));
 			
 			if (cached_value_generation_)
 			{

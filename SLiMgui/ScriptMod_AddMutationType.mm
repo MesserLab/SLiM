@@ -60,7 +60,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL mutationTypeValid = [ScriptMod validIntValueInTextField:mutationTypeTextField withMin:1 max:1000000000] && [self isAvailableMuttypeID:[mutationTypeTextField intValue]];
+	BOOL mutationTypeValid = [ScriptMod validIntValueInTextField:mutationTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableMuttypeID:[mutationTypeTextField intValue]];
 	validInput = validInput && mutationTypeValid;
 	[mutationTypeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:mutationTypeValid]];
 	
