@@ -232,6 +232,11 @@
                                     <action selector="shiftSelectionRight:" target="-1" id="Ti2-BW-a7D"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Comment / Uncomment" keyEquivalent="/" id="qeL-Wf-K5w">
+                                <connections>
+                                    <action selector="commentUncommentSelection:" target="-1" id="HoO-wP-OdZ"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

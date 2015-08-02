@@ -62,6 +62,27 @@ using std::string;
 		return [NSDictionary dictionaryWithObjectsAndKeys:menlo11Font, NSFontAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
 }
 
+- (void)awakeFromNib
+{
+	// Turn off all of Cocoa's fancy text editing stuff
+	[self setAutomaticDashSubstitutionEnabled:NO];
+	[self setAutomaticDataDetectionEnabled:NO];
+	[self setAutomaticLinkDetectionEnabled:NO];
+	[self setAutomaticQuoteSubstitutionEnabled:NO];
+	[self setAutomaticSpellingCorrectionEnabled:NO];
+	[self setAutomaticTextReplacementEnabled:NO];
+	[self setContinuousSpellCheckingEnabled:NO];
+	[self setGrammarCheckingEnabled:NO];
+	[self turnOffLigatures:nil];
+	
+	// Fix the font and typing attributes
+	[self setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
+	[self setTypingAttributes:[EidosTextView consoleTextAttributesWithColor:nil]];
+	
+	// Fix text container insets to look a bit nicer; {0,0} by default
+	[self setTextContainerInset:NSMakeSize(0.0, 5.0)];
+}
+
 // handle autoindent by matching the whitespace beginning the current line
 - (void)insertNewline:(id)sender
 {
@@ -160,7 +181,8 @@ using std::string;
 				if (scanPosition < selectedRange.location)
 					selectedRange.location--;
 				else
-					selectedRange.length--;
+					if (selectedRange.length > 0)
+						selectedRange.length--;
 			}
 			
 			// now scan forward to the end of this line
@@ -260,7 +282,153 @@ using std::string;
 	}
 }
 
+- (IBAction)commentUncommentSelection:(id)sender
+{
+	if ([self isEditable])
+	{
+		NSTextStorage *ts = [self textStorage];
+		NSMutableString *scriptString = [[self string] mutableCopy];
+		int scriptLength = (int)[scriptString length];
+		NSRange selectedRange = [self selectedRange];
+		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
+		NSUInteger scanPosition;
+		
+		// start at the start of the selection and scan backwards over non-newline text until we hit a newline or the start of the file
+		scanPosition = selectedRange.location;
+		
+		while (scanPosition > 0)
+		{
+			if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition - 1]])
+				break;
+			
+			--scanPosition;
+		}
+		
+		// decide whether we are commenting or uncommenting; we are only uncommenting if every line spanned by the selection starts with "//"
+		BOOL uncommenting = YES;
+		NSUInteger scanPositionSave = scanPosition;
+		
+		while ((scanPosition == selectedRange.location) || (scanPosition < selectedRange.location + selectedRange.length))
+		{
+			// comment/uncomment at the start of this line and adjust our selection
+			if ((scanPosition + 1 >= scriptLength) || ([scriptString characterAtIndex:scanPosition] != '/') || ([scriptString characterAtIndex:scanPosition + 1] != '/'))
+			{
+				uncommenting = NO;
+				break;
+			}
+			
+			// now scan forward to the end of this line
+			while (scanPosition < scriptLength)
+			{
+				if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// and then scan forward to the beginning of the next line
+			while (scanPosition < scriptLength)
+			{
+				if (![newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// if we are at the very end of the script string, then we have hit the end and we're done
+			if (scanPosition == scriptLength)
+				break;
+		}
+		
+		scanPosition = scanPositionSave;
+		
+		// ok, we're at the start of the line that the selection starts on; start commenting / uncommenting
+		[ts beginEditing];
+		
+		while ((scanPosition == selectedRange.location) || (scanPosition < selectedRange.location + selectedRange.length))
+		{
+			// if we are at the very end of the script string, then we have hit the end and we're done
+			if (uncommenting && (scanPosition == scriptLength))
+				break;
+			
+			// comment/uncomment at the start of this line and adjust our selection
+			if (uncommenting)
+			{
+				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 2) withString:@""];
+				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 2) withString:@""];
+				scriptLength -= 2;
+				
+				if (scanPosition < selectedRange.location)
+				{
+					if (scanPosition == selectedRange.location - 1)
+					{
+						selectedRange.location--;
+						if (selectedRange.length > 0)
+							selectedRange.length--;
+					}
+					else
+						selectedRange.location -= 2;
+				}
+				else
+				{
+					if (selectedRange.length > 2)
+						selectedRange.length -= 2;
+					else
+						selectedRange.length = 0;
+				}
+			}
+			else
+			{
+				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"//"];
+				[ts setAttributes:[EidosTextView consoleTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
+				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"//"];
+				scriptLength += 2;
+				
+				if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
+					selectedRange.location += 2;
+				else
+					selectedRange.length += 2;
+			}
+			
+			// now scan forward to the end of this line
+			while (scanPosition < scriptLength)
+			{
+				if ([newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// and then scan forward to the beginning of the next line
+			while (scanPosition < scriptLength)
+			{
+				if (![newlineChars characterIsMember:[scriptString characterAtIndex:scanPosition]])
+					break;
+				
+				++scanPosition;
+			}
+			
+			// if we are at the very end of the script string, then we have hit the end and we're done
+			if (!uncommenting && (scanPosition == scriptLength))
+				break;
+		}
+		
+		[ts endEditing];
+		[self setSelectedRange:selectedRange];
+		
+		if (syntaxColorState_ == 1)
+			[self syntaxColorForEidos];
+		else if (syntaxColorState_ == 2)
+			[self syntaxColorForOutput];
+	}
+	else
+	{
+		NSBeep();
+	}
+}
+
 // Check whether a token string is a special identifier like "pX", "gX", or "mX"
+// FIXME should be in SLiM
 - (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	int len = (int)token_string.length();
@@ -355,13 +523,15 @@ using std::string;
 				(token_string.compare("INF") == 0) ||
 				(token_string.compare("NAN") == 0) ||
 				(token_string.compare("NULL") == 0) ||
-				(token_string.compare("sim") == 0) ||
+				(token_string.compare("sim") == 0) ||		// FIXME should be in SLiM
 				[self tokenStringIsSpecialIdentifier:token_string])
 				[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
 		}
 	}
 	
 	[ts endEditing];
+	
+	syntaxColorState_ = 1;
 }
 
 - (void)syntaxColorForOutput
@@ -485,6 +655,8 @@ using std::string;
 	}
 	
 	[textStorage endEditing];
+	
+	syntaxColorState_ = 2;
 }
 
 - (void)clearSyntaxColoring
@@ -494,6 +666,8 @@ using std::string;
 	[textStorage beginEditing];
 	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
 	[textStorage endEditing];
+	
+	syntaxColorState_ = 0;
 }
 
 - (void)selectErrorRange

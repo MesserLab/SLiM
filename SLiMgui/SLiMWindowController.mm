@@ -503,34 +503,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[selectionColorStripe setMetricToPlot:2];
 	[selectionColorStripe setScalingFactor:selectionColorScale];
 	
-	// Turn off all automatic substitution stuff, etc.; turning them off in the nib doesn't seem to actually turn them off, on 10.10.1
-	[scriptTextView setAutomaticDashSubstitutionEnabled:NO];
-	[scriptTextView setAutomaticDataDetectionEnabled:NO];
-	[scriptTextView setAutomaticLinkDetectionEnabled:NO];
-	[scriptTextView setAutomaticQuoteSubstitutionEnabled:NO];
-	[scriptTextView setAutomaticSpellingCorrectionEnabled:NO];
-	[scriptTextView setAutomaticTextReplacementEnabled:NO];
-	[scriptTextView setContinuousSpellCheckingEnabled:NO];
-	[scriptTextView setGrammarCheckingEnabled:NO];
-	[scriptTextView turnOffLigatures:nil];
-	
-	[outputTextView setAutomaticDashSubstitutionEnabled:NO];
-	[outputTextView setAutomaticDataDetectionEnabled:NO];
-	[outputTextView setAutomaticLinkDetectionEnabled:NO];
-	[outputTextView setAutomaticQuoteSubstitutionEnabled:NO];
-	[outputTextView setAutomaticSpellingCorrectionEnabled:NO];
-	[outputTextView setAutomaticTextReplacementEnabled:NO];
-	[outputTextView setContinuousSpellCheckingEnabled:NO];
-	[outputTextView setGrammarCheckingEnabled:NO];
-	[outputTextView turnOffLigatures:nil];
-
-	// Fix text container insets to look a bit nicer; {0,0} by default
-	[scriptTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
-	[outputTextView setTextContainerInset:NSMakeSize(0.0, 5.0)];
-	
 	// Set the script textview to show its string, with correct formatting
 	[scriptTextView setString:scriptString];
-	[scriptTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
+	
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
 		[scriptTextView syntaxColorForEidos];
 	

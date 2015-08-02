@@ -322,7 +322,7 @@ static NSDictionary *executionAttrs = nil;
 {
 	SEL sel = [menuItem action];
 	
-	if ((sel == @selector(shiftSelectionLeft:)) || (sel == @selector(shiftSelectionRight:)))
+	if ((sel == @selector(shiftSelectionLeft:)) || (sel == @selector(shiftSelectionRight:)) || (sel == @selector(commentUncommentSelection:)))
 		return NO;
 	
 	return [super validateMenuItem:menuItem];

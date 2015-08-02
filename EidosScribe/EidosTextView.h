@@ -27,14 +27,20 @@
 
 @interface EidosTextView : NSTextView
 {
+	int syntaxColorState_;	// 0 = off, 1 = Eidos, 2 = output; this should be a property, and the syntax coloring
+							// should be managed by this class internally, I suppose...
 }
 
-+ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 4-space tabs
++ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 3-space tabs
+
 - (IBAction)shiftSelectionLeft:(id)sender;
 - (IBAction)shiftSelectionRight:(id)sender;
+- (IBAction)commentUncommentSelection:(id)sender;
+
 - (void)syntaxColorForEidos;
 - (void)syntaxColorForOutput;
 - (void)clearSyntaxColoring;
+
 - (void)selectErrorRange;
 
 @end
