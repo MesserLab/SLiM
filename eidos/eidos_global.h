@@ -146,7 +146,7 @@ extern const std::string gStr_type;
 extern const std::string gStr_property;
 extern const std::string gStr_str;
 
-extern const std::string gStr_GetValueForMemberOfElements;
+extern const std::string gStr_GetPropertyOfElements;
 extern const std::string gStr_ExecuteMethod;
 extern const std::string gStr_lessThanSign;
 extern const std::string gStr_greaterThanSign;

@@ -890,7 +890,7 @@ using std::string;
 		if (identifier_id == gID_none)
 			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
 		
-		EidosValue *property_value = ((EidosValue_Object *)key_path_value)->GetRepresentativeValueOrNullForMemberOfElements(identifier_id);
+		EidosValue *property_value = ((EidosValue_Object *)key_path_value)->GetRepresentativeValueOrNullForPropertyOfElements(identifier_id);
 		
 		if (key_path_value->IsTemporary()) delete key_path_value;
 		key_path_value = property_value;
@@ -910,10 +910,7 @@ using std::string;
 	EidosValue_Object *terminus = ((EidosValue_Object *)key_path_value);
 	
 	// First, a sorted list of globals
-	for (std::string &symbol_name : terminus->ReadOnlyMembersOfElements())
-		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
-	
-	for (std::string &symbol_name : terminus->ReadWriteMembersOfElements())
+	for (std::string &symbol_name : terminus->PropertiesOfElements())
 		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 	
 	[candidates sortUsingSelector:@selector(compare:)];

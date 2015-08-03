@@ -337,7 +337,7 @@ const std::string gStr_property = "property";
 const std::string gStr_str = "str";
 
 // other miscellaneous strings
-const std::string gStr_GetValueForMemberOfElements = "GetValueForMemberOfElements";
+const std::string gStr_GetPropertyOfElements = "GetPropertyOfElements";
 const std::string gStr_ExecuteMethod = "ExecuteMethod";
 const std::string gStr_lessThanSign = "<";
 const std::string gStr_greaterThanSign = ">";

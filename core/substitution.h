@@ -64,11 +64,10 @@ public:
 	virtual const std::string *ElementType(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual std::vector<std::string> ReadOnlyMembers(void) const;
-	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
-	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
-	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
+	virtual std::vector<std::string> Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;

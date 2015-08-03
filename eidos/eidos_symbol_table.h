@@ -84,7 +84,7 @@ public:
 	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage = nullptr);		// standard constructor
 	~EidosSymbolTable(void);													// destructor
 	
-	// member access; these are variables defined in the global namespace
+	// symbol access; these are variables defined in the global namespace
 	std::vector<std::string> ReadOnlySymbols(void) const;
 	std::vector<std::string> ReadWriteSymbols(void) const;
 	EidosValue *GetValueForSymbol(const std::string &p_symbol_name) const;

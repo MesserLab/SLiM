@@ -114,10 +114,9 @@
 			}
 			else
 			{
-				std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
-				std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+				std::vector<std::string> properties = value->PropertiesOfElements();
 				
-				return (readOnlySymbols.size() + readWriteSymbols.size());
+				return properties.size();
 			}
 		}
 	}
@@ -179,33 +178,17 @@
 			}
 			else
 			{
-				std::vector<std::string> readOnlySymbols = value->ReadOnlyMembersOfElements();
-				std::vector<std::string> readWriteSymbols = value->ReadWriteMembersOfElements();
+				std::vector<std::string> properties = value->PropertiesOfElements();
 				
-				if (index < readOnlySymbols.size())
-				{
-					const std::string &symbolName = readOnlySymbols[index];
-					EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
-					EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
-					NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-					EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
-					
-					[browserWrappers addObject:childWrapper];
-					
-					return childWrapper;
-				}
-				else
-				{
-					const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-					EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
-					EidosValue *symbolValue = value->GetValueForMemberOfElements(symbolID);
-					NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-					EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
-					
-					[browserWrappers addObject:childWrapper];
-					
-					return childWrapper;
-				}
+				const std::string &symbolName = properties[index];
+				EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
+				EidosValue *symbolValue = value->GetPropertyOfElements(symbolID);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
+				
+				[browserWrappers addObject:childWrapper];
+				
+				return childWrapper;
 			}
 		}
 	}

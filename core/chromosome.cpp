@@ -26,6 +26,7 @@
 #include "eidos_rng.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
@@ -209,60 +210,72 @@ const std::string *Chromosome::ElementType(void) const
 	return &gStr_Chromosome;
 }
 
-std::vector<std::string> Chromosome::ReadOnlyMembers(void) const
+std::vector<std::string> Chromosome::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_genomicElements);					// this
-	constants.push_back(gStr_lastPosition);					// last_position_
-	constants.push_back(gStr_overallRecombinationRate);		// overall_recombination_rate_
-	constants.push_back(gStr_recombinationEndPositions);		// recombination_end_positions_
-	constants.push_back(gStr_recombinationRates);				// recombination_rates_
+	properties.push_back(gStr_genomicElements);					// this
+	properties.push_back(gStr_lastPosition);					// last_position_
+	properties.push_back(gStr_overallRecombinationRate);		// overall_recombination_rate_
+	properties.push_back(gStr_recombinationEndPositions);		// recombination_end_positions_
+	properties.push_back(gStr_recombinationRates);				// recombination_rates_
+	properties.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
+	properties.push_back(gStr_geneConversionMeanLength);			// gene_conversion_avg_length_
+	properties.push_back(gStr_overallMutationRate);				// overall_mutation_rate_
+	properties.push_back(gStr_tag);								// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> Chromosome::ReadWriteMembers(void) const
+const EidosPropertySignature *Chromosome::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *genomicElementsSig = nullptr;
+	static EidosPropertySignature *lastPositionSig = nullptr;
+	static EidosPropertySignature *overallRecombinationRateSig = nullptr;
+	static EidosPropertySignature *recombinationEndPositionsSig = nullptr;
+	static EidosPropertySignature *recombinationRatesSig = nullptr;
+	static EidosPropertySignature *geneConversionFractionSig = nullptr;
+	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
+	static EidosPropertySignature *overallMutationRateSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
-	variables.push_back(gStr_geneConversionMeanLength);			// gene_conversion_avg_length_
-	variables.push_back(gStr_overallMutationRate);				// overall_mutation_rate_
-	variables.push_back(gStr_tag);								// tag_value_
-	
-	return variables;
-}
-
-bool Chromosome::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!genomicElementsSig)
 	{
-			// constants
-		case gID_genomicElements:
-		case gID_lastPosition:
-		case gID_overallRecombinationRate:
-		case gID_recombinationEndPositions:
-		case gID_recombinationRates:
-			return true;
-			
-			// variables
-		case gID_geneConversionFraction:
-		case gID_geneConversionMeanLength:
-		case gID_overallMutationRate:
-		case gID_tag:
-			return false;
+		genomicElementsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,				gID_genomicElements,			true,	kValueMaskObject, &gStr_GenomicElement));
+		lastPositionSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				gID_lastPosition,				true,	kValueMaskInt | kValueMaskSingleton));
+		overallRecombinationRateSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	gID_overallRecombinationRate,	true,	kValueMaskFloat | kValueMaskSingleton));
+		recombinationEndPositionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	gID_recombinationEndPositions,	true,	kValueMaskInt));
+		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kValueMaskFloat));
+		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kValueMaskFloat | kValueMaskSingleton));
+		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kValueMaskFloat | kValueMaskSingleton));
+		overallMutationRateSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,			gID_overallMutationRate,		false,	kValueMaskFloat | kValueMaskSingleton));
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_genomicElements:			return genomicElementsSig;
+		case gID_lastPosition:				return lastPositionSig;
+		case gID_overallRecombinationRate:	return overallRecombinationRateSig;
+		case gID_recombinationEndPositions:	return recombinationEndPositionsSig;
+		case gID_recombinationRates:		return recombinationRatesSig;
+		case gID_geneConversionFraction:	return geneConversionFractionSig;
+		case gID_geneConversionMeanLength:	return geneConversionMeanLengthSig;
+		case gID_overallMutationRate:		return overallMutationRateSig;
+		case gID_tag:						return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *Chromosome::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_genomicElements:
@@ -301,41 +314,41 @@ EidosValue *Chromosome::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void Chromosome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_geneConversionFraction:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
-			
 			double value = p_value->FloatAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
+			
+			if ((value < 0.0) || (value > 1.0))
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			gene_conversion_fraction_ = value;
 			return;
 		}
 		case gID_geneConversionMeanLength:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
-			
 			double value = p_value->FloatAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, value >= 0);
+			
+			if (value < 0.0)
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			gene_conversion_avg_length_ = value;
 			return;
 		}
 		case gID_overallMutationRate:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskFloat);
-			
 			double value = p_value->FloatAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value >= 0.0) && (value <= 1.0));
+			
+			if ((value < 0.0) || (value > 1.0))
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			overall_mutation_rate_ = value;
 			InitializeDraws();
@@ -343,8 +356,6 @@ void Chromosome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *
 		}
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -353,7 +364,7 @@ void Chromosome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 	}
 }
 

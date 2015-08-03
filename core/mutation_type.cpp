@@ -26,6 +26,7 @@
 #include "eidos_rng.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 using std::endl;
@@ -124,52 +125,56 @@ void MutationType::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<m" << mutation_type_id_ << ">";
 }
 
-std::vector<std::string> MutationType::ReadOnlyMembers(void) const
+std::vector<std::string> MutationType::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_id);						// mutation_type_id_
-	constants.push_back(gStr_distributionType);		// dfe_type_
-	constants.push_back(gStr_distributionParams);		// dfe_parameters_
+	properties.push_back(gStr_id);						// mutation_type_id_
+	properties.push_back(gStr_distributionType);		// dfe_type_
+	properties.push_back(gStr_distributionParams);		// dfe_parameters_
+	properties.push_back(gStr_dominanceCoeff);		// dominance_coeff_
+	properties.push_back(gStr_tag);					// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> MutationType::ReadWriteMembers(void) const
+const EidosPropertySignature *MutationType::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
+	static EidosPropertySignature *distributionTypeSig = nullptr;
+	static EidosPropertySignature *distributionParamsSig = nullptr;
+	static EidosPropertySignature *dominanceCoeffSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_dominanceCoeff);		// dominance_coeff_
-	variables.push_back(gStr_tag);					// tag_value_
-	
-	return variables;
-}
-
-bool MutationType::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!idSig)
 	{
-			// constants
-		case gID_id:
-		case gID_distributionType:
-		case gID_distributionParams:
-			return true;
-			
-			// variables
-		case gID_dominanceCoeff:
-		case gID_tag:
-			return false;
+		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kValueMaskInt | kValueMaskSingleton));
+		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,	gID_distributionType,	true,	kValueMaskString | kValueMaskSingleton));
+		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,	gID_distributionParams,	true,	kValueMaskFloat));
+		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		gID_dominanceCoeff,		false,	kValueMaskFloat | kValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_id:					return idSig;
+		case gID_distributionType:		return distributionTypeSig;
+		case gID_distributionParams:	return distributionParamsSig;
+		case gID_dominanceCoeff:		return dominanceCoeffSig;
+		case gID_tag:					return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *MutationType::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_id:
@@ -193,19 +198,17 @@ EidosValue *MutationType::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void MutationType::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_dominanceCoeff:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
-			
 			double value = p_value->FloatAtIndex(0);
 			
 			dominance_coeff_ = static_cast<typeof(dominance_coeff_)>(value);	// float, at present, but I don't want to hard-code that
@@ -214,8 +217,6 @@ void MutationType::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue
 			
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -224,7 +225,7 @@ void MutationType::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue
 			
 		default:
 		{
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
 	}
 }

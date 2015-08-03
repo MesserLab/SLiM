@@ -95,7 +95,7 @@ public:
 	EidosValue *EvaluateInternalBlock(void);					// the starting point for internally executed blocks, which require braces and suppress output
 	EidosValue *EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in Eidos, which do not require braces
 	
-	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_member_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
+	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue *rvalue, const EidosASTNode *p_lvalue_node);
 	
 	EidosValue *EvaluateNode(const EidosASTNode *p_node);

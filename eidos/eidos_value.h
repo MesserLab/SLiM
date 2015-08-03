@@ -39,8 +39,9 @@ class EidosValue;
 class EidosValue_NULL;
 class EidosValue_Logical;
 
-struct EidosFunctionSignature;
-struct EidosMethodSignature;
+class EidosPropertySignature;
+class EidosFunctionSignature;
+class EidosMethodSignature;
 class EidosInterpreter;
 
 class EidosObjectElement;	// the value type for EidosValue_Object; defined at the bottom of this file
@@ -65,7 +66,7 @@ enum class EidosValueType
 	kValueFloat,		// (double-precision) floats
 	kValueString,		// strings
 	
-	kValueObject		// a vector of EidosObjectElement objects: these represent built-in objects with member variables and methods
+	kValueObject		// a vector of EidosObjectElement objects: these represent built-in objects with properties and methods
 };
 
 std::string StringForEidosValueType(const EidosValueType p_type);
@@ -620,13 +621,13 @@ public:
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value) = 0;
 	virtual void Sort(bool p_ascending);
 	
-	// Member and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
+	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const = 0;
-	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const = 0;
-	virtual EidosValue *GetValueForMemberOfElements(EidosGlobalStringID p_member_id) const = 0;
-	virtual EidosValue *GetRepresentativeValueOrNullForMemberOfElements(EidosGlobalStringID p_member_id) const = 0;			// used by code completion
-	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value) = 0;
+	virtual std::vector<std::string> PropertiesOfElements(void) const = 0;
+	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
+	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
+	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;			// used by code completion
+	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value) = 0;
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const = 0;
@@ -662,13 +663,13 @@ public:
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value);
 	void SortBy(const std::string &p_property, bool p_ascending);
 	
-	// Member and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
+	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
-	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
-	virtual EidosValue *GetValueForMemberOfElements(EidosGlobalStringID p_member_id) const;
-	virtual EidosValue *GetRepresentativeValueOrNullForMemberOfElements(EidosGlobalStringID p_member_id) const;			// used by code completion
-	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value);
+	virtual std::vector<std::string> PropertiesOfElements(void) const;
+	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
+	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
@@ -704,13 +705,13 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value);
 	
-	// Member and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
+	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> ReadOnlyMembersOfElements(void) const;
-	virtual std::vector<std::string> ReadWriteMembersOfElements(void) const;
-	virtual EidosValue *GetValueForMemberOfElements(EidosGlobalStringID p_member_id) const;
-	virtual EidosValue *GetRepresentativeValueOrNullForMemberOfElements(EidosGlobalStringID p_member_id) const;			// used by code completion
-	virtual void SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value);
+	virtual std::vector<std::string> PropertiesOfElements(void) const;
+	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
+	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> MethodsOfElements(void) const;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
@@ -745,19 +746,14 @@ public:
 	virtual EidosObjectElement *Retain(void);
 	virtual EidosObjectElement *Release(void);
 	
-	virtual std::vector<std::string> ReadOnlyMembers(void) const;
-	virtual std::vector<std::string> ReadWriteMembers(void) const;
-	virtual bool MemberIsReadOnly(EidosGlobalStringID p_member_id) const;
-	virtual EidosValue *GetValueForMember(EidosGlobalStringID p_member_id);
-	virtual void SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value);
+	virtual std::vector<std::string> Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
 	virtual std::vector<std::string> Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	
-	// Utility methods for printing errors, checking types, etc.; the goal is to make subclasses as trim as possible
-	void TypeCheckValue(const std::string &p_method_name, EidosGlobalStringID p_member_id, EidosValue *p_value, EidosValueMask p_type_mask);
-	void RangeCheckValue(const std::string &p_method_name, EidosGlobalStringID p_member_id, bool p_in_range);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element);

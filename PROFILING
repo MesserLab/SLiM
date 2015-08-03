@@ -17,7 +17,7 @@ Eidos optimization:
 		0:00.27 after adding constant script short-circuiting
 	Instrumenting with MK_SLiMGUIsim4.txt (starts where the previous series ends, with a new script that takes much longer)
 		0:76 initial time
-		0:49 after special-casing singletons in GetValueForMemberOfElements()
+		0:49 after special-casing singletons in GetPropertyOfElements()
 		0:45 after changing C strings to static global std::strings
 		0:44 after making static EidosValue_NULL objects globals
 		0:32 after switching to static globals for singleton logical EidosValues

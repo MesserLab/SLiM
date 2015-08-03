@@ -27,6 +27,7 @@
 #include "eidos_test.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 using std::multimap;
@@ -1187,66 +1188,84 @@ const std::string *SLiMSim::ElementType(void) const
 	return &gStr_SLiMSim;
 }
 
-std::vector<std::string> SLiMSim::ReadOnlyMembers(void) const
+std::vector<std::string> SLiMSim::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_chromosome);			// chromosome_
-	constants.push_back(gStr_chromosomeType);		// modeled_chromosome_type_
-	constants.push_back(gStr_genomicElementTypes);	// genomic_element_types_
-	constants.push_back(gStr_mutations);			// population_.mutation_registry_
-	constants.push_back(gStr_mutationTypes);		// mutation_types_
-	constants.push_back(gStr_scriptBlocks);			// script_blocks_
-	constants.push_back(gStr_sexEnabled);			// sex_enabled_
-	constants.push_back(gStr_subpopulations);		// population_
-	constants.push_back(gStr_substitutions);		// population_.substitutions_
+	properties.push_back(gStr_chromosome);			// chromosome_
+	properties.push_back(gStr_chromosomeType);		// modeled_chromosome_type_
+	properties.push_back(gStr_genomicElementTypes);	// genomic_element_types_
+	properties.push_back(gStr_mutations);			// population_.mutation_registry_
+	properties.push_back(gStr_mutationTypes);		// mutation_types_
+	properties.push_back(gStr_scriptBlocks);			// script_blocks_
+	properties.push_back(gStr_sexEnabled);			// sex_enabled_
+	properties.push_back(gStr_subpopulations);		// population_
+	properties.push_back(gStr_substitutions);		// population_.substitutions_
+	properties.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
+	properties.push_back(gStr_generation);			// generation_
+	properties.push_back(gStr_tag);					// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> SLiMSim::ReadWriteMembers(void) const
+const EidosPropertySignature *SLiMSim::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *chromosomeSig = nullptr;
+	static EidosPropertySignature *chromosomeTypeSig = nullptr;
+	static EidosPropertySignature *genomicElementTypesSig = nullptr;
+	static EidosPropertySignature *mutationsSig = nullptr;
+	static EidosPropertySignature *mutationTypesSig = nullptr;
+	static EidosPropertySignature *scriptBlocksSig = nullptr;
+	static EidosPropertySignature *sexEnabledSig = nullptr;
+	static EidosPropertySignature *subpopulationsSig = nullptr;
+	static EidosPropertySignature *substitutionsSig = nullptr;
+	static EidosPropertySignature *dominanceCoeffXSig = nullptr;
+	static EidosPropertySignature *generationSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
-	variables.push_back(gStr_generation);			// generation_
-	variables.push_back(gStr_tag);					// tag_value_
-	
-	return variables;
-}
-
-bool SLiMSim::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!chromosomeSig)
 	{
-			// constants
-		case gID_chromosome:
-		case gID_chromosomeType:
-		case gID_genomicElementTypes:
-		case gID_mutations:
-		case gID_mutationTypes:
-		case gID_scriptBlocks:
-		case gID_sexEnabled:
-		case gID_subpopulations:
-		case gID_substitutions:
-			return true;
-			
-			// variables
-		case gID_dominanceCoeffX:
-		case gID_generation:
-		case gID_tag:
-			return false;
+		chromosomeSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,			gID_chromosome,				true,	kValueMaskObject | kValueMaskSingleton, &gStr_Chromosome));
+		chromosomeTypeSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,		gID_chromosomeType,			true,	kValueMaskString | kValueMaskSingleton));
+		genomicElementTypesSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	gID_genomicElementTypes,	true,	kValueMaskObject, &gStr_GenomicElementType));
+		mutationsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,			gID_mutations,				true,	kValueMaskObject, &gStr_Mutation));
+		mutationTypesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,			true,	kValueMaskObject, &gStr_MutationType));
+		scriptBlocksSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,		gID_scriptBlocks,			true,	kValueMaskObject, &gStr_SLiMEidosBlock));
+		sexEnabledSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,			gID_sexEnabled,				true,	kValueMaskLogical | kValueMaskSingleton));
+		subpopulationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,		gID_subpopulations,			true,	kValueMaskObject, &gStr_Subpopulation));
+		substitutionsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,		gID_substitutions,			true,	kValueMaskObject, &gStr_Substitution));
+		dominanceCoeffXSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeffX,		gID_dominanceCoeffX,		false,	kValueMaskFloat | kValueMaskSingleton));
+		generationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,			gID_generation,				false,	kValueMaskInt | kValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_chromosome:			return chromosomeSig;
+		case gID_chromosomeType:		return chromosomeTypeSig;
+		case gID_genomicElementTypes:	return genomicElementTypesSig;
+		case gID_mutations:				return mutationsSig;
+		case gID_mutationTypes:			return mutationTypesSig;
+		case gID_scriptBlocks:			return scriptBlocksSig;
+		case gID_sexEnabled:			return sexEnabledSig;
+		case gID_subpopulations:		return subpopulationsSig;
+		case gID_substitutions:			return substitutionsSig;
+		case gID_dominanceCoeffX:		return dominanceCoeffXSig;
+		case gID_generation:			return generationSig;
+		case gID_tag:					return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_chromosome:
@@ -1336,21 +1355,21 @@ EidosValue *SLiMSim::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_generation:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
-			RangeCheckValue(__func__, p_member_id, (value >= 1) && (value <= SLIM_MAX_GENERATION));
+			
+			if ((value < 1) || (value > SLIM_MAX_GENERATION))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			if (cached_value_generation_)
 			{
@@ -1365,9 +1384,7 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 		case gID_dominanceCoeffX:
 		{
 			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::SetValueForMember): attempt to set member dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
-			
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt | kValueMaskFloat);
+				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
 			
 			double value = p_value->FloatAtIndex(0);
 			
@@ -1377,8 +1394,6 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 			
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -1387,7 +1402,7 @@ void SLiMSim::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_v
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 	}
 }
 

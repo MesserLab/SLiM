@@ -20,6 +20,7 @@
 #include "eidos_value.h"
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 using std::string;
@@ -1518,7 +1519,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 	
 	// figure out what type the property returns
 	EidosGlobalStringID property_string_id = EidosGlobalStringIDForString(p_property);
-	EidosValue *first_result = values_[0]->GetValueForMember(property_string_id);
+	EidosValue *first_result = values_[0]->GetProperty(property_string_id);
 	EidosValueType property_type = first_result->Type();
 	
 	if (first_result->IsTemporary()) delete first_result;
@@ -1538,7 +1539,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			
 			for (auto value : values_)
 			{
-				EidosValue *temp_result = value->GetValueForMember(property_string_id);
+				EidosValue *temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << eidos_terminate();
@@ -1572,7 +1573,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			
 			for (auto value : values_)
 			{
-				EidosValue *temp_result = value->GetValueForMember(property_string_id);
+				EidosValue *temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << eidos_terminate();
@@ -1606,7 +1607,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			
 			for (auto value : values_)
 			{
-				EidosValue *temp_result = value->GetValueForMember(property_string_id);
+				EidosValue *temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << eidos_terminate();
@@ -1640,7 +1641,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			
 			for (auto value : values_)
 			{
-				EidosValue *temp_result = value->GetValueForMember(property_string_id);
+				EidosValue *temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " produced " << temp_result->Count() << " values for a single element; a property that produces one value per element is required for sorting." << eidos_terminate();
@@ -1669,71 +1670,76 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 	}
 }
 
-std::vector<std::string> EidosValue_Object_vector::ReadOnlyMembersOfElements(void) const
+std::vector<std::string> EidosValue_Object_vector::PropertiesOfElements(void) const
 {
 	if (values_.size() == 0)
 		return std::vector<std::string>();
 	else
-		return values_[0]->ReadOnlyMembers();
+		return values_[0]->Properties();
 }
 
-std::vector<std::string> EidosValue_Object_vector::ReadWriteMembersOfElements(void) const
+const EidosPropertySignature *EidosValue_Object_vector::SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
 	if (values_.size() == 0)
-		return std::vector<std::string>();
+	{
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SignatureForPropertyOfElements): unrecognized property \"" << StringForEidosGlobalStringID(p_property_id) << "\" (no elements, thus no element type defined)." << eidos_terminate();
+		return nullptr;
+	}
 	else
-		return values_[0]->ReadWriteMembers();
+		return values_[0]->SignatureForProperty(p_property_id);
 }
 
-EidosValue *EidosValue_Object_vector::GetValueForMemberOfElements(EidosGlobalStringID p_member_id) const
+EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
 	auto values_size = values_.size();
+	const EidosPropertySignature *signature = SignatureForPropertyOfElements(p_property_id);
 	
-	if (values_size == 0)
-	{
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueForMemberOfElements): unrecognized member name \"" << StringForEidosGlobalStringID(p_member_id) << "\" (no elements, thus no element type defined)." << eidos_terminate();
-		
-		return gStaticEidosValueNULLInvisible;
-	}
-	else if (values_size == 1)
+	if (values_size == 1)
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		EidosObjectElement *value = values_[0];
-		EidosValue *result = value->GetValueForMember(p_member_id);
+		EidosValue *result = value->GetProperty(p_property_id);
 		
-		if (result->Count() != 1)
-		{
-			// We need to check that this property is const; if not, it is required to give a singleton return
-			if (!values_[0]->MemberIsReadOnly(p_member_id))
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << StringForEidosGlobalStringID(p_member_id) << " produced " << result->Count() << " values for a single element." << eidos_terminate();
-		}
-		
+		signature->CheckResultValue(result);
 		return result;
 	}
 	else
 	{
-		// get the value from all members and collect the results
+		// get the value from all properties and collect the results
 		vector<EidosValue*> results;
-		bool checked_const_multivalued = false;
 		
-		for (auto value : values_)
+		if (values_size < 10)
 		{
-			EidosValue *temp_result = value->GetValueForMember(p_member_id);
-			
-			if (!checked_const_multivalued && (temp_result->Count() != 1))
+			// with small objects, we check every value
+			for (auto value : values_)
 			{
-				// We need to check that this property is const; if not, it is required to give a singleton return
-				if (!values_[0]->MemberIsReadOnly(p_member_id))
-					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueForMemberOfElements): internal error: non-const member " << StringForEidosGlobalStringID(p_member_id) << " produced " << temp_result->Count() << " values for a single element." << eidos_terminate();
+				EidosValue *temp_result = value->GetProperty(p_property_id);
 				
-				checked_const_multivalued = true;
+				signature->CheckResultValue(temp_result);
+				results.push_back(temp_result);
 			}
+		}
+		else
+		{
+			// with large objects, we just spot-check the first value, for speed
+			bool checked_multivalued = false;
 			
-			results.push_back(temp_result);
+			for (auto value : values_)
+			{
+				EidosValue *temp_result = value->GetProperty(p_property_id);
+				
+				if (!checked_multivalued)
+				{
+					signature->CheckResultValue(temp_result);
+					checked_multivalued = true;
+				}
+				
+				results.push_back(temp_result);
+			}
 		}
 		
 		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gStr_GetValueForMemberOfElements, results.data(), (int)results.size());
+		EidosValue *result = ConcatenateEidosValues(gStr_GetPropertyOfElements, results.data(), (int)results.size());
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)
@@ -1746,61 +1752,52 @@ EidosValue *EidosValue_Object_vector::GetValueForMemberOfElements(EidosGlobalStr
 // This somewhat odd method returns one "representative" EidosValue for the given property, by calling the first element in the
 // object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
 // that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
-// but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
-EidosValue *EidosValue_Object_vector::GetRepresentativeValueOrNullForMemberOfElements(EidosGlobalStringID p_member_id) const
+// but the main reason that we don't just call GetPropertyOfElements() is that we need an API that will not raise.
+EidosValue *EidosValue_Object_vector::GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
 	if (values_.size())
 	{
-		// check that the member is defined before we call our elements
-		const std::string &member_name = StringForEidosGlobalStringID(p_member_id);
-		std::vector<std::string> constant_members = values_[0]->ReadOnlyMembers();
+		// check that the property is defined before we call our elements
+		const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
+		std::vector<std::string> properties = values_[0]->Properties();
 		
-		if (std::find(constant_members.begin(), constant_members.end(), member_name) == constant_members.end())
-		{
-			std::vector<std::string> variable_members = values_[0]->ReadWriteMembers();
-			
-			if (std::find(variable_members.begin(), variable_members.end(), member_name) == variable_members.end())
-				return nullptr;
-		}
+		if (std::find(properties.begin(), properties.end(), property_name) == properties.end())
+			return nullptr;
 		
 		// get a value from the first element and return it; we only need to return one representative value
-		return values_[0]->GetValueForMember(p_member_id);
+		return values_[0]->GetProperty(p_property_id);
 	}
 	
 	return nullptr;
 }
 
-void EidosValue_Object_vector::SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	if (values_.size() == 0)
+	SignatureForPropertyOfElements(p_property_id)->CheckAssignedValue(p_value);
+	
+	// We have to check the count ourselves; the signature does not do that for us
+	int p_value_count = p_value->Count();
+	
+	if (p_value_count == 1)
 	{
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueForMemberOfElements): unrecognized member name \"" << StringForEidosGlobalStringID(p_member_id) << "\" (no elements, thus no element type defined)." << eidos_terminate();
+		// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
+		for (auto value : values_)
+			value->SetProperty(p_property_id, p_value);
+	}
+	else if (p_value_count == Count())
+	{
+		// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
+		for (int value_idx = 0; value_idx < p_value_count; value_idx++)
+		{
+			EidosValue *temp_rvalue = p_value->GetValueAtIndex(value_idx);
+			
+			values_[value_idx]->SetProperty(p_property_id, temp_rvalue);
+			
+			if (temp_rvalue->IsTemporary()) delete temp_rvalue;
+		}
 	}
 	else
-	{
-		int p_value_count = p_value->Count();
-		
-		if (p_value_count == 1)
-		{
-			// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
-			for (auto value : values_)
-				value->SetValueForMember(p_member_id, p_value);
-		}
-		else if (p_value_count == Count())
-		{
-			// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
-			for (int value_idx = 0; value_idx < p_value_count; value_idx++)
-			{
-				EidosValue *temp_rvalue = p_value->GetValueAtIndex(value_idx);
-				
-				values_[value_idx]->SetValueForMember(p_member_id, temp_rvalue);
-				
-				if (temp_rvalue->IsTemporary()) delete temp_rvalue;
-			}
-		}
-		else
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
-	}
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
 }
 
 std::vector<std::string> EidosValue_Object_vector::MethodsOfElements(void) const
@@ -1817,7 +1814,7 @@ const EidosMethodSignature *EidosValue_Object_vector::SignatureForMethodOfElemen
 	{
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SignatureForMethodOfElements): unrecognized method name " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate();
 		
-		return new EidosInstanceMethodSignature(gStr_empty_string, kValueMaskNULL);
+		return nullptr;
 	}
 	else
 		return values_[0]->SignatureForMethod(p_method_id);
@@ -1834,7 +1831,7 @@ EidosValue *EidosValue_Object_vector::ExecuteClassMethodOfElements(EidosGlobalSt
 	}
 	else
 	{
-		// call the method on one member only, since it is a class method
+		// call the method on one element only, since it is a class method
 		EidosValue* result = values_[0]->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		
 		return result;
@@ -1861,7 +1858,7 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 	}
 	else
 	{
-		// call the method on all members and collect the results
+		// call the method on all elements and collect the results
 		vector<EidosValue*> results;
 		
 		for (auto value : values_)
@@ -1953,26 +1950,22 @@ void EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue(int p_idx
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Object_singleton_const is not modifiable." << eidos_terminate();
 }
 
-std::vector<std::string> EidosValue_Object_singleton_const::ReadOnlyMembersOfElements(void) const
+std::vector<std::string> EidosValue_Object_singleton_const::PropertiesOfElements(void) const
 {
-	return value_->ReadOnlyMembers();
+	return value_->Properties();
 }
 
-std::vector<std::string> EidosValue_Object_singleton_const::ReadWriteMembersOfElements(void) const
+const EidosPropertySignature *EidosValue_Object_singleton_const::SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
-	return value_->ReadWriteMembers();
+	return value_->SignatureForProperty(p_property_id);
 }
 
-EidosValue *EidosValue_Object_singleton_const::GetValueForMemberOfElements(EidosGlobalStringID p_member_id) const
+EidosValue *EidosValue_Object_singleton_const::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
-	EidosValue *result = value_->GetValueForMember(p_member_id);
+	const EidosPropertySignature *signature = SignatureForPropertyOfElements(p_property_id);
+	EidosValue *result = value_->GetProperty(p_property_id);
 	
-	if (result->Count() != 1)
-	{
-		// We need to check that this property is const; if not, it is required to give a singleton return
-		if (!value_->MemberIsReadOnly(p_member_id))
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetValueForMemberOfElements): internal error: non-const member " << StringForEidosGlobalStringID(p_member_id) << " produced " << result->Count() << " values for a single element." << eidos_terminate();
-	}
+	signature->CheckResultValue(result);
 	
 	return result;
 }
@@ -1980,31 +1973,31 @@ EidosValue *EidosValue_Object_singleton_const::GetValueForMemberOfElements(Eidos
 // This somewhat odd method returns one "representative" EidosValue for the given property, by calling the first element in the
 // object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
 // that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
-// but the main reason that we don't just call GetValueForMemberOfElements() is that we need an API that will not raise.
-EidosValue *EidosValue_Object_singleton_const::GetRepresentativeValueOrNullForMemberOfElements(EidosGlobalStringID p_member_id) const
+// but the main reason that we don't just call GetPropertyOfElements() is that we need an API that will not raise.
+EidosValue *EidosValue_Object_singleton_const::GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
-	// check that the member is defined before we call our elements
-	const std::string &member_name = StringForEidosGlobalStringID(p_member_id);
-	std::vector<std::string> constant_members = value_->ReadOnlyMembers();
+	// check that the property is defined before we call our elements
+	const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
+	std::vector<std::string> properties = value_->Properties();
 	
-	if (std::find(constant_members.begin(), constant_members.end(), member_name) == constant_members.end())
-	{
-		std::vector<std::string> variable_members = value_->ReadWriteMembers();
-		
-		if (std::find(variable_members.begin(), variable_members.end(), member_name) == variable_members.end())
-			return nullptr;
-	}
+	if (std::find(properties.begin(), properties.end(), property_name) == properties.end())
+		return nullptr;
 	
 	// get a value from the first element and return it; we only need to return one representative value
-	return value_->GetValueForMember(p_member_id);
+	return value_->GetProperty(p_property_id);
 }
 
-void EidosValue_Object_singleton_const::SetValueForMemberOfElements(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void EidosValue_Object_singleton_const::SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
+	SignatureForPropertyOfElements(p_property_id)->CheckAssignedValue(p_value);
+	
+	// We have to check the count ourselves; the signature does not do that for us
 	if (p_value->Count() == 1)
-		value_->SetValueForMember(p_member_id, p_value);
+	{
+		value_->SetProperty(p_property_id, p_value);
+	}
 	else
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetValueForMemberOfElements): assignment to a member requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
 }
 
 std::vector<std::string> EidosValue_Object_singleton_const::MethodsOfElements(void) const
@@ -2058,41 +2051,35 @@ EidosObjectElement *EidosObjectElement::Release(void)
 	return this;
 }
 
-std::vector<std::string> EidosObjectElement::ReadOnlyMembers(void) const
+std::vector<std::string> EidosObjectElement::Properties(void) const
 {
-	return std::vector<std::string>();	// no read-only members
+	return std::vector<std::string>();	// no properties
 }
 
-std::vector<std::string> EidosObjectElement::ReadWriteMembers(void) const
+const EidosPropertySignature *EidosObjectElement::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	return std::vector<std::string>();	// no read-write members
-}
-
-bool EidosObjectElement::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::MemberIsReadOnly for " << *ElementType() << "): unrecognized member name \"" << StringForEidosGlobalStringID(p_member_id) << "\"." << eidos_terminate();
-	return true;
-}
-
-EidosValue *EidosObjectElement::GetValueForMember(EidosGlobalStringID p_member_id)
-{
-	bool readonly = MemberIsReadOnly(p_member_id);	// will raise if the member does not exist at all
-	
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetValueForMember for " << *ElementType() << "): internal error: attempt to get a value for " << (readonly ? "read-only member " : "read-write member ") << StringForEidosGlobalStringID(p_member_id) << " was not handled by subclass." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SignatureForProperty for " << *ElementType() << "): internal error: attempt to get a signature for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate();
 	
 	return nullptr;
 }
 
-void EidosObjectElement::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+EidosValue *EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << *ElementType() << "): internal error: attempt to get a value for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate();
+	
+	return nullptr;
+}
+
+void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
 #pragma unused(p_value)
-	bool readonly = MemberIsReadOnly(p_member_id);	// will raise if the member does not exist at all
+	bool readonly = SignatureForProperty(p_property_id)->read_only_;		// will raise if the property does not exist at all
 	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetValueForMember for " << *ElementType() << "): attempt to set a new value for read-only member " << StringForEidosGlobalStringID(p_member_id) << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << *ElementType() << "): attempt to set a new value for read-only property " << StringForEidosGlobalStringID(p_property_id) << "." << eidos_terminate();
 	else
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetValueForMember for " << *ElementType() << "): internal error: setting a new value for read-write member " << StringForEidosGlobalStringID(p_member_id) << " was not handled by subclass." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << *ElementType() << "): internal error: setting a new value for read-write property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate();
 }
 
 std::vector<std::string> EidosObjectElement::Methods(void) const
@@ -2157,38 +2144,40 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			
 			output_stream << *ElementType() << ":" << endl;
 			
-			std::vector<std::string> read_only_member_names = ReadOnlyMembers();
-			std::vector<std::string> read_write_member_names = ReadWriteMembers();
-			std::vector<std::string> member_names;
+			std::vector<std::string> property_names = Properties();
 			
-			member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
-			member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
-			std::sort(member_names.begin(), member_names.end());
+			std::sort(property_names.begin(), property_names.end());
 			
-			for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
+			for (auto property_name_iter = property_names.begin(); property_name_iter != property_names.end(); ++property_name_iter)
 			{
-				const std::string &member_name = *member_name_iter;
-				EidosGlobalStringID member_id = EidosGlobalStringIDForString(member_name);
-				EidosValue *member_value = GetValueForMember(member_id);
-				int member_count = member_value->Count();
-				bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
+				const std::string &property_name = *property_name_iter;
+				EidosGlobalStringID property_id = EidosGlobalStringIDForString(property_name);
+				const EidosPropertySignature *signature = SignatureForProperty(property_id);
+				EidosValue *property_value = GetProperty(property_id);
+				int property_count = property_value->Count();
+				EidosValueType property_type = property_value->Type();
 				
-				output_stream << "\t";
+				output_stream << "\t" << property_name << " " << signature->PropertySymbol() << " (" << property_type;
 				
-				if (member_count <= 2)
-					output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *member_value << endl;
+				if (property_type == EidosValueType::kValueObject)
+					output_stream << "<" << *property_value->ElementType() << ">) ";
+				else
+					output_stream << ") ";
+				
+				if (property_count <= 2)
+					output_stream << *property_value << endl;
 				else
 				{
-					EidosValue *first_value = member_value->GetValueAtIndex(0);
-					EidosValue *second_value = member_value->GetValueAtIndex(1);
+					EidosValue *first_value = property_value->GetValueAtIndex(0);
+					EidosValue *second_value = property_value->GetValueAtIndex(1);
 					
-					output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << member_count << " values)" << endl;
+					output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << endl;
 					
 					if (first_value->IsTemporary()) delete first_value;
 					if (second_value->IsTemporary()) delete second_value;
 				}
 				
-				if (member_value->IsTemporary()) delete member_value;
+				if (property_value->IsTemporary()) delete property_value;
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -2198,29 +2187,23 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_argument_count == 1);
 			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
-			std::vector<std::string> read_only_member_names = ReadOnlyMembers();
-			std::vector<std::string> read_write_member_names = ReadWriteMembers();
-			std::vector<std::string> member_names;
+			std::vector<std::string> property_names = Properties();
 			bool signature_found = false;
 			
-			member_names.insert(member_names.end(), read_only_member_names.begin(), read_only_member_names.end());
-			member_names.insert(member_names.end(), read_write_member_names.begin(), read_write_member_names.end());
-			std::sort(member_names.begin(), member_names.end());
+			std::sort(property_names.begin(), property_names.end());
 			
-			for (auto member_name_iter = member_names.begin(); member_name_iter != member_names.end(); ++member_name_iter)
+			for (auto property_name_iter = property_names.begin(); property_name_iter != property_names.end(); ++property_name_iter)
 			{
-				const std::string &member_name = *member_name_iter;
-				EidosGlobalStringID member_id = EidosGlobalStringIDForString(member_name);
+				const std::string &property_name = *property_name_iter;
+				EidosGlobalStringID property_id = EidosGlobalStringIDForString(property_name);
 				
-				if (has_match_string && (member_name.compare(match_string) != 0))
+				if (has_match_string && (property_name.compare(match_string) != 0))
 					continue;
 				
-				EidosValue *member_value = GetValueForMember(member_id);
-				bool is_const = std::find(read_only_member_names.begin(), read_only_member_names.end(), member_name) != read_only_member_names.end();
+				const EidosPropertySignature *signature = SignatureForProperty(property_id);
 				
-				output_stream << member_name << (is_const ? " => (" : " -> (") << member_value->Type() << ")" << endl;
+				output_stream << property_name << " " << signature->PropertySymbol() << " (" << StringForEidosValueMask(signature->value_mask_, signature->value_object_element_type_, "") << ")" << endl;
 				
-				if (member_value->IsTemporary()) delete member_value;
 				signature_found = true;
 			}
 			
@@ -2275,31 +2258,6 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			return gStaticEidosValueNULLInvisible;
 		}
 	}
-}
-
-void EidosObjectElement::TypeCheckValue(const std::string &p_method_name, EidosGlobalStringID p_member_id, EidosValue *p_value, EidosValueMask p_type_mask)
-{
-	uint32_t typemask = p_type_mask;
-	bool type_ok = true;
-	
-	switch (p_value->Type())
-	{
-		case EidosValueType::kValueNULL:		type_ok = !!(typemask & kValueMaskNULL);		break;
-		case EidosValueType::kValueLogical:	type_ok = !!(typemask & kValueMaskLogical);	break;
-		case EidosValueType::kValueInt:		type_ok = !!(typemask & kValueMaskInt);		break;
-		case EidosValueType::kValueFloat:		type_ok = !!(typemask & kValueMaskFloat);		break;
-		case EidosValueType::kValueString:		type_ok = !!(typemask & kValueMaskString);	break;
-		case EidosValueType::kValueObject:		type_ok = !!(typemask & kValueMaskObject);	break;
-	}
-	
-	if (!type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::TypeCheckValue for " << *ElementType() << "::" << p_method_name << "): type " << p_value->Type() << " is not legal for member " << StringForEidosGlobalStringID(p_member_id) << "." << eidos_terminate();
-}
-
-void EidosObjectElement::RangeCheckValue(const std::string &p_method_name, EidosGlobalStringID p_member_id, bool p_in_range)
-{
-	if (!p_in_range)
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::RangeCheckValue for" << *ElementType() << "::" << p_method_name << "): new value for member " << StringForEidosGlobalStringID(p_member_id) << " is illegal." << eidos_terminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element)

@@ -20,6 +20,7 @@
 
 #include "mutation.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 #ifdef SLIMGUI
@@ -68,48 +69,56 @@ void Mutation::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
 }
 
-std::vector<std::string> Mutation::ReadOnlyMembers(void) const
+std::vector<std::string> Mutation::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_mutationType);		// mutation_type_ptr_
-	constants.push_back(gStr_originGeneration);	// generation_
-	constants.push_back(gStr_position);			// position_
-	constants.push_back(gStr_selectionCoeff);		// selection_coeff_
-	constants.push_back(gStr_subpopID);			// subpop_index_
+	properties.push_back(gStr_mutationType);		// mutation_type_ptr_
+	properties.push_back(gStr_originGeneration);	// generation_
+	properties.push_back(gStr_position);			// position_
+	properties.push_back(gStr_selectionCoeff);		// selection_coeff_
+	properties.push_back(gStr_subpopID);			// subpop_index_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> Mutation::ReadWriteMembers(void) const
+const EidosPropertySignature *Mutation::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *mutationTypeSig = nullptr;
+	static EidosPropertySignature *originGenerationSig = nullptr;
+	static EidosPropertySignature *positionSig = nullptr;
+	static EidosPropertySignature *selectionCoeffSig = nullptr;
+	static EidosPropertySignature *subpopIDSig = nullptr;
 	
-	return variables;
-}
-
-bool Mutation::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!mutationTypeSig)
 	{
-			// constants
-		case gID_mutationType:
-		case gID_originGeneration:
-		case gID_position:
-		case gID_selectionCoeff:
-		case gID_subpopID:
-			return true;
+		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kValueMaskObject | kValueMaskSingleton, &gStr_MutationType));
+		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kValueMaskInt | kValueMaskSingleton));
+		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kValueMaskInt | kValueMaskSingleton));
+		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kValueMaskFloat | kValueMaskSingleton));
+		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			true,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_mutationType:		return mutationTypeSig;
+		case gID_originGeneration:	return originGenerationSig;
+		case gID_position:			return positionSig;
+		case gID_selectionCoeff:	return selectionCoeffSig;
+		case gID_subpopID:			return subpopIDSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *Mutation::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_mutationType:
@@ -125,13 +134,13 @@ EidosValue *Mutation::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void Mutation::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void Mutation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+	return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
 std::vector<std::string> Mutation::Methods(void) const

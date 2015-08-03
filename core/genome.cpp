@@ -21,6 +21,7 @@
 #include "genome.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 #include "slim_sim.h"	// we need to register mutations in the simulation...
 
 
@@ -243,50 +244,52 @@ void Genome::Print(std::ostream &p_ostream) const
 		p_ostream << ":" << mutation_count_ << ">";
 }
 
-std::vector<std::string> Genome::ReadOnlyMembers(void) const
+std::vector<std::string> Genome::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_genomeType);			// genome_type_
-	constants.push_back(gStr_isNullGenome);			// (mutations_ == nullptr)
-	constants.push_back(gStr_mutations);			// mutations_
+	properties.push_back(gStr_genomeType);			// genome_type_
+	properties.push_back(gStr_isNullGenome);			// (mutations_ == nullptr)
+	properties.push_back(gStr_mutations);			// mutations_
+	properties.push_back(gStr_tag);					// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> Genome::ReadWriteMembers(void) const
+const EidosPropertySignature *Genome::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *genomeTypeSig = nullptr;
+	static EidosPropertySignature *isNullGenomeSig = nullptr;
+	static EidosPropertySignature *mutationsSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_tag);					// tag_value_
-	
-	return variables;
-}
-
-bool Genome::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!genomeTypeSig)
 	{
-			// constants
-		case gID_genomeType:
-		case gID_isNullGenome:
-		case gID_mutations:
-			return true;
-			
-			// variables
-		case gID_tag:
-			return false;
+		genomeTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		gID_genomeType,		true,	kValueMaskString | kValueMaskSingleton));
+		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kValueMaskLogical | kValueMaskSingleton));
+		mutationsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		gID_mutations,		true,	kValueMaskObject, &gStr_Mutation));
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_genomeType:	return genomeTypeSig;
+		case gID_isNullGenome:	return isNullGenomeSig;
+		case gID_mutations:		return mutationsSig;
+		case gID_tag:			return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *Genome::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_genomeType:
@@ -316,18 +319,16 @@ EidosValue *Genome::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void Genome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -336,7 +337,7 @@ void Genome::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_va
 			
 		default:
 		{
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
 	}
 }

@@ -21,6 +21,7 @@
 #include "eidos_test_element.h"
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 #include "eidos_global.h"
 
 #include <stdio.h>
@@ -50,59 +51,57 @@ const std::string *Eidos_TestElement::ElementType(void) const
 	return &gStr__TestElement;
 }
 
-std::vector<std::string> Eidos_TestElement::ReadOnlyMembers(void) const
+std::vector<std::string> Eidos_TestElement::Properties(void) const
 {
-	std::vector<std::string> members;
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	return members;
+	properties.push_back(gStr__yolk);
+	
+	return properties;
 }
 
-std::vector<std::string> Eidos_TestElement::ReadWriteMembers(void) const
+const EidosPropertySignature *Eidos_TestElement::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> members;
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *yolkSig = nullptr;
 	
-	members.push_back(gStr__yolk);
+	if (!yolkSig)
+	{
+		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr__yolk,	gID__yolk,	false,	kValueMaskInt | kValueMaskSingleton));
+	}
 	
-	return members;
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID__yolk:	return yolkSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectElement::SignatureForProperty(p_property_id);
+	}
 }
 
-bool Eidos_TestElement::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
+EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
-	if (p_member_id == gID__yolk)
-		return false;
-	else
-		return EidosObjectElement::MemberIsReadOnly(p_member_id);
-}
-
-EidosValue *Eidos_TestElement::GetValueForMember(EidosGlobalStringID p_member_id)
-{
-	if (p_member_id == gID__yolk)
+	if (p_property_id == gID__yolk)
 		return new EidosValue_Int_singleton_const(yolk_);
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::GetValueForMember(p_member_id);
+		return EidosObjectElement::GetProperty(p_property_id);
 }
 
-void Eidos_TestElement::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	if (p_member_id == gID__yolk)
+	if (p_property_id == gID__yolk)
 	{
-		EidosValueType value_type = p_value->Type();
-		int value_count = p_value->Count();
-		
-		if (value_type != EidosValueType::kValueInt)
-			EIDOS_TERMINATION << "ERROR (Eidos_TestElement::SetValueForMember): type mismatch in assignment to member 'path'." << eidos_terminate();
-		if (value_count != 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_TestElement::SetValueForMember): value of size() == 1 expected in assignment to member 'path'." << eidos_terminate();
-		
 		yolk_ = p_value->IntAtIndex(0);
 		return;
 	}
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+		return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
 std::vector<std::string> Eidos_TestElement::Methods(void) const

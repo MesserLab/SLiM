@@ -252,7 +252,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 
 // A subscript has been encountered as the top-level operation on the left-hand side of an assignment – x[5] = y, x.foo[5] = y, or more
 // complex cases like x[3:10].foo[2:5][1:2] = y.  The job of this function is to determine the identity of the symbol host (x, x, and
-// x[3:10], respectively), the name of the member within the symbol host (none, foo, and foo, respectively), and the indices of the final
+// x[3:10], respectively), the name of the property within the symbol host (none, foo, and foo, respectively), and the indices of the final
 // subscript operation (5, 5, and {3,4}, respectively), and return them to the caller, who will assign into those subscripts.  Note that
 // complex cases work only because of several other aspects of Eidos.  Notably, subscripting of an object creates a new object, but
 // the new object refers to the same elements as the parent object, by pointer; this means that x[5].foo = y works, because x[5] refers to
@@ -261,7 +261,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 // representations kept by external classes in the Context).  In other words, assignment relies upon the fact that a temporary object
 // constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
 // assigning into the temporary also assigns into the original.
-void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_member_string_id_ptr, vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
+void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
 	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
@@ -279,8 +279,8 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			
 			vector<int> base_indices;
 			
-			// Recurse to find the symbol host and member name that we are ultimately subscripting off of
-			_ProcessSubscriptAssignment(p_base_value_ptr, p_member_string_id_ptr, &base_indices, left_operand);
+			// Recurse to find the symbol host and property name that we are ultimately subscripting off of
+			_ProcessSubscriptAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
 			
 			// Find out which indices we're supposed to use within our base vector
 			EidosValue *second_child_value = EvaluateNode(right_operand);
@@ -367,9 +367,9 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			}
 			
 			*p_base_value_ptr = first_child_value;
-			*p_member_string_id_ptr = EidosGlobalStringIDForString(right_operand->token_->token_string_);
+			*p_property_string_id_ptr = EidosGlobalStringIDForString(right_operand->token_->token_string_);
 			
-			int number_of_elements = first_child_value->Count();	// member operations are guaranteed to produce one value per element
+			int number_of_elements = first_child_value->Count();	// property operations are guaranteed to produce one value per element
 			
 			for (int element_idx = 0; element_idx < number_of_elements; element_idx++)
 				p_indices_ptr->push_back(element_idx);
@@ -430,17 +430,17 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				EIDOS_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << eidos_terminate();
 			
 			EidosValue *base_value;
-			EidosGlobalStringID member_string_id = gID_none;
+			EidosGlobalStringID property_string_id = gID_none;
 			vector<int> indices;
 			
-			_ProcessSubscriptAssignment(&base_value, &member_string_id, &indices, p_lvalue_node);
+			_ProcessSubscriptAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
 			
 			int index_count = (int)indices.size();
 			int rvalue_count = rvalue->Count();
 			
 			if (rvalue_count == 1)
 			{
-				if (member_string_id == gID_none)
+				if (property_string_id == gID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate();
@@ -451,9 +451,9 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				}
 				else
 				{
-					// we have a multiplex assignment of one value to (maybe) more than one index in a member of a symbol host: x.foo[5:10] = 10
+					// we have a multiplex assignment of one value to (maybe) more than one index in a property of a symbol host: x.foo[5:10] = 10
 					// here we use the guarantee that the member operator returns one result per element, and that elements following sharing semantics,
-					// to rearrange this assignment from host.member[indices] = rvalue to host[indices].member = rvalue; this must be equivalent!
+					// to rearrange this assignment from host.property[indices] = rvalue to host[indices].property = rvalue; this must be equivalent!
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
 						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx]);
@@ -461,7 +461,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << eidos_terminate();
 						
-						static_cast<EidosValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_string_id, rvalue);
+						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, rvalue);
 						
 						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 					}
@@ -469,7 +469,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			}
 			else if (index_count == rvalue_count)
 			{
-				if (member_string_id == gID_none)
+				if (property_string_id == gID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate();
@@ -486,8 +486,8 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				}
 				else
 				{
-					// we have a one-to-one assignment of values to indices in a member of a symbol host: x.foo[5:10] = 5:10
-					// as above, we rearrange this assignment from host.member[indices1] = rvalue[indices2] to host[indices1].member = rvalue[indices2]
+					// we have a one-to-one assignment of values to indices in a property of a symbol host: x.foo[5:10] = 5:10
+					// as above, we rearrange this assignment from host.property[indices1] = rvalue[indices2] to host[indices1].property = rvalue[indices2]
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
 						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx]);
@@ -496,7 +496,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << eidos_terminate();
 						
-						static_cast<EidosValue_Object *>(temp_lvalue)->SetValueForMemberOfElements(member_string_id, temp_rvalue);
+						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, temp_rvalue);
 						
 						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
@@ -535,7 +535,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<EidosValue_Object *>(first_child_value)->SetValueForMemberOfElements(second_child_node->cached_stringID, rvalue);
+			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID, rvalue);
 			break;
 		}
 		case EidosTokenType::kTokenIdentifier:
@@ -564,12 +564,12 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenColon:		result = Evaluate_RangeExpr(p_node);			break;
 		case EidosTokenType::kTokenLBrace:		result = Evaluate_CompoundStatement(p_node);	break;
 		case EidosTokenType::kTokenLParen:		result = Evaluate_FunctionCall(p_node);			break;
-		case EidosTokenType::kTokenLBracket:		result = Evaluate_Subset(p_node);				break;
+		case EidosTokenType::kTokenLBracket:	result = Evaluate_Subset(p_node);				break;
 		case EidosTokenType::kTokenDot:			result = Evaluate_MemberRef(p_node);			break;
-		case EidosTokenType::kTokenPlus:			result = Evaluate_Plus(p_node);					break;
+		case EidosTokenType::kTokenPlus:		result = Evaluate_Plus(p_node);					break;
 		case EidosTokenType::kTokenMinus:		result = Evaluate_Minus(p_node);				break;
 		case EidosTokenType::kTokenMod:			result = Evaluate_Mod(p_node);					break;
-		case EidosTokenType::kTokenMult:			result = Evaluate_Mult(p_node);					break;
+		case EidosTokenType::kTokenMult:		result = Evaluate_Mult(p_node);					break;
 		case EidosTokenType::kTokenExp:			result = Evaluate_Exp(p_node);					break;
 		case EidosTokenType::kTokenAnd:			result = Evaluate_And(p_node);					break;
 		case EidosTokenType::kTokenOr:			result = Evaluate_Or(p_node);					break;
@@ -577,9 +577,9 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenAssign:		result = Evaluate_Assign(p_node);				break;
 		case EidosTokenType::kTokenEq:			result = Evaluate_Eq(p_node);					break;
 		case EidosTokenType::kTokenLt:			result = Evaluate_Lt(p_node);					break;
-		case EidosTokenType::kTokenLtEq:			result = Evaluate_LtEq(p_node);					break;
+		case EidosTokenType::kTokenLtEq:		result = Evaluate_LtEq(p_node);					break;
 		case EidosTokenType::kTokenGt:			result = Evaluate_Gt(p_node);					break;
-		case EidosTokenType::kTokenGtEq:			result = Evaluate_GtEq(p_node);					break;
+		case EidosTokenType::kTokenGtEq:		result = Evaluate_GtEq(p_node);					break;
 		case EidosTokenType::kTokenNot:			result = Evaluate_Not(p_node);					break;
 		case EidosTokenType::kTokenNotEq:		result = Evaluate_NotEq(p_node);				break;
 		case EidosTokenType::kTokenNumber:		result = Evaluate_Number(p_node);				break;
@@ -589,7 +589,7 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenDo:			result = Evaluate_Do(p_node);					break;
 		case EidosTokenType::kTokenWhile:		result = Evaluate_While(p_node);				break;
 		case EidosTokenType::kTokenFor:			result = Evaluate_For(p_node);					break;
-		case EidosTokenType::kTokenNext:			result = Evaluate_Next(p_node);					break;
+		case EidosTokenType::kTokenNext:		result = Evaluate_Next(p_node);					break;
 		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				break;
 		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				break;
 		default:
@@ -1089,15 +1089,15 @@ EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate();
 	}
 	
-	EidosGlobalStringID member_string_ID = second_child_node->cached_stringID;
-	result = static_cast<EidosValue_Object *>(first_child_value)->GetValueForMemberOfElements(member_string_ID);
+	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID;
+	result = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(property_string_ID);
 	
 	// free our operand
 	if (first_child_value->IsTemporary()) delete first_child_value;
 	
-	// check result; this should never happen, since GetValueForMember should check
+	// check result; this should never happen, since GetProperty should check
 	if (!result)
-		EIDOS_TERMINATION << "ERROR (Evaluate_MemberRef): undefined member " << StringForEidosGlobalStringID(member_string_ID) << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Evaluate_MemberRef): undefined property " << StringForEidosGlobalStringID(property_string_ID) << "." << eidos_terminate();
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_MemberRef() : return == " << *result << "\n";
@@ -3265,7 +3265,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	EidosASTNode *identifier_child = p_node->children_[0];
 	
 	// an lvalue is needed to assign into; for right now, we require an identifier, although that isn't quite right
-	// since we should also be able to assign into a subscript, a member of a class, etc.; we need a concept of lvalue references
+	// since we should also be able to assign into a subscript, a property of a class, etc.; we need a concept of lvalue references
 	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
 		EIDOS_TERMINATION << "ERROR (Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate();
 	

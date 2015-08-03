@@ -200,7 +200,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",	EidosFunctionIdentifier::_TestFunction,			kValueMaskObject | kValueMaskSingleton, &gStr__TestElement))->AddInt_OS("yolk"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",	EidosFunctionIdentifier::_TestFunction,			kValueMaskObject | kValueMaskSingleton, &gStr__TestElement))->AddInt_S("yolk"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature

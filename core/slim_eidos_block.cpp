@@ -9,6 +9,8 @@
 #include "slim_eidos_block.h"
 #include "eidos_interpreter.h"
 #include "slim_global.h"
+#include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 #include "errno.h"
 
@@ -577,56 +579,64 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 	p_ostream << ">";
 }
 
-std::vector<std::string> SLiMEidosBlock::ReadOnlyMembers(void) const
+std::vector<std::string> SLiMEidosBlock::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_id);			// block_id_
-	constants.push_back(gStr_start);		// start_generation_
-	constants.push_back(gStr_end);			// end_generation_
-	constants.push_back(gStr_type);		// type_
-	constants.push_back(gStr_source);		// source_
+	properties.push_back(gStr_id);			// block_id_
+	properties.push_back(gStr_start);		// start_generation_
+	properties.push_back(gStr_end);			// end_generation_
+	properties.push_back(gStr_type);		// type_
+	properties.push_back(gStr_source);		// source_
+	properties.push_back(gStr_active);		// active_
+	properties.push_back(gStr_tag);					// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> SLiMEidosBlock::ReadWriteMembers(void) const
+const EidosPropertySignature *SLiMEidosBlock::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
+	static EidosPropertySignature *startSig = nullptr;
+	static EidosPropertySignature *endSig = nullptr;
+	static EidosPropertySignature *typeSig = nullptr;
+	static EidosPropertySignature *sourceSig = nullptr;
+	static EidosPropertySignature *activeSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_active);		// active_
-	variables.push_back(gStr_tag);					// tag_value_
-	
-	return variables;
-}
-
-bool SLiMEidosBlock::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!idSig)
 	{
-			// constants
-		case gID_id:
-		case gID_start:
-		case gID_end:
-		case gID_type:
-		case gID_source:
-			return true;
-			
-			// variables
-		case gID_active:
-		case gID_tag:
-			return false;
+		idSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,		gID_id,			true,	kValueMaskInt | kValueMaskSingleton));
+		startSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_start,	gID_start,		true,	kValueMaskInt | kValueMaskSingleton));
+		endSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_end,		gID_end,		true,	kValueMaskInt | kValueMaskSingleton));
+		typeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_type,	gID_type,		true,	kValueMaskString | kValueMaskSingleton));
+		sourceSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_source,	gID_source,		true,	kValueMaskString | kValueMaskSingleton));
+		activeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_active,	gID_active,		false,	kValueMaskInt | kValueMaskSingleton));
+		tagSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,		gID_tag,		false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_id:		return idSig;
+		case gID_start:		return startSig;
+		case gID_end:		return endSig;
+		case gID_type:		return typeSig;
+		case gID_source:	return sourceSig;
+		case gID_active:	return activeSig;
+		case gID_tag:		return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *SLiMEidosBlock::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_id:
@@ -663,18 +673,16 @@ EidosValue *SLiMEidosBlock::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void SLiMEidosBlock::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_active:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			active_ = p_value->IntAtIndex(0);
 			
 			return;
@@ -682,8 +690,6 @@ void SLiMEidosBlock::SetValueForMember(EidosGlobalStringID p_member_id, EidosVal
 	
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -692,7 +698,7 @@ void SLiMEidosBlock::SetValueForMember(EidosGlobalStringID p_member_id, EidosVal
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 	}
 }
 

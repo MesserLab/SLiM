@@ -25,6 +25,7 @@
 #include "slim_sim.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 using std::string;
@@ -943,60 +944,72 @@ void Subpopulation::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<p" << subpopulation_id_ << ">";
 }
 
-std::vector<std::string> Subpopulation::ReadOnlyMembers(void) const
+std::vector<std::string> Subpopulation::Properties(void) const
 {
-	std::vector<std::string> constants = EidosObjectElement::ReadOnlyMembers();
+	std::vector<std::string> properties = EidosObjectElement::Properties();
 	
-	constants.push_back(gStr_id);								// subpopulation_id_
-	constants.push_back(gStr_firstMaleIndex);					// parent_first_male_index_ / child_first_male_index_
-	constants.push_back(gStr_genomes);							// parent_genomes_ / child_genomes_
-	constants.push_back(gStr_immigrantSubpopIDs);				// migrant_fractions_
-	constants.push_back(gStr_immigrantSubpopFractions);		// migrant_fractions_
-	constants.push_back(gStr_selfingFraction);					// selfing_fraction_
-	constants.push_back(gStr_sexRatio);						// parent_sex_ratio_ / child_sex_ratio_
-	constants.push_back(gStr_size);							// parent_subpop_size_ / child_subpop_size_
+	properties.push_back(gStr_id);								// subpopulation_id_
+	properties.push_back(gStr_firstMaleIndex);					// parent_first_male_index_ / child_first_male_index_
+	properties.push_back(gStr_genomes);							// parent_genomes_ / child_genomes_
+	properties.push_back(gStr_immigrantSubpopIDs);				// migrant_fractions_
+	properties.push_back(gStr_immigrantSubpopFractions);		// migrant_fractions_
+	properties.push_back(gStr_selfingFraction);					// selfing_fraction_
+	properties.push_back(gStr_sexRatio);						// parent_sex_ratio_ / child_sex_ratio_
+	properties.push_back(gStr_size);							// parent_subpop_size_ / child_subpop_size_
+	properties.push_back(gStr_tag);					// tag_value_
 	
-	return constants;
+	return properties;
 }
 
-std::vector<std::string> Subpopulation::ReadWriteMembers(void) const
+const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	std::vector<std::string> variables = EidosObjectElement::ReadWriteMembers();
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
+	static EidosPropertySignature *firstMaleIndexSig = nullptr;
+	static EidosPropertySignature *genomesSig = nullptr;
+	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
+	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
+	static EidosPropertySignature *selfingFractionSig = nullptr;
+	static EidosPropertySignature *sexRatioSig = nullptr;
+	static EidosPropertySignature *sizeSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	variables.push_back(gStr_tag);					// tag_value_
-	
-	return variables;
-}
-
-bool Subpopulation::MemberIsReadOnly(EidosGlobalStringID p_member_id) const
-{
-	switch (p_member_id)
+	if (!idSig)
 	{
-			// constants
-		case gID_id:
-		case gID_firstMaleIndex:
-		case gID_genomes:
-		case gID_immigrantSubpopIDs:
-		case gID_immigrantSubpopFractions:
-		case gID_selfingFraction:
-		case gID_sexRatio:
-		case gID_size:
-			return true;
-			
-			// variables
-		case gID_tag:
-			return false;
+		idSig =							(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							gID_id,							true,	kValueMaskInt | kValueMaskSingleton));
+		firstMaleIndexSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				gID_firstMaleIndex,				true,	kValueMaskInt | kValueMaskSingleton));
+		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kValueMaskObject, &gStr_Genome));
+		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kValueMaskInt));
+		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kValueMaskFloat));
+		selfingFractionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingFraction,				gID_selfingFraction,			true,	kValueMaskFloat | kValueMaskSingleton));
+		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kValueMaskFloat | kValueMaskSingleton));
+		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_size,						gID_size,						true,	kValueMaskInt | kValueMaskSingleton));
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kValueMaskInt | kValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_id:						return idSig;
+		case gID_firstMaleIndex:			return firstMaleIndexSig;
+		case gID_genomes:					return genomesSig;
+		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
+		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
+		case gID_selfingFraction:			return selfingFractionSig;
+		case gID_sexRatio:					return sexRatioSig;
+		case gID_size:						return sizeSig;
+		case gID_tag:						return tagSig;
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::MemberIsReadOnly(p_member_id);
+			return EidosObjectElement::SignatureForProperty(p_property_id);
 	}
 }
 
-EidosValue *Subpopulation::GetValueForMember(EidosGlobalStringID p_member_id)
+EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 			// constants
 		case gID_id:
@@ -1053,18 +1066,16 @@ EidosValue *Subpopulation::GetValueForMember(EidosGlobalStringID p_member_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetValueForMember(p_member_id);
+			return EidosObjectElement::GetProperty(p_property_id);
 	}
 }
 
-void Subpopulation::SetValueForMember(EidosGlobalStringID p_member_id, EidosValue *p_value)
+void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	switch (p_member_id)
+	switch (p_property_id)
 	{
 		case gID_tag:
 		{
-			TypeCheckValue(__func__, p_member_id, p_value, kValueMaskInt);
-			
 			int64_t value = p_value->IntAtIndex(0);
 			
 			tag_value_ = value;
@@ -1073,7 +1084,7 @@ void Subpopulation::SetValueForMember(EidosGlobalStringID p_member_id, EidosValu
 			
 		default:
 		{
-			return EidosObjectElement::SetValueForMember(p_member_id, p_value);
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
 	}
 }
