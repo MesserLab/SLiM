@@ -67,34 +67,34 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string *p_object_element_type, const std::string &p_name)
 {
 	std::string out_string;
-	bool is_optional = !!(p_mask & kValueMaskOptional);
-	bool requires_singleton = !!(p_mask & kValueMaskSingleton);
-	EidosValueMask type_mask = p_mask & kValueMaskFlagStrip;
+	bool is_optional = !!(p_mask & kEidosValueMaskOptional);
+	bool requires_singleton = !!(p_mask & kEidosValueMaskSingleton);
+	EidosValueMask type_mask = p_mask & kEidosValueMaskFlagStrip;
 	
 	if (is_optional)
 		out_string += "[";
 	
-	if (type_mask == kValueMaskNone)			out_string += "?";
-	else if (type_mask == kValueMaskAny)		out_string += "*";
-	else if (type_mask == kValueMaskAnyBase)	out_string += "+";
-	else if (type_mask == kValueMaskNULL)		out_string += gEidosStr_void;
-	else if (type_mask == kValueMaskLogical)	out_string += gEidosStr_logical;
-	else if (type_mask == kValueMaskString)		out_string += gEidosStr_string;
-	else if (type_mask == kValueMaskInt)		out_string += gEidosStr_integer;
-	else if (type_mask == kValueMaskFloat)		out_string += gEidosStr_float;
-	else if (type_mask == kValueMaskObject)		out_string += gEidosStr_object;
-	else if (type_mask == kValueMaskNumeric)	out_string += gEidosStr_numeric;
+	if (type_mask == kEidosValueMaskNone)			out_string += "?";
+	else if (type_mask == kEidosValueMaskAny)		out_string += "*";
+	else if (type_mask == kEidosValueMaskAnyBase)	out_string += "+";
+	else if (type_mask == kEidosValueMaskNULL)		out_string += gEidosStr_void;
+	else if (type_mask == kEidosValueMaskLogical)	out_string += gEidosStr_logical;
+	else if (type_mask == kEidosValueMaskString)		out_string += gEidosStr_string;
+	else if (type_mask == kEidosValueMaskInt)		out_string += gEidosStr_integer;
+	else if (type_mask == kEidosValueMaskFloat)		out_string += gEidosStr_float;
+	else if (type_mask == kEidosValueMaskObject)		out_string += gEidosStr_object;
+	else if (type_mask == kEidosValueMaskNumeric)	out_string += gEidosStr_numeric;
 	else
 	{
-		if (type_mask & kValueMaskNULL)			out_string += "N";
-		if (type_mask & kValueMaskLogical)		out_string += "l";
-		if (type_mask & kValueMaskInt)			out_string += "i";
-		if (type_mask & kValueMaskFloat)		out_string += "f";
-		if (type_mask & kValueMaskString)		out_string += "s";
-		if (type_mask & kValueMaskObject)		out_string += "o";
+		if (type_mask & kEidosValueMaskNULL)			out_string += "N";
+		if (type_mask & kEidosValueMaskLogical)		out_string += "l";
+		if (type_mask & kEidosValueMaskInt)			out_string += "i";
+		if (type_mask & kEidosValueMaskFloat)		out_string += "f";
+		if (type_mask & kEidosValueMaskString)		out_string += "s";
+		if (type_mask & kEidosValueMaskObject)		out_string += "o";
 	}
 	
-	if (p_object_element_type && (type_mask & kValueMaskObject))
+	if (p_object_element_type && (type_mask & kEidosValueMaskObject))
 	{
 		out_string += "<";
 		out_string += *p_object_element_type;
@@ -2133,9 +2133,9 @@ const EidosMethodSignature *EidosObjectElement::SignatureForMethod(EidosGlobalSt
 	
 	if (!strSig)
 	{
-		methodsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_method, kValueMaskNULL))->AddString_OS("methodName");
-		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_property, kValueMaskNULL))->AddString_OS("propertyName");
-		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kValueMaskNULL));
+		methodsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_method, kEidosValueMaskNULL))->AddString_OS("methodName");
+		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_property, kEidosValueMaskNULL))->AddString_OS("propertyName");
+		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

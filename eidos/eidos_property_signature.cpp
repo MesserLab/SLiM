@@ -28,14 +28,14 @@ using std::ostream;
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask)
 	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_object_element_type_(nullptr)
 {
-	if (!read_only_ && !(value_mask_ & kValueMaskSingleton))
+	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate();
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const std::string *p_value_object_element_type)
 	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_object_element_type_(p_value_object_element_type)
 {
-	if (!read_only_ && !(value_mask_ & kValueMaskSingleton))
+	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate();
 }
 
@@ -56,12 +56,12 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
 			// since we also don't want to do the singleton check below (since it would raise too).
 			return;
-		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & (kValueMaskLogical | kValueMaskInt | kValueMaskFloat)); break;		// can give logical to an int or float property
-		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & (kValueMaskInt | kValueMaskFloat)); break;							// can give int to a float property
-		case EidosValueType::kValueFloat:	value_type_ok = !!(retmask & kValueMaskFloat); break;
-		case EidosValueType::kValueString:	value_type_ok = !!(retmask & kValueMaskString);	 break;
+		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & (kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat)); break;		// can give logical to an int or float property
+		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & (kEidosValueMaskInt | kEidosValueMaskFloat)); break;							// can give int to a float property
+		case EidosValueType::kValueFloat:	value_type_ok = !!(retmask & kEidosValueMaskFloat); break;
+		case EidosValueType::kValueString:	value_type_ok = !!(retmask & kEidosValueMaskString);	 break;
 		case EidosValueType::kValueObject:
-			value_type_ok = !!(retmask & kValueMaskObject);
+			value_type_ok = !!(retmask & kEidosValueMaskObject);
 			
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
@@ -93,12 +93,12 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
 			// since we also don't want to do the singleton check below (since it would raise too).
 			return;
-		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & kValueMaskLogical);	break;
-		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & kValueMaskInt);		break;
-		case EidosValueType::kValueFloat:	value_type_ok = !!(retmask & kValueMaskFloat);		break;
-		case EidosValueType::kValueString:	value_type_ok = !!(retmask & kValueMaskString);		break;
+		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
+		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & kEidosValueMaskInt);		break;
+		case EidosValueType::kValueFloat:	value_type_ok = !!(retmask & kEidosValueMaskFloat);		break;
+		case EidosValueType::kValueString:	value_type_ok = !!(retmask & kEidosValueMaskString);		break;
 		case EidosValueType::kValueObject:
-			value_type_ok = !!(retmask & kValueMaskObject);
+			value_type_ok = !!(retmask & kEidosValueMaskObject);
 			
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
@@ -114,7 +114,7 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 	if (!value_type_ok)
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate();
 	
-	bool return_is_singleton = !!(retmask & kValueMaskSingleton);
+	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_value->Count() != 1))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: value must be a singleton (size() == 1) for " << PropertyType() << " property " << property_name_ << ", but size() == " << p_value->Count() << eidos_terminate();

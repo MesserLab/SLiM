@@ -119,10 +119,10 @@ const EidosPropertySignature *GenomicElement::SignatureForProperty(EidosGlobalSt
 	
 	if (!genomicElementTypeSig)
 	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kValueMaskObject | kValueMaskSingleton, &gStr_GenomicElementType));
-		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kValueMaskInt | kValueMaskSingleton));
-		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kValueMaskInt | kValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kValueMaskInt | kValueMaskSingleton));
+		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_GenomicElementType));
+		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -201,7 +201,7 @@ const EidosMethodSignature *GenomicElement::SignatureForMethod(EidosGlobalString
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)

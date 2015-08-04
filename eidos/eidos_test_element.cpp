@@ -71,7 +71,7 @@ const EidosPropertySignature *Eidos_TestElement::SignatureForProperty(EidosGloba
 	
 	if (!yolkSig)
 	{
-		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,	gEidosID__yolk,	false,	kValueMaskInt | kValueMaskSingleton));
+		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,	gEidosID__yolk,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -128,7 +128,7 @@ const EidosMethodSignature *Eidos_TestElement::SignatureForMethod(EidosGlobalStr
 	
 	if (!cubicYolkSig)
 	{
-		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kValueMaskInt | kValueMaskSingleton));
+		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

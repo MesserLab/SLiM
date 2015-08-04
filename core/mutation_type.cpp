@@ -154,11 +154,11 @@ const EidosPropertySignature *MutationType::SignatureForProperty(EidosGlobalStri
 	
 	if (!idSig)
 	{
-		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kValueMaskInt | kValueMaskSingleton));
-		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,	gID_distributionType,	true,	kValueMaskString | kValueMaskSingleton));
-		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,	gID_distributionParams,	true,	kValueMaskFloat));
-		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		gID_dominanceCoeff,		false,	kValueMaskFloat | kValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kValueMaskInt | kValueMaskSingleton));
+		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,	gID_distributionType,	true,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,	gID_distributionParams,	true,	kEidosValueMaskFloat));
+		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		gID_dominanceCoeff,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -255,7 +255,7 @@ const EidosMethodSignature *MutationType::SignatureForMethod(EidosGlobalStringID
 	
 	if (!setDistributionSig)
 	{
-		setDistributionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kValueMaskNULL))->AddString_S("distributionType")->AddEllipsis();
+		setDistributionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskNULL))->AddString_S("distributionType")->AddEllipsis();
 	}
 	
 	if (p_method_id == gID_setDistribution)

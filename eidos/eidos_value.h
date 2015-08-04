@@ -78,23 +78,23 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
 typedef uint32_t EidosValueMask;
 
-const EidosValueMask kValueMaskNone =			0x00000000;
-const EidosValueMask kValueMaskNULL =			0x00000001;
-const EidosValueMask kValueMaskLogical =			0x00000002;
-const EidosValueMask kValueMaskInt =				0x00000004;
-const EidosValueMask kValueMaskFloat =			0x00000008;
-const EidosValueMask kValueMaskString =			0x00000010;
-const EidosValueMask kValueMaskObject =			0x00000020;
+const EidosValueMask kEidosValueMaskNone =			0x00000000;
+const EidosValueMask kEidosValueMaskNULL =			0x00000001;
+const EidosValueMask kEidosValueMaskLogical =		0x00000002;
+const EidosValueMask kEidosValueMaskInt =			0x00000004;
+const EidosValueMask kEidosValueMaskFloat =			0x00000008;
+const EidosValueMask kEidosValueMaskString =		0x00000010;
+const EidosValueMask kEidosValueMaskObject =		0x00000020;
 	
-const EidosValueMask kValueMaskOptional =		0x80000000;
-const EidosValueMask kValueMaskSingleton =		0x40000000;
-const EidosValueMask kValueMaskOptSingleton =	(kValueMaskOptional | kValueMaskSingleton);
-const EidosValueMask kValueMaskFlagStrip =		0x3FFFFFFF;
+const EidosValueMask kEidosValueMaskOptional =		0x80000000;
+const EidosValueMask kEidosValueMaskSingleton =		0x40000000;
+const EidosValueMask kEidosValueMaskOptSingleton =	(kEidosValueMaskOptional | kEidosValueMaskSingleton);
+const EidosValueMask kEidosValueMaskFlagStrip =		0x3FFFFFFF;
 	
-const EidosValueMask kValueMaskNumeric =			(kValueMaskInt | kValueMaskFloat);										// integer or float
-const EidosValueMask kValueMaskLogicalEquiv =	(kValueMaskLogical | kValueMaskInt | kValueMaskFloat);			// logical, integer, or float
-const EidosValueMask kValueMaskAnyBase =			(kValueMaskNULL | kValueMaskLogicalEquiv | kValueMaskString);		// any type except object
-const EidosValueMask kValueMaskAny =				(kValueMaskAnyBase | kValueMaskObject);									// any type including object
+const EidosValueMask kEidosValueMaskNumeric =		(kEidosValueMaskInt | kEidosValueMaskFloat);									// integer or float
+const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat);			// logical, integer, or float
+const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any type except object
+const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any type including object
 
 std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string *p_object_element_type, const std::string &p_name);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
