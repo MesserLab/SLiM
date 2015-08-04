@@ -125,15 +125,20 @@ void MutationType::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<m" << mutation_type_id_ << ">";
 }
 
-std::vector<std::string> MutationType::Properties(void) const
+const std::vector<const EidosPropertySignature *> *MutationType::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_id);						// mutation_type_id_
-	properties.push_back(gStr_distributionType);		// dfe_type_
-	properties.push_back(gStr_distributionParams);		// dfe_parameters_
-	properties.push_back(gStr_dominanceCoeff);		// dominance_coeff_
-	properties.push_back(gStr_tag);					// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_id));
+		properties->push_back(SignatureForProperty(gID_distributionType));
+		properties->push_back(SignatureForProperty(gID_distributionParams));
+		properties->push_back(SignatureForProperty(gID_dominanceCoeff));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -230,11 +235,16 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	}
 }
 
-std::vector<std::string> MutationType::Methods(void) const
+const std::vector<const EidosMethodSignature *> *MutationType::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_setDistribution);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_setDistribution));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

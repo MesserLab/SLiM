@@ -52,6 +52,7 @@ changes to mention in docs:
 	addition of Eidos, EidosScribe
 	mutation equality defined by pointer equality
 	MS output slightly changed, now outputs positions spanning the interval [0,1] instead of (0,1]
+	add a mention of building with optimization turned on for release builds; makes a big difference!
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim

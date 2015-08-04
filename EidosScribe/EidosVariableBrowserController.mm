@@ -21,6 +21,8 @@
 #import "EidosVariableBrowserController.h"
 #import "EidosValueWrapper.h"
 
+#include "eidos_property_signature.h"
+
 #include <sstream>
 
 
@@ -114,9 +116,9 @@
 			}
 			else
 			{
-				std::vector<std::string> properties = value->PropertiesOfElements();
+				const std::vector<const EidosPropertySignature *> *properties = value->PropertiesOfElements();
 				
-				return properties.size();
+				return properties->size();
 			}
 		}
 	}
@@ -178,10 +180,10 @@
 			}
 			else
 			{
-				std::vector<std::string> properties = value->PropertiesOfElements();
-				
-				const std::string &symbolName = properties[index];
-				EidosGlobalStringID symbolID = EidosGlobalStringIDForString(symbolName);
+				const std::vector<const EidosPropertySignature *> *properties = value->PropertiesOfElements();
+				const EidosPropertySignature *propertySig = (*properties)[index];
+				const std::string &symbolName = propertySig->property_name_;
+				EidosGlobalStringID symbolID = propertySig->property_id_;
 				EidosValue *symbolValue = value->GetPropertyOfElements(symbolID);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];

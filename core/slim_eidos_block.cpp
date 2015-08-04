@@ -579,17 +579,22 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 	p_ostream << ">";
 }
 
-std::vector<std::string> SLiMEidosBlock::Properties(void) const
+const std::vector<const EidosPropertySignature *> *SLiMEidosBlock::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_id);			// block_id_
-	properties.push_back(gStr_start);		// start_generation_
-	properties.push_back(gStr_end);			// end_generation_
-	properties.push_back(gStr_type);		// type_
-	properties.push_back(gStr_source);		// source_
-	properties.push_back(gStr_active);		// active_
-	properties.push_back(gStr_tag);					// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_id));
+		properties->push_back(SignatureForProperty(gID_start));
+		properties->push_back(SignatureForProperty(gID_end));
+		properties->push_back(SignatureForProperty(gID_type));
+		properties->push_back(SignatureForProperty(gID_source));
+		properties->push_back(SignatureForProperty(gID_active));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -702,9 +707,15 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	}
 }
 
-std::vector<std::string> SLiMEidosBlock::Methods(void) const
+const std::vector<const EidosMethodSignature *> *SLiMEidosBlock::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

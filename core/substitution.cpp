@@ -55,16 +55,21 @@ void Substitution::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
 }
 
-std::vector<std::string> Substitution::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Substitution::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_mutationType);		// mutation_type_ptr_
-	properties.push_back(gStr_position);			// position_
-	properties.push_back(gStr_selectionCoeff);		// selection_coeff_
-	properties.push_back(gStr_subpopID);			// subpop_index_
-	properties.push_back(gStr_originGeneration);	// generation_
-	properties.push_back(gStr_fixationTime);		// fixation_time_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_mutationType));
+		properties->push_back(SignatureForProperty(gID_position));
+		properties->push_back(SignatureForProperty(gID_selectionCoeff));
+		properties->push_back(SignatureForProperty(gID_subpopID));
+		properties->push_back(SignatureForProperty(gID_originGeneration));
+		properties->push_back(SignatureForProperty(gID_fixationTime));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -92,12 +97,12 @@ const EidosPropertySignature *Substitution::SignatureForProperty(EidosGlobalStri
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_mutationType:	return mutationTypeSig;
-		case gID_position:	return positionSig;
+		case gID_mutationType:		return mutationTypeSig;
+		case gID_position:			return positionSig;
 		case gID_selectionCoeff:	return selectionCoeffSig;
-		case gID_subpopID:	return subpopIDSig;
+		case gID_subpopID:			return subpopIDSig;
 		case gID_originGeneration:	return originGenerationSig;
-		case gID_fixationTime:	return fixationTimeSig;
+		case gID_fixationTime:		return fixationTimeSig;
 			
 			// all others, including gID_none
 		default:
@@ -135,9 +140,15 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-std::vector<std::string> Substitution::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Substitution::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

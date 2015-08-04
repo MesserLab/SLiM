@@ -623,13 +623,13 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> PropertiesOfElements(void) const = 0;
+	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const = 0;
 	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value) = 0;
 	
-	virtual std::vector<std::string> MethodsOfElements(void) const = 0;
+	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const = 0;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const = 0;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
@@ -665,13 +665,13 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> PropertiesOfElements(void) const;
+	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const;
 	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual std::vector<std::string> MethodsOfElements(void) const;
+	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
@@ -707,13 +707,13 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual std::vector<std::string> PropertiesOfElements(void) const;
+	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const;
 	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual std::vector<std::string> MethodsOfElements(void) const;
+	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const;
 	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
@@ -746,12 +746,12 @@ public:
 	virtual EidosObjectElement *Retain(void);
 	virtual EidosObjectElement *Release(void);
 	
-	virtual std::vector<std::string> Properties(void) const;
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual std::vector<std::string> Methods(void) const;
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };

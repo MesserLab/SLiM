@@ -22,6 +22,7 @@
 
 #include "eidos_script.h"
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 #include <stdexcept>
 
@@ -910,15 +911,15 @@ using std::string;
 	EidosValue_Object *terminus = ((EidosValue_Object *)key_path_value);
 	
 	// First, a sorted list of globals
-	for (std::string &symbol_name : terminus->PropertiesOfElements())
-		[candidates addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	for (auto symbol_sig : *terminus->PropertiesOfElements())
+		[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
 	
 	[candidates sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of functions, with () appended
-	for (string &method_name : terminus->MethodsOfElements())
+	for (auto method_sig : *terminus->MethodsOfElements())
 	{
-		NSString *methodName = [NSString stringWithUTF8String:method_name.c_str()];
+		NSString *methodName = [NSString stringWithUTF8String:method_sig->function_name_.c_str()];
 		
 		[candidates addObject:[methodName stringByAppendingString:@"()"]];
 	}

@@ -210,19 +210,24 @@ const std::string *Chromosome::ElementType(void) const
 	return &gStr_Chromosome;
 }
 
-std::vector<std::string> Chromosome::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Chromosome::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_genomicElements);					// this
-	properties.push_back(gStr_lastPosition);					// last_position_
-	properties.push_back(gStr_overallRecombinationRate);		// overall_recombination_rate_
-	properties.push_back(gStr_recombinationEndPositions);		// recombination_end_positions_
-	properties.push_back(gStr_recombinationRates);				// recombination_rates_
-	properties.push_back(gStr_geneConversionFraction);			// gene_conversion_fraction_
-	properties.push_back(gStr_geneConversionMeanLength);			// gene_conversion_avg_length_
-	properties.push_back(gStr_overallMutationRate);				// overall_mutation_rate_
-	properties.push_back(gStr_tag);								// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_genomicElements));
+		properties->push_back(SignatureForProperty(gID_lastPosition));
+		properties->push_back(SignatureForProperty(gID_overallRecombinationRate));
+		properties->push_back(SignatureForProperty(gID_recombinationEndPositions));
+		properties->push_back(SignatureForProperty(gID_recombinationRates));
+		properties->push_back(SignatureForProperty(gID_geneConversionFraction));
+		properties->push_back(SignatureForProperty(gID_geneConversionMeanLength));
+		properties->push_back(SignatureForProperty(gID_overallMutationRate));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -368,11 +373,16 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 	}
 }
 
-std::vector<std::string> Chromosome::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Chromosome::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_setRecombinationRate);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_setRecombinationRate));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

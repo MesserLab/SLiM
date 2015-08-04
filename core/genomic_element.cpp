@@ -92,14 +92,19 @@ const std::string *GenomicElement::ElementType(void) const
 	return &gStr_GenomicElement;
 }
 
-std::vector<std::string> GenomicElement::Properties(void) const
+const std::vector<const EidosPropertySignature *> *GenomicElement::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_genomicElementType);		// genomic_element_type_ptr_
-	properties.push_back(gStr_startPosition);			// start_position_
-	properties.push_back(gStr_endPosition);				// end_position_
-	properties.push_back(gStr_tag);						// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_genomicElementType));
+		properties->push_back(SignatureForProperty(gID_startPosition));
+		properties->push_back(SignatureForProperty(gID_endPosition));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -176,11 +181,16 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	}
 }
 
-std::vector<std::string> GenomicElement::Methods(void) const
+const std::vector<const EidosMethodSignature *> *GenomicElement::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_setGenomicElementType);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_setGenomicElementType));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

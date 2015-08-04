@@ -69,15 +69,20 @@ void Mutation::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
 }
 
-std::vector<std::string> Mutation::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Mutation::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_mutationType);		// mutation_type_ptr_
-	properties.push_back(gStr_originGeneration);	// generation_
-	properties.push_back(gStr_position);			// position_
-	properties.push_back(gStr_selectionCoeff);		// selection_coeff_
-	properties.push_back(gStr_subpopID);			// subpop_index_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_mutationType));
+		properties->push_back(SignatureForProperty(gID_originGeneration));
+		properties->push_back(SignatureForProperty(gID_position));
+		properties->push_back(SignatureForProperty(gID_selectionCoeff));
+		properties->push_back(SignatureForProperty(gID_subpopID));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -143,11 +148,16 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_valu
 	return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-std::vector<std::string> Mutation::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Mutation::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_setSelectionCoeff);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_setSelectionCoeff));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }

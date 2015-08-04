@@ -51,11 +51,15 @@ const std::string *Eidos_TestElement::ElementType(void) const
 	return &gStr__TestElement;
 }
 
-std::vector<std::string> Eidos_TestElement::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Eidos_TestElement::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr__yolk);
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID__yolk));
+	}
 	
 	return properties;
 }
@@ -104,11 +108,15 @@ void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValu
 		return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-std::vector<std::string> Eidos_TestElement::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Eidos_TestElement::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr__cubicYolk);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID__cubicYolk));
+	}
 	
 	return methods;
 }

@@ -1188,22 +1188,27 @@ const std::string *SLiMSim::ElementType(void) const
 	return &gStr_SLiMSim;
 }
 
-std::vector<std::string> SLiMSim::Properties(void) const
+const std::vector<const EidosPropertySignature *> *SLiMSim::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_chromosome);			// chromosome_
-	properties.push_back(gStr_chromosomeType);		// modeled_chromosome_type_
-	properties.push_back(gStr_genomicElementTypes);	// genomic_element_types_
-	properties.push_back(gStr_mutations);			// population_.mutation_registry_
-	properties.push_back(gStr_mutationTypes);		// mutation_types_
-	properties.push_back(gStr_scriptBlocks);			// script_blocks_
-	properties.push_back(gStr_sexEnabled);			// sex_enabled_
-	properties.push_back(gStr_subpopulations);		// population_
-	properties.push_back(gStr_substitutions);		// population_.substitutions_
-	properties.push_back(gStr_dominanceCoeffX);		// x_chromosome_dominance_coeff_; settable only when we're modeling sex chromosomes
-	properties.push_back(gStr_generation);			// generation_
-	properties.push_back(gStr_tag);					// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_chromosome));
+		properties->push_back(SignatureForProperty(gID_chromosomeType));
+		properties->push_back(SignatureForProperty(gID_genomicElementTypes));
+		properties->push_back(SignatureForProperty(gID_mutations));
+		properties->push_back(SignatureForProperty(gID_mutationTypes));
+		properties->push_back(SignatureForProperty(gID_scriptBlocks));
+		properties->push_back(SignatureForProperty(gID_sexEnabled));
+		properties->push_back(SignatureForProperty(gID_subpopulations));
+		properties->push_back(SignatureForProperty(gID_substitutions));
+		properties->push_back(SignatureForProperty(gID_dominanceCoeffX));
+		properties->push_back(SignatureForProperty(gID_generation));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -1406,22 +1411,27 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 	}
 }
 
-std::vector<std::string> SLiMSim::Methods(void) const
+const std::vector<const EidosMethodSignature *> *SLiMSim::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_addSubpop);
-	methods.push_back(gStr_addSubpopSplit);
-	methods.push_back(gStr_deregisterScriptBlock);
-	methods.push_back(gStr_mutationFrequencies);
-	methods.push_back(gStr_outputFixedMutations);
-	methods.push_back(gStr_outputFull);
-	methods.push_back(gStr_outputMutations);
-	methods.push_back(gStr_readFromPopulationFile);
-	methods.push_back(gStr_registerScriptEvent);
-	methods.push_back(gStr_registerScriptFitnessCallback);
-	methods.push_back(gStr_registerScriptMateChoiceCallback);
-	methods.push_back(gStr_registerScriptModifyChildCallback);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_addSubpop));
+		methods->push_back(SignatureForMethod(gID_addSubpopSplit));
+		methods->push_back(SignatureForMethod(gID_deregisterScriptBlock));
+		methods->push_back(SignatureForMethod(gID_mutationFrequencies));
+		methods->push_back(SignatureForMethod(gID_outputFixedMutations));
+		methods->push_back(SignatureForMethod(gID_outputFull));
+		methods->push_back(SignatureForMethod(gID_outputMutations));
+		methods->push_back(SignatureForMethod(gID_readFromPopulationFile));
+		methods->push_back(SignatureForMethod(gID_registerScriptEvent));
+		methods->push_back(SignatureForMethod(gID_registerScriptFitnessCallback));
+		methods->push_back(SignatureForMethod(gID_registerScriptMateChoiceCallback));
+		methods->push_back(SignatureForMethod(gID_registerScriptModifyChildCallback));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }
@@ -1461,30 +1471,18 @@ const EidosMethodSignature *SLiMSim::SignatureForMethod(EidosGlobalStringID p_me
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_addSubpop:
-			return addSubpopSig;
-		case gID_addSubpopSplit:
-			return addSubpopSplitSig;
-		case gID_deregisterScriptBlock:
-			return deregisterScriptBlockSig;
-		case gID_mutationFrequencies:
-			return mutationFrequenciesSig;
-		case gID_outputFixedMutations:
-			return outputFixedMutationsSig;
-		case gID_outputFull:
-			return outputFullSig;
-		case gID_outputMutations:
-			return outputMutationsSig;
-		case gID_readFromPopulationFile:
-			return readFromPopulationFileSig;
-		case gID_registerScriptEvent:
-			return registerScriptEventSig;
-		case gID_registerScriptFitnessCallback:
-			return registerScriptFitnessCallbackSig;
-		case gID_registerScriptMateChoiceCallback:
-			return registerScriptMateChoiceCallbackSig;
-		case gID_registerScriptModifyChildCallback:
-			return registerScriptModifyChildCallbackSig;
+		case gID_addSubpop:								return addSubpopSig;
+		case gID_addSubpopSplit:						return addSubpopSplitSig;
+		case gID_deregisterScriptBlock:					return deregisterScriptBlockSig;
+		case gID_mutationFrequencies:					return mutationFrequenciesSig;
+		case gID_outputFixedMutations:					return outputFixedMutationsSig;
+		case gID_outputFull:							return outputFullSig;
+		case gID_outputMutations:						return outputMutationsSig;
+		case gID_readFromPopulationFile:				return readFromPopulationFileSig;
+		case gID_registerScriptEvent:					return registerScriptEventSig;
+		case gID_registerScriptFitnessCallback:			return registerScriptFitnessCallbackSig;
+		case gID_registerScriptMateChoiceCallback:		return registerScriptMateChoiceCallbackSig;
+		case gID_registerScriptModifyChildCallback:		return registerScriptModifyChildCallbackSig;
 			
 			// all others, including gID_none
 		default:

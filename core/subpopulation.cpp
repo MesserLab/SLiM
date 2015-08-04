@@ -944,19 +944,24 @@ void Subpopulation::Print(std::ostream &p_ostream) const
 	p_ostream << *ElementType() << "<p" << subpopulation_id_ << ">";
 }
 
-std::vector<std::string> Subpopulation::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Subpopulation::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_id);								// subpopulation_id_
-	properties.push_back(gStr_firstMaleIndex);					// parent_first_male_index_ / child_first_male_index_
-	properties.push_back(gStr_genomes);							// parent_genomes_ / child_genomes_
-	properties.push_back(gStr_immigrantSubpopIDs);				// migrant_fractions_
-	properties.push_back(gStr_immigrantSubpopFractions);		// migrant_fractions_
-	properties.push_back(gStr_selfingFraction);					// selfing_fraction_
-	properties.push_back(gStr_sexRatio);						// parent_sex_ratio_ / child_sex_ratio_
-	properties.push_back(gStr_size);							// parent_subpop_size_ / child_subpop_size_
-	properties.push_back(gStr_tag);					// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_id));
+		properties->push_back(SignatureForProperty(gID_firstMaleIndex));
+		properties->push_back(SignatureForProperty(gID_genomes));
+		properties->push_back(SignatureForProperty(gID_immigrantSubpopIDs));
+		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
+		properties->push_back(SignatureForProperty(gID_selfingFraction));
+		properties->push_back(SignatureForProperty(gID_sexRatio));
+		properties->push_back(SignatureForProperty(gID_size));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -1089,18 +1094,23 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p
 	}
 }
 
-std::vector<std::string> Subpopulation::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Subpopulation::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_setMigrationRates);
-	methods.push_back(gStr_setCloningRate);
-	methods.push_back(gStr_setSelfingRate);
-	methods.push_back(gStr_setSexRatio);
-	methods.push_back(gStr_setSubpopulationSize);
-	methods.push_back(gStr_fitness);
-	methods.push_back(gStr_outputMSSample);
-	methods.push_back(gStr_outputSample);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_setMigrationRates));
+		methods->push_back(SignatureForMethod(gID_setCloningRate));
+		methods->push_back(SignatureForMethod(gID_setSelfingRate));
+		methods->push_back(SignatureForMethod(gID_setSexRatio));
+		methods->push_back(SignatureForMethod(gID_setSubpopulationSize));
+		methods->push_back(SignatureForMethod(gID_fitness));
+		methods->push_back(SignatureForMethod(gID_outputMSSample));
+		methods->push_back(SignatureForMethod(gID_outputSample));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }
@@ -1132,22 +1142,14 @@ const EidosMethodSignature *Subpopulation::SignatureForMethod(EidosGlobalStringI
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_setMigrationRates:
-			return setMigrationRatesSig;
-		case gID_setCloningRate:
-			return setCloningRateSig;
-		case gID_setSelfingRate:
-			return setSelfingRateSig;
-		case gID_setSexRatio:
-			return setSexRatioSig;
-		case gID_setSubpopulationSize:
-			return setSubpopulationSizeSig;
-		case gID_fitness:
-			return fitnessSig;
-		case gID_outputMSSample:
-			return outputMSSampleSig;
-		case gID_outputSample:
-			return outputSampleSig;
+		case gID_setMigrationRates:		return setMigrationRatesSig;
+		case gID_setCloningRate:		return setCloningRateSig;
+		case gID_setSelfingRate:		return setSelfingRateSig;
+		case gID_setSexRatio:			return setSexRatioSig;
+		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
+		case gID_fitness:				return fitnessSig;
+		case gID_outputMSSample:		return outputMSSampleSig;
+		case gID_outputSample:			return outputSampleSig;
 			
 			// all others, including gID_none
 		default:

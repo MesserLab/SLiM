@@ -1670,10 +1670,17 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 	}
 }
 
-std::vector<std::string> EidosValue_Object_vector::PropertiesOfElements(void) const
+const std::vector<const EidosPropertySignature *> *EidosValue_Object_vector::PropertiesOfElements(void) const
 {
 	if (values_.size() == 0)
-		return std::vector<std::string>();
+	{
+		static std::vector<const EidosPropertySignature *> *empty_sigs = nullptr;
+		
+		if (!empty_sigs)
+			empty_sigs = new std::vector<const EidosPropertySignature *>;
+		
+		return empty_sigs;
+	}
 	else
 		return values_[0]->Properties();
 }
@@ -1759,13 +1766,13 @@ EidosValue *EidosValue_Object_vector::GetRepresentativeValueOrNullForPropertyOfE
 	{
 		// check that the property is defined before we call our elements
 		const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
-		std::vector<std::string> properties = values_[0]->Properties();
-		
-		if (std::find(properties.begin(), properties.end(), property_name) == properties.end())
-			return nullptr;
+		const std::vector<const EidosPropertySignature *> *properties = values_[0]->Properties();
 		
 		// get a value from the first element and return it; we only need to return one representative value
-		return values_[0]->GetProperty(p_property_id);
+		// we just need to check first that the property is actually defined, since we are not allowed to raise
+		for (auto propertySig : *properties)
+			if (propertySig->property_name_.compare(property_name) == 0)	// the property does exist!
+				return values_[0]->GetProperty(p_property_id);
 	}
 	
 	return nullptr;
@@ -1800,10 +1807,17 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
 }
 
-std::vector<std::string> EidosValue_Object_vector::MethodsOfElements(void) const
+const std::vector<const EidosMethodSignature *> *EidosValue_Object_vector::MethodsOfElements(void) const
 {
 	if (values_.size() == 0)
-		return std::vector<std::string>();
+	{
+		static std::vector<const EidosMethodSignature *> *empty_sigs = nullptr;
+		
+		if (!empty_sigs)
+			empty_sigs = new std::vector<const EidosMethodSignature *>;
+		
+		return empty_sigs;
+	}
 	else
 		return values_[0]->Methods();
 }
@@ -1950,7 +1964,7 @@ void EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue(int p_idx
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Object_singleton_const is not modifiable." << eidos_terminate();
 }
 
-std::vector<std::string> EidosValue_Object_singleton_const::PropertiesOfElements(void) const
+const std::vector<const EidosPropertySignature *> *EidosValue_Object_singleton_const::PropertiesOfElements(void) const
 {
 	return value_->Properties();
 }
@@ -1978,13 +1992,15 @@ EidosValue *EidosValue_Object_singleton_const::GetRepresentativeValueOrNullForPr
 {
 	// check that the property is defined before we call our elements
 	const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
-	std::vector<std::string> properties = value_->Properties();
-	
-	if (std::find(properties.begin(), properties.end(), property_name) == properties.end())
-		return nullptr;
+	const std::vector<const EidosPropertySignature *> *properties = value_->Properties();
 	
 	// get a value from the first element and return it; we only need to return one representative value
-	return value_->GetProperty(p_property_id);
+	// we just need to check first that the property is actually defined, since we are not allowed to raise
+	for (auto propertySig : *properties)
+		if (propertySig->property_name_.compare(property_name) == 0)	// the property does exist!
+			return value_->GetProperty(p_property_id);
+	
+	return nullptr;
 }
 
 void EidosValue_Object_singleton_const::SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value)
@@ -2000,7 +2016,7 @@ void EidosValue_Object_singleton_const::SetPropertyOfElements(EidosGlobalStringI
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate();
 }
 
-std::vector<std::string> EidosValue_Object_singleton_const::MethodsOfElements(void) const
+const std::vector<const EidosMethodSignature *> *EidosValue_Object_singleton_const::MethodsOfElements(void) const
 {
 	return value_->Methods();
 }
@@ -2051,9 +2067,18 @@ EidosObjectElement *EidosObjectElement::Release(void)
 	return this;
 }
 
-std::vector<std::string> EidosObjectElement::Properties(void) const
+const std::vector<const EidosPropertySignature *> *EidosObjectElement::Properties(void) const
 {
-	return std::vector<std::string>();	// no properties
+	static std::vector<const EidosPropertySignature *> *empty_sigs = nullptr;
+	
+	if (!empty_sigs)
+	{
+		empty_sigs = new std::vector<const EidosPropertySignature *>;
+		
+		// keep alphabetical order here
+	}
+	
+	return empty_sigs;
 }
 
 const EidosPropertySignature *EidosObjectElement::SignatureForProperty(EidosGlobalStringID p_property_id) const
@@ -2082,13 +2107,19 @@ void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, EidosVal
 		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << *ElementType() << "): internal error: setting a new value for read-write property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate();
 }
 
-std::vector<std::string> EidosObjectElement::Methods(void) const
+const std::vector<const EidosMethodSignature *> *EidosObjectElement::Methods(void) const
 {
-	std::vector<std::string> methods;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_method);
-	methods.push_back(gStr_property);
-	methods.push_back(gStr_str);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>;
+		
+		// keep alphabetical order here
+		methods->push_back(SignatureForMethod(gID_method));
+		methods->push_back(SignatureForMethod(gID_property));
+		methods->push_back(SignatureForMethod(gID_str));
+	}
 	
 	return methods;
 }
@@ -2120,15 +2151,16 @@ const EidosMethodSignature *EidosObjectElement::SignatureForMethod(EidosGlobalSt
 			// all others, including gID_none
 		default:
 			// Check whether the method signature request failed due to a bad subclass implementation
-			std::vector<std::string> methods = Methods();
+			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			const std::string &method_name = StringForEidosGlobalStringID(p_method_id);
 			
-			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
-				EIDOS_TERMINATION << "ERROR (EidosObjectElement::SignatureForMethod for " << *ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << eidos_terminate();
+			for (auto method_sig : *methods)
+				if (method_sig->function_name_.compare(method_name) == 0)
+					EIDOS_TERMINATION << "ERROR (EidosObjectElement::SignatureForMethod for " << *ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << eidos_terminate();
 			
 			// Otherwise, we have an unrecognized method, so throw
 			EIDOS_TERMINATION << "ERROR (EidosObjectElement::SignatureForMethod for " << *ElementType() << "): unrecognized method name " << &method_name << "." << eidos_terminate();
-			return new EidosInstanceMethodSignature(gStr_empty_string, kValueMaskNULL);
+			return nullptr;
 	}
 }
 
@@ -2144,20 +2176,17 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			
 			output_stream << *ElementType() << ":" << endl;
 			
-			std::vector<std::string> property_names = Properties();
+			const std::vector<const EidosPropertySignature *> *properties = Properties();
 			
-			std::sort(property_names.begin(), property_names.end());
-			
-			for (auto property_name_iter = property_names.begin(); property_name_iter != property_names.end(); ++property_name_iter)
+			for (auto property_sig : *properties)
 			{
-				const std::string &property_name = *property_name_iter;
-				EidosGlobalStringID property_id = EidosGlobalStringIDForString(property_name);
-				const EidosPropertySignature *signature = SignatureForProperty(property_id);
+				const std::string &property_name = property_sig->property_name_;
+				EidosGlobalStringID property_id = property_sig->property_id_;
 				EidosValue *property_value = GetProperty(property_id);
 				int property_count = property_value->Count();
 				EidosValueType property_type = property_value->Type();
 				
-				output_stream << "\t" << property_name << " " << signature->PropertySymbol() << " (" << property_type;
+				output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
 				
 				if (property_type == EidosValueType::kValueObject)
 					output_stream << "<" << *property_value->ElementType() << ">) ";
@@ -2187,22 +2216,17 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_argument_count == 1);
 			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
-			std::vector<std::string> property_names = Properties();
+			const std::vector<const EidosPropertySignature *> *properties = Properties();
 			bool signature_found = false;
 			
-			std::sort(property_names.begin(), property_names.end());
-			
-			for (auto property_name_iter = property_names.begin(); property_name_iter != property_names.end(); ++property_name_iter)
+			for (auto property_sig : *properties)
 			{
-				const std::string &property_name = *property_name_iter;
-				EidosGlobalStringID property_id = EidosGlobalStringIDForString(property_name);
+				const std::string &property_name = property_sig->property_name_;
 				
 				if (has_match_string && (property_name.compare(match_string) != 0))
 					continue;
 				
-				const EidosPropertySignature *signature = SignatureForProperty(property_id);
-				
-				output_stream << property_name << " " << signature->PropertySymbol() << " (" << StringForEidosValueMask(signature->value_mask_, signature->value_object_element_type_, "") << ")" << endl;
+				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_object_element_type_, "") << ")" << endl;
 				
 				signature_found = true;
 			}
@@ -2217,22 +2241,17 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_argument_count == 1);
 			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
-			std::vector<std::string> method_names = Methods();
+			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			bool signature_found = false;
 			
-			std::sort(method_names.begin(), method_names.end());
-			
-			for (auto method_name_iter = method_names.begin(); method_name_iter != method_names.end(); ++method_name_iter)
+			for (auto method_sig : *methods)
 			{
-				const std::string &method_name = *method_name_iter;
-				EidosGlobalStringID method_id = EidosGlobalStringIDForString(method_name);
+				const std::string &method_name = method_sig->function_name_;
 				
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
 				
-				const EidosMethodSignature *method_signature = SignatureForMethod(method_id);
-				
-				output_stream << *method_signature << endl;
+				output_stream << *method_sig << endl;
 				signature_found = true;
 			}
 			
@@ -2246,11 +2265,12 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 		default:
 		{
 			// Check whether the method call failed due to a bad subclass implementation
-			std::vector<std::string> methods = Methods();
+			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			const std::string &method_name = StringForEidosGlobalStringID(p_method_id);
 			
-			if (std::find(methods.begin(), methods.end(), method_name) != methods.end())
-				EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteMethod for " << *ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << eidos_terminate();
+			for (auto method_sig : *methods)
+				if (method_sig->function_name_.compare(method_name) == 0)
+					EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteMethod for " << *ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << eidos_terminate();
 			
 			// Otherwise, we have an unrecognized method, so throw
 			EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteMethod for " << *ElementType() << "): unrecognized method name " << method_name << "." << eidos_terminate();

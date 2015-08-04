@@ -244,14 +244,19 @@ void Genome::Print(std::ostream &p_ostream) const
 		p_ostream << ":" << mutation_count_ << ">";
 }
 
-std::vector<std::string> Genome::Properties(void) const
+const std::vector<const EidosPropertySignature *> *Genome::Properties(void) const
 {
-	std::vector<std::string> properties = EidosObjectElement::Properties();
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	properties.push_back(gStr_genomeType);			// genome_type_
-	properties.push_back(gStr_isNullGenome);			// (mutations_ == nullptr)
-	properties.push_back(gStr_mutations);			// mutations_
-	properties.push_back(gStr_tag);					// tag_value_
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
+		properties->push_back(SignatureForProperty(gID_genomeType));
+		properties->push_back(SignatureForProperty(gID_isNullGenome));
+		properties->push_back(SignatureForProperty(gID_mutations));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
 	return properties;
 }
@@ -342,14 +347,19 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 	}
 }
 
-std::vector<std::string> Genome::Methods(void) const
+const std::vector<const EidosMethodSignature *> *Genome::Methods(void) const
 {
-	std::vector<std::string> methods = EidosObjectElement::Methods();
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
-	methods.push_back(gStr_addMutations);
-	methods.push_back(gStr_addNewDrawnMutation);
-	methods.push_back(gStr_addNewMutation);
-	methods.push_back(gStr_removeMutations);
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods->push_back(SignatureForMethod(gID_addMutations));
+		methods->push_back(SignatureForMethod(gID_addNewDrawnMutation));
+		methods->push_back(SignatureForMethod(gID_addNewMutation));
+		methods->push_back(SignatureForMethod(gID_removeMutations));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
 	
 	return methods;
 }
@@ -372,14 +382,10 @@ const EidosMethodSignature *Genome::SignatureForMethod(EidosGlobalStringID p_met
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_addMutations:
-			return addMutationsSig;
-		case gID_addNewDrawnMutation:
-			return addNewDrawnMutationSig;
-		case gID_addNewMutation:
-			return addNewMutationSig;
-		case gID_removeMutations:
-			return removeMutationsSig;
+		case gID_addMutations:			return addMutationsSig;
+		case gID_addNewDrawnMutation:	return addNewDrawnMutationSig;
+		case gID_addNewMutation:		return addNewMutationSig;
+		case gID_removeMutations:		return removeMutationsSig;
 			
 			// all others, including gID_none
 		default:
