@@ -32,16 +32,6 @@
 	return @"Add Mutation Type";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#MUTATION TYPES";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod identifierSortingGrepPattern];
-}
-
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -117,7 +107,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	int mutationTypeID = [mutationTypeTextField intValue];
 	NSString *dominanceCoeffString = [dominanceCoeffTextField stringValue];
@@ -129,14 +119,16 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
-	if (dfeTag == 0)		// fixed
-		return [NSString stringWithFormat:@"m%d %@ f %@", mutationTypeID, dominanceCoeffString, [fixedSelCoeffTextField stringValue]];
-	else if (dfeTag == 1)	// exponential
-		return [NSString stringWithFormat:@"m%d %@ e %@", mutationTypeID, dominanceCoeffString, [expMeanSelCoeffTextField stringValue]];
-	else if (dfeTag == 2)	// gamma
-		return [NSString stringWithFormat:@"m%d %@ g %@ %@", mutationTypeID, dominanceCoeffString, [gammaMeanSelCoeffTextField stringValue], [gammaAlphaTextField stringValue]];
+	*targetGenPtr = 0;
 	
-	return [NSString stringWithFormat:@"m%d %@", mutationTypeID, dominanceCoeffString];
+	if (dfeTag == 0)		// fixed
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"f\", %@);\n}\n", mutationTypeID, dominanceCoeffString, [fixedSelCoeffTextField stringValue]];
+	else if (dfeTag == 1)	// exponential
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"e\", %@);\n}\n", mutationTypeID, dominanceCoeffString, [expMeanSelCoeffTextField stringValue]];
+	else if (dfeTag == 2)	// gamma
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"g\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [gammaMeanSelCoeffTextField stringValue], [gammaAlphaTextField stringValue]];
+	
+	return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@);\n}\n", mutationTypeID, dominanceCoeffString];
 }
 
 @end

@@ -32,11 +32,6 @@
 	return @"Split Subpopulation";
 }
 
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod scientificIntSortingGrepPattern];
-}
-
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -76,13 +71,16 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
 	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	int populationID = [subpopTextField intValue];
 	NSString *newSize = [subpopSizeTextField stringValue];
 	int sourcePopulationID = (int)[sourceSubpopPopUpButton selectedTag];
+	
+	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tsim.addSubpopSplit(%d, %@, p%d);\n}", populationID, newSize, sourcePopulationID];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{
@@ -93,23 +91,17 @@
 		}
 		else
 		{
-			// insert the event into the simulation's event map
-			NSString *param1 = [NSString stringWithFormat:@"p%d", populationID];
-			NSString *param2 = newSize;
-			NSString *param3 = [NSString stringWithFormat:@"p%d", sourcePopulationID];
-			std::vector<std::string> event_parameters;
+			// insert the script into the simulation's script block list
+			std::string scriptInternalString([scriptInternal UTF8String]);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(-1, scriptInternalString, SLiMEidosBlockType::SLiMEidosEvent, targetGenerationInt, targetGenerationInt);
 			
-			event_parameters.push_back(std::string([param1 UTF8String]));
-			event_parameters.push_back(std::string([param2 UTF8String]));
-			event_parameters.push_back(std::string([param3 UTF8String]));
-			
-			Event *new_event_ptr = new Event('P', event_parameters);
-			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
+			[controller addScriptBlockToSimulation:script_block];	// takes ownership from us
 		}
 	}
 	
-	return [NSString stringWithFormat:@"%@ P p%d %@ p%d", targetGeneration, populationID, newSize, sourcePopulationID];
+	*targetGenPtr = targetGenerationInt;
+	
+	return scriptCommand;
 }
 
 @end

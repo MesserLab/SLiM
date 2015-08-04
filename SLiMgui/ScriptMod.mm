@@ -42,33 +42,6 @@
 
 @implementation ScriptMod
 
-+ (NSArray *)standardScriptSections
-{
-	static NSArray *sections = nil;
-	
-	if (sections == nil)
-	{
-		sections = [[NSArray alloc] initWithObjects:
-					@"#SEX",
-					@"#MUTATION TYPES",
-					@"#MUTATION RATE",
-					@"#GENOMIC ELEMENT TYPES",
-					@"#CHROMOSOME ORGANIZATION",
-					@"#RECOMBINATION RATE",
-					@"#GENERATIONS",
-					@"#DEMOGRAPHY AND STRUCTURE",
-					@"#OUTPUT",
-					@"#GENE CONVERSION",
-					@"#PREDETERMINED MUTATIONS",
-					@"#SCRIPT",						// provisional SLiM 2.0 addition, but does no harm being here...
-					@"#INITIALIZATION",
-					@"#SEED",
-					nil];
-	}
-	
-	return sections;
-}
-
 + (NSRegularExpression *)regexForInt
 {
 	static NSRegularExpression *regex = nil;
@@ -117,31 +90,6 @@
 		regex = [[NSRegularExpression alloc] initWithPattern:@"^[^\0]+$" options:0 error:NULL];		// Unix allows pretty much anything
 	
 	return regex;
-}
-
-+ (NSRegularExpression *)regexForScriptSectionHead
-{
-	static NSRegularExpression *regex = nil;
-	
-	if (!regex)
-		regex = [[NSRegularExpression alloc] initWithPattern:@"^#[A-Z ]+" options:0 error:NULL];
-	
-	return regex;
-}
-
-+ (NSString *)identifierSortingGrepPattern
-{
-	return @"^[a-z]([0-9]+) .*$";					// matches lines starting with things like p3 or m2, and extracts the number
-}
-
-+ (NSString *)intSortingGrepPattern
-{
-	return @"^([0-9]+) .*$";						// matches lines starting with things like 1500, and extracts the number
-}
-
-+ (NSString *)scientificIntSortingGrepPattern
-{
-	return @"^((?:[0-9]+)(?:e[0-9]+)?) .*$";		// matches lines starting with things like 1500, and extracts the number
 }
 
 + (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue
@@ -426,111 +374,68 @@
 	}
 }
 
-- (void)insertScriptLine:(NSString *)lineToInsert
+- (void)insertScriptLine:(NSString *)lineToInsert targetGeneration:(int)targetGeneration
 {
-	NSString *sectionName = [self scriptSectionName];
-	NSString *sortGrepPattern = [self sortingGrepPattern];
-	NSRegularExpression *sortRegex = [NSRegularExpression regularExpressionWithPattern:sortGrepPattern options:0 error:NULL];
+	NSRegularExpression *initializeBlockStartRegex = [NSRegularExpression regularExpressionWithPattern:@"^(s[0-9]+\\s+)?initialize\\s*\\(\\s*\\)" options:0 error:NULL];
+	NSRegularExpression *eventBlockStartRegex = [NSRegularExpression regularExpressionWithPattern:@"^(?:s[0-9]+\\s+)?([0-9]+(\\.[0-9]*)?([eE][-+]?[0-9]+)?)" options:0 error:NULL];
+	NSRegularExpression *commentLineRegex = [NSRegularExpression regularExpressionWithPattern:@"^\\s*//" options:0 error:NULL];
+	
+	// Break the script up into lines
 	NSTextView *scriptTextView = controller->scriptTextView;
 	NSMutableArray *scriptLines = [[[scriptTextView string] componentsSeparatedByString:@"\n"] mutableCopy];
+	NSUInteger lineCount = [scriptLines count];
 	
-//	NSLog(@"insertScriptLine: sectionName == %@", sectionName);
-//	NSLog(@"insertScriptLine: lineToInsert == %@", lineToInsert);
+	// Search forward until we find the right place for this line
+	NSUInteger bestInsertionIndex;
+	int previousCommentLineCount = 0;	// we don't want to position after a comment; we use this to go just before a series of comment lines
 	
-	// Find the lines corresponding to the section we need
-	NSRegularExpression *scriptSectionRegex = [ScriptMod regexForScriptSectionHead];
-	BOOL foundSection = NO;
-	NSUInteger lastLineIndex = NSNotFound;
-	NSUInteger firstLineIndex = [scriptLines indexOfObjectPassingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
-		return [obj hasPrefix:sectionName];
-	}];
-	
-	if (firstLineIndex != NSNotFound)
+	for (bestInsertionIndex = 0; bestInsertionIndex < lineCount; ++bestInsertionIndex)
 	{
-		foundSection = YES;
+		NSString *line = [scriptLines objectAtIndex:bestInsertionIndex];
+		int lineGeneration = 0;
 		
-		NSRange indexRangeForSectionEndSearch = NSMakeRange(firstLineIndex + 1, [scriptLines count] - 1 - (firstLineIndex + 1));
+		//NSLog(@"processing line: %@", line);
 		
-		lastLineIndex = [scriptLines indexOfObjectAtIndexes:[NSIndexSet indexSetWithIndexesInRange:indexRangeForSectionEndSearch] options:0 passingTest:^BOOL(id obj, NSUInteger idx, BOOL *stop) {
-			return ([scriptSectionRegex numberOfMatchesInString:obj options:0 range:NSMakeRange(0, [obj length])] > 0);
-		}];
-		
-		if (lastLineIndex == NSNotFound)
-			lastLineIndex = [scriptLines count] - 1;
+		// if the line is a comment line, increment our counter; if we hit a match right after this, we want to backtrack over comment lines
+		if ([commentLineRegex numberOfMatchesInString:line options:0 range:NSMakeRange(0, [line length])])
+		{
+			previousCommentLineCount++;
+			continue;
+		}
 		else
-			lastLineIndex--;
-	}
-	
-//	NSLog(@"insertScriptLine: point 1: firstLineIndex %d, lastLineIndex %d", (int)firstLineIndex, (int)lastLineIndex);
-	
-	// If we didn't find a section, find a place to insert it, and insert a new section
-	if (!foundSection)
-	{
-		NSArray *sections = [ScriptMod standardScriptSections];
-		NSUInteger sectionNameCount = [sections count];
-		NSUInteger indexOfTargetSection = [sections indexOfObjectIdenticalTo:sectionName];
-		
-		if (indexOfTargetSection == NSNotFound)
 		{
-			NSLog(@"Unknown section name %@ from -scriptSectionName", sectionName);
-			return;
-		}
-		
-		NSUInteger nextSectionLineIndex = NSNotFound;
-		
-		for (NSUInteger nextSectionIndex = indexOfTargetSection + 1; nextSectionIndex < sectionNameCount; ++nextSectionIndex)
-		{
-			NSString *nextSectionName = [sections objectAtIndex:nextSectionIndex];
-			
-			nextSectionLineIndex = [scriptLines indexOfObjectPassingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
-				return [obj hasPrefix:nextSectionName];
-			}];
-			
-			if (nextSectionLineIndex != NSNotFound)
-				break;
-		}
-		
-		if (nextSectionLineIndex == NSNotFound)
-			nextSectionLineIndex = [scriptLines count];
-		
-		[scriptLines insertObject:sectionName atIndex:nextSectionLineIndex];
-		[scriptLines insertObject:@"" atIndex:nextSectionLineIndex + 1];
-		
-		firstLineIndex = nextSectionLineIndex;
-		lastLineIndex = nextSectionLineIndex + 1;
-		
-//		NSLog(@"insertScriptLine: point 2: firstLineIndex %d, lastLineIndex %d", (int)firstLineIndex, (int)lastLineIndex);
-	}
-	
-//	for (NSUInteger debugIndex = firstLineIndex; debugIndex <= lastLineIndex; ++debugIndex)
-//		NSLog(@"   line %d: %@", (int)debugIndex, [scriptLines objectAtIndex:debugIndex]);
-	
-	// OK, we now have a section delineated by line indices; find the right position for our new line
-	NSUInteger insertionIndex = firstLineIndex + 1, bestInsertionIndex = firstLineIndex + 1;
-	NSTextCheckingResult *insertionMatch = [sortRegex firstMatchInString:lineToInsert options:0 range:NSMakeRange(0, [lineToInsert length])];
-	
-	if (insertionMatch)
-	{
-		int insertionPriority = (int)[[lineToInsert substringWithRange:[insertionMatch rangeAtIndex:1]] doubleValue];		// extracted sort priority
-		
-		for (insertionIndex = firstLineIndex + 1; insertionIndex <= lastLineIndex; ++insertionIndex)
-		{
-			NSString *line = [scriptLines objectAtIndex:insertionIndex];
-			NSTextCheckingResult *lineMatch = [sortRegex firstMatchInString:line options:0 range:NSMakeRange(0, [line length])];
-			
-			if (lineMatch)
+			if ([initializeBlockStartRegex numberOfMatchesInString:line options:0 range:NSMakeRange(0, [line length])])
 			{
-				int linePriority = (int)[[line substringWithRange:[lineMatch rangeAtIndex:1]] doubleValue];		// extracted sort priority
-				
-				if (linePriority <= insertionPriority)
-					bestInsertionIndex = insertionIndex + 1;
-				else
-					break;
+				// looks like an initialize() line; that is always generation 0
+				lineGeneration = 0;
 			}
+			else if ([eventBlockStartRegex numberOfMatchesInString:line options:0 range:NSMakeRange(0, [line length])])
+			{
+				// looks like a script event/callback block of some sort; extract the generation from it
+				NSTextCheckingResult *lineMatch = [eventBlockStartRegex firstMatchInString:line options:0 range:NSMakeRange(0, [line length])];
+				
+				if (lineMatch)
+				{
+					NSString *genSubstring = [line substringWithRange:[lineMatch rangeAtIndex:1]];
+					
+					//NSLog(@"genSubstring == \"%@\"", genSubstring);
+					
+					lineGeneration = (int)[genSubstring doubleValue];		// extracted generation
+				}
+			}
+			
+			// If we have reached the start of a block with a later generation than what we're inserting, we want to stop and insert it right there
+			if (lineGeneration > targetGeneration)
+				break;
+			
+			previousCommentLineCount = 0;
 		}
 	}
 	
-	// And now that we have a position, we insert it
+	// Insert the line, after backtracking over comments preceding our insertion index
+	if (previousCommentLineCount && (bestInsertionIndex > previousCommentLineCount))
+		bestInsertionIndex -= previousCommentLineCount;
+	
 	[scriptLines insertObject:lineToInsert atIndex:bestInsertionIndex];
 	
 	// Set the doctored string back into the textview
@@ -563,14 +468,15 @@
 		// run the sheet
 		[window beginSheet:_scriptModSheet completionHandler:^(NSModalResponse returnCode) {
 			NSString *scriptLine = nil;
+			int targetGeneration = -1;
 			
 			if (returnCode == NSAlertFirstButtonReturn)
-				scriptLine = [self scriptLineWithExecute:YES];
+				scriptLine = [self scriptLineWithExecute:YES targetGeneration:&targetGeneration];
 			else if (returnCode == NSAlertSecondButtonReturn)
-				scriptLine = [self scriptLineWithExecute:NO];
+				scriptLine = [self scriptLineWithExecute:NO targetGeneration:&targetGeneration];
 			
 			if (scriptLine)
-				[self insertScriptLine:scriptLine];
+				[self insertScriptLine:scriptLine targetGeneration:targetGeneration];
 			
 			[_scriptModSheet autorelease];
 			_scriptModSheet = nil;
@@ -923,21 +829,9 @@
 	return [self className];
 }
 
-- (NSString *)scriptSectionName
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
-	return @"#DEMOGRAPHY AND STRUCTURE";
-}
-
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
-{
-	NSLog(@"-[ScriptMod scriptLineWithExecute:] reached, indicates a subclass error");
-	
-	return nil;
-}
-
-- (NSString *)sortingGrepPattern
-{
-	NSLog(@"-[ScriptMod sortingGrepPattern] reached, indicates a subclass error");
+	NSLog(@"-[ScriptMod scriptLineWithExecute:targetGeneration:] reached, indicates a subclass error");
 	
 	return nil;
 }

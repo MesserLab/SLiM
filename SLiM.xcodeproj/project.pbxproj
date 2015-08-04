@@ -169,6 +169,36 @@
 		98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C141B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C151B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
+		98DE4C161B713EE2004FDF5F /* ScriptMod.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E1F81ABC69550036EAEA /* ScriptMod.mm */; };
+		98DE4C171B713EEA004FDF5F /* ScriptModSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E1FD1ABC78550036EAEA /* ScriptModSheet.xib */; };
+		98DE4C181B713F0C004FDF5F /* ScriptMod_ChangeSubpopSize.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E1FB1ABC697E0036EAEA /* ScriptMod_ChangeSubpopSize.mm */; };
+		98DE4C191B713F10004FDF5F /* ScriptMod_ChangeSubpopSize.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2001ABCA02E0036EAEA /* ScriptMod_ChangeSubpopSize.xib */; };
+		98DE4C1A1B713F16004FDF5F /* ScriptMod_RemoveSubpop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2061ABE0BD70036EAEA /* ScriptMod_RemoveSubpop.mm */; };
+		98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2081ABE0BEF0036EAEA /* ScriptMod_RemoveSubpop.xib */; };
+		98DE4C1C1B713F21004FDF5F /* ScriptMod_AddSubpop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E20F1ABE0F2A0036EAEA /* ScriptMod_AddSubpop.mm */; };
+		98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E20B1ABE0F0C0036EAEA /* ScriptMod_AddSubpop.xib */; };
+		98DE4C1E1B713F28004FDF5F /* ScriptMod_SplitSubpop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2121ABE17200036EAEA /* ScriptMod_SplitSubpop.mm */; };
+		98DE4C1F1B713F2C004FDF5F /* ScriptMod_SplitSubpop.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2141ABE17330036EAEA /* ScriptMod_SplitSubpop.xib */; };
+		98DE4C201B713F30004FDF5F /* ScriptMod_ChangeMigration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2181ABE1D320036EAEA /* ScriptMod_ChangeMigration.mm */; };
+		98DE4C211B713F33004FDF5F /* ScriptMod_ChangeMigration.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E21A1ABE1D3F0036EAEA /* ScriptMod_ChangeMigration.xib */; };
+		98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */; };
+		98DE4C231B713F3A004FDF5F /* ScriptMod_ChangeSelfing.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E21D1ABE27CE0036EAEA /* ScriptMod_ChangeSelfing.xib */; };
+		98DE4C241B713F3E004FDF5F /* ScriptMod_ChangeSexRatio.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */; };
+		98DE4C251B713F41004FDF5F /* ScriptMod_ChangeSexRatio.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */; };
+		98DE4C261B713F45004FDF5F /* ScriptMod_OutputFullPopulation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E22D1ABE304A0036EAEA /* ScriptMod_OutputFullPopulation.mm */; };
+		98DE4C271B713F49004FDF5F /* ScriptMod_OutputFullPopulation.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2291ABE30220036EAEA /* ScriptMod_OutputFullPopulation.xib */; };
+		98DE4C281B713F4C004FDF5F /* ScriptMod_OutputSubpopSample.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2301ABE377C0036EAEA /* ScriptMod_OutputSubpopSample.mm */; };
+		98DE4C291B713F4F004FDF5F /* ScriptMod_OutputSubpopSample.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2321ABE37950036EAEA /* ScriptMod_OutputSubpopSample.xib */; };
+		98DE4C2A1B713F52004FDF5F /* ScriptMod_OutputFixedMutations.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2391ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.mm */; };
+		98DE4C2B1B713F56004FDF5F /* ScriptMod_OutputFixedMutations.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2351ABE452C0036EAEA /* ScriptMod_OutputFixedMutations.xib */; };
+		98DE4C2C1B713F5A004FDF5F /* ScriptMod_AddMutationType.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2451ABE69EA0036EAEA /* ScriptMod_AddMutationType.mm */; };
+		98DE4C2D1B713F5D004FDF5F /* ScriptMod_AddMutationType.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2411ABE69CF0036EAEA /* ScriptMod_AddMutationType.xib */; };
+		98DE4C2E1B713F61004FDF5F /* ScriptMod_AddGenomicElementType.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E24B1ABF2CAD0036EAEA /* ScriptMod_AddGenomicElementType.mm */; };
+		98DE4C2F1B713F65004FDF5F /* ScriptMod_AddGenomicElementType.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2471ABF2C930036EAEA /* ScriptMod_AddGenomicElementType.xib */; };
+		98DE4C301B713F68004FDF5F /* ScriptMod_AddGenomicElement.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2511ABF472D0036EAEA /* ScriptMod_AddGenomicElement.mm */; };
+		98DE4C311B713F6B004FDF5F /* ScriptMod_AddGenomicElement.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E24D1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib */; };
+		98DE4C321B713F6F004FDF5F /* ScriptMod_AddRecombinationRate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2541ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.mm */; };
+		98DE4C331B713F72004FDF5F /* ScriptMod_AddRecombinationRate.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2561ABF50D20036EAEA /* ScriptMod_AddRecombinationRate.xib */; };
 		98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
 		98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */; };
 		98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */; };
@@ -242,9 +272,6 @@
 		9821E2361ABE452C0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_OutputFixedMutations.xib; sourceTree = "<group>"; };
 		9821E2381ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_OutputFixedMutations.h; sourceTree = "<group>"; };
 		9821E2391ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_OutputFixedMutations.mm; sourceTree = "<group>"; };
-		9821E23B1ABE47240036EAEA /* ScriptMod_TrackMutationType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_TrackMutationType.h; sourceTree = "<group>"; };
-		9821E23C1ABE47240036EAEA /* ScriptMod_TrackMutationType.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_TrackMutationType.mm; sourceTree = "<group>"; };
-		9821E23F1ABE473E0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_TrackMutationType.xib; sourceTree = "<group>"; };
 		9821E2421ABE69CF0036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddMutationType.xib; sourceTree = "<group>"; };
 		9821E2441ABE69EA0036EAEA /* ScriptMod_AddMutationType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddMutationType.h; sourceTree = "<group>"; };
 		9821E2451ABE69EA0036EAEA /* ScriptMod_AddMutationType.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddMutationType.mm; sourceTree = "<group>"; };
@@ -257,9 +284,6 @@
 		9821E2531ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddRecombinationRate.h; sourceTree = "<group>"; };
 		9821E2541ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddRecombinationRate.mm; sourceTree = "<group>"; };
 		9821E2571ABF50D20036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddRecombinationRate.xib; sourceTree = "<group>"; };
-		9821E25A1ABF59630036EAEA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddPredeterminedMutation.xib; sourceTree = "<group>"; };
-		9821E25C1ABF59780036EAEA /* ScriptMod_AddPredeterminedMutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddPredeterminedMutation.h; sourceTree = "<group>"; };
-		9821E25D1ABF59780036EAEA /* ScriptMod_AddPredeterminedMutation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddPredeterminedMutation.mm; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_global.cpp; sourceTree = "<group>"; };
@@ -483,9 +507,6 @@
 				9821E2381ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.h */,
 				9821E2391ABE454C0036EAEA /* ScriptMod_OutputFixedMutations.mm */,
 				9821E2351ABE452C0036EAEA /* ScriptMod_OutputFixedMutations.xib */,
-				9821E23B1ABE47240036EAEA /* ScriptMod_TrackMutationType.h */,
-				9821E23C1ABE47240036EAEA /* ScriptMod_TrackMutationType.mm */,
-				9821E23E1ABE473E0036EAEA /* ScriptMod_TrackMutationType.xib */,
 				9821E2441ABE69EA0036EAEA /* ScriptMod_AddMutationType.h */,
 				9821E2451ABE69EA0036EAEA /* ScriptMod_AddMutationType.mm */,
 				9821E2411ABE69CF0036EAEA /* ScriptMod_AddMutationType.xib */,
@@ -498,9 +519,6 @@
 				9821E2531ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.h */,
 				9821E2541ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.mm */,
 				9821E2561ABF50D20036EAEA /* ScriptMod_AddRecombinationRate.xib */,
-				9821E25C1ABF59780036EAEA /* ScriptMod_AddPredeterminedMutation.h */,
-				9821E25D1ABF59780036EAEA /* ScriptMod_AddPredeterminedMutation.mm */,
-				9821E2591ABF59630036EAEA /* ScriptMod_AddPredeterminedMutation.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -891,6 +909,7 @@
 				98D4C1F51A70040400FFB083 /* play_step.pdf in Resources */,
 				987AD87D1B2CBE4F0035D6C8 /* show_parse.pdf in Resources */,
 				98453F561A76004300C058CB /* open_type_drawer_H.pdf in Resources */,
+				98DE4C251B713F41004FDF5F /* ScriptMod_ChangeSexRatio.xib in Resources */,
 				98D4C1BD1A6F537B00FFB083 /* Images.xcassets in Resources */,
 				98453F4B1A75E83600C058CB /* ScriptSyntaxHelp.xib in Resources */,
 				98D4C1F81A70064800FFB083 /* recycle.pdf in Resources */,
@@ -900,34 +919,46 @@
 				98453F411A75A12700C058CB /* dump_output.pdf in Resources */,
 				98D4C20E1A7164F700FFB083 /* README.html in Resources */,
 				98453F5C1A76004300C058CB /* show_mutations_H.pdf in Resources */,
+				98DE4C191B713F10004FDF5F /* ScriptMod_ChangeSubpopSize.xib in Resources */,
 				98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */,
 				98453F5A1A76004300C058CB /* show_genomicelements_H.pdf in Resources */,
 				98453F631A76041200C058CB /* edit_submenu.pdf in Resources */,
+				98DE4C171B713EEA004FDF5F /* ScriptModSheet.xib in Resources */,
+				98DE4C271B713F49004FDF5F /* ScriptMod_OutputFullPopulation.xib in Resources */,
 				98D4C1E61A6FD8D600FFB083 /* change_sex_ratio.pdf in Resources */,
 				987AD8741B2CBDA70035D6C8 /* show_console_H.pdf in Resources */,
 				98D4C1C01A6F537B00FFB083 /* MainMenu.xib in Resources */,
 				987AD8811B2CBE5B0035D6C8 /* show_execution.pdf in Resources */,
+				98DE4C1F1B713F2C004FDF5F /* ScriptMod_SplitSubpop.xib in Resources */,
 				98453F481A75E80F00C058CB /* ScriptSyntaxHelp.txt in Resources */,
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
 				98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */,
 				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
+				98DE4C2B1B713F56004FDF5F /* ScriptMod_OutputFixedMutations.xib in Resources */,
 				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				987AD8801B2CBE580035D6C8 /* show_execution_H.pdf in Resources */,
+				98DE4C231B713F3A004FDF5F /* ScriptMod_ChangeSelfing.xib in Resources */,
+				98DE4C311B713F6B004FDF5F /* ScriptMod_AddGenomicElement.xib in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
 				98453F441A75AABE00C058CB /* syntax_help_H.pdf in Resources */,
+				98DE4C291B713F4F004FDF5F /* ScriptMod_OutputSubpopSample.xib in Resources */,
 				986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */,
+				98DE4C2D1B713F5D004FDF5F /* ScriptMod_AddMutationType.xib in Resources */,
 				987AD87C1B2CBE4B0035D6C8 /* show_parse_H.pdf in Resources */,
 				987AD8771B2CBE050035D6C8 /* show_browser.pdf in Resources */,
 				98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
+				98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */,
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
+				98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */,
 				987AD87F1B2CBE550035D6C8 /* show_tokens.pdf in Resources */,
 				98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */,
 				98D4C20D1A715F6100FFB083 /* AboutWindow.xib in Resources */,
 				98D4C1FD1A700DC100FFB083 /* play_step_H.pdf in Resources */,
+				98DE4C211B713F33004FDF5F /* ScriptMod_ChangeMigration.xib in Resources */,
 				98453F5E1A76004300C058CB /* show_recombination_H.pdf in Resources */,
 				98D4C1FE1A700DC100FFB083 /* recycle_H.pdf in Resources */,
 				98453F5D1A76004300C058CB /* show_mutations.pdf in Resources */,
@@ -935,6 +966,7 @@
 				98D4C1FC1A700DC100FFB083 /* play_H.pdf in Resources */,
 				987AD8791B2CBE2E0035D6C8 /* execute_script.pdf in Resources */,
 				986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */,
+				98DE4C2F1B713F65004FDF5F /* ScriptMod_AddGenomicElementType.xib in Resources */,
 				98453F581A76004300C058CB /* show_fixed_H.pdf in Resources */,
 				98D4C2111A71831000FFB083 /* SLiM_manual.pdf in Resources */,
 				987AD8781B2CBE280035D6C8 /* execute_script_H.pdf in Resources */,
@@ -944,6 +976,7 @@
 				98D4C1F61A70040400FFB083 /* play.pdf in Resources */,
 				98D4C1F21A6FEEAB00FFB083 /* change_migration.pdf in Resources */,
 				987AD8751B2CBDA70035D6C8 /* show_console.pdf in Resources */,
+				98DE4C331B713F72004FDF5F /* ScriptMod_AddRecombinationRate.xib in Resources */,
 				987AD87E1B2CBE520035D6C8 /* show_tokens_H.pdf in Resources */,
 				98D4C22A1A71F8AD00FFB083 /* delete.pdf in Resources */,
 				98D4C2291A71F8AD00FFB083 /* delete_H.pdf in Resources */,
@@ -1022,6 +1055,7 @@
 			files = (
 				98321F951B406B67007337A3 /* eidos_global.cpp in Sources */,
 				989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
+				98DE4C1E1B713F28004FDF5F /* ScriptMod_SplitSubpop.mm in Sources */,
 				98AB597C1B2531F10077CB4A /* slim_eidos_block.cpp in Sources */,
 				981BAC6B1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */,
 				98D4C1BB1A6F537B00FFB083 /* main.m in Sources */,
@@ -1035,32 +1069,46 @@
 				985724AA1AD4551C0047C223 /* eidos_test.cpp in Sources */,
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,
 				98D4C1DF1A6F543C00FFB083 /* substitution.cpp in Sources */,
+				98DE4C261B713F45004FDF5F /* ScriptMod_OutputFullPopulation.mm in Sources */,
 				985724A61AD435310047C223 /* eidos_value.cpp in Sources */,
+				98DE4C161B713EE2004FDF5F /* ScriptMod.mm in Sources */,
 				986926E21AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm in Sources */,
+				98DE4C2E1B713F61004FDF5F /* ScriptMod_AddGenomicElementType.mm in Sources */,
+				98DE4C2C1B713F5A004FDF5F /* ScriptMod_AddMutationType.mm in Sources */,
 				98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */,
+				98DE4C181B713F0C004FDF5F /* ScriptMod_ChangeSubpopSize.mm in Sources */,
+				98DE4C2A1B713F52004FDF5F /* ScriptMod_OutputFixedMutations.mm in Sources */,
+				98DE4C1C1B713F21004FDF5F /* ScriptMod_AddSubpop.mm in Sources */,
 				985724A21AD34B740047C223 /* eidos_functions.cpp in Sources */,
 				98D4C1E31A6F544B00FFB083 /* population.cpp in Sources */,
+				98DE4C321B713F6F004FDF5F /* ScriptMod_AddRecombinationRate.mm in Sources */,
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
 				986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */,
+				98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */,
 				98D4C1DC1A6F543200FFB083 /* genomic_element_type.cpp in Sources */,
 				98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */,
 				98D4C1D91A6F542900FFB083 /* mutation_type.cpp in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
+				98DE4C281B713F4C004FDF5F /* ScriptMod_OutputSubpopSample.mm in Sources */,
 				986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
+				98DE4C1A1B713F16004FDF5F /* ScriptMod_RemoveSubpop.mm in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
 				987AD8821B2CBF960035D6C8 /* EidosConsoleTextView.mm in Sources */,
 				980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */,
 				987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
+				98DE4C241B713F3E004FDF5F /* ScriptMod_ChangeSexRatio.mm in Sources */,
 				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
+				98DE4C301B713F68004FDF5F /* ScriptMod_AddGenomicElement.mm in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				987AD8861B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
 				98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */,
 				98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */,
+				98DE4C201B713F30004FDF5F /* ScriptMod_ChangeMigration.mm in Sources */,
 				98A513551B66B6CA005A753D /* eidos_ast_node.cpp in Sources */,
 				98A513501B66B69E005A753D /* eidos_token.cpp in Sources */,
 				9857249D1AD08A810047C223 /* eidos_interpreter.cpp in Sources */,
@@ -1166,14 +1214,6 @@
 			name = ScriptMod_OutputFixedMutations.xib;
 			sourceTree = "<group>";
 		};
-		9821E23E1ABE473E0036EAEA /* ScriptMod_TrackMutationType.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				9821E23F1ABE473E0036EAEA /* Base */,
-			);
-			name = ScriptMod_TrackMutationType.xib;
-			sourceTree = "<group>";
-		};
 		9821E2411ABE69CF0036EAEA /* ScriptMod_AddMutationType.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -1204,14 +1244,6 @@
 				9821E2571ABF50D20036EAEA /* Base */,
 			);
 			name = ScriptMod_AddRecombinationRate.xib;
-			sourceTree = "<group>";
-		};
-		9821E2591ABF59630036EAEA /* ScriptMod_AddPredeterminedMutation.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				9821E25A1ABF59630036EAEA /* Base */,
-			);
-			name = ScriptMod_AddPredeterminedMutation.xib;
 			sourceTree = "<group>";
 		};
 		98453F461A75E80F00C058CB /* ScriptSyntaxHelp.txt */ = {

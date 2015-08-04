@@ -32,16 +32,6 @@
 	return @"Add Recombination Rate";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#RECOMBINATION RATE";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod scientificIntSortingGrepPattern];
-}
-
 - (int)lastDefinedRecombinationPosition
 {
 	std::vector<int> &endPositions = controller->sim->chromosome_.recombination_end_positions_;
@@ -93,7 +83,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	NSString *endPosition = [intervalEndPositionTextField stringValue];
 	NSString *rateString = [recombinationRateTextField stringValue];
@@ -104,7 +94,9 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
-	return [NSString stringWithFormat:@"%@ %@", endPosition, rateString];
+	*targetGenPtr = 0;
+	
+	return [NSString stringWithFormat:@"initialize() {\n\tinitializeRecombinationRate(%@, %@);\n}\n", rateString, endPosition];
 }
 
 @end

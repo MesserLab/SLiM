@@ -26,22 +26,20 @@
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
-//#import "ScriptMod_ChangeSubpopSize.h"
-//#import "ScriptMod_RemoveSubpop.h"
-//#import "ScriptMod_AddSubpop.h"
-//#import "ScriptMod_SplitSubpop.h"
-//#import "ScriptMod_ChangeMigration.h"
-//#import "ScriptMod_ChangeSelfing.h"
-//#import "ScriptMod_ChangeSexRatio.h"
-//#import "ScriptMod_OutputFullPopulation.h"
-//#import "ScriptMod_OutputSubpopSample.h"
-//#import "ScriptMod_OutputFixedMutations.h"
-//#import "ScriptMod_TrackMutationType.h"
-//#import "ScriptMod_AddMutationType.h"
-//#import "ScriptMod_AddGenomicElementType.h"
-//#import "ScriptMod_AddGenomicElement.h"
-//#import "ScriptMod_AddRecombinationRate.h"
-//#import "ScriptMod_AddPredeterminedMutation.h"
+#import "ScriptMod_ChangeSubpopSize.h"
+#import "ScriptMod_RemoveSubpop.h"
+#import "ScriptMod_AddSubpop.h"
+#import "ScriptMod_SplitSubpop.h"
+#import "ScriptMod_ChangeMigration.h"
+#import "ScriptMod_ChangeSelfing.h"
+#import "ScriptMod_ChangeSexRatio.h"
+#import "ScriptMod_OutputFullPopulation.h"
+#import "ScriptMod_OutputSubpopSample.h"
+#import "ScriptMod_OutputFixedMutations.h"
+#import "ScriptMod_AddMutationType.h"
+#import "ScriptMod_AddGenomicElementType.h"
+#import "ScriptMod_AddGenomicElement.h"
+#import "ScriptMod_AddRecombinationRate.h"
 
 #include <iostream>
 #include <sstream>
@@ -634,16 +632,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(addRecombinationInterval:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(addPredeterminedMutation:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
 	if (sel == @selector(outputFullPopulationState:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(outputPopulationSample:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(outputFixedMutations:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(trackMutationType:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
 	if (sel == @selector(graphMutationFrequencySpectrum:))
@@ -678,6 +672,17 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return YES;
 }
 
+- (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock
+{
+	if (sim)
+	{
+		sim->script_blocks_.push_back(scriptBlock);		// takes ownership from us
+		
+		[scriptBlocksTableView reloadData];
+		[scriptBlocksTableView setNeedsDisplay];
+	}
+}
+
 
 //
 //	Actions
@@ -686,82 +691,72 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (IBAction)buttonChangeSubpopSize:(id)sender
 {
-//	[ScriptMod_ChangeSubpopSize runWithController:self];
+	[ScriptMod_ChangeSubpopSize runWithController:self];
 }
 
 - (IBAction)buttonRemoveSubpop:(id)sender
 {
-//	[ScriptMod_RemoveSubpop runWithController:self];
+	[ScriptMod_RemoveSubpop runWithController:self];
 }
 
 - (IBAction)buttonAddSubpop:(id)sender
 {
-//	[ScriptMod_AddSubpop runWithController:self];
+	[ScriptMod_AddSubpop runWithController:self];
 }
 
 - (IBAction)buttonSplitSubpop:(id)sender
 {
-//	[ScriptMod_SplitSubpop runWithController:self];
+	[ScriptMod_SplitSubpop runWithController:self];
 }
 
 - (IBAction)buttonChangeMigrationRates:(id)sender
 {
-//	[ScriptMod_ChangeMigration runWithController:self];
+	[ScriptMod_ChangeMigration runWithController:self];
 }
 
 - (IBAction)buttonChangeSelfingRates:(id)sender
 {
-//	[ScriptMod_ChangeSelfing runWithController:self];
+	[ScriptMod_ChangeSelfing runWithController:self];
 }
 
 - (IBAction)buttonChangeSexRatio:(id)sender
 {
-//	[ScriptMod_ChangeSexRatio runWithController:self];
+	[ScriptMod_ChangeSexRatio runWithController:self];
 }
 
 - (IBAction)addMutationType:(id)sender
 {
-//	[ScriptMod_AddMutationType runWithController:self];
+	[ScriptMod_AddMutationType runWithController:self];
 }
 
 - (IBAction)addGenomicElementType:(id)sender
 {
-//	[ScriptMod_AddGenomicElementType runWithController:self];
+	[ScriptMod_AddGenomicElementType runWithController:self];
 }
 
 - (IBAction)addGenomicElementToChromosome:(id)sender
 {
-//	[ScriptMod_AddGenomicElement runWithController:self];
+	[ScriptMod_AddGenomicElement runWithController:self];
 }
 
 - (IBAction)addRecombinationInterval:(id)sender
 {
-//	[ScriptMod_AddRecombinationRate runWithController:self];
-}
-
-- (IBAction)addPredeterminedMutation:(id)sender
-{
-//	[ScriptMod_AddPredeterminedMutation runWithController:self];
+	[ScriptMod_AddRecombinationRate runWithController:self];
 }
 
 - (IBAction)outputFullPopulationState:(id)sender
 {
-//	[ScriptMod_OutputFullPopulation runWithController:self];
+	[ScriptMod_OutputFullPopulation runWithController:self];
 }
 
 - (IBAction)outputPopulationSample:(id)sender
 {
-//	[ScriptMod_OutputSubpopSample runWithController:self];
+	[ScriptMod_OutputSubpopSample runWithController:self];
 }
 
 - (IBAction)outputFixedMutations:(id)sender
 {
-//	[ScriptMod_OutputFixedMutations runWithController:self];
-}
-
-- (IBAction)trackMutationType:(id)sender
-{
-//	[ScriptMod_TrackMutationType runWithController:self];
+	[ScriptMod_OutputFixedMutations runWithController:self];
 }
 
 - (void)positionNewGraphWindow:(NSWindow *)window

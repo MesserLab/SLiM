@@ -32,16 +32,6 @@
 	return @"Output Full Population";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#OUTPUT";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod scientificIntSortingGrepPattern];
-}
-
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -71,11 +61,19 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
 	int targetGenerationInt = (int)[targetGeneration doubleValue];
 	NSString *filename = [filenameTextField stringValue];
+	
+	NSString *scriptInternal;
+	
+	if ([filename length])
+		scriptInternal = [NSString stringWithFormat:@"{\n\tsim.outputFull(\"%@\");\n}", filename];
+	else
+		scriptInternal = [NSString stringWithFormat:@"{\n\tsim.outputFull();\n}"];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{
@@ -86,23 +84,17 @@
 		}
 		else
 		{
-			// insert the event into the simulation's event map
-			NSString *param1 = filename;
-			std::vector<std::string> event_parameters;
+			// insert the script into the simulation's script block list
+			std::string scriptInternalString([scriptInternal UTF8String]);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(-1, scriptInternalString, SLiMEidosBlockType::SLiMEidosEvent, targetGenerationInt, targetGenerationInt);
 			
-			if ([filename length])
-				event_parameters.push_back(std::string([param1 UTF8String]));
-			
-			Event *new_event_ptr = new Event('A', event_parameters);
-			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
+			[controller addScriptBlockToSimulation:script_block];	// takes ownership from us
 		}
 	}
 	
-	if ([filename length])
-		return [NSString stringWithFormat:@"%@ A %@", targetGeneration, filename];
-	else
-		return [NSString stringWithFormat:@"%@ A", targetGeneration];
+	*targetGenPtr = targetGenerationInt;
+	
+	return scriptCommand;
 }
 
 @end

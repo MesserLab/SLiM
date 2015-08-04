@@ -32,16 +32,6 @@
 	return @"Output Subpopulation Sample";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#OUTPUT";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod scientificIntSortingGrepPattern];
-}
-
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -81,7 +71,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
 	int targetGenerationInt = (int)[targetGeneration doubleValue];
@@ -89,6 +79,9 @@
 	int sampleSize = [sampleSizeTextField intValue];
 	int sampledSexTag = (int)[sampledSexMatrix selectedTag];
 	BOOL useMS = ([useMSFormatCheckbox state] == NSOnState);
+	
+	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%d%@);\n}", populationID, useMS ? @"MS" : @"", sampleSize, (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"")];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{
@@ -99,39 +92,17 @@
 		}
 		else
 		{
-			// insert the event into the simulation's event map
-			NSString *param1 = [NSString stringWithFormat:@"p%d", populationID];
-			NSString *param2 = [NSString stringWithFormat:@"%d", sampleSize];
-			std::vector<std::string> event_parameters;
+			// insert the script into the simulation's script block list
+			std::string scriptInternalString([scriptInternal UTF8String]);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(-1, scriptInternalString, SLiMEidosBlockType::SLiMEidosEvent, targetGenerationInt, targetGenerationInt);
 			
-			event_parameters.push_back(std::string([param1 UTF8String]));
-			event_parameters.push_back(std::string([param2 UTF8String]));
-			
-			if (sampledSexTag == 1)
-				event_parameters.push_back(std::string("M"));
-			if (sampledSexTag == 2)
-				event_parameters.push_back(std::string("F"));
-			
-			if (useMS)
-				event_parameters.push_back(std::string("MS"));
-			
-			Event *new_event_ptr = new Event('R', event_parameters);
-			
-			controller->sim->events_.insert(std::pair<const int,Event*>(targetGenerationInt, new_event_ptr));
+			[controller addScriptBlockToSimulation:script_block];	// takes ownership from us
 		}
 	}
 	
-	NSString *scriptLine = [NSString stringWithFormat:@"%@ R p%d %d", targetGeneration, populationID, sampleSize];
+	*targetGenPtr = targetGenerationInt;
 	
-	if (sampledSexTag == 1)
-		scriptLine = [scriptLine stringByAppendingString:@" M"];
-	if (sampledSexTag == 2)
-		scriptLine = [scriptLine stringByAppendingString:@" F"];
-	
-	if (useMS)
-		scriptLine = [scriptLine stringByAppendingString:@" MS"];
-	
-	return scriptLine;
+	return scriptCommand;
 }
 
 @end

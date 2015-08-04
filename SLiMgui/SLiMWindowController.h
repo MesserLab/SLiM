@@ -142,6 +142,9 @@
 
 - (NSColor *)colorForGenomicElementTypeID:(int)elementTypeID;
 
+- (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock;
+
+
 //
 //	Properties
 //
@@ -170,12 +173,10 @@
 - (IBAction)addGenomicElementType:(id)sender;
 - (IBAction)addGenomicElementToChromosome:(id)sender;
 - (IBAction)addRecombinationInterval:(id)sender;
-- (IBAction)addPredeterminedMutation:(id)sender;
 
 - (IBAction)outputFullPopulationState:(id)sender;
 - (IBAction)outputPopulationSample:(id)sender;
 - (IBAction)outputFixedMutations:(id)sender;
-- (IBAction)trackMutationType:(id)sender;
 
 - (IBAction)graphMutationFrequencySpectrum:(id)sender;
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender;

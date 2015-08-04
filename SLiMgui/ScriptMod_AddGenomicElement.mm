@@ -32,16 +32,6 @@
 	return @"Add Genomic Element to Chromosome";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#CHROMOSOME ORGANIZATION";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return @"^[a-z]?[0-9]+ ((?:[0-9]+)(?:e[0-9]+)?) .*$";		// sort by start position
-}
-
 - (void)configSheetLoaded
 {
 	// find last defined chromosome position
@@ -93,7 +83,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	int genomicElementTypeID = (int)[genomicElementTypePopUpButton selectedTag];
 	NSString *startPosition = [startPositionTextField stringValue];
@@ -105,7 +95,9 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
-	return [NSString stringWithFormat:@"g%d %@ %@", genomicElementTypeID, startPosition, endPosition];
+	*targetGenPtr = 0;
+	
+	return [NSString stringWithFormat:@"initialize() {\n\tinitializeGenomicElement(%d, %@, %@);\n}\n", genomicElementTypeID, startPosition, endPosition];
 }
 
 @end

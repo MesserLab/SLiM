@@ -329,12 +329,6 @@
                                     <action selector="addRecombinationInterval:" target="-1" id="fuX-Ht-eRx"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Add Predetermined Mutation..." id="Ew5-sh-MM8">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addPredeterminedMutation:" target="-1" id="VC7-Vo-LfY"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="J48-9s-tbA"/>
                             <menuItem title="Output Full Population State..." id="XhD-CB-edn">
                                 <modifierMask key="keyEquivalentModifierMask"/>
@@ -352,12 +346,6 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="outputFixedMutations:" target="-1" id="rFU-ES-1YL"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Track Mutation Type..." id="tDI-gW-kfi">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="trackMutationType:" target="-1" id="rd0-pB-GB9"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="JRf-ad-zNv"/>

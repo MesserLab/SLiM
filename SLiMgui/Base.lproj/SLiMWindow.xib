@@ -1184,13 +1184,6 @@
                         <action selector="outputFixedMutations:" target="-2" id="QMJ-Ks-GMl"/>
                     </connections>
                 </menuItem>
-                <menuItem isSeparatorItem="YES" id="j1X-E0-oUL"/>
-                <menuItem title="Track Mutation Type..." id="j92-Ya-ezD">
-                    <modifierMask key="keyEquivalentModifierMask"/>
-                    <connections>
-                        <action selector="trackMutationType:" target="-2" id="rJ6-n5-Mpb"/>
-                    </connections>
-                </menuItem>
             </items>
             <point key="canvasLocation" x="1333" y="1010.5"/>
         </menu>
@@ -1218,12 +1211,6 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
                         <action selector="addRecombinationInterval:" target="-2" id="eD8-VX-2CQ"/>
-                    </connections>
-                </menuItem>
-                <menuItem title="Add Predetermined Mutation..." id="i3o-ch-SMm">
-                    <modifierMask key="keyEquivalentModifierMask"/>
-                    <connections>
-                        <action selector="addPredeterminedMutation:" target="-2" id="Pzr-cA-xQz"/>
                     </connections>
                 </menuItem>
             </items>
@@ -1426,7 +1413,7 @@
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
                     <rect key="frame" x="18" y="167" width="129" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos Blocks:" id="OOa-Ar-p63">
                         <font key="font" metaFont="systemBold"/>
@@ -1603,7 +1590,7 @@
                     </connections>
                 </menuItem>
             </items>
-            <point key="canvasLocation" x="841.5" y="662.5"/>
+            <point key="canvasLocation" x="639.5" y="1055.5"/>
         </menu>
     </objects>
     <resources>

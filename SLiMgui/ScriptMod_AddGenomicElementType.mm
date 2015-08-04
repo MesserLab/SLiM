@@ -32,16 +32,6 @@
 	return @"Add Genomic Element Type";
 }
 
-- (NSString *)scriptSectionName
-{
-	return @"#GENOMIC ELEMENT TYPES";
-}
-
-- (NSString *)sortingGrepPattern
-{
-	return [ScriptMod identifierSortingGrepPattern];
-}
-
 - (void)configSheetLoaded
 {
 	// set initial control values
@@ -130,7 +120,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
 {
 	int genomicElementTypeID = [genomicElementTypeTextField intValue];
 	int mutationType1ID = (int)[mutationType1PopUp selectedTag];
@@ -146,14 +136,16 @@
 		[controller performSelector:@selector(recycle:) withObject:nil afterDelay:0.0];
 	}
 	
+	*targetGenPtr = 0;
+	
 	if ((mutationType2ID != -1) && (mutationType3ID != -1))
-		return [NSString stringWithFormat:@"g%d m%d %@ m%d %@ m%d %@", genomicElementTypeID, mutationType1ID, mutationType1Proportion, mutationType2ID, mutationType2Proportion, mutationType3ID, mutationType3Proportion];
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeGenomicElementType(%d, c(%d, %d, %d), c(%@, %@, %@));\n}\n", genomicElementTypeID, mutationType1ID, mutationType2ID, mutationType3ID, mutationType1Proportion, mutationType2Proportion, mutationType3Proportion];
 	else if (mutationType2ID != -1)
-		return [NSString stringWithFormat:@"g%d m%d %@ m%d %@", genomicElementTypeID, mutationType1ID, mutationType1Proportion, mutationType2ID, mutationType2Proportion];
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeGenomicElementType(%d, c(%d, %d), c(%@, %@));\n}\n", genomicElementTypeID, mutationType1ID, mutationType2ID, mutationType1Proportion, mutationType2Proportion];
 	else if (mutationType3ID != -1)
-		return [NSString stringWithFormat:@"g%d m%d %@ m%d %@", genomicElementTypeID, mutationType1ID, mutationType1Proportion, mutationType3ID, mutationType3Proportion];
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeGenomicElementType(%d, c(%d, %d), c(%@, %@));\n}\n", genomicElementTypeID, mutationType1ID, mutationType3ID, mutationType1Proportion, mutationType3Proportion];
 	else
-		return [NSString stringWithFormat:@"g%d m%d %@", genomicElementTypeID, mutationType1ID, mutationType1Proportion];
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeGenomicElementType(%d, %d, %@);\n}\n", genomicElementTypeID, mutationType1ID, mutationType1Proportion];
 }
 
 @end
