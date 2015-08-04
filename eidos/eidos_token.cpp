@@ -62,15 +62,15 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 		case EidosTokenType::kTokenNumber:				p_outstream << "NUMBER";		break;
 		case EidosTokenType::kTokenString:				p_outstream << "STRING";		break;
 		case EidosTokenType::kTokenIdentifier:			p_outstream << "IDENTIFIER";	break;
-		case EidosTokenType::kTokenIf:					p_outstream << gStr_if;			break;
-		case EidosTokenType::kTokenElse:				p_outstream << gStr_else;		break;
-		case EidosTokenType::kTokenDo:					p_outstream << gStr_do;			break;
-		case EidosTokenType::kTokenWhile:				p_outstream << gStr_while;		break;
-		case EidosTokenType::kTokenFor:					p_outstream << gStr_for;		break;
-		case EidosTokenType::kTokenIn:					p_outstream << gStr_in;			break;
-		case EidosTokenType::kTokenNext:				p_outstream << gStr_next;		break;
-		case EidosTokenType::kTokenBreak:				p_outstream << gStr_break;		break;
-		case EidosTokenType::kTokenReturn:				p_outstream << gStr_return;		break;
+		case EidosTokenType::kTokenIf:					p_outstream << gEidosStr_if;		break;
+		case EidosTokenType::kTokenElse:				p_outstream << gEidosStr_else;		break;
+		case EidosTokenType::kTokenDo:					p_outstream << gEidosStr_do;		break;
+		case EidosTokenType::kTokenWhile:				p_outstream << gEidosStr_while;		break;
+		case EidosTokenType::kTokenFor:					p_outstream << gEidosStr_for;		break;
+		case EidosTokenType::kTokenIn:					p_outstream << gEidosStr_in;		break;
+		case EidosTokenType::kTokenNext:				p_outstream << gEidosStr_next;		break;
+		case EidosTokenType::kTokenBreak:				p_outstream << gEidosStr_break;		break;
+		case EidosTokenType::kTokenReturn:				p_outstream << gEidosStr_return;	break;
 			
 		case EidosTokenType::kTokenInterpreterBlock:	p_outstream << "$>";			break;
 		case EidosTokenType::kTokenContextFile:			p_outstream << "###";			break;

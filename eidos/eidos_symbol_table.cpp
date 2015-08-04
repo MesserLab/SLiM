@@ -56,13 +56,13 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 	
 	if (!trueConstant)
 	{
-		trueConstant = new EidosSymbolTableEntry(gStr_T, gStaticEidosValue_LogicalT);
-		falseConstant = new EidosSymbolTableEntry(gStr_F, gStaticEidosValue_LogicalF);
-		nullConstant = new EidosSymbolTableEntry(gStr_NULL, gStaticEidosValueNULL);
-		piConstant = new EidosSymbolTableEntry(gStr_PI, (new EidosValue_Float_singleton_const(M_PI))->SetExternalPermanent());
-		eConstant = new EidosSymbolTableEntry(gStr_E, (new EidosValue_Float_singleton_const(M_E))->SetExternalPermanent());
-		infConstant = new EidosSymbolTableEntry(gStr_INF, (new EidosValue_Float_singleton_const(std::numeric_limits<double>::infinity()))->SetExternalPermanent());
-		nanConstant = new EidosSymbolTableEntry(gStr_NAN, (new EidosValue_Float_singleton_const(std::numeric_limits<double>::quiet_NaN()))->SetExternalPermanent());
+		trueConstant = new EidosSymbolTableEntry(gEidosStr_T, gStaticEidosValue_LogicalT);
+		falseConstant = new EidosSymbolTableEntry(gEidosStr_F, gStaticEidosValue_LogicalF);
+		nullConstant = new EidosSymbolTableEntry(gEidosStr_NULL, gStaticEidosValueNULL);
+		piConstant = new EidosSymbolTableEntry(gEidosStr_PI, (new EidosValue_Float_singleton_const(M_PI))->SetExternalPermanent());
+		eConstant = new EidosSymbolTableEntry(gEidosStr_E, (new EidosValue_Float_singleton_const(M_E))->SetExternalPermanent());
+		infConstant = new EidosSymbolTableEntry(gEidosStr_INF, (new EidosValue_Float_singleton_const(std::numeric_limits<double>::infinity()))->SetExternalPermanent());
+		nanConstant = new EidosSymbolTableEntry(gEidosStr_NAN, (new EidosValue_Float_singleton_const(std::numeric_limits<double>::quiet_NaN()))->SetExternalPermanent());
 	}
 	
 	// We can use InitializeConstantSymbolEntry() here because we know the objects will live longer than the symbol table, and

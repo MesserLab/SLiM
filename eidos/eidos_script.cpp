@@ -309,18 +309,18 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 			// figure out identifier-like tokens, which all get tokenized as kTokenIdentifier above
 			if (token_type == EidosTokenType::kTokenIdentifier)
 			{
-				if (token_string.compare(gStr_if) == 0) token_type = EidosTokenType::kTokenIf;
-				else if (token_string.compare(gStr_else) == 0) token_type = EidosTokenType::kTokenElse;
-				else if (token_string.compare(gStr_do) == 0) token_type = EidosTokenType::kTokenDo;
-				else if (token_string.compare(gStr_while) == 0) token_type = EidosTokenType::kTokenWhile;
-				else if (token_string.compare(gStr_for) == 0) token_type = EidosTokenType::kTokenFor;
-				else if (token_string.compare(gStr_in) == 0) token_type = EidosTokenType::kTokenIn;
-				else if (token_string.compare(gStr_next) == 0) token_type = EidosTokenType::kTokenNext;
-				else if (token_string.compare(gStr_break) == 0) token_type = EidosTokenType::kTokenBreak;
-				else if (token_string.compare(gStr_return) == 0) token_type = EidosTokenType::kTokenReturn;
+				if (token_string.compare(gEidosStr_if) == 0) token_type = EidosTokenType::kTokenIf;
+				else if (token_string.compare(gEidosStr_else) == 0) token_type = EidosTokenType::kTokenElse;
+				else if (token_string.compare(gEidosStr_do) == 0) token_type = EidosTokenType::kTokenDo;
+				else if (token_string.compare(gEidosStr_while) == 0) token_type = EidosTokenType::kTokenWhile;
+				else if (token_string.compare(gEidosStr_for) == 0) token_type = EidosTokenType::kTokenFor;
+				else if (token_string.compare(gEidosStr_in) == 0) token_type = EidosTokenType::kTokenIn;
+				else if (token_string.compare(gEidosStr_next) == 0) token_type = EidosTokenType::kTokenNext;
+				else if (token_string.compare(gEidosStr_break) == 0) token_type = EidosTokenType::kTokenBreak;
+				else if (token_string.compare(gEidosStr_return) == 0) token_type = EidosTokenType::kTokenReturn;
 				
 				if (token_type > EidosTokenType::kFirstIdentifierLikeToken)
-					token_string = gStr_lessThanSign + token_string + gStr_greaterThanSign;
+					token_string = gEidosStr_lessThanSign + token_string + gEidosStr_greaterThanSign;
 			}
 			
 			// make the token and push it
@@ -419,7 +419,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0);
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
 	int token_start = current_token_->token_start_;

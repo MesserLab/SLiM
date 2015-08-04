@@ -56,8 +56,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, Eidos
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
 		const std::string *base_element_type = base_value->ElementType();
 		const std::string *dest_element_type = dest_value->ElementType();
-		bool base_is_typeless = (base_element_type == &gStr_undefined);
-		bool dest_is_typeless = (dest_element_type == &gStr_undefined);
+		bool base_is_typeless = (base_element_type == &gEidosStr_undefined);
+		bool dest_is_typeless = (dest_element_type == &gEidosStr_undefined);
 		
 		if (base_is_typeless || dest_is_typeless)
 			return true;
@@ -144,12 +144,12 @@ bool EidosInterpreter::ShouldLogExecution(void)
 
 std::string EidosInterpreter::ExecutionLog(void)
 {
-	return (execution_log_ ? execution_log_->str() : gStr_empty_string);
+	return (execution_log_ ? execution_log_->str() : gEidosStr_empty_string);
 }
 
 std::string EidosInterpreter::ExecutionOutput(void)
 {
-	return (execution_output_ ? execution_output_->str() : gStr_empty_string);
+	return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string);
 }
 
 std::ostringstream &EidosInterpreter::ExecutionOutputStream(void)
@@ -178,7 +178,7 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(void)
 	{
 		if (result->IsTemporary()) delete result;
 		
-		EIDOS_TERMINATION << "ERROR (EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gStr_next : gStr_break) << "\" encountered with no enclosing loop." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate();
 	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
@@ -216,7 +216,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 		{
 			if (result->IsTemporary()) delete result;
 			
-			EIDOS_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gStr_next : gStr_break) << "\" encountered with no enclosing loop." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate();
 		}
 		
 		// send the result of the block to our output stream
@@ -430,7 +430,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				EIDOS_TERMINATION << "ERROR (_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << eidos_terminate();
 			
 			EidosValue *base_value;
-			EidosGlobalStringID property_string_id = gID_none;
+			EidosGlobalStringID property_string_id = gEidosID_none;
 			vector<int> indices;
 			
 			_ProcessSubscriptAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
@@ -440,7 +440,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			
 			if (rvalue_count == 1)
 			{
-				if (property_string_id == gID_none)
+				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate();
@@ -469,7 +469,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			}
 			else if (index_count == rvalue_count)
 			{
-				if (property_string_id == gID_none)
+				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate();
@@ -810,7 +810,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	
 	const string *function_name = nullptr;
 	const EidosFunctionSignature *function_signature = nullptr;
-	EidosGlobalStringID method_id = gID_none;
+	EidosGlobalStringID method_id = gEidosID_none;
 	EidosValue_Object *method_object = nullptr;
 	
 	if (function_name_token_type == EidosTokenType::kTokenIdentifier)

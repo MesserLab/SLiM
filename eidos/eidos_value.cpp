@@ -48,12 +48,12 @@ string StringForEidosValueType(const EidosValueType p_type)
 {
 	switch (p_type)
 	{
-		case EidosValueType::kValueNULL:		return gStr_NULL;
-		case EidosValueType::kValueLogical:		return gStr_logical;
-		case EidosValueType::kValueString:		return gStr_string;
-		case EidosValueType::kValueInt:			return gStr_integer;
-		case EidosValueType::kValueFloat:		return gStr_float;
-		case EidosValueType::kValueObject:		return gStr_object;
+		case EidosValueType::kValueNULL:		return gEidosStr_NULL;
+		case EidosValueType::kValueLogical:		return gEidosStr_logical;
+		case EidosValueType::kValueString:		return gEidosStr_string;
+		case EidosValueType::kValueInt:			return gEidosStr_integer;
+		case EidosValueType::kValueFloat:		return gEidosStr_float;
+		case EidosValueType::kValueObject:		return gEidosStr_object;
 	}
 }
 
@@ -77,13 +77,13 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::stri
 	if (type_mask == kValueMaskNone)			out_string += "?";
 	else if (type_mask == kValueMaskAny)		out_string += "*";
 	else if (type_mask == kValueMaskAnyBase)	out_string += "+";
-	else if (type_mask == kValueMaskNULL)		out_string += gStr_void;
-	else if (type_mask == kValueMaskLogical)	out_string += gStr_logical;
-	else if (type_mask == kValueMaskString)		out_string += gStr_string;
-	else if (type_mask == kValueMaskInt)		out_string += gStr_integer;
-	else if (type_mask == kValueMaskFloat)		out_string += gStr_float;
-	else if (type_mask == kValueMaskObject)		out_string += gStr_object;
-	else if (type_mask == kValueMaskNumeric)	out_string += gStr_numeric;
+	else if (type_mask == kValueMaskNULL)		out_string += gEidosStr_void;
+	else if (type_mask == kValueMaskLogical)	out_string += gEidosStr_logical;
+	else if (type_mask == kValueMaskString)		out_string += gEidosStr_string;
+	else if (type_mask == kValueMaskInt)		out_string += gEidosStr_integer;
+	else if (type_mask == kValueMaskFloat)		out_string += gEidosStr_float;
+	else if (type_mask == kValueMaskObject)		out_string += gEidosStr_object;
+	else if (type_mask == kValueMaskNumeric)	out_string += gEidosStr_numeric;
 	else
 	{
 		if (type_mask & kValueMaskNULL)			out_string += "N";
@@ -268,7 +268,7 @@ EidosValueType EidosValue_NULL::Type(void) const
 
 const std::string *EidosValue_NULL::ElementType(void) const
 {
-	return &gStr_NULL;
+	return &gEidosStr_NULL;
 }
 
 int EidosValue_NULL::Count(void) const
@@ -278,7 +278,7 @@ int EidosValue_NULL::Count(void) const
 
 void EidosValue_NULL::Print(std::ostream &p_ostream) const
 {
-	p_ostream << gStr_NULL;
+	p_ostream << gEidosStr_NULL;
 }
 
 EidosValue *EidosValue_NULL::GetValueAtIndex(const int p_idx) const
@@ -425,7 +425,7 @@ EidosValueType EidosValue_Logical::Type(void) const
 
 const std::string *EidosValue_Logical::ElementType(void) const
 {
-	return &gStr_logical;
+	return &gEidosStr_logical;
 }
 
 int EidosValue_Logical::Count(void) const
@@ -450,7 +450,7 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 			else
 				p_ostream << ' ';
 			
-			p_ostream << (value ? gStr_T : gStr_F);
+			p_ostream << (value ? gEidosStr_T : gEidosStr_F);
 		}
 	}
 }
@@ -467,7 +467,7 @@ bool EidosValue_Logical::LogicalAtIndex(int p_idx) const
 
 std::string EidosValue_Logical::StringAtIndex(int p_idx) const
 {
-	return (values_.at(p_idx) ? gStr_T : gStr_F);
+	return (values_.at(p_idx) ? gEidosStr_T : gEidosStr_F);
 }
 
 int64_t EidosValue_Logical::IntAtIndex(int p_idx) const
@@ -678,7 +678,7 @@ EidosValueType EidosValue_String::Type(void) const
 
 const std::string *EidosValue_String::ElementType(void) const
 {
-	return &gStr_string;
+	return &gEidosStr_string;
 }
 
 int EidosValue_String::Count(void) const
@@ -798,7 +798,7 @@ EidosValueType EidosValue_Int::Type(void) const
 
 const std::string *EidosValue_Int::ElementType(void) const
 {
-	return &gStr_integer;
+	return &gEidosStr_integer;
 }
 
 EidosValue *EidosValue_Int::NewMatchingType(void) const
@@ -1085,7 +1085,7 @@ EidosValueType EidosValue_Float::Type(void) const
 
 const std::string *EidosValue_Float::ElementType(void) const
 {
-	return &gStr_float;
+	return &gEidosStr_float;
 }
 
 EidosValue *EidosValue_Float::NewMatchingType(void) const
@@ -1410,7 +1410,7 @@ EidosValue_Object_vector::~EidosValue_Object_vector(void)
 const std::string *EidosValue_Object_vector::ElementType(void) const
 {
 	if (values_.size() == 0)
-		return &gStr_undefined;		// this is relied upon by the type-check machinery
+		return &gEidosStr_undefined;		// this is relied upon by the type-check machinery
 	else
 		return values_[0]->ElementType();
 }
@@ -1746,7 +1746,7 @@ EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID 
 		}
 		
 		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gStr_GetPropertyOfElements, results.data(), (int)results.size());
+		EidosValue *result = ConcatenateEidosValues(gEidosStr_GetPropertyOfElements, results.data(), (int)results.size());
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)
@@ -1879,7 +1879,7 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 			results.push_back(value->ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
 		
 		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gStr_ExecuteMethod, results.data(), (int)results.size());
+		EidosValue *result = ConcatenateEidosValues(gEidosStr_ExecuteMethod, results.data(), (int)results.size());
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)
@@ -2116,9 +2116,9 @@ const std::vector<const EidosMethodSignature *> *EidosObjectElement::Methods(voi
 		methods = new std::vector<const EidosMethodSignature *>;
 		
 		// keep alphabetical order here
-		methods->push_back(SignatureForMethod(gID_method));
-		methods->push_back(SignatureForMethod(gID_property));
-		methods->push_back(SignatureForMethod(gID_str));
+		methods->push_back(SignatureForMethod(gEidosID_method));
+		methods->push_back(SignatureForMethod(gEidosID_property));
+		methods->push_back(SignatureForMethod(gEidosID_str));
 	}
 	
 	return methods;
@@ -2133,20 +2133,17 @@ const EidosMethodSignature *EidosObjectElement::SignatureForMethod(EidosGlobalSt
 	
 	if (!strSig)
 	{
-		methodsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_method, kValueMaskNULL))->AddString_OS("methodName");
-		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_property, kValueMaskNULL))->AddString_OS("propertyName");
-		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_str, kValueMaskNULL));
+		methodsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_method, kValueMaskNULL))->AddString_OS("methodName");
+		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_property, kValueMaskNULL))->AddString_OS("propertyName");
+		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kValueMaskNULL));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_method:
-			return methodsSig;
-		case gID_property:
-			return propertySig;
-		case gID_str:
-			return strSig;
+		case gEidosID_method:	return methodsSig;
+		case gEidosID_property:	return propertySig;
+		case gEidosID_str:		return strSig;
 			
 			// all others, including gID_none
 		default:
@@ -2170,7 +2167,7 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_str:		// instance method
+		case gEidosID_str:		// instance method
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
@@ -2211,11 +2208,11 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			
 			return gStaticEidosValueNULLInvisible;
 		}
-		case gID_property:		// class method
+		case gEidosID_property:		// class method
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_argument_count == 1);
-			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
+			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gEidosStr_empty_string);
 			const std::vector<const EidosPropertySignature *> *properties = Properties();
 			bool signature_found = false;
 			
@@ -2236,11 +2233,11 @@ EidosValue *EidosObjectElement::ExecuteMethod(EidosGlobalStringID p_method_id, E
 			
 			return gStaticEidosValueNULLInvisible;
 		}
-		case gID_method:		// class method
+		case gEidosID_method:		// class method
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_argument_count == 1);
-			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gStr_empty_string);
+			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0) : gEidosStr_empty_string);
 			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			bool signature_found = false;
 			

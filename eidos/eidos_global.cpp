@@ -242,7 +242,7 @@ std::string EidosGetTrimmedRaiseMessage(void)
 	std::string terminationMessage = gEidosTermination.str();
 	
 	gEidosTermination.clear();
-	gEidosTermination.str(gStr_empty_string);
+	gEidosTermination.str(gEidosStr_empty_string);
 	
 	// trim off newlines at the end of the raise string
 	size_t endpos = terminationMessage.find_last_not_of("\n\r");
@@ -251,7 +251,7 @@ std::string EidosGetTrimmedRaiseMessage(void)
 	
 	return terminationMessage;
 #else
-	return gStr_empty_string;
+	return gEidosStr_empty_string;
 #endif
 }
 
@@ -261,11 +261,11 @@ std::string EidosGetUntrimmedRaiseMessage(void)
 	std::string terminationMessage = gEidosTermination.str();
 	
 	gEidosTermination.clear();
-	gEidosTermination.str(gStr_empty_string);
+	gEidosTermination.str(gEidosStr_empty_string);
 	
 	return terminationMessage;
 #else
-	return gStr_empty_string;
+	return gEidosStr_empty_string;
 #endif
 }
 
@@ -292,61 +292,60 @@ std::string EidosResolvedPath(const std::string p_path)
 
 
 //	Global std::string objects.
-const std::string gStr_empty_string = "";
-const std::string gStr_space_string = " ";
+const std::string gEidosStr_empty_string = "";
+const std::string gEidosStr_space_string = " ";
 
 // mostly function names used in multiple places
-const std::string gStr_function = "function";
-const std::string gStr_method = "method";
-const std::string gStr_executeLambda = "executeLambda";
-const std::string gStr_globals = "globals";
+const std::string gEidosStr_function = "function";
+const std::string gEidosStr_method = "method";
+const std::string gEidosStr_executeLambda = "executeLambda";
+const std::string gEidosStr_globals = "globals";
 
 // mostly language keywords
-const std::string gStr_if = "if";
-const std::string gStr_else = "else";
-const std::string gStr_do = "do";
-const std::string gStr_while = "while";
-const std::string gStr_for = "for";
-const std::string gStr_in = "in";
-const std::string gStr_next = "next";
-const std::string gStr_break = "break";
-const std::string gStr_return = "return";
+const std::string gEidosStr_if = "if";
+const std::string gEidosStr_else = "else";
+const std::string gEidosStr_do = "do";
+const std::string gEidosStr_while = "while";
+const std::string gEidosStr_for = "for";
+const std::string gEidosStr_in = "in";
+const std::string gEidosStr_next = "next";
+const std::string gEidosStr_break = "break";
+const std::string gEidosStr_return = "return";
 
 // mostly Eidos global constants
-const std::string gStr_T = "T";
-const std::string gStr_F = "F";
-const std::string gStr_NULL = "NULL";
-const std::string gStr_PI = "PI";
-const std::string gStr_E = "E";
-const std::string gStr_INF = "INF";
-const std::string gStr_NAN = "NAN";
+const std::string gEidosStr_T = "T";
+const std::string gEidosStr_F = "F";
+const std::string gEidosStr_NULL = "NULL";
+const std::string gEidosStr_PI = "PI";
+const std::string gEidosStr_E = "E";
+const std::string gEidosStr_INF = "INF";
+const std::string gEidosStr_NAN = "NAN";
 
 // mostly Eidos type names
-const std::string gStr_void = "void";
-const std::string gStr_logical = "logical";
-const std::string gStr_string = "string";
-const std::string gStr_integer = "integer";
-const std::string gStr_float = "float";
-const std::string gStr_object = "object";
-const std::string gStr_numeric = "numeric";
+const std::string gEidosStr_void = "void";
+const std::string gEidosStr_logical = "logical";
+const std::string gEidosStr_string = "string";
+const std::string gEidosStr_integer = "integer";
+const std::string gEidosStr_float = "float";
+const std::string gEidosStr_object = "object";
+const std::string gEidosStr_numeric = "numeric";
 
 // Eidos function names, property names, and method names
-const std::string gStr_size = "size";
-const std::string gStr_type = "type";
-const std::string gStr_property = "property";
-const std::string gStr_str = "str";
+const std::string gEidosStr_size = "size";
+const std::string gEidosStr_property = "property";
+const std::string gEidosStr_str = "str";
 
 // other miscellaneous strings
-const std::string gStr_GetPropertyOfElements = "GetPropertyOfElements";
-const std::string gStr_ExecuteMethod = "ExecuteMethod";
-const std::string gStr_lessThanSign = "<";
-const std::string gStr_greaterThanSign = ">";
-const std::string gStr_undefined = "undefined";
+const std::string gEidosStr_GetPropertyOfElements = "GetPropertyOfElements";
+const std::string gEidosStr_ExecuteMethod = "ExecuteMethod";
+const std::string gEidosStr_lessThanSign = "<";
+const std::string gEidosStr_greaterThanSign = ">";
+const std::string gEidosStr_undefined = "undefined";
 
 // strings for Eidos_TestElement
-const std::string gStr__TestElement = "_TestElement";
-const std::string gStr__yolk = "_yolk";
-const std::string gStr__cubicYolk = "_cubicYolk";
+const std::string gEidosStr__TestElement = "_TestElement";
+const std::string gEidosStr__yolk = "_yolk";
+const std::string gEidosStr__cubicYolk = "_cubicYolk";
 
 
 static std::map<const std::string, EidosGlobalStringID> gStringToID;
@@ -372,15 +371,14 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
-		Eidos_RegisterStringForGlobalID(gStr_method, gID_method);
-		Eidos_RegisterStringForGlobalID(gStr_size, gID_size);
-		Eidos_RegisterStringForGlobalID(gStr_type, gID_type);
-		Eidos_RegisterStringForGlobalID(gStr_property, gID_property);
-		Eidos_RegisterStringForGlobalID(gStr_str, gID_str);
+		Eidos_RegisterStringForGlobalID(gEidosStr_method, gEidosID_method);
+		Eidos_RegisterStringForGlobalID(gEidosStr_size, gEidosID_size);
+		Eidos_RegisterStringForGlobalID(gEidosStr_property, gEidosID_property);
+		Eidos_RegisterStringForGlobalID(gEidosStr_str, gEidosID_str);
 		
-		Eidos_RegisterStringForGlobalID(gStr__TestElement, gID__TestElement);
-		Eidos_RegisterStringForGlobalID(gStr__yolk, gID__yolk);
-		Eidos_RegisterStringForGlobalID(gStr__cubicYolk, gID__cubicYolk);
+		Eidos_RegisterStringForGlobalID(gEidosStr__TestElement, gEidosID__TestElement);
+		Eidos_RegisterStringForGlobalID(gEidosStr__yolk, gEidosID__yolk);
+		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
 	}
 }
 
@@ -390,7 +388,7 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 	auto found_iter = gStringToID.find(p_string);
 	
 	if (found_iter == gStringToID.end())
-		return gID_none;
+		return gEidosID_none;
 	else
 		return found_iter->second;
 }
@@ -401,7 +399,7 @@ const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id)
 	auto found_iter = gIDToString.find(p_string_id);
 	
 	if (found_iter == gIDToString.end())
-		return gStr_undefined;
+		return gEidosStr_undefined;
 	else
 		return *(found_iter->second);
 }

@@ -958,7 +958,7 @@ const std::vector<const EidosPropertySignature *> *Subpopulation::Properties(voi
 		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
 		properties->push_back(SignatureForProperty(gID_selfingFraction));
 		properties->push_back(SignatureForProperty(gID_sexRatio));
-		properties->push_back(SignatureForProperty(gID_size));
+		properties->push_back(SignatureForProperty(gID_individualCount));
 		properties->push_back(SignatureForProperty(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -988,7 +988,7 @@ const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStr
 		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kValueMaskFloat));
 		selfingFractionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingFraction,				gID_selfingFraction,			true,	kValueMaskFloat | kValueMaskSingleton));
 		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kValueMaskFloat | kValueMaskSingleton));
-		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_size,						gID_size,						true,	kValueMaskInt | kValueMaskSingleton));
+		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kValueMaskInt | kValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kValueMaskInt | kValueMaskSingleton));
 	}
 	
@@ -1002,7 +1002,7 @@ const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStr
 		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
 		case gID_selfingFraction:			return selfingFractionSig;
 		case gID_sexRatio:					return sexRatioSig;
-		case gID_size:						return sizeSig;
+		case gID_individualCount:			return sizeSig;
 		case gID_tag:						return tagSig;
 			
 			// all others, including gID_none
@@ -1062,7 +1062,7 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return new EidosValue_Float_singleton_const(selfing_fraction_);
 		case gID_sexRatio:
 			return new EidosValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
-		case gID_size:
+		case gID_individualCount:
 			return new EidosValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
 			
 			// variables

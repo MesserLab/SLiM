@@ -58,6 +58,7 @@ const std::string gStr_distributionParams = "distributionParams";
 const std::string gStr_dominanceCoeff = "dominanceCoeff";
 const std::string gStr_start = "start";
 const std::string gStr_end = "end";
+const std::string gStr_type = "type";
 const std::string gStr_source = "source";
 const std::string gStr_active = "active";
 const std::string gStr_chromosome = "chromosome";
@@ -76,6 +77,7 @@ const std::string gStr_immigrantSubpopIDs = "immigrantSubpopIDs";
 const std::string gStr_immigrantSubpopFractions = "immigrantSubpopFractions";
 const std::string gStr_selfingFraction = "selfingFraction";
 const std::string gStr_sexRatio = "sexRatio";
+const std::string gStr_individualCount = "individualCount";
 const std::string gStr_fixationTime = "fixationTime";
 
 // mostly method names
@@ -197,6 +199,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeff, gID_dominanceCoeff);
 		Eidos_RegisterStringForGlobalID(gStr_start, gID_start);
 		Eidos_RegisterStringForGlobalID(gStr_end, gID_end);
+		Eidos_RegisterStringForGlobalID(gStr_type, gID_type);
 		Eidos_RegisterStringForGlobalID(gStr_source, gID_source);
 		Eidos_RegisterStringForGlobalID(gStr_active, gID_active);
 		Eidos_RegisterStringForGlobalID(gStr_chromosome, gID_chromosome);
@@ -215,6 +218,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_immigrantSubpopFractions, gID_immigrantSubpopFractions);
 		Eidos_RegisterStringForGlobalID(gStr_selfingFraction, gID_selfingFraction);
 		Eidos_RegisterStringForGlobalID(gStr_sexRatio, gID_sexRatio);
+		Eidos_RegisterStringForGlobalID(gStr_individualCount, gID_individualCount);
 		Eidos_RegisterStringForGlobalID(gStr_fixationTime, gID_fixationTime);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);

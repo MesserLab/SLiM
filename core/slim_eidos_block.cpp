@@ -29,7 +29,7 @@ SLiMEidosScript::~SLiMEidosScript(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0);
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
 	while (current_token_type_ != EidosTokenType::kTokenEOF)
@@ -48,7 +48,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0);
 	EidosASTNode *slim_script_block_node = new EidosASTNode(virtual_token, true);
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
@@ -429,18 +429,18 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 	{
 		const std::string &token_string = p_scan_node->token_->token_string_;
 		
-		if (token_string.compare(gStr_executeLambda) == 0)		contains_wildcard_ = true;
-		if (token_string.compare(gStr_globals) == 0)			contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_executeLambda) == 0)		contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_globals) == 0)			contains_wildcard_ = true;
 		
 		// ***** If a new flag is added here, it must also be added to the list in SLiMEidosBlock::ScanTree!
 		
-		if (token_string.compare(gStr_T) == 0)					eidos_contains_.contains_T_ = true;
-		if (token_string.compare(gStr_F) == 0)					eidos_contains_.contains_F_ = true;
-		if (token_string.compare(gStr_NULL) == 0)				eidos_contains_.contains_NULL_ = true;
-		if (token_string.compare(gStr_PI) == 0)					eidos_contains_.contains_PI_ = true;
-		if (token_string.compare(gStr_E) == 0)					eidos_contains_.contains_E_ = true;
-		if (token_string.compare(gStr_INF) == 0)				eidos_contains_.contains_INF_ = true;
-		if (token_string.compare(gStr_NAN) == 0)				eidos_contains_.contains_NAN_ = true;
+		if (token_string.compare(gEidosStr_T) == 0)					eidos_contains_.contains_T_ = true;
+		if (token_string.compare(gEidosStr_F) == 0)					eidos_contains_.contains_F_ = true;
+		if (token_string.compare(gEidosStr_NULL) == 0)				eidos_contains_.contains_NULL_ = true;
+		if (token_string.compare(gEidosStr_PI) == 0)					eidos_contains_.contains_PI_ = true;
+		if (token_string.compare(gEidosStr_E) == 0)					eidos_contains_.contains_E_ = true;
+		if (token_string.compare(gEidosStr_INF) == 0)				eidos_contains_.contains_INF_ = true;
+		if (token_string.compare(gEidosStr_NAN) == 0)				eidos_contains_.contains_NAN_ = true;
 		
 		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
 		if (token_string.length() >= 2)

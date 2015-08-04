@@ -888,7 +888,7 @@ using std::string;
 		
 		EidosGlobalStringID identifier_id = EidosGlobalStringIDForString(identifier_name);
 		
-		if (identifier_id == gID_none)
+		if (identifier_id == gEidosID_none)
 			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
 		
 		EidosValue *property_value = ((EidosValue_Object *)key_path_value)->GetRepresentativeValueOrNullForPropertyOfElements(identifier_id);

@@ -133,6 +133,7 @@ extern const std::string gStr_distributionParams;
 extern const std::string gStr_dominanceCoeff;
 extern const std::string gStr_start;
 extern const std::string gStr_end;
+extern const std::string gStr_type;
 extern const std::string gStr_source;
 extern const std::string gStr_active;
 extern const std::string gStr_chromosome;
@@ -153,6 +154,7 @@ extern const std::string gStr_immigrantSubpopIDs;
 extern const std::string gStr_immigrantSubpopFractions;
 extern const std::string gStr_selfingFraction;
 extern const std::string gStr_sexRatio;
+extern const std::string gStr_individualCount;
 extern const std::string gStr_mutationType;
 extern const std::string gStr_position;
 extern const std::string gStr_selectionCoeff;
@@ -231,7 +233,7 @@ extern const std::string gStr_modifyChild;
 
 
 enum _SLiMGlobalStringID : int {
-	gID_initializeGenomicElement = gID_LastEidosEntry + 1,
+	gID_initializeGenomicElement = gEidosID_LastEntry + 1,
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeGeneConversion,
@@ -265,6 +267,7 @@ enum _SLiMGlobalStringID : int {
 	gID_dominanceCoeff,
 	gID_start,
 	gID_end,
+	gID_type,
 	gID_source,
 	gID_active,
 	gID_chromosome,
@@ -283,6 +286,7 @@ enum _SLiMGlobalStringID : int {
 	gID_immigrantSubpopFractions,
 	gID_selfingFraction,
 	gID_sexRatio,
+	gID_individualCount,
 	gID_fixationTime,
 	gID_setRecombinationRate,
 	gID_addMutations,

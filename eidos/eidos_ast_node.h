@@ -42,7 +42,7 @@ public:
 	mutable EidosValue *cached_value_ = nullptr;				// an optional pre-cached EidosValue representing the node
 	mutable bool cached_value_is_owned_ = false;				// if T, this node owns its own cached_value_; if F, a descendant node owns it
 	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
-	mutable EidosGlobalStringID cached_stringID = gID_none;			// a pre-cached identifier for the token string, for fast property/method lookup
+	mutable EidosGlobalStringID cached_stringID = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	
 	EidosASTNode(const EidosASTNode&) = delete;					// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;		// no copying

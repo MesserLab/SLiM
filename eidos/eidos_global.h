@@ -107,71 +107,69 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 void Eidos_RegisterGlobalStringsAndIDs(void);
 
 
-extern const std::string gStr_empty_string;
-extern const std::string gStr_space_string;
+extern const std::string gEidosStr_empty_string;
+extern const std::string gEidosStr_space_string;
 
-extern const std::string gStr_function;
-extern const std::string gStr_method;
-extern const std::string gStr_executeLambda;
-extern const std::string gStr_globals;
+extern const std::string gEidosStr_function;
+extern const std::string gEidosStr_method;
+extern const std::string gEidosStr_executeLambda;
+extern const std::string gEidosStr_globals;
 
-extern const std::string gStr_if;
-extern const std::string gStr_else;
-extern const std::string gStr_do;
-extern const std::string gStr_while;
-extern const std::string gStr_for;
-extern const std::string gStr_in;
-extern const std::string gStr_next;
-extern const std::string gStr_break;
-extern const std::string gStr_return;
+extern const std::string gEidosStr_if;
+extern const std::string gEidosStr_else;
+extern const std::string gEidosStr_do;
+extern const std::string gEidosStr_while;
+extern const std::string gEidosStr_for;
+extern const std::string gEidosStr_in;
+extern const std::string gEidosStr_next;
+extern const std::string gEidosStr_break;
+extern const std::string gEidosStr_return;
 
-extern const std::string gStr_T;
-extern const std::string gStr_F;
-extern const std::string gStr_NULL;
-extern const std::string gStr_PI;
-extern const std::string gStr_E;
-extern const std::string gStr_INF;
-extern const std::string gStr_NAN;
+extern const std::string gEidosStr_T;
+extern const std::string gEidosStr_F;
+extern const std::string gEidosStr_NULL;
+extern const std::string gEidosStr_PI;
+extern const std::string gEidosStr_E;
+extern const std::string gEidosStr_INF;
+extern const std::string gEidosStr_NAN;
 
-extern const std::string gStr_void;
-extern const std::string gStr_logical;
-extern const std::string gStr_string;
-extern const std::string gStr_integer;
-extern const std::string gStr_float;
-extern const std::string gStr_object;
-extern const std::string gStr_numeric;
+extern const std::string gEidosStr_void;
+extern const std::string gEidosStr_logical;
+extern const std::string gEidosStr_string;
+extern const std::string gEidosStr_integer;
+extern const std::string gEidosStr_float;
+extern const std::string gEidosStr_object;
+extern const std::string gEidosStr_numeric;
 
-extern const std::string gStr_size;
-extern const std::string gStr_type;
-extern const std::string gStr_property;
-extern const std::string gStr_str;
+extern const std::string gEidosStr_size;
+extern const std::string gEidosStr_property;
+extern const std::string gEidosStr_str;
 
-extern const std::string gStr_GetPropertyOfElements;
-extern const std::string gStr_ExecuteMethod;
-extern const std::string gStr_lessThanSign;
-extern const std::string gStr_greaterThanSign;
-extern const std::string gStr_undefined;
+extern const std::string gEidosStr_GetPropertyOfElements;
+extern const std::string gEidosStr_ExecuteMethod;
+extern const std::string gEidosStr_lessThanSign;
+extern const std::string gEidosStr_greaterThanSign;
+extern const std::string gEidosStr_undefined;
 
-extern const std::string gStr__TestElement;
-extern const std::string gStr__yolk;
-extern const std::string gStr__cubicYolk;
+extern const std::string gEidosStr__TestElement;
+extern const std::string gEidosStr__yolk;
+extern const std::string gEidosStr__cubicYolk;
 
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
 // such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
 enum _EidosGlobalStringID : int {
-	gID_none = 0,
-	gID_method,
-	gID_size,
-	gID_type,
-	gID_property,
-	gID_str,
+	gEidosID_none = 0,
+	gEidosID_method,
+	gEidosID_size,
+	gEidosID_property,
+	gEidosID_str,
 	
-	gID__TestElement,
-	gID__yolk,
-	gID__cubicYolk,
+	gEidosID__TestElement,
+	gEidosID__yolk,
+	gEidosID__cubicYolk,
 	
-	gID_LastEidosEntry
+	gEidosID_LastEntry		// IDs added by the Context should start here
 };
 
 

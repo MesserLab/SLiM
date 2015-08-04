@@ -105,10 +105,10 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("c",				EidosFunctionIdentifier::cFunction,				kValueMaskAny))->AddEllipsis());
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_float,			EidosFunctionIdentifier::floatFunction,			kValueMaskFloat))->AddInt_S("length"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_integer,		EidosFunctionIdentifier::integerFunction,		kValueMaskInt))->AddInt_S("length"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_logical,		EidosFunctionIdentifier::logicalFunction,		kValueMaskLogical))->AddInt_S("length"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_object,		EidosFunctionIdentifier::objectFunction,		kValueMaskObject)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_float,	EidosFunctionIdentifier::floatFunction,			kValueMaskFloat))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	EidosFunctionIdentifier::integerFunction,		kValueMaskInt))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	EidosFunctionIdentifier::logicalFunction,		kValueMaskLogical))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	EidosFunctionIdentifier::objectFunction,		kValueMaskObject)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				EidosFunctionIdentifier::repFunction,			kValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			EidosFunctionIdentifier::repEachFunction,		kValueMaskAny))->AddAny("x")->AddInt("count"));
@@ -119,7 +119,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kValueMaskAny))->AddAny("x")->AddInt("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				EidosFunctionIdentifier::seqFunction,			kValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OS("by"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			EidosFunctionIdentifier::seqAlongFunction,		kValueMaskInt))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_string,		EidosFunctionIdentifier::stringFunction,		kValueMaskString))->AddInt_S("length"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_string,	EidosFunctionIdentifier::stringFunction,		kValueMaskString))->AddInt_S("length"));
 		
 		
 		// ************************************************************************************
@@ -135,10 +135,10 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			EidosFunctionIdentifier::pasteFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			EidosFunctionIdentifier::printFunction,			kValueMaskNULL))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				EidosFunctionIdentifier::revFunction,			kValueMaskAny))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_size,			EidosFunctionIdentifier::sizeFunction,			kValueMaskInt | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		EidosFunctionIdentifier::sizeFunction,			kValueMaskInt | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sort",				EidosFunctionIdentifier::sortFunction,			kValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			EidosFunctionIdentifier::sortByFunction,		kValueMaskObject))->AddObject("x", nullptr)->AddString_S("property")->AddLogical_OS("ascending"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_str,			EidosFunctionIdentifier::strFunction,			kValueMaskNULL))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		EidosFunctionIdentifier::strFunction,			kValueMaskNULL))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			EidosFunctionIdentifier::strsplitFunction,		kValueMaskString))->AddString_S("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			EidosFunctionIdentifier::substrFunction,		kValueMaskString))->AddString("x")->AddInt("first")->AddInt_O("last"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			EidosFunctionIdentifier::uniqueFunction,		kValueMaskAny))->AddAny("x"));
@@ -163,7 +163,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isNULL",			EidosFunctionIdentifier::isNULLFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isObject",			EidosFunctionIdentifier::isObjectFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isString",			EidosFunctionIdentifier::isStringFunction,		kValueMaskLogical | kValueMaskSingleton))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_type,			EidosFunctionIdentifier::typeFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("type",				EidosFunctionIdentifier::typeFunction,			kValueMaskString | kValueMaskSingleton))->AddAny("x"));
 		
 		
 		// ************************************************************************************
@@ -174,7 +174,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kValueMaskString | kValueMaskSingleton)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("executeLambda",	EidosFunctionIdentifier::executeLambdaFunction,	kValueMaskAny))->AddString_S("lambdaSource"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kValueMaskNULL))->AddString_OS("functionName"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_globals,		EidosFunctionIdentifier::globalsFunction,		kValueMaskNULL)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_globals,	EidosFunctionIdentifier::globalsFunction,		kValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kValueMaskNULL))->AddString_OS("topic"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kValueMaskNULL))->AddString_O("variableNames"));
@@ -200,7 +200,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",	EidosFunctionIdentifier::_TestFunction,			kValueMaskObject | kValueMaskSingleton, &gStr__TestElement))->AddInt_S("yolk"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",	EidosFunctionIdentifier::_TestFunction,			kValueMaskObject | kValueMaskSingleton, &gEidosStr__TestElement))->AddInt_S("yolk"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -1717,7 +1717,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::stringFunction:
 		{
 			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
-				string_result->PushString(gStr_empty_string);
+				string_result->PushString(gEidosStr_empty_string);
 			break;
 		}
 			
@@ -1762,7 +1762,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::catFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -1823,7 +1823,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark paste
 		case EidosFunctionIdentifier::pasteFunction:
 		{
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
 			string result_string;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1902,7 +1902,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosValue *first_value = arg0_value->GetValueAtIndex(0);
 				EidosValue *second_value = arg0_value->GetValueAtIndex(1);
 				
-				output_stream << *first_value << gStr_space_string << *second_value << " ... (" << arg0_count << " values)" << endl;
+				output_stream << *first_value << gEidosStr_space_string << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
 				if (first_value->IsTemporary()) delete first_value;
 				if (second_value->IsTemporary()) delete second_value;
@@ -1914,7 +1914,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::strsplitFunction:
 		{
 			string joined_string = arg0_value->StringAtIndex(0);
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
 			string::size_type start_idx = 0, sep_idx;
 			
 			while (true)
@@ -1971,7 +1971,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (clamped_last >= len) clamped_last = (int)len - 1;
 					
 					if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
-						string_result->PushString(gStr_empty_string);
+						string_result->PushString(gEidosStr_empty_string);
 					else
 						string_result->PushString(str.substr(clamped_first, clamped_last - clamped_first + 1));
 				}
@@ -1988,7 +1988,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (clamped_first < 0) clamped_first = 0;
 					
 					if (clamped_first >= len)						
-						string_result->PushString(gStr_empty_string);
+						string_result->PushString(gEidosStr_empty_string);
 					else
 						string_result->PushString(str.substr(clamped_first, len));
 				}
@@ -2530,7 +2530,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::functionFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : gStr_empty_string);
+			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : gEidosStr_empty_string);
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order

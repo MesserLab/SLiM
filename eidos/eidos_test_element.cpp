@@ -48,7 +48,7 @@ Eidos_TestElement::Eidos_TestElement(int64_t p_value) : yolk_(p_value)
 
 const std::string *Eidos_TestElement::ElementType(void) const
 {
-	return &gStr__TestElement;
+	return &gEidosStr__TestElement;
 }
 
 const std::vector<const EidosPropertySignature *> *Eidos_TestElement::Properties(void) const
@@ -58,7 +58,7 @@ const std::vector<const EidosPropertySignature *> *Eidos_TestElement::Properties
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
-		properties->push_back(SignatureForProperty(gID__yolk));
+		properties->push_back(SignatureForProperty(gEidosID__yolk));
 	}
 	
 	return properties;
@@ -71,13 +71,13 @@ const EidosPropertySignature *Eidos_TestElement::SignatureForProperty(EidosGloba
 	
 	if (!yolkSig)
 	{
-		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr__yolk,	gID__yolk,	false,	kValueMaskInt | kValueMaskSingleton));
+		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,	gEidosID__yolk,	false,	kValueMaskInt | kValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID__yolk:	return yolkSig;
+		case gEidosID__yolk:	return yolkSig;
 			
 			// all others, including gID_none
 		default:
@@ -87,7 +87,7 @@ const EidosPropertySignature *Eidos_TestElement::SignatureForProperty(EidosGloba
 
 EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
-	if (p_property_id == gID__yolk)
+	if (p_property_id == gEidosID__yolk)
 		return new EidosValue_Int_singleton_const(yolk_);
 	
 	// all others, including gID_none
@@ -97,7 +97,7 @@ EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 
 void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	if (p_property_id == gID__yolk)
+	if (p_property_id == gEidosID__yolk)
 	{
 		yolk_ = p_value->IntAtIndex(0);
 		return;
@@ -115,7 +115,7 @@ const std::vector<const EidosMethodSignature *> *Eidos_TestElement::Methods(void
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
-		methods->push_back(SignatureForMethod(gID__cubicYolk));
+		methods->push_back(SignatureForMethod(gEidosID__cubicYolk));
 	}
 	
 	return methods;
@@ -128,13 +128,13 @@ const EidosMethodSignature *Eidos_TestElement::SignatureForMethod(EidosGlobalStr
 	
 	if (!cubicYolkSig)
 	{
-		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__cubicYolk, kValueMaskInt | kValueMaskSingleton));
+		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kValueMaskInt | kValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID__cubicYolk:
+		case gEidosID__cubicYolk:
 			return cubicYolkSig;
 			
 			// all others, including gID_none
@@ -148,7 +148,7 @@ EidosValue *Eidos_TestElement::ExecuteMethod(EidosGlobalStringID p_method_id, Ei
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID__cubicYolk:
+		case gEidosID__cubicYolk:
 		{
 			return new EidosValue_Int_singleton_const(yolk_ * yolk_ * yolk_);
 		}

@@ -280,7 +280,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 	if (arg_mask_count == 0)
 	{
 		if (!p_signature.has_ellipsis_)
-			p_outstream << gStr_void;
+			p_outstream << gEidosStr_void;
 	}
 	else
 	{
