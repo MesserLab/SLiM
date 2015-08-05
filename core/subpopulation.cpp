@@ -1247,7 +1247,7 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			double selfing_fraction = arg0_value->FloatAtIndex(0);
 			
 			if ((selfing_fraction != 0.0) && sex_enabled_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be enabled in sexual simulations." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
 			
 			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() requires a selfing fraction within [0,1]." << eidos_terminate();
@@ -1269,6 +1269,10 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() called when the child generation was valid" << eidos_terminate();
+			
+			// SEX ONLY
+			if (!sex_enabled_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << eidos_terminate();
 			
 			double sex_ratio = arg0_value->FloatAtIndex(0);
 			
