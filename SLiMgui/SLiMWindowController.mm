@@ -32,6 +32,7 @@
 #import "ScriptMod_SplitSubpop.h"
 #import "ScriptMod_ChangeMigration.h"
 #import "ScriptMod_ChangeSelfing.h"
+#import "ScriptMod_ChangeCloning.h"
 #import "ScriptMod_ChangeSexRatio.h"
 #import "ScriptMod_OutputFullPopulation.h"
 #import "ScriptMod_OutputSubpopSample.h"
@@ -40,11 +41,13 @@
 #import "ScriptMod_AddGenomicElementType.h"
 #import "ScriptMod_AddGenomicElement.h"
 #import "ScriptMod_AddRecombinationRate.h"
+#import "ScriptMod_AddSexConfiguration.h"
 
 #include <iostream>
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
+
 
 static NSString *defaultScriptString = @"// set up a simple neutral simulation\n"
 										"initialize() {\n"
@@ -621,6 +624,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(buttonChangeSelfingRates:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
+	if (sel == @selector(buttonChangeCloningRates:))
+		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(buttonChangeSexRatio:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
@@ -631,6 +636,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	if (sel == @selector(addGenomicElementToChromosome:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	if (sel == @selector(addRecombinationInterval:))
+		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
+	if (sel == @selector(addSexConfiguration:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 
 	if (sel == @selector(outputFullPopulationState:))
@@ -719,6 +726,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[ScriptMod_ChangeSelfing runWithController:self];
 }
 
+- (IBAction)buttonChangeCloningRates:(id)sender
+{
+	[ScriptMod_ChangeCloning runWithController:self];
+}
+
 - (IBAction)buttonChangeSexRatio:(id)sender
 {
 	[ScriptMod_ChangeSexRatio runWithController:self];
@@ -742,6 +754,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (IBAction)addRecombinationInterval:(id)sender
 {
 	[ScriptMod_AddRecombinationRate runWithController:self];
+}
+
+- (IBAction)addSexConfiguration:(id)sender
+{
+	[ScriptMod_AddSexConfiguration runWithController:self];
 }
 
 - (IBAction)outputFullPopulationState:(id)sender

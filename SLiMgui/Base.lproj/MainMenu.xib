@@ -298,6 +298,12 @@
                                     <action selector="buttonChangeSelfingRates:" target="-1" id="6RG-Bl-teN"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Change Cloning Rate..." id="xfS-6F-38J">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="buttonChangeCloningRates:" target="-1" id="jMi-1t-tOr"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Change Sex Ratio..." id="YJ3-cR-7cB">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -327,6 +333,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="addRecombinationInterval:" target="-1" id="fuX-Ht-eRx"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Add Sex Configuration..." id="1I4-t1-bBA">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="addSexConfiguration:" target="-1" id="XTx-NL-9ZY"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="J48-9s-tbA"/>

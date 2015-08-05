@@ -167,12 +167,14 @@
 - (IBAction)buttonSplitSubpop:(id)sender;
 - (IBAction)buttonChangeMigrationRates:(id)sender;
 - (IBAction)buttonChangeSelfingRates:(id)sender;
+- (IBAction)buttonChangeCloningRates:(id)sender;
 - (IBAction)buttonChangeSexRatio:(id)sender;
 
 - (IBAction)addMutationType:(id)sender;
 - (IBAction)addGenomicElementType:(id)sender;
 - (IBAction)addGenomicElementToChromosome:(id)sender;
 - (IBAction)addRecombinationInterval:(id)sender;
+- (IBAction)addSexConfiguration:(id)sender;
 
 - (IBAction)outputFullPopulationState:(id)sender;
 - (IBAction)outputPopulationSample:(id)sender;

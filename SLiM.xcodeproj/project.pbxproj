@@ -38,6 +38,11 @@
 		98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F551A76004300C058CB /* show_recombination.pdf */; };
 		98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F601A76041200C058CB /* edit_submenu_H.pdf */; };
 		98453F631A76041200C058CB /* edit_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F611A76041200C058CB /* edit_submenu.pdf */; };
+		985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985301EB1B72582E001520DF /* change_cloning_rate.pdf */; };
+		985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */; };
+		985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */; };
+		985301F51B726817001520DF /* ScriptMod_AddSexConfiguration.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F31B726817001520DF /* ScriptMod_AddSexConfiguration.xib */; };
+		985301F81B726843001520DF /* ScriptMod_AddSexConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301F71B726843001520DF /* ScriptMod_AddSexConfiguration.mm */; };
 		9857249C1AD08A810047C223 /* eidos_interpreter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9857249A1AD08A810047C223 /* eidos_interpreter.cpp */; };
 		9857249D1AD08A810047C223 /* eidos_interpreter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9857249A1AD08A810047C223 /* eidos_interpreter.cpp */; };
 		985724A11AD34B740047C223 /* eidos_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9857249F1AD34B740047C223 /* eidos_functions.cpp */; };
@@ -306,6 +311,13 @@
 		98453F551A76004300C058CB /* show_recombination.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_recombination.pdf; sourceTree = "<group>"; };
 		98453F601A76041200C058CB /* edit_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = edit_submenu_H.pdf; sourceTree = "<group>"; };
 		98453F611A76041200C058CB /* edit_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = edit_submenu.pdf; sourceTree = "<group>"; };
+		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
+		985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeCloning.h; sourceTree = "<group>"; };
+		985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeCloning.mm; sourceTree = "<group>"; };
+		985301F11B7262E5001520DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_ChangeCloning.xib; sourceTree = "<group>"; };
+		985301F41B726817001520DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ScriptMod_AddSexConfiguration.xib; sourceTree = "<group>"; };
+		985301F61B726843001520DF /* ScriptMod_AddSexConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_AddSexConfiguration.h; sourceTree = "<group>"; };
+		985301F71B726843001520DF /* ScriptMod_AddSexConfiguration.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_AddSexConfiguration.mm; sourceTree = "<group>"; };
 		9857249A1AD08A810047C223 /* eidos_interpreter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_interpreter.cpp; sourceTree = "<group>"; };
 		9857249B1AD08A810047C223 /* eidos_interpreter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_interpreter.h; sourceTree = "<group>"; };
 		9857249F1AD34B740047C223 /* eidos_functions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_functions.cpp; sourceTree = "<group>"; };
@@ -495,6 +507,9 @@
 				9821E2201ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.h */,
 				9821E2211ABE27EF0036EAEA /* ScriptMod_ChangeSelfing.mm */,
 				9821E21D1ABE27CE0036EAEA /* ScriptMod_ChangeSelfing.xib */,
+				985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */,
+				985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */,
+				985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */,
 				9821E2231ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.h */,
 				9821E2241ABE2ACA0036EAEA /* ScriptMod_ChangeSexRatio.mm */,
 				9821E2261ABE2AE20036EAEA /* ScriptMod_ChangeSexRatio.xib */,
@@ -519,6 +534,9 @@
 				9821E2531ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.h */,
 				9821E2541ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.mm */,
 				9821E2561ABF50D20036EAEA /* ScriptMod_AddRecombinationRate.xib */,
+				985301F61B726843001520DF /* ScriptMod_AddSexConfiguration.h */,
+				985301F71B726843001520DF /* ScriptMod_AddSexConfiguration.mm */,
+				985301F31B726817001520DF /* ScriptMod_AddSexConfiguration.xib */,
 			);
 			name = ScriptMod;
 			sourceTree = "<group>";
@@ -769,6 +787,7 @@
 				98D4C1FB1A700DC100FFB083 /* recycle_H.pdf */,
 				98D4C1F11A6FEEAB00FFB083 /* change_migration.pdf */,
 				98D4C1E71A6FDE6E00FFB083 /* change_selfing_ratio.pdf */,
+				985301EB1B72582E001520DF /* change_cloning_rate.pdf */,
 				98D4C1E51A6FD8D600FFB083 /* change_sex_ratio.pdf */,
 				98D4C1E91A6FE7FC00FFB083 /* change_size.pdf */,
 				98D4C1EB1A6FEAB500FFB083 /* add_subpop.pdf */,
@@ -929,6 +948,7 @@
 				987AD8741B2CBDA70035D6C8 /* show_console_H.pdf in Resources */,
 				98D4C1C01A6F537B00FFB083 /* MainMenu.xib in Resources */,
 				987AD8811B2CBE5B0035D6C8 /* show_execution.pdf in Resources */,
+				985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */,
 				98DE4C1F1B713F2C004FDF5F /* ScriptMod_SplitSubpop.xib in Resources */,
 				98453F481A75E80F00C058CB /* ScriptSyntaxHelp.txt in Resources */,
 				98D4C1F01A6FED4000FFB083 /* split_subpop.pdf in Resources */,
@@ -949,6 +969,8 @@
 				987AD87C1B2CBE4B0035D6C8 /* show_parse_H.pdf in Resources */,
 				987AD8771B2CBE050035D6C8 /* show_browser.pdf in Resources */,
 				98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */,
+				985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */,
+				985301F51B726817001520DF /* ScriptMod_AddSexConfiguration.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
 				98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */,
@@ -1075,6 +1097,8 @@
 				986926E21AA3DD6C0000E138 /* GraphView_MutationLossTimeHistogram.mm in Sources */,
 				98DE4C2E1B713F61004FDF5F /* ScriptMod_AddGenomicElementType.mm in Sources */,
 				98DE4C2C1B713F5A004FDF5F /* ScriptMod_AddMutationType.mm in Sources */,
+				985301F81B726843001520DF /* ScriptMod_AddSexConfiguration.mm in Sources */,
+				985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */,
 				98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */,
 				98DE4C181B713F0C004FDF5F /* ScriptMod_ChangeSubpopSize.mm in Sources */,
 				98DE4C2A1B713F52004FDF5F /* ScriptMod_OutputFixedMutations.mm in Sources */,
@@ -1260,6 +1284,22 @@
 				98453F4A1A75E83600C058CB /* Base */,
 			);
 			name = ScriptSyntaxHelp.xib;
+			sourceTree = "<group>";
+		};
+		985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				985301F11B7262E5001520DF /* Base */,
+			);
+			name = ScriptMod_ChangeCloning.xib;
+			sourceTree = "<group>";
+		};
+		985301F31B726817001520DF /* ScriptMod_AddSexConfiguration.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				985301F41B726817001520DF /* Base */,
+			);
+			name = ScriptMod_AddSexConfiguration.xib;
 			sourceTree = "<group>";
 		};
 		985724BA1AD478630047C223 /* MainMenu.xib */ = {
