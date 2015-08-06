@@ -146,7 +146,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawParentUsingFitness(
 {
 #if DEBUG
 	if (sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawIndividual() called on a population for which sex is enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawParentUsingFitness() called on a population for which sex is enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_parent_));
@@ -156,7 +156,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawParentEqualProbabil
 {
 #if DEBUG
 	if (sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawIndividualEqualProbability() called on a population for which sex is enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawParentEqualProbability() called on a population for which sex is enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(gEidos_rng, parent_subpop_size_));
@@ -167,7 +167,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawFemaleParentUsingFi
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawFemale() called on a population for which sex is not enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawFemaleParentUsingFitness() called on a population for which sex is not enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_female_parent_));
@@ -178,7 +178,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawFemaleParentEqualPr
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawFemaleEqualProbability() called on a population for which sex is not enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawFemaleParentEqualProbability() called on a population for which sex is not enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(gEidos_rng, parent_first_male_index_));
@@ -189,7 +189,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawMaleParentUsingFitn
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawMale() called on a population for which sex is not enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawMaleParentUsingFitness() called on a population for which sex is not enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_male_parent_)) + parent_first_male_index_;
@@ -200,7 +200,7 @@ inline __attribute__((always_inline)) int Subpopulation::DrawMaleParentEqualProb
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "Subpopulation::DrawMaleEqualProbability() called on a population for which sex is not enabled" << eidos_terminate();
+		EIDOS_TERMINATION << "Subpopulation::DrawMaleParentEqualProbability() called on a population for which sex is not enabled" << eidos_terminate();
 #endif
 	
 	return static_cast<int>(gsl_rng_uniform_int(gEidos_rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);

@@ -588,7 +588,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			{
 				Subpopulation &source_subpop = *(migration_sources[pop_count]);
 				int subpop_id = source_subpop.subpopulation_id_;
-				double selfing_fraction = sex_enabled ? source_subpop.selfing_fraction_ : 0.0;
+				double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
 				double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
 				
 				// figure out how many from this source subpop are the result of selfing and/or cloning
@@ -628,8 +628,8 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 					// a simple loop for the base case with no selfing, no cloning, and no callbacks
 					while (migrant_count < migrants_to_generate)
 					{
-						int parent1 = source_subpop.DrawParentUsingFitness();
-						int parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+						int parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+						int parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
@@ -645,11 +645,12 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 					while (migrant_count < migrants_to_generate)
 					{
 						bool selfed = false, cloned = false;
-						int parent1 = source_subpop.DrawParentUsingFitness(), parent2;
+						int parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+						int parent2;
 						
 						if (number_to_self > 0)				parent2 = parent1, selfed = true;
 						else if (number_to_clone > 0)		parent2 = parent1, cloned = true;
-						else if (!mate_choice_callbacks)	parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+						else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
 						else
 						{
 							while (true)	// loop while parent2 == -1, indicating a request for a new first parent
@@ -659,7 +660,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 								if (parent2 != -1)
 									break;
 								
-								parent1 = source_subpop.DrawParentUsingFitness();
+								parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
 							}
 						}
 						

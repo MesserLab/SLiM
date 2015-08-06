@@ -163,7 +163,7 @@ population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(t
 	double *fitness_buffer_ptr = cached_parental_fitness_;
 	double *male_buffer_ptr = cached_male_fitness_;
 	
-	for (int i = 0; i < parent_subpop_size_; i++)
+	for (int i = 0; i < parent_first_male_index_; i++)
 	{
 		*(fitness_buffer_ptr++) = 1.0;
 		*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
