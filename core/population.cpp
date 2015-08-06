@@ -645,33 +645,41 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 					while (migrant_count < migrants_to_generate)
 					{
 						bool selfed = false, cloned = false;
-						int parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
-						int parent2;
+						int parent1, parent2;
 						
-						if (number_to_self > 0)				parent2 = parent1, selfed = true;
-						else if (number_to_clone > 0)		parent2 = parent1, cloned = true;
-						else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
-						else
+						if (number_to_clone > 0)
 						{
-							while (true)	// loop while parent2 == -1, indicating a request for a new first parent
-							{
-								parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, *mate_choice_callbacks);
-								
-								if (parent2 != -1)
-									break;
-								
-								parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
-							}
-						}
-						
-						// recombination, gene-conversion, mutation
-						if (cloned)
-						{
+							if (sex_enabled)
+								parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
+							else
+								parent1 = source_subpop.DrawParentUsingFitness();
+							
+							parent2 = parent1;
+							cloned = true;
+							
 							DoClonalMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
 							DoClonalMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 						}
 						else
 						{
+							parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+							
+							if (number_to_self > 0)				parent2 = parent1, selfed = true;
+							else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+							else
+							{
+								while (true)	// loop while parent2 == -1, indicating a request for a new first parent
+								{
+									parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, *mate_choice_callbacks);
+									
+									if (parent2 != -1)
+										break;
+									
+									parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+								}
+							}
+							
+							// recombination, gene-conversion, mutation
 							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
 						}
