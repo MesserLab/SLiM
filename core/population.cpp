@@ -564,7 +564,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << eidos_terminate();
 	}
 	
-	// Mow we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
+	// Now we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
 	// males second (sex_index == 1).  In nonsexual simulations number_of_sexes == 1 and this loops just once.
 	int child_count = 0;	// counter over all subpop_size_ children
 	
@@ -675,6 +675,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 									if (parent2 != -1)
 										break;
 									
+									// parent1 was rejected by the callbacks, so we need to redraw a new parent1
 									parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
 								}
 							}
@@ -688,7 +689,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 							if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &subpop, &source_subpop, *modify_child_callbacks))
 								continue;
 						
-						// if the child was accepted, change all our counters; can't be done before the modifyChild() callback!
+						// if the child was accepted, change all our counters; can't be done before the modifyChild() callback since it might reject the child!
 						if (cloned)
 							--number_to_clone;
 						else if (selfed)
