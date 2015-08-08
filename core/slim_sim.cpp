@@ -789,6 +789,16 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		genomic_element_types_.insert(std::pair<const int,GenomicElementType*>(map_identifier, new_genomic_element_type));
 		genomic_element_types_changed_ = true;
 		
+		// define a new Eidos variable to refer to the new genomic element type
+		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+		EidosSymbolTableEntry *symbol_entry = new_genomic_element_type->CachedSymbolTableEntry();
+		const string &symbol_name = symbol_entry->first;
+		EidosValue *symbol_value = symbol_entry->second;
+		
+		if (symbols.GetValueOrNullForSymbol(symbol_name))
+			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): symbol " << symbol_name << " was already defined prior to its definition by initializeGenomicElementType()." << eidos_terminate();
+		symbols.SetValueForSymbol(symbol_name, symbol_value);
+		
 		if (DEBUG_INPUT)
 		{
 			output_stream << "initializeGenomicElementType(" << map_identifier;
@@ -847,6 +857,16 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		mutation_types_.insert(std::pair<const int,MutationType*>(map_identifier, new_mutation_type));
 		mutation_types_changed_ = true;
+		
+		// define a new Eidos variable to refer to the new mutation type
+		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+		EidosSymbolTableEntry *symbol_entry = new_mutation_type->CachedSymbolTableEntry();
+		const string &symbol_name = symbol_entry->first;
+		EidosValue *symbol_value = symbol_entry->second;
+		
+		if (symbols.GetValueOrNullForSymbol(symbol_name))
+			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): symbol " << symbol_name << " was already defined prior to its definition by initializeMutationType()." << eidos_terminate();
+		symbols.SetValueForSymbol(symbol_name, symbol_value);
 		
 		if (DEBUG_INPUT)
 		{
@@ -1512,13 +1532,27 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 		case gID_addSubpop:
 		{
 			int subpop_id = (int)arg0_value->IntAtIndex(0);
+			
+			if (subpop_id < 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): addSubpop() requires an id >= 0." << endl << eidos_terminate();
+			
 			int subpop_size = (int)arg1_value->IntAtIndex(0);
 			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
 			
-			return new_subpop->CachedSymbolTableEntry()->second;
+			// define a new Eidos variable to refer to the new subpopulation
+			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
+			const string &symbol_name = symbol_entry->first;
+			EidosValue *symbol_value = symbol_entry->second;
+			
+			if (symbols.GetValueOrNullForSymbol(symbol_name))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): symbol " << symbol_name << " was already defined prior to its definition by addSubpop()." << eidos_terminate();
+			symbols.SetValueForSymbol(symbol_name, symbol_value);
+			
+			return symbol_value;
 		}
 			
 			
@@ -1530,6 +1564,10 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 		case gID_addSubpopSplit:
 		{
 			int subpop_id = (int)arg0_value->IntAtIndex(0);
+			
+			if (subpop_id < 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): addSubpopSplit() requires an id >= 0." << endl << eidos_terminate();
+			
 			int subpop_size = (int)arg1_value->IntAtIndex(0);
 			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0));
 			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
@@ -1537,7 +1575,17 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
 			
-			return new_subpop->CachedSymbolTableEntry()->second;
+			// define a new Eidos variable to refer to the new subpopulation
+			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
+			const string &symbol_name = symbol_entry->first;
+			EidosValue *symbol_value = symbol_entry->second;
+			
+			if (symbols.GetValueOrNullForSymbol(symbol_name))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): symbol " << symbol_name << " was already defined prior to its definition by addSubpopSplit()." << eidos_terminate();
+			symbols.SetValueForSymbol(symbol_name, symbol_value);
+			
+			return symbol_value;
 		}
 			
 			
@@ -1801,7 +1849,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptEvent() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptEvent() requires an id >= 0 (or -1 or NULL, to indicate no id)." << endl << eidos_terminate();
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
@@ -1811,6 +1859,19 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 			script_blocks_.push_back(script_block);		// takes ownership form us
 			scripts_changed_ = true;
+			
+			if (script_id != -1)
+			{
+				// define a new Eidos variable to refer to the new subpopulation
+				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				const string &symbol_name = symbol_entry->first;
+				EidosValue *symbol_value = symbol_entry->second;
+				
+				if (symbols.GetValueOrNullForSymbol(symbol_name))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): symbol " << symbol_name << " was already defined prior to its definition by registerScriptEvent()." << eidos_terminate();
+				symbols.SetValueForSymbol(symbol_name, symbol_value);
+			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
 		}
@@ -1835,7 +1896,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1 or NULL, to indicate no id)." << endl << eidos_terminate();
 			}
 			
 			if (mut_type_id < 0)
@@ -1859,6 +1920,19 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 			script_blocks_.push_back(script_block);		// takes ownership form us
 			scripts_changed_ = true;
+			
+			if (script_id != -1)
+			{
+				// define a new Eidos variable to refer to the new subpopulation
+				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				const string &symbol_name = symbol_entry->first;
+				EidosValue *symbol_value = symbol_entry->second;
+				
+				if (symbols.GetValueOrNullForSymbol(symbol_name))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): symbol " << symbol_name << " was already defined prior to its definition by registerScriptFitnessCallback()." << eidos_terminate();
+				symbols.SetValueForSymbol(symbol_name, symbol_value);
+			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
 		}
@@ -1885,7 +1959,7 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				script_id = (int)arg0_value->IntAtIndex(0);
 				
 				if (script_id < -1)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an id >= 0 (or -1, or NULL)." << endl << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires an id >= 0 (or -1 or NULL, to indicate no id)." << endl << eidos_terminate();
 			}
 			
 			if (arg2_value && (arg2_value->Type() != EidosValueType::kValueNULL))
@@ -1893,11 +1967,11 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 				subpop_id = (int)arg2_value->IntAtIndex(0);
 				
 				if (subpop_id < -1)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires an subpopID >= 0 (or -1, or NULL)." << endl << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires an subpopID >= 0 (or -1, or NULL)." << endl << eidos_terminate();
 			}
 			
 			if ((start_generation < 0) || (end_generation < 0) || (start_generation > end_generation))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): registerScriptFitnessCallback() requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end, and both values must be >= 0." << endl << eidos_terminate();
 			
 			SLiMEidosBlockType block_type = ((p_method_id == gID_registerScriptMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
@@ -1906,6 +1980,19 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 			script_blocks_.push_back(script_block);		// takes ownership form us
 			scripts_changed_ = true;
+			
+			if (script_id != -1)
+			{
+				// define a new Eidos variable to refer to the new subpopulation
+				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				const string &symbol_name = symbol_entry->first;
+				EidosValue *symbol_value = symbol_entry->second;
+				
+				if (symbols.GetValueOrNullForSymbol(symbol_name))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod): symbol " << symbol_name << " was already defined prior to its definition by " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate();
+				symbols.SetValueForSymbol(symbol_name, symbol_value);
+			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
 		}
