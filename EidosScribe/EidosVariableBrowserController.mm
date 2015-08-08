@@ -140,7 +140,7 @@
 			if (index < readOnlySymbols.size())
 			{
 				const std::string &symbolName = readOnlySymbols[index];
-				EidosValue *symbolValue = symbols->GetValueForSymbol(symbolName);
+				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				
@@ -151,7 +151,7 @@
 			else
 			{
 				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-				EidosValue *symbolValue = symbols->GetValueForSymbol(symbolName);
+				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
 				

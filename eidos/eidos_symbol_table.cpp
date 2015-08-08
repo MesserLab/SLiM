@@ -152,10 +152,11 @@ std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 	return symbol_names;
 }
 
-EidosValue *EidosSymbolTable::GetValueForSymbol(const std::string &p_symbol_name) const
+EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const
 {
 	int key_length = (int)p_symbol_name.length();
 	
+	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
 	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
 		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
@@ -171,7 +172,7 @@ EidosValue *EidosSymbolTable::GetValueForSymbol(const std::string &p_symbol_name
 	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueForSymbol): undefined identifier " << p_symbol_name << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForSymbol): undefined identifier " << p_symbol_name << "." << eidos_terminate();
 	return nullptr;
 }
 
@@ -179,6 +180,7 @@ EidosValue *EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_symbo
 {
 	int key_length = (int)p_symbol_name.length();
 	
+	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
 	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
 	{
 		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
@@ -524,7 +526,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
 		const std::string &symbol_name = *symbol_name_iter;
-		EidosValue *symbol_value = p_symbols.GetValueForSymbol(symbol_name);
+		EidosValue *symbol_value = p_symbols.GetValueOrRaiseForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		

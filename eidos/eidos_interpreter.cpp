@@ -382,7 +382,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 				EIDOS_TERMINATION << "ERROR (_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << eidos_terminate();
 			
 			const std::string &symbol_name = p_parent_node->token_->token_string_;
-			EidosValue *identifier_value = global_symbols_.GetValueForSymbol(symbol_name);
+			EidosValue *identifier_value = global_symbols_.GetValueOrRaiseForSymbol(symbol_name);
 			
 			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
 			// could be one of our const singleton subclasses, for speed.  We almost never change EidosValue instances once
@@ -3024,11 +3024,7 @@ EidosValue *EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (Evaluate_Identifier): internal error (expected 0 children)." << eidos_terminate();
 	
 	const string &identifier_string = p_node->token_->token_string_;
-	EidosValue *result = global_symbols_.GetValueForSymbol(identifier_string);
-	
-	// check result; this should never happen, since GetValueForSymbol should check
-	if (!result)
-		EIDOS_TERMINATION << "ERROR (Evaluate_Identifier): undefined identifier " << identifier_string << "." << eidos_terminate();
+	EidosValue *result = global_symbols_.GetValueOrRaiseForSymbol(identifier_string);	// raises if undefined
 	
 	if (logging_execution_)
 		*execution_log_ << IndentString(--execution_log_indent_) << "Evaluate_Identifier() : return == " << *result << "\n";

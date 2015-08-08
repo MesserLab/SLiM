@@ -87,7 +87,7 @@ public:
 	// symbol access; these are variables defined in the global namespace
 	std::vector<std::string> ReadOnlySymbols(void) const;
 	std::vector<std::string> ReadWriteSymbols(void) const;
-	EidosValue *GetValueForSymbol(const std::string &p_symbol_name) const;
+	EidosValue *GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;
 	EidosValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
 	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
 	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue *p_value);

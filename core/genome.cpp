@@ -451,7 +451,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			EidosValue *sim_value = symbols.GetValueOrRaiseForSymbol(gStr_sim);
 			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
@@ -480,7 +480,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
 			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-			EidosValue *sim_value = symbols.GetValueForSymbol(gStr_sim);
+			EidosValue *sim_value = symbols.GetValueOrRaiseForSymbol(gStr_sim);
 			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
 			
 			insert_sorted_mutation(mutation);
