@@ -453,7 +453,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -483,7 +483,7 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
