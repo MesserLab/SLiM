@@ -21,6 +21,12 @@
 #include "slim_global.h"
 
 
+// a stringstream for SLiM output; see the header for details
+#if defined(EIDOS_TERMINATE_THROWS)
+std::ostringstream gSLiMOut;
+#endif
+
+
 // initialize...() functions defined by SLiMSim
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
 const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";

@@ -33,24 +33,17 @@ extern std::string gEidosContextVersion;
 extern std::string gEidosContextLicense;
 
 
-// If EIDOS_TERMINATE_THROWS is not defined, << eidos_terminate causes a call to exit().  In that mode, output to the
-// main Eidos outstream goes to cout, and error and termination output goes to cerr.  The other mode has EIDOS_TERMINATE_THROWS
-// defined.  In that mode, we use a global ostringstream to capture all output to both the output and error streams.
-// This stream should get emptied out after every call in to Eidos, so a single stream can be safely used by multiple
-// Eidos contexts (as long as we do not multithread).  We also have a special stream for termination messages in that mode,
-// since they need to be reported to the user in a prominent way.
+// If EIDOS_TERMINATE_THROWS is not defined, << eidos_terminate causes a call to exit().  In that mode, output
+// related to termination output goes to cerr.  The other mode has EIDOS_TERMINATE_THROWS defined.  In that mode,
+// we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
+// the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
 #if defined(EIDOS_TERMINATE_THROWS)
 
-extern std::ostringstream gEidosOut;
 extern std::ostringstream gEidosTermination;
-#define EIDOS_OUTSTREAM		(gEidosOut)
-#define EIDOS_ERRSTREAM		(gEidosOut)
 #define EIDOS_TERMINATION	(gEidosTermination)
 
 #else
 
-#define EIDOS_OUTSTREAM		(std::cout)
-#define EIDOS_ERRSTREAM		(std::cerr)
 #define EIDOS_TERMINATION	(std::cerr)
 
 #endif

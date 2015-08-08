@@ -338,7 +338,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 	
 	token_stream_.push_back(eofToken);
 	
-	// if logging of tokens is requested, do that; always to cout, not to EIDOS_OUTSTREAM
+	// if logging of tokens is requested, do that
 	if (gEidosLogTokens)
 	{
 		std::cout << "Tokens : ";
@@ -962,7 +962,7 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	
 	parse_root_ = tree;
 	
-	// if logging of the AST is requested, do that; always to cout, not to EIDOS_OUTSTREAM
+	// if logging of the AST is requested, do that
 	if (gEidosLogAST)
 	{
 		std::cout << "AST : \n";

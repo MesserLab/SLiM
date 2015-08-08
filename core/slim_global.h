@@ -31,6 +31,26 @@
 #include "eidos_global.h"
 
 
+// Output from SLiM can work in one of two ways.  If EIDOS_TERMINATE_THROWS is not defined, orindary output goes to cout,
+// and error output goes to cerr.  The other mode has EIDOS_TERMINATE_THROWS defined.  In that mode, we use a global
+// ostringstream to capture all output to both the output and error streams.  This stream should get emptied out after
+// every SLiM operation, so a single stream can be safely used by multiple SLiM instances (as long as we do not
+// multithread).  Note that Eidos output goes into its own output stream, which SLiM empties into the SLiM output stream.
+// Note also that termination output is handled separately, using EIDOS_TERMINATION.
+#if defined(EIDOS_TERMINATE_THROWS)
+
+extern std::ostringstream gSLiMOut;
+#define SLIM_OUTSTREAM		(gSLiMOut)
+#define SLIM_ERRSTREAM		(gSLiMOut)
+
+#else
+
+#define SLIM_OUTSTREAM		(std::cout)
+#define SLIM_ERRSTREAM		(std::cerr)
+
+#endif
+
+
 // Some maximum values enforced by SLiM, comfortably under INT_MAX for 32-bit ints
 // If one of these things changes to be stored in an int64_t, these limits can be changed
 #define SLIM_MAX_GENERATION		(1000000000)	// generation ranges from 0 (init time) to this

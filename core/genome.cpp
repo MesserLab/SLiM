@@ -97,9 +97,9 @@ Genome::Genome(const Genome &p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		EIDOS_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
+		SLIM_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
 		eidos_print_stacktrace(stderr);
-		EIDOS_ERRSTREAM << "************************************************" << std::endl;
+		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
 	
@@ -143,9 +143,9 @@ Genome& Genome::operator= (const Genome& p_original)
 #ifdef DEBUG
 	if (s_log_copy_and_assign_)
 	{
-		EIDOS_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
+		SLIM_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
 		eidos_print_stacktrace(stderr);
-		EIDOS_ERRSTREAM << "************************************************" << std::endl;
+		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
 	

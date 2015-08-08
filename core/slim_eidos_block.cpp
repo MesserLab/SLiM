@@ -218,7 +218,7 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 	
 	parse_root_ = tree;
 	
-	// if logging of the AST is requested, do that; always to cout, not to EIDOS_OUTSTREAM
+	// if logging of the AST is requested, do that
 	if (gEidosLogAST)
 	{
 		std::cout << "AST : \n";

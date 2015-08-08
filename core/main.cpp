@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			EIDOS_ERRSTREAM << "SLiM version 2.0a3, built " << __DATE__ << " " __TIME__ << std::endl;
+			SLIM_OUTSTREAM << "SLiM version 2.0a3, built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	
 	// announce if we are running a debug build
 #ifdef DEBUG
-	EIDOS_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)
-		EIDOS_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
+		SLIM_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
 	
 	return EXIT_SUCCESS;
 }

@@ -333,7 +333,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)updateOutputTextView
 {
-	std::string &&newOutput = gEidosOut.str();
+	std::string &&newOutput = gSLiMOut.str();
 	
 	if (!newOutput.empty())
 	{
@@ -352,8 +352,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 			[outputTextView scrollRangeToVisible:NSMakeRange([[outputTextView string] length], 0)];
 		
 		// clear any error flags set on the stream and empty out its string so it is ready to receive new output
-		gEidosOut.clear();
-		gEidosOut.str("");
+		gSLiMOut.clear();
+		gSLiMOut.str("");
 	}
 }
 
@@ -1294,21 +1294,21 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	try
 	{
 		// dump the population
-		EIDOS_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(EIDOS_OUTSTREAM);
+		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
+		sim->population_.PrintAll(SLIM_OUTSTREAM);
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like output events 'A' + 'F'
-		EIDOS_OUTSTREAM << std::endl;
-		EIDOS_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
-		EIDOS_OUTSTREAM << "Mutations:" << std::endl;
+		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
+		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
 		for (int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
-			EIDOS_OUTSTREAM << i;	// used to have a +1; switched to zero-based
-			sim->population_.substitutions_[i]->print(EIDOS_OUTSTREAM);
+			SLIM_OUTSTREAM << i;	// used to have a +1; switched to zero-based
+			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
 		}
 		
-		// now send EIDOS_OUTSTREAM to the output textview
+		// now send SLIM_OUTSTREAM to the output textview
 		[self updateOutputTextView];
 	}
 	catch (std::runtime_error err)
@@ -1434,8 +1434,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 								int newGeneration = [generationString intValue];
 								
 								// Mark that we have imported
-								EIDOS_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
-								EIDOS_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
+								SLIM_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
+								SLIM_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
 								hasImported = YES;
 								success = YES;
 								

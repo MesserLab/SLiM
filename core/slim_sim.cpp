@@ -459,7 +459,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_sex_declarations = 0;
 	
 	if (DEBUG_INPUT)
-		EIDOS_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
+		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
 	
 	// execute initialize() callbacks, which should always have a generation of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1);
@@ -500,7 +500,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
 	
 	// emit our start log
-	EIDOS_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
+	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 	
 	// start at the beginning
 	generation_ = time_start_;
@@ -703,6 +703,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	// we only define initialize...() functions; so we must be in an initialize() callback
 	if (generation_ != 0)
@@ -736,7 +737,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
-			EIDOS_OUTSTREAM << "initializeGenomicElement(" << genomic_element_type << ", " << start_position << ", " << end_position << ");" << endl;
+			output_stream << "initializeGenomicElement(" << genomic_element_type << ", " << start_position << ", " << end_position << ");" << endl;
 		
 		num_genomic_elements++;
 	}
@@ -790,12 +791,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		if (DEBUG_INPUT)
 		{
-			EIDOS_OUTSTREAM << "initializeGenomicElementType(" << map_identifier;
+			output_stream << "initializeGenomicElementType(" << map_identifier;
 			
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				EIDOS_OUTSTREAM << ", " << arg1_value->IntAtIndex(mut_type_index) << ", " << arg2_value->FloatAtIndex(mut_type_index);
+				output_stream << ", " << arg1_value->IntAtIndex(mut_type_index) << ", " << arg2_value->FloatAtIndex(mut_type_index);
 			
-			EIDOS_OUTSTREAM << ");" << endl;
+			output_stream << ");" << endl;
 		}
 		
 		num_genomic_element_types++;
@@ -849,12 +850,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		if (DEBUG_INPUT)
 		{
-			EIDOS_OUTSTREAM << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
+			output_stream << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
 			
 			for (double dfe_param : dfe_parameters)
-				EIDOS_OUTSTREAM << ", " << dfe_param;
+				output_stream << ", " << dfe_param;
 			
-			EIDOS_OUTSTREAM << ");" << endl;
+			output_stream << ");" << endl;
 		}
 		
 		num_mutation_types++;
@@ -930,28 +931,28 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			int ratesSize = (int)chromosome_.recombination_rates_.size();
 			int endsSize = (int)chromosome_.recombination_end_positions_.size();
 			
-			EIDOS_OUTSTREAM << "initializeRecombinationRate(";
+			output_stream << "initializeRecombinationRate(";
 			
 			if (ratesSize > 1)
-				EIDOS_OUTSTREAM << "c(";
+				output_stream << "c(";
 			for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
-				EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_rates_[interval_index];
+				output_stream << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_rates_[interval_index];
 			if (ratesSize > 1)
-				EIDOS_OUTSTREAM << ")";
+				output_stream << ")";
 			
 			if (endsSize > 0)
 			{
-				EIDOS_OUTSTREAM << ", ";
+				output_stream << ", ";
 				
 				if (endsSize > 1)
-					EIDOS_OUTSTREAM << "c(";
+					output_stream << "c(";
 				for (int interval_index = 0; interval_index < endsSize; ++interval_index)
-					EIDOS_OUTSTREAM << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_end_positions_[interval_index];
+					output_stream << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_end_positions_[interval_index];
 				if (endsSize > 1)
-					EIDOS_OUTSTREAM << ")";
+					output_stream << ")";
 			}
 			
-			EIDOS_OUTSTREAM << ");" << endl;
+			output_stream << ");" << endl;
 		}
 		
 		num_recombination_rates++;
@@ -980,7 +981,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
 		
 		if (DEBUG_INPUT)
-			EIDOS_OUTSTREAM << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
+			output_stream << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
 		
 		num_gene_conversions++;
 	}
@@ -1004,7 +1005,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		chromosome_.overall_mutation_rate_ = rate;
 		
 		if (DEBUG_INPUT)
-			EIDOS_OUTSTREAM << "initializeMutationRate(" << chromosome_.overall_mutation_rate_ << ");" << endl;
+			output_stream << "initializeMutationRate(" << chromosome_.overall_mutation_rate_ << ");" << endl;
 		
 		num_mutation_rates++;
 	}
@@ -1041,12 +1042,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		if (DEBUG_INPUT)
 		{
-			EIDOS_OUTSTREAM << "initializeSex(\"" << chromosome_type << "\"";
+			output_stream << "initializeSex(\"" << chromosome_type << "\"";
 			
 			if (p_argument_count == 2)
-				EIDOS_OUTSTREAM << ", " << x_chromosome_dominance_coeff_;
+				output_stream << ", " << x_chromosome_dominance_coeff_;
 			
-			EIDOS_OUTSTREAM << ");" << endl;
+			output_stream << ");" << endl;
 		}
 		
 		sex_enabled_ = true;
@@ -1656,15 +1657,17 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 		case gID_outputFixedMutations:
 		{
-			EIDOS_OUTSTREAM << "#OUT: " << generation_ << " F " << endl;
-			EIDOS_OUTSTREAM << "Mutations:" << endl;
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			
+			output_stream << "#OUT: " << generation_ << " F " << endl;
+			output_stream << "Mutations:" << endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
 			for (int i = 0; i < subs.size(); i++)
 			{
-				EIDOS_OUTSTREAM << i;				// used to have a +1; switched to zero-based
-				subs[i]->print(EIDOS_OUTSTREAM);
+				output_stream << i;				// used to have a +1; switched to zero-based
+				subs[i]->print(output_stream);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1680,8 +1683,10 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 		{
 			if (p_argument_count == 0)
 			{
-				EIDOS_OUTSTREAM << "#OUT: " << generation_ << " A" << endl;
-				population_.PrintAll(EIDOS_OUTSTREAM);
+				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+				
+				output_stream << "#OUT: " << generation_ << " A" << endl;
+				population_.PrintAll(output_stream);
 			}
 			else if (p_argument_count == 1)
 			{
@@ -1718,6 +1723,8 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 			
 		case gID_outputMutations:
 		{
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
 			EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;
 			int mutations_count = mutations_object->Count();
@@ -1752,8 +1759,8 @@ EidosValue *SLiMSim::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *
 					// FIXME the format here comes from the old tracked mutations code; what format do we actually want?
 					for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
 					{ 
-						EIDOS_OUTSTREAM << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-						polymorphism_pair.second.print(EIDOS_OUTSTREAM, polymorphism_pair.first, false /* no id */);
+						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
+						polymorphism_pair.second.print(output_stream, polymorphism_pair.first, false /* no id */);
 					}
 				}
 			}

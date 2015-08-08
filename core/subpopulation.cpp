@@ -380,7 +380,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						std::string &&output_string = interpreter.ExecutionOutput();
 						
 						if (!output_string.empty())
-							EIDOS_OUTSTREAM << output_string;
+							SLIM_OUTSTREAM << output_string;
 					}
 				}
 			}
@@ -1374,12 +1374,12 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			
 			SLiMSim &sim = population_.sim_;
 			
-			EIDOS_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
+			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
 			
 			if (sim.SexEnabled())
-				EIDOS_OUTSTREAM << " " << requested_sex;
+				SLIM_OUTSTREAM << " " << requested_sex;
 			
-			EIDOS_OUTSTREAM << endl;
+			SLIM_OUTSTREAM << endl;
 			
 			if (p_method_id == gID_outputSample)
 				population_.PrintSample(subpopulation_id_, sample_size, requested_sex);

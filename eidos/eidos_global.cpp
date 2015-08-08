@@ -43,7 +43,6 @@ int gEidosCharacterStartOfParseError = -1, gEidosCharacterEndOfParseError = -1;
 // define string streams used for output when EIDOS_TERMINATE_THROWS is defined; otherwise, terminates call exit()
 #if defined(EIDOS_TERMINATE_THROWS)
 
-std::ostringstream gEidosOut;
 std::ostringstream gEidosTermination;
 bool gEidosTerminated;
 
@@ -217,12 +216,7 @@ std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminato
 	p_out.flush();
 	
 	if (p_terminator.print_backtrace_)
-	{
-		if (p_out == EIDOS_OUTSTREAM)
-			eidos_print_stacktrace(stdout);
-		else
-			eidos_print_stacktrace(stderr);
-	}
+		eidos_print_stacktrace(stderr);
 	
 #if defined(EIDOS_TERMINATE_THROWS)
 	// In this case, eidos_terminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
