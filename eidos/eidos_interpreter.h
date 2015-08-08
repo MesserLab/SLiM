@@ -80,6 +80,8 @@ public:
 	
 	~EidosInterpreter(void);												// destructor
 	
+	void *context_pointer_ = nullptr;		// a pointer to the Context object that owns this interpreter; what this means and is used for is Context-dependent
+	
 	inline std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
 	
 	void SetShouldLogExecution(bool p_log);

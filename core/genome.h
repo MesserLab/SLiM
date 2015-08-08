@@ -82,7 +82,7 @@ public:
 #endif
 	
 	Genome(void);											// default constructor; gives a non-null genome of type GenomeType::kAutosome
-	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
+	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
 	~Genome(void);
 	
 	void NullGenomeAccessError(void) const;								// prints an error message, a stacktrace, and exits; called only for DEBUG

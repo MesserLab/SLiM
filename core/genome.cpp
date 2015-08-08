@@ -448,11 +448,12 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			double selection_coeff = mut_type->DrawSelectionCoefficient();
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 			
-			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-			EidosValue *sim_value = symbols.GetValueOrRaiseForSymbol(gStr_sim);
-			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
+			// We need to get up to the Population in order to register the new mutation, and we don't have
+			// an up pointer; but we can use the context pointer stored by the interpreter
+			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << endl << eidos_terminate();
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -477,11 +478,12 @@ EidosValue *Genome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *c
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
 			
-			// FIXME hack hack hack what is the right way to get up to the population?  should Genome have an up pointer?
-			// FIXME this is worse now, because sim might not have been put into the symbol table; this needs to be fixed!
-			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-			EidosValue *sim_value = symbols.GetValueOrRaiseForSymbol(gStr_sim);
-			SLiMSim *sim = (SLiMSim *)(sim_value->ObjectElementAtIndex(0));
+			// We need to get up to the Population in order to register the new mutation, and we don't have
+			// an up pointer; but we can use the context pointer stored by the interpreter
+			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod): (internal error) the sim is not registered as the context pointer!" << endl << eidos_terminate();
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);

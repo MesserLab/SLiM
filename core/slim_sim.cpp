@@ -1202,6 +1202,9 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 						global_symbols.ReinitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 		}
 	}
+	
+	// We use the context pointer in EidosInterpreter to point to the sim object
+	p_interpreter.context_pointer_ = this;
 }
 
 const std::string *SLiMSim::ElementType(void) const
