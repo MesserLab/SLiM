@@ -99,6 +99,8 @@
 	IBOutlet NSTableColumn *subpopIDColumn;
 	IBOutlet NSTableColumn *subpopSizeColumn;
 	IBOutlet NSTableColumn *subpopSelfingRateColumn;
+	IBOutlet NSTableColumn *subpopMaleCloningRateColumn;
+	IBOutlet NSTableColumn *subpopFemaleCloningRateColumn;
 	IBOutlet NSTableColumn *subpopSexRatioColumn;
 	
 	IBOutlet PopulationView *populationView;

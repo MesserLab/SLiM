@@ -152,7 +152,8 @@ extern const std::string gStr_firstMaleIndex;
 extern const std::string gStr_genomes;
 extern const std::string gStr_immigrantSubpopIDs;
 extern const std::string gStr_immigrantSubpopFractions;
-extern const std::string gStr_selfingFraction;
+extern const std::string gStr_selfingRate;
+extern const std::string gStr_cloningRate;
 extern const std::string gStr_sexRatio;
 extern const std::string gStr_individualCount;
 extern const std::string gStr_mutationType;
@@ -284,7 +285,8 @@ enum _SLiMGlobalStringID : int {
 	gID_genomes,
 	gID_immigrantSubpopIDs,
 	gID_immigrantSubpopFractions,
-	gID_selfingFraction,
+	gID_selfingRate,
+	gID_cloningRate,
 	gID_sexRatio,
 	gID_individualCount,
 	gID_fixationTime,

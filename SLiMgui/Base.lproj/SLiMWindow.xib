@@ -48,7 +48,9 @@
                 <outlet property="showGenomicElementsButton" destination="57G-Tr-aOB" id="p7J-Vg-Y1W"/>
                 <outlet property="showMutationsButton" destination="MPC-lP-uVU" id="Qm6-Js-ooL"/>
                 <outlet property="showRecombinationIntervalsButton" destination="LwJ-mt-MjQ" id="ug0-W8-hrL"/>
+                <outlet property="subpopFemaleCloningRateColumn" destination="abH-RI-Xxq" id="hDU-CK-aVO"/>
                 <outlet property="subpopIDColumn" destination="JUP-60-29u" id="YJq-gt-Ih8"/>
+                <outlet property="subpopMaleCloningRateColumn" destination="3aN-DZ-0sG" id="K1M-fV-gYa"/>
                 <outlet property="subpopSelfingRateColumn" destination="Hbw-nw-0u9" id="gfE-84-TCH"/>
                 <outlet property="subpopSexRatioColumn" destination="ago-k9-R5M" id="K7F-aa-oGS"/>
                 <outlet property="subpopSizeColumn" destination="GUM-4Z-3XN" id="DS3-JF-48S"/>
@@ -74,13 +76,13 @@
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="firstColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" headerView="Pg2-UV-Ozl" id="l73-oi-ONH" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                    <rect key="frame" x="0.0" y="0.0" width="256" height="19"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="255" height="19"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                     <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                     <tableColumns>
-                                        <tableColumn editable="NO" width="42" minWidth="30" maxWidth="100" id="JUP-60-29u">
+                                        <tableColumn editable="NO" width="42" minWidth="42" maxWidth="42" headerToolTip="the Eidos identifier for the subpopulation" id="JUP-60-29u">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
                                                 <font key="font" metaFont="smallSystemBold"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -93,7 +95,7 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="67" minWidth="30" maxWidth="100" id="GUM-4Z-3XN">
+                                        <tableColumn editable="NO" width="48" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="N">
                                                 <font key="font" metaFont="smallSystemBold"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -106,8 +108,8 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="67" minWidth="30" maxWidth="100" id="Hbw-nw-0u9">
-                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Selfing">
+                                        <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the selfing rate of the subpopulation" id="Hbw-nw-0u9">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="self">
                                                 <font key="font" metaFont="smallSystemBold"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -119,8 +121,34 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="67" minWidth="30" maxWidth="100" id="ago-k9-R5M">
-                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Sex ratio">
+                                        <tableColumn width="37" minWidth="37" maxWidth="37" headerToolTip="the cloning rate of the subpopulation, for females" id="abH-RI-Xxq">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="fcl">
+                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" controlSize="small" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="center" title="Text Cell" id="nhD-g0-ttl">
+                                                <font key="font" metaFont="smallSystem"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        </tableColumn>
+                                        <tableColumn width="37" minWidth="37" maxWidth="37" headerToolTip="the cloning rate of the subpopulation, for males" id="3aN-DZ-0sG">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="mcl">
+                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" controlSize="small" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="center" title="Text Cell" id="EmN-1t-BRn">
+                                                <font key="font" metaFont="smallSystem"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        </tableColumn>
+                                        <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the sex ratio of the subpopulation, M:(M+F)" id="ago-k9-R5M">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="sex">
                                                 <font key="font" metaFont="smallSystemBold"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -659,7 +687,7 @@
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="519"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="524"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="553" height="524"/>
@@ -789,7 +817,7 @@
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="z1f-09-60b" userLabel="Eidos Text View" customClass="EidosTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="519"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="524"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="544" height="524"/>
@@ -1089,6 +1117,11 @@
                         </buttonCell>
                         <connections>
                             <action selector="buttonChangeSexRatio:" target="-2" id="MU3-9f-Zin"/>
+                            <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="NcA-m9-wwN">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
                             <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="NcA-m9-wwN" id="2mj-1U-cvT">
                                 <dictionary key="options">
                                     <integer key="NSMultipleValuesPlaceholder" value="-1"/>
@@ -1104,11 +1137,6 @@
                                     <integer key="NSNoSelectionPlaceholder" value="-1"/>
                                     <integer key="NSNotApplicablePlaceholder" value="-1"/>
                                     <integer key="NSNullPlaceholder" value="-1"/>
-                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                </dictionary>
-                            </binding>
-                            <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="NcA-m9-wwN">
-                                <dictionary key="options">
                                     <string key="NSValueTransformerName">NSNegateBoolean</string>
                                 </dictionary>
                             </binding>
@@ -1197,7 +1225,7 @@
                 <outlet property="delegate" destination="-2" id="6Gd-nE-pDY"/>
                 <outlet property="initialFirstResponder" destination="N45-af-9rm" id="HpY-hf-Oyx"/>
             </connections>
-            <point key="canvasLocation" x="741" y="413"/>
+            <point key="canvasLocation" x="843" y="449"/>
         </window>
         <menu showsStateColumn="NO" id="wnZ-1m-394" userLabel="Output Command Menu">
             <items>

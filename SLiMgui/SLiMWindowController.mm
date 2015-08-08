@@ -484,12 +484,58 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[self sendAllGraphViewsSelector:@selector(controllerSelectionChanged)];
 }
 
+- (void)replaceHeaderForColumn:(NSTableColumn *)column withImageNamed:(NSString *)imageName scaledToSize:(int)imageSize withSexSymbol:(IndividualSex)sexSymbol
+{
+	NSImage *headerImage = [NSImage imageNamed:imageName];
+	NSImage *scaledHeaderImage = [headerImage copy];
+	NSTextAttachment *ta = [[NSTextAttachment alloc] init];
+	
+	[scaledHeaderImage setSize:NSMakeSize(imageSize, imageSize)];
+	[(NSCell *)[ta attachmentCell] setImage:scaledHeaderImage];
+	
+	NSMutableAttributedString *attrStr = [[NSAttributedString attributedStringWithAttachment:ta] mutableCopy];
+	
+	if (sexSymbol != IndividualSex::kUnspecified)
+	{
+		NSImage *sexSymbolImage = [NSImage imageNamed:(sexSymbol == IndividualSex::kMale ? @"male_symbol" : @"female_symbol")];
+		NSImage *scaledSexSymbolImage = [sexSymbolImage copy];
+		NSTextAttachment *sexSymbolAttachment = [[NSTextAttachment alloc] init];
+		
+		[scaledSexSymbolImage setSize:NSMakeSize(14, 14)];
+		[(NSCell *)[sexSymbolAttachment attachmentCell] setImage:scaledSexSymbolImage];
+		
+		NSAttributedString *sexSymbolAttrStr = [NSAttributedString attributedStringWithAttachment:sexSymbolAttachment];
+		
+		[attrStr appendAttributedString:sexSymbolAttrStr];
+		
+		[scaledSexSymbolImage release];
+		[sexSymbolAttachment release];
+	}
+	
+	NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
+	
+	[paragraphStyle setAlignment:NSCenterTextAlignment];
+	[attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:NSMakeRange(0, [attrStr length])];
+	[[column headerCell] setAttributedStringValue:attrStr];
+	
+	[attrStr release];
+	[paragraphStyle release];
+	[scaledHeaderImage release];
+	[ta release];
+}
+
 - (void)windowDidLoad
 {
     [super windowDidLoad];
 	
 	// Tell Cocoa that we can go full-screen
 	[[self window] setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+	
+	// Change column headers in the subpopulation table to images
+	[self replaceHeaderForColumn:subpopSelfingRateColumn withImageNamed:@"change_selfing_ratio" scaledToSize:14 withSexSymbol:IndividualSex::kUnspecified];
+	[self replaceHeaderForColumn:subpopFemaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kFemale];
+	[self replaceHeaderForColumn:subpopMaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kMale];
+	[self replaceHeaderForColumn:subpopSexRatioColumn withImageNamed:@"change_sex_ratio" scaledToSize:15 withSexSymbol:IndividualSex::kUnspecified];
 	
 	// Set up our color stripes and sliders
 	fitnessColorScale = [fitnessColorSlider doubleValue];
@@ -1800,12 +1846,23 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				}
 				else if (aTableColumn == subpopSelfingRateColumn)
 				{
-					return [NSString stringWithFormat:@"%.3f", subpop->selfing_fraction_];
+					if (subpop->sex_enabled_)
+						return @"—";
+					else
+						return [NSString stringWithFormat:@"%.2f", subpop->selfing_fraction_];
+				}
+				else if (aTableColumn == subpopFemaleCloningRateColumn)
+				{
+					return [NSString stringWithFormat:@"%.2f", subpop->female_clone_fraction_];
+				}
+				else if (aTableColumn == subpopMaleCloningRateColumn)
+				{
+					return [NSString stringWithFormat:@"%.2f", subpop->male_clone_fraction_];
 				}
 				else if (aTableColumn == subpopSexRatioColumn)
 				{
 					if (subpop->sex_enabled_)
-						return [NSString stringWithFormat:@"%.3f", subpop->child_sex_ratio_];
+						return [NSString stringWithFormat:@"%.2f", subpop->child_sex_ratio_];
 					else
 						return @"—";
 				}

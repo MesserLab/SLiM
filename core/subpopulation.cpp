@@ -956,7 +956,8 @@ const std::vector<const EidosPropertySignature *> *Subpopulation::Properties(voi
 		properties->push_back(SignatureForProperty(gID_genomes));
 		properties->push_back(SignatureForProperty(gID_immigrantSubpopIDs));
 		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
-		properties->push_back(SignatureForProperty(gID_selfingFraction));
+		properties->push_back(SignatureForProperty(gID_selfingRate));
+		properties->push_back(SignatureForProperty(gID_cloningRate));
 		properties->push_back(SignatureForProperty(gID_sexRatio));
 		properties->push_back(SignatureForProperty(gID_individualCount));
 		properties->push_back(SignatureForProperty(gID_tag));
@@ -974,7 +975,8 @@ const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStr
 	static EidosPropertySignature *genomesSig = nullptr;
 	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
 	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
-	static EidosPropertySignature *selfingFractionSig = nullptr;
+	static EidosPropertySignature *selfingRateSig = nullptr;
+	static EidosPropertySignature *cloningRateSig = nullptr;
 	static EidosPropertySignature *sexRatioSig = nullptr;
 	static EidosPropertySignature *sizeSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
@@ -986,7 +988,8 @@ const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStr
 		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kEidosValueMaskObject, &gStr_Genome));
 		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
 		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
-		selfingFractionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingFraction,				gID_selfingFraction,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
 		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
@@ -1000,7 +1003,8 @@ const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStr
 		case gID_genomes:					return genomesSig;
 		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
 		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
-		case gID_selfingFraction:			return selfingFractionSig;
+		case gID_selfingRate:				return selfingRateSig;
+		case gID_cloningRate:				return cloningRateSig;
 		case gID_sexRatio:					return sexRatioSig;
 		case gID_individualCount:			return sizeSig;
 		case gID_tag:						return tagSig;
@@ -1058,8 +1062,13 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return vec;
 		}
-		case gID_selfingFraction:
+		case gID_selfingRate:
 			return new EidosValue_Float_singleton_const(selfing_fraction_);
+		case gID_cloningRate:
+			if (sex_enabled_)
+				return new EidosValue_Float_vector(female_clone_fraction_, male_clone_fraction_);
+			else
+				return new EidosValue_Float_singleton_const(female_clone_fraction_);
 		case gID_sexRatio:
 			return new EidosValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
 		case gID_individualCount:
