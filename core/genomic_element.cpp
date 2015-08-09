@@ -221,7 +221,7 @@ const EidosPropertySignature *GenomicElement_Class::SignatureForProperty(EidosGl
 	
 	if (!genomicElementTypeSig)
 	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_GenomicElementType));
+		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class));
 		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
@@ -261,7 +261,7 @@ const EidosMethodSignature *GenomicElement_Class::SignatureForMethod(EidosGlobal
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", gSLiM_GenomicElementType_Class);
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)

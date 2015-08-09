@@ -32,7 +32,7 @@ public:
 	
 	bool read_only_;									// true if the property is read-only, false if it is read-write
 	EidosValueMask value_mask_;							// a mask for the type returned; singleton is used, optional is not
-	const std::string *value_object_element_type_;		// optional type-check for object values; used only if this is not nullptr
+	const EidosObjectClass *value_class_;				// optional type-check for object values; used only if this is not nullptr
 	
 	
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
@@ -41,7 +41,7 @@ public:
 	virtual ~EidosPropertySignature(void);
 	
 	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask);
-	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const std::string *p_value_object_element_type);
+	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class);
 	
 	// check arguments and returns
 	void CheckAssignedValue(EidosValue *p_value) const;	// checks a vector being assigned into a whole object

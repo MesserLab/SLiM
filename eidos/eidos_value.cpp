@@ -2131,7 +2131,7 @@ EidosObjectClass::~EidosObjectClass(void)
 
 const std::string *EidosObjectClass::ElementType(void) const
 {
-	return &gEidosStr_undefined;		// this is relied upon by the type-check machinery
+	return &gEidosStr_undefined;
 }
 
 const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(void) const
@@ -2230,7 +2230,7 @@ EidosValue *EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id
 				if (has_match_string && (property_name.compare(match_string) != 0))
 					continue;
 				
-				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_object_element_type_, "") << ")" << endl;
+				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_class_->ElementType(), "") << ")" << endl;
 				
 				signature_found = true;
 			}

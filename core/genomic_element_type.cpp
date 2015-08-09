@@ -305,7 +305,7 @@ const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(Eid
 	if (!idSig)
 	{
 		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		mutationTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,		true,	kEidosValueMaskObject, &gStr_MutationType));
+		mutationTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
 		mutationFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	gID_mutationFractions,	true,	kEidosValueMaskFloat));
 		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
@@ -344,7 +344,7 @@ const EidosMethodSignature *GenomicElementType_Class::SignatureForMethod(EidosGl
 	
 	if (!setMutationFractionsSig)
 	{
-		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddObject("mutationTypes", &gStr_MutationType)->AddNumeric("proportions");
+		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions");
 	}
 	
 	if (p_method_id == gID_setMutationFractions)

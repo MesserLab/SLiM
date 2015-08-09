@@ -26,14 +26,14 @@ using std::ostream;
 
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_object_element_type_(nullptr)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate();
 }
 
-EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const std::string *p_value_object_element_type)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_object_element_type_(p_value_object_element_type)
+EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate();
@@ -66,10 +66,10 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
-			if (value_type_ok && value_object_element_type_ && (p_value->ElementType() != value_object_element_type_) && (p_value->Count() > 0))
+			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_object_element_type_ << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
@@ -103,10 +103,10 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
-			if (value_type_ok && value_object_element_type_ && (p_value->ElementType() != value_object_element_type_) && (p_value->Count() > 0))
+			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_object_element_type_ << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
@@ -133,7 +133,7 @@ std::string EidosPropertySignature::PropertySymbol(void) const
 ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)
 {
 	p_outstream << p_signature.property_name_ << " " << p_signature.PropertySymbol() << " (";
-	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_object_element_type_, "") << ")";
+	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_->ElementType(), "") << ")";
 	
 	return p_outstream;
 }

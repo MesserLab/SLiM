@@ -30,6 +30,9 @@
 #include "eidos_value.h"
 
 
+extern EidosObjectClass *gEidos_TestElementClass;
+
+
 class Eidos_TestElement : public EidosObjectElementInternal
 {
 private:
@@ -41,31 +44,12 @@ public:
 	
 	explicit Eidos_TestElement(int64_t p_value);
 	
-	virtual const std::string *ElementType(void) const;
 	virtual const EidosObjectClass *Class(void) const;
 	
 	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
 	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-};
-
-class Eidos_TestElementClass : public EidosObjectClass
-{
-public:
-	Eidos_TestElementClass(const Eidos_TestElementClass &p_original) = delete;	// no copy-construct
-	Eidos_TestElementClass& operator=(const Eidos_TestElementClass&) = delete;	// no copying
-	
-	Eidos_TestElementClass(void);
-	
-	virtual const std::string *ElementType(void) const;
-	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 

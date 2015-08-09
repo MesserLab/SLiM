@@ -200,7 +200,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	object instantiation
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",			EidosFunctionIdentifier::_TestFunction,			kEidosValueMaskObject | kEidosValueMaskSingleton, &gEidosStr__TestElement))->AddInt_S("yolk"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",			EidosFunctionIdentifier::_TestFunction,			kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass))->AddInt_S("yolk"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -238,7 +238,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 #pragma unused(p_function_name)
 	EidosValueType highest_type = EidosValueType::kValueNULL;
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
-	const std::string *element_type = nullptr;
+	const EidosObjectClass *element_class = nullptr;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
 	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
@@ -256,17 +256,17 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 		{
 			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
 			{
-				const std::string *this_element_type = arg_value->ElementType();
+				const EidosObjectClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
 				
-				if (!element_type)
+				if (!element_class)
 				{
 					// we haven't seen a (non-empty) object type yet, so remember what type we're dealing with
-					element_type = this_element_type;
+					element_class = this_element_class;
 				}
 				else
 				{
 					// we've already seen a object type, so check that this one is the same type
-					if (element_type != this_element_type)
+					if (element_class != this_element_class)
 						EIDOS_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << eidos_terminate();
 				}
 			}
