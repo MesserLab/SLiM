@@ -1682,6 +1682,9 @@ EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID 
 	auto values_size = values_.size();
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << eidos_terminate();
+	
 	if (values_size == 1)
 	{
 		// the singleton case is very common, so it should be special-cased for speed
@@ -1737,31 +1740,14 @@ EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID 
 	}
 }
 
-// This somewhat odd method returns one "representative" EidosValue for the given property, by calling the first element in the
-// object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
-// that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
-// but the main reason that we don't just call GetPropertyOfElements() is that we need an API that will not raise.
-EidosValue *EidosValue_Object_vector::GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const
-{
-	if (values_.size())
-	{
-		// check that the property is defined before we call our elements
-		const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
-		const std::vector<const EidosPropertySignature *> *properties = values_[0]->Class()->Properties();
-		
-		// get a value from the first element and return it; we only need to return one representative value
-		// we just need to check first that the property is actually defined, since we are not allowed to raise
-		for (auto propertySig : *properties)
-			if (propertySig->property_name_.compare(property_name) == 0)	// the property does exist!
-				return values_[0]->GetProperty(p_property_id);
-	}
-	
-	return nullptr;
-}
-
 void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	Class()->SignatureForProperty(p_property_id)->CheckAssignedValue(p_value);
+	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << eidos_terminate();
+	
+	signature->CheckAssignedValue(p_value);
 	
 	// We have to check the count ourselves; the signature does not do that for us
 	int p_value_count = p_value->Count();
@@ -1903,6 +1889,10 @@ void EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue(int p_idx
 EidosValue *EidosValue_Object_singleton_const::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
 	const EidosPropertySignature *signature = value_->Class()->SignatureForProperty(p_property_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << eidos_terminate();
+	
 	EidosValue *result = value_->GetProperty(p_property_id);
 	
 	signature->CheckResultValue(result);
@@ -1910,28 +1900,14 @@ EidosValue *EidosValue_Object_singleton_const::GetPropertyOfElements(EidosGlobal
 	return result;
 }
 
-// This somewhat odd method returns one "representative" EidosValue for the given property, by calling the first element in the
-// object.  This is used by code completion to follow the chain of object types along a key path; we don't need all of the values
-// that the property would return, we just need one representative value of the proper type.  This is more efficient, of course;
-// but the main reason that we don't just call GetPropertyOfElements() is that we need an API that will not raise.
-EidosValue *EidosValue_Object_singleton_const::GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const
-{
-	// check that the property is defined before we call our elements
-	const std::string &property_name = StringForEidosGlobalStringID(p_property_id);
-	const std::vector<const EidosPropertySignature *> *properties = value_->Class()->Properties();
-	
-	// get a value from the first element and return it; we only need to return one representative value
-	// we just need to check first that the property is actually defined, since we are not allowed to raise
-	for (auto propertySig : *properties)
-		if (propertySig->property_name_.compare(property_name) == 0)	// the property does exist!
-			return value_->GetProperty(p_property_id);
-	
-	return nullptr;
-}
-
 void EidosValue_Object_singleton_const::SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	value_->Class()->SignatureForProperty(p_property_id)->CheckAssignedValue(p_value);
+	const EidosPropertySignature *signature = value_->Class()->SignatureForProperty(p_property_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << eidos_terminate();
+	
+	signature->CheckAssignedValue(p_value);
 	
 	// We have to check the count ourselves; the signature does not do that for us
 	if (p_value->Count() == 1)
@@ -1988,7 +1964,12 @@ EidosValue *EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
 #pragma unused(p_value)
-	bool readonly = Class()->SignatureForProperty(p_property_id)->read_only_;		// will raise if the property does not exist at all
+	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ElementType() << "." << eidos_terminate();
+	
+	bool readonly = signature->read_only_;
 	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
@@ -2150,9 +2131,17 @@ const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(
 
 const EidosPropertySignature *EidosObjectClass::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
-	EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForProperty for " << *ElementType() << "): internal error: attempt to get a signature for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate();
-	
 	return nullptr;
+}
+
+const EidosPropertySignature *EidosObjectClass::SignatureForPropertyOrRaise(EidosGlobalStringID p_property_id) const
+{
+	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForPropertyOrRaise for " << *ElementType() << "): internal error: missing property " << StringForEidosGlobalStringID(p_property_id) << "." << eidos_terminate();
+	
+	return signature;
 }
 
 const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void) const
@@ -2164,9 +2153,9 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 		methods = new std::vector<const EidosMethodSignature *>;
 		
 		// keep alphabetical order here
-		methods->push_back(SignatureForMethod(gEidosID_method));
-		methods->push_back(SignatureForMethod(gEidosID_property));
-		methods->push_back(SignatureForMethod(gEidosID_str));
+		methods->push_back(SignatureForMethodOrRaise(gEidosID_method));
+		methods->push_back(SignatureForMethodOrRaise(gEidosID_property));
+		methods->push_back(SignatureForMethodOrRaise(gEidosID_str));
 	}
 	
 	return methods;
@@ -2195,18 +2184,18 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStri
 			
 			// all others, including gID_none
 		default:
-			// Check whether the method signature request failed due to a bad subclass implementation
-			const std::vector<const EidosMethodSignature *> *methods = Methods();
-			const std::string &method_name = StringForEidosGlobalStringID(p_method_id);
-			
-			for (auto method_sig : *methods)
-				if (method_sig->function_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethod for " << *ElementType() << "): internal error: method signature " << &method_name << " was not provided by subclass." << eidos_terminate();
-			
-			// Otherwise, we have an unrecognized method, so throw
-			EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethod for " << *ElementType() << "): unrecognized method name " << &method_name << "." << eidos_terminate();
 			return nullptr;
 	}
+}
+
+const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlobalStringID p_method_id) const
+{
+	const EidosMethodSignature *signature = SignatureForMethod(p_method_id);
+	
+	if (!signature)
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethodOrRaise for " << *ElementType() << "): internal error: missing method " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate();
+	
+	return signature;
 }
 
 EidosValue *EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const

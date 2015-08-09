@@ -272,11 +272,11 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_id));
-		properties->push_back(SignatureForProperty(gID_distributionType));
-		properties->push_back(SignatureForProperty(gID_distributionParams));
-		properties->push_back(SignatureForProperty(gID_dominanceCoeff));
-		properties->push_back(SignatureForProperty(gID_tag));
+		properties->push_back(SignatureForPropertyOrRaise(gID_id));
+		properties->push_back(SignatureForPropertyOrRaise(gID_distributionType));
+		properties->push_back(SignatureForPropertyOrRaise(gID_distributionParams));
+		properties->push_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
+		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -323,7 +323,7 @@ const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(voi
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethod(gID_setDistribution));
+		methods->push_back(SignatureForMethodOrRaise(gID_setDistribution));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

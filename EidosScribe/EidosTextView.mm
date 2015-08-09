@@ -834,13 +834,6 @@ using std::string;
 		
 		// OK, the last token was a dot (or a subset preceding a dot).  We're looking for an identifier, but we're willing
 		// to get distracted by a subset sequence, since that does not change the type.  Anything else does not make sense.
-		// (A method call or function call is possible, actually, but we're not presently equipped to handle them.  The problem
-		// is that we don't want to actually call the method/function to get a EidosValue*, because such calls are heavyweight
-		// and can have side effects, but without calling the method/function we have no way to get an instance of the type
-		// that it would return.  We need the concept of Class objects, but C++ does not do that.  I miss Objective-C.  I'm not
-		// sure how to solve this, really; it would require us to have some kind of artificial Class-object-like thing that
-		// would know the properties and methods for a given EidosObjectElement class.  Big distortion to the architecture.
-		// So for now, we just don't trace back through method/function calls, which sucks.  FIXME)
 		if (token_type == EidosTokenType::kTokenIdentifier)
 		{
 			lastTokenWasDot = NO;
@@ -872,15 +865,19 @@ using std::string;
 	if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
 		globalSymbolTable = [delegate globalSymbolTableForCompletion];
 	
-	EidosValue *key_path_value = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
+	EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
 	
-	if (!key_path_value)
+	if (!key_path_root)
 		return nil;			// unknown symbol at the root, so we have no idea what's going on
-	if (key_path_value->Type() != EidosValueType::kValueObject)
+	if (key_path_root->Type() != EidosValueType::kValueObject)
 	{
-		if (key_path_value->IsTemporary()) delete key_path_value;
+		if (key_path_root->IsTemporary()) delete key_path_root;
 		return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
 	}
+	
+	const EidosObjectClass *key_path_class = ((EidosValue_Object *)key_path_root)->Class();
+	
+	if (key_path_root->IsTemporary()) delete key_path_root;
 	
 	while (--key_path_index >= 0)
 	{
@@ -891,41 +888,35 @@ using std::string;
 		if (identifier_id == gEidosID_none)
 			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
 		
-		EidosValue *property_value = ((EidosValue_Object *)key_path_value)->GetRepresentativeValueOrNullForPropertyOfElements(identifier_id);
+		const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
 		
-		if (key_path_value->IsTemporary()) delete key_path_value;
-		key_path_value = property_value;
+		if (!property_signature)
+			return nil;			// no signature, so the class does not support the property given
 		
-		if (!key_path_value)
-			return nil;			// unknown symbol at the root, so we have no idea what's going on
-		if (key_path_value->Type() != EidosValueType::kValueObject)
-		{
-			if (key_path_value->IsTemporary()) delete key_path_value;
-			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
-		}
+		key_path_class = property_signature->value_class_;
+		
+		if (!key_path_class)
+			return nil;			// unknown symbol at the root; the property yields a non-object type
 	}
 	
 	// OK, we've now got a EidosValue object that represents the end of the line; the final dot is off of this object.
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	NSMutableArray *candidates = [NSMutableArray array];
-	EidosValue_Object *terminus = ((EidosValue_Object *)key_path_value);
+	const EidosObjectClass *terminus = key_path_class;
 	
 	// First, a sorted list of globals
-	for (auto symbol_sig : *terminus->Class()->Properties())
+	for (auto symbol_sig : *terminus->Properties())
 		[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
 	
 	[candidates sortUsingSelector:@selector(compare:)];
 	
-	// Next, a sorted list of functions, with () appended
-	for (auto method_sig : *terminus->Class()->Methods())
+	// Next, a sorted list of methods, with () appended
+	for (auto method_sig : *terminus->Methods())
 	{
 		NSString *methodName = [NSString stringWithUTF8String:method_sig->function_name_.c_str()];
 		
 		[candidates addObject:[methodName stringByAppendingString:@"()"]];
 	}
-	
-	// Dispose of our terminus
-	if (terminus->IsTemporary()) delete terminus;
 	
 	return candidates;
 }

@@ -504,10 +504,10 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_genomeType));
-		properties->push_back(SignatureForProperty(gID_isNullGenome));
-		properties->push_back(SignatureForProperty(gID_mutations));
-		properties->push_back(SignatureForProperty(gID_tag));
+		properties->push_back(SignatureForPropertyOrRaise(gID_genomeType));
+		properties->push_back(SignatureForPropertyOrRaise(gID_isNullGenome));
+		properties->push_back(SignatureForPropertyOrRaise(gID_mutations));
+		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -551,10 +551,10 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethod(gID_addMutations));
-		methods->push_back(SignatureForMethod(gID_addNewDrawnMutation));
-		methods->push_back(SignatureForMethod(gID_addNewMutation));
-		methods->push_back(SignatureForMethod(gID_removeMutations));
+		methods->push_back(SignatureForMethodOrRaise(gID_addMutations));
+		methods->push_back(SignatureForMethodOrRaise(gID_addNewDrawnMutation));
+		methods->push_back(SignatureForMethodOrRaise(gID_addNewMutation));
+		methods->push_back(SignatureForMethodOrRaise(gID_removeMutations));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

@@ -433,15 +433,15 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_genomicElements));
-		properties->push_back(SignatureForProperty(gID_lastPosition));
-		properties->push_back(SignatureForProperty(gID_overallRecombinationRate));
-		properties->push_back(SignatureForProperty(gID_recombinationEndPositions));
-		properties->push_back(SignatureForProperty(gID_recombinationRates));
-		properties->push_back(SignatureForProperty(gID_geneConversionFraction));
-		properties->push_back(SignatureForProperty(gID_geneConversionMeanLength));
-		properties->push_back(SignatureForProperty(gID_overallMutationRate));
-		properties->push_back(SignatureForProperty(gID_tag));
+		properties->push_back(SignatureForPropertyOrRaise(gID_genomicElements));
+		properties->push_back(SignatureForPropertyOrRaise(gID_lastPosition));
+		properties->push_back(SignatureForPropertyOrRaise(gID_overallRecombinationRate));
+		properties->push_back(SignatureForPropertyOrRaise(gID_recombinationEndPositions));
+		properties->push_back(SignatureForPropertyOrRaise(gID_recombinationRates));
+		properties->push_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
+		properties->push_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
+		properties->push_back(SignatureForPropertyOrRaise(gID_overallMutationRate));
+		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -500,7 +500,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethod(gID_setRecombinationRate));
+		methods->push_back(SignatureForMethodOrRaise(gID_setRecombinationRate));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

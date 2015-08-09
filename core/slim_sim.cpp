@@ -1916,18 +1916,18 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_chromosome));
-		properties->push_back(SignatureForProperty(gID_chromosomeType));
-		properties->push_back(SignatureForProperty(gID_genomicElementTypes));
-		properties->push_back(SignatureForProperty(gID_mutations));
-		properties->push_back(SignatureForProperty(gID_mutationTypes));
-		properties->push_back(SignatureForProperty(gID_scriptBlocks));
-		properties->push_back(SignatureForProperty(gID_sexEnabled));
-		properties->push_back(SignatureForProperty(gID_subpopulations));
-		properties->push_back(SignatureForProperty(gID_substitutions));
-		properties->push_back(SignatureForProperty(gID_dominanceCoeffX));
-		properties->push_back(SignatureForProperty(gID_generation));
-		properties->push_back(SignatureForProperty(gID_tag));
+		properties->push_back(SignatureForPropertyOrRaise(gID_chromosome));
+		properties->push_back(SignatureForPropertyOrRaise(gID_chromosomeType));
+		properties->push_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
+		properties->push_back(SignatureForPropertyOrRaise(gID_mutations));
+		properties->push_back(SignatureForPropertyOrRaise(gID_mutationTypes));
+		properties->push_back(SignatureForPropertyOrRaise(gID_scriptBlocks));
+		properties->push_back(SignatureForPropertyOrRaise(gID_sexEnabled));
+		properties->push_back(SignatureForPropertyOrRaise(gID_subpopulations));
+		properties->push_back(SignatureForPropertyOrRaise(gID_substitutions));
+		properties->push_back(SignatureForPropertyOrRaise(gID_dominanceCoeffX));
+		properties->push_back(SignatureForPropertyOrRaise(gID_generation));
+		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -1995,18 +1995,18 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethod(gID_addSubpop));
-		methods->push_back(SignatureForMethod(gID_addSubpopSplit));
-		methods->push_back(SignatureForMethod(gID_deregisterScriptBlock));
-		methods->push_back(SignatureForMethod(gID_mutationFrequencies));
-		methods->push_back(SignatureForMethod(gID_outputFixedMutations));
-		methods->push_back(SignatureForMethod(gID_outputFull));
-		methods->push_back(SignatureForMethod(gID_outputMutations));
-		methods->push_back(SignatureForMethod(gID_readFromPopulationFile));
-		methods->push_back(SignatureForMethod(gID_registerScriptEvent));
-		methods->push_back(SignatureForMethod(gID_registerScriptFitnessCallback));
-		methods->push_back(SignatureForMethod(gID_registerScriptMateChoiceCallback));
-		methods->push_back(SignatureForMethod(gID_registerScriptModifyChildCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_addSubpop));
+		methods->push_back(SignatureForMethodOrRaise(gID_addSubpopSplit));
+		methods->push_back(SignatureForMethodOrRaise(gID_deregisterScriptBlock));
+		methods->push_back(SignatureForMethodOrRaise(gID_mutationFrequencies));
+		methods->push_back(SignatureForMethodOrRaise(gID_outputFixedMutations));
+		methods->push_back(SignatureForMethodOrRaise(gID_outputFull));
+		methods->push_back(SignatureForMethodOrRaise(gID_outputMutations));
+		methods->push_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptEvent));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptFitnessCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptMateChoiceCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptModifyChildCallback));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

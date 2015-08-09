@@ -1320,16 +1320,16 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_id));
-		properties->push_back(SignatureForProperty(gID_firstMaleIndex));
-		properties->push_back(SignatureForProperty(gID_genomes));
-		properties->push_back(SignatureForProperty(gID_immigrantSubpopIDs));
-		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
-		properties->push_back(SignatureForProperty(gID_selfingRate));
-		properties->push_back(SignatureForProperty(gID_cloningRate));
-		properties->push_back(SignatureForProperty(gID_sexRatio));
-		properties->push_back(SignatureForProperty(gID_individualCount));
-		properties->push_back(SignatureForProperty(gID_tag));
+		properties->push_back(SignatureForPropertyOrRaise(gID_id));
+		properties->push_back(SignatureForPropertyOrRaise(gID_firstMaleIndex));
+		properties->push_back(SignatureForPropertyOrRaise(gID_genomes));
+		properties->push_back(SignatureForPropertyOrRaise(gID_immigrantSubpopIDs));
+		properties->push_back(SignatureForPropertyOrRaise(gID_immigrantSubpopFractions));
+		properties->push_back(SignatureForPropertyOrRaise(gID_selfingRate));
+		properties->push_back(SignatureForPropertyOrRaise(gID_cloningRate));
+		properties->push_back(SignatureForPropertyOrRaise(gID_sexRatio));
+		properties->push_back(SignatureForPropertyOrRaise(gID_individualCount));
+		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -1391,14 +1391,14 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethod(gID_setMigrationRates));
-		methods->push_back(SignatureForMethod(gID_setCloningRate));
-		methods->push_back(SignatureForMethod(gID_setSelfingRate));
-		methods->push_back(SignatureForMethod(gID_setSexRatio));
-		methods->push_back(SignatureForMethod(gID_setSubpopulationSize));
-		methods->push_back(SignatureForMethod(gID_fitness));
-		methods->push_back(SignatureForMethod(gID_outputMSSample));
-		methods->push_back(SignatureForMethod(gID_outputSample));
+		methods->push_back(SignatureForMethodOrRaise(gID_setMigrationRates));
+		methods->push_back(SignatureForMethodOrRaise(gID_setCloningRate));
+		methods->push_back(SignatureForMethodOrRaise(gID_setSelfingRate));
+		methods->push_back(SignatureForMethodOrRaise(gID_setSexRatio));
+		methods->push_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
+		methods->push_back(SignatureForMethodOrRaise(gID_fitness));
+		methods->push_back(SignatureForMethodOrRaise(gID_outputMSSample));
+		methods->push_back(SignatureForMethodOrRaise(gID_outputSample));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

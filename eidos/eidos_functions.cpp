@@ -2702,6 +2702,9 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	const EidosObjectClass *object_class = method_object->Class();
 	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
 	
+	if (!method_signature)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << " is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate();
+	
 	method_signature->CheckArguments(p_arguments, p_argument_count);
 	
 	// Make the method call

@@ -133,12 +133,12 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForProperty(gID_mutationType));
-		properties->push_back(SignatureForProperty(gID_position));
-		properties->push_back(SignatureForProperty(gID_selectionCoeff));
-		properties->push_back(SignatureForProperty(gID_subpopID));
-		properties->push_back(SignatureForProperty(gID_originGeneration));
-		properties->push_back(SignatureForProperty(gID_fixationTime));
+		properties->push_back(SignatureForPropertyOrRaise(gID_mutationType));
+		properties->push_back(SignatureForPropertyOrRaise(gID_position));
+		properties->push_back(SignatureForPropertyOrRaise(gID_selectionCoeff));
+		properties->push_back(SignatureForPropertyOrRaise(gID_subpopID));
+		properties->push_back(SignatureForPropertyOrRaise(gID_originGeneration));
+		properties->push_back(SignatureForPropertyOrRaise(gID_fixationTime));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
