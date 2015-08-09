@@ -339,7 +339,9 @@ const std::string gEidosStr_undefined = "undefined";
 // strings for Eidos_TestElement
 const std::string gEidosStr__TestElement = "_TestElement";
 const std::string gEidosStr__yolk = "_yolk";
+const std::string gEidosStr__increment = "_increment";
 const std::string gEidosStr__cubicYolk = "_cubicYolk";
+const std::string gEidosStr__squareTest = "_squareTest";
 
 
 static std::map<const std::string, EidosGlobalStringID> gStringToID;
@@ -372,7 +374,9 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr__TestElement, gEidosID__TestElement);
 		Eidos_RegisterStringForGlobalID(gEidosStr__yolk, gEidosID__yolk);
+		Eidos_RegisterStringForGlobalID(gEidosStr__increment, gEidosID__increment);
 		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
+		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
 	}
 }
 

@@ -55,6 +55,8 @@ EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)
 		return new EidosValue_Int_singleton_const(yolk_);
+	else if (p_property_id == gEidosID__increment)
+		return new EidosValue_Object_singleton_const(new Eidos_TestElement(yolk_ + 1));
 	
 	// all others, including gID_none
 	else
@@ -82,6 +84,10 @@ EidosValue *Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gEidosID__cubicYolk:
 		{
 			return new EidosValue_Int_singleton_const(yolk_ * yolk_ * yolk_);
+		}
+		case gEidosID__squareTest:
+		{
+			return new EidosValue_Object_singleton_const(new Eidos_TestElement(yolk_ * yolk_));
 		}
 			
 			// all others, including gID_none
@@ -134,6 +140,8 @@ const std::vector<const EidosPropertySignature *> *Eidos_TestElementClass::Prope
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		properties->push_back(SignatureForPropertyOrRaise(gEidosID__yolk));
+		properties->push_back(SignatureForPropertyOrRaise(gEidosID__increment));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
@@ -143,16 +151,19 @@ const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(Eidos
 {
 	// Signatures are all preallocated, for speed
 	static EidosPropertySignature *yolkSig = nullptr;
+	static EidosPropertySignature *incrementSig = nullptr;
 	
 	if (!yolkSig)
 	{
-		yolkSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,	gEidosID__yolk,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		yolkSig =		(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		gEidosID__yolk,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		incrementSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	gEidosID__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gEidosID__yolk:	return yolkSig;
+		case gEidosID__yolk:		return yolkSig;
+		case gEidosID__increment:	return incrementSig;
 			
 			// all others, including gID_none
 		default:
@@ -168,6 +179,8 @@ const std::vector<const EidosMethodSignature *> *Eidos_TestElementClass::Methods
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		methods->push_back(SignatureForMethodOrRaise(gEidosID__cubicYolk));
+		methods->push_back(SignatureForMethodOrRaise(gEidosID__squareTest));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
@@ -177,17 +190,19 @@ const EidosMethodSignature *Eidos_TestElementClass::SignatureForMethod(EidosGlob
 {
 	// Signatures are all preallocated, for speed
 	static EidosInstanceMethodSignature *cubicYolkSig = nullptr;
+	static EidosInstanceMethodSignature *squareTestSig = nullptr;
 	
 	if (!cubicYolkSig)
 	{
 		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton));
+		squareTestSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gEidosID__cubicYolk:
-			return cubicYolkSig;
+		case gEidosID__cubicYolk:	return cubicYolkSig;
+		case gEidosID__squareTest:	return squareTestSig;
 			
 			// all others, including gID_none
 		default:

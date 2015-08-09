@@ -146,7 +146,9 @@ extern const std::string gEidosStr_undefined;
 
 extern const std::string gEidosStr__TestElement;
 extern const std::string gEidosStr__yolk;
+extern const std::string gEidosStr__increment;
 extern const std::string gEidosStr__cubicYolk;
+extern const std::string gEidosStr__squareTest;
 
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
@@ -160,7 +162,9 @@ enum _EidosGlobalStringID : int {
 	
 	gEidosID__TestElement,
 	gEidosID__yolk,
+	gEidosID__increment,
 	gEidosID__cubicYolk,
+	gEidosID__squareTest,
 	
 	gEidosID_LastEntry		// IDs added by the Context should start here
 };
