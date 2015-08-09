@@ -2135,6 +2135,7 @@ const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(
 
 const EidosPropertySignature *EidosObjectClass::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
+#pragma unused(p_property_id)
 	return nullptr;
 }
 
