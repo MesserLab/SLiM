@@ -108,7 +108,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_float,	EidosFunctionIdentifier::floatFunction,			kEidosValueMaskFloat))->AddInt_S("length"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	EidosFunctionIdentifier::integerFunction,		kEidosValueMaskInt))->AddInt_S("length"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	EidosFunctionIdentifier::logicalFunction,		kEidosValueMaskLogical))->AddInt_S("length"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	EidosFunctionIdentifier::objectFunction,		kEidosValueMaskObject)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	EidosFunctionIdentifier::objectFunction,		kEidosValueMaskObject, gEidos_UndefinedClassObject)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kEidosValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				EidosFunctionIdentifier::repFunction,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			EidosFunctionIdentifier::repEachFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt("count"));
