@@ -1780,7 +1780,11 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 	
 	if (values_size == 0)
 	{
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteInstanceMethodOfElements): method " << StringForEidosGlobalStringID(p_method_id) << " cannot be called because the object vector is empty." << eidos_terminate();
+		// We special-case str() here as a bit of a hack.  It is defined on the base object element type, so it is always available.
+		// Calling it should thus not result in an error, even though we don't know the class of the object; it should just do nothing.
+		// This situation cannot arise for any other method, since str() is the only instance method supported by the base class.
+		if (p_method_id != gEidosID_str)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteInstanceMethodOfElements): method " << StringForEidosGlobalStringID(p_method_id) << " is not recognized because the object vector is empty." << eidos_terminate();
 		
 		return gStaticEidosValueNULLInvisible;
 	}
