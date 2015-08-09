@@ -783,10 +783,11 @@ using std::string;
 	// OK, we've got a key path ending in a dot, and we want to return a list of completions that would work for that key path.
 	// We'll trace backward, adding identifiers to a vector to build up the chain of references.  If we hit a bracket, we'll
 	// skip back over everything inside it, since subsetting does not change the type; we just need to balance brackets.  If we
-	// hit a parenthesis, we give up.  If we hit other things – a semicolon, a comma, a brace – that terminates the key path chain.
+	// hit a parenthesis, we do similarly.  If we hit other things – a semicolon, a comma, a brace – that terminates the key path chain.
 	vector<string> identifiers;
-	int bracketCount = 0;
-	BOOL lastTokenWasDot = YES;
+	vector<bool> identifiers_are_calls;
+	int bracketCount = 0, parenCount = 0;
+	BOOL lastTokenWasDot = YES, justFinishedParenBlock = NO;
 	
 	for (int tokenIndex = lastDotTokenIndex - 1; tokenIndex >= 0; --tokenIndex)
 	{
@@ -818,6 +819,31 @@ using std::string;
 			
 			continue;
 		}
+		else if (parenCount)
+		{
+			// If we're inside a paren stretch – which could be a parenthesized expression or a function call – we do similarly
+			// to the brackets case, just balancing parens and running backward.  We don't clear lastTokenWasDot, because a
+			// (). sequence puts us in the same situation (almost) as having just seen a dot – waiting for an identifier.
+			if (token_type == EidosTokenType::kTokenRParen)
+			{
+				parenCount++;
+				continue;
+			}
+			if (token_type == EidosTokenType::kTokenLParen)
+			{
+				parenCount--;
+				
+				if (parenCount == 0)
+					justFinishedParenBlock = YES;
+				continue;
+			}
+			
+			// Check for tokens that simply make no sense, and bail
+			if ((token_type == EidosTokenType::kTokenLBrace) || (token_type == EidosTokenType::kTokenRBrace) || (token_type == EidosTokenType::kTokenSemicolon) || (token_type >= EidosTokenType::kFirstIdentifierLikeToken))
+				return nil;
+			
+			continue;
+		}
 		
 		if (!lastTokenWasDot)
 		{
@@ -825,6 +851,7 @@ using std::string;
 			if (token_type == EidosTokenType::kTokenDot)
 			{
 				lastTokenWasDot = YES;
+				justFinishedParenBlock = NO;
 				continue;
 			}
 			
@@ -836,13 +863,22 @@ using std::string;
 		// to get distracted by a subset sequence, since that does not change the type.  Anything else does not make sense.
 		if (token_type == EidosTokenType::kTokenIdentifier)
 		{
-			lastTokenWasDot = NO;
 			identifiers.push_back(token->token_string_);
+			identifiers_are_calls.push_back(justFinishedParenBlock);
+			
+			// set up to continue searching the key path backwards
+			lastTokenWasDot = NO;
+			justFinishedParenBlock = NO;
 			continue;
 		}
 		else if (token_type == EidosTokenType::kTokenRBracket)
 		{
 			bracketCount++;
+			continue;
+		}
+		else if (token_type == EidosTokenType::kTokenRParen)
+		{
+			parenCount++;
 			continue;
 		}
 		
@@ -851,49 +887,109 @@ using std::string;
 	}
 	
 	// If we were in the middle of tracing the key path when the loop ended, then something is wrong, bail.
-	if (lastTokenWasDot || bracketCount)
+	if (lastTokenWasDot || bracketCount || parenCount)
 		return nil;
 	
-	// OK, we've got an identifier chain in identifiers, in reverse order.  We want to start at the beginning of the key path,
-	// and follow it forward through the properties in the chain to arrive at the final type.
+	// OK, we've got an identifier chain in identifiers, in reverse order.  We want to start at
+	// the beginning of the key path, and figure out what the class of the key path root is
 	int key_path_index = (int)identifiers.size() - 1;
 	string &identifier_name = identifiers[key_path_index];
+	bool identifier_is_call = identifiers_are_calls[key_path_index];
+	const EidosObjectClass *key_path_class = nullptr;
 	
-	EidosSymbolTable *globalSymbolTable = nullptr;
-	id delegate = [self delegate];
-	
-	if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
-		globalSymbolTable = [delegate globalSymbolTableForCompletion];
-	
-	EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
-	
-	if (!key_path_root)
-		return nil;			// unknown symbol at the root, so we have no idea what's going on
-	if (key_path_root->Type() != EidosValueType::kValueObject)
+	if (identifier_is_call)
 	{
+		// The root identifier is a call, so it should be a function call; try to look it up
+		id delegate = [self delegate];
+		
+		// Look in the delegate's list of functions first
+		if (delegate)
+		{
+			std::vector<EidosFunctionSignature*> *signatures = nullptr;
+			
+			if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
+				signatures = [delegate injectedFunctionSignatures];
+			
+			if (signatures)
+			{
+				for (const EidosFunctionSignature *sig : *signatures)
+					if (sig->function_name_.compare(identifier_name) == 0)
+					{
+						key_path_class = sig->return_class_;
+						break;
+					}
+			}
+		}
+		
+		// Next, a sorted list of functions, with () appended
+		if (!key_path_class)
+		{
+			for (const EidosFunctionSignature *sig : EidosInterpreter::BuiltInFunctions())
+				if (sig->function_name_.compare(identifier_name) == 0)
+				{
+					key_path_class = sig->return_class_;
+					break;
+				}
+		}
+	}
+	else
+	{
+		// The root identifier is not a call, so it should be a global symbol; try to look it up
+		EidosSymbolTable *globalSymbolTable = nullptr;
+		id delegate = [self delegate];
+		
+		if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
+			globalSymbolTable = [delegate globalSymbolTableForCompletion];
+		
+		EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
+		
+		if (!key_path_root)
+			return nil;			// unknown symbol at the root, so we have no idea what's going on
+		if (key_path_root->Type() != EidosValueType::kValueObject)
+		{
+			if (key_path_root->IsTemporary()) delete key_path_root;
+			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
+		}
+		
+		key_path_class = ((EidosValue_Object *)key_path_root)->Class();
+		
 		if (key_path_root->IsTemporary()) delete key_path_root;
-		return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
 	}
 	
-	const EidosObjectClass *key_path_class = ((EidosValue_Object *)key_path_root)->Class();
+	if (!key_path_class)
+		return nil;				// unknown symbol at the root
 	
-	if (key_path_root->IsTemporary()) delete key_path_root;
-	
+	// Now we've got a class for the root of the key path; follow forward through the key path to arrive at the final type.
 	while (--key_path_index >= 0)
 	{
 		identifier_name = identifiers[key_path_index];
+		identifier_is_call = identifiers_are_calls[key_path_index];
 		
 		EidosGlobalStringID identifier_id = EidosGlobalStringIDForString(identifier_name);
 		
 		if (identifier_id == gEidosID_none)
 			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
 		
-		const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
-		
-		if (!property_signature)
-			return nil;			// no signature, so the class does not support the property given
-		
-		key_path_class = property_signature->value_class_;
+		if (identifier_is_call)
+		{
+			// We have a method call; look up its signature and get the class
+			const EidosCallSignature *call_signature = key_path_class->SignatureForMethod(identifier_id);
+			
+			if (!call_signature)
+				return nil;			// no signature, so the class does not support the method given
+			
+			key_path_class = call_signature->return_class_;
+		}
+		else
+		{
+			// We have a property; look up its signature and get the class
+			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
+			
+			if (!property_signature)
+				return nil;			// no signature, so the class does not support the property given
+			
+			key_path_class = property_signature->value_class_;
+		}
 		
 		if (!key_path_class)
 			return nil;			// unknown symbol at the root; the property yields a non-object type
