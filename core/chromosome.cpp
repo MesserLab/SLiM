@@ -404,7 +404,7 @@ public:
 	
 	Chromosome_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -421,9 +421,9 @@ Chromosome_Class::Chromosome_Class(void)
 {
 }
 
-const std::string *Chromosome_Class::ElementType(void) const
+const std::string &Chromosome_Class::ElementType(void) const
 {
-	return &gStr_Chromosome;
+	return gStr_Chromosome;
 }
 
 const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(void) const

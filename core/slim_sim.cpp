@@ -1887,7 +1887,7 @@ public:
 	
 	SLiMSim_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -1904,9 +1904,9 @@ SLiMSim_Class::SLiMSim_Class(void)
 {
 }
 
-const std::string *SLiMSim_Class::ElementType(void) const
+const std::string &SLiMSim_Class::ElementType(void) const
 {
-	return &gStr_SLiMSim;
+	return gStr_SLiMSim;
 }
 
 const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(void) const

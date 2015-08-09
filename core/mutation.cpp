@@ -66,7 +66,7 @@ const EidosObjectClass *Mutation::Class(void) const
 
 void Mutation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
 }
 
 EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
@@ -135,7 +135,7 @@ public:
 	
 	Mutation_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -152,9 +152,9 @@ Mutation_Class::Mutation_Class(void)
 {
 }
 
-const std::string *Mutation_Class::ElementType(void) const
+const std::string &Mutation_Class::ElementType(void) const
 {
-	return &gStr_Mutation;
+	return gStr_Mutation;
 }
 
 const std::vector<const EidosPropertySignature *> *Mutation_Class::Properties(void) const

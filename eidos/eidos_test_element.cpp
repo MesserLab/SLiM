@@ -104,7 +104,7 @@ public:
 	
 	Eidos_TestElementClass(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -121,9 +121,9 @@ Eidos_TestElementClass::Eidos_TestElementClass(void)
 {
 }
 
-const std::string *Eidos_TestElementClass::ElementType(void) const
+const std::string &Eidos_TestElementClass::ElementType(void) const
 {
-	return &gEidosStr__TestElement;
+	return gEidosStr__TestElement;
 }
 
 const std::vector<const EidosPropertySignature *> *Eidos_TestElementClass::Properties(void) const

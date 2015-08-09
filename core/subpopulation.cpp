@@ -941,7 +941,7 @@ const EidosObjectClass *Subpopulation::Class(void) const
 
 void Subpopulation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<p" << subpopulation_id_ << ">";
+	p_ostream << Class()->ElementType() << "<p" << subpopulation_id_ << ">";
 }
 
 EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
@@ -1291,7 +1291,7 @@ public:
 	
 	Subpopulation_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -1308,9 +1308,9 @@ Subpopulation_Class::Subpopulation_Class(void)
 {
 }
 
-const std::string *Subpopulation_Class::ElementType(void) const
+const std::string &Subpopulation_Class::ElementType(void) const
 {
-	return &gStr_Subpopulation;
+	return gStr_Subpopulation;
 }
 
 const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properties(void) const

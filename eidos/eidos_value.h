@@ -97,7 +97,7 @@ const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEi
 const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any type except object
 const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any type including object
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const std::string *p_object_element_type, const std::string &p_name);
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
 
 
@@ -129,7 +129,7 @@ public:
 	
 	// basic methods
 	virtual EidosValueType Type(void) const = 0;			// the type of the vector
-	virtual const std::string *ElementType(void) const = 0;	// the type of the elements contained by the vector
+	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	virtual int Count(void) const = 0;						// the number of values in the vector
 	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
 	
@@ -223,7 +223,7 @@ public:
 	virtual ~EidosValue_NULL(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -278,7 +278,7 @@ public:
 	virtual ~EidosValue_Logical(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -353,7 +353,7 @@ public:
 	virtual ~EidosValue_String(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -393,7 +393,7 @@ public:
 	virtual ~EidosValue_Int(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -501,7 +501,7 @@ public:
 	virtual ~EidosValue_Float(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -609,7 +609,7 @@ public:
 	virtual ~EidosValue_Object(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	virtual const EidosObjectClass *Class(void) const = 0;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
@@ -782,7 +782,7 @@ public:
 	EidosObjectClass(void);
 	virtual ~EidosObjectClass(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;

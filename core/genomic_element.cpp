@@ -172,7 +172,7 @@ public:
 	
 	GenomicElement_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -189,9 +189,9 @@ GenomicElement_Class::GenomicElement_Class(void)
 {
 }
 
-const std::string *GenomicElement_Class::ElementType(void) const
+const std::string &GenomicElement_Class::ElementType(void) const
 {
-	return &gStr_GenomicElement;
+	return gStr_GenomicElement;
 }
 
 const std::vector<const EidosPropertySignature *> *GenomicElement_Class::Properties(void) const

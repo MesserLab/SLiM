@@ -229,7 +229,7 @@ const EidosObjectClass *Genome::Class(void) const
 
 void Genome::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<";
+	p_ostream << Class()->ElementType() << "<";
 	
 	switch (genome_type_)
 	{
@@ -475,7 +475,7 @@ public:
 	
 	Genome_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -492,9 +492,9 @@ Genome_Class::Genome_Class(void)
 {
 }
 
-const std::string *Genome_Class::ElementType(void) const
+const std::string &Genome_Class::ElementType(void) const
 {
-	return &gStr_Genome;
+	return gStr_Genome;
 }
 
 const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void) const

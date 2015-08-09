@@ -221,7 +221,7 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 					if (type_ok && arg_obj_class && (((EidosValue_Object *)argument)->Class() != arg_obj_class))
 					{
 						type_ok = false;
-						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << *argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << *arg_obj_class->ElementType() << "." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << arg_obj_class->ElementType() << "." << eidos_terminate();
 					}
 					break;
 			}
@@ -260,7 +260,7 @@ void EidosCallSignature::CheckReturn(EidosValue *p_result) const
 			if (return_type_ok && return_class_ && (((EidosValue_Object *)p_result)->Class() != return_class_))
 			{
 				return_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: object return value cannot be element type " << *p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << *return_class_->ElementType() << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: object return value cannot be element type " << p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
@@ -283,7 +283,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 {
 	p_outstream << p_signature.CallPrefix();	// "", "- ", or "+ " depending on our subclass
 	
-	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_class_->ElementType(), "");
+	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_class_, "");
 	
 	p_outstream << ")" << p_signature.function_name_ << "(";
 	
@@ -300,12 +300,12 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 		{
 			EidosValueMask type_mask = p_signature.arg_masks_[arg_index];
 			const string &arg_name = p_signature.arg_names_[arg_index];
-			const string *arg_obj_type = p_signature.arg_classes_[arg_index]->ElementType();
+			const EidosObjectClass *arg_obj_class = p_signature.arg_classes_[arg_index];
 			
 			if (arg_index > 0)
 				p_outstream << ", ";
 			
-			p_outstream << StringForEidosValueMask(type_mask, arg_obj_type, arg_name);
+			p_outstream << StringForEidosValueMask(type_mask, arg_obj_class, arg_name);
 		}
 	}
 	

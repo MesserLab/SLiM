@@ -137,7 +137,7 @@ const EidosObjectClass *GenomicElementType::Class(void) const
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<g" << genomic_element_type_id_ << ">";
+	p_ostream << Class()->ElementType() << "<g" << genomic_element_type_id_ << ">";
 }
 
 EidosValue *GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
@@ -255,7 +255,7 @@ public:
 	
 	GenomicElementType_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -272,9 +272,9 @@ GenomicElementType_Class::GenomicElementType_Class(void)
 {
 }
 
-const std::string *GenomicElementType_Class::ElementType(void) const
+const std::string &GenomicElementType_Class::ElementType(void) const
 {
-	return &gStr_GenomicElementType;
+	return gStr_GenomicElementType;
 }
 
 const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Properties(void) const

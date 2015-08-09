@@ -2321,7 +2321,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark elementType
 		case EidosFunctionIdentifier::elementTypeFunction:
 		{
-			string_result->PushString(*arg0_value->ElementType());
+			string_result->PushString(arg0_value->ElementType());
 			break;
 		}
 			

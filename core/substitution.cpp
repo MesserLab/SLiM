@@ -52,7 +52,7 @@ const EidosObjectClass *Substitution::Class(void) const
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
 }
 
 EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
@@ -104,7 +104,7 @@ public:
 	
 	Substitution_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -121,9 +121,9 @@ Substitution_Class::Substitution_Class(void)
 {
 }
 
-const std::string *Substitution_Class::ElementType(void) const
+const std::string &Substitution_Class::ElementType(void) const
 {
-	return &gStr_Substitution;
+	return gStr_Substitution;
 }
 
 const std::vector<const EidosPropertySignature *> *Substitution_Class::Properties(void) const

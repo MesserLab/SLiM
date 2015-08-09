@@ -555,7 +555,7 @@ const EidosObjectClass *SLiMEidosBlock::Class(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *Class()->ElementType() << "<";
+	p_ostream << Class()->ElementType() << "<";
 	
 	if (start_generation_ > 0)
 	{
@@ -667,7 +667,7 @@ public:
 	
 	SLiMEidosBlock_Class(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
@@ -684,9 +684,9 @@ SLiMEidosBlock_Class::SLiMEidosBlock_Class(void)
 {
 }
 
-const std::string *SLiMEidosBlock_Class::ElementType(void) const
+const std::string &SLiMEidosBlock_Class::ElementType(void) const
 {
-	return &gStr_SLiMEidosBlock;
+	return gStr_SLiMEidosBlock;
 }
 
 const std::vector<const EidosPropertySignature *> *SLiMEidosBlock_Class::Properties(void) const

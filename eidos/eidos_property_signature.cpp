@@ -69,7 +69,7 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_class_->ElementType() << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
@@ -106,7 +106,7 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: object value cannot be element type " << *p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << *value_class_->ElementType() << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
@@ -133,7 +133,7 @@ std::string EidosPropertySignature::PropertySymbol(void) const
 ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)
 {
 	p_outstream << p_signature.property_name_ << " " << p_signature.PropertySymbol() << " (";
-	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_->ElementType(), "") << ")";
+	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_, "") << ")";
 	
 	return p_outstream;
 }
