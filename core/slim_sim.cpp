@@ -717,17 +717,27 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)
 	{
-		int genomic_element_type = (int)arg0_value->IntAtIndex(0);
+		GenomicElementType *genomic_element_type_ptr;
 		int start_position = (int)arg1_value->IntAtIndex(0);		// used to have a -1; switched to zero-based
 		int end_position = (int)arg2_value->IntAtIndex(0);			// used to have a -1; switched to zero-based
-		auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 		
-		if (found_getype_pair == genomic_element_types_.end())
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined" << eidos_terminate();
+		if (arg0_value->Type() == EidosValueType::kValueInt)
+		{
+			int genomic_element_type = (int)arg0_value->IntAtIndex(0);
+			auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
+			
+			if (found_getype_pair == genomic_element_types_.end())
+				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined" << eidos_terminate();
+			
+			genomic_element_type_ptr = found_getype_pair->second;
+		}
+		else
+		{
+			genomic_element_type_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0));
+		}
 		
 		// FIXME bounds-check start and end
 		
-		GenomicElementType *genomic_element_type_ptr = found_getype_pair->second;
 		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
 		
 		bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
@@ -737,7 +747,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
-			output_stream << "initializeGenomicElement(" << genomic_element_type << ", " << start_position << ", " << end_position << ");" << endl;
+			output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << endl;
 		
 		num_genomic_elements++;
 	}
@@ -767,19 +777,27 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		std::vector<double> mutation_fractions;
 		
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-		{ 
-			int mutation_type_id = (int)arg1_value->IntAtIndex(mut_type_index);
+		{
+			MutationType *mutation_type_ptr;
 			double proportion = arg2_value->FloatAtIndex(mut_type_index);
 			
 			if (proportion <= 0)
 				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() proportions must be greater than zero." << eidos_terminate();
 			
-			auto found_muttype_pair = mutation_types_.find(mutation_type_id);
-			
-			if (found_muttype_pair == mutation_types_.end())
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
-			
-			MutationType *mutation_type_ptr = found_muttype_pair->second;
+			if (arg1_value->Type() == EidosValueType::kValueInt)
+			{
+				int mutation_type_id = (int)arg1_value->IntAtIndex(mut_type_index);
+				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
+				
+				if (found_muttype_pair == mutation_types_.end())
+					EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg1_value->ObjectElementAtIndex(mut_type_index));
+			}
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);
@@ -804,7 +822,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			output_stream << "initializeGenomicElementType(" << map_identifier;
 			
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				output_stream << ", " << arg1_value->IntAtIndex(mut_type_index) << ", " << arg2_value->FloatAtIndex(mut_type_index);
+				output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index);
 			
 			output_stream << ");" << endl;
 		}
@@ -1085,8 +1103,8 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 		// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 		if (!sim_0_signatures.size())
 		{
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S("genomicElementTypeID")->AddInt_S("start")->AddInt_S("end"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S("id")->AddInt("mutationTypeIDs")->AddNumeric("proportions"));
+			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddIntObject_S("genomicElementType", &gStr_GenomicElementType)->AddInt_S("start")->AddInt_S("end"));
+			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S("id")->AddIntObject_S("mutationTypes", &gStr_MutationType)->AddNumeric("proportions"));
 			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddInt_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric("rates")->AddInt_O("ends"));
 			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));

@@ -1138,7 +1138,7 @@ const EidosMethodSignature *Subpopulation::SignatureForMethod(EidosGlobalStringI
 	
 	if (!setMigrationRatesSig)
 	{
-		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddObject("sourceSubpops", &gStr_Subpopulation)->AddNumeric("rates");
+		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", &gStr_Subpopulation)->AddNumeric("rates");
 		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
@@ -1190,7 +1190,23 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
-				EidosObjectElement *source_subpop = arg0_value->ObjectElementAtIndex(value_index);
+				EidosObjectElement *source_subpop;
+				
+				if (arg0_value->Type() == EidosValueType::kValueInt)
+				{
+					int subpop_id = (int)arg0_value->IntAtIndex(value_index);
+					auto found_subpop_pair = population_.find(subpop_id);
+					
+					if (found_subpop_pair == population_.end())
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() subpopulation p" << subpop_id << " not defined" << eidos_terminate();
+					
+					source_subpop = found_subpop_pair->second;
+				}
+				else
+				{
+					source_subpop = arg0_value->ObjectElementAtIndex(value_index);
+				}
+				
 				int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				
