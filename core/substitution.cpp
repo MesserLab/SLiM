@@ -45,69 +45,14 @@ void Substitution::print(std::ostream &p_out) const
 //
 // Eidos support
 //
-const std::string *Substitution::ElementType(void) const
+const EidosObjectClass *Substitution::Class(void) const
 {
-	return &gStr_Substitution;
+	return gSLiM_Substitution_Class;
 }
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *ElementType() << "<" << selection_coeff_ << ">";
-}
-
-const std::vector<const EidosPropertySignature *> *Substitution::Properties(void) const
-{
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
-	
-	if (!properties)
-	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
-		properties->push_back(SignatureForProperty(gID_mutationType));
-		properties->push_back(SignatureForProperty(gID_position));
-		properties->push_back(SignatureForProperty(gID_selectionCoeff));
-		properties->push_back(SignatureForProperty(gID_subpopID));
-		properties->push_back(SignatureForProperty(gID_originGeneration));
-		properties->push_back(SignatureForProperty(gID_fixationTime));
-		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
-	}
-	
-	return properties;
-}
-
-const EidosPropertySignature *Substitution::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *mutationTypeSig = nullptr;
-	static EidosPropertySignature *positionSig = nullptr;
-	static EidosPropertySignature *selectionCoeffSig = nullptr;
-	static EidosPropertySignature *subpopIDSig = nullptr;
-	static EidosPropertySignature *originGenerationSig = nullptr;
-	static EidosPropertySignature *fixationTimeSig = nullptr;
-	
-	if (!mutationTypeSig)
-	{
-		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_MutationType));
-		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		fixationTimeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTime,		gID_fixationTime,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_mutationType:		return mutationTypeSig;
-		case gID_position:			return positionSig;
-		case gID_selectionCoeff:	return selectionCoeffSig;
-		case gID_subpopID:			return subpopIDSig;
-		case gID_originGeneration:	return originGenerationSig;
-		case gID_fixationTime:		return fixationTimeSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::SignatureForProperty(p_property_id);
-	}
+	p_ostream << *Class()->ElementType() << "<" << selection_coeff_ << ">";
 }
 
 EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
@@ -140,27 +85,123 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-const std::vector<const EidosMethodSignature *> *Substitution::Methods(void) const
+EidosValue *Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+}
+
+
+//
+//	Substitution_Class
+//
+#pragma mark Substitution_Class
+
+class Substitution_Class : public EidosObjectClass
+{
+public:
+	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
+	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
+	
+	Substitution_Class(void);
+	
+	virtual const std::string *ElementType(void) const;
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+};
+
+EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
+
+
+Substitution_Class::Substitution_Class(void)
+{
+}
+
+const std::string *Substitution_Class::ElementType(void) const
+{
+	return &gStr_Substitution;
+}
+
+const std::vector<const EidosPropertySignature *> *Substitution_Class::Properties(void) const
+{
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->push_back(SignatureForProperty(gID_mutationType));
+		properties->push_back(SignatureForProperty(gID_position));
+		properties->push_back(SignatureForProperty(gID_selectionCoeff));
+		properties->push_back(SignatureForProperty(gID_subpopID));
+		properties->push_back(SignatureForProperty(gID_originGeneration));
+		properties->push_back(SignatureForProperty(gID_fixationTime));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+	
+	return properties;
+}
+
+const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
+{
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *mutationTypeSig = nullptr;
+	static EidosPropertySignature *positionSig = nullptr;
+	static EidosPropertySignature *selectionCoeffSig = nullptr;
+	static EidosPropertySignature *subpopIDSig = nullptr;
+	static EidosPropertySignature *originGenerationSig = nullptr;
+	static EidosPropertySignature *fixationTimeSig = nullptr;
+	
+	if (!mutationTypeSig)
+	{
+		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_MutationType));
+		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		fixationTimeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTime,		gID_fixationTime,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_mutationType:		return mutationTypeSig;
+		case gID_position:			return positionSig;
+		case gID_selectionCoeff:	return selectionCoeffSig;
+		case gID_subpopID:			return subpopIDSig;
+		case gID_originGeneration:	return originGenerationSig;
+		case gID_fixationTime:		return fixationTimeSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::SignatureForProperty(p_property_id);
+	}
+}
+
+const std::vector<const EidosMethodSignature *> *Substitution_Class::Methods(void) const
 {
 	std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
 }
 
-const EidosMethodSignature *Substitution::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *Substitution_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	return EidosObjectElement::SignatureForMethod(p_method_id);
+	return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *Substitution::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue *Substitution_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
-	return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

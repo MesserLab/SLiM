@@ -116,7 +116,8 @@
 			}
 			else
 			{
-				const std::vector<const EidosPropertySignature *> *properties = value->PropertiesOfElements();
+				const EidosObjectClass *object_class = value->Class();
+				const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
 				
 				return properties->size();
 			}
@@ -180,7 +181,8 @@
 			}
 			else
 			{
-				const std::vector<const EidosPropertySignature *> *properties = value->PropertiesOfElements();
+				const EidosObjectClass *object_class = value->Class();
+				const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
 				const EidosPropertySignature *propertySig = (*properties)[index];
 				const std::string &symbolName = propertySig->property_name_;
 				EidosGlobalStringID symbolID = propertySig->property_id_;

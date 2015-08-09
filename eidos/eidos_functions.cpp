@@ -2699,13 +2699,14 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	EidosValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	const EidosMethodSignature *method_signature = method_object->SignatureForMethodOfElements(p_method_id);
+	const EidosObjectClass *object_class = method_object->Class();
+	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
 	
 	method_signature->CheckArguments(p_arguments, p_argument_count);
 	
 	// Make the method call
 	if (method_signature->is_class_method)
-		result = method_object->ExecuteClassMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
+		result = object_class->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, *this);
 	else
 		result = method_object->ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	

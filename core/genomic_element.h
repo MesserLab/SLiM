@@ -34,6 +34,9 @@
 #include "eidos_value.h"
 
 
+extern EidosObjectClass *gSLiM_GenomicElement_Class;
+
+
 class GenomicElement : public EidosObjectElement
 {
 	// This class has a restricted copying policy; see below
@@ -66,16 +69,11 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const std::string *ElementType(void) const;
+	virtual const EidosObjectClass *Class(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // support stream output of GenomicElement, for debugging

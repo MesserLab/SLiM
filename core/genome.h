@@ -35,6 +35,9 @@
 #include "eidos_value.h"
 
 
+extern EidosObjectClass *gSLiM_Genome_Class;
+
+
 // Genome now has an internal buffer that it can use to hold mutation pointers.  This makes every Genome object a bit bigger;
 // with 64-bit pointers, a buffer big enough to hold four pointers is 32 bytes, ouch.  But avoiding the malloc overhead is
 // worth it, for simulations with few mutations; and for simulations with many mutations, the 32-byte overhead is background noise.
@@ -333,18 +336,14 @@ public:
 	void GenerateCachedEidosValue(void);
 	inline EidosValue *CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
+
 
 #endif /* defined(__SLiM__genome__) */
 

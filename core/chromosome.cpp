@@ -205,76 +205,9 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 //
 #pragma mark Eidos support
 
-const std::string *Chromosome::ElementType(void) const
+const EidosObjectClass *Chromosome::Class(void) const
 {
-	return &gStr_Chromosome;
-}
-
-const std::vector<const EidosPropertySignature *> *Chromosome::Properties(void) const
-{
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
-	
-	if (!properties)
-	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
-		properties->push_back(SignatureForProperty(gID_genomicElements));
-		properties->push_back(SignatureForProperty(gID_lastPosition));
-		properties->push_back(SignatureForProperty(gID_overallRecombinationRate));
-		properties->push_back(SignatureForProperty(gID_recombinationEndPositions));
-		properties->push_back(SignatureForProperty(gID_recombinationRates));
-		properties->push_back(SignatureForProperty(gID_geneConversionFraction));
-		properties->push_back(SignatureForProperty(gID_geneConversionMeanLength));
-		properties->push_back(SignatureForProperty(gID_overallMutationRate));
-		properties->push_back(SignatureForProperty(gID_tag));
-		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
-	}
-	
-	return properties;
-}
-
-const EidosPropertySignature *Chromosome::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *genomicElementsSig = nullptr;
-	static EidosPropertySignature *lastPositionSig = nullptr;
-	static EidosPropertySignature *overallRecombinationRateSig = nullptr;
-	static EidosPropertySignature *recombinationEndPositionsSig = nullptr;
-	static EidosPropertySignature *recombinationRatesSig = nullptr;
-	static EidosPropertySignature *geneConversionFractionSig = nullptr;
-	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
-	static EidosPropertySignature *overallMutationRateSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!genomicElementsSig)
-	{
-		genomicElementsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,				gID_genomicElements,			true,	kEidosValueMaskObject, &gStr_GenomicElement));
-		lastPositionSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				gID_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		overallRecombinationRateSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	gID_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		recombinationEndPositionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	gID_recombinationEndPositions,	true,	kEidosValueMaskInt));
-		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kEidosValueMaskFloat));
-		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallMutationRateSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,			gID_overallMutationRate,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_genomicElements:			return genomicElementsSig;
-		case gID_lastPosition:				return lastPositionSig;
-		case gID_overallRecombinationRate:	return overallRecombinationRateSig;
-		case gID_recombinationEndPositions:	return recombinationEndPositionsSig;
-		case gID_recombinationRates:		return recombinationRatesSig;
-		case gID_geneConversionFraction:	return geneConversionFractionSig;
-		case gID_geneConversionMeanLength:	return geneConversionMeanLengthSig;
-		case gID_overallMutationRate:		return overallMutationRateSig;
-		case gID_tag:						return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::SignatureForProperty(p_property_id);
-	}
+	return gSLiM_Chromosome_Class;
 }
 
 EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
@@ -373,36 +306,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 	}
 }
 
-const std::vector<const EidosMethodSignature *> *Chromosome::Methods(void) const
-{
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
-	
-	if (!methods)
-	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
-		methods->push_back(SignatureForMethod(gID_setRecombinationRate));
-		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
-	}
-	
-	return methods;
-}
-
-const EidosMethodSignature *Chromosome::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setRecombinationRateSig = nullptr;
-	
-	if (!setRecombinationRateSig)
-	{
-		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends");
-	}
-	
-	if (p_method_id == gID_setRecombinationRate)
-		return setRecombinationRateSig;
-	else
-		return EidosObjectElement::SignatureForMethod(p_method_id);
-}
-
-EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
@@ -419,13 +323,13 @@ EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValu
 		if (p_argument_count == 1)
 		{
 			if (rate_count != 1)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
 			double recombination_rate = arg0_value->FloatAtIndex(0);
 			
 			// check values
 			if (recombination_rate < 0.0)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			
 			// then adopt them
 			recombination_rates_.clear();
@@ -439,7 +343,7 @@ EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValu
 			int end_count = arg1_value->Count();
 			
 			if ((end_count != rate_count) || (end_count == 0))
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
 			
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
@@ -449,17 +353,17 @@ EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValu
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
-						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			}
 			
 			// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 			// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 			// with the same answer that we got before, otherwise our last_position_ cache is invalid.
 			if (arg1_value->IntAtIndex(end_count - 1) != last_position_)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod): setRecombinationRate() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
 			
 			// then adopt them
 			recombination_rates_.clear();
@@ -483,7 +387,144 @@ EidosValue *Chromosome::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValu
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+}
+
+
+//
+//	Chromosome_Class
+//
+#pragma mark Chromosome_Class
+
+class Chromosome_Class : public EidosObjectClass
+{
+public:
+	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
+	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
+	
+	Chromosome_Class(void);
+	
+	virtual const std::string *ElementType(void) const;
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+};
+
+EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();
+
+
+Chromosome_Class::Chromosome_Class(void)
+{
+}
+
+const std::string *Chromosome_Class::ElementType(void) const
+{
+	return &gStr_Chromosome;
+}
+
+const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(void) const
+{
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->push_back(SignatureForProperty(gID_genomicElements));
+		properties->push_back(SignatureForProperty(gID_lastPosition));
+		properties->push_back(SignatureForProperty(gID_overallRecombinationRate));
+		properties->push_back(SignatureForProperty(gID_recombinationEndPositions));
+		properties->push_back(SignatureForProperty(gID_recombinationRates));
+		properties->push_back(SignatureForProperty(gID_geneConversionFraction));
+		properties->push_back(SignatureForProperty(gID_geneConversionMeanLength));
+		properties->push_back(SignatureForProperty(gID_overallMutationRate));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+	
+	return properties;
+}
+
+const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
+{
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *genomicElementsSig = nullptr;
+	static EidosPropertySignature *lastPositionSig = nullptr;
+	static EidosPropertySignature *overallRecombinationRateSig = nullptr;
+	static EidosPropertySignature *recombinationEndPositionsSig = nullptr;
+	static EidosPropertySignature *recombinationRatesSig = nullptr;
+	static EidosPropertySignature *geneConversionFractionSig = nullptr;
+	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
+	static EidosPropertySignature *overallMutationRateSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
+	
+	if (!genomicElementsSig)
+	{
+		genomicElementsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,				gID_genomicElements,			true,	kEidosValueMaskObject, &gStr_GenomicElement));
+		lastPositionSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				gID_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		overallRecombinationRateSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	gID_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		recombinationEndPositionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	gID_recombinationEndPositions,	true,	kEidosValueMaskInt));
+		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kEidosValueMaskFloat));
+		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		overallMutationRateSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,			gID_overallMutationRate,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_genomicElements:			return genomicElementsSig;
+		case gID_lastPosition:				return lastPositionSig;
+		case gID_overallRecombinationRate:	return overallRecombinationRateSig;
+		case gID_recombinationEndPositions:	return recombinationEndPositionsSig;
+		case gID_recombinationRates:		return recombinationRatesSig;
+		case gID_geneConversionFraction:	return geneConversionFractionSig;
+		case gID_geneConversionMeanLength:	return geneConversionMeanLengthSig;
+		case gID_overallMutationRate:		return overallMutationRateSig;
+		case gID_tag:						return tagSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::SignatureForProperty(p_property_id);
+	}
+}
+
+const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void) const
+{
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods->push_back(SignatureForMethod(gID_setRecombinationRate));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
+	
+	return methods;
+}
+
+const EidosMethodSignature *Chromosome_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
+{
+	static EidosInstanceMethodSignature *setRecombinationRateSig = nullptr;
+	
+	if (!setRecombinationRateSig)
+	{
+		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends");
+	}
+	
+	if (p_method_id == gID_setRecombinationRate)
+		return setRecombinationRateSig;
+	else
+		return EidosObjectClass::SignatureForMethod(p_method_id);
+}
+
+EidosValue *Chromosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

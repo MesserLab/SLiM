@@ -934,85 +934,14 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
 }
 
-const std::string *Subpopulation::ElementType(void) const
+const EidosObjectClass *Subpopulation::Class(void) const
 {
-	return &gStr_Subpopulation;
+	return gSLiM_Subpopulation_Class;
 }
 
 void Subpopulation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << *ElementType() << "<p" << subpopulation_id_ << ">";
-}
-
-const std::vector<const EidosPropertySignature *> *Subpopulation::Properties(void) const
-{
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
-	
-	if (!properties)
-	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
-		properties->push_back(SignatureForProperty(gID_id));
-		properties->push_back(SignatureForProperty(gID_firstMaleIndex));
-		properties->push_back(SignatureForProperty(gID_genomes));
-		properties->push_back(SignatureForProperty(gID_immigrantSubpopIDs));
-		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
-		properties->push_back(SignatureForProperty(gID_selfingRate));
-		properties->push_back(SignatureForProperty(gID_cloningRate));
-		properties->push_back(SignatureForProperty(gID_sexRatio));
-		properties->push_back(SignatureForProperty(gID_individualCount));
-		properties->push_back(SignatureForProperty(gID_tag));
-		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
-	}
-	
-	return properties;
-}
-
-const EidosPropertySignature *Subpopulation::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *firstMaleIndexSig = nullptr;
-	static EidosPropertySignature *genomesSig = nullptr;
-	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
-	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
-	static EidosPropertySignature *selfingRateSig = nullptr;
-	static EidosPropertySignature *cloningRateSig = nullptr;
-	static EidosPropertySignature *sexRatioSig = nullptr;
-	static EidosPropertySignature *sizeSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =							(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							gID_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		firstMaleIndexSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				gID_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kEidosValueMaskObject, &gStr_Genome));
-		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
-		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
-		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
-		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:						return idSig;
-		case gID_firstMaleIndex:			return firstMaleIndexSig;
-		case gID_genomes:					return genomesSig;
-		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
-		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
-		case gID_selfingRate:				return selfingRateSig;
-		case gID_cloningRate:				return cloningRateSig;
-		case gID_sexRatio:					return sexRatioSig;
-		case gID_individualCount:			return sizeSig;
-		case gID_tag:						return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::SignatureForProperty(p_property_id);
-	}
+	p_ostream << *Class()->ElementType() << "<p" << subpopulation_id_ << ">";
 }
 
 EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
@@ -1103,70 +1032,7 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p
 	}
 }
 
-const std::vector<const EidosMethodSignature *> *Subpopulation::Methods(void) const
-{
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
-	
-	if (!methods)
-	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
-		methods->push_back(SignatureForMethod(gID_setMigrationRates));
-		methods->push_back(SignatureForMethod(gID_setCloningRate));
-		methods->push_back(SignatureForMethod(gID_setSelfingRate));
-		methods->push_back(SignatureForMethod(gID_setSexRatio));
-		methods->push_back(SignatureForMethod(gID_setSubpopulationSize));
-		methods->push_back(SignatureForMethod(gID_fitness));
-		methods->push_back(SignatureForMethod(gID_outputMSSample));
-		methods->push_back(SignatureForMethod(gID_outputSample));
-		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
-	}
-	
-	return methods;
-}
-
-const EidosMethodSignature *Subpopulation::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosInstanceMethodSignature *setMigrationRatesSig = nullptr;
-	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
-	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
-	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
-	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
-	static EidosInstanceMethodSignature *fitnessSig = nullptr;
-	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
-	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
-	
-	if (!setMigrationRatesSig)
-	{
-		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", &gStr_Subpopulation)->AddNumeric("rates");
-		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
-		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
-		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
-		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
-		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kEidosValueMaskFloat))->AddInt("indices");
-		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
-		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gID_setMigrationRates:		return setMigrationRatesSig;
-		case gID_setCloningRate:		return setCloningRateSig;
-		case gID_setSelfingRate:		return setSelfingRateSig;
-		case gID_setSexRatio:			return setSexRatioSig;
-		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
-		case gID_fitness:				return fitnessSig;
-		case gID_outputMSSample:		return outputMSSampleSig;
-		case gID_outputSample:			return outputSampleSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
@@ -1186,7 +1052,7 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			int rates_count = arg1_value->Count();
 			
 			if (source_subpops_count != rates_count)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
@@ -1198,7 +1064,7 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 					auto found_subpop_pair = population_.find(subpop_id);
 					
 					if (found_subpop_pair == population_.end())
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setMigrationRates() subpopulation p" << subpop_id << " not defined" << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() subpopulation p" << subpop_id << " not defined" << eidos_terminate();
 					
 					source_subpop = found_subpop_pair->second;
 				}
@@ -1230,15 +1096,15 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			{
 				// SEX ONLY: either one or two values may be specified; if two, it is female at 0, male at 1
 				if ((value_count < 1) || (value_count > 2))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << eidos_terminate();
 				
 				double female_cloning_fraction = arg0_value->FloatAtIndex(0);
 				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1) : female_cloning_fraction;
 				
 				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				
 				female_clone_fraction_ = female_cloning_fraction;
 				male_clone_fraction_ = male_cloning_fraction;
@@ -1247,12 +1113,12 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			{
 				// ASEX ONLY: only one value may be specified
 				if (value_count != 1)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << eidos_terminate();
 				
 				double cloning_fraction = arg0_value->FloatAtIndex(0);
 				
 				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
 				
 				female_clone_fraction_ = cloning_fraction;
 				male_clone_fraction_ = cloning_fraction;
@@ -1272,10 +1138,10 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			double selfing_fraction = arg0_value->FloatAtIndex(0);
 			
 			if ((selfing_fraction != 0.0) && sex_enabled_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
 			
 			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSelfingRate() requires a selfing fraction within [0,1]." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() requires a selfing fraction within [0,1]." << eidos_terminate();
 			
 			selfing_fraction_ = selfing_fraction;
 			
@@ -1293,11 +1159,11 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() called when the child generation was valid" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() called when the child generation was valid" << eidos_terminate();
 			
 			// SEX ONLY
 			if (!sex_enabled_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << eidos_terminate();
 			
 			double sex_ratio = arg0_value->FloatAtIndex(0);
 			
@@ -1332,9 +1198,9 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 		case gID_fitness:
 		{
 			if (child_generation_valid)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
 			if (cached_fitness_size_ == 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
 			
 			bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
 			int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
@@ -1407,8 +1273,183 @@ EidosValue *Subpopulation::ExecuteMethod(EidosGlobalStringID p_method_id, EidosV
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+
+//
+//	Subpopulation_Class
+//
+#pragma mark Subpopulation_Class
+
+class Subpopulation_Class : public EidosObjectClass
+{
+public:
+	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
+	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
+	
+	Subpopulation_Class(void);
+	
+	virtual const std::string *ElementType(void) const;
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+};
+
+EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
+
+
+Subpopulation_Class::Subpopulation_Class(void)
+{
+}
+
+const std::string *Subpopulation_Class::ElementType(void) const
+{
+	return &gStr_Subpopulation;
+}
+
+const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properties(void) const
+{
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->push_back(SignatureForProperty(gID_id));
+		properties->push_back(SignatureForProperty(gID_firstMaleIndex));
+		properties->push_back(SignatureForProperty(gID_genomes));
+		properties->push_back(SignatureForProperty(gID_immigrantSubpopIDs));
+		properties->push_back(SignatureForProperty(gID_immigrantSubpopFractions));
+		properties->push_back(SignatureForProperty(gID_selfingRate));
+		properties->push_back(SignatureForProperty(gID_cloningRate));
+		properties->push_back(SignatureForProperty(gID_sexRatio));
+		properties->push_back(SignatureForProperty(gID_individualCount));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+	
+	return properties;
+}
+
+const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
+{
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
+	static EidosPropertySignature *firstMaleIndexSig = nullptr;
+	static EidosPropertySignature *genomesSig = nullptr;
+	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
+	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
+	static EidosPropertySignature *selfingRateSig = nullptr;
+	static EidosPropertySignature *cloningRateSig = nullptr;
+	static EidosPropertySignature *sexRatioSig = nullptr;
+	static EidosPropertySignature *sizeSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
+	
+	if (!idSig)
+	{
+		idSig =							(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							gID_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		firstMaleIndexSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				gID_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kEidosValueMaskObject, &gStr_Genome));
+		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
+		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
+		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
+		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_id:						return idSig;
+		case gID_firstMaleIndex:			return firstMaleIndexSig;
+		case gID_genomes:					return genomesSig;
+		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
+		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
+		case gID_selfingRate:				return selfingRateSig;
+		case gID_cloningRate:				return cloningRateSig;
+		case gID_sexRatio:					return sexRatioSig;
+		case gID_individualCount:			return sizeSig;
+		case gID_tag:						return tagSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::SignatureForProperty(p_property_id);
+	}
+}
+
+const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(void) const
+{
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods->push_back(SignatureForMethod(gID_setMigrationRates));
+		methods->push_back(SignatureForMethod(gID_setCloningRate));
+		methods->push_back(SignatureForMethod(gID_setSelfingRate));
+		methods->push_back(SignatureForMethod(gID_setSexRatio));
+		methods->push_back(SignatureForMethod(gID_setSubpopulationSize));
+		methods->push_back(SignatureForMethod(gID_fitness));
+		methods->push_back(SignatureForMethod(gID_outputMSSample));
+		methods->push_back(SignatureForMethod(gID_outputSample));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
+	
+	return methods;
+}
+
+const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
+{
+	// Signatures are all preallocated, for speed
+	static EidosInstanceMethodSignature *setMigrationRatesSig = nullptr;
+	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
+	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
+	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
+	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
+	static EidosInstanceMethodSignature *fitnessSig = nullptr;
+	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
+	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
+	
+	if (!setMigrationRatesSig)
+	{
+		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", &gStr_Subpopulation)->AddNumeric("rates");
+		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
+		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
+		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
+		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
+		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kEidosValueMaskFloat))->AddInt("indices");
+		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+		case gID_setMigrationRates:		return setMigrationRatesSig;
+		case gID_setCloningRate:		return setCloningRateSig;
+		case gID_setSelfingRate:		return setSelfingRateSig;
+		case gID_setSexRatio:			return setSexRatioSig;
+		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
+		case gID_fitness:				return fitnessSig;
+		case gID_outputMSSample:		return outputMSSampleSig;
+		case gID_outputSample:			return outputSampleSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::SignatureForMethod(p_method_id);
+	}
+}
+
+EidosValue *Subpopulation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

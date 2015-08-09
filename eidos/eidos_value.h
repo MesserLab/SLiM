@@ -45,6 +45,7 @@ class EidosMethodSignature;
 class EidosInterpreter;
 
 class EidosObjectElement;	// the value type for EidosValue_Object; defined at the bottom of this file
+class EidosObjectClass;		// the class definition object for EidosObjectElement; also defined at bottom
 
 
 extern EidosValue_NULL *gStaticEidosValueNULL;
@@ -608,7 +609,8 @@ public:
 	virtual ~EidosValue_Object(void);
 	
 	virtual EidosValueType Type(void) const;
-	virtual const std::string *ElementType(void) const = 0;
+	virtual const std::string *ElementType(void) const;
+	virtual const EidosObjectClass *Class(void) const = 0;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -623,15 +625,10 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const = 0;
-	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value) = 0;
 	
-	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const = 0;
-	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const = 0;
-	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 };
 
@@ -649,7 +646,7 @@ public:
 	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton_const for this case
 	virtual ~EidosValue_Object_vector(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const EidosObjectClass *Class(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -665,15 +662,10 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const;
-	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const;
-	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
@@ -689,7 +681,7 @@ public:
 	explicit EidosValue_Object_singleton_const(EidosObjectElement *p_element1);
 	virtual ~EidosValue_Object_singleton_const(void);
 	
-	virtual const std::string *ElementType(void) const;
+	virtual const EidosObjectClass *Class(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -707,15 +699,10 @@ public:
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.
-	virtual const std::vector<const EidosPropertySignature *> *PropertiesOfElements(void) const;
-	virtual const EidosPropertySignature *SignatureForPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetRepresentativeValueOrNullForPropertyOfElements(EidosGlobalStringID p_property_id) const;			// used by code completion
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual const std::vector<const EidosMethodSignature *> *MethodsOfElements(void) const;
-	virtual const EidosMethodSignature *SignatureForMethodOfElements(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
@@ -729,31 +716,30 @@ public:
 // EidosObjectElement obeys sharing semantics; many EidosValue_Objects can refer to the same element, and
 // EidosObjectElement never copies itself.  To manage its lifetime, refcounting is used.  Externally-owned
 // objects (from the Context) do not use this refcount, since their lifetime is defined externally, but
-// internally-owned objects (such as Path) use the refcount and delete themselves when they are done.
+// internally-owned objects (such as _Test, the only internally-owned object type at present) use the
+// refcount and delete themselves when they are done.
+
 class EidosObjectElement
 {
 public:
-	EidosObjectElement(const EidosObjectElement &p_original) = delete;		// can copy-construct
+	EidosObjectElement(const EidosObjectElement &p_original) = delete;		// no copy-construct
 	EidosObjectElement& operator=(const EidosObjectElement&) = delete;		// no copying
 	
 	EidosObjectElement(void);
 	virtual ~EidosObjectElement(void);
 	
-	virtual const std::string *ElementType(void) const = 0;
+	virtual const EidosObjectClass *Class(void) const = 0;
+	
 	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
 	
 	// refcounting; virtual no-ops here (for externally-owned objects), implemented in EidosObjectElementInternal
 	virtual EidosObjectElement *Retain(void);
 	virtual EidosObjectElement *Release(void);
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
 	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element);
@@ -766,7 +752,7 @@ private:
 	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
 	
 public:
-	EidosObjectElementInternal(const EidosObjectElementInternal &p_original) = delete;		// can copy-construct
+	EidosObjectElementInternal(const EidosObjectElementInternal &p_original) = delete;		// no copy-construct
 	EidosObjectElementInternal& operator=(const EidosObjectElementInternal&) = delete;		// no copying
 	
 	EidosObjectElementInternal(void);
@@ -775,6 +761,42 @@ public:
 	virtual EidosObjectElement *Retain(void);
 	virtual EidosObjectElement *Release(void);
 };
+
+
+//	*********************************************************************************************************
+//
+// This class is similar to Class objects in Objective-C; it represents the class of an EidosObjectElement.
+// These class objects are not visible in Eidos, at least at present; they just work behind the scenes to
+// enable some behaviors.  In particular: (1) class objects define the interface, of methods and properties,
+// that elements implement; (2) class objects implement class methods, avoiding the need to call class
+// methods on an arbitrarily chosen instance of an element type; and most importantly, (3) class objects exist
+// even when no instance exists, allowing facilities like code completion to handle types and interfaces
+// without having to have instantiated object elements in hand.  It is conceivable that class objects will
+// become visible in Eidos at some point; but there seems to be no need for that at present.
+//
+// Note that this is not an abstract base class!  It is used to represent the class of empty objects.
+
+class EidosObjectClass
+{
+public:
+	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
+	EidosObjectClass& operator=(const EidosObjectClass&) = delete;		// no copying
+	
+	EidosObjectClass(void);
+	virtual ~EidosObjectClass(void);
+	
+	virtual const std::string *ElementType(void) const;
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	
+	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+};
+
+extern EidosObjectClass *gEidos_UndefinedClassObject;
 
 
 #endif /* defined(__Eidos__eidos_value__) */

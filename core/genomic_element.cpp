@@ -87,56 +87,9 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 //
 // Eidos support
 //
-const std::string *GenomicElement::ElementType(void) const
+const EidosObjectClass *GenomicElement::Class(void) const
 {
-	return &gStr_GenomicElement;
-}
-
-const std::vector<const EidosPropertySignature *> *GenomicElement::Properties(void) const
-{
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
-	
-	if (!properties)
-	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectElement::Properties());
-		properties->push_back(SignatureForProperty(gID_genomicElementType));
-		properties->push_back(SignatureForProperty(gID_startPosition));
-		properties->push_back(SignatureForProperty(gID_endPosition));
-		properties->push_back(SignatureForProperty(gID_tag));
-		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
-	}
-	
-	return properties;
-}
-
-const EidosPropertySignature *GenomicElement::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *genomicElementTypeSig = nullptr;
-	static EidosPropertySignature *startPositionSig = nullptr;
-	static EidosPropertySignature *endPositionSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!genomicElementTypeSig)
-	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_GenomicElementType));
-		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_genomicElementType:	return genomicElementTypeSig;
-		case gID_startPosition:			return startPositionSig;
-		case gID_endPosition:			return endPositionSig;
-		case gID_tag:					return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::SignatureForProperty(p_property_id);
-	}
+	return gSLiM_GenomicElement_Class;
 }
 
 EidosValue *GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
@@ -181,36 +134,7 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	}
 }
 
-const std::vector<const EidosMethodSignature *> *GenomicElement::Methods(void) const
-{
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
-	
-	if (!methods)
-	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectElement::Methods());
-		methods->push_back(SignatureForMethod(gID_setGenomicElementType));
-		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
-	}
-	
-	return methods;
-}
-
-const EidosMethodSignature *GenomicElement::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setGenomicElementTypeSig = nullptr;
-	
-	if (!setGenomicElementTypeSig)
-	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
-	}
-	
-	if (p_method_id == gID_setGenomicElementType)
-		return setGenomicElementTypeSig;
-	else
-		return EidosObjectElement::SignatureForMethod(p_method_id);
-}
-
-EidosValue *GenomicElement::ExecuteMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
@@ -231,7 +155,124 @@ EidosValue *GenomicElement::ExecuteMethod(EidosGlobalStringID p_method_id, Eidos
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::ExecuteMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+}
+
+
+//
+//	GenomicElement_Class
+//
+#pragma mark GenomicElement_Class
+
+class GenomicElement_Class : public EidosObjectClass
+{
+public:
+	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
+	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
+	
+	GenomicElement_Class(void);
+	
+	virtual const std::string *ElementType(void) const;
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+};
+
+EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
+
+
+GenomicElement_Class::GenomicElement_Class(void)
+{
+}
+
+const std::string *GenomicElement_Class::ElementType(void) const
+{
+	return &gStr_GenomicElement;
+}
+
+const std::vector<const EidosPropertySignature *> *GenomicElement_Class::Properties(void) const
+{
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->push_back(SignatureForProperty(gID_genomicElementType));
+		properties->push_back(SignatureForProperty(gID_startPosition));
+		properties->push_back(SignatureForProperty(gID_endPosition));
+		properties->push_back(SignatureForProperty(gID_tag));
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+	
+	return properties;
+}
+
+const EidosPropertySignature *GenomicElement_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
+{
+	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *genomicElementTypeSig = nullptr;
+	static EidosPropertySignature *startPositionSig = nullptr;
+	static EidosPropertySignature *endPositionSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
+	
+	if (!genomicElementTypeSig)
+	{
+		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, &gStr_GenomicElementType));
+		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+	}
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_genomicElementType:	return genomicElementTypeSig;
+		case gID_startPosition:			return startPositionSig;
+		case gID_endPosition:			return endPositionSig;
+		case gID_tag:					return tagSig;
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::SignatureForProperty(p_property_id);
+	}
+}
+
+const std::vector<const EidosMethodSignature *> *GenomicElement_Class::Methods(void) const
+{
+	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods->push_back(SignatureForMethod(gID_setGenomicElementType));
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
+	
+	return methods;
+}
+
+const EidosMethodSignature *GenomicElement_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
+{
+	static EidosInstanceMethodSignature *setGenomicElementTypeSig = nullptr;
+	
+	if (!setGenomicElementTypeSig)
+	{
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", &gStr_GenomicElementType);
+	}
+	
+	if (p_method_id == gID_setGenomicElementType)
+		return setGenomicElementTypeSig;
+	else
+		return EidosObjectClass::SignatureForMethod(p_method_id);
+}
+
+EidosValue *GenomicElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 

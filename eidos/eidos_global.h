@@ -139,7 +139,7 @@ extern const std::string gEidosStr_property;
 extern const std::string gEidosStr_str;
 
 extern const std::string gEidosStr_GetPropertyOfElements;
-extern const std::string gEidosStr_ExecuteMethod;
+extern const std::string gEidosStr_ExecuteInstanceMethod;
 extern const std::string gEidosStr_lessThanSign;
 extern const std::string gEidosStr_greaterThanSign;
 extern const std::string gEidosStr_undefined;

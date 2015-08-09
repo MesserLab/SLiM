@@ -911,13 +911,13 @@ using std::string;
 	EidosValue_Object *terminus = ((EidosValue_Object *)key_path_value);
 	
 	// First, a sorted list of globals
-	for (auto symbol_sig : *terminus->PropertiesOfElements())
+	for (auto symbol_sig : *terminus->Class()->Properties())
 		[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
 	
 	[candidates sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of functions, with () appended
-	for (auto method_sig : *terminus->MethodsOfElements())
+	for (auto method_sig : *terminus->Class()->Methods())
 	{
 		NSString *methodName = [NSString stringWithUTF8String:method_sig->function_name_.c_str()];
 		

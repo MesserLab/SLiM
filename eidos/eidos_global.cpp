@@ -331,7 +331,7 @@ const std::string gEidosStr_str = "str";
 
 // other miscellaneous strings
 const std::string gEidosStr_GetPropertyOfElements = "GetPropertyOfElements";
-const std::string gEidosStr_ExecuteMethod = "ExecuteMethod";
+const std::string gEidosStr_ExecuteInstanceMethod = "ExecuteInstanceMethod";
 const std::string gEidosStr_lessThanSign = "<";
 const std::string gEidosStr_greaterThanSign = ">";
 const std::string gEidosStr_undefined = "undefined";
