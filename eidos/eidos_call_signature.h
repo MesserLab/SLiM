@@ -64,6 +64,7 @@ public:
 	EidosCallSignature *AddInt(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat(const std::string &p_argument_name);
 	EidosCallSignature *AddString(const std::string &p_argument_name);
+	EidosCallSignature *AddIntObject(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddObject(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddNumeric(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv(const std::string &p_argument_name);
@@ -75,6 +76,7 @@ public:
 	EidosCallSignature *AddInt_O(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat_O(const std::string &p_argument_name);
 	EidosCallSignature *AddString_O(const std::string &p_argument_name);
+	EidosCallSignature *AddIntObject_O(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddObject_O(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddNumeric_O(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_O(const std::string &p_argument_name);
@@ -86,6 +88,7 @@ public:
 	EidosCallSignature *AddInt_S(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat_S(const std::string &p_argument_name);
 	EidosCallSignature *AddString_S(const std::string &p_argument_name);
+	EidosCallSignature *AddIntObject_S(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddObject_S(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddNumeric_S(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_S(const std::string &p_argument_name);
@@ -97,6 +100,7 @@ public:
 	EidosCallSignature *AddInt_OS(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat_OS(const std::string &p_argument_name);
 	EidosCallSignature *AddString_OS(const std::string &p_argument_name);
+	EidosCallSignature *AddIntObject_OS(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddObject_OS(const std::string &p_argument_name, const std::string *p_object_element_type);
 	EidosCallSignature *AddNumeric_OS(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_OS(const std::string &p_argument_name);
