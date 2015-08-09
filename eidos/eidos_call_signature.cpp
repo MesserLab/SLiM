@@ -336,13 +336,18 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 {
 }
 
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
+	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_class)
+{
+}
+
 EidosFunctionSignature::EidosFunctionSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const string &p_delegate_name)
 	: EidosCallSignature(p_function_name, p_function_id, p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_class)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name)
+	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_class), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
 {
 }
 
