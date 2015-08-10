@@ -19,6 +19,7 @@
 
 
 #import "EidosTextView.h"
+#import "EidosConsoleTextView.h"
 
 #include "eidos_script.h"
 #include "eidos_call_signature.h"
@@ -428,6 +429,22 @@ using std::string;
 	}
 }
 
+- (void)selectErrorRange
+{
+	if ((gEidosCharacterStartOfParseError >= 0) && (gEidosCharacterEndOfParseError >= gEidosCharacterStartOfParseError))
+	{
+		NSRange charRange = NSMakeRange(gEidosCharacterStartOfParseError, gEidosCharacterEndOfParseError - gEidosCharacterStartOfParseError + 1);
+		
+		[self setSelectedRange:charRange];
+		[self scrollRangeToVisible:charRange];
+	}
+}
+
+//
+//	Syntax coloring
+//
+#pragma mark Syntax coloring
+
 // Check whether a token string is a special identifier like "pX", "gX", or "mX"
 // FIXME should be in SLiM
 - (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
@@ -671,16 +688,308 @@ using std::string;
 	syntaxColorState_ = 0;
 }
 
-- (void)selectErrorRange
+//
+//	Signature display
+//
+#pragma mark Signature display
+
+- (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection
 {
-	if ((gEidosCharacterStartOfParseError >= 0) && (gEidosCharacterEndOfParseError >= gEidosCharacterStartOfParseError))
+	if ([scriptString length])
 	{
-		NSRange charRange = NSMakeRange(gEidosCharacterStartOfParseError, gEidosCharacterEndOfParseError - gEidosCharacterStartOfParseError + 1);
+		std::string script_string([scriptString UTF8String]);
+		EidosScript script(script_string, 0);
 		
-		[self setSelectedRange:charRange];
-		[self scrollRangeToVisible:charRange];
+		// Tokenize
+		try
+		{
+			script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
+		}
+		catch (std::runtime_error err)
+		{
+			// if we get a raise, we just use as many tokens as we got; clear the error string buffer
+			EidosGetUntrimmedRaiseMessage();
+		}
+		
+		const vector<EidosToken *> &tokens = script.Tokens();
+		int tokenCount = (int)tokens.size();
+		
+		//NSLog(@"script string \"%@\" contains %d tokens", scriptString, tokenCount);
+		
+		// Search forward to find the token position of the start of the selection
+		int selectionStart = (int)selection.location;
+		int tokenIndex;
+		
+		for (tokenIndex = 0; tokenIndex < tokenCount; ++tokenIndex)
+			if (tokens[tokenIndex]->token_start_ >= selectionStart)
+				break;
+		
+		//NSLog(@"token %d follows the selection (selectionStart == %d)", tokenIndex, selectionStart);
+		//if (tokenIndex == tokenCount)
+		//	NSLog(@"   (end of script)");
+		//else
+		//	NSLog(@"   token string: %s", tokens[tokenIndex]->token_string_.c_str());
+		
+		// tokenIndex now has the index of the first token *after* the selection start; it can be equal to tokenCount
+		// Now we want to scan backward from there, balancing parentheses and looking for the pattern "identifier("
+		int backscanIndex = tokenIndex - 1;
+		int parenCount = 0, lowestParenCountSeen = 0;
+		
+		while (backscanIndex > 0)	// last examined position is 1, since we can't look for an identifier at 0 - 1 == -1
+		{
+			EidosToken *token = tokens[backscanIndex];
+			EidosTokenType tokenType = token->token_type_;
+			
+			if (tokenType == EidosTokenType::kTokenLParen)
+			{
+				--parenCount;
+				
+				if (parenCount < lowestParenCountSeen)
+				{
+					EidosToken *previousToken = tokens[backscanIndex - 1];
+					EidosTokenType previousTokenType = previousToken->token_type_;
+					
+					if (previousTokenType == EidosTokenType::kTokenIdentifier)
+					{
+						// OK, we found the pattern "identifier("; extract the name of the function/method
+						// We also figure out here whether it is a method call (tokens like ".identifier(") or not
+						NSString *callName = [NSString stringWithUTF8String:previousToken->token_string_.c_str()];
+						BOOL isMethodCall = NO;
+						
+						if ((backscanIndex > 1) && (tokens[backscanIndex - 2]->token_type_ == EidosTokenType::kTokenDot))
+							isMethodCall = YES;
+						
+						return [self attributedSignatureForCallName:callName isMethodCall:isMethodCall];
+					}
+					
+					lowestParenCountSeen = parenCount;
+				}
+			}
+			else if (tokenType == EidosTokenType::kTokenRParen)
+			{
+				++parenCount;
+			}
+			
+			--backscanIndex;
+		}
 	}
+	
+	return [[[NSAttributedString alloc] init] autorelease];
 }
+
+- (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall
+{
+	// We need to figure out what the signature is for the call name.  We check injected function names first,
+	// standard function names second, and then we check the global method registry to see if we've got a
+	// match there.  That is thus the priority, in case of duplicate names.
+	std::string call_name([callName UTF8String]);
+	id delegate = [self delegate];
+	
+	if (!isMethodCall)
+	{
+		// Look for a matching injected function signature first
+		const std::vector<const EidosFunctionSignature *> *injectedSignatures = nullptr;
+		
+		if (delegate && [delegate respondsToSelector:@selector(injectedFunctionSignatures)])
+				injectedSignatures = [delegate injectedFunctionSignatures];
+		
+		if (injectedSignatures)
+		{
+			for (const EidosFunctionSignature *sig : *injectedSignatures)
+			{
+				const std::string &sig_call_name = sig->function_name_;
+				
+				if (sig_call_name.compare(call_name) == 0)
+					return [self attributedStringForSignature:sig];
+			}
+		}
+		
+		// Look for a matching built-in function second
+		const vector<const EidosFunctionSignature *> &builtinSignatures = EidosInterpreter::BuiltInFunctions();
+		
+		for (const EidosFunctionSignature *sig : builtinSignatures)
+		{
+			const std::string &sig_call_name = sig->function_name_;
+			
+			if (sig_call_name.compare(call_name) == 0)
+				return [self attributedStringForSignature:sig];
+		}
+	}
+	
+	if (isMethodCall)
+	{
+		// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos
+		const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
+		
+		if (delegate && [delegate respondsToSelector:@selector(allMethodSignatures)])
+			methodSignatures = [delegate allMethodSignatures];
+		else
+			methodSignatures = gEidos_UndefinedClassObject->Methods();
+		
+		for (const EidosMethodSignature *sig : *methodSignatures)
+		{
+			const std::string &sig_call_name = sig->function_name_;
+			
+			if (sig_call_name.compare(call_name) == 0)
+				return [self attributedStringForSignature:sig];
+		}
+	}
+	
+	// Assemble an attributed string for our failed lookup message
+	NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
+	NSDictionary *plainAttrs = [EidosConsoleTextView outputAttrs];
+	NSDictionary *functionAttrs = [EidosConsoleTextView parseAttrs];
+	
+	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:callName attributes:functionAttrs] autorelease]];
+	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"() – unrecognized call" attributes:plainAttrs] autorelease]];
+	[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+	
+	return attrStr;
+}
+
+- (NSAttributedString *)attributedStringForSignature:(const EidosCallSignature *)signature
+{
+	if (signature)
+	{
+		//
+		//	Note this logic is paralleled in the function operator<<(ostream &, const EidosCallSignature &).
+		//	These two should be kept in synch so the user-visible format of signatures is consistent.
+		//
+		
+		// Build an attributed string showing the call signature with syntax coloring for its parts
+		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
+		
+		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "- ", or "+ "
+		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "").c_str()];
+		NSString *functionNameString = [NSString stringWithUTF8String:signature->function_name_.c_str()];
+		
+		NSDictionary *plainAttrs = [EidosConsoleTextView outputAttrs];
+		NSDictionary *typeAttrs = [EidosConsoleTextView inputAttrs];
+		NSDictionary *functionAttrs = [EidosConsoleTextView parseAttrs];
+		NSDictionary *paramAttrs = [EidosConsoleTextView promptAttrs];
+		
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:prefixString attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"(" attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:returnTypeString attributes:typeAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:functionNameString attributes:functionAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"(" attributes:plainAttrs] autorelease]];
+		
+		int arg_mask_count = (int)signature->arg_masks_.size();
+		
+		if (arg_mask_count == 0)
+		{
+			if (!signature->has_ellipsis_)
+				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
+		}
+		else
+		{
+			for (int arg_index = 0; arg_index < arg_mask_count; ++arg_index)
+			{
+				EidosValueMask type_mask = signature->arg_masks_[arg_index];
+				const string &arg_name = signature->arg_names_[arg_index];
+				const EidosObjectClass *arg_obj_class = signature->arg_classes_[arg_index];
+				
+				if (arg_index > 0)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
+				
+				//
+				//	Note this logic is paralleled in the function StringForEidosValueMask().
+				//	These two should be kept in synch so the user-visible format of signatures is consistent.
+				//
+				bool is_optional = !!(type_mask & kEidosValueMaskOptional);
+				bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
+				EidosValueMask stripped_mask = type_mask & kEidosValueMaskFlagStrip;
+				
+				if (is_optional)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"[" attributes:plainAttrs] autorelease]];
+				
+				if (stripped_mask == kEidosValueMaskNone)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"?" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskAny)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"*" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskAnyBase)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"+" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskNULL)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskLogical)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"logical" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskString)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"string" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskInt)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"integer" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskFloat)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"float" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskObject)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"object" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskNumeric)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"numeric" attributes:typeAttrs] autorelease]];
+				else
+				{
+					if (stripped_mask & kEidosValueMaskNULL)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"N" attributes:typeAttrs] autorelease]];
+					if (stripped_mask & kEidosValueMaskLogical)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"l" attributes:typeAttrs] autorelease]];
+					if (stripped_mask & kEidosValueMaskInt)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"i" attributes:typeAttrs] autorelease]];
+					if (stripped_mask & kEidosValueMaskFloat)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"f" attributes:typeAttrs] autorelease]];
+					if (stripped_mask & kEidosValueMaskString)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"s" attributes:typeAttrs] autorelease]];
+					if (stripped_mask & kEidosValueMaskObject)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"o" attributes:typeAttrs] autorelease]];
+				}
+				
+				if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
+				{
+					NSString *objTypeName = [NSString stringWithUTF8String:arg_obj_class->ElementType().c_str()];
+					
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"<" attributes:typeAttrs] autorelease]];
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:objTypeName attributes:typeAttrs] autorelease]];
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@">" attributes:typeAttrs] autorelease]];
+				}
+				
+				if (requires_singleton)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"$" attributes:typeAttrs] autorelease]];
+				
+				if (arg_name.length() > 0)
+				{
+					NSString *argName = [NSString stringWithUTF8String:arg_name.c_str()];
+					
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:argName attributes:paramAttrs] autorelease]];
+				}
+				
+				if (is_optional)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"]" attributes:plainAttrs] autorelease]];
+			}
+		}
+		
+		if (signature->has_ellipsis_)
+		{
+			if (arg_mask_count > 0)
+				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
+			
+			[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"..." attributes:typeAttrs] autorelease]];
+		}
+		
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
+		
+		// if the function is provided by a delegate, show the delegate's name
+		//p_outstream << p_signature.CallDelegate();
+		
+		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+		
+		return attrStr;
+	}
+	
+	return [[[NSAttributedString alloc] init] autorelease];
+}
+
+//
+//	Auto-completion
+//
+#pragma mark Auto-completion
 
 - (NSArray *)completionsForPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index
 {
@@ -724,7 +1033,7 @@ using std::string;
 	// Next, a sorted list of injected functions, with () appended
 	if (delegate)
 	{
-		std::vector<EidosFunctionSignature*> *signatures = nullptr;
+		const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
 		
 		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
 			signatures = [delegate injectedFunctionSignatures];
@@ -905,7 +1214,7 @@ using std::string;
 		// Look in the delegate's list of functions first
 		if (delegate)
 		{
-			std::vector<EidosFunctionSignature*> *signatures = nullptr;
+			const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
 			
 			if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
 				signatures = [delegate injectedFunctionSignatures];

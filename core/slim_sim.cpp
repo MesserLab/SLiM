@@ -113,7 +113,7 @@ SLiMSim::~SLiMSim(void)
 	delete script_;
 	
 	// We should not have any interpreter instances that still refer to us
-	for (EidosFunctionSignature *signature : sim_0_signatures)
+	for (const EidosFunctionSignature *signature : sim_0_signatures)
 		delete signature;
 	
 	if (self_symbol_)
@@ -1098,7 +1098,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	return gStaticEidosValueNULLInvisible;
 }
 
-std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
+const std::vector<const EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 {
 	if (generation_ == 0)
 	{
@@ -1125,6 +1125,65 @@ std::vector<EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
 	}
 	
 	return nullptr;
+}
+
+const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(void)
+{
+	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	
+	if (!methodSignatures)
+	{
+		auto baseMethods =					gEidos_UndefinedClassObject->Methods();
+		auto methodsChromosome =			gSLiM_Chromosome_Class->Methods();
+		auto methodsGenome =				gSLiM_Genome_Class->Methods();
+		auto methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
+		auto methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
+		auto methodsMutation =				gSLiM_Mutation_Class->Methods();
+		auto methodsMutationType =			gSLiM_MutationType_Class->Methods();
+		auto methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
+		auto methodsSLiMSim =				gSLiM_SLiMSim_Class->Methods();
+		auto methodsSubpopulation =			gSLiM_Subpopulation_Class->Methods();
+		auto methodsSubstitution =			gSLiM_Substitution_Class->Methods();
+		
+		methodSignatures = new std::vector<const EidosMethodSignature*>(*baseMethods);
+		
+		methodSignatures->insert(methodSignatures->end(), methodsChromosome->begin(), methodsChromosome->end());
+		methodSignatures->insert(methodSignatures->end(), methodsGenome->begin(), methodsGenome->end());
+		methodSignatures->insert(methodSignatures->end(), methodsGenomicElement->begin(), methodsGenomicElement->end());
+		methodSignatures->insert(methodSignatures->end(), methodsGenomicElementType->begin(), methodsGenomicElementType->end());
+		methodSignatures->insert(methodSignatures->end(), methodsMutation->begin(), methodsMutation->end());
+		methodSignatures->insert(methodSignatures->end(), methodsMutationType->begin(), methodsMutationType->end());
+		methodSignatures->insert(methodSignatures->end(), methodsSLiMEidosBlock->begin(), methodsSLiMEidosBlock->end());
+		methodSignatures->insert(methodSignatures->end(), methodsSLiMSim->begin(), methodsSLiMSim->end());
+		methodSignatures->insert(methodSignatures->end(), methodsSubpopulation->begin(), methodsSubpopulation->end());
+		methodSignatures->insert(methodSignatures->end(), methodsSubstitution->begin(), methodsSubstitution->end());
+		
+		// sort by pointer; we want pointer-identical signatures to end up adjacent
+		std::sort(methodSignatures->begin(), methodSignatures->end());
+		
+		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
+		methodSignatures->resize(std::distance(methodSignatures->begin(), unique_end_iter));
+		
+		// print out any signatures that are identical by name
+		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
+		
+		const EidosMethodSignature *previous_sig = nullptr;
+		
+		for (const EidosMethodSignature *sig : *methodSignatures)
+		{
+			if (previous_sig && (sig->function_name_.compare(previous_sig->function_name_) == 0))
+				std::cout << "Duplicate method name: " << sig->function_name_ << std::endl;
+			previous_sig = sig;
+		}
+		
+		// log a full list
+		//std::cout << "----------------" << std::endl;
+		//for (const EidosMethodSignature *sig : *methodSignatures)
+		//	std::cout << sig->function_name_ << " (" << sig << ")" << std::endl;
+	}
+	
+	return methodSignatures;
 }
 
 void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table)
@@ -1156,7 +1215,7 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 	// Add signatures for functions we define – initialize...() functions only, right now
 	if (generation_ == 0)
 	{
-		std::vector<EidosFunctionSignature*> *signatures = InjectedFunctionSignatures();
+		const std::vector<const EidosFunctionSignature*> *signatures = InjectedFunctionSignatures();
 		
 		if (signatures)
 		{
@@ -1164,7 +1223,7 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 			// this is slow, but it doesn't matter; if we start adding functions outside of initialize time, this will need to be revisited
 			EidosFunctionMap *derived_function_map = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
 			
-			for (EidosFunctionSignature *signature : *signatures)
+			for (const EidosFunctionSignature *signature : *signatures)
 				derived_function_map->insert(EidosFunctionMapPair(signature->function_name_, signature));
 			
 			p_interpreter.RegisterFunctionMap(derived_function_map);

@@ -68,35 +68,40 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 
 std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name)
 {
+	//
+	//	Note this logic is paralleled in -[EidosConsoleWindowController updateStatusLineWithSignature:].
+	//	These two should be kept in synch so the user-visible format of signatures is consistent.
+	//
+	
 	std::string out_string;
 	bool is_optional = !!(p_mask & kEidosValueMaskOptional);
 	bool requires_singleton = !!(p_mask & kEidosValueMaskSingleton);
-	EidosValueMask type_mask = p_mask & kEidosValueMaskFlagStrip;
+	EidosValueMask stripped_mask = p_mask & kEidosValueMaskFlagStrip;
 	
 	if (is_optional)
 		out_string += "[";
 	
-	if (type_mask == kEidosValueMaskNone)			out_string += "?";
-	else if (type_mask == kEidosValueMaskAny)		out_string += "*";
-	else if (type_mask == kEidosValueMaskAnyBase)	out_string += "+";
-	else if (type_mask == kEidosValueMaskNULL)		out_string += gEidosStr_void;
-	else if (type_mask == kEidosValueMaskLogical)	out_string += gEidosStr_logical;
-	else if (type_mask == kEidosValueMaskString)		out_string += gEidosStr_string;
-	else if (type_mask == kEidosValueMaskInt)		out_string += gEidosStr_integer;
-	else if (type_mask == kEidosValueMaskFloat)		out_string += gEidosStr_float;
-	else if (type_mask == kEidosValueMaskObject)		out_string += gEidosStr_object;
-	else if (type_mask == kEidosValueMaskNumeric)	out_string += gEidosStr_numeric;
+	if (stripped_mask == kEidosValueMaskNone)			out_string += "?";
+	else if (stripped_mask == kEidosValueMaskAny)		out_string += "*";
+	else if (stripped_mask == kEidosValueMaskAnyBase)	out_string += "+";
+	else if (stripped_mask == kEidosValueMaskNULL)		out_string += gEidosStr_void;
+	else if (stripped_mask == kEidosValueMaskLogical)	out_string += gEidosStr_logical;
+	else if (stripped_mask == kEidosValueMaskString)	out_string += gEidosStr_string;
+	else if (stripped_mask == kEidosValueMaskInt)		out_string += gEidosStr_integer;
+	else if (stripped_mask == kEidosValueMaskFloat)		out_string += gEidosStr_float;
+	else if (stripped_mask == kEidosValueMaskObject)	out_string += gEidosStr_object;
+	else if (stripped_mask == kEidosValueMaskNumeric)	out_string += gEidosStr_numeric;
 	else
 	{
-		if (type_mask & kEidosValueMaskNULL)			out_string += "N";
-		if (type_mask & kEidosValueMaskLogical)		out_string += "l";
-		if (type_mask & kEidosValueMaskInt)			out_string += "i";
-		if (type_mask & kEidosValueMaskFloat)		out_string += "f";
-		if (type_mask & kEidosValueMaskString)		out_string += "s";
-		if (type_mask & kEidosValueMaskObject)		out_string += "o";
+		if (stripped_mask & kEidosValueMaskNULL)		out_string += "N";
+		if (stripped_mask & kEidosValueMaskLogical)		out_string += "l";
+		if (stripped_mask & kEidosValueMaskInt)			out_string += "i";
+		if (stripped_mask & kEidosValueMaskFloat)		out_string += "f";
+		if (stripped_mask & kEidosValueMaskString)		out_string += "s";
+		if (stripped_mask & kEidosValueMaskObject)		out_string += "o";
 	}
 	
-	if (p_object_class && (type_mask & kEidosValueMaskObject))
+	if (p_object_class && (stripped_mask & kEidosValueMaskObject))
 	{
 		out_string += "<";
 		out_string += p_object_class->ElementType();

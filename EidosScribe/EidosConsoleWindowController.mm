@@ -50,7 +50,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 @implementation EidosConsoleWindowController
 
-@synthesize delegate, browserController, scriptWindow, mainSplitView, scriptTextView, outputTextView;
+@synthesize delegate, browserController, scriptWindow, mainSplitView, scriptTextView, outputTextView, statusTextField;
 
 + (void)initialize
 {
@@ -587,9 +587,38 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	return [NSArray arrayWithObjects:@"initialize", @"fitness", @"mateChoice", @"modifyChild", nil];
 }
 
-- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
 {
 	return [delegate injectedFunctionSignatures];
+}
+
+- (void)textViewDidChangeSelection:(NSNotification *)notification
+{
+	NSTextView *textView = (NSTextView *)[notification object];
+	
+	if (textView == outputTextView)
+	{
+		NSUInteger promptEnd = [outputTextView promptRangeEnd];
+		NSRange selectedRange = [outputTextView selectedRange];
+		
+		if ((promptEnd > 0) && (selectedRange.location >= promptEnd))
+		{
+			NSString *outputString = [outputTextView string];
+			NSString *scriptString = [outputString substringFromIndex:promptEnd];
+			
+			selectedRange.location -= promptEnd;
+			
+			[statusTextField setAttributedStringValue:[outputTextView attributedSignatureForScriptString:scriptString selection:selectedRange]];
+		}
+		else
+		{
+			[statusTextField setStringValue:@""];
+		}
+	}
+	else if (textView == scriptTextView)
+	{
+		[statusTextField setAttributedStringValue:[scriptTextView attributedSignatureForScriptString:[scriptTextView string] selection:[scriptTextView selectedRange]]];
+	}
 }
 
 

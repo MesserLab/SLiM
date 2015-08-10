@@ -281,6 +281,11 @@ std::string EidosCallSignature::CallDelegate(void) const
 
 ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 {
+	//
+	//	Note this logic is paralleled in -[EidosConsoleWindowController updateStatusLineWithSignature:].
+	//	These two should be kept in synch so the user-visible format of signatures is consistent.
+	//
+	
 	p_outstream << p_signature.CallPrefix();	// "", "- ", or "+ " depending on our subclass
 	
 	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_class_, "");

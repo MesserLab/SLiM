@@ -108,9 +108,16 @@
 {
 }
 
-- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
 {
 	return nullptr;
+}
+
+- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
+{
+	// Eidos_TestElementClass is the only object class defined in pure Eidos, and we don't want it to be public
+	// The base class methods defined by EidosObjectClass are thus the only methods we want to export here
+	return gEidos_UndefinedClassObject->Methods();
 }
 
 - (void)checkScriptDidSucceed:(BOOL)succeeded

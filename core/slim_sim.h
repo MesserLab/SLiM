@@ -80,7 +80,7 @@ private:
 	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
 	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
 	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<EidosFunctionSignature*> sim_0_signatures;							// OWNED POINTERS: Eidos function signatures
+	std::vector<const EidosFunctionSignature*> sim_0_signatures;					// OWNED POINTERS: Eidos function signatures
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
@@ -142,7 +142,8 @@ public:
 	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance
-	std::vector<EidosFunctionSignature*> *InjectedFunctionSignatures(void);
+	const std::vector<const EidosFunctionSignature*> *InjectedFunctionSignatures(void);
+	const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);
 	
 	virtual const EidosObjectClass *Class(void) const;
 	

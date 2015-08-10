@@ -42,6 +42,7 @@
 #import "ScriptMod_AddGenomicElement.h"
 #import "ScriptMod_AddRecombinationRate.h"
 #import "ScriptMod_AddSexConfiguration.h"
+#import "eidos_call_signature.h"
 
 #include <iostream>
 #include <sstream>
@@ -1597,10 +1598,18 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return [NSArray arrayWithObjects:@"initialize", @"fitness", @"mateChoice", @"modifyChild", nil];
 }
 
-- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
 {
 	if (sim && !invalidSimulation)
 		return sim->InjectedFunctionSignatures();
+	
+	return nullptr;
+}
+
+- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
+{
+	if (sim)	// we can show method signatures even when the simulation is invalid
+		return sim->AllMethodSignatures();
 	
 	return nullptr;
 }
@@ -1732,6 +1741,61 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	if (textView == scriptTextView)
 		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument
 }
+
+- (void)textViewDidChangeSelection:(NSNotification *)notification
+{
+	NSTextView *textView = (NSTextView *)[notification object];
+	
+	if (textView == scriptTextView)
+	{
+		NSAttributedString *attributedSignature = [scriptTextView attributedSignatureForScriptString:[scriptTextView string] selection:[scriptTextView selectedRange]];
+		NSString *signatureString = [attributedSignature string];
+		
+		// Here we do a little quick-and-dirty patching in order to show signatures when inside callback definitions
+		if ([signatureString hasSuffix:@"unrecognized call"])
+		{
+			if ([signatureString hasPrefix:@"initialize()"])
+			{
+				static EidosCallSignature *callbackSig = nullptr;
+				
+				if (!callbackSig)
+					callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
+				
+				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+			}
+			else if ([signatureString hasPrefix:@"fitness()"])
+			{
+				static EidosCallSignature *callbackSig = nullptr;
+				
+				if (!callbackSig)
+					callbackSig = (new EidosFunctionSignature("fitness", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+				
+				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+			}
+			else if ([signatureString hasPrefix:@"mateChoice()"])
+			{
+				static EidosCallSignature *callbackSig = nullptr;
+				
+				if (!callbackSig)
+					callbackSig = (new EidosFunctionSignature("mateChoice", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+				
+				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+			}
+			else if ([signatureString hasPrefix:@"modifyChild()"])
+			{
+				static EidosCallSignature *callbackSig = nullptr;
+				
+				if (!callbackSig)
+					callbackSig = (new EidosFunctionSignature("modifyChild", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+				
+				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+			}
+		}
+		
+		[scriptStatusTextField setAttributedStringValue:attributedSignature];
+	}
+}
+
 
 //
 //	NSTableView delegate methods

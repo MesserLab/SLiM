@@ -31,7 +31,7 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 @protocol EidosConsoleControllerDelegate <NSObject>
 - (void)appendWelcomeMessageAddendum;
 - (void)injectIntoInterpreter:(EidosInterpreter *)interpreter;
-- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures;
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
 - (void)checkScriptDidSucceed:(BOOL)succeeded;
 - (void)willExecuteScript;
 - (void)didExecuteScript;
@@ -59,6 +59,7 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 @property (nonatomic, assign) IBOutlet NSSplitView *mainSplitView;
 @property (nonatomic, assign) IBOutlet EidosTextView *scriptTextView;
 @property (nonatomic, assign) IBOutlet EidosConsoleTextView *outputTextView;
+@property (nonatomic, assign) IBOutlet NSTextField *statusTextField;
 
 - (void)showWindow;
 - (EidosConsoleTextView *)textView;

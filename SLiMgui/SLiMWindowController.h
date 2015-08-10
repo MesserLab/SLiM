@@ -92,6 +92,7 @@
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
 	IBOutlet EidosTextView *scriptTextView;
+	IBOutlet NSTextField *scriptStatusTextField;
 	IBOutlet EidosTextView *outputTextView;
 	IBOutlet NSButton *consoleButton;
 	

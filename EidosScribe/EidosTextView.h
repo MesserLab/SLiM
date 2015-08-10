@@ -25,6 +25,8 @@
 
 // A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
 
+class EidosCallSignature;
+
 @interface EidosTextView : NSTextView
 {
 	int syntaxColorState_;	// 0 = off, 1 = Eidos, 2 = output; this should be a property, and the syntax coloring
@@ -37,11 +39,15 @@
 - (IBAction)shiftSelectionRight:(id)sender;
 - (IBAction)commentUncommentSelection:(id)sender;
 
+- (void)selectErrorRange;
+
 - (void)syntaxColorForEidos;
 - (void)syntaxColorForOutput;
 - (void)clearSyntaxColoring;
 
-- (void)selectErrorRange;
+- (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection;
+- (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall;
+- (NSAttributedString *)attributedStringForSignature:(const EidosCallSignature *)signature;
 
 @end
 
@@ -52,7 +58,8 @@
 - (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange;
 - (EidosSymbolTable *)globalSymbolTableForCompletion;
 - (NSArray *)languageKeywordsForCompletion;
-- (std::vector<EidosFunctionSignature*> *)injectedFunctionSignatures;
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
+- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures;
 @end
 
 
