@@ -1637,6 +1637,34 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return SLiMSim::AllMethodSignatures();
 }
 
+- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+{
+	if (token_string.compare("sim") == 0)
+		return YES;
+	
+	int len = (int)token_string.length();
+	
+	if (len >= 2)
+	{
+		unichar first_ch = token_string[0];
+		
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
+		{
+			for (int ch_index = 1; ch_index < len; ++ch_index)
+			{
+				unichar idx_ch = token_string[ch_index];
+				
+				if ((idx_ch < '0') || (idx_ch > '9'))
+					return NO;
+			}
+			
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
 - (void)checkScriptDidSucceed:(BOOL)succeeded
 {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];

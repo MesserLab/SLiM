@@ -446,35 +446,10 @@ using std::string;
 #pragma mark -
 #pragma mark Syntax coloring
 
-// Check whether a token string is a special identifier like "pX", "gX", or "mX"
-// FIXME should be in SLiM
-- (BOOL)tokenStringIsSpecialIdentifier:(const std::string &)token_string
-{
-	int len = (int)token_string.length();
-	
-	if (len >= 2)
-	{
-		unichar first_ch = token_string[0];
-		
-		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
-		{
-			for (int ch_index = 1; ch_index < len; ++ch_index)
-			{
-				unichar idx_ch = token_string[ch_index];
-				
-				if ((idx_ch < '0') || (idx_ch > '9'))
-					return NO;
-			}
-			
-			return YES;
-		}
-	}
-	
-	return NO;
-}
-
 - (void)syntaxColorForEidos
 {
+	id delegate = [self delegate];
+	
 	// Construct a Script object from the current script string
 	NSString *scriptString = [self string];
 	std::string script_string([scriptString UTF8String]);
@@ -541,10 +516,15 @@ using std::string;
 				(token_string.compare("PI") == 0) ||
 				(token_string.compare("INF") == 0) ||
 				(token_string.compare("NAN") == 0) ||
-				(token_string.compare("NULL") == 0) ||
-				(token_string.compare("sim") == 0) ||		// FIXME should be in SLiM
-				[self tokenStringIsSpecialIdentifier:token_string])
+				(token_string.compare("NULL") == 0))
 				[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+			else
+			{
+				// we also let the Context specify special identifiers that we will syntax color
+				if ([delegate respondsToSelector:@selector(tokenStringIsSpecialIdentifier:)])
+					if ([delegate tokenStringIsSpecialIdentifier:token_string])
+						[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+			}
 		}
 	}
 	

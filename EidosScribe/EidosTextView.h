@@ -60,6 +60,7 @@ class EidosCallSignature;
 - (NSArray *)languageKeywordsForCompletion;
 - (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
 - (const std::vector<const EidosMethodSignature*> *)allMethodSignatures;
+- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 @end
 
 

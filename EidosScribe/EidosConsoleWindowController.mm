@@ -613,6 +613,14 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		return nullptr;
 }
 
+- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+{
+	if ([delegate respondsToSelector:@selector(tokenStringIsSpecialIdentifier:)])
+		return [delegate tokenStringIsSpecialIdentifier:token_string];
+	else
+		return NO;
+}
+
 - (void)textViewDidChangeSelection:(NSNotification *)notification
 {
 	NSTextView *textView = (NSTextView *)[notification object];
