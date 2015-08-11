@@ -101,38 +101,7 @@
 - (void)appendWelcomeMessageAddendum
 {
 	// Run startup tests, if enabled
-	[self willExecuteScript];
 	RunEidosTests();
-	[self didExecuteScript];
-}
-
-- (void)injectIntoInterpreter:(EidosInterpreter *)interpreter
-{
-}
-
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
-{
-	return nullptr;
-}
-
-- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
-{
-	// Eidos_TestElementClass is the only object class defined in pure Eidos, and we don't want it to be public
-	// The base class methods defined by EidosObjectClass are thus the only methods we want to export here
-	return gEidos_UndefinedClassObject->Methods();
-}
-
-- (void)checkScriptDidSucceed:(BOOL)succeeded
-{
-	[[NSSound soundNamed:(succeeded ? @"Bottle" : @"Ping")] play];
-}
-
-- (void)willExecuteScript
-{
-}
-
-- (void)didExecuteScript
-{
 }
 
 - (void)consoleWindowWillClose

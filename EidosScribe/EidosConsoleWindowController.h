@@ -29,13 +29,18 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 
 
 @protocol EidosConsoleControllerDelegate <NSObject>
+@optional
 - (void)appendWelcomeMessageAddendum;
 - (void)injectIntoInterpreter:(EidosInterpreter *)interpreter;
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
 - (void)checkScriptDidSucceed:(BOOL)succeeded;
 - (void)willExecuteScript;
 - (void)didExecuteScript;
 - (void)consoleWindowWillClose;
+
+// messages from EidosTextViewDelegate that we forward on to our delegate
+- (NSArray *)languageKeywordsForCompletion;
+- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
+- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures;
 @end
 
 

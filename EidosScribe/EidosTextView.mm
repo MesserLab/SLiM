@@ -792,7 +792,7 @@ using std::string;
 		// Look for a matching injected function signature first
 		const std::vector<const EidosFunctionSignature *> *injectedSignatures = nullptr;
 		
-		if (delegate && [delegate respondsToSelector:@selector(injectedFunctionSignatures)])
+		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
 				injectedSignatures = [delegate injectedFunctionSignatures];
 		
 		if (injectedSignatures)
@@ -823,9 +823,10 @@ using std::string;
 		// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos
 		const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
 		
-		if (delegate && [delegate respondsToSelector:@selector(allMethodSignatures)])
+		if ([delegate respondsToSelector:@selector(allMethodSignatures)])
 			methodSignatures = [delegate allMethodSignatures];
-		else
+		
+		if (!methodSignatures)
 			methodSignatures = gEidos_UndefinedClassObject->Methods();
 		
 		for (const EidosMethodSignature *sig : *methodSignatures)
@@ -1015,13 +1016,14 @@ using std::string;
 - (NSMutableArray *)globalCompletionsIncludingStatements:(BOOL)includeStatements
 {
 	NSMutableArray *globals = [NSMutableArray array];
-	EidosSymbolTable *globalSymbolTable = nullptr;
 	id delegate = [self delegate];
+	
+	// First, a sorted list of globals
+	EidosSymbolTable *globalSymbolTable = nullptr;
 	
 	if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
 		globalSymbolTable = [delegate globalSymbolTableForCompletion];
 	
-	// First, a sorted list of globals
 	if (globalSymbolTable)
 	{
 		for (std::string &symbol_name : globalSymbolTable->ReadOnlySymbols())
@@ -1034,21 +1036,18 @@ using std::string;
 	[globals sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of injected functions, with () appended
-	if (delegate)
+	const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
+	
+	if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
+		signatures = [delegate injectedFunctionSignatures];
+	
+	if (signatures)
 	{
-		const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
-		
-		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-			signatures = [delegate injectedFunctionSignatures];
-		
-		if (signatures)
+		for (const EidosFunctionSignature *sig : *signatures)
 		{
-			for (const EidosFunctionSignature *sig : *signatures)
-			{
-				NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
-				
-				[globals addObject:[functionName stringByAppendingString:@"()"]];
-			}
+			NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
+			
+			[globals addObject:[functionName stringByAppendingString:@"()"]];
 		}
 	}
 	
@@ -1075,7 +1074,12 @@ using std::string;
 		
 		// keywords from our Context, if any
 		if ([delegate respondsToSelector:@selector(languageKeywordsForCompletion)])
-			[globals addObjectsFromArray:[delegate languageKeywordsForCompletion]];
+		{
+			NSArray *keywords = [delegate languageKeywordsForCompletion];
+			
+			if (keywords)
+				[globals addObjectsFromArray:keywords];
+		}
 	}
 	
 	return globals;
@@ -1215,22 +1219,19 @@ using std::string;
 		id delegate = [self delegate];
 		
 		// Look in the delegate's list of functions first
-		if (delegate)
+		const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
+		
+		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
+			signatures = [delegate injectedFunctionSignatures];
+		
+		if (signatures)
 		{
-			const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
-			
-			if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-				signatures = [delegate injectedFunctionSignatures];
-			
-			if (signatures)
-			{
-				for (const EidosFunctionSignature *sig : *signatures)
-					if (sig->function_name_.compare(identifier_name) == 0)
-					{
-						key_path_class = sig->return_class_;
-						break;
-					}
-			}
+			for (const EidosFunctionSignature *sig : *signatures)
+				if (sig->function_name_.compare(identifier_name) == 0)
+				{
+					key_path_class = sig->return_class_;
+					break;
+				}
 		}
 		
 		// Next, a sorted list of functions, with () appended
