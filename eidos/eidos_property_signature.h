@@ -18,8 +18,8 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#ifndef __SLiM__eidos_property_signature__
-#define __SLiM__eidos_property_signature__
+#ifndef __Eidos__eidos_property_signature__
+#define __Eidos__eidos_property_signature__
 
 #include "eidos_value.h"
 
@@ -56,7 +56,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature
 bool CompareEidosPropertySignatures(const EidosPropertySignature *i, const EidosPropertySignature *j);
 
 
-#endif /* defined(__SLiM__eidos_property_signature__) */
+#endif /* defined(__Eidos__eidos_property_signature__) */
 
 
 
