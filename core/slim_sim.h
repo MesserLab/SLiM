@@ -142,8 +142,8 @@ public:
 	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance
-	const std::vector<const EidosFunctionSignature*> *InjectedFunctionSignatures(void);
-	const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);
+	const std::vector<const EidosFunctionSignature*> *InjectedFunctionSignatures(void);		// depends on the simulation state
+	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	
 	virtual const EidosObjectClass *Class(void) const;
 	

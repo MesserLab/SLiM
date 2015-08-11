@@ -100,6 +100,26 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		return [NSColor blackColor];
 }
 
+- (void)setContinuousPlayOn:(BOOL)newFlag
+{
+	if (continuousPlayOn != newFlag)
+	{
+		continuousPlayOn = newFlag;
+		
+		[_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+	}
+}
+
+- (void)setGenerationPlayOn:(BOOL)newFlag
+{
+	if (generationPlayOn != newFlag)
+	{
+		generationPlayOn = newFlag;
+		
+		[_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+	}
+}
+
 
 //
 //	Core class methods
@@ -196,7 +216,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (void)startNewSimulationFromScript
 {
 	if (sim)
+	{
 		delete sim;
+		sim = nullptr;
+	}
 	
 	if (sim_rng)
 	{
@@ -314,7 +337,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	scriptString = nil;
 	
 	delete sim;
-	sim = nil;
+	sim = nullptr;
 	
 	gsl_rng_free(sim_rng);
 	sim_rng = nil;
@@ -1608,10 +1631,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
 {
-	if (sim)	// we can show method signatures even when the simulation is invalid
-		return sim->AllMethodSignatures();
-	
-	return nullptr;
+	return SLiMSim::AllMethodSignatures();
 }
 
 - (void)checkScriptDidSucceed:(BOOL)succeeded

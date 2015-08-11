@@ -36,13 +36,6 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 - (void)willExecuteScript;
 - (void)didExecuteScript;
 - (void)consoleWindowWillClose;
-
-// User interface is enabled if !(continuousPlayOn || generationPlayOn).  It would be a bit better to have
-// a single -userInterfaceEnabled property, but these properties already exist on SLiMWindowController and
-// are the properties that most of the other user interface keys off of...
-@property (nonatomic) BOOL continuousPlayOn;
-@property (nonatomic) BOOL generationPlayOn;
-
 @end
 
 
@@ -60,6 +53,11 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 @property (nonatomic, assign) IBOutlet EidosTextView *scriptTextView;
 @property (nonatomic, assign) IBOutlet EidosConsoleTextView *outputTextView;
 @property (nonatomic, assign) IBOutlet NSTextField *statusTextField;
+
+// This property controls the enable state of UI that depends on the state of Eidos or its Context.  Some of
+// the console window's UI does not; you can show/hide script help at any time, even if Eidos or its Context
+// is in an invalid state, for example.  Other UI does; you can't execute if things are in an invalid state.
+@property (nonatomic) BOOL interfaceEnabled;
 
 - (void)showWindow;
 - (EidosConsoleTextView *)textView;

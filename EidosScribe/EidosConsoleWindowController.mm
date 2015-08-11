@@ -66,6 +66,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 {
 	if (self = [super init])
 	{
+		[self setInterfaceEnabled:YES];
 	}
 	
 	return self;
@@ -73,6 +74,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 - (void)awakeFromNib
 {
+	[self setInterfaceEnabled:YES];
+	
 	// Tell Cocoa that we can go full-screen
 	[scriptWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
@@ -319,15 +322,14 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem
 {
 	SEL sel = [menuItem action];
-	BOOL continuousPlayOn = (delegate ? [delegate continuousPlayOn] : NO);
-	BOOL generationPlayOn = (delegate ? [delegate generationPlayOn] : NO);
+	BOOL uiEnabled = [self interfaceEnabled];
 	
 	if (sel == @selector(checkScript:))
-		return !(continuousPlayOn || generationPlayOn);
+		return uiEnabled;
 	if (sel == @selector(executeAll:))
-		return !(continuousPlayOn || generationPlayOn);
+		return uiEnabled;
 	if (sel == @selector(executeSelection:))
-		return !(continuousPlayOn || generationPlayOn);
+		return uiEnabled;
 	
 	return YES;
 }
