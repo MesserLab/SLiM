@@ -140,8 +140,6 @@ extern const std::string gEidosStr_str;
 
 extern const std::string gEidosStr_GetPropertyOfElements;
 extern const std::string gEidosStr_ExecuteInstanceMethod;
-extern const std::string gEidosStr_lessThanSign;
-extern const std::string gEidosStr_greaterThanSign;
 extern const std::string gEidosStr_undefined;
 
 extern const std::string gEidosStr__TestElement;

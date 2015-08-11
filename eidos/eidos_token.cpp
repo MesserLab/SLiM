@@ -97,7 +97,7 @@ ostream &operator<<(ostream &p_outstream, const EidosToken &p_token)
 	else if (p_token.token_type_ == EidosTokenType::kTokenNumber)
 		p_outstream << "#" << p_token.token_string_;
 	else if (p_token.token_type_ > EidosTokenType::kFirstIdentifierLikeToken)
-		p_outstream << p_token.token_string_;	// includes <> delimiters
+		p_outstream << "<" << p_token.token_string_ << ">";	// <> delimiters help distinguish keywords from identifiers
 	else
 		p_outstream << p_token.token_type_;
 	

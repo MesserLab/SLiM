@@ -319,8 +319,10 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 				else if (token_string.compare(gEidosStr_break) == 0) token_type = EidosTokenType::kTokenBreak;
 				else if (token_string.compare(gEidosStr_return) == 0) token_type = EidosTokenType::kTokenReturn;
 				
-				if (token_type > EidosTokenType::kFirstIdentifierLikeToken)
-					token_string = gEidosStr_lessThanSign + token_string + gEidosStr_greaterThanSign;
+				// We used to modify the token string here for language keywords; we don't do that any more because it messed
+				// up code completion, which assumes that the token string is a faithful copy of what matched the token.
+				//if (token_type > EidosTokenType::kFirstIdentifierLikeToken)
+				//	token_string = "<" + token_string + ">";
 			}
 			
 			// make the token and push it
