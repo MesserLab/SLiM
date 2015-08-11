@@ -50,6 +50,7 @@
 //
 //	Actions
 //
+#pragma mark -
 #pragma mark Actions
 
 - (IBAction)showAboutWindow:(id)sender
@@ -94,6 +95,7 @@
 //
 //	ConsoleWindowController delegate methods
 //
+#pragma mark -
 #pragma mark ConsoleWindowController delegate
 
 - (void)appendWelcomeMessageAddendum

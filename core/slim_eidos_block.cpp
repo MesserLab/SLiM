@@ -524,8 +524,10 @@ void SLiMEidosBlock::ScanTree(void)
 
 
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
 
 void SLiMEidosBlock::GenerateCachedSymbolTableEntry(void)
 {
@@ -657,6 +659,7 @@ EidosValue *SLiMEidosBlock::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 //
 //	SLiMEidosBlock_Class
 //
+#pragma mark -
 #pragma mark SLiMEidosBlock_Class
 
 class SLiMEidosBlock_Class : public EidosObjectClass

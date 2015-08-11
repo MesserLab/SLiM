@@ -115,9 +115,12 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	return p_outstream;
 }
 
+
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
 
 void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 {
@@ -245,6 +248,7 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 //
 //	GenomicElementType_Class
 //
+#pragma mark -
 #pragma mark GenomicElementType_Class
 
 class GenomicElementType_Class : public EidosObjectClass

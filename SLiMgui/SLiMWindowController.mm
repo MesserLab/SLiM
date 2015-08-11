@@ -124,6 +124,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	Core class methods
 //
+#pragma mark -
 #pragma mark Core class methods
 
 + (NSColor *)colorForIndex:(int)index
@@ -764,6 +765,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	Actions
 //
+#pragma mark -
 #pragma mark Actions
 
 - (IBAction)buttonChangeSubpopSize:(id)sender
@@ -1586,6 +1588,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	ConsoleWindowController delegate methods
 //
+#pragma mark -
 #pragma mark ConsoleWindowController delegate
 
 - (void)appendWelcomeMessageAddendum
@@ -1683,6 +1686,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSWindow delegate methods
 //
+#pragma mark -
 #pragma mark NSWindow delegate
 
 - (void)windowWillClose:(NSNotification *)notification
@@ -1744,6 +1748,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSTextView delegate methods
 //
+#pragma mark -
 #pragma mark NSTextView delegate
 
 - (void)textDidChange:(NSNotification *)notification
@@ -1820,6 +1825,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSTableView delegate methods
 //
+#pragma mark -
 #pragma mark NSTableView delegate
 
 - (BOOL)tableView:(NSTableView *)tableView shouldTrackCell:(NSCell *)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
@@ -1876,6 +1882,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSTableView datasource methods
 //
+#pragma mark -
 #pragma mark NSTableView datasource
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)aTableView
@@ -2126,6 +2133,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSSplitView delegate methods
 //
+#pragma mark -
 #pragma mark NSSplitView delegate
 
 - (BOOL)splitView:(NSSplitView *)splitView canCollapseSubview:(NSView *)subview
@@ -2147,6 +2155,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 //	NSDrawer delegate methods
 //
+#pragma mark -
 #pragma mark NSDrawer delegate
 
 - (void)drawerDidOpen:(NSNotification *)notification

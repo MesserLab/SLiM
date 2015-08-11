@@ -72,6 +72,7 @@
 //
 //	NSWindow delegate methods
 //
+#pragma mark -
 #pragma mark NSWindow delegate
 
 - (void)windowWillClose:(NSNotification *)notification
@@ -88,6 +89,7 @@
 //
 //	NSOutlineView datasource / delegate methods
 //
+#pragma mark -
 #pragma mark NSOutlineView delegate
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item

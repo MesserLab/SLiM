@@ -56,9 +56,13 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 	return p_outstream;
 }
 
+
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
+
 const EidosObjectClass *Mutation::Class(void) const
 {
 	return gSLiM_Mutation_Class;
@@ -125,6 +129,7 @@ EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eid
 //
 //	Mutation_Class
 //
+#pragma mark -
 #pragma mark Mutation_Class
 
 class Mutation_Class : public EidosObjectClass

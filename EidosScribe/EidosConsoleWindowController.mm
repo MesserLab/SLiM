@@ -338,6 +338,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 //	Actions
 //
+#pragma mark -
 #pragma mark Actions
 
 - (IBAction)checkScript:(id)sender
@@ -519,6 +520,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 //	VariableBrowserController delegate methods
 //
+#pragma mark -
 #pragma mark VariableBrowserController delegate
 
 - (EidosSymbolTable *)symbolTable
@@ -530,6 +532,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 //	NSTextView delegate methods
 //
+#pragma mark -
 #pragma mark NSTextView delegate
 
 - (NSRange)textView:(NSTextView *)textView willChangeSelectionFromCharacterRange:(NSRange)oldRange toCharacterRange:(NSRange)newRange
@@ -627,6 +630,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 //	NSWindow delegate methods
 //
+#pragma mark -
 #pragma mark NSWindow delegate
 
 - (void)windowWillClose:(NSNotification *)notification
@@ -649,6 +653,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 //
 //	NSSplitView delegate methods
 //
+#pragma mark -
 #pragma mark NSSplitView delegate
 
 - (BOOL)splitView:(NSSplitView *)splitView canCollapseSubview:(NSView *)subview

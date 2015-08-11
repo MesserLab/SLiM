@@ -187,6 +187,7 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 //
 //	EidosValue
 //
+#pragma mark -
 #pragma mark EidosValue
 
 EidosValue::EidosValue(const EidosValue &p_original) : external_temporary_(false), external_permanent_(false), invisible_(false)	// doesn't use original for these flags
@@ -258,6 +259,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 //
 //	EidosValue_NULL
 //
+#pragma mark -
 #pragma mark EidosValue_NULL
 
 EidosValue_NULL::EidosValue_NULL(void)
@@ -365,6 +367,7 @@ EidosValue_NULL_const::~EidosValue_NULL_const(void)
 //
 //	EidosValue_Logical
 //
+#pragma mark -
 #pragma mark EidosValue_Logical
 
 EidosValue_Logical::EidosValue_Logical(void)
@@ -618,6 +621,7 @@ void EidosValue_Logical_const::Sort(bool p_ascending)
 //
 //	EidosValue_String
 //
+#pragma mark -
 #pragma mark EidosValue_String
 
 EidosValue_String::EidosValue_String(void)
@@ -792,6 +796,7 @@ void EidosValue_String::Sort(bool p_ascending)
 //
 //	EidosValue_Int
 //
+#pragma mark -
 #pragma mark EidosValue_Int
 
 EidosValue_Int::~EidosValue_Int(void)
@@ -1079,6 +1084,7 @@ void EidosValue_Int_singleton_const::Sort(bool p_ascending)
 //
 //	EidosValue_Float
 //
+#pragma mark -
 #pragma mark EidosValue_Float
 
 EidosValue_Float::~EidosValue_Float(void)
@@ -1365,6 +1371,7 @@ void EidosValue_Float_singleton_const::Sort(bool p_ascending)
 //
 //	EidosValue_Object
 //
+#pragma mark -
 #pragma mark EidosValue_Object
 
 EidosValue_Object::~EidosValue_Object(void)
@@ -1936,6 +1943,7 @@ EidosValue *EidosValue_Object_singleton_const::ExecuteInstanceMethodOfElements(E
 //
 //	EidosObjectElement
 //
+#pragma mark -
 #pragma mark EidosObjectElement
 
 EidosObjectElement::EidosObjectElement(void)
@@ -2065,6 +2073,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 //
 //	EidosObjectElementInternal
 //
+#pragma mark -
 #pragma mark EidosObjectElementInternal
 
 EidosObjectElementInternal::EidosObjectElementInternal(void)
@@ -2109,6 +2118,7 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 //
 //	EidosObjectClass
 //
+#pragma mark -
 #pragma mark EidosObjectClass
 
 EidosObjectClass::EidosObjectClass(void)

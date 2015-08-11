@@ -673,6 +673,7 @@ bool SLiMSim::RunOneGeneration(void)
 //
 //	Eidos support
 //
+#pragma mark -
 #pragma mark Eidos support
 
 void SLiMSim::GenerateCachedSymbolTableEntry(void)
@@ -1933,6 +1934,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 //
 //	SLiMSim_Class
 //
+#pragma mark -
 #pragma mark SLiMSim_Class
 
 class SLiMSim_Class : public EidosObjectClass

@@ -919,9 +919,12 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 }
 
+
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
 
 void Subpopulation::GenerateCachedSymbolTableEntry(void)
 {
@@ -1281,6 +1284,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 //
 //	Subpopulation_Class
 //
+#pragma mark -
 #pragma mark Subpopulation_Class
 
 class Subpopulation_Class : public EidosObjectClass

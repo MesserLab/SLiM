@@ -212,8 +212,10 @@ Genome::~Genome(void)
 
 
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
 
 void Genome::GenerateCachedEidosValue(void)
 {
@@ -465,6 +467,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 //
 //	Genome_Class
 //
+#pragma mark -
 #pragma mark Genome_Class
 
 class Genome_Class : public EidosObjectClass

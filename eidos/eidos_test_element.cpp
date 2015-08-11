@@ -100,6 +100,7 @@ EidosValue *Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 //
 //	Eidos_TestElementClass
 //
+#pragma mark -
 #pragma mark Eidos_TestElementClass
 
 class Eidos_TestElementClass : public EidosObjectClass

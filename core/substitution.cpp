@@ -42,9 +42,13 @@ void Substitution::print(std::ostream &p_out) const
 	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl;		// used to have a +1 on position_; switched to zero-based
 }
 
+
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
+
 const EidosObjectClass *Substitution::Class(void) const
 {
 	return gSLiM_Substitution_Class;
@@ -94,6 +98,7 @@ EidosValue *Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 //
 //	Substitution_Class
 //
+#pragma mark -
 #pragma mark Substitution_Class
 
 class Substitution_Class : public EidosObjectClass

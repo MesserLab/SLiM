@@ -85,8 +85,11 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 
 
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
+
 const EidosObjectClass *GenomicElement::Class(void) const
 {
 	return gSLiM_GenomicElement_Class;
@@ -162,6 +165,7 @@ EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 //
 //	GenomicElement_Class
 //
+#pragma mark -
 #pragma mark GenomicElement_Class
 
 class GenomicElement_Class : public EidosObjectClass

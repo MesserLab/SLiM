@@ -100,9 +100,12 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 	return p_outstream;
 }
 
+
 //
-// Eidos support
+//	Eidos support
 //
+#pragma mark -
+#pragma mark Eidos support
 
 void MutationType::GenerateCachedSymbolTableEntry(void)
 {
@@ -233,6 +236,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 //
 //	MutationType_Class
 //
+#pragma mark -
 #pragma mark MutationType_Class
 
 class MutationType_Class : public EidosObjectClass

@@ -203,6 +203,7 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 //
 // Eidos support
 //
+#pragma mark -
 #pragma mark Eidos support
 
 const EidosObjectClass *Chromosome::Class(void) const
@@ -394,6 +395,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 //
 //	Chromosome_Class
 //
+#pragma mark -
 #pragma mark Chromosome_Class
 
 class Chromosome_Class : public EidosObjectClass

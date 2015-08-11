@@ -443,6 +443,7 @@ using std::string;
 //
 //	Syntax coloring
 //
+#pragma mark -
 #pragma mark Syntax coloring
 
 // Check whether a token string is a special identifier like "pX", "gX", or "mX"
@@ -691,6 +692,7 @@ using std::string;
 //
 //	Signature display
 //
+#pragma mark -
 #pragma mark Signature display
 
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection
@@ -989,6 +991,7 @@ using std::string;
 //
 //	Auto-completion
 //
+#pragma mark -
 #pragma mark Auto-completion
 
 - (NSArray *)completionsForPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index

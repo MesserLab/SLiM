@@ -334,6 +334,7 @@ bool CompareEidosCallSignatures(const EidosCallSignature *i, const EidosCallSign
 //
 //	EidosFunctionSignature
 //
+#pragma mark -
 #pragma mark EidosFunctionSignature
 
 EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask)
@@ -390,6 +391,7 @@ std::string EidosFunctionSignature::CallDelegate(void) const
 //
 //	EidosMethodSignature
 //
+#pragma mark -
 #pragma mark EidosMethodSignature
 
 EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, bool p_is_class_method)
@@ -415,6 +417,7 @@ EidosMethodSignature::~EidosMethodSignature(void)
 //
 //	EidosInstanceMethodSignature
 //
+#pragma mark -
 #pragma mark EidosInstanceMethodSignature
 
 EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask)
@@ -440,6 +443,7 @@ EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
 //
 //	EidosClassMethodSignature
 //
+#pragma mark -
 #pragma mark EidosClassMethodSignature
 
 EidosClassMethodSignature::EidosClassMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask)

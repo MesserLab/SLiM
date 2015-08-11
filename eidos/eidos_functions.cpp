@@ -437,7 +437,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	math functions
 		//
-#pragma mark *** Math functions
+#pragma mark -
+#pragma mark Math functions
+#pragma mark -
 			
 #pragma mark abs
 		case EidosFunctionIdentifier::absFunction:
@@ -933,7 +935,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	summary statistics functions
 		//
-#pragma mark *** Summary statistics functions
+#pragma mark -
+#pragma mark Summary statistics functions
+#pragma mark -
 			
 #pragma mark max
 		case EidosFunctionIdentifier::maxFunction:
@@ -1141,7 +1145,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	vector construction functions
 		//
-#pragma mark *** Vector conversion functions
+#pragma mark -
+#pragma mark Vector conversion functions
+#pragma mark -
 			
 #pragma mark c
 		case EidosFunctionIdentifier::cFunction:
@@ -1726,7 +1732,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	value inspection/manipulation functions
 		//
-#pragma mark *** Value inspection/manipulation functions
+#pragma mark -
+#pragma mark Value inspection/manipulation functions
+#pragma mark -
 			
 #pragma mark all
 		case EidosFunctionIdentifier::allFunction:
@@ -2254,7 +2262,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	value type testing/coercion functions
 		//
-#pragma mark *** Value type testing/coercion functions
+#pragma mark -
+#pragma mark Value type testing/coercion functions
+#pragma mark -
 			
 #pragma mark asFloat
 		case EidosFunctionIdentifier::asFloatFunction:
@@ -2379,7 +2389,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	filesystem access functions
 		//
-#pragma mark *** Filesystem access functions
+#pragma mark -
+#pragma mark Filesystem access functions
+#pragma mark -
 			
 #pragma mark filesAtPath
 		case EidosFunctionIdentifier::filesAtPathFunction:
