@@ -111,6 +111,11 @@ inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 }
 
 
+// Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
+size_t getPeakRSS( );
+size_t getCurrentRSS( );
+
+
 //
 //	Additional global std::string objects.  See script_globals.h for details.
 //

@@ -34,7 +34,7 @@ void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	EIDOS_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] <script file>" << eidos_terminate();
+	EIDOS_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] [-mem] [-Memhist] <script file>" << eidos_terminate();
 }
 
 int main(int argc, char *argv[])
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	int override_seed = 0;
 	int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	char *input_file = nullptr;
-	bool keep_time = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false;
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
@@ -65,6 +65,23 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-time") == 0 || strcmp(arg, "-t") == 0)
 		{
 			keep_time = true;
+			
+			continue;
+		}
+		
+		// -mem or -m: take a peak memory usage measurement and output it at the end of execution
+		if (strcmp(arg, "-mem") == 0 || strcmp(arg, "-m") == 0)
+		{
+			keep_mem = true;
+			
+			continue;
+		}
+		
+		// -mem or -m: take a peak memory usage measurement and output it at the end of execution
+		if (strcmp(arg, "-Memhist") == 0 || strcmp(arg, "-M") == 0)
+		{
+			keep_mem = true;		// implied by this
+			keep_mem_hist = true;
 			
 			continue;
 		}
@@ -101,12 +118,47 @@ int main(int argc, char *argv[])
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();
 	
+	// keep memory usage information, if asked to
+	size_t *mem_record = nullptr;
+	int mem_record_index = 0;
+	int mem_record_capacity = 0;
+	size_t initial_mem_usage = 0;
+	size_t peak_mem_usage = 0;
+	
+	if (keep_mem_hist)
+	{
+		mem_record_capacity = 16384;
+		mem_record = (size_t *)malloc(mem_record_capacity * sizeof(size_t));
+	}
+	
+	if (keep_mem)
+	{
+		// note we subtract the size of our memory-tracking buffer, here and below
+		initial_mem_usage = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+	}
+	
 	// run the simulation
 	SLiMSim *sim = new SLiMSim(input_file, override_seed_ptr);
 	
+	if (keep_mem_hist)
+		mem_record[mem_record_index++] = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+	
 	if (sim)
 	{
-		sim->RunToEnd();
+		// Run the simulation to its natural end
+		while (sim->RunOneGeneration())
+		{
+			if (keep_mem_hist)
+			{
+				if (mem_record_index == mem_record_capacity)
+				{
+					mem_record_capacity <<= 1;
+					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));
+				}
+				
+				mem_record[mem_record_index++] = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+			}
+		}
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context
 		//delete sim;
@@ -119,6 +171,38 @@ int main(int argc, char *argv[])
 	
 	if (keep_time)
 		SLIM_ERRSTREAM << "// ********** CPU time used: " << time_spent << std::endl;
+	
+	// print memory usage stats
+	if (keep_mem)
+	{
+		peak_mem_usage = getPeakRSS();
+		
+		SLIM_ERRSTREAM << "// ********** Initial memory usage: " << initial_mem_usage << " bytes (" << initial_mem_usage / 1024.0 << "K, " << initial_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;
+		SLIM_ERRSTREAM << "// ********** Peak memory usage: " << peak_mem_usage << " bytes (" << peak_mem_usage / 1024.0 << "K, " << peak_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;
+	}
+	
+	if (keep_mem_hist)
+	{
+		SLIM_ERRSTREAM << "// ********** Memory usage history (execute in R for a plot): " << std::endl;
+		SLIM_ERRSTREAM << "memhist <- c(" << std::endl;
+		for (int hist_index = 0; hist_index < mem_record_index; ++hist_index)
+		{
+			SLIM_ERRSTREAM << "   " << mem_record[hist_index];
+			if (hist_index < mem_record_index - 1)
+				SLIM_ERRSTREAM << ",";
+			SLIM_ERRSTREAM << std::endl;
+		}
+		SLIM_ERRSTREAM << ")" << std::endl;
+		SLIM_ERRSTREAM << "initial_mem <- " << initial_mem_usage << std::endl;
+		SLIM_ERRSTREAM << "peak_mem <- " << peak_mem_usage << std::endl;
+		SLIM_ERRSTREAM << "#scale <- 1; scale_tag <- \"bytes\"" << std::endl;
+		SLIM_ERRSTREAM << "#scale <- 1024; scale_tag <- \"K\"" << std::endl;
+		SLIM_ERRSTREAM << "scale <- 1024 * 1024; scale_tag <- \"MB\"" << std::endl;
+		SLIM_ERRSTREAM << "#scale <- 1024 * 1024 * 1024; scale_tag <- \"GB\"" << std::endl;
+		SLIM_ERRSTREAM << "plot(memhist / scale, type=\"l\", ylab=paste0(\"Memory usage (\", scale_tag, \")\"), xlab=\"Generation (start)\", ylim=c(0,peak_mem/scale), lwd=4)" << std::endl;
+		SLIM_ERRSTREAM << "abline(h=peak_mem/scale, col=\"red\")" << std::endl;
+		SLIM_ERRSTREAM << "abline(h=initial_mem/scale, col=\"blue\")" << std::endl;
+	}
 	
 	return EXIT_SUCCESS;
 }

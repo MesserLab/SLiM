@@ -669,11 +669,6 @@ bool SLiMSim::RunOneGeneration(void)
 	return false;
 }
 
-void SLiMSim::RunToEnd(void)
-{
-	while (RunOneGeneration());
-}
-
 
 //
 //	Eidos support
