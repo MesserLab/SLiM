@@ -2523,7 +2523,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark executeLambda
 		case EidosFunctionIdentifier::executeLambdaFunction:
 		{
-			EidosScript script(arg0_value->StringAtIndex(0), 0);
+			EidosScript script(arg0_value->StringAtIndex(0));
 			
 			script.Tokenize();
 			script.ParseInterpreterBlockToAST();

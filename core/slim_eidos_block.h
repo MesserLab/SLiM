@@ -48,7 +48,7 @@ public:
 	SLiMEidosScript(const SLiMEidosScript&) = delete;							// no copying
 	SLiMEidosScript& operator=(const SLiMEidosScript&) = delete;				// no copying
 	SLiMEidosScript(void) = delete;												// no null construction
-	SLiMEidosScript(const std::string &p_script_string, int p_start_index);
+	SLiMEidosScript(const std::string &p_script_string);
 	
 	virtual ~SLiMEidosScript(void);												// destructor
 	

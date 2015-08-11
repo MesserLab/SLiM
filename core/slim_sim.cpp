@@ -141,7 +141,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	buffer << infile.rdbuf();
 	
 	// Tokenize and parse
-	script_ = new SLiMEidosScript(buffer.str(), 0);
+	script_ = new SLiMEidosScript(buffer.str());
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();

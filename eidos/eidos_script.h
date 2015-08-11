@@ -51,7 +51,6 @@ class EidosScript
 protected:
 	
 	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
-	int start_character_index_;				// the index of the first Eidos-based character in the script string
 	
 	std::vector<EidosToken *> token_stream_;					// OWNED POINTERS
 	EidosASTNode *parse_root_ = nullptr;						// OWNED POINTER
@@ -66,7 +65,7 @@ public:
 	EidosScript(const EidosScript&) = delete;								// no copying
 	EidosScript& operator=(const EidosScript&) = delete;					// no copying
 	EidosScript(void) = delete;												// no null construction
-	EidosScript(const std::string &p_script_string, int p_start_index);
+	EidosScript(const std::string &p_script_string);
 	
 	virtual ~EidosScript(void);												// destructor
 	
@@ -85,6 +84,9 @@ public:
 	void Consume();
 	void SetErrorPositionFromCurrentToken(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
+	
+	// This can be used to set the error position even outside of parsing; call just before you throw
+	static void SetErrorPositionFromToken(const EidosToken *p_naughty_token_);
 	
 	// Top-level parse method for the Eidos interpreter and other contexts
 	EidosASTNode *Parse_InterpreterBlock(void);

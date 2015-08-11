@@ -1243,7 +1243,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 	else
 	{
-		SLiMEidosScript script(cstr, 0);
+		SLiMEidosScript script(cstr);
 		
 		try {
 			script.Tokenize();

@@ -453,7 +453,7 @@ using std::string;
 	// Construct a Script object from the current script string
 	NSString *scriptString = [self string];
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string, 0);
+	EidosScript script(script_string);
 	
 	// Tokenize
 	try
@@ -680,7 +680,7 @@ using std::string;
 	if ([scriptString length])
 	{
 		std::string script_string([scriptString UTF8String]);
-		EidosScript script(script_string, 0);
+		EidosScript script(script_string);
 		
 		// Tokenize
 		try
@@ -1465,7 +1465,7 @@ using std::string;
 		// Get the substring up to the start of the selection; that is the range relevant for completion
 		NSString *scriptSubstring = [scriptString substringToIndex:selStart];
 		std::string script_string([scriptSubstring UTF8String]);
-		EidosScript script(script_string, 0);
+		EidosScript script(script_string);
 		
 		// Tokenize
 		try

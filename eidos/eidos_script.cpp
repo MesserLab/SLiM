@@ -46,8 +46,8 @@ bool gEidosLogEvaluation = false;
 //
 #pragma mark Script
 
-EidosScript::EidosScript(const string &p_script_string, int p_start_index) :
-	script_string_(p_script_string), start_character_index_(p_start_index)
+EidosScript::EidosScript(const string &p_script_string) :
+	script_string_(p_script_string)
 {
 }
 
@@ -231,8 +231,8 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \\), newlines not allowed
 					do 
 					{
-						gEidosCharacterStartOfParseError = start_character_index_ + token_start;
-						gEidosCharacterEndOfParseError = start_character_index_ + token_end;
+						gEidosCharacterStartOfParseError = token_start;
+						gEidosCharacterEndOfParseError = token_end;
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
@@ -292,8 +292,8 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 		if (token_type == EidosTokenType::kTokenNone)
 		{
 			// failed to find a match; this causes a syntax error raise
-			gEidosCharacterStartOfParseError = start_character_index_ + token_start;
-			gEidosCharacterEndOfParseError = start_character_index_ + token_end;
+			gEidosCharacterStartOfParseError = token_start;
+			gEidosCharacterEndOfParseError = token_end;
 			
 			EIDOS_TERMINATION << "ERROR (Tokenize): unrecognized token at character '" << (char)ch << "'" << eidos_terminate();
 		}
@@ -395,8 +395,14 @@ void EidosScript::Consume()
 
 void EidosScript::SetErrorPositionFromCurrentToken(void)
 {
-	gEidosCharacterStartOfParseError = start_character_index_ + current_token_->token_start_;
-	gEidosCharacterEndOfParseError = start_character_index_ + current_token_->token_end_;
+	gEidosCharacterStartOfParseError = current_token_->token_start_;
+	gEidosCharacterEndOfParseError = current_token_->token_end_;
+}
+
+void EidosScript::SetErrorPositionFromToken(const EidosToken *p_naughty_token_)
+{
+	gEidosCharacterStartOfParseError = p_naughty_token_->token_start_;
+	gEidosCharacterEndOfParseError = p_naughty_token_->token_end_;
 }
 
 void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)

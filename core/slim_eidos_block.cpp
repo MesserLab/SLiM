@@ -19,7 +19,12 @@ using std::endl;
 using std::string;
 
 
-SLiMEidosScript::SLiMEidosScript(const string &p_script_string, int p_start_index) : EidosScript(p_script_string, p_start_index)
+//
+//	SLiMEidosScript
+//
+#pragma mark SLiMEidosScript
+
+SLiMEidosScript::SLiMEidosScript(const string &p_script_string) : EidosScript(p_script_string)
 {
 }
 
@@ -86,6 +91,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
+				SetErrorPositionFromCurrentToken();
 				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; expected an integer for the generation range end" << eidos_terminate();
 			}
 		}
@@ -121,6 +127,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
+				SetErrorPositionFromCurrentToken();
 				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; a mutation type id is required in fitness() callback definitions" << eidos_terminate();
 			}
 			
@@ -138,6 +145,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				}
 				else
 				{
+					SetErrorPositionFromCurrentToken();
 					EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; subpopulation id expected" << eidos_terminate();
 				}
 			}
@@ -188,6 +196,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		}
 		else
 		{
+			SetErrorPositionFromCurrentToken();
 			EIDOS_TERMINATION << "ERROR (Parse): unexpected identifier " << *current_token_ << " in Parse_SLiMEidosBlock; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate();
 		}
 	}
@@ -267,6 +276,12 @@ int SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_st
 }
 
 
+//
+//	SLiMEidosBlock
+//
+#pragma mark -
+#pragma mark SLiMEidosBlock
+
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node)
 {
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
@@ -277,6 +292,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	
 	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(block_children[child_index]->token_->token_string_, 's'))
 	{
+		EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
 		block_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(block_children[child_index]->token_->token_string_, 's');
 		child_index++;
 	}
@@ -284,22 +300,37 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	// eat a number, for the start generation, if present
 	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
 	{
-		start_generation_ = (int)EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
-		end_generation_ = start_generation_;	// if a start is given, the default end is the same as the start
-		child_index++;
+		int64_t long_start = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		
-		if ((start_generation_ < 1) || (start_generation_ > SLIM_MAX_GENERATION))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << start_generation_ << " was out of range." << eidos_terminate();
+		if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
+		{
+			EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << block_children[child_index]->token_->token_string_ << " is out of range." << eidos_terminate();
+		}
+		
+		start_generation_ = (int)long_start;
+		end_generation_ = start_generation_;			// if a start is given, the default end is the same as the start
+		child_index++;
 	}
 	
 	// eat a number, for the end generation, if present
 	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
 	{
-		end_generation_ = (int)EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
-		child_index++;
+		int64_t long_end = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		
-		if ((end_generation_ < 1) || (end_generation_ > SLIM_MAX_GENERATION))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_generation_ << " was out of range." << eidos_terminate();
+		if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))
+		{
+			EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << block_children[child_index]->token_->token_string_ << " is out of range." << eidos_terminate();
+		}
+		if (long_end < start_generation_)
+		{
+			EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << block_children[child_index]->token_->token_string_ << " is less than the start generation." << eidos_terminate();
+		}
+		
+		end_generation_ = (int)long_end;
+		child_index++;
 	}
 	
 	// eat the callback info node, if present
@@ -311,6 +342,8 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		const std::string &callback_name = callback_token->token_string_;
 		const std::vector<EidosASTNode *> &callback_children = callback_node->children_;
 		int n_callback_children = (int)callback_children.size();
+		
+		EidosScript::SetErrorPositionFromToken(callback_token);		// flag the callback token unless something more specific goes wrong
 		
 		if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
 		{
@@ -329,10 +362,14 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			if ((n_callback_children != 1) && (n_callback_children != 2))
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate();
 			
+			EidosScript::SetErrorPositionFromToken(callback_children[0]->token_);
 			mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'm');
 			
 			if (n_callback_children == 2)
+			{
+				EidosScript::SetErrorPositionFromToken(callback_children[1]->token_);
 				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[1]->token_->token_string_, 'p');
+			}
 			
 			type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
 		}
@@ -342,7 +379,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
+			{
+				EidosScript::SetErrorPositionFromToken(callback_children[0]->token_);
 				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'p');
+			}
 			
 			type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 		}
@@ -352,7 +392,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate();
 			
 			if (n_callback_children == 1)
+			{
+				EidosScript::SetErrorPositionFromToken(callback_children[0]->token_);
 				subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(callback_children[0]->token_->token_string_, 'p');
+			}
 			
 			type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 		}
@@ -383,7 +426,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 SLiMEidosBlock::SLiMEidosBlock(int p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, int p_start, int p_end)
 	: block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end)
 {
-	script_ = new EidosScript(p_script_string, 0);
+	script_ = new EidosScript(p_script_string);
 
 	script_->Tokenize();
 	script_->ParseInterpreterBlockToAST();

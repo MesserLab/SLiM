@@ -156,7 +156,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 - (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString addOptionalSemicolon:(BOOL)addSemicolon
 {
 	string script_string([scriptString UTF8String]);
-	EidosScript script(script_string, 0);
+	EidosScript script(script_string);
 	EidosValue *result;
 	string output;
 	
@@ -354,7 +354,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	}
 	else
 	{
-		EidosScript script(cstr, 0);
+		EidosScript script(cstr);
 		
 		try {
 			script.Tokenize();

@@ -53,7 +53,7 @@ static int gTestFailureCount = 0;
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void AssertScriptSuccess(const string &p_script_string, EidosValue *p_correct_result)
 {
-	EidosScript script(p_script_string, 0);
+	EidosScript script(p_script_string);
 	EidosValue *result = nullptr;
 	EidosSymbolTable symbol_table;
 	
@@ -128,7 +128,7 @@ void AssertScriptSuccess(const string &p_script_string, EidosValue *p_correct_re
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
 void AssertScriptRaise(const string &p_script_string)
 {
-	EidosScript script(p_script_string, 0);
+	EidosScript script(p_script_string);
 	EidosSymbolTable symbol_table;
 	
 	try {
