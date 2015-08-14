@@ -106,7 +106,7 @@
 		SLiMSim *sim = controller->sim;
 		Population &pop = sim->population_;
 		double *history = pop.fitnessHistory;
-		uint32 historyLength = pop.fitnessHistoryLength;
+		slim_generation_t historyLength = pop.fitnessHistoryLength;
 		double minHistory = INFINITY;
 		double maxHistory = -INFINITY;
 		
@@ -155,7 +155,7 @@
 {
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	int completedGenerations = sim->generation_ - 1;
+	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
 	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
 	if (!cachingNow && (!drawingCache || ((completedGenerations / 1000) > (drawingCacheGeneration / 1000))))
@@ -183,7 +183,7 @@
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		int fixation_time = substitution->fixation_time_;
+		slim_generation_t fixation_time = substitution->fixation_time_;
 		
 		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
 		if (!cachingNow && (fixation_time < drawingCacheGeneration))
@@ -198,14 +198,14 @@
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	double *history = pop.fitnessHistory;
-	uint32 historyLength = pop.fitnessHistoryLength;
+	slim_generation_t historyLength = pop.fitnessHistoryLength;
 	
 	[[NSColor blackColor] set];
 	
 	// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-	int firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
+	slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
 	
-	for (int i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+	for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
 	{
 		double historyEntry = history[i];
 		
@@ -223,7 +223,7 @@
 	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ generation\n"];
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	int completedGenerations = sim->generation_ - 1;
+	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
 	[string appendString:[self dateline]];
 	
@@ -234,18 +234,18 @@
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		int fixation_time = substitution->fixation_time_;
+		slim_generation_t fixation_time = substitution->fixation_time_;
 		
-		[string appendFormat:@"%d, ", fixation_time];
+		[string appendFormat:@"%lld, ", (int64_t)fixation_time];
 	}
 	
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];
 	
 	double *history = pop.fitnessHistory;
-	uint32 historyLength = pop.fitnessHistoryLength;
+	slim_generation_t historyLength = pop.fitnessHistoryLength;
 	
-	for (int i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+	for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
 		[string appendFormat:@"%.4f, ", history[i]];
 	
 	[string appendString:@"\n"];

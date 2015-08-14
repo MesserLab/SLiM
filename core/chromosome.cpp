@@ -73,7 +73,7 @@ void Chromosome::InitializeDraws(void)
 		if ((*this)[i].end_position_ > last_position_)
 			last_position_ = (*this)[i].end_position_;
 		
-		int l_i = (*this)[i].end_position_ - (*this)[i].start_position_ + 1;
+		slim_position_t l_i = (*this)[i].end_position_ - (*this)[i].start_position_ + 1;
 		
 		A[i] = static_cast<double>(l_i);
 		l += l_i;
@@ -150,14 +150,14 @@ void Chromosome::InitializeDraws(void)
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
-Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) const
+Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
 {
-	int genomic_element = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation));
-	const GenomicElement &source_element = (*this)[genomic_element];
+	int genomic_element_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation));
+	const GenomicElement &source_element = (*this)[genomic_element_index];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	int position = source_element.start_position_ + static_cast<int>(gsl_rng_uniform_int(gEidos_rng, source_element.end_position_ - source_element.start_position_ + 1));  
+	slim_position_t position = source_element.start_position_ + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, source_element.end_position_ - source_element.start_position_ + 1));  
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
@@ -165,21 +165,21 @@ Mutation *Chromosome::DrawNewMutation(int p_subpop_index, int p_generation) cons
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
+std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 {
-	vector<int> breakpoints;
+	vector<slim_position_t> breakpoints;
 	
 	// draw recombination breakpoints
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
-		int breakpoint = 0;
+		slim_position_t breakpoint = 0;
 		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
-			breakpoint = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]));
+			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]));
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<int>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
 		
 		breakpoints.push_back(breakpoint);
 		
@@ -189,7 +189,7 @@ std::vector<int> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
 			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
 			{
 				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
-				int breakpoint2 = breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_);
+				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
 				
 				breakpoints.push_back(breakpoint2);
 			}
@@ -295,7 +295,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;
@@ -350,7 +350,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			for (int value_index = 0; value_index < end_count; ++value_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(value_index);
-				int64_t recombination_end_position = arg1_value->IntAtIndex(value_index);
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index));
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
@@ -373,10 +373,10 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index);
-				int64_t recombination_end_position = arg1_value->IntAtIndex(interval_index);	// used to have a -1; switched to zero-based
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index));	// used to have a -1; switched to zero-based
 				
 				recombination_rates_.push_back(recombination_rate);
-				recombination_end_positions_.push_back((int)recombination_end_position);
+				recombination_end_positions_.push_back(recombination_end_position);
 			}
 		}
 		

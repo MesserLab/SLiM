@@ -92,10 +92,10 @@
 	return regex;
 }
 
-+ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue
++ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue
 {
 	NSString *stringValue = [textfield stringValue];
-	int intValue = [textfield intValue];
+	int64_t intValue = [[textfield stringValue] longLongValue];
 	
 	if ([stringValue length] == 0)
 		return NO;
@@ -112,10 +112,10 @@
 	return YES;
 }
 
-+ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue
++ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue
 {
 	NSString *stringValue = [textfield stringValue];
-	int intValue = (int)[textfield doubleValue];		// go through -doubleValue to get scientific notation
+	int64_t intValue = (int64_t)[textfield doubleValue];		// go through -doubleValue to get scientific notation
 	
 	if ([stringValue length] == 0)
 		return NO;
@@ -374,7 +374,7 @@
 	}
 }
 
-- (void)insertScriptLine:(NSString *)lineToInsert targetGeneration:(int)targetGeneration
+- (void)insertScriptLine:(NSString *)lineToInsert targetGeneration:(slim_generation_t)targetGeneration
 {
 	NSRegularExpression *initializeBlockStartRegex = [NSRegularExpression regularExpressionWithPattern:@"^(s[0-9]+\\s+)?initialize\\s*\\(\\s*\\)" options:0 error:NULL];
 	NSRegularExpression *eventBlockStartRegex = [NSRegularExpression regularExpressionWithPattern:@"^(?:s[0-9]+\\s+)?([0-9]+(\\.[0-9]*)?([eE][-+]?[0-9]+)?)" options:0 error:NULL];
@@ -392,7 +392,7 @@
 	for (bestInsertionIndex = 0; bestInsertionIndex < lineCount; ++bestInsertionIndex)
 	{
 		NSString *line = [scriptLines objectAtIndex:bestInsertionIndex];
-		int lineGeneration = 0;
+		slim_generation_t lineGeneration = 0;
 		
 		//NSLog(@"processing line: %@", line);
 		
@@ -420,7 +420,7 @@
 					
 					//NSLog(@"genSubstring == \"%@\"", genSubstring);
 					
-					lineGeneration = (int)[genSubstring doubleValue];		// extracted generation
+					lineGeneration = SLiMClampToGenerationType((int64_t)[genSubstring doubleValue]);		// extracted generation
 				}
 			}
 			
@@ -468,7 +468,7 @@
 		// run the sheet
 		[window beginSheet:_scriptModSheet completionHandler:^(NSModalResponse returnCode) {
 			NSString *scriptLine = nil;
-			int targetGeneration = -1;
+			slim_generation_t targetGeneration = -1;
 			
 			if (returnCode == NSAlertFirstButtonReturn)
 				scriptLine = [self scriptLineWithExecute:YES targetGeneration:&targetGeneration];
@@ -518,7 +518,7 @@
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button
 {
 	NSMenuItem *lastItem;
-	int firstTag = -1;
+	slim_objectid_t firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[button removeAllItems];
@@ -529,9 +529,9 @@
 		
 		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
 		{
-			int subpopID = popIter->first;
+			slim_objectid_t subpopID = popIter->first;
 			//Subpopulation *subpop = popIter->second;
-			NSString *subpopString = [NSString stringWithFormat:@"p%d", subpopID];
+			NSString *subpopString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
 			
 			[button addItemWithTitle:subpopString];
 			lastItem = [button lastItem];
@@ -557,7 +557,7 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
-- (BOOL)isAvailableSubpopID:(int)subpopID
+- (BOOL)isAvailableSubpopID:(slim_objectid_t)subpopID
 {
 	if (![controller invalidSimulation])
 	{
@@ -570,9 +570,9 @@
 	return YES;
 }
 
-- (int)bestAvailableSubpopID
+- (slim_objectid_t)bestAvailableSubpopID
 {
-	int firstUnusedID = 1;
+	slim_objectid_t firstUnusedID = 1;
 	
 	if (![controller invalidSimulation])
 	{
@@ -580,7 +580,7 @@
 		
 		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
 		{
-			int subpopID = popIter->first;
+			slim_objectid_t subpopID = popIter->first;
 			
 			if (subpopID >= firstUnusedID)
 				firstUnusedID = subpopID + 1;
@@ -593,7 +593,7 @@
 - (void)configureMutationTypePopup:(NSPopUpButton *)button addNoneItem:(BOOL)needsNoneItem;
 {
 	NSMenuItem *lastItem;
-	int firstTag = -1;
+	slim_objectid_t firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[button removeAllItems];
@@ -607,12 +607,12 @@
 	
 	if (![controller invalidSimulation])
 	{
-		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
 		for (auto muttypeIter = mutationTypes.begin(); muttypeIter != mutationTypes.end(); ++muttypeIter)
 		{
-			int muttypeID = muttypeIter->first;
-			NSString *muttypeString = [NSString stringWithFormat:@"m%d", muttypeID];
+			slim_objectid_t muttypeID = muttypeIter->first;
+			NSString *muttypeString = [NSString stringWithFormat:@"m%lld", (int64_t)muttypeID];
 			
 			[button addItemWithTitle:muttypeString];
 			lastItem = [button lastItem];
@@ -641,11 +641,11 @@
 	[self configureMutationTypePopup:button addNoneItem:NO];
 }
 
-- (BOOL)isAvailableMuttypeID:(int)muttypeID
+- (BOOL)isAvailableMuttypeID:(slim_objectid_t)muttypeID
 {
 	if (![controller invalidSimulation])
 	{
-		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
 		if (mutationTypes.find(muttypeID) != mutationTypes.end())
 			return NO;
@@ -654,20 +654,20 @@
 	return YES;
 }
 
-- (int)bestAvailableMuttypeID
+- (slim_objectid_t)bestAvailableMuttypeID
 {
-	int firstUnusedID = 1;
+	slim_objectid_t firstUnusedID = 1;
 	
 	if (![controller invalidSimulation])
 	{
-		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
 		for (auto muttypeIter = mutationTypes.begin(); muttypeIter != mutationTypes.end(); ++muttypeIter)
 		{
-			int subpopID = muttypeIter->first;
+			slim_objectid_t muttypeID = muttypeIter->first;
 			
-			if (subpopID >= firstUnusedID)
-				firstUnusedID = subpopID + 1;
+			if (muttypeID >= firstUnusedID)
+				firstUnusedID = muttypeID + 1;
 		}
 	}
 	
@@ -677,19 +677,19 @@
 - (void)configureGenomicElementTypePopup:(NSPopUpButton *)button
 {
 	NSMenuItem *lastItem;
-	int firstTag = -1;
+	slim_objectid_t firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[button removeAllItems];
 	
 	if (![controller invalidSimulation])
 	{
-		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
 		
 		for (auto genomicElementTypeIter = genomicElementTypes.begin(); genomicElementTypeIter != genomicElementTypes.end(); ++genomicElementTypeIter)
 		{
-			int genomicElementTypeID = genomicElementTypeIter->first;
-			NSString *genomicElementTypeString = [NSString stringWithFormat:@"g%d", genomicElementTypeID];
+			slim_objectid_t genomicElementTypeID = genomicElementTypeIter->first;
+			NSString *genomicElementTypeString = [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
 			
 			[button addItemWithTitle:genomicElementTypeString];
 			lastItem = [button lastItem];
@@ -713,11 +713,11 @@
 	[button synchronizeTitleAndSelectedItem];
 }
 
-- (BOOL)isAvailableGenomicElementTypeID:(int)genomicElementTypeID
+- (BOOL)isAvailableGenomicElementTypeID:(slim_objectid_t)genomicElementTypeID
 {
 	if (![controller invalidSimulation])
 	{
-		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
 		
 		if (genomicElementTypes.find(genomicElementTypeID) != genomicElementTypes.end())
 			return NO;
@@ -726,20 +726,20 @@
 	return YES;
 }
 
-- (int)bestAvailableGenomicElementTypeID
+- (slim_objectid_t)bestAvailableGenomicElementTypeID
 {
-	int firstUnusedID = 1;
+	slim_objectid_t firstUnusedID = 1;
 	
 	if (![controller invalidSimulation])
 	{
-		std::map<int,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
+		std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = controller->sim->genomic_element_types_;
 		
 		for (auto genomicElementTypeIter = genomicElementTypes.begin(); genomicElementTypeIter != genomicElementTypes.end(); ++genomicElementTypeIter)
 		{
-			int subpopID = genomicElementTypeIter->first;
+			slim_objectid_t geltypeID = genomicElementTypeIter->first;
 			
-			if (subpopID >= firstUnusedID)
-				firstUnusedID = subpopID + 1;
+			if (geltypeID >= firstUnusedID)
+				firstUnusedID = geltypeID + 1;
 		}
 	}
 	
@@ -829,7 +829,7 @@
 	return [self className];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSLog(@"-[ScriptMod scriptLineWithExecute:targetGeneration:] reached, indicates a subclass error");
 	

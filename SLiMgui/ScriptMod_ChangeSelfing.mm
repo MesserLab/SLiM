@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
+	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
 	[self configureSubpopulationPopup:subpopPopUpButton];
 	[selfingRateTextField setStringValue:@"0.0"];
 	
@@ -60,17 +60,17 @@
 	[selfingRateTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:rateValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
+	needsRecycle = ((int64_t)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
-	int targetGenerationInt = (int)[targetGeneration doubleValue];
-	int populationID = (int)[subpopPopUpButton selectedTag];
+	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
+	slim_objectid_t populationID = SLiMClampToObjectidType([subpopPopUpButton selectedTag]);
 	NSString *newRate = [selfingRateTextField stringValue];
 	
 	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.setSelfingRate(%@);\n}", populationID, newRate];

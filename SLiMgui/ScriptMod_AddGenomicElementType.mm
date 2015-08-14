@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[genomicElementTypeTextField setStringValue:[NSString stringWithFormat:@"%d", [self bestAvailableGenomicElementTypeID]]];
+	[genomicElementTypeTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)[self bestAvailableGenomicElementTypeID]]];
 	
 	[self configureMutationTypePopup:mutationType1PopUp];
 	[mutationType1ProportionTextField setStringValue:@"1.0"];
@@ -54,7 +54,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL genomicElementTypeValid = [ScriptMod validIntValueInTextField:genomicElementTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableGenomicElementTypeID:[genomicElementTypeTextField intValue]];
+	BOOL genomicElementTypeValid = [ScriptMod validIntValueInTextField:genomicElementTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableGenomicElementTypeID:SLiMClampToObjectidType([[genomicElementTypeTextField stringValue] longLongValue])];
 	validInput = validInput && genomicElementTypeValid;
 	[genomicElementTypeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:genomicElementTypeValid]];
 	
@@ -120,14 +120,14 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
-	int genomicElementTypeID = [genomicElementTypeTextField intValue];
-	int mutationType1ID = (int)[mutationType1PopUp selectedTag];
+	slim_objectid_t genomicElementTypeID = SLiMClampToObjectidType([[genomicElementTypeTextField stringValue] longLongValue]);
+	slim_objectid_t mutationType1ID = SLiMClampToObjectidType([mutationType1PopUp selectedTag]);
 	NSString *mutationType1Proportion = [mutationType1ProportionTextField stringValue];
-	int mutationType2ID = (int)[mutationType2PopUp selectedTag];
+	slim_objectid_t mutationType2ID = SLiMClampToObjectidType([mutationType2PopUp selectedTag]);
 	NSString *mutationType2Proportion = [mutationType2ProportionTextField stringValue];
-	int mutationType3ID = (int)[mutationType3PopUp selectedTag];
+	slim_objectid_t mutationType3ID = SLiMClampToObjectidType([mutationType3PopUp selectedTag]);
 	NSString *mutationType3Proportion = [mutationType3ProportionTextField stringValue];
 	
 	if (executeNow)

@@ -30,7 +30,7 @@
 @interface GraphView_FitnessOverTime : GraphView
 {
 	NSImage *drawingCache;
-	int drawingCacheGeneration;
+	slim_generation_t drawingCacheGeneration;
 }
 @end
 

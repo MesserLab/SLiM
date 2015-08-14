@@ -26,7 +26,7 @@
 #include "eidos_property_signature.h"
 
 
-GenomicElementType::GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
+GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
 {
 	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
@@ -185,7 +185,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, EidosVal
 	{
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;

@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
+	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
 	[self configureSubpopulationPopup:targetSubpopPopUpButton];
 	[self configureSubpopulationPopup:sourceSubpopPopUpButton];
 	[migrationRateTextField setStringValue:@"0.0"];
@@ -52,8 +52,8 @@
 
 - (IBAction)validateControls:(id)sender
 {
-	int targetSubpopID = (int)[targetSubpopPopUpButton selectedTag];
-	int sourceSubpopID = (int)[sourceSubpopPopUpButton selectedTag];
+	slim_objectid_t targetSubpopID = SLiMClampToObjectidType([targetSubpopPopUpButton selectedTag]);
+	slim_objectid_t sourceSubpopID = SLiMClampToObjectidType([sourceSubpopPopUpButton selectedTag]);
 	
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
@@ -75,18 +75,18 @@
 	[migrationRateTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:rateValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
+	needsRecycle = ((int64_t)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
-	int targetGenerationInt = (int)[targetGeneration doubleValue];
-	int targetSubpopID = (int)[targetSubpopPopUpButton selectedTag];
-	int sourceSubpopID = (int)[sourceSubpopPopUpButton selectedTag];
+	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
+	slim_objectid_t targetSubpopID = SLiMClampToObjectidType([targetSubpopPopUpButton selectedTag]);
+	slim_objectid_t sourceSubpopID = SLiMClampToObjectidType([sourceSubpopPopUpButton selectedTag]);
 	NSString *newRate = [migrationRateTextField stringValue];	// use the value as the user entered it
 	
 	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.setMigrationRates(p%d, %@);\n}", targetSubpopID, sourceSubpopID, newRate];

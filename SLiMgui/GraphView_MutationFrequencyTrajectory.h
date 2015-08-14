@@ -35,7 +35,7 @@
 
 @interface GraphView_MutationFrequencyTrajectory : GraphView
 {
-	NSMutableDictionary *frequencyHistoryDict;				// dictionary of MutationFrequencyHistory objects with NSNumber (unsigned long long) keys
+	NSMutableDictionary *frequencyHistoryDict;				// dictionary of MutationFrequencyHistory objects with NSNumber (long long) keys
 	NSMutableArray *frequencyHistoryColdStorageLost;		// array of MutationFrequencyHistory objects that have been lost
 	NSMutableArray *frequencyHistoryColdStorageFixed;		// array of MutationFrequencyHistory objects that have been fixed
 	
@@ -44,7 +44,7 @@
 }
 
 // The subpop and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
-@property (nonatomic) int selectedSubpopulationID;
+@property (nonatomic) slim_objectid_t selectedSubpopulationID;
 @property (nonatomic) int selectedMutationTypeIndex;
 @property (nonatomic) BOOL plotLostMutations;
 @property (nonatomic) BOOL plotFixedMutations;
@@ -75,14 +75,15 @@
 {
 @public
 	// The 64-bit mutation ID is how we keep track of the mutation we reference; its pointer might go stale and be reused.
-	uint64 mutationID;
+	uint64_t mutationID;
 	
 	// Mostly we are just a malloced array of uint16s.  The data we're storing is doubles, conceptually, but to minimize our memory footprint
 	// (which might be very large!) we convert the doubles, which are guaranteed to be in the range [0.0, 1.0], to uint16s in the range
 	// [0, UINT16_MAX] (65535).  The buffer size is the number of entries allocated, the entry count is the number used so far, and the
 	// base generation is the first generation recorded; the assumption is that entries are then sequential without gaps.
-	int bufferSize, entryCount, baseGeneration;
-	uint16 *entries;
+	int bufferSize, entryCount;
+	slim_generation_t baseGeneration;
+	uint16_t *entries;
 	
 	// Remember our mutation type so we can set our line color, etc., if we wish
 	const MutationType *mutationType;
@@ -91,8 +92,8 @@
 	BOOL updated;
 }
 
-- (instancetype)initWithEntry:(uint16)value forMutation:(const Mutation *)mutation atBaseGeneration:(int)generation;
-- (void)addEntry:(uint16)value;
+- (instancetype)initWithEntry:(uint16_t)value forMutation:(const Mutation *)mutation atBaseGeneration:(slim_generation_t)generation;
+- (void)addEntry:(uint16_t)value;
 
 @end
 

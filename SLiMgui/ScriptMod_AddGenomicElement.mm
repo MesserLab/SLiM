@@ -36,12 +36,12 @@
 {
 	// find last defined chromosome position
 	Chromosome &chromosome = controller->sim->chromosome_;
-	int lastPosition = 0;
+	slim_position_t lastPosition = 0;
 	
 	for (auto geIter = chromosome.begin(); geIter != chromosome.end(); geIter++)
 	{
 		GenomicElement &element = *geIter;
-		int endPosition = element.end_position_;	// used to have a +1; switched to zero-based
+		slim_position_t endPosition = element.end_position_;	// used to have a +1; switched to zero-based
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;
@@ -49,8 +49,8 @@
 	
 	// set initial control values
 	[self configureGenomicElementTypePopup:genomicElementTypePopUpButton];
-	[startPositionTextField setStringValue:[NSString stringWithFormat:@"%d", lastPosition + 1]];
-	[endPositionTextField setStringValue:[NSString stringWithFormat:@"%d", lastPosition + 1]];
+	[startPositionTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)lastPosition + 1]];
+	[endPositionTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)lastPosition + 1]];
 	
 	[super configSheetLoaded];
 }
@@ -64,8 +64,8 @@
 	validInput = validInput && genomicElementTypeValid;
 	[genomicElementTypePopUpButton slimSetTintColor:(genomicElementTypeValid ? nil : [ScriptMod validationErrorFilterColor])];
 	
-	int startPosition = (int)[startPositionTextField doubleValue];	// handle scientific notation
-	int endPosition = (int)[endPositionTextField doubleValue];		// handle scientific notation
+	slim_position_t startPosition = SLiMClampToPositionType((int64_t)[startPositionTextField doubleValue]);	// handle scientific notation
+	slim_position_t endPosition = SLiMClampToPositionType((int64_t)[endPositionTextField doubleValue]);		// handle scientific notation
 	
 	BOOL startValid = [ScriptMod validIntWithScientificNotationValueInTextField:startPositionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
 	validInput = validInput && startValid;
@@ -83,9 +83,9 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
-	int genomicElementTypeID = (int)[genomicElementTypePopUpButton selectedTag];
+	slim_objectid_t genomicElementTypeID = SLiMClampToObjectidType([genomicElementTypePopUpButton selectedTag]);
 	NSString *startPosition = [startPositionTextField stringValue];
 	NSString *endPosition = [endPositionTextField stringValue];
 	

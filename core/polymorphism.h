@@ -41,23 +41,23 @@ public:
 	
 	int mutation_id_;							// mutation id
 	const MutationType *mutation_type_ptr_;		// mutation type identifier
-	float selection_coeff_;						// selection coefficient
-	int subpop_index_;							// subpopulation in which mutation arose
-	int generation_;							// generation in which mutation arose  
-	int prevalence_;							// prevalence
+	slim_selcoeff_t selection_coeff_;			// selection coefficient
+	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
+	slim_generation_t generation_;				// generation in which mutation arose  
+	slim_refcount_t prevalence_;				// prevalence
 	
 	Polymorphism(void) = delete;				// no null construction
-	Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence);
+	Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_refcount_t p_prevalence);
 	
-	void print(std::ostream &p_out, int p_index, bool include_id = true) const;
+	void print(std::ostream &p_out, slim_position_t p_index, bool include_id = true) const;
 };
 
 
 // find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const std::multimap<const int,Polymorphism> &p_polymorphisms, const Mutation &p_mutation);
+int FindMutationInPolymorphismMap(const std::multimap<const slim_position_t,Polymorphism> &p_polymorphisms, const Mutation &p_mutation);
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(std::multimap<const int,Polymorphism> *p_polymorphisms, const Mutation &p_mutation);
+void AddMutationToPolymorphismMap(std::multimap<const slim_position_t,Polymorphism> *p_polymorphisms, const Mutation &p_mutation);
 
 
 #endif /* defined(__SLiM__polymorphism__) */

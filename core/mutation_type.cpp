@@ -34,10 +34,10 @@ using std::string;
 
 
 #ifdef SLIMGUI
-MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<typeof(dominance_coeff_)>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), mutation_type_index_(p_mutation_type_index)
 #else
-MutationType::MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters) :
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters) :
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<typeof(dominance_coeff_)>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters)
 #endif
 {
@@ -168,13 +168,13 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 		{
 			double value = p_value->FloatAtIndex(0);
 			
-			dominance_coeff_ = static_cast<typeof(dominance_coeff_)>(value);	// float, at present, but I don't want to hard-code that
+			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);
 			return;
 		}
 			
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;

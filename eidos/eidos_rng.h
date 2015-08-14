@@ -37,15 +37,15 @@
 // globals need to get swapped as well.  Likewise for the last seed value; this is part of the RNG state in Eidos.
 extern gsl_rng *gEidos_rng;
 extern int gEidos_random_bool_bit_counter;
-extern unsigned long int gEidos_random_bool_bit_buffer;
-extern int gEidos_rng_last_seed;
+extern uint32_t gEidos_random_bool_bit_buffer;
+extern unsigned long int gEidos_rng_last_seed;				// unsigned long int is the type used by gsl_rng_set()
 
 
 // generate a new random number seed from the PID and clock time
-int EidosGenerateSeedFromPIDAndTime(void);
+unsigned long int EidosGenerateSeedFromPIDAndTime(void);
 
 // set up the random number generator with a given seed
-void EidosInitializeRNGFromSeed(int p_seed);
+void EidosInitializeRNGFromSeed(unsigned long int p_seed);
 
 
 // get a random bool from a random number generator
@@ -65,7 +65,7 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
 	}
 	else
 	{
-		gEidos_random_bool_bit_buffer = gsl_rng_get(r);
+		gEidos_random_bool_bit_buffer = (uint32_t)gsl_rng_get(r);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
 		retval = gEidos_random_bool_bit_buffer & 0x01;
 		gEidos_random_bool_bit_counter = 31;				// 32 good bits originally, and now we've used one
 	}

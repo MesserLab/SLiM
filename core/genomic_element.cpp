@@ -27,7 +27,7 @@
 bool GenomicElement::s_log_copy_and_assign_ = true;
 
 
-GenomicElement::GenomicElement(GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position) :
+GenomicElement::GenomicElement(GenomicElementType *p_genomic_element_type_ptr, slim_position_t p_start_position, slim_position_t p_end_position) :
 	genomic_element_type_ptr_(p_genomic_element_type_ptr), start_position_(p_start_position), end_position_(p_end_position)
 {
 }
@@ -124,7 +124,7 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	{
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;

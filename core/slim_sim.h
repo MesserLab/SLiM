@@ -61,15 +61,15 @@ public:
 private:
 #endif
 	
-	int time_start_ = 0;															// the first generation number for which the simulation will run
-	int generation_ = 0;															// the current generation reached in simulation
+	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
+	slim_generation_t generation_ = 0;												// the current generation reached in simulation
 	EidosValue *cached_value_generation_ = nullptr;									// OWNED POINTER: a cached value for generation_; delete and nil if changed
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
-	std::map<int,MutationType*> mutation_types_;									// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	std::map<int,GenomicElementType*> genomic_element_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
-	int rng_seed_ = 0;																// random number generator seed
+	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated MutationType objects
+	unsigned long int rng_seed_ = 0;												// random number generator seed; unsigned long int is the type used by gsl_rng_set()
 	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
 	
 	// SEX ONLY: sex-related instance variables
@@ -103,29 +103,29 @@ private:
 	
 	EidosSymbolTableEntry *self_symbol_ = nullptr;									// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
 	
-	int64_t tag_value_;																// a user-defined tag value
+	slim_usertag_t tag_value_;														// a user-defined tag value
 	
 public:
 	
-	SLiMSim(const SLiMSim&) = delete;												// no copying
-	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
-	SLiMSim(std::istream &infile, int *p_override_seed_ptr = nullptr);				// construct a SLiMSim from an input stream, with an optional RNG seed value
-	SLiMSim(const char *p_input_file, int *p_override_seed_ptr = nullptr);			// construct a SLiMSim from an input file, with an optional RNG seed value
-	~SLiMSim(void);																	// destructor
+	SLiMSim(const SLiMSim&) = delete;														// no copying
+	SLiMSim& operator=(const SLiMSim&) = delete;											// no copying
+	SLiMSim(std::istream &infile, unsigned long int *p_override_seed_ptr = nullptr);		// construct a SLiMSim from an input stream, with an optional RNG seed value
+	SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr = nullptr);	// construct a SLiMSim from an input file, with an optional RNG seed value
+	~SLiMSim(void);																			// destructor
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(int p_generation, SLiMEidosBlockType p_event_type, int p_mutation_type_id, int p_subpopulation_id);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_subpopulation_id);
 	void DeregisterScheduledScriptBlocks(void);
 	
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
-	int EstimatedLastGeneration();													// derived from the last generation in which an Eidos block is registered
+	slim_generation_t EstimatedLastGeneration();									// derived from the last generation in which an Eidos block is registered
 	
 	// accessors
-	inline int Generation(void) const												{ return generation_; }
+	inline slim_generation_t Generation(void) const									{ return generation_; }
 	inline Chromosome &Chromosome(void)												{ return chromosome_; }
 	inline Population &Population(void)												{ return population_; }
-	inline const std::map<int,MutationType*> &MutationTypes(void) const				{ return mutation_types_; }
+	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }

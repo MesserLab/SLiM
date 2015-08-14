@@ -56,11 +56,11 @@
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
-	uint32 *histogram = controller->sim->population_.mutationLossTimes;
-	uint32 histogramBins = controller->sim->population_.mutationLossGenSlots;	// fewer than binCount * mutationTypeCount may exist
+	slim_generation_t *histogram = controller->sim->population_.mutationLossTimes;
+	uint32_t histogramBins = controller->sim->population_.mutationLossGenSlots;	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = NULL;
-	static uint32 rebinBins = 0;
-	uint32 usedRebinBins = binCount * mutationTypeCount;
+	static uint32_t rebinBins = 0;
+	uint32_t usedRebinBins = binCount * mutationTypeCount;
 	
 	// re-bin for display; use double, normalize, etc.
 	if (!rebin || (rebinBins < usedRebinBins))
@@ -86,7 +86,7 @@
 	// normalize within each mutation type
 	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
 	{
-		uint32 total = 0;
+		uint32_t total = 0;
 		
 		for (int bin = 0; bin < binCount; ++bin)
 		{
@@ -138,7 +138,7 @@
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
-		[string appendFormat:@"\"m%d\", ", mutationType->mutation_type_id_];
+		[string appendFormat:@"\"m%lld\", ", (int64_t)mutationType->mutation_type_id_];
 		
 		for (int i = 0; i < binCount; ++i)
 		{

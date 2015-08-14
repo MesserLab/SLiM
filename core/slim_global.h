@@ -51,12 +51,110 @@ extern std::ostringstream gSLiMOut;
 #endif
 
 
-// Some maximum values enforced by SLiM, comfortably under INT_MAX for 32-bit ints
+// Some types and maximum values enforced by SLiM, comfortably under INT32_MAX
 // If one of these things changes to be stored in an int64_t, these limits can be changed
-#define SLIM_MAX_GENERATION		(1000000000)	// generation ranges from 0 (init time) to this
-#define SLIM_MAX_BASE_POSITION	(1000000000)	// base positions in the chromosome can range from 0 to this
-#define SLIM_MAX_ID_VALUE		(1000000000)	// IDs for subpops, genomic elements, etc. can range from 0 to this
-#define SLIM_MAX_SUBPOP_SIZE	(1000000000)	// subpopulations can range in size from 0 to this
+// 1000000000 is one billion, by the way :->; INT32_MAX is a little over 2 billion
+typedef int32_t	slim_generation_t;	// generation numbers, generation durations
+typedef int32_t	slim_position_t;	// chromosome positions, lengths in base pairs
+typedef int32_t	slim_objectid_t;	// identifiers values for objects, like the "5" in p5, g5, m5, s5
+typedef int32_t	slim_popsize_t;		// subpopulation sizes and indices, include genome indices
+typedef int64_t slim_usertag_t;		// user-provided "tag" values; also used for the "active" property, which is like tag
+typedef int32_t slim_refcount_t;	// mutation refcounts, counts of the number of occurrences of a mutation
+typedef float slim_selcoeff_t;		// storage of selection coefficients in memory-tight classes; also dominance coefficients
+
+#define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this
+#define SLIM_MAX_BASE_POSITION	(1000000000L)	// base positions in the chromosome can range from 0 to this
+#define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
+#define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
+
+// Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
+void SLiMRaiseGenerationRangeError(int64_t long_value);
+void SLiMRaisePositionRangeError(int64_t long_value);
+void SLiMRaiseObjectidRangeError(int64_t long_value);
+void SLiMRaisePopsizeRangeError(int64_t long_value);
+void SLiMRaiseUsertagRangeError(int64_t long_value);
+
+inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationTypeOrRaise(int64_t long_value)
+{
+	if ((long_value < 1) || (long_value > SLIM_MAX_GENERATION))
+		SLiMRaiseGenerationRangeError(long_value);
+	
+	return static_cast<slim_generation_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRaise(int64_t long_value)
+{
+	if ((long_value < 0) || (long_value > SLIM_MAX_BASE_POSITION))
+		SLiMRaisePositionRangeError(long_value);
+	
+	return static_cast<slim_position_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRaise(int64_t long_value)
+{
+	if ((long_value < 0) || (long_value > SLIM_MAX_ID_VALUE))
+		SLiMRaiseObjectidRangeError(long_value);
+	
+	return static_cast<slim_objectid_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_popsize_t SLiMCastToPopsizeTypeOrRaise(int64_t long_value)
+{
+	if ((long_value < 0) || (long_value > SLIM_MAX_SUBPOP_SIZE))
+		SLiMRaisePopsizeRangeError(long_value);
+	
+	return static_cast<slim_popsize_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRaise(int64_t long_value)
+{
+	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
+	// SLiMRaiseUsertagRangeError(long_value);
+	
+	return static_cast<slim_usertag_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_generation_t SLiMClampToGenerationType(int64_t long_value)
+{
+	if (long_value < 1)
+		return 1;
+	if (long_value > SLIM_MAX_GENERATION)
+		return SLIM_MAX_GENERATION;
+	return static_cast<slim_generation_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_position_t SLiMClampToPositionType(int64_t long_value)
+{
+	if (long_value < 0)
+		return 0;
+	if (long_value > SLIM_MAX_BASE_POSITION)
+		return SLIM_MAX_BASE_POSITION;
+	return static_cast<slim_position_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_objectid_t SLiMClampToObjectidType(int64_t long_value)
+{
+	if (long_value < 0)
+		return 0;
+	if (long_value > SLIM_MAX_ID_VALUE)
+		return SLIM_MAX_ID_VALUE;
+	return static_cast<slim_objectid_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_popsize_t SLiMClampToPopsizeType(int64_t long_value)
+{
+	if (long_value < 0)
+		return 0;
+	if (long_value > SLIM_MAX_SUBPOP_SIZE)
+		return SLIM_MAX_SUBPOP_SIZE;
+	return static_cast<slim_popsize_t>(long_value);
+}
+
+inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int64_t long_value)
+{
+	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
+	return static_cast<slim_usertag_t>(long_value);
+}
 
 
 // Debugging #defines that can be turned on

@@ -110,7 +110,7 @@
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	NSMenuItem *lastItem;
-	int firstTag = -1;
+	slim_objectid_t firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[subpopulationButton removeAllItems];
@@ -121,9 +121,9 @@
 		
 		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
 		{
-			int subpopID = popIter->first;
+			slim_objectid_t subpopID = popIter->first;
 			//Subpopulation *subpop = popIter->second;
-			NSString *subpopString = [NSString stringWithFormat:@"p%d", subpopID];
+			NSString *subpopString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
 			
 			[subpopulationButton addItemWithTitle:subpopString];
 			lastItem = [subpopulationButton lastItem];
@@ -163,14 +163,14 @@
 	
 	if (![controller invalidSimulation])
 	{
-		std::map<int,MutationType*> &mutationTypes = controller->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller->sim->mutation_types_;
 		
 		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
 		{
 			MutationType *mutationType = mutTypeIter->second;
-			int mutationTypeID = mutationType->mutation_type_id_;
+			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
 			int mutationTypeIndex = mutationType->mutation_type_index_;
-			NSString *mutationTypeString = [NSString stringWithFormat:@"m%d", mutationTypeID];
+			NSString *mutationTypeString = [NSString stringWithFormat:@"m%lld", (int64_t)mutationTypeID];
 			
 			[mutationTypeButton addItemWithTitle:mutationTypeString];
 			lastItem = [mutationTypeButton lastItem];
@@ -203,7 +203,7 @@
 {
 //	SLiMWindowController *controller = [self slimWindowController];
 //	SLiMSim *sim = controller->sim;
-//	int generation = sim->generation_;
+//	slim_generation_t generation = sim->generation_;
 //	
 //	NSLog(@"-invalidateCachedData called at generation %d", generation);
 	
@@ -243,7 +243,7 @@
 	// Check that the subpop we're supposed to be surveying exists; if not, bail.
 	BOOL foundSelectedSubpop = NO;
 	
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
 		if (subpop_pair.first == _selectedSubpopulationID)	// find our chosen subpop
 			foundSelectedSubpop = YES;
 	
@@ -280,13 +280,13 @@
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		(*registry_iter)->gui_scratch_reference_count = 0;
 	
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : population)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
 	{
 		if (subpop_pair.first == _selectedSubpopulationID)	// tally only within our chosen subpop
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
-			int subpop_genome_count = 2 * subpop->parent_subpop_size_;
+			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
 			
 			for (int i = 0; i < subpop_genome_count; i++)
@@ -316,15 +316,15 @@
 	for (registry_iter = mutationRegistry.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
 	{
 		const Mutation *mutation = *registry_iter;
-		int32_t refcount = mutation->gui_scratch_reference_count;
+		slim_refcount_t refcount = mutation->gui_scratch_reference_count;
 		
 		if (refcount)
 		{
-			uint16 value = (uint16)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_genome_count);
+			uint16_t value = (uint16_t)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_genome_count);
 			NSNumber *mutationIDNumber = [[NSNumber alloc] initWithLongLong:mutation->mutation_id_];
 			MutationFrequencyHistory *history = [frequencyHistoryDict objectForKey:mutationIDNumber];
 			
-			//NSLog(@"mutation refcount %d has uint16 value %d, found history %p for id %llu", refcount, value, history, mutation->mutation_id_);
+			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %llu", refcount, value, history, mutation->mutation_id_);
 			
 			if (history)
 			{
@@ -353,7 +353,7 @@
 	[frequencyHistoryDict enumerateKeysAndObjectsUsingBlock:^(NSNumber *key, MutationFrequencyHistory *history, BOOL *stop) {
 		if (!history->updated)
 		{
-			uint64 historyID = history->mutationID;
+			uint64_t historyID = history->mutationID;
 			Mutation **mutation_iter = mutationRegistry.begin_pointer();
 			Mutation **mutation_iter_end = mutationRegistry.end_pointer();
 			BOOL mutationStillExists = NO;
@@ -361,7 +361,7 @@
 			for (mutation_iter = mutationRegistry.begin_pointer(); mutation_iter != mutation_iter_end; ++mutation_iter)
 			{
 				const Mutation *mutation = *mutation_iter;
-				uint64 mutationID = mutation->mutation_id_;
+				uint64_t mutationID = mutation->mutation_id_;
 				
 				if (historyID == mutationID)
 				{
@@ -394,7 +394,7 @@
 			// The remaining tricky bit is that we have to figure out whether the vanished mutation was fixed or lost; we do this by
 			// scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
 			// for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
-			uint64 mutationID = history->mutationID;
+			uint64_t mutationID = history->mutationID;
 			BOOL wasFixed = NO;
 			
 			std::vector<Substitution*> &substitutions = population.substitutions_;
@@ -424,10 +424,10 @@
 		[historiesToAddToColdStorage release];
 	}
 	
-	//NSLog(@"frequencyHistoryDict has %lu entries, frequencyHistoryColdStorageLost has %lu entries, frequencyHistoryColdStorageFixed has %lu entries", (unsigned long)[frequencyHistoryDict count], (unsigned long)[frequencyHistoryColdStorageLost count], (unsigned long)[frequencyHistoryColdStorageFixed count]);
+	//NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
 }
 
-- (void)setSelectedSubpopulationID:(int)newID
+- (void)setSelectedSubpopulationID:(slim_objectid_t)newID
 {
 	if (_selectedSubpopulationID != newID)
 	{
@@ -453,7 +453,7 @@
 
 - (IBAction)subpopulationPopupChanged:(id)sender
 {
-	[self setSelectedSubpopulationID:(int)[subpopulationButton selectedTag]];
+	[self setSelectedSubpopulationID:SLiMClampToObjectidType([subpopulationButton selectedTag])];
 }
 
 - (IBAction)mutationTypePopupChanged:(id)sender
@@ -503,18 +503,18 @@
 	
 	if (entryCount > 1)		// one entry just generates a moveto
 	{
-		uint16 *entries = history->entries;
+		uint16_t *entries = history->entries;
 		NSBezierPath *linePath = [NSBezierPath bezierPath];
-		uint16 firstValue = *entries;
+		uint16_t firstValue = *entries;
 		double firstFrequency = ((double)firstValue) / UINT16_MAX;
-		int generation = history->baseGeneration;
+		slim_generation_t generation = history->baseGeneration;
 		NSPoint firstPoint = NSMakePoint([self plotToDeviceX:generation withInteriorRect:interiorRect], [self plotToDeviceY:firstFrequency withInteriorRect:interiorRect]);
 		
 		[linePath moveToPoint:firstPoint];
 		
 		for (int entryIndex = 1; entryIndex < entryCount; ++entryIndex)
 		{
-			uint16 value = entries[entryIndex];
+			uint16_t value = entries[entryIndex];
 			double frequency = ((double)value) / UINT16_MAX;
 			NSPoint nextPoint = NSMakePoint([self plotToDeviceX:++generation withInteriorRect:interiorRect], [self plotToDeviceY:frequency withInteriorRect:interiorRect]);
 			
@@ -666,13 +666,13 @@
 	return nil;
 }
 
-- (void)appendEntriesFromArray:(NSArray *)array toString:(NSMutableString *)string completedGenerations:(int)completedGenerations
+- (void)appendEntriesFromArray:(NSArray *)array toString:(NSMutableString *)string completedGenerations:(slim_generation_t)completedGenerations
 {
 	[array enumerateObjectsUsingBlock:^(MutationFrequencyHistory *history, NSUInteger idx, BOOL *stop) {
 		int entryCount = history->entryCount;
-		int baseGeneration = history->baseGeneration;
+		slim_generation_t baseGeneration = history->baseGeneration;
 		
-		for (int gen = 1; gen <= completedGenerations; ++gen)
+		for (slim_generation_t gen = 1; gen <= completedGenerations; ++gen)
 		{
 			if (gen < baseGeneration)
 				[string appendString:@"NA, "];
@@ -690,7 +690,7 @@
 {
 	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness trajectories\n"];
 	SLiMSim *sim = controller->sim;
-	int completedGenerations = sim->generation_ - 1;
+	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
 	[string appendString:[self dateline]];
 	
@@ -723,7 +723,7 @@
 
 @implementation MutationFrequencyHistory
 
-- (instancetype)initWithEntry:(uint16)value forMutation:(const Mutation *)mutation atBaseGeneration:(int)generation
+- (instancetype)initWithEntry:(uint16_t)value forMutation:(const Mutation *)mutation atBaseGeneration:(slim_generation_t)generation
 {
 	if (self = [super init])
 	{
@@ -753,13 +753,13 @@
 	[super dealloc];
 }
 
-- (void)addEntry:(uint16)value
+- (void)addEntry:(uint16_t)value
 {
 	if (entryCount == bufferSize)
 	{
 		// We need to expand
 		bufferSize += 1024;
-		entries = (uint16 *)realloc(entries, bufferSize * sizeof(uint16));
+		entries = (uint16_t *)realloc(entries, bufferSize * sizeof(uint16_t));
 	}
 	
 	entries[entryCount++] = value;

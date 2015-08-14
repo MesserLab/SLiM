@@ -64,7 +64,7 @@
 {
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
-	int subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
 	double *subpop_fitness = subpop->cached_parental_fitness_;
 	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	

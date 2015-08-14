@@ -40,8 +40,8 @@ void PrintUsageAndDie()
 int main(int argc, char *argv[])
 {
 	// parse command-line arguments
-	int override_seed = 0;
-	int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
+	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
+	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false;
 	
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 			if (++arg_index == argc)
 				PrintUsageAndDie();
 			
-			override_seed = atoi(argv[arg_index]);
+			override_seed = strtol(argv[arg_index], NULL, 10);
 			override_seed_ptr = &override_seed;
 			
 			continue;

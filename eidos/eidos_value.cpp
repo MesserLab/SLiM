@@ -738,7 +738,7 @@ int64_t EidosValue_String::IntAtIndex(int p_idx) const
 {
 	const string &index_str = values_.at(p_idx);
 	
-	return strtoll(index_str.c_str(), nullptr, 10);
+	return strtoq(index_str.c_str(), nullptr, 10);
 }
 
 double EidosValue_String::FloatAtIndex(int p_idx) const

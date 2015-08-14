@@ -21,6 +21,7 @@
 #import <Cocoa/Cocoa.h>
 
 #import "CocoaExtra.h"
+#include "slim_global.h"
 
 
 extern NSString *SLiMChromosomeSelectionChangedNotification;
@@ -30,11 +31,11 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 @public
 	// Selection
 	BOOL hasSelection;
-	int selectionFirstBase, selectionLastBase;
+	slim_position_t selectionFirstBase, selectionLastBase;
 	
 	// Tracking
 	BOOL isTracking;
-	int trackingStartBase, trackingLastBase;
+	slim_position_t trackingStartBase, trackingLastBase;
 	int trackingXAdjust;	// to keep the cursor stuck on a knob that is click-dragged
 	SLiMSelectionMarker *startMarker, *endMarker;
 }

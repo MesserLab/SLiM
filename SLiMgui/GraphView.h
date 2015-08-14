@@ -20,6 +20,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "slim_global.h"
+
 
 @class SLiMWindowController;
 

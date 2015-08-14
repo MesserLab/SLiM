@@ -53,7 +53,7 @@ void Genome::NullGenomeAccessError(void) const
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
-void Genome::RemoveFixedMutations(int p_fixed_count)
+void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count)
 {
 #ifdef DEBUG
 	if (mutations_ == nullptr)
@@ -289,7 +289,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 	{
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;
@@ -349,9 +349,9 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 		case gID_addNewDrawnMutation:
 		{
 			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
-			int origin_generation = (int)arg1_value->IntAtIndex(0);
-			int position = (int)arg2_value->IntAtIndex(0);
-			int origin_subpop_id = (int)arg3_value->IntAtIndex(0);
+			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0));
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0));
+			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0));
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			double selection_coeff = mut_type->DrawSelectionCoefficient();
@@ -379,10 +379,10 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 		case gID_addNewMutation:
 		{
 			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
-			int origin_generation = (int)arg1_value->IntAtIndex(0);
-			int position = (int)arg2_value->IntAtIndex(0);
+			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0));
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0));
 			double selection_coeff = arg3_value->FloatAtIndex(0);
-			int origin_subpop_id = (int)arg4_value->IntAtIndex(0);
+			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0));
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);

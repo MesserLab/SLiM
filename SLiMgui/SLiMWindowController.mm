@@ -649,12 +649,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return selectedSubpops;
 }
 
-- (NSColor *)colorForGenomicElementTypeID:(int)elementTypeID
+- (NSColor *)colorForGenomicElementTypeID:(slim_objectid_t)elementTypeID
 {
 	if (!genomicElementColorRegistry)
 		genomicElementColorRegistry = [[NSMutableDictionary alloc] init];
 	
-	NSNumber *key = [NSNumber numberWithInt:elementTypeID];
+	NSNumber *key = [NSNumber numberWithInteger:elementTypeID];
 	NSColor *elementColor = [genomicElementColorRegistry objectForKey:key];
 	
 	if (!elementColor)
@@ -1023,11 +1023,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	{
 		NSDate *startDate = [NSDate date];
 		double speedSliderValue = [playSpeedSlider doubleValue];
-		uint64 maxGenerationsPerSecond = UINT32_MAX;
+		uint64_t maxGenerationsPerSecond = UINT32_MAX;
 		double intervalSinceStarting = -[continuousPlayStartDate timeIntervalSinceNow];
 		
 		if (speedSliderValue < 1.0)
-			maxGenerationsPerSecond = (int)floor(speedSliderValue * speedSliderValue * 1000 + 1.0);
+			maxGenerationsPerSecond = (uint64_t)floor(speedSliderValue * speedSliderValue * 1000 + 1.0);
 		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %llu", speedSliderValue, maxGenerationsPerSecond);
 		
 		do
@@ -1148,7 +1148,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 {
 	if (!generationPlayOn)
 	{
-		targetGeneration = (int)[generationTextField intValue];
+		targetGeneration = SLiMClampToGenerationType([[generationTextField stringValue] longLongValue]);
 		
 		// make sure the requested generation is in range
 		if (sim->generation_ >= targetGeneration)
@@ -1457,7 +1457,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 								NSTextCheckingResult *match = [matches objectAtIndex:0];	// guaranteed to exist
 								NSRange generationRange = [match rangeAtIndex:1];			// first capture of the match
 								NSString *generationString = [popString substringWithRange:generationRange];
-								int newGeneration = [generationString intValue];
+								slim_generation_t newGeneration = SLiMClampToGenerationType([generationString longLongValue]);
 								
 								// Mark that we have imported
 								SLIM_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
@@ -1952,16 +1952,16 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				auto popIter = population.begin();
 				
 				std::advance(popIter, rowIndex);
-				int subpop_id = popIter->first;
+				slim_objectid_t subpop_id = popIter->first;
 				Subpopulation *subpop = popIter->second;
 				
 				if (aTableColumn == subpopIDColumn)
 				{
-					return [NSString stringWithFormat:@"p%d", subpop_id];
+					return [NSString stringWithFormat:@"p%lld", (int64_t)subpop_id];
 				}
 				else if (aTableColumn == subpopSizeColumn)
 				{
-					return [NSString stringWithFormat:@"%d", subpop->child_subpop_size_];
+					return [NSString stringWithFormat:@"%lld", (int64_t)subpop->child_subpop_size_];
 				}
 				else if (aTableColumn == subpopSelfingRateColumn)
 				{
@@ -1989,7 +1989,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<int,MutationType*> &mutationTypes = sim->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -1997,12 +1997,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				auto mutTypeIter = mutationTypes.begin();
 				
 				std::advance(mutTypeIter, rowIndex);
-				int mutTypeID = mutTypeIter->first;
+				slim_objectid_t mutTypeID = mutTypeIter->first;
 				MutationType *mutationType = mutTypeIter->second;
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"m%d", mutTypeID];
+					return [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
@@ -2045,7 +2045,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			std::map<int,GenomicElementType*> &genomicElementTypes = sim->genomic_element_types_;
+			std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = sim->genomic_element_types_;
 			int genomicElementTypeCount = (int)genomicElementTypes.size();
 			
 			if (rowIndex < genomicElementTypeCount)
@@ -2053,12 +2053,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				auto genomicElementTypeIter = genomicElementTypes.begin();
 				
 				std::advance(genomicElementTypeIter, rowIndex);
-				int genomicElementTypeID = genomicElementTypeIter->first;
+				slim_objectid_t genomicElementTypeID = genomicElementTypeIter->first;
 				GenomicElementType *genomicElementType = genomicElementTypeIter->second;
 				
 				if (aTableColumn == genomicElementTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"g%d", genomicElementTypeID];
+					return [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
 				}
 				else if (aTableColumn == genomicElementTypeColorColumn)
 				{
@@ -2073,7 +2073,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 						MutationType *mutType = genomicElementType->mutation_type_ptrs_[mutTypeIndex];
 						double mutTypeFraction = genomicElementType->mutation_fractions_[mutTypeIndex];
 						
-						[paramString appendFormat:@"m%d=%.3f", mutType->mutation_type_id_, mutTypeFraction];
+						[paramString appendFormat:@"m%lld=%.3f", (int64_t)mutType->mutation_type_id_, mutTypeFraction];
 						
 						if (mutTypeIndex < genomicElementType->mutation_fractions_.size() - 1)
 							[paramString appendString:@", "];
@@ -2094,26 +2094,26 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				
 				if (aTableColumn == scriptBlocksIDColumn)
 				{
-					int block_id = scriptBlock->block_id_;
+					slim_objectid_t block_id = scriptBlock->block_id_;
 					
 					if (block_id == -1)
 						return @"—";
 					else
-						return [NSString stringWithFormat:@"s%d", block_id];
+						return [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
 				}
 				else if (aTableColumn == scriptBlocksStartColumn)
 				{
 					if (scriptBlock->start_generation_ == -1)
 						return @"MIN";
 					else
-						return [NSString stringWithFormat:@"%d", scriptBlock->start_generation_];
+						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->start_generation_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
-					if (scriptBlock->end_generation_ == INT_MAX)
+					if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION)
 						return @"MAX";
 					else
-						return [NSString stringWithFormat:@"%d", scriptBlock->end_generation_];
+						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_generation_];
 				}
 				else if (aTableColumn == scriptBlocksTypeColumn)
 				{

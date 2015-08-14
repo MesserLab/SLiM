@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
+	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
 	[filenameTextField setStringValue:@""];
 	
 	[super configSheetLoaded];
@@ -55,16 +55,16 @@
 	[filenameTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:filenameValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
+	needsRecycle = ((int64_t)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
-	int targetGenerationInt = (int)[targetGeneration doubleValue];
+	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
 	NSString *filename = [filenameTextField stringValue];
 	
 	NSString *scriptInternal;

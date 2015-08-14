@@ -114,9 +114,9 @@ const int heightForTicks = 15;
 	int metric = [self metricToPlot];
 	NSRect interiorRect = NSInsetRect(contentRect, 1, 1);
 	
-	for (int position = 0; position <= numberOfTicks; ++position)
+	for (int tickIndex = 0; tickIndex <= numberOfTicks; ++tickIndex)
 	{
-		double fraction = position / (double)numberOfTicks;
+		double fraction = tickIndex / (double)numberOfTicks;
 		int tickLeft = (int)floor(interiorRect.origin.x + fraction * (interiorRect.size.width - 1));
 		NSRect tickRect = NSMakeRect(tickLeft, contentRect.origin.y - tickLength, 1, tickLength);
 		
@@ -127,19 +127,19 @@ const int heightForTicks = 15;
 		
 		if (metric == 1)
 		{
-			if (position == 0) tickLabel = @"0.0";
-			if (position == 1) tickLabel = @"0.5";
-			if (position == 2) tickLabel = @"1.0";
-			if (position == 3) tickLabel = @"2.0";
-			if (position == 4) tickLabel = @"∞";
+			if (tickIndex == 0) tickLabel = @"0.0";
+			if (tickIndex == 1) tickLabel = @"0.5";
+			if (tickIndex == 2) tickLabel = @"1.0";
+			if (tickIndex == 3) tickLabel = @"2.0";
+			if (tickIndex == 4) tickLabel = @"∞";
 		}
 		else if (metric == 2)
 		{
-			if (position == 0) tickLabel = @"−0.5";
-			if (position == 1) tickLabel = @"−0.25";
-			if (position == 2) tickLabel = @"0.0";
-			if (position == 3) tickLabel = @"0.5";
-			if (position == 4) tickLabel = @"1.0";
+			if (tickIndex == 0) tickLabel = @"−0.5";
+			if (tickIndex == 1) tickLabel = @"−0.25";
+			if (tickIndex == 2) tickLabel = @"0.0";
+			if (tickIndex == 3) tickLabel = @"0.5";
+			if (tickIndex == 4) tickLabel = @"1.0";
 		}
 		
 		if (tickLabel)

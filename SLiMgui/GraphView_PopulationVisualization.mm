@@ -42,8 +42,8 @@
 - (NSRect)rectForSubpop:(Subpopulation *)subpop centeredAt:(NSPoint)center
 {
 	// figure out the right radius, clamped to reasonable limits
-	int subpopSize = subpop->parent_subpop_size_;
-	int clampedSubpopSize = subpopSize;
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	slim_popsize_t clampedSubpopSize = subpopSize;
 	
 	if (clampedSubpopSize < 200)
 		clampedSubpopSize = 200;
@@ -58,7 +58,7 @@
 	return subpopRect;
 }
 
-- (void)drawSubpop:(Subpopulation *)subpop withID:(int)subpopID centeredAt:(NSPoint)center controller:(SLiMWindowController *)controller
+- (void)drawSubpop:(Subpopulation *)subpop withID:(slim_objectid_t)subpopID centeredAt:(NSPoint)center controller:(SLiMWindowController *)controller
 {
 	static NSDictionary *labelAttrs = nil;
 	
@@ -66,8 +66,8 @@
 		labelAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[GraphView labelFontName] size:0.04], NSFontAttributeName, nil];
 	
 	// figure out the right radius, clamped to reasonable limits
-	int subpopSize = subpop->parent_subpop_size_;
-	int clampedSubpopSize = subpopSize;
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	slim_popsize_t clampedSubpopSize = subpopSize;
 	
 	if (clampedSubpopSize < 200)
 		clampedSubpopSize = 200;
@@ -97,7 +97,7 @@
 	[subpopCircle stroke];
 	
 	// label it with the subpopulation ID
-	NSString *popString = [NSString stringWithFormat:@"p%d", subpopID];
+	NSString *popString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
 	NSAttributedString *popLabel = [[NSAttributedString alloc] initWithString:popString attributes:labelAttrs];
 	NSSize labelSize = [popLabel size];
 	
@@ -275,7 +275,7 @@
 			for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 			{
 				Subpopulation *subpop = (*subpopIter).second;
-				int subpopID = (*subpopIter).first;
+				slim_objectid_t subpopID = (*subpopIter).first;
 				NSPoint center = NSMakePoint(subpop->gui_center_x, subpop->gui_center_y);
 				
 				[self drawSubpop:subpop withID:subpopID centeredAt:center controller:controller];
@@ -287,11 +287,11 @@
 		for (auto destSubpopIter = pop.begin(); destSubpopIter != pop.end(); ++destSubpopIter)
 		{
 			Subpopulation *destSubpop = (*destSubpopIter).second;
-			std::map<int,double> &destMigrants = destSubpop->migrant_fractions_;
+			std::map<slim_objectid_t,double> &destMigrants = destSubpop->migrant_fractions_;
 			
 			for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 			{
-				int sourceSubpopID = (*sourceSubpopIter).first;
+				slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
 				Subpopulation *sourceSubpop = &(pop.SubpopulationWithID(sourceSubpopID));
 				double migrantFraction = (*sourceSubpopIter).second;
 				

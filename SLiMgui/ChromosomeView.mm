@@ -121,7 +121,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 		Chromosome &chromosome = controller->sim->chromosome_;
-		int chromosomeLastPosition = chromosome.last_position_;
+		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
 															// used to start at 1; switched to zero-based
@@ -132,8 +132,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 {
 	if ([self isSelectable] && (selectionRange.length >= 1))
 	{
-		selectionFirstBase = (int)selectionRange.location;
-		selectionLastBase = (int)(selectionRange.location + selectionRange.length) - 1;
+		selectionFirstBase = (slim_position_t)selectionRange.location;
+		selectionLastBase = (slim_position_t)(selectionRange.location + selectionRange.length) - 1;
 		hasSelection = YES;
 	}
 	else if (hasSelection)
@@ -161,18 +161,18 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 		Chromosome &chromosome = controller->sim->chromosome_;
-		int chromosomeLastPosition = chromosome.last_position_;
+		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
 															// used to start at 1; switched to zero-based
 	}
 }
 
-- (NSRect)rectEncompassingBase:(int)startBase toBase:(int)endBase interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
+- (NSRect)rectEncompassingBase:(slim_position_t)startBase toBase:(slim_position_t)endBase interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
 {
-	double startFraction = (startBase - (int)displayedRange.location) / (double)(displayedRange.length);
+	double startFraction = (startBase - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
 	double leftEdgeDouble = interiorRect.origin.x + startFraction * interiorRect.size.width;
-	double endFraction = (endBase + 1 - (int)displayedRange.location) / (double)(displayedRange.length);
+	double endFraction = (endBase + 1 - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
 	double rightEdgeDouble = interiorRect.origin.x + endFraction * interiorRect.size.width;
 	int leftEdge, rightEdge;
 	
@@ -192,10 +192,10 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	return NSMakeRect(leftEdge, interiorRect.origin.y, rightEdge - leftEdge, interiorRect.size.height);
 }
 
-- (int)baseForPosition:(double)position interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
+- (slim_position_t)baseForPosition:(double)position interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
 {
 	double fraction = (position - interiorRect.origin.x) / interiorRect.size.width;
-	int base = (int)floor(fraction * (displayedRange.length + 1) + displayedRange.location);
+	slim_position_t base = (slim_position_t)floor(fraction * (displayedRange.length + 1) + displayedRange.location);
 	
 	return base;
 }
@@ -204,9 +204,9 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 {
 	NSRect interiorRect = [self interiorRect];
 	
-	for (int position = 0; position <= numberOfTicks; ++position)
+	for (int tickIndex = 0; tickIndex <= numberOfTicks; ++tickIndex)
 	{
-		int tickBase = (int)displayedRange.location + (int)floor((displayedRange.length - 1) * (position / (double)numberOfTicks));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)floor((displayedRange.length - 1) * (tickIndex / (double)numberOfTicks));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
 		NSRect tickRect = [self rectEncompassingBase:tickBase toBase:tickBase interiorRect:interiorRect displayedRange:displayedRange];
 		
 		tickRect.origin.y = contentRect.origin.y - tickLength;
@@ -215,14 +215,14 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
 		NSRectFill(tickRect);
 		
-		NSString *tickLabel = [NSString stringWithFormat:@"%d", tickBase];
+		NSString *tickLabel = [NSString stringWithFormat:@"%lld", (int64_t)tickBase];
 		NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:tickAttrs];
 		NSSize tickLabelSize = [tickAttrLabel size];
 		int tickLabelX = (int)floor(tickRect.origin.x + tickRect.size.width / 2.0);
 		
-		if (position == numberOfTicks)
+		if (tickIndex == numberOfTicks)
 			tickLabelX -= (tickLabelSize.width - 2);
-		else if (position > 0)
+		else if (tickIndex > 0)
 			tickLabelX -= (int)round(tickLabelSize.width / 2.0);
 		
 		[tickAttrLabel drawAtPoint:NSMakePoint(tickLabelX, contentRect.origin.y - (tickLength + 12))];
@@ -236,8 +236,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (GenomicElement &genomicElement : chromosome)
 	{
-		int startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
-		int endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
+		slim_position_t startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
+		slim_position_t endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		// if we're drawing recombination intervals as well, then they get the top half and we take the bottom half
@@ -249,7 +249,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		
 		if (!NSIsEmptyRect(elementRect))
 		{
-			int elementTypeID = genomicElement.genomic_element_type_ptr_->genomic_element_type_id_;
+			slim_objectid_t elementTypeID = genomicElement.genomic_element_type_ptr_->genomic_element_type_id_;
 			NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
 			
 			[elementColor set];
@@ -262,11 +262,11 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
 	int recombinationIntervalCount = (int)chromosome.recombination_end_positions_.size();
-	int intervalStartPosition = 1;
+	slim_position_t intervalStartPosition = 0;	// used to be 1; switched to zero-based
 	
 	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
 	{
-		int intervalEndPosition = chromosome.recombination_end_positions_[interval];	// used to have a +1; switched to zero-based
+		slim_position_t intervalEndPosition = chromosome.recombination_end_positions_[interval];	// used to have a +1; switched to zero-based
 		double intervalRate = chromosome.recombination_rates_[interval];
 		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
@@ -322,7 +322,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		int substitutionPosition = substitution->position_;		// used to have a +1; switched to zero-based
+		slim_position_t substitutionPosition = substitution->position_;		// used to have a +1; switched to zero-based
 		NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		if (shouldDrawMutations)
@@ -356,8 +356,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{
 		const Mutation *mutation = mutations[mutIndex];
-		int32_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-		int mutationPosition = mutation->position_;						// used to have a +1; switched to zero-based
+		slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+		slim_position_t mutationPosition = mutation->position_;					// used to have a +1; switched to zero-based
 		NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		
@@ -514,14 +514,14 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		{
 			if (NSPointInRect(curPoint, contentRect))
 			{
-				int clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
+				slim_position_t clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
 				NSRange selectionRange = NSMakeRange(0, 0);
 				Chromosome &chromosome = controller->sim->chromosome_;
 				
 				for (GenomicElement &genomicElement : chromosome)
 				{
-					int startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
-					int endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
+					slim_position_t startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
+					slim_position_t endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
 					
 					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
 						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);
@@ -583,7 +583,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	}
 }
 
-- (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(int)selectionBase isLeft:(BOOL)isLeftMarker
+- (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(slim_position_t)selectionBase isLeft:(BOOL)isLeftMarker
 {
 	BOOL justCreated = NO;
 	
@@ -605,7 +605,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	tipPoint = [self convertPoint:tipPoint toView:nil];
 	tipPoint = [[self window] convertRectToScreen:NSMakeRect(tipPoint.x, tipPoint.y, 0, 0)].origin;
 	
-	[*marker setLabel:[NSString stringWithFormat:@"%d", selectionBase]];
+	[*marker setLabel:[NSString stringWithFormat:@"%lld", (int64_t)selectionBase]];
 	[*marker setTipPoint:tipPoint];
 	[*marker setIsLeftMarker:isLeftMarker];
 	
@@ -623,22 +623,22 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	curPoint.x = (int)round(curPoint.x);
 	
 	NSPoint correctedPoint = NSMakePoint(curPoint.x - trackingXAdjust, curPoint.y);
-	int trackingNewBase = [self baseForPosition:correctedPoint.x interiorRect:interiorRect displayedRange:displayedRange];
+	slim_position_t trackingNewBase = [self baseForPosition:correctedPoint.x interiorRect:interiorRect displayedRange:displayedRange];
 	BOOL selectionChanged = NO;
 	
 	if (trackingNewBase != trackingLastBase)
 	{
 		trackingLastBase = trackingNewBase;
 		
-		int trackingLeftBase = trackingStartBase, trackingRightBase = trackingLastBase;
+		slim_position_t trackingLeftBase = trackingStartBase, trackingRightBase = trackingLastBase;
 		
 		if (trackingLeftBase > trackingRightBase)
 			trackingLeftBase = trackingLastBase, trackingRightBase = trackingStartBase;
 		
-		if (trackingLeftBase <= (int)displayedRange.location)
-			trackingLeftBase = (int)displayedRange.location;
-		if (trackingRightBase > (int)(displayedRange.location + displayedRange.length) - 1)
-			trackingRightBase = (int)(displayedRange.location + displayedRange.length) - 1;
+		if (trackingLeftBase <= (slim_position_t)displayedRange.location)
+			trackingLeftBase = (slim_position_t)displayedRange.location;
+		if (trackingRightBase > (slim_position_t)(displayedRange.location + displayedRange.length) - 1)
+			trackingRightBase = (slim_position_t)(displayedRange.location + displayedRange.length) - 1;
 		
 		if (trackingRightBase <= trackingLeftBase + 100)
 		{

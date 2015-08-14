@@ -53,17 +53,17 @@
 
 - (double *)mutationFrequencySpectrumWithController:(SLiMWindowController *)controller mutationTypeCount:(int)mutationTypeCount
 {
-	static uint32 *spectrum = NULL;			// used for tallying
+	static uint32_t *spectrum = NULL;			// used for tallying
 	static double *doubleSpectrum = NULL;	// not used for tallying, to avoid precision issues
-	static uint32 spectrumBins = 0;
+	static uint32_t spectrumBins = 0;
 	int binCount = [self histogramBinCount];
-	uint32 usedSpectrumBins = binCount * mutationTypeCount;
+	uint32_t usedSpectrumBins = binCount * mutationTypeCount;
 	
 	// allocate our bins
 	if (!spectrum || (spectrumBins < usedSpectrumBins))
 	{
 		spectrumBins = usedSpectrumBins;
-		spectrum = (uint32 *)realloc(spectrum, spectrumBins * sizeof(uint32));
+		spectrum = (uint32_t *)realloc(spectrum, spectrumBins * sizeof(uint32_t));
 		doubleSpectrum = (double *)realloc(doubleSpectrum, spectrumBins * sizeof(double));
 	}
 	
@@ -74,8 +74,8 @@
 	// get the selected chromosome range
 	ChromosomeView *chromosome = controller->chromosomeOverview;
 	BOOL hasSelection = chromosome->hasSelection;
-	int selectionFirstBase = chromosome->selectionFirstBase;	// used to have a -1; switched to zero-based
-	int selectionLastBase = chromosome->selectionLastBase;		// used to have a -1; switched to zero-based
+	slim_position_t selectionFirstBase = chromosome->selectionFirstBase;	// used to have a -1; switched to zero-based
+	slim_position_t selectionLastBase = chromosome->selectionLastBase;		// used to have a -1; switched to zero-based
 	
 	// tally into our bins
 	SLiMSim *sim = controller->sim;
@@ -92,13 +92,13 @@
 		// if the user has selected a subrange of the chromosome, we will work from that
 		if (hasSelection)
 		{
-			int32_t mutationPosition = mutation->position_;
+			slim_position_t mutationPosition = mutation->position_;
 			
 			if ((mutationPosition < selectionFirstBase) || (mutationPosition > selectionLastBase))
 				continue;
 		}
 		
-		int32_t mutationRefCount = mutation->reference_count_;
+		slim_refcount_t mutationRefCount = mutation->reference_count_;
 		double mutationFrequency = mutationRefCount / totalGenomeCount;
 		int mutationBin = (int)floor(mutationFrequency * binCount);
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
@@ -112,7 +112,7 @@
 	// normalize within each mutation type
 	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
 	{
-		uint32 total = 0;
+		uint32_t total = 0;
 		
 		for (int bin = 0; bin < binCount; ++bin)
 		{
@@ -147,14 +147,14 @@
 	
 	if (chromosome->hasSelection)
 	{
-		int selectionFirstBase = chromosome->selectionFirstBase;
-		int selectionLastBase = chromosome->selectionLastBase;
+		slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
+		slim_position_t selectionLastBase = chromosome->selectionLastBase;
 		static NSDictionary *attrs = nil;
 		
 		if (!attrs)
 			attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[GraphView labelFontName] size:10], NSFontAttributeName, [NSColor darkGrayColor], NSForegroundColorAttributeName, nil];
 		
-		NSString *labelText = [NSString stringWithFormat:@"%d – %d", selectionFirstBase, selectionLastBase];
+		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
 		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];
 		NSSize labelSize = [attributedLabel size];
 		double labelX = interiorRect.origin.y + (interiorRect.size.width - labelSize.width) / 2.0;
@@ -182,10 +182,10 @@
 	
 	if (chromosome->hasSelection)
 	{
-		int selectionFirstBase = chromosome->selectionFirstBase;
-		int selectionLastBase = chromosome->selectionLastBase;
+		slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
+		slim_position_t selectionLastBase = chromosome->selectionLastBase;
 		
-		[string appendFormat:@"# Selected chromosome range: %d – %d\n", selectionFirstBase, selectionLastBase];
+		[string appendFormat:@"# Selected chromosome range: %lld – %lld\n", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
 	}
 	
 	[string appendString:[self dateline]];
@@ -201,7 +201,7 @@
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
-		[string appendFormat:@"\"m%d\", ", mutationType->mutation_type_id_];
+		[string appendFormat:@"\"m%lld\", ", (int64_t)mutationType->mutation_type_id_];
 		
 		for (int i = 0; i < binCount; ++i)
 		{

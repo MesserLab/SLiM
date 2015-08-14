@@ -238,7 +238,7 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, char p_prefix_char)
 {
 	const char *id_cstr = p_identifier_string.c_str();
-	int id_cstr_len = (int)strlen(id_cstr);
+	size_t id_cstr_len = strlen(id_cstr);
 	
 	// the criteria here are pretty loose, because we want SLiMEidosScript::ExtractIDFromStringWithPrefix to be
 	// called and generate a raise if the string appears to be intended to be an ID but is malformed
@@ -248,10 +248,10 @@ bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, ch
 	return true;
 }
 
-int SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char)
+slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char)
 {
 	const char *id_cstr = p_identifier_string.c_str();
-	int id_cstr_len = (int)strlen(id_cstr);
+	size_t id_cstr_len = strlen(id_cstr);
 	
 	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate();
@@ -264,7 +264,7 @@ int SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_st
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << eidos_terminate();
 	
 	errno = 0;
-	long long_block_id = strtol(id_cstr + 1, NULL, 10);	// +1 to omit the prefix character
+	int64_t long_block_id = strtoq(id_cstr + 1, NULL, 10);	// +1 to omit the prefix character
 	
 	if (errno)
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was not parseable." << eidos_terminate();
@@ -272,7 +272,7 @@ int SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_st
 	if ((long_block_id < 0) || (long_block_id > SLIM_MAX_ID_VALUE))
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was out of range." << eidos_terminate();
 	
-	return (int)long_block_id;
+	return static_cast<slim_objectid_t>(long_block_id);		// range check is above, with a better message than SLiMCastToObjectidTypeOrRaise()
 }
 
 
@@ -302,13 +302,14 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	{
 		int64_t long_start = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		
+		// We do our own range checking here so that we can highlight the bad token
 		if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
 		{
 			EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << block_children[child_index]->token_->token_string_ << " is out of range." << eidos_terminate();
 		}
 		
-		start_generation_ = (int)long_start;
+		start_generation_ = SLiMCastToGenerationTypeOrRaise(long_start);
 		end_generation_ = start_generation_;			// if a start is given, the default end is the same as the start
 		child_index++;
 	}
@@ -318,6 +319,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	{
 		int64_t long_end = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
 		
+		// We do our own range checking here so that we can highlight the bad token
 		if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))
 		{
 			EidosScript::SetErrorPositionFromToken(block_children[child_index]->token_);
@@ -329,7 +331,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << block_children[child_index]->token_->token_string_ << " is less than the start generation." << eidos_terminate();
 		}
 		
-		end_generation_ = (int)long_end;
+		end_generation_ = SLiMCastToGenerationTypeOrRaise(long_end);
 		child_index++;
 	}
 	
@@ -350,7 +352,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			if (n_callback_children != 0)
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters" << eidos_terminate();
 			
-			if ((start_generation_ != -1) || (end_generation_ != INT_MAX))
+			if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION))
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback" << eidos_terminate();
 			
 			start_generation_ = 0;
@@ -423,7 +425,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	ScanTree();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(int p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, int p_start, int p_end)
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end)
 	: block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end)
 {
 	script_ = new EidosScript(p_script_string);
@@ -674,14 +676,14 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	{
 		case gID_active:
 		{
-			active_ = p_value->IntAtIndex(0);
+			active_ = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			return;
 		}
 	
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;

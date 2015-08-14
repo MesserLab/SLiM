@@ -28,6 +28,7 @@
 #ifndef __SLiM__slim_script_block__
 #define __SLiM__slim_script_block__
 
+#include "slim_global.h"
 #include "eidos_script.h"
 #include "eidos_value.h"
 #include "eidos_functions.h"
@@ -61,7 +62,7 @@ public:
 	// A utility method for extracting the numeric component of an identifier like 'p2', 's3', 'm17', or 'g5'
 	// This raises if the expected character prefix is not present, or if anything but numeric digits are present, or if the ID is out of range
 	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
-	static int ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
+	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
 };
 
 
@@ -81,20 +82,19 @@ public:
 	
 	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosEvent;
 	
-	int block_id_ = -1;											// the id of the block; -1 if no id was assigned (anonymous block)
+	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
 	EidosValue *cached_value_block_id_ = nullptr;				// OWNED POINTER: a cached value for block_id_; delete and nil if that changes
 	
-	int start_generation_ = -1, end_generation_ = INT_MAX;		// the generation range to which the block is limited
-	int mutation_type_id_ = -1;									// -1 if not limited by this
-	int subpopulation_id_ = -1;									// -1 if not limited by this
+	slim_generation_t start_generation_ = -1, end_generation_ = SLIM_MAX_GENERATION;		// the generation range to which the block is limited
+	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
+	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its generation range and type nodes
-	const EidosASTNode *compound_statement_node_ = nullptr;	// NOT OWNED: the node for the compound statement that constitutes the body of the block
+	const EidosASTNode *compound_statement_node_ = nullptr;		// NOT OWNED: the node for the compound statement that constitutes the body of the block
 	
-	int64_t active_ = -1;										// the "active" property of the block: 0 if inactive, all other values are active
-	
-	int64_t tag_value_;											// a user-defined tag value
+	slim_usertag_t active_ = -1;								// the "active" property of the block: 0 if inactive, all other values are active
+	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
 	bool contains_wildcard_ = false;			// "executeLambda", "globals"; all other contains_ flags will be T if this is T
@@ -128,7 +128,7 @@ public:
 	SLiMEidosBlock(void) = delete;										// no default constructor
 	
 	SLiMEidosBlock(EidosASTNode *p_root_node);						// initialize from a SLiMEidosBlock root node from the input file
-	SLiMEidosBlock(int p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, int p_start, int p_end);		// initialize from a programmatic script
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Scan the tree for optimization purposes, called by the constructors

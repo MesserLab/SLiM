@@ -54,18 +54,18 @@ private:
 	
 public:
 	
-	int genomic_element_type_id_;										// the id by which this genomic element type is indexed in the chromosome
+	slim_objectid_t genomic_element_type_id_;							// the id by which this genomic element type is indexed in the chromosome
 	EidosValue *cached_value_getype_id_ = nullptr;						// OWNED POINTER: a cached value for genomic_element_type_id_; delete and nil if that changes
 	
 	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
 	
-	int64_t tag_value_;													// a user-defined tag value
+	slim_usertag_t tag_value_;											// a user-defined tag value
 	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
 	GenomicElementType(void) = delete;									// no null construction
-	GenomicElementType(int p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
+	GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	~GenomicElementType(void);
 	
 	MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type

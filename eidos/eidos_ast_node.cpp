@@ -104,7 +104,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
 			result = new EidosValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else
-			result = new EidosValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+			result = new EidosValue_Int_singleton_const(strtoq(number_string.c_str(), nullptr, 10));						// plain integer
 		
 		// OK, so this is a weird thing.  We don't call SetExternalPermanent(), because that guarantees that the object set will
 		// live longer than the symbol table it might end up in, and we cannot make that guarantee here; the tree we are setting

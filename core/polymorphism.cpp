@@ -26,12 +26,12 @@
 using std::multimap;
 
 
-Polymorphism::Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, int p_subpop_index, int p_generation, int p_prevalence) :
+Polymorphism::Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_refcount_t p_prevalence) :
 	mutation_id_(p_mutation_id), mutation_type_ptr_(p_mutation_type_ptr), selection_coeff_(static_cast<typeof(selection_coeff_)>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), prevalence_(p_prevalence)
 {
 }
 
-void Polymorphism::print(std::ostream &p_out, int p_index, bool include_id /* = true*/) const
+void Polymorphism::print(std::ostream &p_out, slim_position_t p_index, bool include_id /* = true*/) const
 {
 	if (include_id)
 		p_out << mutation_id_ << " ";
@@ -40,11 +40,11 @@ void Polymorphism::print(std::ostream &p_out, int p_index, bool include_id /* = 
 }
 
 // find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_polymorphisms, const Mutation &p_mutation)
+int FindMutationInPolymorphismMap(const multimap<const slim_position_t,Polymorphism> &p_polymorphisms, const Mutation &p_mutation)
 {
 	// iterate through all mutations with same position
-	std::pair<multimap<const int,Polymorphism>::const_iterator,multimap<const int,Polymorphism>::const_iterator> range = p_polymorphisms.equal_range(p_mutation.position_);
-	multimap<const int,Polymorphism>::const_iterator polymorphisms_iter;
+	std::pair<multimap<const slim_position_t,Polymorphism>::const_iterator,multimap<const slim_position_t,Polymorphism>::const_iterator> range = p_polymorphisms.equal_range(p_mutation.position_);
+	multimap<const slim_position_t,Polymorphism>::const_iterator polymorphisms_iter;
 	
 	for (polymorphisms_iter = range.first; polymorphisms_iter != range.second; polymorphisms_iter++)
 		if (polymorphisms_iter->second.mutation_type_ptr_ == p_mutation.mutation_type_ptr_ && polymorphisms_iter->second.selection_coeff_ == p_mutation.selection_coeff_) 
@@ -54,11 +54,11 @@ int FindMutationInPolymorphismMap(const multimap<const int,Polymorphism> &p_poly
 }
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(multimap<const int,Polymorphism> *p_polymorphisms, const Mutation &p_mutation)
+void AddMutationToPolymorphismMap(multimap<const slim_position_t,Polymorphism> *p_polymorphisms, const Mutation &p_mutation)
 {
 	// iterate through all mutations with same position
-	std::pair<multimap<const int,Polymorphism>::iterator,multimap<const int,Polymorphism>::iterator> range = p_polymorphisms->equal_range(p_mutation.position_);
-	multimap<const int,Polymorphism>::iterator polymorphisms_iter;
+	std::pair<multimap<const slim_position_t,Polymorphism>::iterator,multimap<const slim_position_t,Polymorphism>::iterator> range = p_polymorphisms->equal_range(p_mutation.position_);
+	multimap<const slim_position_t,Polymorphism>::iterator polymorphisms_iter;
 	
 	for (polymorphisms_iter = range.first; polymorphisms_iter != range.second; polymorphisms_iter++)
 		if (polymorphisms_iter->second.mutation_type_ptr_ == p_mutation.mutation_type_ptr_ && polymorphisms_iter->second.selection_coeff_ == p_mutation.selection_coeff_) 
@@ -71,7 +71,7 @@ void AddMutationToPolymorphismMap(multimap<const int,Polymorphism> *p_polymorphi
 	int mutation_id = static_cast<int>(p_polymorphisms->size());	// used to have a +1 here; switched to zero-based
 	Polymorphism new_polymorphism = Polymorphism(mutation_id, p_mutation.mutation_type_ptr_, p_mutation.selection_coeff_, p_mutation.subpop_index_, p_mutation.generation_, 1);
 	
-	p_polymorphisms->insert(std::pair<const int,Polymorphism>(p_mutation.position_, new_polymorphism));
+	p_polymorphisms->insert(std::pair<const slim_position_t,Polymorphism>(p_mutation.position_, new_polymorphism));
 }
 
 

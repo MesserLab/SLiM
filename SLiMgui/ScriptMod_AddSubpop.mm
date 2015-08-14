@@ -35,8 +35,8 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
-	[subpopTextField setStringValue:[NSString stringWithFormat:@"%d", [self bestAvailableSubpopID]]];
+	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
+	[subpopTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)[self bestAvailableSubpopID]]];
 	[subpopSizeTextField setStringValue:@"1000"];
 	
 	[super configSheetLoaded];
@@ -51,7 +51,7 @@
 	validInput = validInput && generationValid;
 	[generationTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:generationValid]];
 	
-	BOOL subpopValid = [ScriptMod validIntValueInTextField:subpopTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableSubpopID:[subpopTextField intValue]];
+	BOOL subpopValid = [ScriptMod validIntValueInTextField:subpopTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableSubpopID:SLiMClampToObjectidType([[subpopTextField stringValue] longLongValue])];
 	validInput = validInput && subpopValid;
 	[subpopTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:subpopValid]];
 	
@@ -60,17 +60,17 @@
 	[subpopSizeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sizeValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
+	needsRecycle = ((int64_t)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
-	int targetGenerationInt = (int)[targetGeneration doubleValue];
-	int populationID = [subpopTextField intValue];
+	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
+	slim_objectid_t populationID = SLiMClampToObjectidType([[subpopTextField stringValue] longLongValue]);
 	NSString *newSize = [subpopSizeTextField stringValue];
 	
 	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tsim.addSubpop(%d, %@);\n}", populationID, newSize];

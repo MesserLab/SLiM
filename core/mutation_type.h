@@ -33,6 +33,7 @@
 #include <string>
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
+#include "slim_global.h"
 
 
 extern EidosObjectClass *gSLiM_MutationType_Class;
@@ -54,14 +55,14 @@ public:
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
-	int mutation_type_id_;						// the id by which this mutation type is indexed in the chromosome
+	slim_objectid_t mutation_type_id_;				// the id by which this mutation type is indexed in the chromosome
 	EidosValue *cached_value_muttype_id_ = nullptr;	// OWNED POINTER: a cached value for mutation_type_id_; delete and nil if that changes
 	
-	float dominance_coeff_;						// dominance coefficient (h)
+	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
 	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
-	int64_t tag_value_;							// a user-defined tag value
+	slim_usertag_t tag_value_;					// a user-defined tag value
 
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
@@ -71,9 +72,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
 #else
-	MutationType(int p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
 #endif
 	~MutationType(void);
 	

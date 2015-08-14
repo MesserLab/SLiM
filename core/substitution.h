@@ -44,12 +44,12 @@ class Substitution : public EidosObjectElement
 
 public:
 	
-	MutationType *mutation_type_ptr_;	// mutation type identifier
-	int position_;								// position
-	float selection_coeff_;						// selection coefficient
-	int subpop_index_;							// subpopulation in which mutation arose
-	int generation_;							// generation in which mutation arose  
-	int fixation_time_;							// fixation time
+	MutationType *mutation_type_ptr_;			// mutation type identifier
+	slim_position_t position_;					// position
+	slim_selcoeff_t selection_coeff_;			// selection coefficient
+	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
+	slim_generation_t generation_;				// generation in which mutation arose  
+	slim_generation_t fixation_time_;			// fixation time
 #ifdef SLIMGUI
 	const uint64_t mutation_id_;				// a unique id for each mutation, used to track mutations in SLiMgui
 #endif
@@ -57,7 +57,7 @@ public:
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
-	Substitution(Mutation &p_mutation, int p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
+	Substitution(Mutation &p_mutation, slim_generation_t p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print(std::ostream &p_out) const;
 	

@@ -48,10 +48,10 @@ private:
 public:
 	
 	GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
-	int start_position_;									// the start position of the element
-	int end_position_;										// the end position of the element
+	slim_position_t start_position_;						// the start position of the element
+	slim_position_t end_position_;							// the end position of the element
 	
-	int64_t tag_value_;										// a user-defined tag value
+	slim_usertag_t tag_value_;								// a user-defined tag value
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
@@ -64,7 +64,7 @@ public:
 	GenomicElement(void) = delete;										// no null construction
 	static bool LogGenomicElementCopyAndAssign(bool p_log);				// returns the old value; save and restore that value!
 	
-	GenomicElement(GenomicElementType *p_genomic_element_type_ptr, int p_start_position, int p_end_position);
+	GenomicElement(GenomicElementType *p_genomic_element_type_ptr, slim_position_t p_start_position, slim_position_t p_end_position);
 	
 	//
 	// Eidos support

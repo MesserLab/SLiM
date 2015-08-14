@@ -2960,7 +2960,7 @@ int64_t EidosInterpreter::IntForNumberToken(const EidosToken *p_token)
 	else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
 		return static_cast<int64_t>(strtod(number_string.c_str(), nullptr));			// has an exponent
 	else
-		return strtoll(number_string.c_str(), NULL, 10);								// plain integer
+		return strtoq(number_string.c_str(), NULL, 10);								// plain integer
 }
 
 EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
@@ -2987,7 +2987,7 @@ EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
 			result = new EidosValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
 		else
-			result = new EidosValue_Int_singleton_const(strtoll(number_string.c_str(), nullptr, 10));						// plain integer
+			result = new EidosValue_Int_singleton_const(strtoq(number_string.c_str(), nullptr, 10));						// plain integer
 	}
 	
 	if (logging_execution_)

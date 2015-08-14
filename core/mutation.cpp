@@ -30,10 +30,10 @@ uint64_t g_next_mutation_id = 0;
 
 #ifdef SLIMGUI
 // In SLiMgui, the mutation_id_ gets initialized here, from the global counter g_next_mutation_id
-Mutation::Mutation(MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<typeof(selection_coeff_)>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(g_next_mutation_id++)
 #else
-Mutation::Mutation(MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation) :
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
 	mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<typeof(selection_coeff_)>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation)
 #endif
 {
@@ -114,7 +114,7 @@ EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eid
 	{
 		double value = arg0_value->FloatAtIndex(0);
 		
-		selection_coeff_ = static_cast<typeof(selection_coeff_)>(value);	// float, at present, but I don't want to hard-code that
+		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
 		
 		return gStaticEidosValueNULLInvisible;
 	}

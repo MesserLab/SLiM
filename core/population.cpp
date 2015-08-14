@@ -79,7 +79,7 @@ Population::~Population(void)
 }
 
 // add new empty subpopulation p_subpop_id of size p_subpop_size
-Subpopulation *Population::AddSubpopulation(int p_subpop_id, unsigned int p_subpop_size, double p_initial_sex_ratio) 
+Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
 { 
 	if (count(p_subpop_id) != 0)
 		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
@@ -96,13 +96,13 @@ Subpopulation *Population::AddSubpopulation(int p_subpop_id, unsigned int p_subp
 	
 	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
 	
-	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
+	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
 	
 	return new_subpop;
 }
 
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
-Subpopulation *Population::AddSubpopulation(int p_subpop_id, Subpopulation &p_source_subpop, unsigned int p_subpop_size, double p_initial_sex_ratio)
+Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
 	if (count(p_subpop_id) != 0)
 		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
@@ -119,15 +119,15 @@ Subpopulation *Population::AddSubpopulation(int p_subpop_id, Subpopulation &p_so
 	
 	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
 	
-	insert(std::pair<const int,Subpopulation*>(p_subpop_id, new_subpop));
+	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	
-	for (int parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
+	for (slim_popsize_t parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
 	{
 		// draw individual from p_source_subpop and assign to be a parent in subpop
-		int migrant_index;
+		slim_popsize_t migrant_index;
 		
 		if (sim_.SexEnabled())
 		{
@@ -151,7 +151,7 @@ Subpopulation *Population::AddSubpopulation(int p_subpop_id, Subpopulation &p_so
 	return new_subpop;
 }
 
-Subpopulation *Population::AddSubpopulation(int p_subpop_id, int p_source_subpop_id, unsigned int p_subpop_size, double p_initial_sex_ratio) 
+Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
 {
 	Subpopulation &source_subpop = SubpopulationWithID(p_source_subpop_id);
 	
@@ -159,7 +159,7 @@ Subpopulation *Population::AddSubpopulation(int p_subpop_id, int p_source_subpop
 }
 
 // set size of subpopulation p_subpop_id to p_subpop_size
-void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
+void Population::SetSize(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size)
 {
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
@@ -172,7 +172,7 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 	{
 		erase(p_subpop_id);
 		
-		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 			subpop_pair.second->migrant_fractions_.erase(p_subpop_id);
 	}
 	else
@@ -186,7 +186,7 @@ void Population::SetSize(int p_subpop_id, unsigned int p_subpop_size)
 }
 
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
-void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_migrant_fraction) 
+void Population::SetMigration(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
 		EIDOS_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << eidos_terminate();
@@ -199,11 +199,11 @@ void Population::SetMigration(int p_subpop_id, int p_source_subpop_id, double p_
 		subpop.migrant_fractions_.erase(p_source_subpop_id);
 	
 	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
-		subpop.migrant_fractions_.insert(std::pair<const int,double>(p_source_subpop_id, p_migrant_fraction)); 
+		subpop.migrant_fractions_.insert(std::pair<const slim_objectid_t,double>(p_source_subpop_id, p_migrant_fraction)); 
 }
 
 // execute a script event in the population; the script is assumed to be due to trigger
-void Population::ExecuteScript(SLiMEidosBlock *p_script_block, int p_generation, const Chromosome &p_chromosome)
+void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome)
 {
 #pragma unused(p_generation, p_chromosome)
 	EidosSymbolTable global_symbols(&p_script_block->eidos_contains_);
@@ -221,14 +221,14 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, int p_generation,
 }
 
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
-int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
+slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
 	bool sex_enabled = p_subpop->sex_enabled_;
 	double *standard_weights = (sex_enabled ? p_source_subpop->cached_male_fitness_ : p_source_subpop->cached_parental_fitness_);
 	double *current_weights = standard_weights;
-	int weights_length = p_source_subpop->cached_fitness_size_;
+	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
 	bool weights_modified = false;
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
@@ -340,12 +340,12 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 	// If a callback supplied a different set of weights, we need to use those weights to draw a male parent
 	if (weights_modified)
 	{
-		int drawn_parent = -1;
+		slim_popsize_t drawn_parent = -1;
 		double weights_sum = 0;
 		int positive_count = 0;
 		
 		// first we assess the weights vector: get its sum, bounds-check it, etc.
-		for (int weight_index = 0; weight_index < weights_length; ++weight_index)
+		for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 		{
 			double x = current_weights[weight_index];
 			
@@ -368,7 +368,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 		{
 			// there is only a single positive value, so the callback has chosen a parent for us; we just need to locate it
 			// we could have noted it above, but I don't want to slow down that loop, since many positive weights is the likely case
-			for (int weight_index = 0; weight_index < weights_length; ++weight_index)
+			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 				if (current_weights[weight_index] > 0.0)
 				{
 					drawn_parent = weight_index;
@@ -381,7 +381,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
-			for (int weight_index = 0; weight_index < weights_length; ++weight_index)
+			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 			{
 				bachelor_sum += current_weights[weight_index];
 				
@@ -407,7 +407,7 @@ int Population::ApplyMateChoiceCallbacks(int p_parent1_index, Subpopulation *p_s
 }
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_child_sex, int p_parent1_index, int p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, IndividualSex p_child_sex, slim_popsize_t p_parent1_index, slim_popsize_t p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
@@ -502,11 +502,11 @@ bool Population::ApplyModifyChildCallbacks(int p_child_index, IndividualSex p_ch
 }
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromosome, int p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
+void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
 {
 	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
 	bool sex_enabled = subpop.sex_enabled_;
-	int total_children = subpop.child_subpop_size_;
+	slim_popsize_t total_children = subpop.child_subpop_size_;
 	
 	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
 	// Any code that chooses individuals from the population should choose randomly to avoid order-dependency!
@@ -516,14 +516,14 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	int migrant_source_count = static_cast<int>(subpop.migrant_fractions_.size());
 	double migration_rates[migrant_source_count + 1];
 	Subpopulation *migration_sources[migrant_source_count + 1];
-	unsigned int num_migrants[migrant_source_count + 1];			// used by client code below
+	unsigned int num_migrants[migrant_source_count + 1];			// used by client code below; type constrained by gsl_ran_multinomial()
 	
 	if (migrant_source_count > 0)
 	{
 		double migration_rate_sum = 0.0;
 		int pop_count = 0;
 		
-		for (const std::pair<const int,double> &fractions_pair : subpop.migrant_fractions_)
+		for (const std::pair<const slim_objectid_t,double> &fractions_pair : subpop.migrant_fractions_)
 		{
 			migration_rates[pop_count] = fractions_pair.second;
 			migration_sources[pop_count] = &SubpopulationWithID(fractions_pair.first);
@@ -548,13 +548,14 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	
 	// SEX ONLY: the sex and asex cases share code but work a bit differently; the sex cases generates females and then males in
 	// separate passes, and selfing is disabled in the sex case.  This block sets up for the sex case to diverge in these ways.
-	int total_female_children = 0, total_male_children = 0, number_of_sexes = 1;
+	slim_popsize_t total_female_children = 0, total_male_children = 0;
+	int number_of_sexes = 1;
 	
 	if (sex_enabled)
 	{
 		double sex_ratio = subpop.child_sex_ratio_;
 		
-		total_male_children = static_cast<int>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male
+		total_male_children = static_cast<slim_popsize_t>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male
 		total_female_children = total_children - total_male_children;
 		number_of_sexes = 2;
 		
@@ -564,33 +565,33 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 	
 	// Now we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
 	// males second (sex_index == 1).  In nonsexual simulations number_of_sexes == 1 and this loops just once.
-	int child_count = 0;	// counter over all subpop_size_ children
+	slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
 	
 	for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 	{
-		int total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
+		slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
 		IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
 		
 		// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
 		if (migrant_source_count == 0)
-			num_migrants[0] = total_children_of_sex;
+			num_migrants[0] = (unsigned int)total_children_of_sex;
 		else
-			gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, total_children_of_sex, migration_rates, num_migrants);
+			gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
 		
 		// loop over all source subpops, including ourselves
 		for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
 		{
-			int migrants_to_generate = num_migrants[pop_count];
+			slim_popsize_t migrants_to_generate = static_cast<slim_popsize_t>(num_migrants[pop_count]);
 			
 			if (migrants_to_generate > 0)
 			{
 				Subpopulation &source_subpop = *(migration_sources[pop_count]);
-				int subpop_id = source_subpop.subpopulation_id_;
+				slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
 				double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
 				double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
 				
 				// figure out how many from this source subpop are the result of selfing and/or cloning
-				int number_to_self = 0, number_to_clone = 0;
+				slim_popsize_t number_to_self = 0, number_to_clone = 0;
 				
 				if (selfing_fraction > 0)
 				{
@@ -599,16 +600,16 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 						double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 						unsigned int counts[3] = {0, 0, 0};
 						
-						gsl_ran_multinomial(gEidos_rng, 3, migrants_to_generate, fractions, counts);
+						gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
 						
-						number_to_self = counts[0];
-						number_to_clone = counts[1];
+						number_to_self = static_cast<slim_popsize_t>(counts[0]);
+						number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 					}
 					else
-						number_to_self = gsl_ran_binomial(gEidos_rng, selfing_fraction, migrants_to_generate);
+						number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
 				}
 				else if (cloning_fraction > 0)
-					number_to_clone = gsl_ran_binomial(gEidos_rng, cloning_fraction, migrants_to_generate);
+					number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
 				
 				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
 				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
@@ -619,15 +620,15 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 					modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
 				
 				// generate all selfed, cloned, and autogamous offspring in one shared loop
-				int migrant_count = 0;
+				slim_popsize_t migrant_count = 0;
 				
 				if ((number_to_self == 0) && (number_to_clone == 0) && !mate_choice_callbacks && !modify_child_callbacks)
 				{
 					// a simple loop for the base case with no selfing, no cloning, and no callbacks
 					while (migrant_count < migrants_to_generate)
 					{
-						int parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
-						int parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+						slim_popsize_t parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+						slim_popsize_t parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
@@ -643,7 +644,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 					while (migrant_count < migrants_to_generate)
 					{
 						bool selfed = false, cloned = false;
-						int parent1, parent2;
+						slim_popsize_t parent1, parent2;
 						
 						if (number_to_clone > 0)
 						{
@@ -702,7 +703,7 @@ void Population::EvolveSubpopulation(int p_subpop_id, const Chromosome &p_chromo
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent1_genome_index, int p_parent2_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
+void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -792,7 +793,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
 	if (do_swap && (use_only_strand_1 || eidos_random_bool(gEidos_rng)))
 	{
-		int swap = p_parent1_genome_index;
+		slim_popsize_t swap = p_parent1_genome_index;
 		p_parent1_genome_index = p_parent2_genome_index;
 		p_parent2_genome_index = swap;
 		
@@ -871,7 +872,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		else
 		{
 			// create vector with uniqued recombination breakpoints
-			std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
+			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
 			
 			all_breakpoints.push_back(p_chromosome.last_position_ + 1);
 			sort(all_breakpoints.begin(), all_breakpoints.end());
@@ -891,7 +892,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			
 			for (int break_index = 0; break_index != break_index_max; break_index++)
 			{
-				int breakpoint = all_breakpoints[break_index];
+				slim_position_t breakpoint = all_breakpoints[break_index];
 				
 				// while there are still old mutations in the parent before the current breakpoint...
 				while (parent_iter != parent_iter_max)
@@ -934,7 +935,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		}
 		
 		// create vector with uniqued recombination breakpoints
-		std::vector<int> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
+		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
 		all_breakpoints.push_back(p_chromosome.last_position_ + 1);
 		sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
@@ -956,11 +957,11 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		
 		for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
 		{
-			int breakpoint = all_breakpoints[break_index];
+			slim_position_t breakpoint = all_breakpoints[break_index];
 			
 			// NOTE these caches are valid from here...
 			Mutation *parent_iter_mutation, *mutation_iter_mutation;
-			int parent_iter_pos, mutation_iter_pos;
+			slim_position_t parent_iter_pos, mutation_iter_pos;
 			
 			if (parent_iter != parent_iter_max) {
 				parent_iter_mutation = *parent_iter;
@@ -1033,7 +1034,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	}
 }
 
-void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, int p_child_genome_index, int p_source_subpop_id, int p_parent_genome_index, const Chromosome &p_chromosome, int p_generation, IndividualSex p_child_sex)
+void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
@@ -1094,7 +1095,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 		while ((parent_iter != parent_iter_max) || (mutation_iter != mutation_iter_max))
 		{
 			// while an old mutation in the parent is before or at the next new mutation...
-			int mutation_iter_pos = (mutation_iter == mutation_iter_max) ? INT_MAX : (*mutation_iter)->position_;
+			slim_position_t mutation_iter_pos = (mutation_iter == mutation_iter_max) ? INT_MAX : (*mutation_iter)->position_;
 			
 			while ((parent_iter != parent_iter_max) && ((*parent_iter)->position_ <= mutation_iter_pos))
 			{
@@ -1105,7 +1106,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 			}
 			
 			// while a new mutation is before or at the next old mutation in the parent...
-			int parent_iter_pos = (parent_iter == parent_iter_max) ? INT_MAX : (*parent_iter)->position_;
+			slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? INT_MAX : (*parent_iter)->position_;
 			
 			while ((mutation_iter != mutation_iter_max) && ((*mutation_iter)->position_ <= parent_iter_pos))
 			{
@@ -1124,9 +1125,9 @@ void Population::SurveyPopulation()
 {
 	// Calculate mean fitness for this generation; this integrates the subpop mean fitness values from UpdateFitness()
 	double totalFitness = 0.0;
-	int individualCount = 0;
+	slim_popsize_t individualCount = 0;
 	
-	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -1135,17 +1136,17 @@ void Population::SurveyPopulation()
 	}
 	
 	double meanFitness = totalFitness / individualCount;
-	int historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
+	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
 	// Add the mean fitness to the population history
 	if (historyIndex >= fitnessHistoryLength)
 	{
-		int oldHistoryLength = fitnessHistoryLength;
+		slim_generation_t oldHistoryLength = fitnessHistoryLength;
 		
 		fitnessHistoryLength = historyIndex + 1000;			// give some elbow room for expansion
 		fitnessHistory = (double *)realloc(fitnessHistory, fitnessHistoryLength * sizeof(double));
 		
-		for (int i = oldHistoryLength; i < fitnessHistoryLength; ++i)
+		for (slim_generation_t i = oldHistoryLength; i < fitnessHistoryLength; ++i)
 			fitnessHistory[i] = NAN;
 	}
 	
@@ -1155,9 +1156,9 @@ void Population::SurveyPopulation()
 
 #ifdef SLIMGUI
 // This method is used to tally up histogram metrics that are kept per mutation type for SLiMgui
-void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, int p_bin_number, uint32_t **p_buffer, uint32_t *p_bufferBins)
+void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins)
 {
-	uint32_t *buffer = *p_buffer;
+	slim_generation_t *buffer = *p_buffer;
 	uint32_t bufferBins = *p_bufferBins;
 	
 	if (p_bin_number >= bufferBins)
@@ -1167,7 +1168,7 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
 		int newEntryCount = bufferBins * p_mutation_type_count;
 		
-		buffer = (uint32_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
+		buffer = (slim_generation_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
 		
 		// Zero out the new entries; the compiler should be smart enough to optimize this...
 		for (int i = oldEntryCount; i < newEntryCount; ++i)
@@ -1198,7 +1199,7 @@ void Population::SwapGenerations()
 #endif
 	
 	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
-	for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 		subpop_pair.second->SwapChildAndParentGenomes();
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
@@ -1212,7 +1213,7 @@ void Population::SwapGenerations()
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : fitness_callbacks)
-		if (callback->active_ != 0)
+		if (callback->active_)
 		{
 			no_active_callbacks = false;
 			break;
@@ -1222,21 +1223,21 @@ void Population::SwapGenerations()
 	{
 		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
 		
-		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 			subpop_pair.second->UpdateFitness(no_fitness_callbacks);
 	}
 	else
 	{
-		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 		{
-			int subpop_id = subpop_pair.first;
+			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
 			std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
 			
 			// Get fitness callbacks that apply to this subpopulation
 			for (SLiMEidosBlock *callback : fitness_callbacks)
 			{
-				int callback_subpop_id = callback->subpopulation_id_;
+				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
 					subpop_fitness_callbacks.push_back(callback);
@@ -1258,9 +1259,9 @@ void Population::SwapGenerations()
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
 void Population::TallyMutationReferences(void)
 {
-	int total_genome_count = 0;
+	slim_refcount_t total_genome_count = 0;
 #ifdef SLIMGUI
-	int gui_total_genome_count = 0;
+	slim_refcount_t gui_total_genome_count = 0;
 #endif
 	
 	// first zero out the refcounts in all registered Mutation objects
@@ -1276,18 +1277,18 @@ void Population::TallyMutationReferences(void)
 	}
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
 #ifdef SLIMGUI
 		// If we're running in SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 		// when the parental generation is active and the child generation is invalid.
-		int subpop_genome_count = (child_generation_valid ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
+		slim_popsize_t subpop_genome_count = (child_generation_valid ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
 		std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop->child_genomes_ : subpop->parent_genomes_);
 #else
 		// Outside of SLiMgui, this method is only called when the child generation is active, so for speed, we skip the check.
-		int subpop_genome_count = 2 * subpop->child_subpop_size_;
+		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
 		std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
 #endif
 		
@@ -1296,7 +1297,7 @@ void Population::TallyMutationReferences(void)
 		// the else clause here drops outside of the #ifdef to the standard tally code.
 		if (subpop->gui_selected_)
 		{
-			for (int i = 0; i < subpop_genome_count; i++)								// child genomes
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
 				Genome &genome = subpop_genomes[i];
 				
@@ -1321,7 +1322,7 @@ void Population::TallyMutationReferences(void)
 		else
 #endif
 		{
-			for (int i = 0; i < subpop_genome_count; i++)								// child genomes
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
 				Genome &genome = subpop_genomes[i];
 				
@@ -1360,7 +1361,7 @@ void Population::RemoveFixedMutations()
 	for (int i = 0; i < registry_length; ++i)
 	{
 		Mutation *mutation = mutation_registry_[i];
-		int32_t reference_count = mutation->reference_count_;
+		slim_refcount_t reference_count = mutation->reference_count_;
 		bool remove_mutation = false;
 		
 		if (reference_count == 0)
@@ -1371,7 +1372,7 @@ void Population::RemoveFixedMutations()
 
 #ifdef SLIMGUI
 			// If we're running under SLiMgui, make a note of the lifetime of the mutation
-			uint32_t loss_time = sim_.generation_ - mutation->generation_;
+			slim_generation_t loss_time = sim_.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutationLossTimes, &mutationLossGenSlots);
@@ -1387,7 +1388,7 @@ void Population::RemoveFixedMutations()
 			
 #ifdef SLIMGUI
 			// If we're running under SLiMgui, make a note of the fixation time of the mutation
-			uint32_t fixation_time = sim_.generation_ - mutation->generation_;
+			slim_generation_t fixation_time = sim_.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutationFixationTimes, &mutationFixationGenSlots);
@@ -1426,9 +1427,9 @@ void Population::RemoveFixedMutations()
 	// replace fixed mutations with Substitution objects
 	if (fixed_mutation_accumulator.size() > 0)
 	{
-		for (std::pair<const int,Subpopulation*> &subpop_pair : *this)		// subpopulations
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
 		{
-			for (int i = 0; i < 2 * subpop_pair.second->child_subpop_size_; i++)	// child genomes
+			for (slim_popsize_t i = 0; i < 2 * subpop_pair.second->child_subpop_size_; i++)	// child genomes
 			{
 				Genome *genome = &(subpop_pair.second->child_genomes_[i]);
 				
@@ -1438,7 +1439,7 @@ void Population::RemoveFixedMutations()
 			}
 		}
 		
-		int generation = sim_.Generation();
+		slim_generation_t generation = sim_.Generation();
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
@@ -1472,13 +1473,13 @@ void Population::CheckMutationRegistry(void)
 			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
 	
 	// then check that we don't have any zombies in any genomes
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		int subpop_genome_count = 2 * subpop->child_subpop_size_;
+		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
 		std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
 		
-		for (int i = 0; i < subpop_genome_count; i++)								// child genomes
+		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 		{
 			Genome &genome = subpop_genomes[i];
 			
@@ -1502,10 +1503,10 @@ void Population::PrintAll(std::ostream &p_out) const
 	// This is a little tricky, so be careful when modifying this code!
 	
 	p_out << "Populations:" << endl;
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		int subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		double subpop_sex_ratio = (child_generation_valid ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		
 		p_out << "p" << subpop_pair.first << " " << subpop_size;
@@ -1519,15 +1520,15 @@ void Population::PrintAll(std::ostream &p_out) const
 		p_out << endl;
 	}
 	
-	multimap<const int,Polymorphism> polymorphisms;
+	multimap<const slim_position_t,Polymorphism> polymorphisms;
 	
 	// add all polymorphisms
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		int subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		
-		for (int i = 0; i < 2 * subpop_size; i++)				// go through all children
+		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
 			Genome &genome = child_generation_valid ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
@@ -1542,20 +1543,20 @@ void Population::PrintAll(std::ostream &p_out) const
 	// print all polymorphisms
 	p_out << "Mutations:"  << endl;
 	
-	for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms)
+	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms)
 		polymorphism_pair.second.print(p_out, polymorphism_pair.first);
 	
 	// print all individuals
 	p_out << "Individuals:" << endl;
 	
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		int subpop_id = subpop_pair.first;
-		int subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
-		int first_male_index = (child_generation_valid ? subpop->child_first_male_index_ : subpop->parent_first_male_index_);
+		slim_objectid_t subpop_id = subpop_pair.first;
+		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t first_male_index = (child_generation_valid ? subpop->child_first_male_index_ : subpop->parent_first_male_index_);
 		
-		for (int i = 0; i < subpop_size; i++)							// go through all children
+		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
 			p_out << "p" << subpop_id << ":i" << i;						// individual identifier	// used to have a +1; switched to zero-based
 			
@@ -1573,13 +1574,13 @@ void Population::PrintAll(std::ostream &p_out) const
 	// print all genomes
 	p_out << "Genomes:" << endl;
 	
-	for (const std::pair<const int,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		int subpop_id = subpop_pair.first;
-		int subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_objectid_t subpop_id = subpop_pair.first;
+		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		
-		for (int i = 0; i < 2 * subpop_size; i++)							// go through all children
+		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
 			Genome &genome = child_generation_valid ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
@@ -1604,7 +1605,7 @@ void Population::PrintAll(std::ostream &p_out) const
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p_requested_sex) const
+void Population::PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -1615,16 +1616,16 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 		EIDOS_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
-	std::vector<int> sample; 
-	multimap<const int,Polymorphism> polymorphisms;
+	std::vector<slim_popsize_t> sample; 
+	multimap<const slim_position_t,Polymorphism> polymorphisms;
 	
-	for (int s = 0; s < p_sample_size; s++)
+	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		int j;
+		slim_popsize_t j;
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
+			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
@@ -1636,7 +1637,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 	// print the sample's polymorphisms
 	SLIM_OUTSTREAM << "Mutations:"  << endl;
 	
-	for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
+	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 		polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first);
 	
 	// print the sample's genomes
@@ -1667,7 +1668,7 @@ void Population::PrintSample(int p_subpop_id, int p_sample_size, IndividualSex p
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
+void Population::PrintSample_ms(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -1678,16 +1679,16 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		EIDOS_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
-	std::vector<int> sample; 
-	multimap<const int,Polymorphism> polymorphisms;
+	std::vector<slim_popsize_t> sample; 
+	multimap<const slim_position_t,Polymorphism> polymorphisms;
 	
-	for (int s = 0; s < p_sample_size; s++)
+	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		int j;
+		slim_popsize_t j;
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<int>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
+			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
@@ -1704,7 +1705,7 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 	{
 		SLIM_OUTSTREAM << "positions:";
 		
-		for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
+		for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
 		SLIM_OUTSTREAM << endl;
@@ -1718,18 +1719,18 @@ void Population::PrintSample_ms(int p_subpop_id, int p_sample_size, const Chromo
 		for (int k = 0; k < subpop_genomes[sample[j]].size(); k++)	// go through all mutations
 		{
 			const Mutation *mutation = subpop_genomes[sample[j]][k];
-			int position = 0;
+			int genotype_string_position = 0;
 			
-			for (const std::pair<const int,Polymorphism> &polymorphism_pair : polymorphisms) 
+			for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 			{
 				if (polymorphism_pair.first == mutation->position_ && polymorphism_pair.second.mutation_type_ptr_ == mutation->mutation_type_ptr_ && polymorphism_pair.second.selection_coeff_ == mutation->selection_coeff_)
 				{
 					// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
-					genotype.replace(position, 1, "1");
+					genotype.replace(genotype_string_position, 1, "1");
 					break;
 				}
 				
-				position++;
+				genotype_string_position++;
 			}
 		}
 		

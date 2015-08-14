@@ -68,7 +68,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	GenomeType chromosomeType = (GenomeType)[chromosomeTypeMatrix selectedTag];
 	

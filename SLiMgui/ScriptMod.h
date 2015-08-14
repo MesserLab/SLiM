@@ -68,8 +68,8 @@
 + (NSRegularExpression *)regexForFloatWithScientificNotation;
 + (NSRegularExpression *)regexForFilename;
 
-+ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
-+ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int)minValue max:(int)maxValue;
++ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue;
++ (BOOL)validIntWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
 + (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax;
 + (BOOL)validFloatWithScientificNotationValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
@@ -81,18 +81,18 @@
 + (NSColor *)textColorForEnableState:(BOOL)enabled;				// used to standardize the color for disabled labels
 + (NSColor *)backgroundColorForValidationState:(BOOL)valid;		// used to standardize textfield background colors used for validation
 
-- (void)configureSubpopulationPopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a subpopulation
-- (BOOL)isAvailableSubpopID:(int)subpopID;						// check that a given ID is currently unused
-- (int)bestAvailableSubpopID;									// return a good unused ID
+- (void)configureSubpopulationPopup:(NSPopUpButton *)button;					// set up a standard popup menu to choose a subpopulation
+- (BOOL)isAvailableSubpopID:(slim_objectid_t)subpopID;							// check that a given ID is currently unused
+- (slim_objectid_t)bestAvailableSubpopID;										// return a good unused ID
 
 - (void)configureMutationTypePopup:(NSPopUpButton *)button addNoneItem:(BOOL)needsNoneItem;
-- (void)configureMutationTypePopup:(NSPopUpButton *)button;		// set up a standard popup menu to choose a mutation type
-- (BOOL)isAvailableMuttypeID:(int)muttypeID;					// check that a given ID is currently unused
-- (int)bestAvailableMuttypeID;									// return a good unused ID
+- (void)configureMutationTypePopup:(NSPopUpButton *)button;						// set up a standard popup menu to choose a mutation type
+- (BOOL)isAvailableMuttypeID:(slim_objectid_t)muttypeID;						// check that a given ID is currently unused
+- (slim_objectid_t)bestAvailableMuttypeID;										// return a good unused ID
 
-- (void)configureGenomicElementTypePopup:(NSPopUpButton *)button;	// set up a standard popup menu to choose a genomic element type
-- (BOOL)isAvailableGenomicElementTypeID:(int)genomicElementTypeID;	// check that a given ID is currently unused
-- (int)bestAvailableGenomicElementTypeID;							// return a good unused ID
+- (void)configureGenomicElementTypePopup:(NSPopUpButton *)button;				// set up a standard popup menu to choose a genomic element type
+- (BOOL)isAvailableGenomicElementTypeID:(slim_objectid_t)genomicElementTypeID;	// check that a given ID is currently unused
+- (slim_objectid_t)bestAvailableGenomicElementTypeID;							// return a good unused ID
 
 // These methods are the points where the subclass plugs in to the configuration panel run
 
@@ -103,7 +103,7 @@
 
 - (NSString *)sheetTitle;										// the title of the script modification, displayed in a label textfield
 - (NSString *)nibName;											// the name of the nib file for the configuration sheet; defaults to the name of the subclass
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr;		// the script string to be inserted
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr;		// the script string to be inserted
 
 @end
 

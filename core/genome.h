@@ -63,7 +63,7 @@ private:
 	Mutation *(mutations_buffer_[GENOME_MUT_BUFFER_SIZE]);	// a built-in buffer to prevent the need for malloc with few mutations
 	Mutation **mutations_ = mutations_buffer_;			// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
 														// note that mutations_ == nullptr indicates a null (i.e. placeholder) genome
-	int64_t tag_value_;									// a user-defined tag value
+	slim_usertag_t tag_value_;							// a user-defined tag value
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
@@ -88,19 +88,19 @@ public:
 	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
 	~Genome(void);
 	
-	void NullGenomeAccessError(void) const;								// prints an error message, a stacktrace, and exits; called only for DEBUG
+	void NullGenomeAccessError(void) const;							// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
-	inline bool IsNull(void) const										// returns true if the genome is a null (placeholder) genome, false otherwise
+	inline bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
 		return (mutations_ == nullptr);
 	}
 	
-	GenomeType GenomeType(void) const									// returns the type of the genome: automosomal, X chromosome, or Y chromosome
+	GenomeType GenomeType(void) const								// returns the type of the genome: automosomal, X chromosome, or Y chromosome
 	{
 		return genome_type_;
 	}
 	
-	void RemoveFixedMutations(int p_fixed_count);						// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
+	void RemoveFixedMutations(slim_refcount_t p_fixed_count);		// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
 	
 	inline Mutation *const & operator[] (int index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 	{

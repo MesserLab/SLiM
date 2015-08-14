@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[mutationTypeTextField setStringValue:[NSString stringWithFormat:@"%d", [self bestAvailableMuttypeID]]];
+	[mutationTypeTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)[self bestAvailableMuttypeID]]];
 	[dominanceCoeffTextField setStringValue:@"1.0"];
 	[fixedSelCoeffTextField setStringValue:@"1.0"];
 	[expMeanSelCoeffTextField setStringValue:@"1.0"];
@@ -50,7 +50,7 @@
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
 	
-	BOOL mutationTypeValid = [ScriptMod validIntValueInTextField:mutationTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableMuttypeID:[mutationTypeTextField intValue]];
+	BOOL mutationTypeValid = [ScriptMod validIntValueInTextField:mutationTypeTextField withMin:1 max:SLIM_MAX_ID_VALUE] && [self isAvailableMuttypeID:SLiMClampToObjectidType([[mutationTypeTextField stringValue] longLongValue])];
 	validInput = validInput && mutationTypeValid;
 	[mutationTypeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:mutationTypeValid]];
 	
@@ -58,7 +58,7 @@
 	validInput = validInput && dominanceCoeffValid;
 	[dominanceCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:dominanceCoeffValid]];
 	
-	int dfeTag = (int)[dfeMatrix selectedTag];
+	NSInteger dfeTag = [dfeMatrix selectedTag];
 	
 	// enable/disable all DFE param textfields and labels
 	[fixedDFEParamsLabel setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 0)]];
@@ -107,11 +107,11 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
-	int mutationTypeID = [mutationTypeTextField intValue];
+	slim_objectid_t mutationTypeID = SLiMClampToObjectidType([[mutationTypeTextField stringValue] longLongValue]);
 	NSString *dominanceCoeffString = [dominanceCoeffTextField stringValue];
-	int dfeTag = (int)[dfeMatrix selectedTag];
+	NSInteger dfeTag = [dfeMatrix selectedTag];
 	
 	if (executeNow)
 	{

@@ -32,14 +32,14 @@
 	return @"Add Recombination Rate";
 }
 
-- (int)lastDefinedRecombinationPosition
+- (slim_position_t)lastDefinedRecombinationPosition
 {
-	std::vector<int> &endPositions = controller->sim->chromosome_.recombination_end_positions_;
-	int lastPosition = 0;
+	std::vector<slim_position_t> &endPositions = controller->sim->chromosome_.recombination_end_positions_;
+	slim_position_t lastPosition = 0;
 	
 	for (auto positionIter = endPositions.begin(); positionIter != endPositions.end(); positionIter++)
 	{
-		int endPosition = *positionIter;	// used to have a +1; switched to zero-based
+		slim_position_t endPosition = *positionIter;	// used to have a +1; switched to zero-based
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;
@@ -50,10 +50,10 @@
 
 - (void)configSheetLoaded
 {
-	int lastDefinedPosition = [self lastDefinedRecombinationPosition];
+	slim_position_t lastDefinedPosition = [self lastDefinedRecombinationPosition];
 	
 	// set initial control values
-	[intervalEndPositionTextField setStringValue:[NSString stringWithFormat:@"%d", lastDefinedPosition + 1]];
+	[intervalEndPositionTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)lastDefinedPosition + 1]];
 	[recombinationRateTextField setStringValue:@"0.00000001"];
 	
 	[super configSheetLoaded];
@@ -61,8 +61,8 @@
 
 - (IBAction)validateControls:(id)sender
 {
-	int lastDefinedPosition = [self lastDefinedRecombinationPosition];
-	int endPosition = (int)[intervalEndPositionTextField doubleValue];		// handle scientific notation
+	slim_position_t lastDefinedPosition = [self lastDefinedRecombinationPosition];
+	slim_position_t endPosition = SLiMClampToPositionType((int64_t)[intervalEndPositionTextField doubleValue]);		// handle scientific notation
 	
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
@@ -83,7 +83,7 @@
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *endPosition = [intervalEndPositionTextField stringValue];
 	NSString *rateString = [recombinationRateTextField stringValue];

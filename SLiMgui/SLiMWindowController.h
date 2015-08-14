@@ -40,14 +40,14 @@
 	// random number generator variables that are globals in Eidos; we swap these in and out as needed
 	gsl_rng *sim_rng;
 	int sim_random_bool_bit_counter;
-	unsigned long int sim_random_bool_bit_buffer;
-	int sim_rng_last_seed;
+	uint32_t sim_random_bool_bit_buffer;
+	unsigned long int sim_rng_last_seed;			// unsigned long int is the type used by gsl_rng_set()
 
 	// play-related variables
 	BOOL invalidSimulation, continuousPlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
-	int targetGeneration;
+	slim_generation_t targetGeneration;
 	NSDate *continuousPlayStartDate;
-	uint64 continuousPlayGenerationsCompleted;
+	uint64_t continuousPlayGenerationsCompleted;
 	
 	// display-related variables
 	double fitnessColorScale, selectionColorScale;
@@ -143,7 +143,7 @@
 
 - (std::vector<Subpopulation*>)selectedSubpopulations;
 
-- (NSColor *)colorForGenomicElementTypeID:(int)elementTypeID;
+- (NSColor *)colorForGenomicElementTypeID:(slim_objectid_t)elementTypeID;
 
 - (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock;
 

@@ -35,7 +35,7 @@
 - (void)configSheetLoaded
 {
 	// set initial control values
-	[generationTextField setStringValue:[NSString stringWithFormat:@"%d", controller->sim->generation_]];
+	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
 	[self configureSubpopulationPopup:subpopPopUpButton];
 	[sampleSizeTextField setStringValue:@"100"];
 	
@@ -65,22 +65,22 @@
 	[sampleSizeTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sizeValid]];
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
-	needsRecycle = ((int)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
+	needsRecycle = ((int64_t)[generationTextField doubleValue] < controller->sim->generation_);		// handle scientific notation
 	
 	// now we call super, and it uses validInput and needsRecycle to fix up the UI for us
 	[super validateControls:sender];
 }
 
-- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(int *)targetGenPtr
+- (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
 	NSString *targetGeneration = [generationTextField stringValue];
-	int targetGenerationInt = (int)[targetGeneration doubleValue];
-	int populationID = (int)[subpopPopUpButton selectedTag];
-	int sampleSize = [sampleSizeTextField intValue];
-	int sampledSexTag = (int)[sampledSexMatrix selectedTag];
+	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
+	slim_objectid_t populationID = SLiMClampToObjectidType([subpopPopUpButton selectedTag]);
+	slim_popsize_t sampleSize = SLiMCastToPopsizeTypeOrRaise([[sampleSizeTextField stringValue] longLongValue]);
+	NSInteger sampledSexTag = [sampledSexMatrix selectedTag];
 	BOOL useMS = ([useMSFormatCheckbox state] == NSOnState);
 	
-	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%d%@);\n}", populationID, useMS ? @"MS" : @"", sampleSize, (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"")];
+	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%lld%@);\n}", populationID, useMS ? @"MS" : @"", (int64_t)sampleSize, (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"")];
 	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)

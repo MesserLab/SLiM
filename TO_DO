@@ -1,12 +1,14 @@
 command-line tool:
 	set up testing code for validation, check against old version of the code
-	switch to int32_t and such for all storage, I think; best to be predictable.  get rid of static_cast where possible
-	could use stoi(), stof(), etc. instead of cstr() and atoi() etc.?
 	should we use map instead of multimap?  set?  unordered versions, possibly?
 	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
 	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
-	should be using strtod, strtol, etc. in all code instead of atoi, atof
-	slimslim: preprocessor variant optimized for minimal memory usage given stricter constraints on the number of subpops, number of mutation types, etc.
+	build options for SLiM:
+		use smaller types to decrease memory usage – slim_position_t, slim_objectid_t, slim_generation_t, slim_refcount_t, slim_selcoeff_t in particular
+		use GSL poisson draw versus our custom fast Poisson draw code
+		turn range checks, other checks and asserts on/off (maybe DEBUG suffices for this)
+	add testing code for SLiM and Eidos, both invokable from the command line
+	move error-checking code for edge cases into DEBUG blocks to avoid slowing down the release build
 
 Eidos:
 	extensions for Daphnia model
@@ -18,6 +20,7 @@ Eidos:
 	for Erich: add regression tests, implement a help system based on some sort of file-based representation
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
 	documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
+	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	
 	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)

@@ -48,7 +48,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	if (sex_enabled_)
 	{
 		// Figure out the first male index from the sex ratio, and exit if we end up with all one sex
-		child_first_male_index_ = static_cast<int>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
+		child_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
 			EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << eidos_terminate();
@@ -57,7 +57,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		
 		if (p_parents_also)
 		{
-			parent_first_male_index_ = static_cast<int>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
+			parent_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
 				EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << eidos_terminate();
@@ -83,14 +83,14 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 				child_genomes_.reserve(2 * child_subpop_size_);
 				
 				// females get two Xs
-				for (int i = 0; i < child_first_male_index_; ++i)
+				for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
 				{
 					child_genomes_.push_back(x_model);
 					child_genomes_.push_back(x_model);
 				}
 				
 				// males get an X and a Y
-				for (int i = child_first_male_index_; i < child_subpop_size_; ++i)
+				for (slim_popsize_t i = child_first_male_index_; i < child_subpop_size_; ++i)
 				{
 					child_genomes_.push_back(x_model);
 					child_genomes_.push_back(y_model);
@@ -101,14 +101,14 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					parent_genomes_.reserve(2 * parent_subpop_size_);
 					
 					// females get two Xs
-					for (int i = 0; i < parent_first_male_index_; ++i)
+					for (slim_popsize_t i = 0; i < parent_first_male_index_; ++i)
 					{
 						parent_genomes_.push_back(x_model);
 						parent_genomes_.push_back(x_model);
 					}
 					
 					// males get an X and a Y
-					for (int i = parent_first_male_index_; i < parent_subpop_size_; ++i)
+					for (slim_popsize_t i = parent_first_male_index_; i < parent_subpop_size_; ++i)
 					{
 						parent_genomes_.push_back(x_model);
 						parent_genomes_.push_back(y_model);
@@ -131,7 +131,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 #endif
 }
 
-Subpopulation::Subpopulation(Population &p_population, int p_subpopulation_id, int p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
 {
 	GenerateChildrenToFit(true);
 	
@@ -142,14 +142,14 @@ Subpopulation::Subpopulation(Population &p_population, int p_subpopulation_id, i
 	
 	double *fitness_buffer_ptr = cached_parental_fitness_;
 	
-	for (int i = 0; i < parent_subpop_size_; i++)
+	for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 		*(fitness_buffer_ptr++) = 1.0;
 	
 	lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 }
 
 // SEX ONLY
-Subpopulation::Subpopulation(Population &p_population, int p_subpopulation_id, int p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
 {
 	GenerateChildrenToFit(true);
@@ -163,16 +163,16 @@ population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(t
 	double *fitness_buffer_ptr = cached_parental_fitness_;
 	double *male_buffer_ptr = cached_male_fitness_;
 	
-	for (int i = 0; i < parent_first_male_index_; i++)
+	for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 	{
 		*(fitness_buffer_ptr++) = 1.0;
 		*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
 	}
 	
 	// Set up to draw random males, based initially on equal fitnesses
-	int num_males = parent_subpop_size_ - parent_first_male_index_;
+	slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
 	
-	for (int i = 0; i < num_males; i++)
+	for (slim_popsize_t i = 0; i < num_males; i++)
 	{
 		*(fitness_buffer_ptr++) = 1.0;
 		*(male_buffer_ptr++) = 1.0;
@@ -233,7 +233,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		gsl_ran_discrete_free(lookup_male_parent_);
 		
 		// Set up to draw random females
-		for (int i = 0; i < parent_first_male_index_; i++)
+		for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 		{
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
@@ -248,11 +248,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		
 		// Set up to draw random males
-		int num_males = parent_subpop_size_ - parent_first_male_index_;
+		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
 		
-		for (int i = 0; i < num_males; i++)
+		for (slim_popsize_t i = 0; i < num_males; i++)
 		{
-			int individual_index = (i + parent_first_male_index_);
+			slim_popsize_t individual_index = (i + parent_first_male_index_);
 			double fitness = FitnessOfParentWithGenomeIndices(2 * individual_index, 2 * individual_index + 1, p_fitness_callbacks);
 			
 			cached_parental_fitness_[individual_index] = fitness;
@@ -271,7 +271,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		
 		gsl_ran_discrete_free(lookup_parent_);
 		
-		for (int i = 0; i < parent_subpop_size_; i++)
+		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 		{
 			double fitness = FitnessOfParentWithGenomeIndices(2 * i, 2 * i + 1, p_fitness_callbacks);
 			
@@ -294,14 +294,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 
 double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2)
 {
-	int mutation_type_id = p_mutation->mutation_type_ptr_->mutation_type_id_;
+	slim_objectid_t mutation_type_id = p_mutation->mutation_type_ptr_->mutation_type_id_;
 	SLiMSim &sim = population_.sim_;
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
 		if (fitness_callback->active_)
 		{
-			int callback_mutation_type_id = fitness_callback->mutation_type_id_;
+			slim_objectid_t callback_mutation_type_id = fitness_callback->mutation_type_id_;
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
@@ -390,7 +390,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 	return p_computed_fitness;
 }
 
-double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
+double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
 {
 	// Are any fitness() callbacks active this generation?  Unfortunately, all the code below is bifurcated based on this flag.  This is for two reasons.  First,
 	// it allows the case without fitness() callbacks to run at full speed; testing the flag each time around the loop through the mutations in the genomes
@@ -427,7 +427,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 				while (genome_iter != genome_max)
 				{
 					Mutation *genome_mutation = *genome_iter;
-					float selection_coeff = genome_mutation->selection_coeff_;
+					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 					double rel_fitness = (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 					
 					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -443,7 +443,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 				while (genome_iter != genome_max)
 				{
 					const Mutation *genome_mutation = *genome_iter;
-					float selection_coeff = genome_mutation->selection_coeff_;
+					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 					
 					if (selection_coeff != 0.0f)
 					{
@@ -465,7 +465,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 				while (genome_iter != genome_max)
 				{
 					Mutation *genome_mutation = *genome_iter;
-					float selection_coeff = genome_mutation->selection_coeff_;
+					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 					double rel_fitness = (1.0 + selection_coeff);
 					
 					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -481,7 +481,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 				while (genome_iter != genome_max)
 				{
 					const Mutation *genome_mutation = *genome_iter;
-					float selection_coeff = genome_mutation->selection_coeff_;
+					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 					
 					if (selection_coeff != 0.0f)
 					{
@@ -511,7 +511,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max)
 		{
 			Mutation *genome1_mutation = *genome1_iter, *genome2_mutation = *genome2_iter;
-			int genome1_iter_position = genome1_mutation->position_, genome2_iter_position = genome2_mutation->position_;
+			slim_position_t genome1_iter_position = genome1_mutation->position_, genome2_iter_position = genome2_mutation->position_;
 			
 			if (fitness_callbacks_exist)
 			{
@@ -520,7 +520,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						float selection_coeff = genome1_mutation->selection_coeff_;
+						slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 						double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 						
 						w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -540,7 +540,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						float selection_coeff = genome2_mutation->selection_coeff_;
+						slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 						double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 
 						w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -560,13 +560,13 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					else
 					{
 						// Look for homozygosity: genome1_iter_position == genome2_iter_position
-						int position = genome1_iter_position;
+						slim_position_t position = genome1_iter_position;
 						Mutation **genome1_start = genome1_iter;
 						
 						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							float selection_coeff = genome1_mutation->selection_coeff_;
+							slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 							MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
 							Mutation **genome2_matchscan = genome2_iter; 
 							bool homozygous = false;
@@ -615,7 +615,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							float selection_coeff = genome2_mutation->selection_coeff_;
+							slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 							MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
 							Mutation **genome1_matchscan = genome1_start; 
 							bool homozygous = false;
@@ -667,7 +667,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						float selection_coeff = genome1_mutation->selection_coeff_;
+						slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 						
 						if (selection_coeff != 0.0f)
 						{
@@ -689,7 +689,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						float selection_coeff = genome2_mutation->selection_coeff_;
+						slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 						
 						if (selection_coeff != 0.0f)
 						{
@@ -711,13 +711,13 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 					else
 					{
 						// Look for homozygosity: genome1_iter_position == genome2_iter_position
-						int position = genome1_iter_position;
+						slim_position_t position = genome1_iter_position;
 						Mutation **genome1_start = genome1_iter;
 						
 						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							float selection_coeff = genome1_mutation->selection_coeff_;
+							slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 							
 							if (selection_coeff != 0.0f)
 							{
@@ -766,7 +766,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							float selection_coeff = genome2_mutation->selection_coeff_;
+							slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 							
 							if (selection_coeff != 0.0f)
 							{
@@ -824,7 +824,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 			while (genome1_iter != genome1_max)
 			{
 				Mutation *genome1_mutation = *genome1_iter;
-				float selection_coeff = genome1_mutation->selection_coeff_;
+				slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 				double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 				
 				w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -840,7 +840,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 			while (genome1_iter != genome1_max)
 			{
 				const Mutation *genome1_mutation = *genome1_iter;
-				float selection_coeff = genome1_mutation->selection_coeff_;
+				slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 				
 				if (selection_coeff != 0.0f)
 				{
@@ -860,7 +860,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 			while (genome2_iter != genome2_max)
 			{
 				Mutation *genome2_mutation = *genome2_iter;
-				float selection_coeff = genome2_mutation->selection_coeff_;
+				slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 				double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 				
 				w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
@@ -876,7 +876,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(int p_genome_index1, int 
 			while (genome2_iter != genome2_max)
 			{
 				const Mutation *genome2_mutation = *genome2_iter;
-				float selection_coeff = genome2_mutation->selection_coeff_;
+				slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 				
 				if (selection_coeff != 0.0f)
 				{
@@ -1022,7 +1022,7 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p
 	{
 		case gID_tag:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
 			
 			tag_value_ = value;
 			return;
@@ -1063,7 +1063,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				
 				if (arg0_value->Type() == EidosValueType::kValueInt)
 				{
-					int subpop_id = (int)arg0_value->IntAtIndex(value_index);
+					slim_objectid_t subpop_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(value_index));
 					auto found_subpop_pair = population_.find(subpop_id);
 					
 					if (found_subpop_pair == population_.end())
@@ -1076,7 +1076,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 					source_subpop = arg0_value->ObjectElementAtIndex(value_index);
 				}
 				
-				int source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
+				slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				
 				population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
@@ -1185,7 +1185,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 		case gID_setSubpopulationSize:
 		{
-			int subpop_size = (int)arg0_value->IntAtIndex(0);
+			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0));
 			
 			population_.SetSize(subpopulation_id_, subpop_size);
 			
@@ -1206,11 +1206,11 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
 			
 			bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
-			int index_count = (do_all_indices ? parent_subpop_size_ : arg0_value->Count());
+			slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(arg0_value->Count()));
 			
 			if (index_count == 1)
 			{
-				int index = (do_all_indices ? 0 : (int)arg0_value->IntAtIndex(0));
+				slim_popsize_t index = (do_all_indices ? 0 : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0)));
 				double fitness = cached_parental_fitness_[index];
 				
 				return new EidosValue_Float_singleton_const(fitness);
@@ -1219,9 +1219,9 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			{
 				EidosValue_Float_vector *float_return = new EidosValue_Float_vector();
 				
-				for (int value_index = 0; value_index < index_count; value_index++)
+				for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 				{
-					int index = (do_all_indices ? value_index : (int)arg0_value->IntAtIndex(value_index));
+					slim_popsize_t index = (do_all_indices ? value_index : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index)));
 					double fitness = cached_parental_fitness_[index];
 					
 					float_return->PushFloat(fitness);
@@ -1242,7 +1242,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		case gID_outputMSSample:
 		case gID_outputSample:
 		{
-			int sample_size = (int)arg0_value->IntAtIndex(0);
+			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0));
 			IndividualSex requested_sex = IndividualSex::kUnspecified;
 			
 			if (p_argument_count == 2)

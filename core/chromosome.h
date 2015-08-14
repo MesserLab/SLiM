@@ -62,10 +62,10 @@ private:
 	
 public:
 	
-	vector<int> recombination_end_positions_;				// end positions of each defined recombination region
+	vector<slim_position_t> recombination_end_positions_;	// end positions of each defined recombination region
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
-	int last_position_;										// last position; used to be called length_ but it is (length - 1) really
+	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
 	EidosValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
 	
 	double overall_mutation_rate_;							// overall mutation rate, as specified by initializeMutationRate()
@@ -74,7 +74,7 @@ public:
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
-	int64_t tag_value_;										// a user-defined tag value
+	slim_usertag_t tag_value_;								// a user-defined tag value
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
@@ -83,9 +83,9 @@ public:
 	
 	void InitializeDraws(void);												// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	int DrawMutationCount(void) const;										// draw the number of mutations that occur, based on the overall mutation rate
-	Mutation *DrawNewMutation(int p_subpop_index, int p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
+	Mutation *DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
 	int DrawBreakpointCount(void) const;									// draw the number of breakpoints that occur, based on the overall recombination rate
-	vector<int> DrawBreakpoints(const int p_num_breakpoints) const;			// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
+	vector<slim_position_t> DrawBreakpoints(const int p_num_breakpoints) const;	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
 	
 	//

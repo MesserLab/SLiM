@@ -44,22 +44,22 @@ class Mutation : public EidosObjectElement
 
 public:
 	
-	MutationType *mutation_type_ptr_;			// mutation type identifier
-	const int32_t position_;							// position on the chromosome
-	float selection_coeff_;					// selection coefficient – because it may be changed in script
-	const int32_t subpop_index_;						// subpopulation in which mutation arose
-	const int32_t generation_;							// generation in which mutation arose
-	mutable int32_t reference_count_;					// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
+	MutationType *mutation_type_ptr_;					// mutation type identifier
+	const slim_position_t position_;					// position on the chromosome
+	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
+	const slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
+	const slim_generation_t generation_;				// generation in which mutation arose
+	mutable slim_refcount_t reference_count_;			// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
 #ifdef SLIMGUI
 	const uint64_t mutation_id_;						// a unique id for each mutation, used to track mutations in SLiMgui
-	mutable int32_t gui_reference_count_;				// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
-	mutable int32_t gui_scratch_reference_count;		// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
+	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
+	mutable slim_refcount_t gui_scratch_reference_count;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(MutationType *p_mutation_type_ptr, int p_position, double p_selection_coeff, int p_subpop_index, int p_generation);
+	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation);
 	
 #if DEBUG_MUTATIONS
 	~Mutation();										// destructor, if we are debugging

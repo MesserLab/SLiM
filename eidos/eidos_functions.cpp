@@ -2630,7 +2630,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark setSeed
 		case EidosFunctionIdentifier::setSeedFunction:
 		{
-			EidosInitializeRNGFromSeed((int)(arg0_value->IntAtIndex(0)));
+			EidosInitializeRNGFromSeed(arg0_value->IntAtIndex(0));
 			break;
 		}
 			
