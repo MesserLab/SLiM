@@ -27,7 +27,7 @@ using std::multimap;
 
 
 Polymorphism::Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_refcount_t p_prevalence) :
-	mutation_id_(p_mutation_id), mutation_type_ptr_(p_mutation_type_ptr), selection_coeff_(static_cast<typeof(selection_coeff_)>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), prevalence_(p_prevalence)
+	mutation_id_(p_mutation_id), mutation_type_ptr_(p_mutation_type_ptr), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), prevalence_(p_prevalence)
 {
 }
 
