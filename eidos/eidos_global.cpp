@@ -28,6 +28,7 @@
 #include <string>
 #include <map>
 #include <pwd.h>
+#include <unistd.h>
 
 
 // Information on the Context within which Eidos is running (if any).
