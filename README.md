@@ -20,7 +20,7 @@ Messer Lab home page for SLiM: [http://messerlab.org/software/](http://messerlab
 License
 ----------
 
-Copyright (c) 2014 Philipp Messer.  All rights reserved.
+Copyright (c) 2015 Philipp Messer.  All rights reserved.
 
 This file is part of SLiM.
 
@@ -36,10 +36,10 @@ For Mac OS X users, an Xcode project is provided that can be used to build SLiM.
 
 ```
 cd SLiM
-g++ -O3 ./core/*.cpp -lgsl -lgslcblas -std=c++11 -o slim
+g++ -O3 ./core/*.cpp ./eidos/*.cpp -iquote./eidos -lgsl -lgslcblas -std=c++11 -o slim
 ```
 
-Note that SLiM uses C++11 extensions, and thus that standard is specified at compilation in order to suppress warnings.
+Note that SLiM uses C++11 extensions, and thus that standard is specified at compilation.
 
 If your GNU Standard Library headers are not in the default search paths for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
 
@@ -50,7 +50,7 @@ gsl-config --cflags --libs
 For example, I have installed gsl using MacPorts, so my compilation command looks like:
 
 ```
-g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
+g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 ```
 
 Once SLiM is built, just run it at Terminal's command line. For example, to run the first example provided in SLiM's distribution, execute:

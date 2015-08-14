@@ -1,36 +1,32 @@
-command-line tool:
+SLiM:
 	set up testing code for validation, check against old version of the code
-	should we use map instead of multimap?  set?  unordered versions, possibly?
-	add move constructor and move assignment operators to classes, = delete, to explicitly prevent those operations
-	should perhaps define ostream output operators instead of the print() functions presently used?  but how to pass flags?
 	build options for SLiM:
 		use smaller types to decrease memory usage – slim_position_t, slim_objectid_t, slim_generation_t, slim_refcount_t, slim_selcoeff_t in particular
 		use GSL poisson draw versus our custom fast Poisson draw code
 		turn range checks, other checks and asserts on/off (maybe DEBUG suffices for this)
-	add testing code for SLiM and Eidos, both invokable from the command line
+	make testing code for SLiM and Eidos invokable from the command line so people can self-test after they build SLiM on a new platform
 	move error-checking code for edge cases into DEBUG blocks to avoid slowing down the release build
+	reporting errors by quoting the line of script and showing the position of the error
 
 Eidos:
+	add to method dispatch and function dispatch code: setting the token position for error highlighting of runtime errors!
 	extensions for Daphnia model
 		add a "modify generated child" event that can be used to make resting eggs by (1) setting a flag saying that the generated child should not be used, and (2) scheduling a new script event for the future that wakes up the resting egg
 		add a "generate child" event that can be used to wake up a resting egg by taking values defining the mutations present and creating a child out of them
 		add a "add existing mutation" method that searches for an exact match for mutation parameters, uses that mutation if found, otherwise makes a new mutation – or use an int64_t mutation id to uniquely identify the mutation to re-create, perhaps even better but more complex
-	implement help()
-	add rigorous tests for all functions
-	for Erich: add regression tests, implement a help system based on some sort of file-based representation
+	implement help(), perhaps based on some sort of file-based representation
+	add rigorous tests for all functions, methods, operators, types
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check
 	documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	
-	change selection coefficient and dominance at particular conditions (generation, when a mutation frequency reaches a threshold, etc.)
 	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 
 SLiMgui work:
-	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.
+	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.; leverage the built-in Eidos help, make it extensible by the Context
 	have a menu item that installs the slim command-line tool in an appropriate spot, so the GUI app is a standalone install that can ship on a .dmg
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
-	update documentation - TeXShop latex for mac, might need ghostscript as well
 
 changes to mention in docs:
 	changed comment format from / to //
@@ -58,7 +54,7 @@ changes to mention in docs:
 	add a mention of building with optimization turned on for release builds; makes a big difference!
 
 building on the command line for me:
-	g++ -O3 ./core/*.cpp -I/opt/local/include -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
+	g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 
 
 future plans:
@@ -70,14 +66,10 @@ future plans:
 		so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
 	multiple chromosomes – more than one per individual
 	test cases for verification: population genetic predictions like fixation probability
-	SLAM on GitHub: local adaptation
-	set a function governing population size: sin, cos, exp – to allow demography without having to set events per generation
-	pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too
-	add in hard/soft selection: extend event syntax of “set N” to allow setting N as a function of mean fitness
+	pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too?
 	possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring
 		individuals could have individual-types, which would define their expected # of children
 		statistical genetics and human evolution: bottlenecks and effective population size, debunking bottleneck myths
-	2.0 documentation, with revision tracking on it
 
 
 
