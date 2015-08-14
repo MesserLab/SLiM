@@ -1079,7 +1079,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
 				
-				population_.SetMigration(subpopulation_id_, source_subpop_id, migrant_fraction);
+				population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1187,7 +1187,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		{
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0));
 			
-			population_.SetSize(subpopulation_id_, subpop_size);
+			population_.SetSize(*this, subpop_size);
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -1267,9 +1267,9 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			SLIM_OUTSTREAM << endl;
 			
 			if (p_method_id == gID_outputSample)
-				population_.PrintSample(subpopulation_id_, sample_size, requested_sex);
+				population_.PrintSample(*this, sample_size, requested_sex);
 			else
-				population_.PrintSample_ms(subpopulation_id_, sample_size, sim.Chromosome(), requested_sex);
+				population_.PrintSample_ms(*this, sample_size, sim.Chromosome(), requested_sex);
 			
 			return gStaticEidosValueNULLInvisible;
 		}

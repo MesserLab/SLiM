@@ -122,7 +122,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopu
 	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
+	Subpopulation &subpop = *new_subpop;
 	
 	for (slim_popsize_t parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
 	{
@@ -151,55 +151,45 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopu
 	return new_subpop;
 }
 
-Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
-{
-	Subpopulation &source_subpop = SubpopulationWithID(p_source_subpop_id);
-	
-	return AddSubpopulation(p_subpop_id, source_subpop, p_subpop_size, p_initial_sex_ratio);
-}
-
 // set size of subpopulation p_subpop_id to p_subpop_size
-void Population::SetSize(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size)
+void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 {
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid)
 		EIDOS_TERMINATION << "ERROR (SetSize): called when the child generation was valid" << eidos_terminate();
-	if (count(p_subpop_id) == 0)
-		EIDOS_TERMINATION << "ERROR (SetSize): no subpopulation p" << p_subpop_id << eidos_terminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
-		erase(p_subpop_id);
+		// Note that we don't free the subpopulation here, because there may be live references to it.  In fact, I'm not sure we ever free it!
+		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
+		
+		erase(subpop_id);
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
-			subpop_pair.second->migrant_fractions_.erase(p_subpop_id);
+			subpop_pair.second->migrant_fractions_.erase(subpop_id);
 	}
 	else
 	{
-		Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-		
 		// After we change the subpop size, we need to generate new children genomes to fit the new requirements
-		subpop.child_subpop_size_ = p_subpop_size;
-		subpop.GenerateChildrenToFit(false);	// false means generate only new children, not new parents
+		p_subpop.child_subpop_size_ = p_subpop_size;
+		p_subpop.GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 	}
 }
 
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
-void Population::SetMigration(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
+void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
 		EIDOS_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << eidos_terminate();
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
 		EIDOS_TERMINATION << "ERROR (SetMigration): migration fraction has to be within [0,1]" << eidos_terminate();
 	
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-	
-	if (subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
-		subpop.migrant_fractions_.erase(p_source_subpop_id);
+	if (p_subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
+		p_subpop.migrant_fractions_.erase(p_source_subpop_id);
 	
 	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
-		subpop.migrant_fractions_.insert(std::pair<const slim_objectid_t,double>(p_source_subpop_id, p_migrant_fraction)); 
+		p_subpop.migrant_fractions_.insert(std::pair<const slim_objectid_t,double>(p_source_subpop_id, p_migrant_fraction)); 
 }
 
 // execute a script event in the population; the script is assumed to be due to trigger
@@ -502,18 +492,17 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 }
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
 {
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-	bool sex_enabled = subpop.sex_enabled_;
-	slim_popsize_t total_children = subpop.child_subpop_size_;
+	bool sex_enabled = p_subpop.sex_enabled_;
+	slim_popsize_t total_children = p_subpop.child_subpop_size_;
 	
 	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
 	// Any code that chooses individuals from the population should choose randomly to avoid order-dependency!
 	
 	// set up to draw migrants; this works the same in the sex and asex cases, and for males / females / hermaphrodites
 	// the way the code is now structured, "migrant" really includes everybody; we are a migrant source subpop for ourselves
-	int migrant_source_count = static_cast<int>(subpop.migrant_fractions_.size());
+	int migrant_source_count = static_cast<int>(p_subpop.migrant_fractions_.size());
 	double migration_rates[migrant_source_count + 1];
 	Subpopulation *migration_sources[migrant_source_count + 1];
 	unsigned int num_migrants[migrant_source_count + 1];			// used by client code below; type constrained by gsl_ran_multinomial()
@@ -523,7 +512,7 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 		double migration_rate_sum = 0.0;
 		int pop_count = 0;
 		
-		for (const std::pair<const slim_objectid_t,double> &fractions_pair : subpop.migrant_fractions_)
+		for (const std::pair<const slim_objectid_t,double> &fractions_pair : p_subpop.migrant_fractions_)
 		{
 			migration_rates[pop_count] = fractions_pair.second;
 			migration_sources[pop_count] = &SubpopulationWithID(fractions_pair.first);
@@ -535,15 +524,15 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 		{
 			// the remaining fraction is within-subpopulation mating
 			migration_rates[pop_count] = 1.0 - migration_rate_sum;
-			migration_sources[pop_count] = &subpop;
+			migration_sources[pop_count] = &p_subpop;
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation " << p_subpop_id << "; migration fractions must sum to <= 1.0" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation p" << p_subpop.subpopulation_id_ << "; migration fractions must sum to <= 1.0" << eidos_terminate();
 	}
 	else
 	{
 		migration_rates[0] = 1.0;
-		migration_sources[0] = &subpop;
+		migration_sources[0] = &p_subpop;
 	}
 	
 	// SEX ONLY: the sex and asex cases share code but work a bit differently; the sex cases generates females and then males in
@@ -553,7 +542,7 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 	
 	if (sex_enabled)
 	{
-		double sex_ratio = subpop.child_sex_ratio_;
+		double sex_ratio = p_subpop.child_sex_ratio_;
 		
 		total_male_children = static_cast<slim_popsize_t>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male
 		total_female_children = total_children - total_male_children;
@@ -631,8 +620,8 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 						slim_popsize_t parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-						DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
 						
 						migrant_count++;
 						child_count++;
@@ -656,8 +645,8 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 							parent2 = parent1;
 							cloned = true;
 							
-							DoClonalMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-							DoClonalMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+							DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+							DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 						}
 						else
 						{
@@ -669,7 +658,7 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 							{
 								while (true)	// loop while parent2 == -1, indicating a request for a new first parent
 								{
-									parent2 = ApplyMateChoiceCallbacks(parent1, &subpop, &source_subpop, *mate_choice_callbacks);
+									parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
 									
 									if (parent2 != -1)
 										break;
@@ -680,12 +669,12 @@ void Population::EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromoso
 							}
 							
 							// recombination, gene-conversion, mutation
-							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-							DoCrossoverMutation(&subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+							DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+							DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
 						}
 						
 						if (modify_child_callbacks)
-							if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &subpop, &source_subpop, *modify_child_callbacks))
+							if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 								continue;
 						
 						// if the child was accepted, change all our counters; can't be done before the modifyChild() callback since it might reject the child!
@@ -1605,14 +1594,13 @@ void Population::PrintAll(std::ostream &p_out) const
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-void Population::PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
+void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-	std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop.child_genomes_ : subpop.parent_genomes_);
+	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
-	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
+	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
 		EIDOS_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
@@ -1626,7 +1614,7 @@ void Population::PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sampl
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
 			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
-		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
+		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
 		
@@ -1647,7 +1635,7 @@ void Population::PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sampl
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop_id << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
+		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
 		
 		if (genome.IsNull())
 		{
@@ -1668,14 +1656,13 @@ void Population::PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sampl
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
+void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	Subpopulation &subpop = SubpopulationWithID(p_subpop_id);
-	std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop.child_genomes_ : subpop.parent_genomes_);
+	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
-	if (p_requested_sex == IndividualSex::kFemale && subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
+	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
 		EIDOS_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
@@ -1689,7 +1676,7 @@ void Population::PrintSample_ms(slim_objectid_t p_subpop_id, slim_popsize_t p_sa
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
 			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
-		} while (subpop_genomes[j].IsNull() || (subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && subpop.SexOfIndividual(j / 2) != p_requested_sex));
+		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
 		sample.push_back(j);
 		

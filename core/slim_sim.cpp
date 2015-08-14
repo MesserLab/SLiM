@@ -597,7 +597,7 @@ bool SLiMSim::RunOneGeneration(void)
 				if (no_active_callbacks)
 				{
 					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, false, false);
+						population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false);
 				}
 				else
 				{
@@ -628,7 +628,7 @@ bool SLiMSim::RunOneGeneration(void)
 					
 					// then evolve each subpop
 					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(subpop_pair.first, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
+						population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
 					
 					// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
 					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)

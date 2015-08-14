@@ -91,13 +91,12 @@ public:
 	
 	// add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio);
-	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio);
 	
 	// set size of subpopulation p_subpop_id to p_subpop_size
-	void SetSize(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
+	void SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size);
 	
 	// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
-	void SetMigration(slim_objectid_t p_subpop_id, slim_objectid_t p_source_subpop_id, double p_migrant_fraction);
+	void SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction);
 	
 	// execute a script event in the population; the script is assumed to be due to trigger
 	void ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome);
@@ -109,7 +108,7 @@ public:
 	bool ApplyModifyChildCallbacks(slim_popsize_t p_child_index, IndividualSex p_child_sex, slim_popsize_t p_parent1_index, slim_popsize_t p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-	void EvolveSubpopulation(slim_objectid_t p_subpop_id, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present);
+	void EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present);
 	
 	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 	void DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex);
@@ -133,10 +132,10 @@ public:
 	void PrintAll(std::ostream &p_out) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id
-	void PrintSample(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const;
+	void PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-	void PrintSample_ms(slim_objectid_t p_subpop_id, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
+	void PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
