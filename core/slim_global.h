@@ -31,6 +31,11 @@
 #include "eidos_global.h"
 
 
+// *******************************************************************************************************************
+//
+//	Output handling for SLiM
+//
+
 // Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, orindary output goes to cout,
 // and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use a global
 // ostringstream to capture all output to both the output and error streams.  This stream should get emptied out after
@@ -42,9 +47,25 @@ extern std::ostringstream gSLiMOut;
 #define SLIM_ERRSTREAM		(gEidosTerminateThrows ? gSLiMOut : std::cerr)
 
 
-// Some types and maximum values enforced by SLiM, comfortably under INT32_MAX
-// If one of these things changes to be stored in an int64_t, these limits can be changed
-// 1000000000 is one billion, by the way :->; INT32_MAX is a little over 2 billion
+// *******************************************************************************************************************
+//
+//	Types and maximum values used by SLiM
+//
+
+// This is the standard setup for SLiM: 32 bit ints for most values.  This is recommended.  This gives a maximum of
+// 1 billion for quantities such as object IDs, generations, population sizes, and chromosome positions.  This is
+// comfortably under INT_MAX, which is a bit over 2 billion.  The goal is to try to avoid overflow bugs by keeping
+// a large amount of headroom, so that we are not at risk of simple calculations with these quantities overflowing.
+// Raising these limits to int64_t is reasonable if you need to run a larger simulation.  Lowering them to int16_t
+// is not recommended, and will likely buy you very little, because most of the memory usage in typical simulations
+// is in the arrays of pointers kept by Genome objects.  There are, for typical simulations, many pointers to a given
+// mutation on average, so the memory used by a Mutation object is insignificant compared to all those 64-bit
+// pointers pointing to that single Mutation object.  This means that the only thing that will really reduce SLiM's
+// memory footprint significantly is to compile it with 32-bit pointers instead of 64-bit pointers; but that will
+// limit you to 4GB of working memory, which is not that much, and SLiM has no checks on its memory usage, so you
+// will likely experience random crashes due to running out of memory if you try that.  So, long story short, SLiM's
+// memory usage is what it is, and is about as good as it could reasonably be.
+
 typedef int32_t	slim_generation_t;	// generation numbers, generation durations
 typedef int32_t	slim_position_t;	// chromosome positions, lengths in base pairs
 typedef int32_t	slim_objectid_t;	// identifiers values for objects, like the "5" in p5, g5, m5, s5
@@ -148,11 +169,21 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 }
 
 
+// *******************************************************************************************************************
+//
+//	Debugging support
+//
+
 // Debugging #defines that can be turned on
 #define DEBUG_MUTATIONS			0		// turn on logging of mutation construction and destruction
 #define DEBUG_MUTATION_ZOMBIES	0		// avoid destroying Mutation objects; keep them as zombies
 #define DEBUG_INPUT				1		// additional output for debugging of input file parsing
 
+
+// *******************************************************************************************************************
+//
+//	Shared SLiM types and enumerations
+//
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
@@ -200,10 +231,20 @@ inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 }
 
 
+// *******************************************************************************************************************
+//
+//	Memory usage monitoring
+//
+
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
 size_t getPeakRSS( );
 size_t getCurrentRSS( );
 
+
+// *******************************************************************************************************************
+//
+//	Global strings and IDs
+//
 
 //
 //	Additional global std::string objects.  See script_globals.h for details.

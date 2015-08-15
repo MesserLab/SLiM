@@ -1,7 +1,6 @@
 SLiM:
 	set up testing code for validation, check against old version of the code
 	build options for SLiM:
-		use smaller types to decrease memory usage – slim_position_t, slim_objectid_t, slim_generation_t, slim_refcount_t, slim_selcoeff_t in particular
 		use GSL poisson draw versus our custom fast Poisson draw code
 		turn range checks, other checks and asserts on/off (maybe DEBUG suffices for this)
 	move error-checking code for edge cases into DEBUG blocks to avoid slowing down the release build

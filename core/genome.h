@@ -175,10 +175,13 @@ public:
 		{
 			if (mutations_ == mutations_buffer_)
 			{
-				// we're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  In this case,
-				// let's jump by more than a factor of two, to try to avoid having to do repeated reallocs as we grow; we're
-				// clearly running more than a minimal-size simulation.  The price paid is not huge, and the benefit is large.
-				mutation_capacity_ = GENOME_MUT_BUFFER_SIZE * 8;
+				// We're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  We might try jumping by
+				// more than a factor of two, to avoid repeated reallocs; in practice, that is not a win.  The large majority of SLiM's
+				// memory usage in typical simulations comes from these arrays of pointers kept by Genome, so making them larger
+				// than necessary can massively balloon SLiM's memory usage for very little gain.  The realloc() calls are very fast;
+				// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
+				// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
+				mutation_capacity_ = GENOME_MUT_BUFFER_SIZE * 2;
 				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));
