@@ -51,18 +51,18 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
-			EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << eidos_terminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-			EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << eidos_terminate();
 		
 		if (p_parents_also)
 		{
 			parent_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
-				EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << eidos_terminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << eidos_terminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -315,7 +315,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					EidosValue *result = compound_statement_node->cached_value_;
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 					
 					p_computed_fitness = result->FloatAtIndex(0);
 					
@@ -370,7 +370,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						EidosValue *result = interpreter.EvaluateInternalBlock();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (ApplyFitnessCallbacksToFitness): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 						
 						p_computed_fitness = result->FloatAtIndex(0);
 						

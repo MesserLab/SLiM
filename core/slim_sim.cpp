@@ -85,11 +85,7 @@ SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_pt
 	std::ifstream infile(p_input_file);
 	
 	if (!infile.is_open())
-	{
-		EIDOS_TERMINATION << std::endl;
-		EIDOS_TERMINATION << "ERROR (parameter file): could not open: " << p_input_file << std::endl << std::endl;
-		EIDOS_TERMINATION << eidos_terminate();
-	}
+		EIDOS_TERMINATION << std::endl << "ERROR (SLiMSim::SLiMSim): could not open input file: " << p_input_file << std::endl << std::endl << eidos_terminate();
 	
 	// read all configuration information from the input file
 	infile.seekg(0, std::fstream::beg);
@@ -487,19 +483,19 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// check for complete initialization
 	if (num_mutation_rates == 0)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): A mutation rate must be supplied in an initialize() callback with initializeMutationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): A mutation rate must be supplied in an initialize() callback with initializeMutationRate()." << eidos_terminate();
 	
 	if (num_mutation_types == 0)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << eidos_terminate();
 	
 	if (num_genomic_element_types == 0)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << eidos_terminate();
 	
 	if (num_genomic_elements == 0)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << eidos_terminate();
 	
 	if (num_recombination_rates == 0)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << eidos_terminate();
 	
 	// figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
 	// since an Eidos event that adds a subpopulation is necessary to get things started
@@ -510,7 +506,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 			time_start_ = script_block->start_generation_;
 	
 	if (time_start_ == SLIM_MAX_GENERATION)
-		EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
 	
 	// emit our start log
 	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
@@ -736,7 +732,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 			
 			if (found_getype_pair == genomic_element_types_.end())
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined" << eidos_terminate();
 			
 			genomic_element_type_ptr = found_getype_pair->second;
 		}
@@ -772,13 +768,13 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 'g');
 		
 		if (genomic_element_types_.count(map_identifier) > 0) 
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
 		
 		int mut_type_id_count = arg1_value->Count();
 		int proportion_count = arg2_value->Count();
 		
 		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -789,7 +785,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			double proportion = arg2_value->FloatAtIndex(mut_type_index);
 			
 			if (proportion <= 0)
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() proportions must be greater than zero." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() proportions must be greater than zero." << eidos_terminate();
 			
 			if (arg1_value->Type() == EidosValueType::kValueInt)
 			{
@@ -797,7 +793,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 				
 				if (found_muttype_pair == mutation_types_.end())
-					EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
 				
 				mutation_type_ptr = found_muttype_pair->second;
 			}
@@ -821,7 +817,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosValue *symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): symbol " << symbol_name << " was already defined prior to its definition by initializeGenomicElementType()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): symbol " << symbol_name << " was already defined prior to its definition by initializeGenomicElementType()." << eidos_terminate();
 		symbols.SetValueForSymbol(symbol_name, symbol_value);
 		
 		if (DEBUG_INPUT)
@@ -853,7 +849,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		std::vector<double> dfe_parameters;
 		
 		if (mutation_types_.count(map_identifier) > 0) 
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeMutationType() mutation type m" << map_identifier << " already defined" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() mutation type m" << map_identifier << " already defined" << eidos_terminate();
 		
 		if (dfe_type_string.compare("f") == 0)
 			expected_dfe_param_count = 1;
@@ -862,12 +858,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		else if (dfe_type_string.compare("e") == 0)
 			expected_dfe_param_count = 1;
 		else
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeMutationType() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << eidos_terminate();
 		
 		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
@@ -889,7 +885,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosValue *symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): symbol " << symbol_name << " was already defined prior to its definition by initializeMutationType()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): symbol " << symbol_name << " was already defined prior to its definition by initializeMutationType()." << eidos_terminate();
 		symbols.SetValueForSymbol(symbol_name, symbol_value);
 		
 		if (DEBUG_INPUT)
@@ -919,13 +915,13 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (p_argument_count == 1)
 		{
 			if (rate_count != 1)
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
 			double recombination_rate = arg0_value->FloatAtIndex(0);
 			
 			// check values
 			if (recombination_rate < 0.0)
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			
 			// then adopt them
 			chromosome_.recombination_rates_.clear();
@@ -939,7 +935,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			int end_count = arg1_value->Count();
 			
 			if ((end_count != rate_count) || (end_count == 0))
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
 			
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
@@ -949,10 +945,10 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
-						EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)
-					EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			}
 			
 			// then adopt them
@@ -1012,15 +1008,15 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)
 	{
 		if (num_gene_conversions > 0)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGeneConversion() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() may be called only once." << eidos_terminate();
 		
 		double gene_conversion_fraction = arg0_value->FloatAtIndex(0);
 		double gene_conversion_avg_length = arg1_value->FloatAtIndex(0);
 		
 		if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 (inclusive)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 (inclusive)." << eidos_terminate();
 		if (gene_conversion_avg_length <= 0.0)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeGeneConversion() meanLength must be greater than 0.0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() meanLength must be greater than 0.0." << eidos_terminate();
 		
 		chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
 		chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
@@ -1040,12 +1036,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)
 	{
 		if (num_mutation_rates > 0)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeMutationRate() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once." << eidos_terminate();
 		
 		double rate = arg0_value->FloatAtIndex(0);
 		
 		if (rate < 0.0)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeMutationRate() requires rate >= 0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rate >= 0." << eidos_terminate();
 		
 		chromosome_.overall_mutation_rate_ = rate;
 		
@@ -1064,7 +1060,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	else if (p_function_name.compare(gStr_initializeSex) == 0)
 	{
 		if (num_sex_declarations > 0)
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeSex() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() may be called only once." << eidos_terminate();
 		
 		string chromosome_type = arg0_value->StringAtIndex(0);
 		
@@ -1075,14 +1071,14 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		else if (chromosome_type.compare("Y") == 0)
 			modeled_chromosome_type_ = GenomeType::kYChromosome;
 		else
-			EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << eidos_terminate();
 		
 		if (p_argument_count == 2)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0);
 			else
-				EIDOS_TERMINATION << "ERROR (RunInitializeCallbacks): xDominanceCoeff may be supplied to initializeSex() only for chromosomeType \"X\"." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): xDominanceCoeff may be supplied to initializeSex() only for chromosomeType \"X\"." << eidos_terminate();
 		}
 		
 		if (DEBUG_INPUT)

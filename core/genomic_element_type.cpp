@@ -30,7 +30,7 @@ GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
 {
 	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
-		EIDOS_TERMINATION << "ERROR (Initialize): mutation types and fractions have different sizes" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::GenomicElementType): mutation types and fractions have different sizes" << eidos_terminate();
 	
 	// Prepare to randomly draw mutation types
 	double A[mutation_type_ptrs_.size()];

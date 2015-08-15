@@ -81,7 +81,7 @@ public:
 		auto found_pair = find(p_subpop_id);
 		
 		if (found_pair == this->end())
-			EIDOS_TERMINATION << "********* SubpopulationWithID: no subpopulation p" << p_subpop_id << std::endl << eidos_terminate(true);
+			EIDOS_TERMINATION << "ERROR (Population::SubpopulationWithID): no subpopulation p" << p_subpop_id << std::endl << eidos_terminate(true);
 		
 		return *(found_pair->second);
 	}

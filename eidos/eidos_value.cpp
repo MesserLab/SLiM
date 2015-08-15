@@ -206,35 +206,35 @@ EidosValue::~EidosValue(void)
 bool EidosValue::LogicalAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type logical." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue::LogicalAtIndex): operand type " << this->Type() << " cannot be converted to type logical." << eidos_terminate();
 	return false;
 }
 
 std::string EidosValue::StringAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type string." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue::StringAtIndex): operand type " << this->Type() << " cannot be converted to type string." << eidos_terminate();
 	return std::string();
 }
 
 int64_t EidosValue::IntAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type integer." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue::IntAtIndex): operand type " << this->Type() << " cannot be converted to type integer." << eidos_terminate();
 	return 0;
 }
 
 double EidosValue::FloatAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type float." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue::FloatAtIndex): operand type " << this->Type() << " cannot be converted to type float." << eidos_terminate();
 	return 0.0;
 }
 
 EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx) const
 {
 #pragma unused(p_idx)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " cannot be converted to type object." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue::ObjectElementAtIndex): operand type " << this->Type() << " cannot be converted to type object." << eidos_terminate();
 	return nullptr;
 }
 
@@ -299,7 +299,7 @@ EidosValue *EidosValue_NULL::GetValueAtIndex(const int p_idx) const
 void EidosValue_NULL::SetValueAtIndex(const int p_idx, EidosValue *p_value)
 {
 #pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR: operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue_NULL::SetValueAtIndex): operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << eidos_terminate();
 }
 
 EidosValue *EidosValue_NULL::CopyValues(void) const
@@ -546,7 +546,7 @@ EidosValue_Logical_const::EidosValue_Logical_const(bool p_bool1) : EidosValue_Lo
 
 EidosValue_Logical_const::~EidosValue_Logical_const(void)
 {
-	EIDOS_TERMINATION << "ERROR (EidosValue_NULL_const::~EidosValue_NULL_const): internal error: global constant deallocated." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::~EidosValue_Logical_const): internal error: global constant deallocated." << eidos_terminate();
 }
 
 /* static */ EidosValue_Logical *EidosValue_Logical_const::Static_EidosValue_Logical_T(void)
@@ -1007,7 +1007,7 @@ void EidosValue_Int_singleton_const::Print(std::ostream &p_ostream) const
 bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return (value_ == 0 ? false : true);
 }
@@ -1015,7 +1015,7 @@ bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx) const
 std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::StringAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	// with C++11, could use std::to_string(values_.at(p_idx))
 	ostringstream ss;
@@ -1028,7 +1028,7 @@ std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx) const
 int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::IntAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1036,7 +1036,7 @@ int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx) const
 double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::FloatAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1044,7 +1044,7 @@ double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx) const
 EidosValue *EidosValue_Int_singleton_const::GetValueAtIndex(const int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return new EidosValue_Int_singleton_const(value_);
 }
@@ -1302,7 +1302,7 @@ bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx) const
 std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::StringAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	// with C++11, could use std::to_string(values_.at(p_idx))
 	ostringstream ss;
@@ -1315,7 +1315,7 @@ std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx) const
 int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return static_cast<int64_t>(value_);
 }
@@ -1323,7 +1323,7 @@ int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx) const
 double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::FloatAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1331,7 +1331,7 @@ double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx) const
 EidosValue *EidosValue_Float_singleton_const::GetValueAtIndex(const int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << eidos_terminate();
 	
 	return new EidosValue_Float_singleton_const(value_);
 }
@@ -1402,7 +1402,7 @@ EidosValue *EidosValue_Object::NewMatchingType(void) const
 void EidosValue_Object::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::Sort): Sort() is not defined for type object." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosValue_Object::Sort): Sort() is not defined for type object." << eidos_terminate();
 }
 
 

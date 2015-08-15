@@ -49,7 +49,7 @@ Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Genome::NullGenomeAccessError(void) const
 {
-	EIDOS_TERMINATION << "********* Genome::NullGenomeAccessError() called!" << std::endl << eidos_terminate(true);
+	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed!" << std::endl << eidos_terminate();
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed

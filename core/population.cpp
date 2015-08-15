@@ -82,9 +82,9 @@ Population::~Population(void)
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
 { 
 	if (count(p_subpop_id) != 0)
-		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
 	if (p_subpop_size < 1)
-		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -105,9 +105,9 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
 	if (count(p_subpop_id) != 0)
-		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists" << eidos_terminate();
 	if (p_subpop_size < 1)
-		EIDOS_TERMINATION << "ERROR (AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty" << eidos_terminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -157,7 +157,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid)
-		EIDOS_TERMINATION << "ERROR (SetSize): called when the child generation was valid" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetSize): called when the child generation was valid" << eidos_terminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
@@ -181,9 +181,9 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
-		EIDOS_TERMINATION << "ERROR (SetMigration): no subpopulation p" << p_source_subpop_id << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetMigration): no subpopulation p" << p_source_subpop_id << eidos_terminate();
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
-		EIDOS_TERMINATION << "ERROR (SetMigration): migration fraction has to be within [0,1]" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1]" << eidos_terminate();
 	
 	if (p_subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
 		p_subpop.migrant_fractions_.erase(p_source_subpop_id);
@@ -299,12 +299,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
 					}
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
 				}
 				
 				if (result->IsTemporary()) delete result;
@@ -340,9 +340,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			double x = current_weights[weight_index];
 			
 			if (!isfinite(x))
-				EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate();
 			if (x < 0.0)
-				EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate();
 			
 			if (x > 0.0)
 				positive_count++;
@@ -351,7 +351,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		}
 		
 		if (weights_sum <= 0.0)
-			EIDOS_TERMINATION << "ERROR (ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate();
 		
 		// then we draw from the weights vector
 		if (positive_count == 1)
@@ -473,7 +473,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			EidosValue *result = interpreter.EvaluateInternalBlock();
 			
 			if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
-				EIDOS_TERMINATION << "ERROR (ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate();
 			
 			bool generate_child = result->LogicalAtIndex(0);
 			
@@ -527,7 +527,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			migration_sources[pop_count] = &p_subpop;
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): too many migrants in subpopulation p" << p_subpop.subpopulation_id_ << "; migration fractions must sum to <= 1.0" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): too many migrants in subpopulation p" << p_subpop.subpopulation_id_ << "; migration fractions must sum to <= 1.0" << eidos_terminate();
 	}
 	else
 	{
@@ -549,7 +549,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 		number_of_sexes = 2;
 		
 		if (total_male_children <= 0 || total_female_children <= 0)
-			EIDOS_TERMINATION << "ERROR (EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population" << eidos_terminate();
 	}
 	
 	// Now we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
@@ -704,7 +704,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	// mutations (r2 <= x     ) assigned from p1
 	
 	if (p_child_sex == IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (CrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
 	
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
@@ -720,16 +720,16 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 1)" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 1)" << eidos_terminate();
 	}
 	else
 	{
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
 		if (p_child_sex == IndividualSex::kHermaphrodite)
-			EIDOS_TERMINATION << "ERROR (CrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << eidos_terminate();
 		
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 2)" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 2)" << eidos_terminate();
 		
 		if (child_genome_type == GenomeType::kXChromosome)
 		{
@@ -737,7 +737,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			{
 				// If our parent is male (XY or YX), then we have a mismatch, because we're supposed to be male and we're supposed to be getting an X chromosome, but the X must come from the female
 				if (parent1_genome_type == GenomeType::kYChromosome || parent2_genome_type == GenomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 3)" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 3)" << eidos_terminate();
 				
 				// else: we're doing inheritance from the female (XX) to get our X chromosome; we treat this just like the autosomal case
 			}
@@ -759,7 +759,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		else // (child_genome_type == GenomeType::kYChromosome), so p_child_sex == IndividualSex::kMale
 		{
 			if (p_child_sex == IndividualSex::kFemale)
-				EIDOS_TERMINATION << "ERROR (CrossoverMutation): A female child is requested but the child genome is a Y chromosome" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A female child is requested but the child genome is a Y chromosome" << eidos_terminate();
 			
 			if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 			{
@@ -774,7 +774,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			else
 			{
 				// else: we're doing inheritance from the female (XX) to get a Y chromosome, so this is a mismatch
-				EIDOS_TERMINATION << "ERROR (CrossoverMutation): Mismatch between parent and child genome types (case 4)" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 4)" << eidos_terminate();
 			}
 		}
 	}
@@ -806,13 +806,13 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		{
 			// If we're trying to cross over, both parental strands had better be null
 			if (!parent_genome_1_null || !parent_genome_2_null)
-				EIDOS_TERMINATION << "ERROR (CrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null" << eidos_terminate();
 		}
 		else
 		{
 			// So we are not crossing over, and we are supposed to use strand 1; it should also be null, otherwise something has gone wrong
 			if (!parent_genome_1_null)
-				EIDOS_TERMINATION << "Child genome is null, but the parental strand is not" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but the parental strand is not" << eidos_terminate();
 		}
 		
 		// a null strand cannot cross over and cannot mutate, so we are done
@@ -820,10 +820,10 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	}
 	
 	if (use_only_strand_1 && parent_genome_1_null)
-		EIDOS_TERMINATION << "Child genome is non-null, but the parental strand is null" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but the parental strand is null" << eidos_terminate();
 	
 	if (!use_only_strand_1 && (parent_genome_1_null || parent_genome_2_null))
-		EIDOS_TERMINATION << "Child genome is non-null, but a parental strand is null" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but a parental strand is null" << eidos_terminate();
 	
 	//
 	//	OK!  We should have covered all error cases above, so we can now proceed with more alacrity.  We just need to follow
@@ -1026,7 +1026,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
 	if (p_child_sex == IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
 	
 	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.GenomeType();
@@ -1034,14 +1034,14 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 	GenomeType parent_genome_type = parent_genome->GenomeType();
 	
 	if (child_genome_type != parent_genome_type)
-		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (type != type)" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (type != type)" << eidos_terminate();
 	
 	// check for null cases
 	bool child_genome_null = child_genome.IsNull();
 	bool parent_genome_null = parent_genome->IsNull();
 	
 	if (child_genome_null != parent_genome_null)
-		EIDOS_TERMINATION << "ERROR (DoClonalMutation): Mismatch between parent and child genome types (null != null)" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (null != null)" << eidos_terminate();
 	
 	if (child_genome_null)
 	{
@@ -1601,7 +1601,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (PrintSample): called to output Y chromosomes from females" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<slim_popsize_t> sample; 
@@ -1663,7 +1663,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (PrintSample_ms): called to output Y chromosomes from females" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): called to output Y chromosomes from females" << eidos_terminate();
 	
 	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
 	std::vector<slim_popsize_t> sample; 

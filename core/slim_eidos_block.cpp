@@ -92,7 +92,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			else
 			{
 				SetErrorPositionFromCurrentToken();
-				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; expected an integer for the generation range end" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end" << eidos_terminate();
 			}
 		}
 	}
@@ -128,7 +128,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			else
 			{
 				SetErrorPositionFromCurrentToken();
-				EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; a mutation type id is required in fitness() callback definitions" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions" << eidos_terminate();
 			}
 			
 			if (current_token_type_ == EidosTokenType::kTokenComma)
@@ -146,7 +146,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				else
 				{
 					SetErrorPositionFromCurrentToken();
-					EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_SLiMEidosBlock; subpopulation id expected" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected" << eidos_terminate();
 				}
 			}
 			
@@ -197,7 +197,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		else
 		{
 			SetErrorPositionFromCurrentToken();
-			EIDOS_TERMINATION << "ERROR (Parse): unexpected identifier " << *current_token_ << " in Parse_SLiMEidosBlock; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate();
 		}
 	}
 	

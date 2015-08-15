@@ -236,7 +236,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
-							EIDOS_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
 						
 						int chn = script_string_[token_end + 1];
 						
@@ -250,7 +250,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						{
 							// escape sequence; another character must exist
 							if (token_end + 2 == len)
-								EIDOS_TERMINATION << "ERROR (Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
 							
 							int ch_esq = script_string_[token_end + 2];
 							
@@ -267,13 +267,13 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 							else
 							{
 								// an illegal escape
-								EIDOS_TERMINATION << "ERROR (Tokenize): illegal escape \\" << (char)ch_esq << " in string literal \"" << token_string << "\"" << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal \"" << token_string << "\"" << eidos_terminate();
 							}
 						}
 						else if ((chn == '\n') || (chn == '\r'))
 						{
 							// literal newlines are not allowed within string literals at present
-							EIDOS_TERMINATION << "ERROR (Tokenize): illegal newline in string literal \"" << token_string << "\"" << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal \"" << token_string << "\"" << eidos_terminate();
 						}
 						else
 						{
@@ -295,7 +295,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 			gEidosCharacterStartOfParseError = token_start;
 			gEidosCharacterEndOfParseError = token_end;
 			
-			EIDOS_TERMINATION << "ERROR (Tokenize): unrecognized token at character '" << (char)ch << "'" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at character '" << (char)ch << "'" << eidos_terminate();
 		}
 		
 		// if skip == true, we just discard the token and continue, as for whitespace and comments
@@ -421,7 +421,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	{
 		// not finding the right token type is fatal
 		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (Parse): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << eidos_terminate();
 	}
 }
 
@@ -905,7 +905,7 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 	else
 	{
 		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_PrimaryExpr" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate();
 		return nullptr;
 	}
 }
@@ -945,7 +945,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 	else
 	{
 		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (Parse): unexpected token " << *current_token_ << " in Parse_Constant" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate();
 		return nullptr;
 	}
 	
