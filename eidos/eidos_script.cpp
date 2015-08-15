@@ -22,6 +22,7 @@
 #include "eidos_global.h"
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
+#include "eidos_ast_node.h"
 
 #include <iostream>
 #include <sstream>

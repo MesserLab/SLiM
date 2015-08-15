@@ -28,6 +28,14 @@
 #include "eidos_value.h"
 
 
+class EidosASTNode;
+class EidosInterpreter;
+
+
+// A typedef for a pointer to an EidosInterpreter evaluation method, cached for speed
+typedef EidosValue *(EidosInterpreter::*EidosEvaluationMethod)(const EidosASTNode *p_node);
+
+
 // A class representing a node in a parse tree for a script
 class EidosASTNode
 {
@@ -43,6 +51,7 @@ public:
 	mutable bool cached_value_is_owned_ = false;				// if T, this node owns its own cached_value_; if F, a descendant node owns it
 	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
 	mutable EidosGlobalStringID cached_stringID = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
+	mutable EidosEvaluationMethod cached_evaluator = nullptr;	// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	
 	EidosASTNode(const EidosASTNode&) = delete;					// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;		// no copying
@@ -58,6 +67,7 @@ public:
 	void OptimizeTree(void) const;								// perform various (required) optimizations on the AST
 	void _OptimizeConstants(void) const;						// cache EidosValues for constants and propagate constants upward
 	void _OptimizeIdentifiers(void) const;						// cache function signatures, global strings for methods and properties, etc.
+	void _OptimizeEvaluators(void) const;						// cache pointers to method for evaluation
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;

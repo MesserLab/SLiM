@@ -35,6 +35,7 @@
 #include "eidos_value.h"
 #include "eidos_functions.h"
 #include "eidos_symbol_table.h"
+#include "eidos_ast_node.h"
 
 
 // typedefs used to set up our map table of EidosFunctionSignature objects
@@ -100,6 +101,7 @@ public:
 	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue *rvalue, const EidosASTNode *p_lvalue_node);
 	
+	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue *EvaluateNode(const EidosASTNode *p_node);
 	
 	EidosValue *Evaluate_NullStatement(const EidosASTNode *p_node);
@@ -146,6 +148,22 @@ public:
 	
 	// Utility static methods
 	static int64_t IntForNumberToken(const EidosToken *p_token);
+	
+	// An inline function for super-fast node evaluation, skipping EvaluateNode()
+	inline EidosValue *FastEvaluateNode(const EidosASTNode *p_node)
+	{
+		if (p_node->cached_evaluator)
+		{
+			EidosValue *retval = (this->*(p_node->cached_evaluator))(p_node);
+			
+			if (!retval)
+				NullReturnRaiseForNode(p_node);
+			
+			return retval;
+		}
+		else
+			return EvaluateNode(p_node);
+	}
 };
 
 

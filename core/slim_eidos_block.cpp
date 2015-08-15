@@ -11,6 +11,7 @@
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "eidos_ast_node.h"
 
 #include "errno.h"
 

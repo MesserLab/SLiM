@@ -20,6 +20,7 @@
 
 #include "eidos_interpreter.h"
 #include "eidos_functions.h"
+#include "eidos_ast_node.h"
 
 #include <sstream>
 #include "math.h"
@@ -176,7 +177,7 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(void)
 {
 	// EvaluateInternalBlock() does not log execution, since it is not user-initiated
 	
-	EidosValue *result = EvaluateNode(root_node_);
+	EidosValue *result = FastEvaluateNode(root_node_);
 	
 	// if a next or break statement was hit and was not handled by a loop, throw an error
 	if (next_statement_hit_ || break_statement_hit_)
@@ -216,7 +217,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 	{
 		if (result->IsTemporary()) delete result;
 		
-		result = EvaluateNode(child_node);
+		result = FastEvaluateNode(child_node);
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
@@ -294,7 +295,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			_ProcessSubscriptAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
 			
 			// Find out which indices we're supposed to use within our base vector
-			EidosValue *second_child_value = EvaluateNode(right_operand);
+			EidosValue *second_child_value = FastEvaluateNode(right_operand);
 			EidosValueType second_child_type = second_child_value->Type();
 			
 			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical) && (second_child_type != EidosValueType::kValueNULL))
@@ -362,7 +363,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			EidosASTNode *left_operand = p_parent_node->children_[0];
 			EidosASTNode *right_operand = p_parent_node->children_[1];
 			
-			EidosValue *first_child_value = EvaluateNode(left_operand);
+			EidosValue *first_child_value = FastEvaluateNode(left_operand);
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
@@ -536,7 +537,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error (expected 2 children for '.' node)." << eidos_terminate();
 #endif
 			
-			EidosValue *first_child_value = EvaluateNode(p_lvalue_node->children_[0]);
+			EidosValue *first_child_value = FastEvaluateNode(p_lvalue_node->children_[0]);
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
@@ -576,13 +577,17 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 	}
 }
 
+void EidosInterpreter::NullReturnRaiseForNode(const EidosASTNode *p_node)
+{
+	EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): nullptr returned from evaluation of token type " << p_node->token_->token_type_ << "." << eidos_terminate();
+}
+
 EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 {
-	EidosTokenType token_type = p_node->token_->token_type_;
 	EidosValue *result;
 	
 	// The structure here avoids doing a break in the non-error case; a bit faster.
-	switch (token_type)
+	switch (p_node->token_->token_type_)
 	{
 		case EidosTokenType::kTokenSemicolon:	result = Evaluate_NullStatement(p_node);		if (result) return result;	break;
 		case EidosTokenType::kTokenColon:		result = Evaluate_RangeExpr(p_node);			if (result) return result;	break;
@@ -617,12 +622,12 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				if (result) return result;	break;
 		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				if (result) return result;	break;
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): Unexpected node token type " << token_type << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): Unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate();
 			result = nullptr;
 			break;
 	}
 	
-	EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): nullptr returned from evaluation of token type " << token_type << "." << eidos_terminate();
+	NullReturnRaiseForNode(p_node);
 	
 	return result;
 }
@@ -664,7 +669,7 @@ EidosValue *EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p_n
 	{
 		if (result->IsTemporary()) delete result;
 		
-		result = EvaluateNode(child_node);
+		result = FastEvaluateNode(child_node);
 		
 		// a next, break, or return makes us exit immediately, out to the (presumably enclosing) loop evaluator
 		if (next_statement_hit_ || break_statement_hit_ || return_statement_hit_)
@@ -694,8 +699,8 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	EidosValue *result = nullptr;
 	bool too_wide = false;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -868,7 +873,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): internal error (expected 2 children for '.' node)." << eidos_terminate();
 #endif
 		
-		EidosValue *first_child_value = EvaluateNode(function_name_node->children_[0]);
+		EidosValue *first_child_value = FastEvaluateNode(function_name_node->children_[0]);
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
@@ -929,12 +934,12 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 				auto end_iterator = child_children.end();
 				
 				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-					arguments_array[argument_index++] = EvaluateNode(*arg_list_iter);
+					arguments_array[argument_index++] = FastEvaluateNode(*arg_list_iter);
 			}
 			else
 			{
 				// all other children get evaluated, and the results added to the arguments vector
-				arguments_array[argument_index++] = EvaluateNode(child);
+				arguments_array[argument_index++] = FastEvaluateNode(child);
 			}
 		}
 		
@@ -968,12 +973,12 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 				auto end_iterator = child_children.end();
 				
 				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-					arguments.push_back(EvaluateNode(*arg_list_iter));
+					arguments.push_back(FastEvaluateNode(*arg_list_iter));
 			}
 			else
 			{
 				// all other children get evaluated, and the results added to the arguments vector
-				arguments.push_back(EvaluateNode(child));
+				arguments.push_back(FastEvaluateNode(child));
 			}
 		}
 		
@@ -1019,7 +1024,7 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type == EidosValueType::kValueNULL)
@@ -1031,7 +1036,7 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical) && (second_child_type != EidosValueType::kValueNULL))
@@ -1126,7 +1131,7 @@ EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type != EidosValueType::kValueObject)
@@ -1177,7 +1182,7 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (p_node->children_.size() == 1)
@@ -1197,7 +1202,7 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	else
 	{
 		// binary plus is legal either between two numeric types, or between a string and any other operand
-		EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		int first_child_count = first_child_value->Count();
@@ -1346,7 +1351,7 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
@@ -1398,7 +1403,7 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 	else
 	{
 		// binary minus
-		EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
@@ -1519,8 +1524,8 @@ EidosValue *EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -1685,8 +1690,8 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -1804,8 +1809,8 @@ EidosValue *EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	
 	EidosValue *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -1967,8 +1972,8 @@ EidosValue *EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): internal error (expected 2 children)." << eidos_terminate();
 #endif
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -2068,7 +2073,7 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-		EidosValue *child_result = EvaluateNode(child_node);
+		EidosValue *child_result = FastEvaluateNode(child_node);
 		
 		if (child_result == gStaticEidosValue_LogicalT)
 		{
@@ -2254,7 +2259,7 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-		EidosValue *child_result = EvaluateNode(child_node);
+		EidosValue *child_result = FastEvaluateNode(child_node);
 		
 		if (child_result == gStaticEidosValue_LogicalT)
 		{
@@ -2432,7 +2437,7 @@ EidosValue *EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): internal error (expected 1 child)." << eidos_terminate();
 #endif
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValue_Logical *result;
 	
 	if (first_child_value == gStaticEidosValue_LogicalT)
@@ -2496,7 +2501,7 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 #endif
 	
 	EidosASTNode *lvalue_node = p_node->children_[0];
-	EidosValue *rvalue = EvaluateNode(p_node->children_[1]);
+	EidosValue *rvalue = FastEvaluateNode(p_node->children_[1]);
 	
 	_AssignRValueToLValue(rvalue, lvalue_node);		// disposes of rvalue somehow
 	
@@ -2529,8 +2534,8 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -2624,8 +2629,8 @@ EidosValue *EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -2722,8 +2727,8 @@ EidosValue *EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -2820,8 +2825,8 @@ EidosValue *EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -2918,8 +2923,8 @@ EidosValue *EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3016,8 +3021,8 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 	
 	EidosValue_Logical *result = nullptr;
 	
-	EidosValue *first_child_value = EvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3221,13 +3226,13 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosValue *result = nullptr;
 	
 	EidosASTNode *condition_node = p_node->children_[0];
-	EidosValue *condition_result = EvaluateNode(condition_node);
+	EidosValue *condition_result = FastEvaluateNode(condition_node);
 	
 	if (condition_result == gStaticEidosValue_LogicalT)
 	{
 		// Handle a static singleton logical true super fast; no need for type check, count, etc
 		EidosASTNode *true_node = p_node->children_[1];
-		result = EvaluateNode(true_node);
+		result = FastEvaluateNode(true_node);
 	}
 	else if (condition_result == gStaticEidosValue_LogicalF)
 	{
@@ -3235,7 +3240,7 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
-			result = EvaluateNode(false_node);
+			result = FastEvaluateNode(false_node);
 		}
 		else										// no 'else' node, so the result is NULL
 		{
@@ -3249,12 +3254,12 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (condition_bool)
 		{
 			EidosASTNode *true_node = p_node->children_[1];
-			result = EvaluateNode(true_node);
+			result = FastEvaluateNode(true_node);
 		}
 		else if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
-			result = EvaluateNode(false_node);
+			result = FastEvaluateNode(false_node);
 		}
 		else										// no 'else' node, so the result is NULL
 		{
@@ -3296,7 +3301,7 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	do
 	{
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue *statement_value = EvaluateNode(p_node->children_[0]);
+		EidosValue *statement_value = FastEvaluateNode(p_node->children_[0]);
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
@@ -3320,7 +3325,7 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[1];
-		EidosValue *condition_result = EvaluateNode(condition_node);
+		EidosValue *condition_result = FastEvaluateNode(condition_node);
 		
 		if (condition_result == gStaticEidosValue_LogicalT)
 		{
@@ -3378,7 +3383,7 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 	{
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[0];
-		EidosValue *condition_result = EvaluateNode(condition_node);
+		EidosValue *condition_result = FastEvaluateNode(condition_node);
 		
 		if (condition_result == gStaticEidosValue_LogicalT)
 		{
@@ -3406,7 +3411,7 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue *statement_value = EvaluateNode(p_node->children_[1]);
+		EidosValue *statement_value = FastEvaluateNode(p_node->children_[1]);
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
@@ -3460,7 +3465,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate();
 	
 	const string &identifier_name = identifier_child->token_->token_string_;
-	EidosValue *range_value = EvaluateNode(p_node->children_[1]);
+	EidosValue *range_value = FastEvaluateNode(p_node->children_[1]);
 	int range_count = range_value->Count();
 	EidosValue *result = nullptr;
 	
@@ -3474,7 +3479,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		if (range_value_at_index->IsTemporary()) delete range_value_at_index;
 		
 		// execute the for loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue *statement_value = EvaluateNode(p_node->children_[2]);
+		EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
@@ -3589,7 +3594,7 @@ EidosValue *EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	if (p_node->children_.size() == 0)
 		result = gStaticEidosValueNULLInvisible;	// default return value
 	else
-		result = EvaluateNode(p_node->children_[0]);
+		result = FastEvaluateNode(p_node->children_[0]);
 	
 #if defined(DEBUG) || defined(EIDOS_GUI)
 	if (logging_execution_)

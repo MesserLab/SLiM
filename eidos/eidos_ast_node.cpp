@@ -81,6 +81,7 @@ void EidosASTNode::OptimizeTree(void) const
 {
 	_OptimizeConstants();
 	_OptimizeIdentifiers();
+	_OptimizeEvaluators();
 }
 
 void EidosASTNode::_OptimizeConstants(void) const
@@ -205,6 +206,55 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 				if (second_child->cached_stringID == gEidosID_none)
 					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << eidos_terminate();
 		}
+	}
+}
+
+void EidosASTNode::_OptimizeEvaluators(void) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : children_)
+		child->_OptimizeEvaluators();
+	
+	EidosTokenType token_type = token_->token_type_;
+	
+	// The structure here avoids doing a break in the non-error case; a bit faster.
+	switch (token_type)
+	{
+		case EidosTokenType::kTokenSemicolon:	cached_evaluator = &EidosInterpreter::Evaluate_NullStatement;		break;
+		case EidosTokenType::kTokenColon:		cached_evaluator = &EidosInterpreter::Evaluate_RangeExpr;			break;
+		case EidosTokenType::kTokenLBrace:		cached_evaluator = &EidosInterpreter::Evaluate_CompoundStatement;	break;
+		case EidosTokenType::kTokenLParen:		cached_evaluator = &EidosInterpreter::Evaluate_FunctionCall;		break;
+		case EidosTokenType::kTokenLBracket:	cached_evaluator = &EidosInterpreter::Evaluate_Subset;				break;
+		case EidosTokenType::kTokenDot:			cached_evaluator = &EidosInterpreter::Evaluate_MemberRef;			break;
+		case EidosTokenType::kTokenPlus:		cached_evaluator = &EidosInterpreter::Evaluate_Plus;				break;
+		case EidosTokenType::kTokenMinus:		cached_evaluator = &EidosInterpreter::Evaluate_Minus;				break;
+		case EidosTokenType::kTokenMod:			cached_evaluator = &EidosInterpreter::Evaluate_Mod;					break;
+		case EidosTokenType::kTokenMult:		cached_evaluator = &EidosInterpreter::Evaluate_Mult;				break;
+		case EidosTokenType::kTokenExp:			cached_evaluator = &EidosInterpreter::Evaluate_Exp;					break;
+		case EidosTokenType::kTokenAnd:			cached_evaluator = &EidosInterpreter::Evaluate_And;					break;
+		case EidosTokenType::kTokenOr:			cached_evaluator = &EidosInterpreter::Evaluate_Or;					break;
+		case EidosTokenType::kTokenDiv:			cached_evaluator = &EidosInterpreter::Evaluate_Div;					break;
+		case EidosTokenType::kTokenAssign:		cached_evaluator = &EidosInterpreter::Evaluate_Assign;				break;
+		case EidosTokenType::kTokenEq:			cached_evaluator = &EidosInterpreter::Evaluate_Eq;					break;
+		case EidosTokenType::kTokenLt:			cached_evaluator = &EidosInterpreter::Evaluate_Lt;					break;
+		case EidosTokenType::kTokenLtEq:		cached_evaluator = &EidosInterpreter::Evaluate_LtEq;				break;
+		case EidosTokenType::kTokenGt:			cached_evaluator = &EidosInterpreter::Evaluate_Gt;					break;
+		case EidosTokenType::kTokenGtEq:		cached_evaluator = &EidosInterpreter::Evaluate_GtEq;				break;
+		case EidosTokenType::kTokenNot:			cached_evaluator = &EidosInterpreter::Evaluate_Not;					break;
+		case EidosTokenType::kTokenNotEq:		cached_evaluator = &EidosInterpreter::Evaluate_NotEq;				break;
+		case EidosTokenType::kTokenNumber:		cached_evaluator = &EidosInterpreter::Evaluate_Number;				break;
+		case EidosTokenType::kTokenString:		cached_evaluator = &EidosInterpreter::Evaluate_String;				break;
+		case EidosTokenType::kTokenIdentifier:	cached_evaluator = &EidosInterpreter::Evaluate_Identifier;			break;
+		case EidosTokenType::kTokenIf:			cached_evaluator = &EidosInterpreter::Evaluate_If;					break;
+		case EidosTokenType::kTokenDo:			cached_evaluator = &EidosInterpreter::Evaluate_Do;					break;
+		case EidosTokenType::kTokenWhile:		cached_evaluator = &EidosInterpreter::Evaluate_While;				break;
+		case EidosTokenType::kTokenFor:			cached_evaluator = &EidosInterpreter::Evaluate_For;					break;
+		case EidosTokenType::kTokenNext:		cached_evaluator = &EidosInterpreter::Evaluate_Next;				break;
+		case EidosTokenType::kTokenBreak:		cached_evaluator = &EidosInterpreter::Evaluate_Break;				break;
+		case EidosTokenType::kTokenReturn:		cached_evaluator = &EidosInterpreter::Evaluate_Return;				break;
+		default:
+			// Node types with no known evaluator method just don't get an cached evaluator
+			break;
 	}
 }
 

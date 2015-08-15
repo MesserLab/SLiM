@@ -30,11 +30,11 @@
 #include <string>
 
 #include "eidos_token.h"
-#include "eidos_ast_node.h"
 
 
 class EidosValue;
 class EidosFunctionSignature;
+class EidosASTNode;
 
 
 // set these to true to get logging of tokens / AST / evaluation
