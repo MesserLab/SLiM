@@ -421,7 +421,8 @@ public:
 	EidosValue_Int_vector& operator=(const EidosValue_Int_vector&) = delete;	// no copying
 	
 	EidosValue_Int_vector(void);
-	explicit EidosValue_Int_vector(std::vector<int> &p_intvec);
+	explicit EidosValue_Int_vector(std::vector<int16_t> &p_intvec);
+	explicit EidosValue_Int_vector(std::vector<int32_t> &p_intvec);
 	explicit EidosValue_Int_vector(std::vector<int64_t> &p_intvec);
 	//explicit EidosValue_Int_vector(int64_t p_int1);		// disabled to encourage use of EidosValue_Int_singleton_const for this case
 	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2);
