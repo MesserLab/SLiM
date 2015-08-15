@@ -703,8 +703,14 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	// mutations (r1 <= x < r2) assigned from p2
 	// mutations (r2 <= x     ) assigned from p1
 	
+	// A lot of the checks here are only on when DEBUG is defined.  They should absolutely never be hit; if they are, it indicates a flaw
+	// in SLiM's internal logic, not user error.  This method gets called a whole lot; every test makes a speed difference.  So disabling
+	// these checks seems to make sense.  Of course, if you want the checks on, just define DEBUG.
+	
+#ifdef DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
+#endif
 	
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
@@ -719,17 +725,20 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	if (child_genome_type == GenomeType::kAutosome)
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
+#ifdef DEBUG
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 1)" << eidos_terminate();
+#endif
 	}
 	else
 	{
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
+#ifdef DEBUG
 		if (p_child_sex == IndividualSex::kHermaphrodite)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal" << eidos_terminate();
-		
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 2)" << eidos_terminate();
+#endif
 		
 		if (child_genome_type == GenomeType::kXChromosome)
 		{
@@ -797,11 +806,14 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	
 	// check for null cases
 	bool child_genome_null = child_genome.IsNull();
+#ifdef DEBUG
 	bool parent_genome_1_null = parent_genome_1->IsNull();
 	bool parent_genome_2_null = parent_genome_2->IsNull();
+#endif
 	
 	if (child_genome_null)
 	{
+#ifdef DEBUG
 		if (!use_only_strand_1)
 		{
 			// If we're trying to cross over, both parental strands had better be null
@@ -814,16 +826,19 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			if (!parent_genome_1_null)
 				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but the parental strand is not" << eidos_terminate();
 		}
+#endif
 		
 		// a null strand cannot cross over and cannot mutate, so we are done
 		return;
 	}
 	
+#ifdef DEBUG
 	if (use_only_strand_1 && parent_genome_1_null)
 		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but the parental strand is null" << eidos_terminate();
 	
 	if (!use_only_strand_1 && (parent_genome_1_null || parent_genome_2_null))
 		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but a parental strand is null" << eidos_terminate();
+#endif
 	
 	//
 	//	OK!  We should have covered all error cases above, so we can now proceed with more alacrity.  We just need to follow
@@ -1025,8 +1040,11 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 
 void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
+#pragma unused(p_child_sex)
+#ifdef DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified" << eidos_terminate();
+#endif
 	
 	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.GenomeType();
