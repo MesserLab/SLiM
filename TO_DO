@@ -1,8 +1,5 @@
 SLiM:
 	set up testing code for validation, check against old version of the code
-	build options for SLiM:
-		turn range checks, other checks and asserts on/off (maybe DEBUG suffices for this)
-	move error-checking code for edge cases into DEBUG blocks to avoid slowing down the release build
 	reporting errors by quoting the line of script and showing the position of the error
 
 Eidos:
