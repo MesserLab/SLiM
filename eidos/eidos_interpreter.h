@@ -152,17 +152,19 @@ public:
 	// An inline function for super-fast node evaluation, skipping EvaluateNode()
 	inline EidosValue *FastEvaluateNode(const EidosASTNode *p_node)
 	{
-		if (p_node->cached_evaluator)
-		{
+		//if (p_node->cached_evaluator)
+		//{
 			EidosValue *retval = (this->*(p_node->cached_evaluator))(p_node);
 			
-			if (!retval)
+#ifdef DEBUG
+		if (!retval)
 				NullReturnRaiseForNode(p_node);
-			
+#endif
+		
 			return retval;
-		}
-		else
-			return EvaluateNode(p_node);
+		//}
+		//else
+		//	return EvaluateNode(p_node);
 	}
 };
 
