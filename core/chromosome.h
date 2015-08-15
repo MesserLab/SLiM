@@ -101,15 +101,21 @@ public:
 // draw the number of mutations that occur, based on the overall mutation rate
 inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
 {
+#ifdef USE_GSL_POISSON
+	return gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
+#else
 	return eidos_fast_ran_poisson(element_mutation_rate_, exp_neg_element_mutation_rate_);
-	//return gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
+#endif
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
 inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount() const
 {
+#ifdef USE_GSL_POISSON
+	return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
+#else
 	return eidos_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
-	//return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
+#endif
 }
 
 // determine both the mutation count and the breakpoint count with (usually) a single RNG draw
@@ -125,17 +131,32 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 	else if (u <= probability_both_0_OR_mut_0_break_non0)
 	{
 		*p_mut_count = 0;
+		
+#ifdef USE_GSL_POISSON
+		*p_break_count = gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
+#else
 		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+#endif
 	}
 	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
 	{
+#ifdef USE_GSL_POISSON
+		*p_mut_count = gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
+#else
 		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+#endif
+		
 		*p_break_count = 0;
 	}
 	else
 	{
+#ifdef USE_GSL_POISSON
+		*p_mut_count = gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
+		*p_break_count = gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
+#else
 		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
 		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+#endif
 	}
 }
 

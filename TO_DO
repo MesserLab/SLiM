@@ -1,7 +1,6 @@
 SLiM:
 	set up testing code for validation, check against old version of the code
 	build options for SLiM:
-		use GSL poisson draw versus our custom fast Poisson draw code
 		turn range checks, other checks and asserts on/off (maybe DEBUG suffices for this)
 	move error-checking code for edge cases into DEBUG blocks to avoid slowing down the release build
 	reporting errors by quoting the line of script and showing the position of the error
@@ -51,6 +50,8 @@ changes to mention in docs:
 	mutation equality defined by pointer equality
 	MS output slightly changed, now outputs positions spanning the interval [0,1] instead of (0,1]
 	add a mention of building with optimization turned on for release builds; makes a big difference!
+	mention -D USE_GSL_POISSON compile option
+	mention new command-line options like -m, -M, -time
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim

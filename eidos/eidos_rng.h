@@ -79,7 +79,13 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
 // The expected number of mutations / breakpoints will always be quite small, so we should be safe using
 // this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
 // allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good
-// reasons for us to roll our own here.
+// reasons for us to roll our own here.  If someone does not trust our Poisson code, they can define
+// USE_GSL_POISSON at compile time (i.e., -D USE_GSL_POISSON) to use the gsl_ran_poisson() instead.
+// It does make a substantial speed difference, though, so we use the fast version by default in cases
+// where mu is expected to be small.
+
+#ifndef USE_GSL_POISSON
+
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double mu)
 {
 	unsigned int x = 0;
@@ -140,6 +146,8 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	
 	return x;
 }
+
+#endif // USE_GSL_POISSON
 
 
 #endif /* defined(__Eidos__eidos_rng__) */

@@ -1440,6 +1440,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (!lambda_singleton && (arg_lambda_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << eidos_terminate();
 			
+			// Here we ignore USE_GSL_POISSON and always use the GSL.  This is because we don't know whether lambda (otherwise known as mu) is
+			// small or large, and because we don't know what level of accuracy is demanded by whatever the user is doing with the deviates,
+			// and so forth; it makes sense to just rely on the GSL for maximal accuracy and reliability.
+			
 			if (lambda_singleton)
 			{
 				double lambda0 = arg_lambda->FloatAtIndex(0);
@@ -1457,7 +1461,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result = int_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-						int_result->PushInt(gsl_ran_poisson(gEidos_rng, lambda0));		// use the GSL, not eidos_fast_ran_poisson, to give the user high accuracy
+						int_result->PushInt(gsl_ran_poisson(gEidos_rng, lambda0));
 				}
 			}
 			else
