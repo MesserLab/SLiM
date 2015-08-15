@@ -1007,7 +1007,7 @@ void EidosValue_Int_singleton_const::Print(std::ostream &p_ostream) const
 bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return (value_ == 0 ? false : true);
 }
@@ -1015,7 +1015,7 @@ bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx) const
 std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::StringAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::StringAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	// with C++11, could use std::to_string(values_.at(p_idx))
 	ostringstream ss;
@@ -1028,7 +1028,7 @@ std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx) const
 int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::IntAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1036,7 +1036,7 @@ int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx) const
 double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::FloatAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::FloatAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1044,7 +1044,7 @@ double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx) const
 EidosValue *EidosValue_Int_singleton_const::GetValueAtIndex(const int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return new EidosValue_Int_singleton_const(value_);
 }
@@ -1294,7 +1294,7 @@ void EidosValue_Float_singleton_const::Print(std::ostream &p_ostream) const
 bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return (value_ == 0 ? false : true);
 }
@@ -1302,7 +1302,7 @@ bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx) const
 std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::StringAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::StringAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	// with C++11, could use std::to_string(values_.at(p_idx))
 	ostringstream ss;
@@ -1315,7 +1315,7 @@ std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx) const
 int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return static_cast<int64_t>(value_);
 }
@@ -1323,7 +1323,7 @@ int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx) const
 double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::FloatAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::FloatAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1331,7 +1331,7 @@ double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx) const
 EidosValue *EidosValue_Float_singleton_const::GetValueAtIndex(const int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return new EidosValue_Float_singleton_const(value_);
 }
@@ -1864,7 +1864,7 @@ void EidosValue_Object_singleton_const::Print(std::ostream &p_ostream) const
 EidosObjectElement *EidosValue_Object_singleton_const::ObjectElementAtIndex(int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ObjectElementAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ObjectElementAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return value_;
 }
@@ -1872,7 +1872,7 @@ EidosObjectElement *EidosValue_Object_singleton_const::ObjectElementAtIndex(int 
 EidosValue *EidosValue_Object_singleton_const::GetValueAtIndex(const int p_idx) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetValueAtIndex): internal error: non-zero index accessed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate();
 	
 	return new EidosValue_Object_singleton_const(value_);
 }

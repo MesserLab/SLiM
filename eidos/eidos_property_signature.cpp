@@ -69,13 +69,13 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate();
 			}
 			break;
 	}
 	
 	if (!value_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): internal error: value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate();
 	
 	// No check for size, because we're checking a whole vector being assigned into an object; EidosValue_Object will check the sizes
 }
