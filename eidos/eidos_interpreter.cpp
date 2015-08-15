@@ -569,48 +569,48 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 	EidosTokenType token_type = p_node->token_->token_type_;
 	EidosValue *result;
 	
+	// The structure here avoids doing a break in the non-error case; a bit faster.
 	switch (token_type)
 	{
-		case EidosTokenType::kTokenSemicolon:	result = Evaluate_NullStatement(p_node);		break;
-		case EidosTokenType::kTokenColon:		result = Evaluate_RangeExpr(p_node);			break;
-		case EidosTokenType::kTokenLBrace:		result = Evaluate_CompoundStatement(p_node);	break;
-		case EidosTokenType::kTokenLParen:		result = Evaluate_FunctionCall(p_node);			break;
-		case EidosTokenType::kTokenLBracket:	result = Evaluate_Subset(p_node);				break;
-		case EidosTokenType::kTokenDot:			result = Evaluate_MemberRef(p_node);			break;
-		case EidosTokenType::kTokenPlus:		result = Evaluate_Plus(p_node);					break;
-		case EidosTokenType::kTokenMinus:		result = Evaluate_Minus(p_node);				break;
-		case EidosTokenType::kTokenMod:			result = Evaluate_Mod(p_node);					break;
-		case EidosTokenType::kTokenMult:		result = Evaluate_Mult(p_node);					break;
-		case EidosTokenType::kTokenExp:			result = Evaluate_Exp(p_node);					break;
-		case EidosTokenType::kTokenAnd:			result = Evaluate_And(p_node);					break;
-		case EidosTokenType::kTokenOr:			result = Evaluate_Or(p_node);					break;
-		case EidosTokenType::kTokenDiv:			result = Evaluate_Div(p_node);					break;
-		case EidosTokenType::kTokenAssign:		result = Evaluate_Assign(p_node);				break;
-		case EidosTokenType::kTokenEq:			result = Evaluate_Eq(p_node);					break;
-		case EidosTokenType::kTokenLt:			result = Evaluate_Lt(p_node);					break;
-		case EidosTokenType::kTokenLtEq:		result = Evaluate_LtEq(p_node);					break;
-		case EidosTokenType::kTokenGt:			result = Evaluate_Gt(p_node);					break;
-		case EidosTokenType::kTokenGtEq:		result = Evaluate_GtEq(p_node);					break;
-		case EidosTokenType::kTokenNot:			result = Evaluate_Not(p_node);					break;
-		case EidosTokenType::kTokenNotEq:		result = Evaluate_NotEq(p_node);				break;
-		case EidosTokenType::kTokenNumber:		result = Evaluate_Number(p_node);				break;
-		case EidosTokenType::kTokenString:		result = Evaluate_String(p_node);				break;
-		case EidosTokenType::kTokenIdentifier:	result = Evaluate_Identifier(p_node);			break;
-		case EidosTokenType::kTokenIf:			result = Evaluate_If(p_node);					break;
-		case EidosTokenType::kTokenDo:			result = Evaluate_Do(p_node);					break;
-		case EidosTokenType::kTokenWhile:		result = Evaluate_While(p_node);				break;
-		case EidosTokenType::kTokenFor:			result = Evaluate_For(p_node);					break;
-		case EidosTokenType::kTokenNext:		result = Evaluate_Next(p_node);					break;
-		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				break;
-		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				break;
+		case EidosTokenType::kTokenSemicolon:	result = Evaluate_NullStatement(p_node);		if (result) return result;	break;
+		case EidosTokenType::kTokenColon:		result = Evaluate_RangeExpr(p_node);			if (result) return result;	break;
+		case EidosTokenType::kTokenLBrace:		result = Evaluate_CompoundStatement(p_node);	if (result) return result;	break;
+		case EidosTokenType::kTokenLParen:		result = Evaluate_FunctionCall(p_node);			if (result) return result;	break;
+		case EidosTokenType::kTokenLBracket:	result = Evaluate_Subset(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenDot:			result = Evaluate_MemberRef(p_node);			if (result) return result;	break;
+		case EidosTokenType::kTokenPlus:		result = Evaluate_Plus(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenMinus:		result = Evaluate_Minus(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenMod:			result = Evaluate_Mod(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenMult:		result = Evaluate_Mult(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenExp:			result = Evaluate_Exp(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenAnd:			result = Evaluate_And(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenOr:			result = Evaluate_Or(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenDiv:			result = Evaluate_Div(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenAssign:		result = Evaluate_Assign(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenEq:			result = Evaluate_Eq(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenLt:			result = Evaluate_Lt(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenLtEq:		result = Evaluate_LtEq(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenGt:			result = Evaluate_Gt(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenGtEq:		result = Evaluate_GtEq(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenNot:			result = Evaluate_Not(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenNotEq:		result = Evaluate_NotEq(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenNumber:		result = Evaluate_Number(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenString:		result = Evaluate_String(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenIdentifier:	result = Evaluate_Identifier(p_node);			if (result) return result;	break;
+		case EidosTokenType::kTokenIf:			result = Evaluate_If(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenDo:			result = Evaluate_Do(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenWhile:		result = Evaluate_While(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenFor:			result = Evaluate_For(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenNext:		result = Evaluate_Next(p_node);					if (result) return result;	break;
+		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				if (result) return result;	break;
 		default:
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): Unexpected node token type " << token_type << "." << eidos_terminate();
 			result = nullptr;
 			break;
 	}
 	
-	if (!result)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): nullptr returned from evaluation of token type " << token_type << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): nullptr returned from evaluation of token type " << token_type << "." << eidos_terminate();
 	
 	return result;
 }
