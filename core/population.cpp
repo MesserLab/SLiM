@@ -957,7 +957,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 				parent_iter_pos = parent_iter_mutation->position_;
 			} else {
 				parent_iter_mutation = nullptr;
-				parent_iter_pos = INT_MAX;
+				parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 			}
 			
 			if (mutation_iter != mutation_iter_max) {
@@ -965,7 +965,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 				mutation_iter_pos = mutation_iter_mutation->position_;
 			} else {
 				mutation_iter_mutation = nullptr;
-				mutation_iter_pos = INT_MAX;
+				mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 			}
 			
 			// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
@@ -983,7 +983,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 						parent_iter_pos = parent_iter_mutation->position_;
 					} else {
 						parent_iter_mutation = nullptr;
-						parent_iter_pos = INT_MAX;
+						parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 					}
 				}
 				
@@ -999,7 +999,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 						mutation_iter_pos = mutation_iter_mutation->position_;
 					} else {
 						mutation_iter_mutation = nullptr;
-						mutation_iter_pos = INT_MAX;
+						mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 					}
 				}
 			}
@@ -1084,7 +1084,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 		while ((parent_iter != parent_iter_max) || (mutation_iter != mutation_iter_max))
 		{
 			// while an old mutation in the parent is before or at the next new mutation...
-			slim_position_t mutation_iter_pos = (mutation_iter == mutation_iter_max) ? INT_MAX : (*mutation_iter)->position_;
+			slim_position_t mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_MAX_BASE_POSITION + 100) : (*mutation_iter)->position_;
 			
 			while ((parent_iter != parent_iter_max) && ((*parent_iter)->position_ <= mutation_iter_pos))
 			{
@@ -1095,7 +1095,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 			}
 			
 			// while a new mutation is before or at the next old mutation in the parent...
-			slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? INT_MAX : (*parent_iter)->position_;
+			slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_MAX_BASE_POSITION + 100) : (*parent_iter)->position_;
 			
 			while ((mutation_iter != mutation_iter_max) && ((*mutation_iter)->position_ <= parent_iter_pos))
 			{
