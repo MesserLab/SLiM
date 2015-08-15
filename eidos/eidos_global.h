@@ -33,20 +33,14 @@ extern std::string gEidosContextVersion;
 extern std::string gEidosContextLicense;
 
 
-// If EIDOS_TERMINATE_THROWS is not defined, << eidos_terminate causes a call to exit().  In that mode, output
-// related to termination output goes to cerr.  The other mode has EIDOS_TERMINATE_THROWS defined.  In that mode,
+// If gEidosTerminateThrows == 0, << eidos_terminate causes a call to exit().  In that mode, output
+// related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
 // we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
 // the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
-#if defined(EIDOS_TERMINATE_THROWS)
-
+extern bool gEidosTerminateThrows;
 extern std::ostringstream gEidosTermination;
-#define EIDOS_TERMINATION	(gEidosTermination)
 
-#else
-
-#define EIDOS_TERMINATION	(std::cerr)
-
-#endif
+#define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
 
 
 // the part of the input file that caused an error; set by the parsing code (SetErrorPositionFromCurrentToken

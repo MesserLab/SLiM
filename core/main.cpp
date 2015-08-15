@@ -28,13 +28,16 @@
 
 #include "slim_sim.h"
 #include "slim_global.h"
+#include "eidos_test.h"
+#include "slim_test.h"
 
 
 void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	EIDOS_TERMINATION << "usage: slim -version | -usage | [-seed <seed>] [-time] [-mem] [-Memhist] <script file>" << eidos_terminate();
+	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM | [-seed <seed>] [-time] [-mem] [-Memhist] <script file>" << std::endl;
+	exit(0);
 }
 
 int main(int argc, char *argv[])
@@ -44,6 +47,9 @@ int main(int argc, char *argv[])
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false;
+	
+	// command-line SLiM generally terminates rather than throwing
+	gEidosTerminateThrows = false;
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
@@ -90,6 +96,25 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
 			SLIM_OUTSTREAM << "SLiM version 2.0a3, built " << __DATE__ << " " __TIME__ << std::endl;
+			exit(0);
+		}
+		
+		// -testEidos or -te: run Eidos tests and quit
+		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
+		{
+			gEidosTerminateThrows = true;
+			Eidos_RegisterGlobalStringsAndIDs();
+			RunEidosTests();
+			exit(0);
+		}
+		
+		// -testSLiM or -ts: run SLiM tests and quit
+		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
+		{
+			gEidosTerminateThrows = true;
+			Eidos_RegisterGlobalStringsAndIDs();
+			SLiM_RegisterGlobalStringsAndIDs();
+			RunSLiMTests();
 			exit(0);
 		}
 		

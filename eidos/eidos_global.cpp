@@ -41,15 +41,10 @@ std::string gEidosContextLicense;
 int gEidosCharacterStartOfParseError = -1, gEidosCharacterEndOfParseError = -1;
 
 
-// define string streams used for output when EIDOS_TERMINATE_THROWS is defined; otherwise, terminates call exit()
-#if defined(EIDOS_TERMINATE_THROWS)
-
+// define string stream used for output when gEidosTerminateThrows == 1; otherwise, terminates call exit()
+bool gEidosTerminateThrows = 1;
 std::ostringstream gEidosTermination;
 bool gEidosTerminated;
-
-#else
-
-#endif
 
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
@@ -219,49 +214,58 @@ std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminato
 	if (p_terminator.print_backtrace_)
 		eidos_print_stacktrace(stderr);
 	
-#if defined(EIDOS_TERMINATE_THROWS)
-	// In this case, eidos_terminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
-	// causes the Context to display an error message and ends the simulation run, but it does not terminate the app.
-	throw std::runtime_error("A runtime error occurred in Eidos");
-#else
-	// In this case, eidos_terminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
-	exit(EXIT_FAILURE);
-#endif
+	if (gEidosTerminateThrows)
+	{
+		// In this case, eidos_terminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
+		// causes the Context to display an error message and ends the simulation run, but it does not terminate the app.
+		throw std::runtime_error("A runtime error occurred in Eidos");
+	}
+	else
+	{
+		// In this case, eidos_terminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
+		exit(EXIT_FAILURE);
+	}
 	
 	return p_out;
 }
 
 std::string EidosGetTrimmedRaiseMessage(void)
 {
-#if defined(EIDOS_TERMINATE_THROWS)
-	std::string terminationMessage = gEidosTermination.str();
-	
-	gEidosTermination.clear();
-	gEidosTermination.str(gEidosStr_empty_string);
-	
-	// trim off newlines at the end of the raise string
-	size_t endpos = terminationMessage.find_last_not_of("\n\r");
-	if (std::string::npos != endpos)
-		terminationMessage = terminationMessage.substr(0, endpos + 1);
-	
-	return terminationMessage;
-#else
-	return gEidosStr_empty_string;
-#endif
+	if (gEidosTerminateThrows)
+	{
+		std::string terminationMessage = gEidosTermination.str();
+		
+		gEidosTermination.clear();
+		gEidosTermination.str(gEidosStr_empty_string);
+		
+		// trim off newlines at the end of the raise string
+		size_t endpos = terminationMessage.find_last_not_of("\n\r");
+		if (std::string::npos != endpos)
+			terminationMessage = terminationMessage.substr(0, endpos + 1);
+		
+		return terminationMessage;
+	}
+	else
+	{
+		return gEidosStr_empty_string;
+	}
 }
 
 std::string EidosGetUntrimmedRaiseMessage(void)
 {
-#if defined(EIDOS_TERMINATE_THROWS)
-	std::string terminationMessage = gEidosTermination.str();
-	
-	gEidosTermination.clear();
-	gEidosTermination.str(gEidosStr_empty_string);
-	
-	return terminationMessage;
-#else
-	return gEidosStr_empty_string;
-#endif
+	if (gEidosTerminateThrows)
+	{
+		std::string terminationMessage = gEidosTermination.str();
+		
+		gEidosTermination.clear();
+		gEidosTermination.str(gEidosStr_empty_string);
+		
+		return terminationMessage;
+	}
+	else
+	{
+		return gEidosStr_empty_string;
+	}
 }
 
 

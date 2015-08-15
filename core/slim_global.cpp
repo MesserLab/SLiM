@@ -22,9 +22,7 @@
 
 
 // a stringstream for SLiM output; see the header for details
-#if defined(EIDOS_TERMINATE_THROWS)
 std::ostringstream gSLiMOut;
-#endif
 
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
