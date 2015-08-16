@@ -188,7 +188,27 @@ public:
 			}
 			else
 			{
-				mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+				// Up to a point, we want to double our capacity each time we have to realloc.  Beyond a certain point, that starts to
+				// use a whole lot of memory, so we start expanding at a linear rate instead of a geometric rate.  This policy is based
+				// on guesswork; the optimal policy would depend strongly on the particular details of the simulation being run.  The
+				// goal, though, is twofold: (1) to avoid excessive reallocations early on, and (2) to avoid the peak memory usage,
+				// when all genomes have grown to their stable equilibrium size, being drastically higher than necessary.  The policy
+				// chosen here is intended to try to achieve both of those goals.  The size sequence we follow now is:
+				//
+				//	4 (using our built-in pointer buffer)
+				//	8 (2x)
+				//	16 (2x)
+				//	32 (2x)
+				//	48 (+16)
+				//	64 (+16)
+				//	80 (+16)
+				//	...
+				
+				if (mutation_capacity_ < 32)
+					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+				else
+					mutation_capacity_ += 16;
+				
 				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
 			}
 		}
