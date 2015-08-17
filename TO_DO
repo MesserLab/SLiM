@@ -49,6 +49,7 @@ changes to mention in docs:
 	add a mention of building with optimization turned on for release builds; makes a big difference!
 	mention -D USE_GSL_POISSON compile option
 	mention new command-line options like -m, -M, -time
+	document the exact way we generate breakpoints – that a new crossover can fall inside a gene conversion stretch
 
 building on the command line for me:
 	g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
