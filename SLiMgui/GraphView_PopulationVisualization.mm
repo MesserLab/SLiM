@@ -292,10 +292,15 @@
 			for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 			{
 				slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
-				Subpopulation *sourceSubpop = &(pop.SubpopulationWithID(sourceSubpopID));
-				double migrantFraction = (*sourceSubpopIter).second;
+				auto sourceSubpopPair = pop.find(sourceSubpopID);
 				
-				[self drawArrowFromSubpop:sourceSubpop toSubpop:destSubpop migrantFraction:migrantFraction];
+				if (sourceSubpopPair != pop.end())
+				{
+					Subpopulation *sourceSubpop = sourceSubpopPair->second;
+					double migrantFraction = (*sourceSubpopIter).second;
+					
+					[self drawArrowFromSubpop:sourceSubpop toSubpop:destSubpop migrantFraction:migrantFraction];
+				}
 			}
 		}
 	}

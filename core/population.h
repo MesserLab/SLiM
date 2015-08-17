@@ -76,16 +76,6 @@ public:
 	Population(SLiMSim &p_sim);								// our constructor: we must have a reference to our simulation
 	~Population(void);										// destructor
 	
-	// find a subpopulation given an id
-	inline Subpopulation &SubpopulationWithID(slim_objectid_t p_subpop_id) const {
-		auto found_pair = find(p_subpop_id);
-		
-		if (found_pair == this->end())
-			EIDOS_TERMINATION << "ERROR (Population::SubpopulationWithID): no subpopulation p" << p_subpop_id << std::endl << eidos_terminate(true);
-		
-		return *(found_pair->second);
-	}
-	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
 	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio);
 	

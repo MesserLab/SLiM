@@ -514,8 +514,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 		
 		for (const std::pair<const slim_objectid_t,double> &fractions_pair : p_subpop.migrant_fractions_)
 		{
+			slim_objectid_t migrant_source_id = fractions_pair.first;
+			auto migrant_source_pair = find(migrant_source_id);
+			
+			if (migrant_source_pair == end())
+				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << std::endl << eidos_terminate();
+			
 			migration_rates[pop_count] = fractions_pair.second;
-			migration_sources[pop_count] = &SubpopulationWithID(fractions_pair.first);
+			migration_sources[pop_count] = migrant_source_pair->second;
 			migration_rate_sum += fractions_pair.second;
 			pop_count++;
 		}
