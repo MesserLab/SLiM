@@ -189,9 +189,12 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
 			{
 				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
+				// note that this second breakpoint does not count toward the total number of breakpoints we need to
+				// generate; this means that when gene conversion occurs, we return more breakpoints than requested!
 				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
 				
-				breakpoints.push_back(breakpoint2);
+				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
+					breakpoints.push_back(breakpoint2);
 			}
 		}
 	}

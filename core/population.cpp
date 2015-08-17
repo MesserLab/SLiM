@@ -892,7 +892,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			Mutation **parent_iter		= parent1_iter;
 			Mutation **parent_iter_max	= parent1_iter_max;
 			
-			int break_index_max = static_cast<int>(all_breakpoints.size());
+			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			
 			for (int break_index = 0; break_index != break_index_max; break_index++)
 			{
@@ -957,7 +957,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		Mutation **parent_iter		= parent1_iter;
 		Mutation **parent_iter_max	= parent1_iter_max;
 		
-		int break_index_max = static_cast<int>(all_breakpoints.size());
+		int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 		
 		for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
 		{
