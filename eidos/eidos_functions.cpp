@@ -2700,8 +2700,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//
 		//	miscellaneous functions
 		//
-#pragma mark *** Miscellaneous functions
-			
+#pragma mark -
+#pragma mark Miscellaneous functions
+#pragma mark -
+		
 #pragma mark date
 		case EidosFunctionIdentifier::dateFunction:
 		{
