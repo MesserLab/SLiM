@@ -112,7 +112,7 @@ EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eid
 	
 	if (p_method_id == gID_setSelectionCoeff)
 	{
-		double value = arg0_value->FloatAtIndex(0);
+		double value = arg0_value->FloatAtIndex(0, nullptr);
 		
 		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
 		

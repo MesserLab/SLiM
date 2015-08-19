@@ -21,7 +21,7 @@ using std::endl;
 
 // Helper functions for testing
 void SLiMAssertScriptSuccess(const string &p_script_string);
-void SLiMAssertScriptRaise(const string &p_script_string);
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position);
 
 // Keeping records of test success / failure
 static int gSLiMTestSuccessCount = 0;
@@ -46,7 +46,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	}
 	
 	try {
-		while (sim->RunOneGeneration());
+		while (sim->_RunOneGeneration());
 	}
 	catch (std::runtime_error err)
 	{
@@ -60,12 +60,12 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	//std::cerr << p_script_string << " : \e[32mSUCCESS\e[0m" << endl;
 }
 
-void SLiMAssertScriptRaise(const string &p_script_string)
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position)
 {
 	try {
 		std::istringstream infile(p_script_string);
 		SLiMSim *sim = new SLiMSim(infile, nullptr);
-		while (sim->RunOneGeneration());
+		while (sim->_RunOneGeneration());
 		
 		gSLiMTestFailureCount++;
 		
@@ -73,13 +73,37 @@ void SLiMAssertScriptRaise(const string &p_script_string)
 	}
 	catch (std::runtime_error err)
 	{
-		gSLiMTestSuccessCount++;
-		
 		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = EidosGetTrimmedRaiseMessage();
 		
-		//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
-		return;
+		if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
+		{
+			gSLiMTestFailureCount++;
+			
+			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
+			std::cerr << p_script_string << "   raise message: " << raise_message << endl;
+			std::cerr << "--------------------" << std::endl << std::endl;
+		}
+		else
+		{
+			eidos_script_error_position(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
+			
+			if ((gEidosErrorLine != p_bad_line) || (gEidosErrorLineCharacter != p_bad_position))
+			{
+				gSLiMTestFailureCount++;
+				
+				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but error position unexpected" << endl;
+				std::cerr << p_script_string << "   raise message: " << raise_message << endl;
+				eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+				std::cerr << "--------------------" << std::endl << std::endl;
+			}
+			else
+			{
+				gSLiMTestSuccessCount++;
+				
+				//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
+			}
+		}
 	}
 }
 
@@ -90,29 +114,29 @@ void RunSLiMTests(void)
 	gSLiMTestFailureCount = 0;
 	
 	// Test that a basic script works
-	SLiMAssertScriptSuccess("initialize() {"
-							"   initializeMutationRate(1e-7);"
-							"   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);"
-							"   initializeGenomicElementType(\"g1\", m1, 1.0);"
-							"   initializeGenomicElement(g1, 0, 99999);"
-							"   initializeRecombinationRate(1e-8);"
-							"}"
-							"1 { sim.addSubpop(\"p1\", 500); }"
-							"5 { sim.outputFull(); }"
+	SLiMAssertScriptSuccess("initialize() {\n"
+							"   initializeMutationRate(1e-7);\n"
+							"   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+							"   initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+							"   initializeGenomicElement(g1, 0, 99999);\n"
+							"   initializeRecombinationRate(1e-8);\n"
+							"}\n"
+							"1 { sim.addSubpop(\"p1\", 500); }\n"
+							"5 { sim.outputFull(); }\n"
 							);
 	
 	// Test that stop() raises as it is supposed to
-	SLiMAssertScriptRaise("initialize() {"
-						  "   initializeMutationRate(1e-7);"
-						  "   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);"
-						  "   initializeGenomicElementType(\"g1\", m1, 1.0);"
-						  "   initializeGenomicElement(g1, 0, 99999);"
-						  "   initializeRecombinationRate(1e-8);"
-						  "}"
-						  "1 { sim.addSubpop(\"p1\", 500); }"
-						  "3 { stop(\"fail!\"); }"
-						  "5 { sim.outputFull(); }"
-						  );
+	SLiMAssertScriptRaise("initialize() {\n"
+						  "   initializeMutationRate(1e-7);\n"
+						  "   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+						  "   initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+						  "   initializeGenomicElement(g1, 0, 99999);\n"
+						  "   initializeRecombinationRate(1e-8);\n"
+						  "}\n"
+						  "1 { sim.addSubpop(\"p1\", 500); }\n"
+						  "3 { stop(\"fail!\"); }\n"
+						  "5 { sim.outputFull(); }\n"
+						  , 9, 4);
 	
 	// ************************************************************************************
 	//

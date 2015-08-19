@@ -258,6 +258,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	BOOL showTokens = [defaults boolForKey:defaultsShowTokensKey];
 	BOOL showParse = [defaults boolForKey:defaultsShowParseKey];
 	BOOL showExecution = [defaults boolForKey:defaultsShowExecutionKey];
+	NSUInteger promptEnd = [outputTextView promptRangeEnd];
+	NSRange scriptRange = NSMakeRange(promptEnd, [scriptString length]);
 	
 	NSString *result = [self _executeScriptString:scriptString
 									  tokenString:(showTokens ? &tokenString : NULL)
@@ -303,6 +305,18 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	{
 		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorAttrString];
 		[outputTextView appendSpacer];
+	}
+	
+	if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError) && (scriptRange.location != NSNotFound))
+	{
+		// An error occurred, so let's try to highlight it in the input
+		int errorTokenStart = gEidosCharacterStartOfError + (int)scriptRange.location;
+		int errorTokenEnd = gEidosCharacterEndOfError + (int)scriptRange.location;
+		
+		NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
+		
+		[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
+		[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
 	}
 	
 	[ts endEditing];
@@ -384,6 +398,14 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		[alert beginSheetModalForWindow:scriptWindow completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
 		
 		[scriptTextView selectErrorRange];
+		
+		// Show the error in the status bar also
+		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
+		
+		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
+		[statusTextField setAttributedStringValue:errorAttrString];
 	}
 	else
 	{

@@ -61,8 +61,11 @@ public:
 	
 	// A utility method for extracting the numeric component of an identifier like 'p2', 's3', 'm17', or 'g5'
 	// This raises if the expected character prefix is not present, or if anything but numeric digits are present, or if the ID is out of range
+	// The token-based API uses the token for error tracking if an exception is raised; the string-based API just calls eidos_terminate(), and
+	// thus inherits whatever error-tracking token information might have been previously set.
 	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
 	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
+	static slim_objectid_t ExtractIDFromTokenWithPrefix(const EidosToken *p_identifier_token, char p_prefix_char);
 };
 
 
@@ -97,7 +100,7 @@ public:
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
-	bool contains_wildcard_ = false;			// "executeLambda", "globals"; all other contains_ flags will be T if this is T
+	bool contains_wildcard_ = false;			// "executeLambda", "globals", "rm"; all other contains_ flags will be T if this is T
 	EidosSymbolUsageParamBlock eidos_contains_;	// flags passed to Eidos regarding symbol usage
 	bool contains_pX_ = false;					// any subpop identifier like p1, p2...
 	bool contains_gX_ = false;					// any genomic element type identifier like g1, g2...
@@ -133,7 +136,7 @@ public:
 	
 	// Scan the tree for optimization purposes, called by the constructors
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
-	void ScanTree(void);
+	void ScanTreeForIdentifiersUsed(void);
 	
 	//
 	// Eidos support

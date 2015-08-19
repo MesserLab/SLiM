@@ -189,7 +189,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 			
 			if (first_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 				if ((first_child->cached_signature_ == nullptr) && (first_child->cached_stringID == gEidosID_none))
-					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized function name \"" << first_child->token_->token_string_ << "\"." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized function name \"" << first_child->token_->token_string_ << "\"." << eidos_terminate(first_child->token_);
 		}
 	}
 	else if (token_->token_type_ == EidosTokenType::kTokenDot)
@@ -204,7 +204,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 			
 			if (second_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 				if (second_child->cached_stringID == gEidosID_none)
-					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << eidos_terminate(second_child->token_);
 		}
 	}
 }

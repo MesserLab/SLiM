@@ -25,6 +25,9 @@
 #include <iostream>
 #include <sstream>
 
+class EidosScript;
+class EidosToken;
+
 
 // Information on the Context within which Eidos is running (if any).  This is basically a way to let the Context
 // customize the version and license information printed by Eidos.
@@ -43,13 +46,21 @@ extern std::ostringstream gEidosTermination;
 #define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
 
 
-// the part of the input file that caused an error; set by the parsing code (SetErrorPositionFromCurrentToken
-// in particular) and used by EidosTextView to highlight the token or text that caused the error
-extern int gEidosCharacterStartOfParseError, gEidosCharacterEndOfParseError;
+// The part of the input file that caused an error; used to highlight the token or text that caused the error.
+// Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.
+extern int gEidosCharacterStartOfError, gEidosCharacterEndOfError;
+extern EidosScript *gEidosCurrentScript;
+extern bool gEidosExecutingRuntimeScript;
+
+extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_terminate()
 
 
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
 void eidos_print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63);
+
+// Print an offending line of script with carets indicating an error position
+void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script);
+void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
 
 
 // This little class is used as a stream manipulator that causes termination with EXIT_FAILURE, optionally
@@ -60,8 +71,12 @@ class eidos_terminate
 public:
 	bool print_backtrace_ = false;
 	
-	eidos_terminate(void) = default;														// default constructor, no backtrace
-	eidos_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace) {};	// optionally request a backtrace
+	eidos_terminate(void) = default;							// default constructor, no backtrace, does not change error range
+	explicit eidos_terminate(const EidosToken *p_error_token);	// supply a token from which an error range is taken
+	
+	// These constructors request a backtrace as well
+	explicit eidos_terminate(bool p_print_backtrace);
+	eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace);
 };
 
 std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminator);	// note this returns void, not std::ostream&; that is deliberate
@@ -101,6 +116,7 @@ extern const std::string gEidosStr_function;
 extern const std::string gEidosStr_method;
 extern const std::string gEidosStr_executeLambda;
 extern const std::string gEidosStr_globals;
+extern const std::string gEidosStr_rm;
 
 extern const std::string gEidosStr_if;
 extern const std::string gEidosStr_else;

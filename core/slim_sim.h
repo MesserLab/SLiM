@@ -119,6 +119,7 @@ public:
 	
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
+	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
 	slim_generation_t EstimatedLastGeneration();									// derived from the last generation in which an Eidos block is registered
 	
 	// accessors

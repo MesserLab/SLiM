@@ -289,7 +289,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -327,7 +327,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			{
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index));
+					Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 					
 					insert_sorted_mutation_if_unique(new_mutation);
 					
@@ -348,10 +348,10 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 		case gID_addNewDrawnMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
-			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0));
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0));
-			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0));
+			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0, nullptr);
+			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			double selection_coeff = mut_type->DrawSelectionCoefficient();
@@ -378,11 +378,11 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 		case gID_addNewMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0);
-			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0));
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0));
-			double selection_coeff = arg3_value->FloatAtIndex(0);
-			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0));
+			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0, nullptr);
+			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			double selection_coeff = arg3_value->FloatAtIndex(0, nullptr);
+			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0, nullptr));
 			
 			MutationType *mut_type = (MutationType *)mut_type_value;
 			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
@@ -427,7 +427,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 					bool should_remove = false;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						if (arg0_value->ObjectElementAtIndex(value_index) == candidate_mutation)
+						if (arg0_value->ObjectElementAtIndex(value_index, nullptr) == candidate_mutation)
 						{
 							should_remove = true;
 							break;

@@ -202,7 +202,7 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 	sim_.InjectIntoInterpreter(interpreter, p_script_block, true);
 	
 	// Interpret the script; the result from the interpretation is not used for anything
-	EidosValue *result = interpreter.EvaluateInternalBlock();
+	EidosValue *result = interpreter.EvaluateInternalBlock(p_script_block->script_);
 	
 	if (result->IsTemporary()) delete result;
 	
@@ -265,7 +265,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				}
 				
 				// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
-				EidosValue *result = interpreter.EvaluateInternalBlock();
+				EidosValue *result = interpreter.EvaluateInternalBlock(mate_choice_callback->script_);
 				
 				if (result->Type() == EidosValueType::kValueNULL)
 				{
@@ -295,7 +295,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						if (result_vector_type)
 							memcpy(current_weights, result_vector_type->FloatVector().data(), sizeof(double) * weights_length);
 						else
-							current_weights[0] = result->FloatAtIndex(0);
+							current_weights[0] = result->FloatAtIndex(0, nullptr);
 					}
 					else
 					{
@@ -470,12 +470,12 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 				global_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-			EidosValue *result = interpreter.EvaluateInternalBlock();
+			EidosValue *result = interpreter.EvaluateInternalBlock(modify_child_callback->script_);
 			
 			if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
 				EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate();
 			
-			bool generate_child = result->LogicalAtIndex(0);
+			bool generate_child = result->LogicalAtIndex(0, nullptr);
 			
 			if (result->IsTemporary()) delete result;
 			

@@ -19,6 +19,7 @@
 
 
 #include "eidos_global.h"
+#include "eidos_script.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -36,13 +37,16 @@ std::string gEidosContextVersion;
 std::string gEidosContextLicense;
 
 
-// the part of the input file that caused an error; set by the parsing code (SetErrorPositionFromCurrentToken
-// in particular) and used by EidosTextView to highlight the token or text that caused the error
-int gEidosCharacterStartOfParseError = -1, gEidosCharacterEndOfParseError = -1;
+// the part of the input file that caused an error; used to highlight the token or text that caused the error
+int gEidosCharacterStartOfError = -1, gEidosCharacterEndOfError = -1;
+EidosScript *gEidosCurrentScript = nullptr;
+bool gEidosExecutingRuntimeScript = false;
+
+int gEidosErrorLine = -1, gEidosErrorLineCharacter = -1;
 
 
 // define string stream used for output when gEidosTerminateThrows == 1; otherwise, terminates call exit()
-bool gEidosTerminateThrows = 1;
+bool gEidosTerminateThrows = true;
 std::ostringstream gEidosTermination;
 bool gEidosTerminated;
 
@@ -205,6 +209,134 @@ void eidos_print_stacktrace(FILE *out, unsigned int max_frames)
 	fflush(out);
 }
 
+void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script)
+{
+	gEidosErrorLine = -1;
+	gEidosErrorLineCharacter = -1;
+	
+	if (p_script && (p_start >= 0) && (p_end >= p_start))
+	{
+		// figure out the script line and position
+		const std::string &script_string = p_script->String();
+		int length = (int)script_string.length();
+		
+		if ((length >= p_start) && (length >= p_end))	// == is the EOF position, which we want to allow but have to treat carefully
+		{
+			int lineStart = (p_start < length) ? p_start : length - 1;
+			int lineEnd = (p_end < length) ? p_end : length - 1;
+			int lineNumber;
+			
+			for (; lineStart > 0; --lineStart)
+				if ((script_string[lineStart - 1] == '\n') || (script_string[lineStart - 1] == '\r'))
+					break;
+			for (; lineEnd < length - 1; ++lineEnd)
+				if ((script_string[lineEnd + 1] == '\n') || (script_string[lineEnd + 1] == '\r'))
+					break;
+			
+			// Figure out the line number in the script where the error starts
+			lineNumber = 1;
+			
+			for (int i = 0; i < lineStart; ++i)
+				if (script_string[i] == '\n')
+					lineNumber++;
+			
+			gEidosErrorLine = lineNumber;
+			gEidosErrorLineCharacter = p_start - lineStart;
+		}
+	}
+}
+
+void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda)
+{
+	if (p_script && (p_start >= 0) && (p_end >= p_start))
+	{
+		// figure out the script line, print it, show the error position
+		const std::string &script_string = p_script->String();
+		int length = (int)script_string.length();
+		
+		if ((length >= p_start) && (length >= p_end))	// == is the EOF position, which we want to allow but have to treat carefully
+		{
+			int lineStart = (p_start < length) ? p_start : length - 1;
+			int lineEnd = (p_end < length) ? p_end : length - 1;
+			int lineNumber;
+			
+			for (; lineStart > 0; --lineStart)
+				if ((script_string[lineStart - 1] == '\n') || (script_string[lineStart - 1] == '\r'))
+					break;
+			for (; lineEnd < length - 1; ++lineEnd)
+				if ((script_string[lineEnd + 1] == '\n') || (script_string[lineEnd + 1] == '\r'))
+					break;
+			
+			// Figure out the line number in the script where the error starts
+			lineNumber = 1;
+			
+			for (int i = 0; i < lineStart; ++i)
+				if (script_string[i] == '\n')
+					lineNumber++;
+			
+			gEidosErrorLine = lineNumber;
+			gEidosErrorLineCharacter = p_start - lineStart;
+			
+			p_out << std::endl << "Error on script line " << gEidosErrorLine << ", character " << gEidosErrorLineCharacter;
+			
+			if (p_inside_lambda)
+				p_out << " (inside runtime script block)";
+			
+			p_out << ":" << std::endl << std::endl;
+			
+			// Emit the script line, converting tabs to three spaces
+			for (int i = lineStart; i <= lineEnd; ++i)
+			{
+				char script_char = script_string[i];
+				
+				if (script_char == '\t')
+					p_out << "   ";
+				else if ((script_char == '\n') || (script_char == '\r'))	// don't show more than one line
+					break;
+				else
+					p_out << script_char;
+			}
+			
+			p_out << std::endl;
+			
+			// Emit the error indicator line, again emitting three spaces where the script had a tab
+			for (int i = lineStart; i < p_start; ++i)
+			{
+				char script_char = script_string[i];
+				
+				if (script_char == '\t')
+					p_out << "   ";
+				else if ((script_char == '\n') || (script_char == '\r'))	// don't show more than one line
+					break;
+				else
+					p_out << ' ';
+			}
+			
+			// Emit the error indicator
+			for (int i = 0; i < p_end - p_start + 1; ++i)
+				p_out << "^";
+			
+			p_out << std::endl;
+		}
+	}
+}
+
+eidos_terminate::eidos_terminate(const EidosToken *p_error_token)
+{
+	if (p_error_token)
+		EidosScript::SetErrorPositionFromToken(p_error_token);
+}
+
+eidos_terminate::eidos_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
+{
+}
+
+eidos_terminate::eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
+{
+	if (p_error_token)
+		EidosScript::SetErrorPositionFromToken(p_error_token);
+}
+
 std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
 {
 	p_out << std::endl;
@@ -223,6 +355,9 @@ std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminato
 	else
 	{
 		// In this case, eidos_terminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
+		// In this case, we want to emit a diagnostic showing the line of script where the error occurred, if we can.
+		eidos_log_script_error(p_out, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+		
 		exit(EXIT_FAILURE);
 	}
 	
@@ -275,7 +410,7 @@ std::string EidosResolvedPath(const std::string p_path)
 	std::string path = p_path;
 	
 	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
-	if ((path.length() > 0) && (path.at(0) == '~'))
+	if ((path.length() > 0) && (path[0] == '~'))
 	{
 		const char *homedir;
 		
@@ -299,6 +434,7 @@ const std::string gEidosStr_function = "function";
 const std::string gEidosStr_method = "method";
 const std::string gEidosStr_executeLambda = "executeLambda";
 const std::string gEidosStr_globals = "globals";
+const std::string gEidosStr_rm = "rm";
 
 // mostly language keywords
 const std::string gEidosStr_if = "if";
@@ -353,10 +489,10 @@ static std::map<EidosGlobalStringID, const std::string *> gIDToString;
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
 	if (gStringToID.find(p_string) != gStringToID.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << eidos_terminate(nullptr);
 	
 	if (gIDToString.find(p_string_id) != gIDToString.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << eidos_terminate(nullptr);
 	
 	gStringToID[p_string] = p_string_id;
 	gIDToString[p_string_id] = &p_string;

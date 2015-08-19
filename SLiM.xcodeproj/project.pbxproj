@@ -111,6 +111,7 @@
 		987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		98800DC41B7EDCB50046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
+		98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
 		989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
@@ -1127,6 +1128,7 @@
 				98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */,
 				98D4C1DC1A6F543200FFB083 /* genomic_element_type.cpp in Sources */,
 				98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */,
+				98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */,
 				98D4C1D91A6F542900FFB083 /* mutation_type.cpp in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,

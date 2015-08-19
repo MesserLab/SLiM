@@ -318,7 +318,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 					
-					p_computed_fitness = result->FloatAtIndex(0);
+					p_computed_fitness = result->FloatAtIndex(0, nullptr);
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
@@ -368,12 +368,12 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						}
 						
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-						EidosValue *result = interpreter.EvaluateInternalBlock();
+						EidosValue *result = interpreter.EvaluateInternalBlock(fitness_callback->script_);
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
 						
-						p_computed_fitness = result->FloatAtIndex(0);
+						p_computed_fitness = result->FloatAtIndex(0, nullptr);
 						
 						if (result->IsTemporary()) delete result;
 						
@@ -1023,7 +1023,7 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1064,7 +1064,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				
 				if (arg0_value->Type() == EidosValueType::kValueInt)
 				{
-					slim_objectid_t subpop_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(value_index));
+					slim_objectid_t subpop_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
 					auto found_subpop_pair = population_.find(subpop_id);
 					
 					if (found_subpop_pair == population_.end())
@@ -1074,11 +1074,11 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				}
 				else
 				{
-					source_subpop = arg0_value->ObjectElementAtIndex(value_index);
+					source_subpop = arg0_value->ObjectElementAtIndex(value_index, nullptr);
 				}
 				
 				slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
-				double migrant_fraction = arg1_value->FloatAtIndex(value_index);
+				double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
 				
 				population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 			}
@@ -1102,8 +1102,8 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				if ((value_count < 1) || (value_count > 2))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << eidos_terminate();
 				
-				double female_cloning_fraction = arg0_value->FloatAtIndex(0);
-				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1) : female_cloning_fraction;
+				double female_cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
+				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
 				
 				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
@@ -1119,7 +1119,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				if (value_count != 1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << eidos_terminate();
 				
-				double cloning_fraction = arg0_value->FloatAtIndex(0);
+				double cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
 				
 				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
@@ -1139,7 +1139,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 		case gID_setSelfingRate:
 		{
-			double selfing_fraction = arg0_value->FloatAtIndex(0);
+			double selfing_fraction = arg0_value->FloatAtIndex(0, nullptr);
 			
 			if ((selfing_fraction != 0.0) && sex_enabled_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
@@ -1169,7 +1169,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			if (!sex_enabled_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << eidos_terminate();
 			
-			double sex_ratio = arg0_value->FloatAtIndex(0);
+			double sex_ratio = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 			child_sex_ratio_ = sex_ratio;
@@ -1186,7 +1186,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 		case gID_setSubpopulationSize:
 		{
-			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0));
+			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			
 			population_.SetSize(*this, subpop_size);
 			
@@ -1211,7 +1211,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			if (index_count == 1)
 			{
-				slim_popsize_t index = (do_all_indices ? 0 : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0)));
+				slim_popsize_t index = (do_all_indices ? 0 : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)));
 				double fitness = cached_parental_fitness_[index];
 				
 				return new EidosValue_Float_singleton_const(fitness);
@@ -1222,7 +1222,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				
 				for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 				{
-					slim_popsize_t index = (do_all_indices ? value_index : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index)));
+					slim_popsize_t index = (do_all_indices ? value_index : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr)));
 					double fitness = cached_parental_fitness_[index];
 					
 					float_return->PushFloat(fitness);
@@ -1243,12 +1243,12 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		case gID_outputMSSample:
 		case gID_outputSample:
 		{
-			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0));
+			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			IndividualSex requested_sex = IndividualSex::kUnspecified;
 			
 			if (p_argument_count == 2)
 			{
-				string sex_string = arg1_value->StringAtIndex(0);
+				string sex_string = arg1_value->StringAtIndex(0, nullptr);
 				
 				if (sex_string.compare("M") == 0)
 					requested_sex = IndividualSex::kMale;

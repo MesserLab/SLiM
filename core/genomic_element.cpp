@@ -124,7 +124,7 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -148,7 +148,7 @@ EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	
 	if (p_method_id == gID_setGenomicElementType)
 	{
-		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ObjectElementAtIndex(0));
+		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
 		
 		genomic_element_type_ptr_ = getype;
 		

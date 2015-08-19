@@ -174,7 +174,7 @@
 			{
 				NSString *parentName = wrapper->wrappedName;
 				NSString *childName = [NSString stringWithFormat:@"%@[%ld]", parentName, (long)index];
-				EidosValue *childValue = value->GetValueAtIndex((int)index);
+				EidosValue *childValue = value->GetValueAtIndex((int)index, nullptr);
 				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName value:childValue index:(int)index];
 				
 				[browserWrappers addObject:childWrapper];
@@ -287,7 +287,7 @@
 			// print values as a comma-separated list with strings quoted; halfway between print() and cat()
 			for (int value_index = 0; value_index < value_count; ++value_index)
 			{
-				EidosValue *element_value = value->GetValueAtIndex(value_index);
+				EidosValue *element_value = value->GetValueAtIndex(value_index, nullptr);
 				
 				if (value_index > 0)
 					outstream << ", ";

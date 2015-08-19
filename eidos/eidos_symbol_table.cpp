@@ -21,6 +21,7 @@
 #include "eidos_symbol_table.h"
 #include "eidos_value.h"
 #include "eidos_global.h"
+#include "eidos_token.h"
 #include "math.h"
 
 
@@ -152,6 +153,31 @@ std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 	return symbol_names;
 }
 
+EidosValue *EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const
+{
+	const std::string &symbol_name = p_symbol_token->token_string_;
+	int key_length = (int)symbol_name.length();
+	
+	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
+	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	{
+		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		
+		// use the length of the string to make the scan fast; only call compare() for equal-length strings
+		if (symbol_slot->symbol_name_length_ == key_length)
+		{
+			if (symbol_slot->symbol_name_->compare(symbol_name) == 0)
+				return symbol_slot->symbol_value_;
+		}
+	}
+	
+	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
+	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
+	
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForToken): undefined identifier " << symbol_name << "." << eidos_terminate(p_symbol_token);
+	return nullptr;
+}
+
 EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const
 {
 	int key_length = (int)p_symbol_name.length();
@@ -172,7 +198,7 @@ EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symb
 	//std::cerr << "ValueForIdentifier: Symbol table: " << *this;
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForSymbol): undefined identifier " << p_symbol_name << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForSymbol): undefined identifier " << p_symbol_name << "." << eidos_terminate(nullptr);
 	return nullptr;
 }
 
@@ -241,7 +267,7 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
 	
 	if ((symbol_slot >= 0) && symbols_[symbol_slot].symbol_is_const_)
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->IsExternalTemporary() || p_value->Invisible())
@@ -305,9 +331,9 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	{
 		// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
 		if (symbols_[symbol_slot].symbol_is_const_)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) Identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate(nullptr);
 		else
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): Identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) Identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate(nullptr);
 	}
 	
 	// get a version of the value that is suitable for insertion into the symbol table
@@ -359,7 +385,7 @@ void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bo
 		EidosValue *value = symbol_slot_ptr->symbol_value_;
 		
 		if (symbol_slot_ptr->symbol_is_const_ && !remove_constant)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
 		
 		// see comment on our destructor, above
 		if (!value->IsExternalPermanent())
@@ -384,7 +410,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_ne
 	
 #ifdef DEBUG
 	if (!entry_value->IsExternalPermanent() || entry_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
@@ -409,7 +435,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol
 {
 #ifdef DEBUG
 	if (!p_value->IsExternalPermanent() || p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
@@ -437,7 +463,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 	
 #ifdef DEBUG
 	if (!entry_value->IsExternalPermanent() || entry_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// check whether the symbol is already defined; if so, it should be identical or we raise
@@ -449,7 +475,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != entry_value))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): Identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) Identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
 		return;
@@ -477,7 +503,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 {
 #ifdef DEBUG
 	if (!p_value->IsExternalPermanent() || p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// check whether the symbol is already defined; if so, it should be identical or we raise
@@ -489,7 +515,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != p_value))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): Identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) Identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
 		return;
@@ -534,8 +560,8 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
 		{
-			EidosValue *first_value = symbol_value->GetValueAtIndex(0);
-			EidosValue *second_value = symbol_value->GetValueAtIndex(1);
+			EidosValue *first_value = symbol_value->GetValueAtIndex(0, nullptr);
+			EidosValue *second_value = symbol_value->GetValueAtIndex(1, nullptr);
 			
 			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
 			if (first_value->IsTemporary()) delete first_value;

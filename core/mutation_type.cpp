@@ -166,7 +166,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	{
 		case gID_dominanceCoeff:
 		{
-			double value = p_value->FloatAtIndex(0);
+			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);
 			return;
@@ -174,7 +174,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -198,7 +198,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	
 	if (p_method_id == gID_setDistribution)
 	{
-		string dfe_type_string = arg0_value->StringAtIndex(0);
+		string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
 		
@@ -217,7 +217,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
-			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
+			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
 		
 		// Everything seems to be in order, so replace our distribution info with the new info
 		dfe_type_ = dfe_type;

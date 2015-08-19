@@ -1,9 +1,7 @@
 SLiM:
 	set up testing code for validation, check against old version of the code
-	reporting errors by quoting the line of script and showing the position of the error
 
 Eidos:
-	add to method dispatch and function dispatch code: setting the token position for error highlighting of runtime errors!
 	implement help(), perhaps based on some sort of file-based representation
 	add rigorous tests for all functions, methods, operators, types
 	documentation work: explain the concept of NULL as an exceptional case, always allowed to be returned, allowing the caller to catch the problem without a crash if they check

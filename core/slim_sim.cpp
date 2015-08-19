@@ -129,8 +129,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 		rng_seed_ = EidosGenerateSeedFromPIDAndTime();
 	
 	// Reset error position indicators used by SLiMgui
-	gEidosCharacterStartOfParseError = -1;
-	gEidosCharacterEndOfParseError = -1;
+	EidosScript::ResetErrorPosition();
 	
 	// Read in the file; going through stringstream is fast...
 	std::stringstream buffer;
@@ -139,6 +138,8 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	
 	// Tokenize and parse
 	script_ = new SLiMEidosScript(buffer.str());
+	
+	gEidosCurrentScript = script_;
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -154,11 +155,12 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	}
 	
 	// Reset error position indicators used by SLiMgui
-	gEidosCharacterStartOfParseError = -1;
-	gEidosCharacterEndOfParseError = -1;
+	EidosScript::ResetErrorPosition();
 	
 	// initialize rng; this is either a value given at the command line, or the value generate above by EidosGenerateSeedFromPIDAndTime()
 	EidosInitializeRNGFromSeed(rng_seed_);
+	
+	gEidosCurrentScript = nullptr;
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by SLiMSim::InitializePopulationFromFile
@@ -321,7 +323,12 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		int64_t subpop_id_long = strtoq(subpop_id_string, NULL, 10);
 		slim_objectid_t subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_id_long);
 		
-		Subpopulation &subpop = population_.SubpopulationWithID(subpop_id);
+		auto subpop_pair = population_.find(subpop_id);
+		
+		if (subpop_pair == population_.end())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+		
+		Subpopulation &subpop = *subpop_pair->second;
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
 		int64_t genome_index_long = strtoq(sub.c_str(), NULL, 10);		// used to have a -1; switched to zero-based
@@ -533,6 +540,140 @@ slim_generation_t SLiMSim::EstimatedLastGeneration()
 	return last_gen;
 }
 
+bool SLiMSim::_RunOneGeneration(void)
+{
+	// Define the current script around each generation execution, for error reporting
+	gEidosCurrentScript = script_;
+	
+	if (generation_ == 0)
+	{
+		RunInitializeCallbacks();
+		
+		gEidosCurrentScript = nullptr;
+		return true;
+	}
+	else
+	{
+		// ******************************************************************
+		//
+		// Stage 1: Execute script events for the current generation
+		//
+		std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
+		
+		for (auto script_block : blocks)
+			if (script_block->active_)
+				population_.ExecuteScript(script_block, generation_, chromosome_);
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+		
+		// ******************************************************************
+		//
+		// Stage 2: Evolve all subpopulations
+		//
+		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
+		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
+		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
+		bool modify_child_callbacks_present = modify_child_callbacks.size();
+		bool no_active_callbacks = true;
+		
+		// if there are no active callbacks, we can pretend there are no callbacks at all
+		if (mate_choice_callbacks_present || modify_child_callbacks_present)
+		{
+			for (SLiMEidosBlock *callback : mate_choice_callbacks)
+				if (callback->active_)
+				{
+					no_active_callbacks = false;
+					break;
+				}
+			
+			if (no_active_callbacks)
+				for (SLiMEidosBlock *callback : modify_child_callbacks)
+					if (callback->active_)
+					{
+						no_active_callbacks = false;
+						break;
+					}
+		}
+		
+		if (no_active_callbacks)
+		{
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false);
+		}
+		else
+		{
+			// cache a list of callbacks registered for each subpop
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			{
+				slim_objectid_t subpop_id = subpop_pair.first;
+				Subpopulation *subpop = subpop_pair.second;
+				
+				// Get mateChoice() callbacks that apply to this subpopulation
+				for (SLiMEidosBlock *callback : mate_choice_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_mate_choice_callbacks_.push_back(callback);
+				}
+				
+				// Get modifyChild() callbacks that apply to this subpopulation
+				for (SLiMEidosBlock *callback : modify_child_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_modify_child_callbacks_.push_back(callback);
+				}
+			}
+			
+			// then evolve each subpop
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
+			
+			// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				subpop->registered_mate_choice_callbacks_.clear();
+				subpop->registered_modify_child_callbacks_.clear();
+			}
+		}
+		
+		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			subpop_pair.second->child_generation_valid = true;
+		
+		population_.child_generation_valid = true;
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+		
+		// ******************************************************************
+		//
+		// Stage 3: Swap generations and advance to the next generation
+		//
+		population_.SwapGenerations();
+		
+		// advance the generation counter as soon as the generation is done
+		if (cached_value_generation_)
+		{
+			delete cached_value_generation_;
+			cached_value_generation_ = nullptr;
+		}
+		generation_++;
+		
+		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
+		// cache it, because it can change based upon changes in script registration / deregistration.
+		gEidosCurrentScript = nullptr;
+		return (generation_ <= EstimatedLastGeneration());
+	}
+}
+
 bool SLiMSim::RunOneGeneration(void)
 {
 #ifdef SLIMGUI
@@ -541,139 +682,19 @@ bool SLiMSim::RunOneGeneration(void)
 		try
 		{
 #endif
-			if (generation_ == 0)
-			{
-				RunInitializeCallbacks();
-				return true;
-			}
-			else
-			{
-				// ******************************************************************
-				//
-				// Stage 1: Execute script events for the current generation
-				//
-				std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
-				
-				for (auto script_block : blocks)
-					if (script_block->active_)
-						population_.ExecuteScript(script_block, generation_, chromosome_);
-				
-				// the stage is done, so deregister script blocks as requested
-				DeregisterScheduledScriptBlocks();
-				
-				
-				// ******************************************************************
-				//
-				// Stage 2: Evolve all subpopulations
-				//
-				std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
-				std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
-				bool mate_choice_callbacks_present = mate_choice_callbacks.size();
-				bool modify_child_callbacks_present = modify_child_callbacks.size();
-				bool no_active_callbacks = true;
-				
-				// if there are no active callbacks, we can pretend there are no callbacks at all
-				if (mate_choice_callbacks_present || modify_child_callbacks_present)
-				{
-					for (SLiMEidosBlock *callback : mate_choice_callbacks)
-						if (callback->active_)
-						{
-							no_active_callbacks = false;
-							break;
-						}
-					
-					if (no_active_callbacks)
-						for (SLiMEidosBlock *callback : modify_child_callbacks)
-							if (callback->active_)
-							{
-								no_active_callbacks = false;
-								break;
-							}
-				}
-				
-				if (no_active_callbacks)
-				{
-					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false);
-				}
-				else
-				{
-					// cache a list of callbacks registered for each subpop
-					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					{
-						slim_objectid_t subpop_id = subpop_pair.first;
-						Subpopulation *subpop = subpop_pair.second;
-						
-						// Get mateChoice() callbacks that apply to this subpopulation
-						for (SLiMEidosBlock *callback : mate_choice_callbacks)
-						{
-							slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
-							
-							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop->registered_mate_choice_callbacks_.push_back(callback);
-						}
-						
-						// Get modifyChild() callbacks that apply to this subpopulation
-						for (SLiMEidosBlock *callback : modify_child_callbacks)
-						{
-							slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
-							
-							if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-								subpop->registered_modify_child_callbacks_.push_back(callback);
-						}
-					}
-					
-					// then evolve each subpop
-					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-						population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
-					
-					// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
-					for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					{
-						Subpopulation *subpop = subpop_pair.second;
-						
-						subpop->registered_mate_choice_callbacks_.clear();
-						subpop->registered_modify_child_callbacks_.clear();
-					}
-				}
-				
-				// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
-				for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					subpop_pair.second->child_generation_valid = true;
-				
-				population_.child_generation_valid = true;
-				
-				// the stage is done, so deregister script blocks as requested
-				DeregisterScheduledScriptBlocks();
-				
-				
-				// ******************************************************************
-				//
-				// Stage 3: Swap generations and advance to the next generation
-				//
-				population_.SwapGenerations();
-				
-				// advance the generation counter as soon as the generation is done
-				if (cached_value_generation_)
-				{
-					delete cached_value_generation_;
-					cached_value_generation_ = nullptr;
-				}
-				generation_++;
-				
-				// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
-				// cache it, because it can change based upon changes in script registration / deregistration.
-				return (generation_ <= EstimatedLastGeneration());
-			}
+			return _RunOneGeneration();
 #ifdef SLIMGUI
 		}
 		catch (std::runtime_error err)
 		{
 			simulationValid = false;
 			
+			gEidosCurrentScript = nullptr;
 			return false;
 		}
 	}
+	
+	gEidosCurrentScript = nullptr;
 #endif
 	
 	return false;
@@ -724,12 +745,12 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)
 	{
 		GenomicElementType *genomic_element_type_ptr;
-		slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0));		// used to have a -1; switched to zero-based
-		slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0));		// used to have a -1; switched to zero-based
+		slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
+		slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
 		
 		if (arg0_value->Type() == EidosValueType::kValueInt)
 		{
-			slim_objectid_t genomic_element_type = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0));
+			slim_objectid_t genomic_element_type = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 			
 			if (found_getype_pair == genomic_element_types_.end())
@@ -739,7 +760,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		}
 		else
 		{
-			genomic_element_type_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0));
+			genomic_element_type_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
 		}
 		
 		// FIXME bounds-check start and end
@@ -766,7 +787,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)
 	{
-		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 'g');
+		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'g');
 		
 		if (genomic_element_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
@@ -783,14 +804,14 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 		{
 			MutationType *mutation_type_ptr;
-			double proportion = arg2_value->FloatAtIndex(mut_type_index);
+			double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion <= 0)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() proportions must be greater than zero." << eidos_terminate();
 			
 			if (arg1_value->Type() == EidosValueType::kValueInt)
 			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg1_value->IntAtIndex(mut_type_index));
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg1_value->IntAtIndex(mut_type_index, nullptr));
 				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 				
 				if (found_muttype_pair == mutation_types_.end())
@@ -800,7 +821,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			}
 			else
 			{
-				mutation_type_ptr = dynamic_cast<MutationType *>(arg1_value->ObjectElementAtIndex(mut_type_index));
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg1_value->ObjectElementAtIndex(mut_type_index, nullptr));
 			}
 			
 			mutation_types.push_back(mutation_type_ptr);
@@ -826,7 +847,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			output_stream << "initializeGenomicElementType(" << map_identifier;
 			
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index);
+				output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			output_stream << ");" << endl;
 		}
@@ -843,9 +864,9 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)
 	{
-		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 'm');
-		double dominance_coeff = arg1_value->FloatAtIndex(0);
-		string dfe_type_string = arg2_value->StringAtIndex(0);
+		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'm');
+		double dominance_coeff = arg1_value->FloatAtIndex(0, nullptr);
+		string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
 		
@@ -867,7 +888,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
-			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0));
+			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
@@ -918,7 +939,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			if (rate_count != 1)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
-			double recombination_rate = arg0_value->FloatAtIndex(0);
+			double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
 			if (recombination_rate < 0.0)
@@ -941,11 +962,11 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
 			{
-				double recombination_rate = arg0_value->FloatAtIndex(value_index);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index));
+				double recombination_rate = arg0_value->FloatAtIndex(value_index, nullptr);
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
 				
 				if (value_index > 0)
-					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
+					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
 						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)
@@ -958,8 +979,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
-				double recombination_rate = arg0_value->FloatAtIndex(interval_index);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index));	// used to have a -1; switched to zero-based
+				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));	// used to have a -1; switched to zero-based
 				
 				chromosome_.recombination_rates_.push_back(recombination_rate);
 				chromosome_.recombination_end_positions_.push_back(recombination_end_position);
@@ -1011,8 +1032,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (num_gene_conversions > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() may be called only once." << eidos_terminate();
 		
-		double gene_conversion_fraction = arg0_value->FloatAtIndex(0);
-		double gene_conversion_avg_length = arg1_value->FloatAtIndex(0);
+		double gene_conversion_fraction = arg0_value->FloatAtIndex(0, nullptr);
+		double gene_conversion_avg_length = arg1_value->FloatAtIndex(0, nullptr);
 		
 		if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 (inclusive)." << eidos_terminate();
@@ -1039,7 +1060,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (num_mutation_rates > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once." << eidos_terminate();
 		
-		double rate = arg0_value->FloatAtIndex(0);
+		double rate = arg0_value->FloatAtIndex(0, nullptr);
 		
 		if (rate < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rate >= 0." << eidos_terminate();
@@ -1063,7 +1084,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (num_sex_declarations > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() may be called only once." << eidos_terminate();
 		
-		string chromosome_type = arg0_value->StringAtIndex(0);
+		string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
 		
 		if (chromosome_type.compare("A") == 0)
 			modeled_chromosome_type_ = GenomeType::kAutosome;
@@ -1077,7 +1098,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (p_argument_count == 2)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
-				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0);
+				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);
 			else
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): xDominanceCoeff may be supplied to initializeSex() only for chromosomeType \"X\"." << eidos_terminate();
 		}
@@ -1404,7 +1425,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 	{
 		case gID_generation:
 		{
-			int64_t value = p_value->IntAtIndex(0);
+			int64_t value = p_value->IntAtIndex(0, nullptr);
 			
 			generation_ = SLiMCastToGenerationTypeOrRaise(value);
 			
@@ -1422,7 +1443,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
 			
-			double value = p_value->FloatAtIndex(0);
+			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			x_chromosome_dominance_coeff_ = value;
 			return;
@@ -1430,7 +1451,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1462,9 +1483,9 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 		case gID_addSubpop:
 		{
-			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 'p');
-			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0));
-			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
+			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p');
+			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
@@ -1490,10 +1511,10 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 		case gID_addSubpopSplit:
 		{
-			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 'p');
-			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0));
-			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0));
-			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
+			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p');
+			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0, nullptr));
+			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
@@ -1523,7 +1544,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 			for (int block_index = 0; block_index < block_count; ++block_index)
-				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index)));
+				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index, nullptr)));
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -1567,7 +1588,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				if (requested_subpop_count)
 				{
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index)));
+						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
 				}
 			}
 			
@@ -1607,7 +1628,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				if (arg1_count)
 				{
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
-						float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index)))->reference_count_ * denominator);
+						float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_ * denominator);
 				}
 			}
 			else
@@ -1661,7 +1682,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			}
 			else if (p_argument_count == 1)
 			{
-				string outfile_path = arg0_value->StringAtIndex(0);
+				string outfile_path = arg0_value->StringAtIndex(0, nullptr);
 				std::ofstream outfile;
 				outfile.open(outfile_path.c_str());
 				
@@ -1702,7 +1723,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			std::vector<Mutation*> mutations;
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
-				mutations.push_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index)));
+				mutations.push_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
 			
 			// find all polymorphism of the mutations that are to be tracked
 			if (mutations_count > 0)
@@ -1747,7 +1768,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 		case gID_readFromPopulationFile:
 		{
-			string file_path = arg0_value->StringAtIndex(0);
+			string file_path = arg0_value->StringAtIndex(0, nullptr);
 			
 			InitializePopulationFromFile(file_path.c_str());
 			
@@ -1763,12 +1784,12 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		case gID_registerScriptEvent:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0);
-			slim_generation_t start_generation = (arg2_value ? SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0)) : 1);
-			slim_generation_t end_generation = (arg3_value ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0)) : SLIM_MAX_GENERATION);
+			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			slim_generation_t start_generation = (arg2_value ? SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : 1);
+			slim_generation_t end_generation = (arg3_value ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptEvent() requires start <= end." << endl << eidos_terminate();
@@ -1803,17 +1824,17 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		case gID_registerScriptFitnessCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0);
-			slim_objectid_t mut_type_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0));
+			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			slim_objectid_t mut_type_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			slim_objectid_t subpop_id = -1;
-			slim_generation_t start_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0)) : 1);
-			slim_generation_t end_generation = (arg5_value ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0)) : SLIM_MAX_GENERATION);
+			slim_generation_t start_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
+			slim_generation_t end_generation = (arg5_value ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
 			
 			if (arg3_value && (arg3_value->Type() != EidosValueType::kValueNULL))
-				subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0));
+				subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptFitnessCallback() requires start <= end." << endl << eidos_terminate();
@@ -1854,16 +1875,16 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		case gID_registerScriptModifyChildCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0);
+			string script_string = arg1_value->StringAtIndex(0, nullptr);
 			slim_objectid_t subpop_id = -1;
-			slim_generation_t start_generation = (arg3_value ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0)) : 1);
-			slim_generation_t end_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0)) : SLIM_MAX_GENERATION);
+			slim_generation_t start_generation = (arg3_value ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : 1);
+			slim_generation_t end_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
 			
 			if (arg2_value && (arg2_value->Type() != EidosValueType::kValueNULL))
-				subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0));
+				subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << endl << eidos_terminate();

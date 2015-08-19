@@ -431,14 +431,26 @@ using std::string;
 
 - (void)selectErrorRange
 {
-	if ((gEidosCharacterStartOfParseError >= 0) && (gEidosCharacterEndOfParseError >= gEidosCharacterStartOfParseError))
+	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError))
 	{
-		NSRange charRange = NSMakeRange(gEidosCharacterStartOfParseError, gEidosCharacterEndOfParseError - gEidosCharacterStartOfParseError + 1);
+		NSRange charRange = NSMakeRange(gEidosCharacterStartOfError, gEidosCharacterEndOfError - gEidosCharacterStartOfError + 1);
 		
 		[self setSelectedRange:charRange];
 		[self scrollRangeToVisible:charRange];
+		
+		// Set the selection color to red for maximal visibility; this gets set back in setSelectedRanges:affinity:stillSelecting:
+		[self setSelectedTextAttributes:@{NSBackgroundColorAttributeName:[NSColor redColor], NSForegroundColorAttributeName:[NSColor whiteColor]}];
 	}
 }
+
+- (void)setSelectedRanges:(NSArray *)ranges affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag
+{
+	// The text selection color may have been changed by -selectErrorRange; here we just make sure it is set back again
+	[self setSelectedTextAttributes:@{NSBackgroundColorAttributeName:[NSColor selectedTextBackgroundColor]}];
+	
+	[super setSelectedRanges:ranges affinity:affinity stillSelecting:stillSelectingFlag];
+}
+
 
 //
 //	Syntax coloring

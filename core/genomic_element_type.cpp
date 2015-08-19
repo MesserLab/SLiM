@@ -185,7 +185,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, EidosVal
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -221,8 +221,8 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 		
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 		{ 
-			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ObjectElementAtIndex(mut_type_index);
-			double proportion = arg1_value->FloatAtIndex(mut_type_index);
+			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ObjectElementAtIndex(mut_type_index, nullptr);
+			double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion <= 0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than zero." << eidos_terminate();

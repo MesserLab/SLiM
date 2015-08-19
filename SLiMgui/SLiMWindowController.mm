@@ -43,6 +43,7 @@
 #import "ScriptMod_AddRecombinationRate.h"
 #import "ScriptMod_AddSexConfiguration.h"
 #import "eidos_call_signature.h"
+#import "slim_test.h"
 
 #include <iostream>
 #include <sstream>
@@ -179,6 +180,14 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	
 	// Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
 	[scriptTextView selectErrorRange];
+	
+	// Show the error in the status bar also
+	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
+	
+	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
+	[scriptStatusTextField setAttributedStringValue:errorAttrString];
 }
 
 - (void)checkForSimulationTermination
@@ -1271,6 +1280,14 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
 		
 		[scriptTextView selectErrorRange];
+		
+		// Show the error in the status bar also
+		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
+		
+		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
+		[scriptStatusTextField setAttributedStringValue:errorAttrString];
 	}
 	else
 	{
@@ -1606,6 +1623,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	
 	[launchString release];
 	[dividerString release];
+	
+	// Run startup tests, if enabled
+	[self willExecuteScript];
+	RunSLiMTests();
+	[self didExecuteScript];
 }
 
 - (void)injectIntoInterpreter:(EidosInterpreter *)interpreter

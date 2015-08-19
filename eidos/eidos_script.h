@@ -77,16 +77,26 @@ public:
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;
 	
+	inline const std::string &String(void) const					{ return script_string_; }
 	inline const std::vector<EidosToken *> &Tokens(void) const		{ return token_stream_; }
 	inline const EidosASTNode *AST(void) const						{ return parse_root_; }
 	
 	// Parsing methods; see grammar for definitions
 	void Consume();
-	void SetErrorPositionFromCurrentToken(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
 	
-	// This can be used to set the error position even outside of parsing; call just before you throw
-	static void SetErrorPositionFromToken(const EidosToken *p_naughty_token_);
+	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
+	static inline void SetErrorPositionFromToken(const EidosToken *p_naughty_token_)
+	{
+		gEidosCharacterStartOfError = p_naughty_token_->token_start_;
+		gEidosCharacterEndOfError = p_naughty_token_->token_end_;
+	}
+	
+	static inline void ResetErrorPosition(void)
+	{
+		gEidosCharacterStartOfError = -1;
+		gEidosCharacterEndOfError = -1;
+	}
 	
 	// Top-level parse method for the Eidos interpreter and other contexts
 	EidosASTNode *Parse_InterpreterBlock(void);

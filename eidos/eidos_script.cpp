@@ -62,6 +62,10 @@ EidosScript::~EidosScript(void)
 
 void EidosScript::Tokenize(bool p_keep_nonsignificant)
 {
+	// set up error tracking for this script
+	EidosScript *current_script_save = gEidosCurrentScript;
+	gEidosCurrentScript = this;
+	
 	// delete all existing tokens, AST, etc.
 	for (auto token : token_stream_)
 		delete token;
@@ -232,8 +236,8 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \\), newlines not allowed
 					do 
 					{
-						gEidosCharacterStartOfParseError = token_start;
-						gEidosCharacterEndOfParseError = token_end;
+						gEidosCharacterStartOfError = token_start;
+						gEidosCharacterEndOfError = token_end;
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
@@ -293,8 +297,8 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 		if (token_type == EidosTokenType::kTokenNone)
 		{
 			// failed to find a match; this causes a syntax error raise
-			gEidosCharacterStartOfParseError = token_start;
-			gEidosCharacterEndOfParseError = token_end;
+			gEidosCharacterStartOfError = token_start;
+			gEidosCharacterEndOfError = token_end;
 			
 			EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at character '" << (char)ch << "'" << eidos_terminate();
 		}
@@ -347,6 +351,9 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 		std::cout << "Tokens : ";
 		this->PrintTokens(std::cout);
 	}
+	
+	// restore error tracking
+	gEidosCurrentScript = current_script_save;
 }
 
 void EidosScript::AddOptionalSemicolon(void)
@@ -394,18 +401,6 @@ void EidosScript::Consume()
 	}
 }
 
-void EidosScript::SetErrorPositionFromCurrentToken(void)
-{
-	gEidosCharacterStartOfParseError = current_token_->token_start_;
-	gEidosCharacterEndOfParseError = current_token_->token_end_;
-}
-
-void EidosScript::SetErrorPositionFromToken(const EidosToken *p_naughty_token_)
-{
-	gEidosCharacterStartOfParseError = p_naughty_token_->token_start_;
-	gEidosCharacterEndOfParseError = p_naughty_token_->token_end_;
-}
-
 void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 {
 	if (current_token_type_ == p_token_type)
@@ -421,8 +416,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	else
 	{
 		// not finding the right token type is fatal
-		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'" << eidos_terminate(current_token_);
 	}
 }
 
@@ -905,8 +899,7 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 	}
 	else
 	{
-		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
 		return nullptr;
 	}
 }
@@ -945,8 +938,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 	}
 	else
 	{
-		SetErrorPositionFromCurrentToken();
-		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
 		return nullptr;
 	}
 	
@@ -964,6 +956,10 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	current_token_ = token_stream_.at(parse_index_);		// should always have at least an EOF
 	current_token_type_ = current_token_->token_type_;
 	
+	// set up error tracking for this script
+	EidosScript *current_script_save = gEidosCurrentScript;
+	gEidosCurrentScript = this;
+	
 	// parse a new AST from our start token
 	EidosASTNode *tree = Parse_InterpreterBlock();
 
@@ -977,6 +973,9 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 		std::cout << "AST : \n";
 		this->PrintAST(std::cout);
 	}
+	
+	// restore error tracking
+	gEidosCurrentScript = current_script_save;
 }
 
 void EidosScript::PrintTokens(ostream &p_outstream) const

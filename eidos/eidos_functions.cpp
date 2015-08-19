@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fstream>
+#include <stdexcept>
 
 
 using std::string;
@@ -172,12 +173,12 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("executeLambda",	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_globals,	EidosFunctionIdentifier::globalsFunction,		kEidosValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kEidosValueMaskNULL))->AddString_OS("topic"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kEidosValueMaskNULL)));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rm",				EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			EidosFunctionIdentifier::setSeedFunction,		kEidosValueMaskNULL))->AddInt_S("seed"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			EidosFunctionIdentifier::getSeedFunction,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				EidosFunctionIdentifier::stopFunction,			kEidosValueMaskNULL))->AddString_OS("message"));
@@ -235,6 +236,9 @@ EidosFunctionMap *EidosInterpreter::BuiltInFunctionMap(void)
 
 EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count)
 {
+	// This function expects an error range to be set bracketing it externally,
+	// so no blame token is needed here.
+	
 #pragma unused(p_function_name)
 	EidosValueType highest_type = EidosValueType::kValueNULL;
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
@@ -267,7 +271,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 				{
 					// we've already seen a object type, so check that this one is the same type
 					if (element_class != this_element_class)
-						EIDOS_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << eidos_terminate(nullptr);
 				}
 			}
 			
@@ -278,7 +282,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 	}
 	
 	if (has_object_type && has_nonobject_type)
-		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << eidos_terminate(nullptr);
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == EidosValueType::kValueNULL)
@@ -295,7 +299,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			
 			if (arg_value->Type() != EidosValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushLogical(arg_value->LogicalAtIndex(value_index));
+					result->PushLogical(arg_value->LogicalAtIndex(value_index, nullptr));
 		}
 		
 		return result;
@@ -310,7 +314,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			
 			if (arg_value->Type() != EidosValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushInt(arg_value->IntAtIndex(value_index));
+					result->PushInt(arg_value->IntAtIndex(value_index, nullptr));
 		}
 		
 		return result;
@@ -325,7 +329,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			
 			if (arg_value->Type() != EidosValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushFloat(arg_value->FloatAtIndex(value_index));
+					result->PushFloat(arg_value->FloatAtIndex(value_index, nullptr));
 		}
 		
 		return result;
@@ -340,7 +344,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			
 			if (arg_value->Type() != EidosValueType::kValueNULL)
 				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushString(arg_value->StringAtIndex(value_index));
+					result->PushString(arg_value->StringAtIndex(value_index, nullptr));
 		}
 		
 		return result;
@@ -354,14 +358,14 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 			EidosValue *arg_value = p_arguments[arg_index];
 			
 			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-				result->PushElement(arg_value->ObjectElementAtIndex(value_index));
+				result->PushElement(arg_value->ObjectElementAtIndex(value_index, nullptr));
 		}
 		
 		return result;
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << eidos_terminate(nullptr);
 	}
 	
 	return nullptr;
@@ -378,7 +382,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		auto signature_iter = function_map_->find(p_function_name);
 		
 		if (signature_iter == function_map_->end())
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << eidos_terminate(nullptr);
 		
 		p_function_signature = signature_iter->second;
 	}
@@ -391,7 +395,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 	{
 		case EidosFunctionIdentifier::kNoFunction:
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): internal logic error." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): internal logic error." << eidos_terminate(nullptr);
 			break;
 		}
 			
@@ -421,7 +425,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(llabs(arg0_value->IntAtIndex(0)));
+					result = new EidosValue_Int_singleton_const(llabs(arg0_value->IntAtIndex(0, nullptr)));
 				}
 				else
 				{
@@ -429,14 +433,14 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result = int_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						int_result->PushInt(llabs(arg0_value->IntAtIndex(value_index)));
+						int_result->PushInt(llabs(arg0_value->IntAtIndex(value_index, nullptr)));
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(fabs(arg0_value->FloatAtIndex(0)));
+					result = new EidosValue_Float_singleton_const(fabs(arg0_value->FloatAtIndex(0, nullptr)));
 				}
 				else
 				{
@@ -444,7 +448,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result = float_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index)));
+						float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index, nullptr)));
 				}
 			}
 			break;
@@ -458,7 +462,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(acos(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(acos(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -466,7 +470,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(acos(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -479,7 +483,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(asin(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(asin(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -487,7 +491,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(asin(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -500,7 +504,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(atan(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(atan(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -508,7 +512,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(atan(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -522,11 +526,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int arg1_count = arg1_value->Count();
 			
 			if (arg0_count != arg1_count)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function atan2() requires arguments of equal length." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function atan2() requires arguments of equal length." << eidos_terminate(nullptr);
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(atan2(arg0_value->FloatAtIndex(0), arg1_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(atan2(arg0_value->FloatAtIndex(0, nullptr), arg1_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -534,7 +538,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(atan2(arg0_value->FloatAtIndex(value_index), arg1_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(atan2(arg0_value->FloatAtIndex(value_index, nullptr), arg1_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -547,7 +551,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(ceil(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(ceil(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -555,7 +559,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -568,7 +572,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(cos(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(cos(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -576,7 +580,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -589,7 +593,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(exp(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(exp(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -597,7 +601,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(exp(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -610,7 +614,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(floor(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(floor(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -618,7 +622,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -631,7 +635,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = (isfinite(arg0_value->FloatAtIndex(0)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				result = (isfinite(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -639,7 +643,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index)));
+					logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -652,7 +656,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = (isinf(arg0_value->FloatAtIndex(0)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				result = (isinf(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -660,7 +664,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index)));
+					logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -673,7 +677,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = (isnan(arg0_value->FloatAtIndex(0)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				result = (isnan(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -681,7 +685,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index)));
+					logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -694,7 +698,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(log(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -702,7 +706,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(log(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -715,7 +719,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log10(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(log10(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -723,7 +727,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(log10(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -736,7 +740,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log2(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(log2(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -744,7 +748,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(log2(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -760,7 +764,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0));
+					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -772,13 +776,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						int64_t old_product = product;
-						int64_t temp = arg0_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 						
-						product *= arg0_value->IntAtIndex(value_index);
+						product *= arg0_value->IntAtIndex(value_index, nullptr);
 						
 						// raise on overflow; test after doing the multiplication
 						if (product / temp != old_product)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << eidos_terminate(nullptr);
 					}
 					
 					int_result->PushInt(product);
@@ -788,7 +792,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -798,7 +802,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double product = 1;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						product *= arg0_value->FloatAtIndex(value_index);
+						product *= arg0_value->FloatAtIndex(value_index, nullptr);
 					
 					float_result->PushFloat(product);
 				}
@@ -817,7 +821,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0));
+					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -828,13 +832,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg0_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 						
 						// raise on overflow; test prior to doing the addition
 						if (((temp > 0) && (sum > INT64_MAX - temp)) || ((temp < 0) && (sum < INT64_MIN - temp)))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << eidos_terminate(nullptr);
 						
-						sum += arg0_value->IntAtIndex(value_index);
+						sum += arg0_value->IntAtIndex(value_index, nullptr);
 					}
 					
 					int_result->PushInt(sum);
@@ -844,7 +848,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -854,7 +858,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double sum = 0;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						sum += arg0_value->FloatAtIndex(value_index);
+						sum += arg0_value->FloatAtIndex(value_index, nullptr);
 					
 					float_result->PushFloat(sum);
 				}
@@ -870,7 +874,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(round(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(round(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -878,7 +882,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -891,7 +895,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(sin(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(sin(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -899,7 +903,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(sin(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -912,7 +916,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(sqrt(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(sqrt(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -920,7 +924,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(sqrt(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -933,7 +937,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(tan(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(tan(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -941,7 +945,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(tan(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -954,7 +958,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(trunc(arg0_value->FloatAtIndex(0)));
+				result = new EidosValue_Float_singleton_const(trunc(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -962,7 +966,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index)));
+					float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index, nullptr)));
 			}
 			break;
 		}
@@ -989,10 +993,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
-				bool max = arg0_value->LogicalAtIndex(0);
+				bool max = arg0_value->LogicalAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					bool temp = arg0_value->LogicalAtIndex(value_index);
+					bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 				}
@@ -1000,10 +1004,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueInt)
 			{
-				int64_t max = arg0_value->IntAtIndex(0);
+				int64_t max = arg0_value->IntAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 				}
@@ -1011,10 +1015,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
-				double max = arg0_value->FloatAtIndex(0);
+				double max = arg0_value->FloatAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 				}
@@ -1022,10 +1026,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
-				string max = arg0_value->StringAtIndex(0);
+				string max = arg0_value->StringAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string &&temp = arg0_value->StringAtIndex(value_index);
+					string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 				}
@@ -1042,7 +1046,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			double sum = 0;
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				sum += arg0_value->FloatAtIndex(value_index);
+				sum += arg0_value->FloatAtIndex(value_index, nullptr);
 			
 			result = new EidosValue_Float_singleton_const(sum / arg0_count);
 			break;
@@ -1061,10 +1065,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
-				bool min = arg0_value->LogicalAtIndex(0);
+				bool min = arg0_value->LogicalAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					bool temp = arg0_value->LogicalAtIndex(value_index);
+					bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
 					if (min > temp)
 						min = temp;
 				}
@@ -1072,10 +1076,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueInt)
 			{
-				int64_t min = arg0_value->IntAtIndex(0);
+				int64_t min = arg0_value->IntAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 					if (min > temp)
 						min = temp;
 				}
@@ -1083,10 +1087,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
-				double min = arg0_value->FloatAtIndex(0);
+				double min = arg0_value->FloatAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
 					if (min > temp)
 						min = temp;
 				}
@@ -1094,10 +1098,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
-				string min = arg0_value->StringAtIndex(0);
+				string min = arg0_value->StringAtIndex(0, nullptr);
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					string &&temp = arg0_value->StringAtIndex(value_index);
+					string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
 					if (min > temp)
 						min = temp;
 				}
@@ -1122,12 +1126,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 				result = int_result;
 				
-				int64_t max = arg0_value->IntAtIndex(0);
+				int64_t max = arg0_value->IntAtIndex(0, nullptr);
 				int64_t min = max;
 
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index);
+					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 					else if (min > temp)
@@ -1141,12 +1145,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
-				double max = arg0_value->FloatAtIndex(0);
+				double max = arg0_value->FloatAtIndex(0, nullptr);
 				double min = max;
 
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index);
+					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
 					if (max < temp)
 						max = temp;
 					else if (min > temp)
@@ -1170,13 +1174,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double sd = 0;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					mean += arg0_value->FloatAtIndex(value_index);
+					mean += arg0_value->FloatAtIndex(value_index, nullptr);
 				
 				mean /= arg0_count;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double temp = (arg0_value->FloatAtIndex(value_index) - mean);
+					double temp = (arg0_value->FloatAtIndex(value_index, nullptr) - mean);
 					sd += temp * temp;
 				}
 				
@@ -1212,7 +1216,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 			result = float_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
 				float_result->PushFloat(0.0);
 			break;
 		}
@@ -1224,7 +1228,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 			result = int_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
 				int_result->PushInt(0);
 			break;
 		}
@@ -1236,7 +1240,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_Logical *logical_result = new EidosValue_Logical();
 			result = logical_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
 				logical_result->PushLogical(false);
 			break;
 		}
@@ -1252,7 +1256,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::rbinomFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			int64_t num_draws = arg0_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
 			EidosValue *arg_size = p_arguments[1];
 			EidosValue *arg_prob = p_arguments[2];
 			int arg_size_count = arg_size->Count();
@@ -1261,21 +1265,21 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool prob_singleton = (arg_prob_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 			if (!size_singleton && (arg_size_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << eidos_terminate(nullptr);
 			if (!prob_singleton && (arg_prob_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires prob to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires prob to be of length 1 or n." << eidos_terminate(nullptr);
 			
-			int size0 = (int)arg_size->IntAtIndex(0);
-			double probability0 = arg_prob->FloatAtIndex(0);
+			int size0 = (int)arg_size->IntAtIndex(0, nullptr);
+			double probability0 = arg_prob->FloatAtIndex(0, nullptr);
 			
 			if (size_singleton && prob_singleton)
 			{
 				if (size0 < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate(nullptr);
 				if ((probability0 < 0.0) || (probability0 > 1.0))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1297,13 +1301,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex(draw_index));
-					double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index));
+					int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex(draw_index, nullptr));
+					double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
 					
 					if (size < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate(nullptr);
 					if ((probability < 0.0) || (probability > 1.0))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate(nullptr);
 					
 					int_result->PushInt(gsl_ran_binomial(gEidos_rng, probability, size));
 				}
@@ -1325,11 +1329,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg1_count == 1)
 			{
-				int64_t rep_count = arg1_value->IntAtIndex(0);
+				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 				
 				for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
 					for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value);
+						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
 			}
 			
 			break;
@@ -1348,25 +1352,25 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg1_count == 1)
 			{
-				int64_t rep_count = arg1_value->IntAtIndex(0);
+				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 				
 				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value);
+						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
 			}
 			else if (arg1_count == arg0_count)
 			{
 				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 				{
-					int64_t rep_count = arg1_value->IntAtIndex(value_idx);
+					int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
 					
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value);
+						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
 				}
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
 			}
 			
 			break;
@@ -1376,23 +1380,23 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::rexpFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			int64_t num_draws = arg0_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
 			EidosValue *arg_rate = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 			int arg_rate_count = (arg_rate ? arg_rate->Count() : 1);
 			bool rate_singleton = (arg_rate_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 			if (!rate_singleton && (arg_rate_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << eidos_terminate(nullptr);
 			
 			if (rate_singleton)
 			{
-				double rate0 = (arg_rate ? arg_rate->FloatAtIndex(0) : 1.0);
+				double rate0 = (arg_rate ? arg_rate->FloatAtIndex(0, nullptr) : 1.0);
 				double mu0 = 1.0 / rate0;
 				
 				if (rate0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1414,10 +1418,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					double rate = arg_rate->FloatAtIndex(draw_index);
+					double rate = arg_rate->FloatAtIndex(draw_index, nullptr);
 					
 					if (rate <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate(nullptr);
 					
 					float_result->PushFloat(gsl_ran_exponential(gEidos_rng, 1.0 / rate));
 				}
@@ -1430,7 +1434,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::rnormFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			int64_t num_draws = arg0_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
 			EidosValue *arg_mu = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 			EidosValue *arg_sigma = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
 			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
@@ -1439,19 +1443,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool sigma_singleton = (arg_sigma_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 			if (!mu_singleton && (arg_mu_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << eidos_terminate(nullptr);
 			if (!sigma_singleton && (arg_sigma_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << eidos_terminate(nullptr);
 			
-			double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0) : 0.0);
-			double sigma0 = (arg_sigma ? arg_sigma->FloatAtIndex(0) : 1.0);
+			double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
+			double sigma0 = (arg_sigma ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
 			
 			if (mu_singleton && sigma_singleton)
 			{
 				if (sigma0 < 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1473,11 +1477,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(draw_index));
-					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index));
+					double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(draw_index, nullptr));
+					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index, nullptr));
 					
 					if (sigma < 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate(nullptr);
 					
 					float_result->PushFloat(gsl_ran_gaussian(gEidos_rng, sigma) + mu);
 				}
@@ -1490,15 +1494,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::rpoisFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			int64_t num_draws = arg0_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
 			EidosValue *arg_lambda = p_arguments[1];
 			int arg_lambda_count = arg_lambda->Count();
 			bool lambda_singleton = (arg_lambda_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 			if (!lambda_singleton && (arg_lambda_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << eidos_terminate(nullptr);
 			
 			// Here we ignore USE_GSL_POISSON and always use the GSL.  This is because we don't know whether lambda (otherwise known as mu) is
 			// small or large, and because we don't know what level of accuracy is demanded by whatever the user is doing with the deviates,
@@ -1506,10 +1510,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (lambda_singleton)
 			{
-				double lambda0 = arg_lambda->FloatAtIndex(0);
+				double lambda0 = arg_lambda->FloatAtIndex(0, nullptr);
 				
 				if (lambda0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1531,10 +1535,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					double lambda = arg_lambda->FloatAtIndex(draw_index);
+					double lambda = arg_lambda->FloatAtIndex(draw_index, nullptr);
 					
 					if (lambda <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate(nullptr);
 					
 					int_result->PushInt(gsl_ran_poisson(gEidos_rng, lambda));
 				}
@@ -1547,7 +1551,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::runifFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			int64_t num_draws = arg0_value->IntAtIndex(0);
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
 			
 			if (p_argument_count == 1)
 			{
@@ -1559,7 +1563,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				else
 				{
 					if (num_draws < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 					
 					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 					result = float_result;
@@ -1578,20 +1582,20 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				bool max_singleton = (arg_max_count == 1);
 				
 				if (num_draws < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
 				if (!min_singleton && (arg_min_count != num_draws))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << eidos_terminate(nullptr);
 				if (!max_singleton && (arg_max_count != num_draws))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << eidos_terminate(nullptr);
 				
-				double min_value0 = (arg_min ? arg_min->FloatAtIndex(0) : 0.0);
-				double max_value0 = (arg_max ? arg_max->FloatAtIndex(0) : 1.0);
+				double min_value0 = (arg_min ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
+				double max_value0 = (arg_max ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
 				double range0 = max_value0 - min_value0;
 				
 				if (min_singleton && max_singleton)
 				{
 					if (range0 < 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min < max." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min < max." << eidos_terminate(nullptr);
 					
 					if (num_draws == 1)
 					{
@@ -1613,12 +1617,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 					{
-						double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex(draw_index));
-						double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex(draw_index));
+						double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex(draw_index, nullptr));
+						double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex(draw_index, nullptr));
 						double range = max_value - min_value;
 						
 						if (range < 0.0)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min < max." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min < max." << eidos_terminate(nullptr);
 						
 						float_result->PushFloat(gsl_rng_uniform(gEidos_rng) * range + min_value);
 					}
@@ -1633,13 +1637,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			int64_t sample_size = p_arguments[1]->IntAtIndex(0);
-			bool replace = ((p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0) : false);
+			int64_t sample_size = p_arguments[1]->IntAtIndex(0, nullptr);
+			bool replace = ((p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0, nullptr) : false);
 			
 			result = arg0_value->NewMatchingType();
 			
 			if (sample_size < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires a sample size >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires a sample size >= 0." << eidos_terminate(nullptr);
 			if (sample_size == 0)
 				break;
 			
@@ -1653,11 +1657,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int arg3_count = arg3_value->Count();
 				
 				if (arg3_count != arg0_count)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires x and weights to be the same length." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires x and weights to be the same length." << eidos_terminate(nullptr);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double weight = arg3_value->FloatAtIndex(value_index);
+					double weight = arg3_value->FloatAtIndex(value_index, nullptr);
 					
 					weights_vector.push_back(weight);
 					weights_sum += weight;
@@ -1675,9 +1679,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
 					if (contender_count <= 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
 					if (weights_sum <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() encountered weights summing to <= 0." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() encountered weights summing to <= 0." << eidos_terminate(nullptr);
 					
 					double rose = gsl_rng_uniform(gEidos_rng) * weights_sum;
 					double rose_sum = 0.0;
@@ -1691,7 +1695,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 							break;
 					}
 					
-					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], arg0_value);
+					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], arg0_value, nullptr);
 					
 					if (!replace)
 					{
@@ -1709,7 +1713,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (replace)
 				{
 					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
-						result->PushValueFromIndexOfEidosValue((int)gsl_rng_uniform_int(gEidos_rng, arg0_count), arg0_value);
+						result->PushValueFromIndexOfEidosValue((int)gsl_rng_uniform_int(gEidos_rng, arg0_count), arg0_value, nullptr);
 				}
 				else
 				{
@@ -1725,11 +1729,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 					{
 						if (contender_count <= 0)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
 						
 						int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
 						
-						result->PushValueFromIndexOfEidosValue(index_vector[rose_index], arg0_value);
+						result->PushValueFromIndexOfEidosValue(index_vector[rose_index], arg0_value, nullptr);
 						
 						index_vector.erase(index_vector.begin() + rose_index);
 						--contender_count;
@@ -1756,15 +1760,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
-				double first_value = arg0_value->FloatAtIndex(0);
-				double second_value = arg1_value->FloatAtIndex(0);
+				double first_value = arg0_value->FloatAtIndex(0, nullptr);
+				double second_value = arg1_value->FloatAtIndex(0, nullptr);
 				double default_by = ((first_value < second_value) ? 1 : -1);
-				double by_value = (arg2_value ? arg2_value->FloatAtIndex(0) : default_by);
+				double by_value = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : default_by);
 				
 				if (by_value == 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate(nullptr);
 				
 				if (by_value > 0)
 					for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -1779,15 +1783,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 				result = int_result;
 				
-				int64_t first_value = arg0_value->IntAtIndex(0);
-				int64_t second_value = arg1_value->IntAtIndex(0);
+				int64_t first_value = arg0_value->IntAtIndex(0, nullptr);
+				int64_t second_value = arg1_value->IntAtIndex(0, nullptr);
 				int64_t default_by = ((first_value < second_value) ? 1 : -1);
-				int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0) : default_by);
+				int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0, nullptr) : default_by);
 				
 				if (by_value == 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate(nullptr);
 				
 				if (by_value > 0)
 					for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -1820,7 +1824,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_String *string_result = new EidosValue_String();
 			result = string_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0); value_index > 0; --value_index)
+			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
 				string_result->PushString(gEidosStr_empty_string);
 			break;
 		}
@@ -1843,7 +1847,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = gStaticEidosValue_LogicalT;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (!arg0_value->LogicalAtIndex(value_index))
+				if (!arg0_value->LogicalAtIndex(value_index, nullptr))
 				{
 					result = gStaticEidosValue_LogicalF;
 					break;
@@ -1861,7 +1865,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = gStaticEidosValue_LogicalF;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (arg0_value->LogicalAtIndex(value_index))
+				if (arg0_value->LogicalAtIndex(value_index, nullptr))
 				{
 					result = gStaticEidosValue_LogicalT;
 					break;
@@ -1876,14 +1880,14 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0, nullptr) : gEidosStr_space_string);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
 				if (value_index > 0)
 					output_stream << separator;
 				
-				output_stream << arg0_value->StringAtIndex(value_index);
+				output_stream << arg0_value->StringAtIndex(value_index, nullptr);
 			}
 			break;
 		}
@@ -1903,18 +1907,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int arg2_count = arg2_value->Count();
 			
 			if (arg0_count != arg1_count || arg0_count != arg2_count)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments of equal length." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments of equal length." << eidos_terminate(nullptr);
 			if (arg1_type != arg2_type)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << eidos_terminate(nullptr);
 				
 			result = arg1_value->NewMatchingType();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (arg0_value->LogicalAtIndex(value_index))
-					result->PushValueFromIndexOfEidosValue(value_index, arg1_value);
+				if (arg0_value->LogicalAtIndex(value_index, nullptr))
+					result->PushValueFromIndexOfEidosValue(value_index, arg1_value, nullptr);
 				else
-					result->PushValueFromIndexOfEidosValue(value_index, arg2_value);
+					result->PushValueFromIndexOfEidosValue(value_index, arg2_value, nullptr);
 			}
 			break;
 		}
@@ -1927,7 +1931,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0).length());
+				result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr).length());
 			}
 			else
 			{
@@ -1935,7 +1939,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(arg0_value->StringAtIndex(value_index).length());
+					int_result->PushInt(arg0_value->StringAtIndex(value_index, nullptr).length());
 			}
 			break;
 		}
@@ -1945,7 +1949,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0, nullptr) : gEidosStr_space_string);
 			string result_string;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1953,7 +1957,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (value_index > 0)
 					result_string.append(separator);
 				
-				result_string.append(arg0_value->StringAtIndex(value_index));
+				result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
 			result = new EidosValue_String(result_string);
@@ -1978,7 +1982,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = arg0_value->NewMatchingType();
 			
 			for (int value_index = arg0_count - 1; value_index >= 0; --value_index)
-				result->PushValueFromIndexOfEidosValue(value_index, arg0_value);
+				result->PushValueFromIndexOfEidosValue(value_index, arg0_value, nullptr);
 			break;
 		}
 			
@@ -2000,9 +2004,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = arg0_value->NewMatchingType();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				result->PushValueFromIndexOfEidosValue(value_index, arg0_value);
+				result->PushValueFromIndexOfEidosValue(value_index, arg0_value, nullptr);
 			
-			result->Sort((p_argument_count == 1) ? true : p_arguments[1]->LogicalAtIndex(0));
+			result->Sort((p_argument_count == 1) ? true : p_arguments[1]->LogicalAtIndex(0, nullptr));
 			break;
 		}
 			
@@ -2014,9 +2018,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_Object_vector *object_result = new EidosValue_Object_vector();
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				object_result->PushElement(arg0_value->ObjectElementAtIndex(value_index));
+				object_result->PushElement(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 			
-			object_result->SortBy(p_arguments[1]->StringAtIndex(0), (p_argument_count == 2) ? true : p_arguments[2]->LogicalAtIndex(0));
+			object_result->SortBy(p_arguments[1]->StringAtIndex(0, nullptr), (p_argument_count == 2) ? true : p_arguments[2]->LogicalAtIndex(0, nullptr));
 			
 			result = object_result;
 			break;
@@ -2036,8 +2040,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				output_stream << *arg0_value << endl;
 			else
 			{
-				EidosValue *first_value = arg0_value->GetValueAtIndex(0);
-				EidosValue *second_value = arg0_value->GetValueAtIndex(1);
+				EidosValue *first_value = arg0_value->GetValueAtIndex(0, nullptr);
+				EidosValue *second_value = arg0_value->GetValueAtIndex(1, nullptr);
 				
 				output_stream << *first_value << gEidosStr_space_string << *second_value << " ... (" << arg0_count << " values)" << endl;
 				
@@ -2054,8 +2058,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue_String *string_result = new EidosValue_String();
 			result = string_result;
 			
-			string joined_string = arg0_value->StringAtIndex(0);
-			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0) : gEidosStr_space_string);
+			string joined_string = arg0_value->StringAtIndex(0, nullptr);
+			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0, nullptr) : gEidosStr_space_string);
 			string::size_type start_idx = 0, sep_idx;
 			
 			while (true)
@@ -2087,12 +2091,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool first_singleton = (arg_first_count == 1);
 			
 			if (!first_singleton && (arg_first_count != arg0_count))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
 			
 			EidosValue_String *string_result = new EidosValue_String();
 			result = string_result;
 			
-			int64_t first0 = arg_first->IntAtIndex(0);
+			int64_t first0 = arg_first->IntAtIndex(0, nullptr);
 			
 			if (p_argument_count >= 3)
 			{
@@ -2102,16 +2106,16 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				bool last_singleton = (arg_last_count == 1);
 				
 				if (!last_singleton && (arg_last_count != arg0_count))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
 				
-				int64_t last0 = arg_last->IntAtIndex(0);
+				int64_t last0 = arg_last->IntAtIndex(0, nullptr);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg0_value->StringAtIndex(value_index);
+					std::string str = arg0_value->StringAtIndex(value_index, nullptr);
 					string::size_type len = str.length();
-					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
-					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index));
+					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
 					
 					if (clamped_first < 0) clamped_first = 0;
 					if (clamped_last >= len) clamped_last = (int)len - 1;
@@ -2127,9 +2131,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				// last not supplied; take substrings to the end of each string
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg0_value->StringAtIndex(value_index);
+					std::string str = arg0_value->StringAtIndex(value_index, nullptr);
 					string::size_type len = str.length();
-					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index));
+					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 					
 					if (clamped_first < 0) clamped_first = 0;
 					
@@ -2160,7 +2164,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					if (arg0_value->LogicalAtIndex(value_index))
+					if (arg0_value->LogicalAtIndex(value_index, nullptr))
 						containsT = true;
 					else
 						containsF = true;
@@ -2178,7 +2182,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					EidosValue_Logical *logical_result = new EidosValue_Logical();
 					result = logical_result;
 					
-					if (arg0_value->LogicalAtIndex(0))
+					if (arg0_value->LogicalAtIndex(0, nullptr))
 					{
 						logical_result->PushLogical(true);
 						logical_result->PushLogical(false);
@@ -2197,12 +2201,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					int64_t value = arg0_value->IntAtIndex(value_index);
+					int64_t value = arg0_value->IntAtIndex(value_index, nullptr);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->IntAtIndex(scan_index))
+						if (value == arg0_value->IntAtIndex(scan_index, nullptr))
 							break;
 					}
 					
@@ -2217,12 +2221,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double value = arg0_value->FloatAtIndex(value_index);
+					double value = arg0_value->FloatAtIndex(value_index, nullptr);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->FloatAtIndex(scan_index))
+						if (value == arg0_value->FloatAtIndex(scan_index, nullptr))
 							break;
 					}
 					
@@ -2237,12 +2241,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					string value = arg0_value->StringAtIndex(value_index);
+					string value = arg0_value->StringAtIndex(value_index, nullptr);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->StringAtIndex(scan_index))
+						if (value == arg0_value->StringAtIndex(scan_index, nullptr))
 							break;
 					}
 					
@@ -2257,12 +2261,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					EidosObjectElement *value = arg0_value->ObjectElementAtIndex(value_index);
+					EidosObjectElement *value = arg0_value->ObjectElementAtIndex(value_index, nullptr);
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->ObjectElementAtIndex(scan_index))
+						if (value == arg0_value->ObjectElementAtIndex(scan_index, nullptr))
 							break;
 					}
 					
@@ -2282,7 +2286,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = int_result;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (arg0_value->LogicalAtIndex(value_index))
+				if (arg0_value->LogicalAtIndex(value_index, nullptr))
 					int_result->PushInt(value_index);
 			break;
 		}
@@ -2304,41 +2308,41 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool max = arg0_value->LogicalAtIndex(0);
+					bool max = arg0_value->LogicalAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = arg0_value->LogicalAtIndex(value_index);
+						bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueInt)
 				{
-					int64_t max = arg0_value->IntAtIndex(0);
+					int64_t max = arg0_value->IntAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg0_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueFloat)
 				{
-					double max = arg0_value->FloatAtIndex(0);
+					double max = arg0_value->FloatAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						double temp = arg0_value->FloatAtIndex(value_index);
+						double temp = arg0_value->FloatAtIndex(value_index, nullptr);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueString)
 				{
-					string max = arg0_value->StringAtIndex(0);
+					string max = arg0_value->StringAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string &&temp = arg0_value->StringAtIndex(value_index);
+						string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
 						if (max < temp) { max = temp; first_index = value_index; }
 					}
 				}
@@ -2365,41 +2369,41 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool min = arg0_value->LogicalAtIndex(0);
+					bool min = arg0_value->LogicalAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = arg0_value->LogicalAtIndex(value_index);
+						bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueInt)
 				{
-					int64_t min = arg0_value->IntAtIndex(0);
+					int64_t min = arg0_value->IntAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg0_value->IntAtIndex(value_index);
+						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueFloat)
 				{
-					double min = arg0_value->FloatAtIndex(0);
+					double min = arg0_value->FloatAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						double temp = arg0_value->FloatAtIndex(value_index);
+						double temp = arg0_value->FloatAtIndex(value_index, nullptr);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
 				else if (arg0_type == EidosValueType::kValueString)
 				{
-					string min = arg0_value->StringAtIndex(0);
+					string min = arg0_value->StringAtIndex(0, nullptr);
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						string &&temp = arg0_value->StringAtIndex(value_index);
+						string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
 						if (min > temp) { min = temp; first_index = value_index; }
 					}
 				}
@@ -2426,7 +2430,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0));
+				result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
 			}
 			else
 			{
@@ -2434,7 +2438,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(arg0_value->FloatAtIndex(value_index));
+					float_result->PushFloat(arg0_value->FloatAtIndex(value_index, nullptr));
 			}
             break;
 		}
@@ -2447,7 +2451,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0));
+				result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
 			}
 			else
 			{
@@ -2455,7 +2459,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(arg0_value->IntAtIndex(value_index));
+					int_result->PushInt(arg0_value->IntAtIndex(value_index, nullptr));
 			}
             break;
 		}
@@ -2468,7 +2472,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = (arg0_value->LogicalAtIndex(0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				result = (arg0_value->LogicalAtIndex(0, nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -2476,7 +2480,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index));
+					logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index, nullptr));
 				break;
 			}
 		}
@@ -2490,7 +2494,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			result = string_result;
 			
             for (int value_index = 0; value_index < arg0_count; ++value_index)
-                string_result->PushString(arg0_value->StringAtIndex(value_index));
+                string_result->PushString(arg0_value->StringAtIndex(value_index, nullptr));
             break;
 		}
 			
@@ -2585,9 +2589,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::filesAtPathFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			string base_path = arg0_value->StringAtIndex(0);
+			string base_path = arg0_value->StringAtIndex(0, nullptr);
 			string path = EidosResolvedPath(base_path);
-			bool fullPaths = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0) : false;
+			bool fullPaths = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
 			
 			// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
 			// I'm not sure if it works on Windows... sigh...
@@ -2626,7 +2630,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::readFileFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			string base_path = arg0_value->StringAtIndex(0);
+			string base_path = arg0_value->StringAtIndex(0, nullptr);
 			string file_path = EidosResolvedPath(base_path);
 			
 			// read the contents in
@@ -2661,7 +2665,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::writeFileFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			string base_path = arg0_value->StringAtIndex(0);
+			string base_path = arg0_value->StringAtIndex(0, nullptr);
 			string file_path = EidosResolvedPath(base_path);
 			
 			// the second argument is the file contents to write
@@ -2683,7 +2687,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (value_index > 0)
 						file_stream << endl;
 					
-					file_stream << arg1_value->StringAtIndex(value_index);
+					file_stream << arg1_value->StringAtIndex(value_index, nullptr);
 				}
 				
 				if (file_stream.bad())
@@ -2723,17 +2727,53 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::executeLambdaFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			EidosScript script(arg0_value->StringAtIndex(0));
+			EidosScript script(arg0_value->StringAtIndex(0, nullptr));
 			
-			script.Tokenize();
-			script.ParseInterpreterBlockToAST();
+			// Errors in lambdas are reported for the lambda script, not for the calling script
+			int error_start_save = gEidosCharacterStartOfError;
+			int error_end_save = gEidosCharacterEndOfError;
+			EidosScript *current_script_save = gEidosCurrentScript;
+			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
 			
-			EidosSymbolTable &symbols = GetSymbolTable();			// get our own symbol table
-			EidosInterpreter interpreter(script, symbols);		// give the interpreter the symbol table
+			gEidosCharacterStartOfError = -1;
+			gEidosCharacterEndOfError = -1;
+			gEidosCurrentScript = &script;
+			gEidosExecutingRuntimeScript = true;
 			
-			result = interpreter.EvaluateInterpreterBlock(false);
+			// Tokenize, parse, and execute inside try/catch so we can handle errors well
+			try
+			{
+				script.Tokenize();
+				script.ParseInterpreterBlockToAST();
+				
+				EidosSymbolTable &symbols = GetSymbolTable();			// get our own symbol table
+				EidosInterpreter interpreter(script, symbols);		// give the interpreter the symbol table
+				
+				result = interpreter.EvaluateInterpreterBlock(false);
+				ExecutionOutputStream() << interpreter.ExecutionOutput();
+			}
+			catch (std::runtime_error err)
+			{
+				// If exceptions throw, then we want to set up the error information to highlight the
+				// executeLambda() that failed, since we can't highlight the actual error.  (If exceptions
+				// don't throw, this catch block will neber be hit; exit() will already have been called
+				// and the error will have been reported from the context of the lambda script string.)
+				if (gEidosTerminateThrows)
+				{
+					gEidosCharacterStartOfError = error_start_save;
+					gEidosCharacterEndOfError = error_end_save;
+					gEidosCurrentScript = current_script_save;
+					gEidosExecutingRuntimeScript = executing_runtime_script_save;
+				}
+				
+				throw;
+			}
 			
-			ExecutionOutputStream() << interpreter.ExecutionOutput();
+			// Restore the normal error context
+			gEidosCharacterStartOfError = error_start_save;
+			gEidosCharacterEndOfError = error_end_save;
+			gEidosCurrentScript = current_script_save;
+			gEidosExecutingRuntimeScript = executing_runtime_script_save;
 			
 			break;
 		}
@@ -2743,7 +2783,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = (p_argument_count >= 1) ? p_arguments[0] : nullptr;
 			std::ostringstream &output_stream = ExecutionOutputStream();
-			string match_string = (arg0_value ? arg0_value->StringAtIndex(0) : gEidosStr_empty_string);
+			string match_string = (arg0_value ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order
@@ -2824,7 +2864,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int arg0_count = arg0_value->Count();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index));
+					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
 			for (string &symbol : symbols_to_remove)
@@ -2838,7 +2878,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			EidosInitializeRNGFromSeed(arg0_value->IntAtIndex(0));
+			EidosInitializeRNGFromSeed(arg0_value->IntAtIndex(0, nullptr));
 			break;
 		}
 			
@@ -2853,9 +2893,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::stopFunction:
 		{
 			if (p_argument_count >= 1)
-				ExecutionOutputStream() << p_arguments[0]->StringAtIndex(0) << endl;
+				ExecutionOutputStream() << p_arguments[0]->StringAtIndex(0, nullptr) << endl;
 			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): stop() called." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): stop() called." << eidos_terminate(nullptr);
 			break;
 		}
 			
@@ -2895,7 +2935,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::_TestFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0));
+			Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0, nullptr));
 			result = new EidosValue_Object_singleton_const(testElement);
 			testElement->Release();
 			break;
@@ -2917,7 +2957,7 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
 	
 	if (!method_signature)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << " is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << " is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate(nullptr);
 	
 	method_signature->CheckArguments(p_arguments, p_argument_count);
 	

@@ -67,7 +67,7 @@ void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValu
 {
 	if (p_property_id == gEidosID__yolk)
 	{
-		yolk_ = p_value->IntAtIndex(0);
+		yolk_ = p_value->IntAtIndex(0, nullptr);
 		return;
 	}
 	

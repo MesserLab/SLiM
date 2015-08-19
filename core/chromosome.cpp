@@ -267,7 +267,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 	{
 		case gID_geneConversionFraction:
 		{
-			double value = p_value->FloatAtIndex(0);
+			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if ((value < 0.0) || (value > 1.0))
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -277,7 +277,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_geneConversionMeanLength:
 		{
-			double value = p_value->FloatAtIndex(0);
+			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if (value < 0.0)
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -287,7 +287,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_overallMutationRate:
 		{
-			double value = p_value->FloatAtIndex(0);
+			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if ((value < 0.0) || (value > 1.0))
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -298,7 +298,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -329,7 +329,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			if (rate_count != 1)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
-			double recombination_rate = arg0_value->FloatAtIndex(0);
+			double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
 			if (recombination_rate < 0.0)
@@ -352,11 +352,11 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
 			{
-				double recombination_rate = arg0_value->FloatAtIndex(value_index);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index));
+				double recombination_rate = arg0_value->FloatAtIndex(value_index, nullptr);
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
 				
 				if (value_index > 0)
-					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1))
+					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
 						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)
@@ -366,7 +366,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 			// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 			// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-			if (arg1_value->IntAtIndex(end_count - 1) != last_position_)
+			if (arg1_value->IntAtIndex(end_count - 1, nullptr) != last_position_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
 			
 			// then adopt them
@@ -375,8 +375,8 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
-				double recombination_rate = arg0_value->FloatAtIndex(interval_index);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index));	// used to have a -1; switched to zero-based
+				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));	// used to have a -1; switched to zero-based
 				
 				recombination_rates_.push_back(recombination_rate);
 				recombination_end_positions_.push_back(recombination_end_position);
