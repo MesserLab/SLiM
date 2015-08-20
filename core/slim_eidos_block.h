@@ -95,6 +95,7 @@ public:
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its generation range and type nodes
 	const EidosASTNode *compound_statement_node_ = nullptr;		// NOT OWNED: the node for the compound statement that constitutes the body of the block
+	const EidosToken *identifier_token_ = nullptr;
 	
 	slim_usertag_t active_ = -1;								// the "active" property of the block: 0 if inactive, all other values are active
 	slim_usertag_t tag_value_;									// a user-defined tag value

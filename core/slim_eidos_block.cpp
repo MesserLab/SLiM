@@ -359,6 +359,8 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		const std::vector<EidosASTNode *> &callback_children = callback_node->children_;
 		int n_callback_children = (int)callback_children.size();
 		
+		identifier_token_ = callback_token;	// remember our identifier token for easy access later
+		
 		if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
 		{
 			if (n_callback_children != 0)

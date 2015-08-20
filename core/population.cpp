@@ -220,6 +220,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	double *current_weights = standard_weights;
 	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
 	bool weights_modified = false;
+	SLiMEidosBlock *last_interventionist_mate_choice_callback = nullptr;
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
@@ -289,22 +290,26 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 							weights_modified = true;
 						}
 						
-						// We really want to use EidosValue_Float_vector's FloatVector() method to get the values
+						// We really want to use EidosValue_Float_vector's FloatVector() method to get the values; if the dynamic_cast
+						// fails, we presumably have an EidosValue_Float_singleton_const and must get its value with FloatAtIndex.
 						EidosValue_Float_vector *result_vector_type = dynamic_cast<EidosValue_Float_vector *>(result);
 						
 						if (result_vector_type)
 							memcpy(current_weights, result_vector_type->FloatVector().data(), sizeof(double) * weights_length);
 						else
 							current_weights[0] = result->FloatAtIndex(0, nullptr);
+						
+						// remember this callback for error attribution below
+						last_interventionist_mate_choice_callback = mate_choice_callback;
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
 					}
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
 				}
 				
 				if (result->IsTemporary()) delete result;
@@ -340,9 +345,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			double x = current_weights[weight_index];
 			
 			if (!isfinite(x))
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 			if (x < 0.0)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 			
 			if (x > 0.0)
 				positive_count++;
@@ -351,7 +356,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		}
 		
 		if (weights_sum <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 		
 		// then we draw from the weights vector
 		if (positive_count == 1)
@@ -473,7 +478,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			EidosValue *result = interpreter.EvaluateInternalBlock(modify_child_callback->script_);
 			
 			if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
-				EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate(modify_child_callback->identifier_token_);
 			
 			bool generate_child = result->LogicalAtIndex(0, nullptr);
 			

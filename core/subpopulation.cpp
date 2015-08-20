@@ -316,7 +316,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					EidosValue *result = compound_statement_node->cached_value_;
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
 					
 					p_computed_fitness = result->FloatAtIndex(0, nullptr);
 					
@@ -371,7 +371,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						EidosValue *result = interpreter.EvaluateInternalBlock(fitness_callback->script_);
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
 						
 						p_computed_fitness = result->FloatAtIndex(0, nullptr);
 						
