@@ -818,6 +818,14 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		double first_float = first_child_value->FloatAtIndex(0, operator_token);
 		double second_float = second_child_value->FloatAtIndex(0, operator_token);
 		
+		if (isnan(first_float) || isnan(second_float))
+		{
+			if (first_child_value->IsTemporary()) delete first_child_value;
+			if (second_child_value->IsTemporary()) delete second_child_value;
+			
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
+		}
+		
 		EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 		
 		if (first_float <= second_float)
