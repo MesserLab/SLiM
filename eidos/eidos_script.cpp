@@ -196,7 +196,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 							token_end++;
 						
 						// mandatory exponent value; if this is missing, we drop through and token_type == EidosTokenType::kTokenNone
-						if ((token_end + 1 < len) && ((script_string_[token_end + 1] >= '0') || (script_string_[token_end + 1] <= '9')))
+						if ((token_end + 1 < len) && ((script_string_[token_end + 1] >= '0') && (script_string_[token_end + 1] <= '9')))
 						{
 							while (token_end + 1 < len)
 							{
