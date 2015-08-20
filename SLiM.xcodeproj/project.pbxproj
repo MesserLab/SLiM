@@ -1437,6 +1437,7 @@
 					"-lgslcblas",
 				);
 				SDKROOT = macosx;
+				WARNING_CFLAGS = "-Wimplicit-fallthrough";
 			};
 			name = Debug;
 		};
@@ -1487,6 +1488,7 @@
 					"-lgslcblas",
 				);
 				SDKROOT = macosx;
+				WARNING_CFLAGS = "-Wimplicit-fallthrough";
 			};
 			name = Release;
 		};
