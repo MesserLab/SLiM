@@ -3578,8 +3578,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 	EidosASTNode *identifier_child = p_node->children_[0];
 	
-	// an lvalue is needed to assign into; for right now, we require an identifier, although that isn't quite right
-	// since we should also be able to assign into a subscript, a property of a class, etc.; we need a concept of lvalue references
+	// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
 	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate(p_node->token_);
 	
