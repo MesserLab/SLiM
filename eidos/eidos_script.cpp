@@ -784,22 +784,22 @@ EidosASTNode *EidosScript::Parse_SeqExpr(void)
 
 EidosASTNode *EidosScript::Parse_ExpExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr;
 	
 	left_expr = Parse_UnaryExpr();
 	
-	while (current_token_type_ == EidosTokenType::kTokenExp)
+	if (current_token_type_ == EidosTokenType::kTokenExp)
 	{
-		node = new EidosASTNode(current_token_, left_expr);
+		EidosASTNode *node = new EidosASTNode(current_token_, left_expr);
 		Consume();
 		
-		EidosASTNode *right_expr = Parse_UnaryExpr();
+		EidosASTNode *right_expr = Parse_ExpExpr();		// note right-associativity
 		
 		node->AddChild(right_expr);
-		left_expr = node;
+		return node;
 	}
 	
-	return (node ? node : left_expr);
+	return left_expr;
 }
 
 EidosASTNode *EidosScript::Parse_UnaryExpr(void)
