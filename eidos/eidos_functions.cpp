@@ -2481,8 +2481,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index, nullptr));
-				break;
 			}
+			break;
 		}
 			
 #pragma mark asString
