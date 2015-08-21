@@ -19,9 +19,9 @@
 
 
 #include "eidos_ast_node.h"
-
 #include "eidos_interpreter.h"
 
+#include "errno.h"
 
 using std::string;
 
@@ -95,17 +95,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 	
 	if (token_type == EidosTokenType::kTokenNumber)
 	{
-		const std::string &number_string = token_->token_string_;
-		
-		// This is taken from EidosInterpreter::Evaluate_Number and needs to match exactly!
-		EidosValue *result = nullptr;
-		
-		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new EidosValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
-		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-			result = new EidosValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
-		else
-			result = new EidosValue_Int_singleton_const(strtoq(number_string.c_str(), nullptr, 10));						// plain integer
+		EidosValue *numeric_value = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
 		
 		// OK, so this is a weird thing.  We don't call SetExternalPermanent(), because that guarantees that the object set will
 		// live longer than the symbol table it might end up in, and we cannot make that guarantee here; the tree we are setting
@@ -116,9 +106,9 @@ void EidosASTNode::_OptimizeConstants(void) const
 		// temporary object and deleted by somebody, though.  So we get the best of both worlds; external ownership, but without
 		// having to make the usual guarantee about the lifetime of the object.  The downside of this is that the value will
 		// be copied if it is put into a symbol table, even though it is constant and could be shared in most circumstances.
-		result->SetExternalTemporary();
+		numeric_value->SetExternalTemporary();
 		
-		cached_value_ = result;
+		cached_value_ = numeric_value;
 		cached_value_is_owned_ = true;
 	}
 	else if (token_type == EidosTokenType::kTokenString)

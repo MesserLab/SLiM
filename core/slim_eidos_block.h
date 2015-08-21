@@ -64,8 +64,7 @@ public:
 	// The token-based API uses the token for error tracking if an exception is raised; the string-based API just calls eidos_terminate(), and
 	// thus inherits whatever error-tracking token information might have been previously set.
 	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
-	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
-	static slim_objectid_t ExtractIDFromTokenWithPrefix(const EidosToken *p_identifier_token, char p_prefix_char);
+	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token);
 };
 
 

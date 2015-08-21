@@ -146,8 +146,10 @@ public:
 	EidosValue *ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, EidosValue *const *const p_arguments, int p_argument_count);
 	EidosValue *ExecuteMethodCall(EidosValue_Object *method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count);
 	
-	// Utility static methods
-	static int64_t IntForNumberToken(const EidosToken *p_token);
+	// Utility static methods for numeric conversions
+	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);
+	static double FloatForString(const std::string &p_number_string, const EidosToken *p_blame_token);
+	static EidosValue *NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	
 	// An inline function for super-fast node evaluation, skipping EvaluateNode()
 	inline EidosValue *FastEvaluateNode(const EidosASTNode *p_node)

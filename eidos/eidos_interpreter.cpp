@@ -3223,24 +3223,101 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 	return result;
 }
 
-// A utility static method for getting an int for a number node outside of a EidosInterpreter session
-int64_t EidosInterpreter::IntForNumberToken(const EidosToken *p_token)
+// A utility static method for getting an int for a string outside of a EidosInterpreter session
+int64_t EidosInterpreter::IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token)
 {
-	if (p_token->token_type_ != EidosTokenType::kTokenNumber)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntForNumberToken): internal error (expected kTokenNumber)." << eidos_terminate(p_token);
+	// This needs to use the same criteria as NumericValueForString() below; it raises if the number is a float.
+	const char *c_str = p_number_string.c_str();
+	char *last_used_char = nullptr;
 	
-	const string &number_string = p_token->token_string_;
+	errno = 0;
 	
-	// This needs to use the same criteria as Evaluate_Number() below; it raises if the number is a float.
-	if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
+	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-') != string::npos))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntForNumberToken): an integer is required." << eidos_terminate(p_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << eidos_terminate(p_blame_token);
 		return 0;
 	}
-	else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-		return static_cast<int64_t>(strtod(number_string.c_str(), nullptr));			// has an exponent
-	else
-		return strtoq(number_string.c_str(), NULL, 10);								// plain integer
+	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))	// has an exponent
+	{
+		double converted_value = strtod(c_str, &last_used_char);
+		
+		if (errno || (last_used_char == c_str))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+		if ((converted_value < INT64_MIN) || (converted_value > INT64_MAX))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+		
+		return static_cast<int64_t>(converted_value);
+	}
+	else																								// plain integer
+	{
+		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
+		
+		if (errno || (last_used_char == c_str))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+		
+		return converted_value;
+	}
+}
+
+// A utility static method for getting a double for a string outside of a EidosInterpreter session
+double EidosInterpreter::FloatForString(const std::string &p_number_string, const EidosToken *p_blame_token)
+{
+	// This needs to use the same criteria as NumericValueForString() below; it raises if the number is a float.
+	const char *c_str = p_number_string.c_str();
+	char *last_used_char = nullptr;
+	
+	errno = 0;
+	
+	double converted_value = strtod(c_str, &last_used_char);
+	
+	if (errno || (last_used_char == c_str))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::FloatForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
+	
+	return converted_value;
+}
+
+// A utility static method for getting a numeric EidosValue* for a string outside of a EidosInterpreter session
+EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token)
+{
+	const char *c_str = p_number_string.c_str();
+	char *last_used_char = nullptr;
+	
+	errno = 0;
+	
+	// At this point, we have to decide whether to instantiate an int or a float.  If it has a decimal point or
+	// a minus sign in it (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
+	// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
+	// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
+	// expressable using scientific notation.
+	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-') != string::npos))				// requires a float
+	{
+		double converted_value = strtod(c_str, &last_used_char);
+		
+		if (errno || (last_used_char == c_str))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
+		
+		return new EidosValue_Float_singleton_const(converted_value);
+	}
+	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))		// has an exponent
+	{
+		double converted_value = strtod(c_str, &last_used_char);
+		
+		if (errno || (last_used_char == c_str))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+		if ((converted_value < INT64_MIN) || (converted_value > INT64_MAX))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+		
+		return new EidosValue_Int_singleton_const(static_cast<int64_t>(converted_value));
+	}
+	else																										// plain integer
+	{
+		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
+		
+		if (errno || (last_used_char == c_str))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+		
+		return new EidosValue_Int_singleton_const(converted_value);
+	}
 }
 
 EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
@@ -3255,23 +3332,14 @@ EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Number): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
 #endif
 	
-	EidosValue *result = p_node->cached_value_;	// use a cached value from _ScanNodeForConstants() if present
+	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
+	EidosValue *result = p_node->cached_value_;
 	
 	if (!result)
 	{
-		// At this point, we have to decide whether to instantiate an int or a float.  If it has a decimal point or
-		// a minus sign in it (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
-		// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
-		// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
-		// expressable using scientific notation.
-		const string &number_string = p_node->token_->token_string_;
+		EidosToken *string_token = p_node->token_;
 		
-		if ((number_string.find('.') != string::npos) || (number_string.find('-') != string::npos))
-			result = new EidosValue_Float_singleton_const(strtod(number_string.c_str(), nullptr));							// requires a float
-		else if ((number_string.find('e') != string::npos) || (number_string.find('E') != string::npos))
-			result = new EidosValue_Int_singleton_const(static_cast<int64_t>(strtod(number_string.c_str(), nullptr)));		// has an exponent
-		else
-			result = new EidosValue_Int_singleton_const(strtoq(number_string.c_str(), nullptr, 10));						// plain integer
+		result = EidosInterpreter::NumericValueForString(string_token->token_string_, string_token);
 	}
 	
 #if defined(DEBUG) || defined(EIDOS_GUI)
@@ -3294,7 +3362,8 @@ EidosValue *EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_String): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
 #endif
 	
-	EidosValue *result = p_node->cached_value_;	// use a cached value from _ScanNodeForConstants() if present
+	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
+	EidosValue *result = p_node->cached_value_;
 	
 	if (!result)
 		result = new EidosValue_String(p_node->token_->token_string_);

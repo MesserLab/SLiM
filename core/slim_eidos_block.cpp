@@ -245,56 +245,30 @@ bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, ch
 	return true;
 }
 
-slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char)
+slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token)
 {
 	const char *id_cstr = p_identifier_string.c_str();
 	size_t id_cstr_len = strlen(id_cstr);
 	
 	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate(p_blame_token);
 	
 	for (int str_index = 1; str_index < id_cstr_len; ++str_index)
 		if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << eidos_terminate(p_blame_token);
 	
 	if (id_cstr_len < 2)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << eidos_terminate(p_blame_token);
 	
 	errno = 0;
-	int64_t long_block_id = strtoq(id_cstr + 1, NULL, 10);	// +1 to omit the prefix character
+	char *end_scan_char = nullptr;
+	int64_t long_block_id = strtoq(id_cstr + 1, &end_scan_char, 10);	// +1 to omit the prefix character  // FIXME need to check for errno, end==start pointers
 	
-	if (errno)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was not parseable." << eidos_terminate();
-	
-	if ((long_block_id < 0) || (long_block_id > SLIM_MAX_ID_VALUE))
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was out of range." << eidos_terminate();
-	
-	return static_cast<slim_objectid_t>(long_block_id);		// range check is above, with a better message than SLiMCastToObjectidTypeOrRaise()
-}
-
-slim_objectid_t SLiMEidosScript::ExtractIDFromTokenWithPrefix(const EidosToken *p_identifier_token, char p_prefix_char)
-{
-	const char *id_cstr = p_identifier_token->token_string_.c_str();
-	size_t id_cstr_len = strlen(id_cstr);
-	
-	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromTokenWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate(p_identifier_token);
-	
-	for (int str_index = 1; str_index < id_cstr_len; ++str_index)
-		if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromTokenWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << eidos_terminate(p_identifier_token);
-	
-	if (id_cstr_len < 2)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromTokenWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << eidos_terminate(p_identifier_token);
-	
-	errno = 0;
-	int64_t long_block_id = strtoq(id_cstr + 1, NULL, 10);	// +1 to omit the prefix character
-	
-	if (errno)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromTokenWithPrefix): the identifier " << p_identifier_token->token_string_ << " was not parseable." << eidos_terminate(p_identifier_token);
+	if (errno || (end_scan_char == id_cstr + 1))
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was not parseable." << eidos_terminate(p_blame_token);
 	
 	if ((long_block_id < 0) || (long_block_id > SLIM_MAX_ID_VALUE))
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromTokenWithPrefix): the identifier " << p_identifier_token->token_string_ << " was out of range." << eidos_terminate(p_identifier_token);
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was out of range." << eidos_terminate(p_blame_token);
 	
 	return static_cast<slim_objectid_t>(long_block_id);		// range check is above, with a better message than SLiMCastToObjectidTypeOrRaise()
 }
@@ -314,103 +288,136 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	// eat a string, for the script id, if present; an identifier token must follow the sX format to be taken as an id here, as in the parse code
 	block_id_ = -1;	// the default unless it is set below
 	
-	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(block_children[child_index]->token_->token_string_, 's'))
+	if (child_index < n_children)
 	{
-		block_id_ = SLiMEidosScript::ExtractIDFromTokenWithPrefix(block_children[child_index]->token_, 's');
-		child_index++;
+		EidosToken *script_id_token = block_children[child_index]->token_;
+		
+		if ((script_id_token->token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(script_id_token->token_string_, 's'))
+		{
+			block_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(script_id_token->token_string_, 's', script_id_token);
+			child_index++;
+		}
 	}
 	
 	// eat a number, for the start generation, if present
-	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
+	if (child_index < n_children)
 	{
-		int64_t long_start = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
+		EidosToken *start_gen_token = block_children[child_index]->token_;
 		
-		// We do our own range checking here so that we can highlight the bad token
-		if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << block_children[child_index]->token_->token_string_ << " is out of range." << eidos_terminate(block_children[child_index]->token_);
-		
-		start_generation_ = SLiMCastToGenerationTypeOrRaise(long_start);
-		end_generation_ = start_generation_;			// if a start is given, the default end is the same as the start
-		child_index++;
+		if (start_gen_token->token_type_ == EidosTokenType::kTokenNumber)
+		{
+			int64_t long_start = EidosInterpreter::IntegerForString(start_gen_token->token_string_, start_gen_token);
+			
+			// We do our own range checking here so that we can highlight the bad token
+			if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << start_gen_token->token_string_ << " is out of range." << eidos_terminate(start_gen_token);
+			
+			start_generation_ = SLiMCastToGenerationTypeOrRaise(long_start);
+			end_generation_ = start_generation_;			// if a start is given, the default end is the same as the start
+			child_index++;
+		}
 	}
 	
 	// eat a number, for the end generation, if present
-	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
+	if (child_index < n_children)
 	{
-		int64_t long_end = EidosInterpreter::IntForNumberToken(block_children[child_index]->token_);
+		EidosToken *end_gen_token = block_children[child_index]->token_;
 		
-		// We do our own range checking here so that we can highlight the bad token
-		if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << block_children[child_index]->token_->token_string_ << " is out of range." << eidos_terminate(block_children[child_index]->token_);
-		if (long_end < start_generation_)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << block_children[child_index]->token_->token_string_ << " is less than the start generation." << eidos_terminate(block_children[child_index]->token_);
-		
-		end_generation_ = SLiMCastToGenerationTypeOrRaise(long_end);
-		child_index++;
+		if (end_gen_token->token_type_ == EidosTokenType::kTokenNumber)
+		{
+			int64_t long_end = EidosInterpreter::IntegerForString(end_gen_token->token_string_, end_gen_token);
+			
+			// We do our own range checking here so that we can highlight the bad token
+			if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_gen_token->token_string_ << " is out of range." << eidos_terminate(end_gen_token);
+			if (long_end < start_generation_)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_gen_token->token_string_ << " is less than the start generation." << eidos_terminate(end_gen_token);
+			
+			end_generation_ = SLiMCastToGenerationTypeOrRaise(long_end);
+			child_index++;
+		}
 	}
 	
 	// eat the callback info node, if present
-	if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ != EidosTokenType::kTokenLBrace))
+	if (child_index < n_children)
 	{
 		const EidosASTNode *callback_node = block_children[child_index];
 		const EidosToken *callback_token = callback_node->token_;
-		EidosTokenType callback_type = callback_token->token_type_;
-		const std::string &callback_name = callback_token->token_string_;
-		const std::vector<EidosASTNode *> &callback_children = callback_node->children_;
-		int n_callback_children = (int)callback_children.size();
 		
-		identifier_token_ = callback_token;	// remember our identifier token for easy access later
-		
-		if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
+		if (callback_token->token_type_ != EidosTokenType::kTokenLBrace)
 		{
-			if (n_callback_children != 0)
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters" << eidos_terminate(callback_token);
+			EidosTokenType callback_type = callback_token->token_type_;
+			const std::string &callback_name = callback_token->token_string_;
+			const std::vector<EidosASTNode *> &callback_children = callback_node->children_;
+			int n_callback_children = (int)callback_children.size();
 			
-			if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION))
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback" << eidos_terminate(callback_token);
+			identifier_token_ = callback_token;	// remember our identifier token for easy access later
 			
-			start_generation_ = 0;
-			end_generation_ = 0;
-			type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+			if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
+			{
+				if (n_callback_children != 0)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters" << eidos_terminate(callback_token);
+				
+				if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback" << eidos_terminate(callback_token);
+				
+				start_generation_ = 0;
+				end_generation_ = 0;
+				type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
+			{
+				if ((n_callback_children != 1) && (n_callback_children != 2))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate(callback_token);
+				
+				EidosToken *mutation_type_id_token = callback_children[0]->token_;
+				
+				mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
+				
+				if (n_callback_children == 2)
+				{
+					EidosToken *subpop_id_token = callback_children[1]->token_;
+					
+					subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+				}
+				
+				type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
+			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mateChoice) == 0))
+			{
+				if ((n_callback_children != 0) && (n_callback_children != 1))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
+				
+				if (n_callback_children == 1)
+				{
+					EidosToken *subpop_id_token = callback_children[0]->token_;
+					
+					subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+				}
+				
+				type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_modifyChild) == 0))
+			{
+				if ((n_callback_children != 0) && (n_callback_children != 1))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
+				
+				if (n_callback_children == 1)
+				{
+					EidosToken *subpop_id_token = callback_children[0]->token_;
+					
+					subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+				}
+				
+				type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type" << eidos_terminate(callback_token);
+			}
+			
+			child_index++;
 		}
-		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
-		{
-			if ((n_callback_children != 1) && (n_callback_children != 2))
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate(callback_token);
-			
-			mutation_type_id_ = SLiMEidosScript::ExtractIDFromTokenWithPrefix(callback_children[0]->token_, 'm');
-			
-			if (n_callback_children == 2)
-				subpopulation_id_ = SLiMEidosScript::ExtractIDFromTokenWithPrefix(callback_children[1]->token_, 'p');
-			
-			type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
-		}
-		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mateChoice) == 0))
-		{
-			if ((n_callback_children != 0) && (n_callback_children != 1))
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
-			
-			if (n_callback_children == 1)
-				subpopulation_id_ = SLiMEidosScript::ExtractIDFromTokenWithPrefix(callback_children[0]->token_, 'p');
-			
-			type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-		}
-		else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_modifyChild) == 0))
-		{
-			if ((n_callback_children != 0) && (n_callback_children != 1))
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
-			
-			if (n_callback_children == 1)
-				subpopulation_id_ = SLiMEidosScript::ExtractIDFromTokenWithPrefix(callback_children[0]->token_, 'p');
-			
-			type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-		}
-		else
-		{
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type" << eidos_terminate(callback_token);
-		}
-		
-		child_index++;
 	}
 	
 	// eat the compound statement, which must be present

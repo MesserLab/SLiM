@@ -210,12 +210,10 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		istringstream iss(line);
 		
 		iss >> sub;
-		sub.erase(0, 1);  // p
-		int64_t subpop_index_long = strtoq(sub.c_str(), NULL, 10);
-		slim_objectid_t subpop_index = SLiMCastToObjectidTypeOrRaise(subpop_index_long);
+		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
 		
 		iss >> sub;
-		int64_t subpop_size_long = strtoq(sub.c_str(), NULL, 10);
+		int64_t subpop_size_long = EidosInterpreter::IntegerForString(sub, nullptr);
 		slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(subpop_size_long);
 		
 		// SLiM 2.0 output format has <H | S <ratio>> here; if that is missing or "H" is given, the population is hermaphroditic and the ratio given is irrelevant
@@ -226,8 +224,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			if (sub == "S")
 			{
 				iss >> sub;
-				
-				sex_ratio = strtod(sub.c_str(), NULL);
+				sex_ratio = EidosInterpreter::FloatForString(sub, nullptr);
 			}
 		}
 		
@@ -250,30 +247,26 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		istringstream iss(line);
 		
 		iss >> sub; 
-		int64_t mutation_id = strtoq(sub.c_str(), NULL, 10);
+		int64_t mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
 		
 		iss >> sub;
-		sub.erase(0, 1);	// m
-		int64_t mutation_type_id_long = strtoq(sub.c_str(), NULL, 10);
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(mutation_type_id_long);
+		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'm', nullptr);
 		
 		iss >> sub;
-		int64_t position_long = strtoq(sub.c_str(), NULL, 10);		// used to have a -1; switched to zero-based
+		int64_t position_long = EidosInterpreter::IntegerForString(sub, nullptr);		// used to have a -1; switched to zero-based
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 		
 		iss >> sub;
-		double selection_coeff = strtod(sub.c_str(), NULL);
+		double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
 		
 		iss >> sub;		// dominance coefficient, which is given in the mutation type and presumably matches here
 						// FIXME now that these can be modified in script, it might not match...?
 		
 		iss >> sub;
-		sub.erase(0, 1);	// p
-		int64_t subpop_index_long = strtoq(sub.c_str(), NULL, 10);
-		slim_objectid_t subpop_index = SLiMCastToObjectidTypeOrRaise(subpop_index_long);
+		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
 		
 		iss >> sub;
-		int64_t generation_long = strtoq(sub.c_str(), NULL, 10);
+		int64_t generation_long = EidosInterpreter::IntegerForString(sub, nullptr);
 		slim_generation_t generation = SLiMCastToGenerationTypeOrRaise(generation_long);
 		
 		// look up the mutation type from its index
@@ -317,11 +310,9 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		istringstream iss(line);
 		
 		iss >> sub;
-		sub.erase(0, 1);	// p
 		int pos = static_cast<int>(sub.find_first_of(":"));
 		const char *subpop_id_string = sub.substr(0, pos).c_str();
-		int64_t subpop_id_long = strtoq(subpop_id_string, NULL, 10);
-		slim_objectid_t subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_id_long);
+		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
 		auto subpop_pair = population_.find(subpop_id);
 		
@@ -331,7 +322,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		Subpopulation &subpop = *subpop_pair->second;
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int64_t genome_index_long = strtoq(sub.c_str(), NULL, 10);		// used to have a -1; switched to zero-based
+		int64_t genome_index_long = EidosInterpreter::IntegerForString(sub, nullptr);		// used to have a -1; switched to zero-based
 		
 		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome index out of permitted range" << eidos_terminate();
@@ -378,7 +369,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			
 			do
 			{
-				int64_t mutation_id = strtoq(sub.c_str(), NULL, 10);
+				int64_t mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
 				
 				auto found_mut_pair = mutations.find(mutation_id);
 				
@@ -787,7 +778,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)
 	{
-		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'g');
+		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'g', nullptr);
 		
 		if (genomic_element_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
@@ -864,7 +855,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)
 	{
-		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'm');
+		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'm', nullptr);
 		double dominance_coeff = arg1_value->FloatAtIndex(0, nullptr);
 		string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
 		int expected_dfe_param_count = 0;
@@ -1483,7 +1474,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 		case gID_addSubpop:
 		{
-			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p');
+			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p', nullptr);
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
@@ -1511,7 +1502,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 		case gID_addSubpopSplit:
 		{
-			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p');
+			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p', nullptr);
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0, nullptr));
 			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
@@ -1789,7 +1780,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			slim_generation_t end_generation = (arg3_value ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptEvent() requires start <= end." << endl << eidos_terminate();
@@ -1831,7 +1822,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			slim_generation_t end_generation = (arg5_value ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (arg3_value && (arg3_value->Type() != EidosValueType::kValueNULL))
 				subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
@@ -1881,7 +1872,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			slim_generation_t end_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
-				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's');
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (arg2_value && (arg2_value->Type() != EidosValueType::kValueNULL))
 				subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));

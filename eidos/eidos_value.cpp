@@ -22,6 +22,9 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
+#include "math.h"
+#include "errno.h"
+
 
 using std::string;
 using std::vector;
@@ -763,9 +766,14 @@ int64_t EidosValue_String::IntAtIndex(int p_idx, EidosToken *p_blame_token) cons
 	if ((p_idx < 0) || (p_idx >= values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	const string &index_str = values_[p_idx];
+	// We don't use IntForString because an integer has been specifically requested, so even if the string appears to contain a
+	// float value we want to force it into being an int; the way to do that is to use FloatForString and then convert to int64_t
+	double converted_value = EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
 	
-	return strtoq(index_str.c_str(), nullptr, 10);
+	if ((converted_value < INT64_MIN) || (converted_value > INT64_MAX))
+		EIDOS_TERMINATION << "ERROR (EidosValue_String::IntAtIndex(): \"" << values_[p_idx] << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+	
+	return static_cast<int64_t>(converted_value);
 }
 
 double EidosValue_String::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -773,9 +781,7 @@ double EidosValue_String::FloatAtIndex(int p_idx, EidosToken *p_blame_token) con
 	if ((p_idx < 0) || (p_idx >= values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	const string &index_str = values_[p_idx];
-	
-	return strtod(index_str.c_str(), nullptr);
+	return EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
 }
 
 void EidosValue_String::PushString(const std::string &p_string)
@@ -1259,7 +1265,12 @@ bool EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_toke
 	if ((p_idx < 0) || (p_idx >= values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return (values_[p_idx] == 0 ? false : true);
+	double value = values_[p_idx];
+	
+	if (isnan(value))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
+	
+	return (value == 0 ? false : true);
 }
 
 std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -1280,7 +1291,16 @@ int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token
 	if ((p_idx < 0) || (p_idx >= values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return static_cast<int64_t>(values_[p_idx]);
+	double value = values_[p_idx];
+	
+	if (isnan(value))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
+	if (isinf(value))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
+	if ((value < INT64_MIN) || (value > INT64_MAX))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): float value " << value << " is too large to be converted to integer type." << eidos_terminate(p_blame_token);
+	
+	return static_cast<int64_t>(value);
 }
 
 double EidosValue_Float_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -1359,6 +1379,9 @@ bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_b
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
 	
+	if (isnan(value_))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
+	
 	return (value_ == 0 ? false : true);
 }
 
@@ -1379,6 +1402,13 @@ int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx, EidosToken *p_bl
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+	
+	if (isnan(value_))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
+	if (isinf(value_))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
+	if ((value_ < INT64_MIN) || (value_ > INT64_MAX))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): float value " << value_ << " is too large to be converted to integer type." << eidos_terminate(p_blame_token);
 	
 	return static_cast<int64_t>(value_);
 }
