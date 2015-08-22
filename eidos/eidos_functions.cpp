@@ -793,10 +793,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 						int64_t old_product = product;
 						int64_t temp = int_vec[value_index];
 						
-						product *= temp;
+						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
+						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
+						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
+						bool overflow = __builtin_smulll_overflow(old_product, temp, &product);
 						
 						// switch to float computation on overflow, and accumulate in the float product just before overflow
-						if (product / temp != old_product)
+						if (overflow)
 						{
 							fits_in_integer = false;
 							product_d *= old_product;
@@ -860,17 +863,21 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
+						int64_t old_sum = sum;
 						int64_t temp = int_vec[value_index];
 						
+						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
+						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
+						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
+						bool overflow = __builtin_saddll_overflow(old_sum, temp, &sum);
+						
 						// switch to float computation on overflow, and accumulate in the float sum just before overflow
-						if (((temp > 0) && (sum > INT64_MAX - temp)) || ((temp < 0) && (sum < INT64_MIN - temp)))
+						if (overflow)
 						{
 							fits_in_integer = false;
-							sum_d += sum;
-							sum = 0;		// start integer accumulation again from 0 until it overflows again
+							sum_d += old_sum;
+							sum = temp;		// start integer accumulation again from 0 until it overflows again
 						}
-						
-						sum += temp;
 					}
 					
 					sum_d += sum;			// add in whatever integer accumulation has not overflowed
