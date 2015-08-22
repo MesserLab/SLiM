@@ -1278,10 +1278,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::floatFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+			
 			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 			result = float_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
 				float_result->PushFloat(0.0);
 			break;
 		}
@@ -1290,10 +1295,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::integerFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+			
 			EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 			result = int_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
 				int_result->PushInt(0);
 			break;
 		}
@@ -1302,10 +1312,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::logicalFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+			
 			EidosValue_Logical *logical_result = new EidosValue_Logical();
 			result = logical_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
 				logical_result->PushLogical(false);
 			break;
 		}
@@ -1387,19 +1402,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
 			EidosValue *arg1_value = p_arguments[1];
-			int arg1_count = arg1_value->Count();
+			
+			int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (rep_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rep() requires count to be greater than or equal to 0." << eidos_terminate(nullptr);
 			
 			// the return type depends on the type of the first argument, which will get replicated
 			result = arg0_value->NewMatchingType();
 			
-			if (arg1_count == 1)
-			{
-				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
-				
-				for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-					for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
-			}
+			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+					result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
 			
 			break;
 		}
@@ -1419,6 +1433,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 				
+				if (rep_count < 0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires count to be greater than or equal to 0." << eidos_terminate(nullptr);
+				
 				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
 						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
@@ -1429,13 +1446,16 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
 					
+					if (rep_count < 0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires all elements of count to be greater than or equal to 0." << eidos_terminate(nullptr);
+					
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
 						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
 				}
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that its second argument's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that parameter count's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
 			}
 			
 			break;
@@ -1705,12 +1725,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t sample_size = p_arguments[1]->IntAtIndex(0, nullptr);
 			bool replace = ((p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0, nullptr) : false);
 			
-			result = arg0_value->NewMatchingType();
-			
 			if (sample_size < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires a sample size >= 0." << eidos_terminate(nullptr);
 			if (sample_size == 0)
+			{
+				result = arg0_value->NewMatchingType();
 				break;
+			}
+			
+			if ((arg0_count == 0) || (!replace && (arg0_count < sample_size)))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): insufficient elements provided to function sample()." << eidos_terminate(nullptr);
+			
+			result = arg0_value->NewMatchingType();
 			
 			// the algorithm used depends on whether weights were supplied
 			if (p_argument_count >= 4)
@@ -1727,6 +1753,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
 					double weight = arg3_value->FloatAtIndex(value_index, nullptr);
+					
+					if (weight < 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires all weights to be non-negative." << eidos_terminate(nullptr);
 					
 					weights_vector.push_back(weight);
 					weights_sum += weight;
@@ -1764,7 +1793,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					if (!replace)
 					{
-						weights_sum -= weights_vector[rose_index];
+						weights_sum -= weights_vector[rose_index];	// possible source of numerical error
 						
 						index_vector.erase(index_vector.begin() + rose_index);
 						weights_vector.erase(weights_vector.begin() + rose_index);
@@ -1793,8 +1822,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 					{
+						// this error should never occur, since we checked the count above
 						if (contender_count <= 0)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): internal error: function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
 						
 						int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
 						
@@ -1886,10 +1916,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::stringFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function string() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+			
 			EidosValue_String *string_result = new EidosValue_String();
 			result = string_result;
 			
-			for (int64_t value_index = arg0_value->IntAtIndex(0, nullptr); value_index > 0; --value_index)
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
 				string_result->PushString(gEidosStr_empty_string);
 			break;
 		}
