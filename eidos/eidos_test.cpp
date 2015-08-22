@@ -1510,14 +1510,69 @@ void RunEidosTests(void)
 	#pragma mark vector construction
 	
 	// c()
+	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("c(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("c(3);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("c(3.1);", new EidosValue_Float_singleton_const(3.1));
+	EidosAssertScriptSuccess("c(\"foo\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("c(_Test(7))._yolk;", new EidosValue_Int_singleton_const(7));
+	EidosAssertScriptSuccess("c(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("c(T, F, T, T, T, F);", new EidosValue_Logical(true, false, true, true, true, false));
+	EidosAssertScriptSuccess("c(3, 7, 19, -5, 9);", new EidosValue_Int_vector(3, 7, 19, -5, 9));
+	EidosAssertScriptSuccess("c(3.3, 7.7, 19.1, -5.8, 9.0);", new EidosValue_Float_vector(3.3, 7.7, 19.1, -5.8, 9.0));
+	EidosAssertScriptSuccess("c(\"foo\", \"bar\", \"baz\");", new EidosValue_String("foo", "bar", "baz"));
+	EidosAssertScriptSuccess("c(_Test(7), _Test(3), _Test(-9))._yolk;", new EidosValue_Int_vector(7, 3, -9));
+	EidosAssertScriptSuccess("c(T, c(T, F, F), T, F);", new EidosValue_Logical(true, true, false, false, true, false));
+	EidosAssertScriptSuccess("c(3, 7, c(17, -2), -5, 9);", new EidosValue_Int_vector(3, 7, 17, -2, -5, 9));
+	EidosAssertScriptSuccess("c(3.3, 7.7, c(17.1, -2.9), -5.8, 9.0);", new EidosValue_Float_vector(3.3, 7.7, 17.1, -2.9, -5.8, 9.0));
+	EidosAssertScriptSuccess("c(\"foo\", c(\"bar\", \"bar2\", \"bar3\"), \"baz\");", new EidosValue_String("foo", "bar", "bar2", "bar3", "baz"));
+	EidosAssertScriptSuccess("c(T, 3, F, 7);", new EidosValue_Int_vector(1, 3, 0, 7));
+	EidosAssertScriptSuccess("c(T, 3, F, 7.1);", new EidosValue_Float_vector(1, 3, 0, 7.1));
+	EidosAssertScriptSuccess("c(T, 3, \"bar\", 7.1);", new EidosValue_String("T", "3", "bar", "7.1"));
+	EidosAssertScriptSuccess("c(T, NULL);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("c(3, NULL);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("c(3.1, NULL);", new EidosValue_Float_singleton_const(3.1));
+	EidosAssertScriptSuccess("c(\"foo\", NULL);", new EidosValue_String("foo"));
+	EidosAssertScriptRaise("c(T, _Test(7));", 0);
+	EidosAssertScriptRaise("c(3, _Test(7));", 0);
+	EidosAssertScriptRaise("c(3.1, _Test(7));", 0);
+	EidosAssertScriptRaise("c(\"foo\", _Test(7));", 0);
 	
 	// float()
+	EidosAssertScriptSuccess("float(0);", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("float(1);", new EidosValue_Float_singleton_const(0.0));
+	EidosAssertScriptSuccess("float(2);", new EidosValue_Float_vector(0.0, 0.0));
+	EidosAssertScriptSuccess("float(5);", new EidosValue_Float_vector(0.0, 0.0, 0.0, 0.0, 0.0));
+	EidosAssertScriptRaise("float(-1);", 0);
+	EidosAssertScriptRaise("float(-10000);", 0);
+	EidosAssertScriptRaise("float(NULL);", 0);
+	EidosAssertScriptRaise("float(integer(0));", 0);
 	
 	// integer()
+	EidosAssertScriptSuccess("integer(0);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("integer(1);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integer(2);", new EidosValue_Int_vector(0, 0));
+	EidosAssertScriptSuccess("integer(5);", new EidosValue_Int_vector(0, 0, 0, 0, 0));
+	EidosAssertScriptRaise("integer(-1);", 0);
+	EidosAssertScriptRaise("integer(-10000);", 0);
+	EidosAssertScriptRaise("integer(NULL);", 0);
+	EidosAssertScriptRaise("integer(integer(0));", 0);
 	
 	// logical()
+	EidosAssertScriptSuccess("logical(0);", new EidosValue_Logical());
+	EidosAssertScriptSuccess("logical(1);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("logical(2);", new EidosValue_Logical(false, false));
+	EidosAssertScriptSuccess("logical(5);", new EidosValue_Logical(false, false, false, false, false));
+	EidosAssertScriptRaise("logical(-1);", 0);
+	EidosAssertScriptRaise("logical(-10000);", 0);
+	EidosAssertScriptRaise("logical(NULL);", 0);
+	EidosAssertScriptRaise("logical(integer(0));", 0);
 	
 	// object()
+	EidosAssertScriptSuccess("object();", new EidosValue_Object_vector());
+	EidosAssertScriptRaise("object(NULL);", 0);
+	EidosAssertScriptRaise("object(integer(0));", 0);
 	
 	// rbinom()
 	EidosAssertScriptSuccess("rbinom(0, 10, 0.5);", new EidosValue_Int_vector());
@@ -1539,8 +1594,88 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("rbinom(3, c(10, 12), 0.5);", 0);
 	
 	// rep()
+	EidosAssertScriptRaise("rep(NULL, -1);", 0);
+	EidosAssertScriptRaise("rep(T, -1);", 0);
+	EidosAssertScriptRaise("rep(3, -1);", 0);
+	EidosAssertScriptRaise("rep(3.5, -1);", 0);
+	EidosAssertScriptRaise("rep(\"foo\", -1);", 0);
+	EidosAssertScriptRaise("rep(_Test(7), -1);", 0);
+	EidosAssertScriptSuccess("rep(NULL, 0);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("rep(T, 0);", new EidosValue_Logical());
+	EidosAssertScriptSuccess("rep(3, 0);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("rep(3.5, 0);", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("rep(\"foo\", 0);", new EidosValue_String());
+	EidosAssertScriptSuccess("rep(_Test(7), 0);", new EidosValue_Object_vector());
+	EidosAssertScriptSuccess("rep(NULL, 2);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("rep(T, 2);", new EidosValue_Logical(true, true));
+	EidosAssertScriptSuccess("rep(3, 2);", new EidosValue_Int_vector(3, 3));
+	EidosAssertScriptSuccess("rep(3.5, 2);", new EidosValue_Float_vector(3.5, 3.5));
+	EidosAssertScriptSuccess("rep(\"foo\", 2);", new EidosValue_String("foo", "foo"));
+	EidosAssertScriptSuccess("rep(_Test(7), 2)._yolk;", new EidosValue_Int_vector(7, 7));
+	EidosAssertScriptSuccess("rep(c(NULL, NULL), 2);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("rep(c(T, F), 2);", new EidosValue_Logical(true, false, true, false));
+	EidosAssertScriptSuccess("rep(c(3, 7), 2);", new EidosValue_Int_vector(3, 7, 3, 7));
+	EidosAssertScriptSuccess("rep(c(3.5, 9.1), 2);", new EidosValue_Float_vector(3.5, 9.1, 3.5, 9.1));
+	EidosAssertScriptSuccess("rep(c(\"foo\", \"bar\"), 2);", new EidosValue_String("foo", "bar", "foo", "bar"));
+	EidosAssertScriptSuccess("rep(c(_Test(7), _Test(2)), 2)._yolk;", new EidosValue_Int_vector(7, 2, 7, 2));
+	EidosAssertScriptSuccess("rep(logical(0), 5);", new EidosValue_Logical());
+	EidosAssertScriptSuccess("rep(integer(0), 5);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("rep(float(0), 5);", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("rep(string(0), 5);", new EidosValue_String());
+	EidosAssertScriptSuccess("rep(object(), 5);", new EidosValue_Object_vector());
+	EidosAssertScriptRaise("rep(object(), c(5, 3));", 0);
+	EidosAssertScriptRaise("rep(object(), integer(0));", 0);
 	
 	// repEach()
+	EidosAssertScriptRaise("repEach(NULL, -1);", 0);
+	EidosAssertScriptRaise("repEach(T, -1);", 0);
+	EidosAssertScriptRaise("repEach(3, -1);", 0);
+	EidosAssertScriptRaise("repEach(3.5, -1);", 0);
+	EidosAssertScriptRaise("repEach(\"foo\", -1);", 0);
+	EidosAssertScriptRaise("repEach(_Test(7), -1);", 0);
+	EidosAssertScriptSuccess("repEach(NULL, 0);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("repEach(T, 0);", new EidosValue_Logical());
+	EidosAssertScriptSuccess("repEach(3, 0);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("repEach(3.5, 0);", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("repEach(\"foo\", 0);", new EidosValue_String());
+	EidosAssertScriptSuccess("repEach(_Test(7), 0);", new EidosValue_Object_vector());
+	EidosAssertScriptSuccess("repEach(NULL, 2);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("repEach(T, 2);", new EidosValue_Logical(true, true));
+	EidosAssertScriptSuccess("repEach(3, 2);", new EidosValue_Int_vector(3, 3));
+	EidosAssertScriptSuccess("repEach(3.5, 2);", new EidosValue_Float_vector(3.5, 3.5));
+	EidosAssertScriptSuccess("repEach(\"foo\", 2);", new EidosValue_String("foo", "foo"));
+	EidosAssertScriptSuccess("repEach(_Test(7), 2)._yolk;", new EidosValue_Int_vector(7, 7));
+	EidosAssertScriptSuccess("repEach(c(NULL, NULL), 2);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("repEach(c(T, F), 2);", new EidosValue_Logical(true, true, false, false));
+	EidosAssertScriptSuccess("repEach(c(3, 7), 2);", new EidosValue_Int_vector(3, 3, 7, 7));
+	EidosAssertScriptSuccess("repEach(c(3.5, 9.1), 2);", new EidosValue_Float_vector(3.5, 3.5, 9.1, 9.1));
+	EidosAssertScriptSuccess("repEach(c(\"foo\", \"bar\"), 2);", new EidosValue_String("foo", "foo", "bar", "bar"));
+	EidosAssertScriptSuccess("repEach(c(_Test(7), _Test(2)), 2)._yolk;", new EidosValue_Int_vector(7, 7, 2, 2));
+	EidosAssertScriptRaise("repEach(c(NULL, NULL), c(2,3));", 0);	// c(NULL, NULL) is a single NULL
+	EidosAssertScriptSuccess("repEach(c(T, F), c(2,3));", new EidosValue_Logical(true, true, false, false, false));
+	EidosAssertScriptSuccess("repEach(c(3, 7), c(2,3));", new EidosValue_Int_vector(3, 3, 7, 7, 7));
+	EidosAssertScriptSuccess("repEach(c(3.5, 9.1), c(2,3));", new EidosValue_Float_vector(3.5, 3.5, 9.1, 9.1, 9.1));
+	EidosAssertScriptSuccess("repEach(c(\"foo\", \"bar\"), c(2,3));", new EidosValue_String("foo", "foo", "bar", "bar", "bar"));
+	EidosAssertScriptSuccess("repEach(c(_Test(7), _Test(2)), c(2,3))._yolk;", new EidosValue_Int_vector(7, 7, 2, 2, 2));
+	EidosAssertScriptRaise("repEach(c(NULL, NULL), c(2,-1));", 0);
+	EidosAssertScriptRaise("repEach(c(T, F), c(2,-1));", 0);
+	EidosAssertScriptRaise("repEach(c(3, 7), c(2,-1));", 0);
+	EidosAssertScriptRaise("repEach(c(3.5, 9.1), c(2,-1));", 0);
+	EidosAssertScriptRaise("repEach(c(\"foo\", \"bar\"), c(2,-1));", 0);
+	EidosAssertScriptRaise("repEach(c(_Test(7), _Test(2)), c(2,-1))._yolk;", 0);
+	EidosAssertScriptRaise("repEach(c(NULL, NULL), c(2,3,1));", 0);
+	EidosAssertScriptRaise("repEach(c(T, F), c(2,3,1));", 0);
+	EidosAssertScriptRaise("repEach(c(3, 7), c(2,3,1));", 0);
+	EidosAssertScriptRaise("repEach(c(3.5, 9.1), c(2,3,1));", 0);
+	EidosAssertScriptRaise("repEach(c(\"foo\", \"bar\"), c(2,3,1));", 0);
+	EidosAssertScriptRaise("repEach(c(_Test(7), _Test(2)), c(2,3,1))._yolk;", 0);
+	EidosAssertScriptSuccess("repEach(logical(0), 5);", new EidosValue_Logical());
+	EidosAssertScriptSuccess("repEach(integer(0), 5);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("repEach(float(0), 5);", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("repEach(string(0), 5);", new EidosValue_String());
+	EidosAssertScriptSuccess("repEach(object(), 5);", new EidosValue_Object_vector());
+	EidosAssertScriptRaise("repEach(object(), c(5, 3));", 0);
+	EidosAssertScriptSuccess("repEach(object(), integer(0));", new EidosValue_Object_vector());
 	
 	// rexp()
 	EidosAssertScriptSuccess("rexp(0);", new EidosValue_Float_vector());
@@ -1591,7 +1726,32 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("runif(2, c(-10, 10, 1), 100.0);", 0);
 	EidosAssertScriptRaise("runif(2, -10.0, c(0.1, 10, 1));", 0);
 	
-	// sample()
+	// sample() – since this function treats parameter x type-agnostically, we'll test integers only (and NULL a little bit)
+	EidosAssertScriptSuccess("sample(NULL, 0, T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("sample(NULL, 0, F);", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("sample(NULL, 1, T);", 0);
+	EidosAssertScriptRaise("sample(NULL, 1, F);", 0);
+	EidosAssertScriptRaise("sample(1:5, -1, T);", 0);
+	EidosAssertScriptRaise("sample(1:5, -1, F);", 0);
+	EidosAssertScriptSuccess("sample(integer(0), 0, T);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("sample(integer(0), 0, F);", new EidosValue_Int_vector());
+	EidosAssertScriptRaise("sample(integer(0), 1, T);", 0);
+	EidosAssertScriptRaise("sample(integer(0), 1, F);", 0);
+	EidosAssertScriptSuccess("sample(5, 1, T);", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("sample(5, 1, F);", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("sample(5, 2, T);", new EidosValue_Int_vector(5, 5));
+	EidosAssertScriptRaise("sample(5, 2, F);", 0);
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T);", new EidosValue_Int_vector(1, 5, 3, 1, 2));
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, F);", new EidosValue_Int_vector(1, 5, 3, 2, 4));
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 6, T);", new EidosValue_Int_vector(1, 5, 3, 1, 2, 3));
+	EidosAssertScriptRaise("setSeed(1); sample(1:5, 6, F);", 12);
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T, (1:5)^3);", new EidosValue_Int_vector(4, 5, 5, 3, 4));
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, F, (1:5)^3);", new EidosValue_Int_vector(4, 5, 3, 1, 2));
+	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T, (0:4)^3);", new EidosValue_Int_vector(4, 5, 5, 3, 4));
+	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, F, (0:4)^3);", 12);
+	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, -1:3);", 12);
+	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, 1:6);", 12);
+	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, 1);", 12);
 	
 	// seq()
 	EidosAssertScriptSuccess("seq(1, 5);", new EidosValue_Int_vector(1, 2, 3, 4, 5));
@@ -1610,11 +1770,30 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("seq(T, 2, 1);", 0);
 	EidosAssertScriptRaise("seq(1, T, 2);", 0);
 	EidosAssertScriptRaise("seq(2, 1, T);", 0);
-		// FIXME test with NULL
+	EidosAssertScriptRaise("seq(NULL, 2, 1);", 0);
+	EidosAssertScriptRaise("seq(1, NULL, 2);", 0);
+	EidosAssertScriptRaise("seq(2, 1, NULL);", 0);
 	
 	// seqAlong()
+	EidosAssertScriptSuccess("seqAlong(NULL);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("seqAlong(logical(0));", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("seqAlong(object());", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("seqAlong(5);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("seqAlong(5.1);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("seqAlong(\"foo\");", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("seqAlong(5:9);", new EidosValue_Int_vector(0, 1, 2, 3, 4));
+	EidosAssertScriptSuccess("seqAlong(5.1:9.5);", new EidosValue_Int_vector(0, 1, 2, 3, 4));
+	EidosAssertScriptSuccess("seqAlong(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_Int_vector(0, 1, 2));
 	
 	// string()
+	EidosAssertScriptSuccess("string(0);", new EidosValue_String());
+	EidosAssertScriptSuccess("string(1);", new EidosValue_String(""));
+	EidosAssertScriptSuccess("string(2);", new EidosValue_String("", ""));
+	EidosAssertScriptSuccess("string(5);", new EidosValue_String("", "", "", "", ""));
+	EidosAssertScriptRaise("string(-1);", 0);
+	EidosAssertScriptRaise("string(-10000);", 0);
+	EidosAssertScriptRaise("string(NULL);", 0);
+	EidosAssertScriptRaise("string(integer(0));", 0);
 	
 	#pragma mark value inspection / manipulation
 	
