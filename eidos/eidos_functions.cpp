@@ -83,7 +83,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("round",			EidosFunctionIdentifier::roundFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sin",				EidosFunctionIdentifier::sinFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sqrt",				EidosFunctionIdentifier::sqrtFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				EidosFunctionIdentifier::sumFunction,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				EidosFunctionIdentifier::sumFunction,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("tan",				EidosFunctionIdentifier::tanFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("trunc",			EidosFunctionIdentifier::truncFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		
@@ -768,24 +768,38 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
-					result = int_result;
-					
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					int64_t product = 1;
+					double product_d = 1.0;
+					bool fits_in_integer = true;
 					
+					// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
+					// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
+					// can, and then throwing the integer accumulator over into the float accumulator only when it is about
+					// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						int64_t old_product = product;
-						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
+						int64_t temp = int_vec[value_index];
 						
-						product *= arg0_value->IntAtIndex(value_index, nullptr);
+						product *= temp;
 						
-						// raise on overflow; test after doing the multiplication
+						// switch to float computation on overflow, and accumulate in the float product just before overflow
 						if (product / temp != old_product)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in product() with integer argument; use asFloat() to convert the argument." << eidos_terminate(nullptr);
+						{
+							fits_in_integer = false;
+							product_d *= old_product;
+							product = temp;
+						}
 					}
 					
-					int_result->PushInt(product);
+					product_d *= product;		// multiply in whatever integer accumulation has not overflowed
+					
+					if (fits_in_integer)
+						result = new EidosValue_Int_singleton_const(product);
+					else
+						result = new EidosValue_Float_singleton_const(product_d);
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
@@ -796,15 +810,14 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-					result = float_result;
-					
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 					double product = 1;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						product *= arg0_value->FloatAtIndex(value_index, nullptr);
+						product *= float_vec[value_index];
 					
-					float_result->PushFloat(product);
+					result = new EidosValue_Float_singleton_const(product);
 				}
 			}
 			break;
@@ -825,23 +838,37 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
-					result = int_result;
-					
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					int64_t sum = 0;
+					double sum_d = 0;
+					bool fits_in_integer = true;
 					
+					// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
+					// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
+					// can, and then throwing the integer accumulator over into the float accumulator only when it is about
+					// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
-						int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
+						int64_t temp = int_vec[value_index];
 						
-						// raise on overflow; test prior to doing the addition
+						// switch to float computation on overflow, and accumulate in the float sum just before overflow
 						if (((temp > 0) && (sum > INT64_MAX - temp)) || ((temp < 0) && (sum < INT64_MIN - temp)))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): overflow in sum() with integer argument; use asFloat() to convert the argument." << eidos_terminate(nullptr);
+						{
+							fits_in_integer = false;
+							sum_d += sum;
+							sum = 0;		// start integer accumulation again from 0 until it overflows again
+						}
 						
-						sum += arg0_value->IntAtIndex(value_index, nullptr);
+						sum += temp;
 					}
 					
-					int_result->PushInt(sum);
+					sum_d += sum;			// add in whatever integer accumulation has not overflowed
+					
+					if (fits_in_integer)
+						result = new EidosValue_Int_singleton_const(sum);
+					else
+						result = new EidosValue_Float_singleton_const(sum_d);
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
@@ -852,16 +879,26 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-					result = float_result;
-					
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 					double sum = 0;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						sum += arg0_value->FloatAtIndex(value_index, nullptr);
+						sum += float_vec[value_index];
 					
-					float_result->PushFloat(sum);
+					result = new EidosValue_Float_singleton_const(sum);
 				}
+			}
+			else if (arg0_type == EidosValueType::kValueLogical)
+			{
+				// EidosValue_Logical does not have a singleton subclass, so we can always use the fast API
+				const std::vector<bool> &logical_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
+				int64_t sum = 0;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					sum += logical_vec[value_index];
+				
+				result = new EidosValue_Int_singleton_const(sum);
 			}
 			break;
 		}
