@@ -1427,14 +1427,84 @@ void RunEidosTests(void)
 	#pragma mark summary statistics
 	
 	// max()
+	EidosAssertScriptSuccess("max(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("max(3);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("max(3.5);", new EidosValue_Float_singleton_const(3.5));
+	EidosAssertScriptSuccess("max(\"foo\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("max(c(F, F, T, F, T));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("max(c(3, 7, 19, -5, 9));", new EidosValue_Int_singleton_const(19));
+	EidosAssertScriptSuccess("max(c(3.3, 7.7, 19.1, -5.8, 9.0));", new EidosValue_Float_singleton_const(19.1));
+	EidosAssertScriptSuccess("max(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_String("foo"));
+	EidosAssertScriptRaise("max(_Test(7));", 0);
+	EidosAssertScriptSuccess("max(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("max(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("max(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("max(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("max(string(0));", gStaticEidosValueNULL);
 	
 	// mean()
+	EidosAssertScriptRaise("mean(T);", 0);
+	EidosAssertScriptSuccess("mean(3);", new EidosValue_Float_singleton_const(3));
+	EidosAssertScriptSuccess("mean(3.5);", new EidosValue_Float_singleton_const(3.5));
+	EidosAssertScriptRaise("mean(\"foo\");", 0);
+	EidosAssertScriptRaise("mean(c(F, F, T, F, T));", 0);
+	EidosAssertScriptSuccess("mean(c(3, 7, 19, -5, 16));", new EidosValue_Float_singleton_const(8));
+	EidosAssertScriptSuccess("mean(c(3.3, 7.2, 19.1, -5.6, 16.0));", new EidosValue_Float_singleton_const(8.0));
+	EidosAssertScriptRaise("mean(c(\"foo\", \"bar\", \"baz\"));", 0);
+	EidosAssertScriptRaise("mean(_Test(7));", 0);
+	EidosAssertScriptRaise("mean(NULL);", 0);
+	EidosAssertScriptRaise("mean(logical(0));", 0);
+	EidosAssertScriptSuccess("mean(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("mean(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("mean(string(0));", 0);
 	
 	// min()
+	EidosAssertScriptSuccess("min(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("min(3);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("min(3.5);", new EidosValue_Float_singleton_const(3.5));
+	EidosAssertScriptSuccess("min(\"foo\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("min(c(F, F, T, F, T));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("min(c(3, 7, 19, -5, 9));", new EidosValue_Int_singleton_const(-5));
+	EidosAssertScriptSuccess("min(c(3.3, 7.7, 19.1, -5.8, 9.0));", new EidosValue_Float_singleton_const(-5.8));
+	EidosAssertScriptSuccess("min(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_String("bar"));
+	EidosAssertScriptRaise("min(_Test(7));", 0);
+	EidosAssertScriptSuccess("min(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("min(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("min(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("min(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
 	
 	// range()
+	EidosAssertScriptRaise("range(T);", 0);
+	EidosAssertScriptSuccess("range(3);", new EidosValue_Int_vector(3, 3));
+	EidosAssertScriptSuccess("range(3.5);", new EidosValue_Float_vector(3.5, 3.5));
+	EidosAssertScriptRaise("range(\"foo\");", 0);
+	EidosAssertScriptRaise("range(c(F, F, T, F, T));", 0);
+	EidosAssertScriptSuccess("range(c(3, 7, 19, -5, 9));", new EidosValue_Int_vector(-5, 19));
+	EidosAssertScriptSuccess("range(c(3.3, 7.7, 19.1, -5.8, 9.0));", new EidosValue_Float_vector(-5.8, 19.1));
+	EidosAssertScriptRaise("range(c(\"foo\", \"bar\", \"baz\"));", 0);
+	EidosAssertScriptRaise("range(_Test(7));", 0);
+	EidosAssertScriptRaise("range(NULL);", 0);
+	EidosAssertScriptRaise("range(logical(0));", 0);
+	EidosAssertScriptSuccess("range(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("range(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("range(string(0));", 0);
 	
 	// sd()
+	EidosAssertScriptRaise("sd(T);", 0);
+	EidosAssertScriptSuccess("sd(3);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("sd(3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("sd(\"foo\");", 0);
+	EidosAssertScriptRaise("sd(c(F, F, T, F, T));", 0);
+	EidosAssertScriptSuccess("sd(c(2, 3, 2, 8, 0));", new EidosValue_Float_singleton_const(3));
+	EidosAssertScriptSuccess("sd(c(9.1, 5.1, 5.1, 4.1, 7.1));", new EidosValue_Float_singleton_const(2.0));
+	EidosAssertScriptRaise("sd(c(\"foo\", \"bar\", \"baz\"));", 0);
+	EidosAssertScriptRaise("sd(_Test(7));", 0);
+	EidosAssertScriptRaise("sd(NULL);", 0);
+	EidosAssertScriptRaise("sd(logical(0));", 0);
+	EidosAssertScriptSuccess("sd(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("sd(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("sd(string(0));", 0);
 	
 	#pragma mark vector construction
 	
