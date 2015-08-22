@@ -69,10 +69,10 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asin",				EidosFunctionIdentifier::asinFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("atan",				EidosFunctionIdentifier::atanFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("atan2",			EidosFunctionIdentifier::atan2Function,			kEidosValueMaskFloat))->AddNumeric("x")->AddNumeric("y"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ceil",				EidosFunctionIdentifier::ceilFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ceil",				EidosFunctionIdentifier::ceilFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cos",				EidosFunctionIdentifier::cosFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("exp",				EidosFunctionIdentifier::expFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFinite",			EidosFunctionIdentifier::isFiniteFunction,		kEidosValueMaskLogical))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInfinite",		EidosFunctionIdentifier::isInfiniteFunction,	kEidosValueMaskLogical))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isNAN",			EidosFunctionIdentifier::isNaNFunction,			kEidosValueMaskLogical))->AddFloat("x"));
@@ -80,12 +80,12 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("log10",			EidosFunctionIdentifier::log10Function,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("log2",				EidosFunctionIdentifier::log2Function,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("product",			EidosFunctionIdentifier::productFunction,		kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddNumeric("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("round",			EidosFunctionIdentifier::roundFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("round",			EidosFunctionIdentifier::roundFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sin",				EidosFunctionIdentifier::sinFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sqrt",				EidosFunctionIdentifier::sqrtFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				EidosFunctionIdentifier::sumFunction,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("tan",				EidosFunctionIdentifier::tanFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("trunc",			EidosFunctionIdentifier::truncFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("trunc",			EidosFunctionIdentifier::truncFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		
 		
 		// ************************************************************************************
@@ -555,11 +555,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(ceil(arg0_value->FloatAtIndex(value_index, nullptr)));
+					float_result->PushFloat(ceil(float_vec[value_index]));
 			}
 			break;
 		}
@@ -618,11 +620,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(floor(arg0_value->FloatAtIndex(value_index, nullptr)));
+					float_result->PushFloat(floor(float_vec[value_index]));
 			}
 			break;
 		}
@@ -639,11 +643,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = new EidosValue_Logical();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isfinite(arg0_value->FloatAtIndex(value_index, nullptr)));
+					logical_result->PushLogical(isfinite(float_vec[value_index]));
 			}
 			break;
 		}
@@ -660,11 +666,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = new EidosValue_Logical();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isinf(arg0_value->FloatAtIndex(value_index, nullptr)));
+					logical_result->PushLogical(isinf(float_vec[value_index]));
 			}
 			break;
 		}
@@ -681,11 +689,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = new EidosValue_Logical();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isnan(arg0_value->FloatAtIndex(value_index, nullptr)));
+					logical_result->PushLogical(isnan(float_vec[value_index]));
 			}
 			break;
 		}
@@ -915,11 +925,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(round(arg0_value->FloatAtIndex(value_index, nullptr)));
+					float_result->PushFloat(round(float_vec[value_index]));
 			}
 			break;
 		}
@@ -999,11 +1011,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					float_result->PushFloat(trunc(arg0_value->FloatAtIndex(value_index, nullptr)));
+					float_result->PushFloat(trunc(float_vec[value_index]));
 			}
 			break;
 		}

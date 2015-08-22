@@ -1150,13 +1150,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("atan2(NULL);", 0);
 	
 	// ceil()
-	EidosAssertScriptSuccess("ceil(5);", new EidosValue_Float_singleton_const(5));
-	EidosAssertScriptSuccess("ceil(-5);", new EidosValue_Float_singleton_const(-5));
-	EidosAssertScriptSuccess("ceil(c(-2, 7, -18, 12));", new EidosValue_Float_vector(-2, 7, -18, 12));
 	EidosAssertScriptSuccess("ceil(5.1);", new EidosValue_Float_singleton_const(6.0));
 	EidosAssertScriptSuccess("ceil(-5.1);", new EidosValue_Float_singleton_const(-5.0));
 	EidosAssertScriptSuccess("ceil(c(-2.1, 7.1, -18.8, 12.8));", new EidosValue_Float_vector(-2.0, 8, -18, 13));
 	EidosAssertScriptRaise("ceil(T);", 0);
+	EidosAssertScriptRaise("ceil(5);", 0);
 	EidosAssertScriptRaise("ceil(\"foo\");", 0);
 	EidosAssertScriptRaise("ceil(_Test(7));", 0);
 	EidosAssertScriptRaise("ceil(NULL);", 0);
@@ -1182,13 +1180,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("exp(NULL);", 0);
 	
 	// floor()
-	EidosAssertScriptSuccess("floor(5);", new EidosValue_Float_singleton_const(5));
-	EidosAssertScriptSuccess("floor(-5);", new EidosValue_Float_singleton_const(-5));
-	EidosAssertScriptSuccess("floor(c(-2, 7, -18, 12));", new EidosValue_Float_vector(-2, 7, -18, 12));
 	EidosAssertScriptSuccess("floor(5.1);", new EidosValue_Float_singleton_const(5.0));
 	EidosAssertScriptSuccess("floor(-5.1);", new EidosValue_Float_singleton_const(-6.0));
 	EidosAssertScriptSuccess("floor(c(-2.1, 7.1, -18.8, 12.8));", new EidosValue_Float_vector(-3.0, 7, -19, 12));
 	EidosAssertScriptRaise("floor(T);", 0);
+	EidosAssertScriptRaise("floor(5);", 0);
 	EidosAssertScriptRaise("floor(\"foo\");", 0);
 	EidosAssertScriptRaise("floor(_Test(7));", 0);
 	EidosAssertScriptRaise("floor(NULL);", 0);
@@ -1273,13 +1269,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("product(NULL);", 0);
 	
 	// round()
-	EidosAssertScriptSuccess("round(5);", new EidosValue_Float_singleton_const(5));
-	EidosAssertScriptSuccess("round(-5);", new EidosValue_Float_singleton_const(-5));
-	EidosAssertScriptSuccess("round(c(-2, 7, -18, 12));", new EidosValue_Float_vector(-2, 7, -18, 12));
 	EidosAssertScriptSuccess("round(5.1);", new EidosValue_Float_singleton_const(5.0));
 	EidosAssertScriptSuccess("round(-5.1);", new EidosValue_Float_singleton_const(-5.0));
 	EidosAssertScriptSuccess("round(c(-2.1, 7.1, -18.8, 12.8));", new EidosValue_Float_vector(-2.0, 7, -19, 13));
 	EidosAssertScriptRaise("round(T);", 0);
+	EidosAssertScriptRaise("round(5);", 0);
 	EidosAssertScriptRaise("round(\"foo\");", 0);
 	EidosAssertScriptRaise("round(_Test(7));", 0);
 	EidosAssertScriptRaise("round(NULL);", 0);
@@ -1332,13 +1326,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("tan(NULL);", 0);
 	
 	// trunc()
-	EidosAssertScriptSuccess("trunc(5);", new EidosValue_Float_singleton_const(5));
-	EidosAssertScriptSuccess("trunc(-5);", new EidosValue_Float_singleton_const(-5));
-	EidosAssertScriptSuccess("trunc(c(-2, 7, -18, 12));", new EidosValue_Float_vector(-2, 7, -18, 12));
 	EidosAssertScriptSuccess("trunc(5.1);", new EidosValue_Float_singleton_const(5.0));
 	EidosAssertScriptSuccess("trunc(-5.1);", new EidosValue_Float_singleton_const(-5.0));
 	EidosAssertScriptSuccess("trunc(c(-2.1, 7.1, -18.8, 12.8));", new EidosValue_Float_vector(-2.0, 7, -18, 12));
 	EidosAssertScriptRaise("trunc(T);", 0);
+	EidosAssertScriptRaise("trunc(5);", 0);
 	EidosAssertScriptRaise("trunc(\"foo\");", 0);
 	EidosAssertScriptRaise("trunc(_Test(7));", 0);
 	EidosAssertScriptRaise("trunc(NULL);", 0);
