@@ -1095,11 +1095,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
 			
-			double sum = 0;
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				sum += arg0_value->FloatAtIndex(value_index, nullptr);
-			
-			result = new EidosValue_Float_singleton_const(sum / arg0_count);
+			if (arg0_count == 0)
+			{
+				result = gStaticEidosValueNULL;
+			}
+			else
+			{
+				double sum = 0;
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					sum += arg0_value->FloatAtIndex(value_index, nullptr);
+				
+				result = new EidosValue_Float_singleton_const(sum / arg0_count);
+			}
 			break;
 		}
 			
