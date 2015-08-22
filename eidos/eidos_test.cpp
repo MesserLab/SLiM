@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <initializer_list>
 
 
 using std::string;
@@ -1754,6 +1755,45 @@ void RunEidosTests(void)
 	
 	// version()
 	
+#pragma mark code examples
+	
+	// Fibonacci sequence; see Eidos manual section 2.6.1-ish
+	std::vector<int> correct_fibs = {1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765};
+	
+	EidosAssertScriptSuccess(	"fib = c(1, 1);												\
+								while (size(fib) < 20)										\
+								{															\
+									next_fib = fib[size(fib) - 1] + fib[size(fib) - 2];		\
+									fib = c(fib, next_fib);									\
+								}															\
+								fib;",
+							 new EidosValue_Int_vector(correct_fibs));
+	
+	EidosAssertScriptSuccess(	"counter = 12;							\
+								factorial = 1;							\
+								do										\
+								{										\
+									factorial = factorial * counter;	\
+									counter = counter - 1;				\
+								}										\
+								while (counter > 0);					\
+								factorial;",
+							 new EidosValue_Int_singleton_const(479001600));
+	std::vector<int> correct_primes = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199};
+	
+	EidosAssertScriptSuccess(	"last = 200;				\
+								p = integer(0);				\
+								x = 2:last;					\
+								lim = last^0.5;				\
+								do {						\
+									v = x[0];				\
+									if (v > lim)			\
+										break;				\
+									p = c(p, v);			\
+									x = x[x % v != 0];		\
+								} while (T);				\
+								c(p, x);",
+							 new EidosValue_Int_vector(correct_primes));
 	
 	// ************************************************************************************
 	//
