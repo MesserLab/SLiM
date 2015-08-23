@@ -213,6 +213,13 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("1e100;", 0);							// out of range for integer
 	EidosAssertScriptRaise("1000000000000000000000000000;", 0);		// out of range for integer
 	EidosAssertScriptRaise("1.0e100000000000;", 0);					// out of range for double
+	EidosAssertScriptRaise("T = 5;", 2);
+	EidosAssertScriptRaise("F = 5;", 2);
+	EidosAssertScriptRaise("NULL = 5;", 5);
+	EidosAssertScriptRaise("INF = 5;", 4);
+	EidosAssertScriptRaise("NAN = 5;", 4);
+	EidosAssertScriptRaise("E = 5;", 2);
+	EidosAssertScriptRaise("PI = 5;", 3);
 	
 	// test some simple parsing errors
 	#pragma mark parsing
@@ -2424,12 +2431,17 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("x=37; rm(\"x\"); x;", 15);
 	EidosAssertScriptSuccess("x=37; rm(\"y\"); x;", new EidosValue_Int_singleton_const(37));
 	EidosAssertScriptRaise("x=37; rm(); x;", 12);
-	EidosAssertScriptRaise("rm(NULL);", 0);
-	EidosAssertScriptRaise("rm(T);", 0);
 	EidosAssertScriptRaise("rm(3);", 0);
 	EidosAssertScriptRaise("rm(3.5);", 0);
 	EidosAssertScriptRaise("rm(_Test(7));", 0);
-	
+	EidosAssertScriptRaise("rm(T);", 0);
+	EidosAssertScriptRaise("rm(F);", 0);
+	EidosAssertScriptRaise("rm(NULL);", 0);
+	EidosAssertScriptRaise("rm(INF);", 0);
+	EidosAssertScriptRaise("rm(NAN);", 0);
+	EidosAssertScriptRaise("rm(E);", 0);
+	EidosAssertScriptRaise("rm(PI);", 0);
+
 	// setSeed()
 	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(5); y=runif(10); all(x==y);", new EidosValue_Logical(true));
 	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(6); y=runif(10); all(x==y);", new EidosValue_Logical(false));
