@@ -250,6 +250,56 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("next 5;", 5);				// missing ;
 	EidosAssertScriptRaise("break 5;", 6);				// missing ;
 	
+	// test some simple runtime errors
+	#pragma mark runtime
+	EidosAssertScriptRaise("x = y * 3;", 4);									// undefined variable referenced
+	EidosAssertScriptRaise("print(y * 3);", 6);									// undefined variable referenced as function argument
+	
+	EidosAssertScriptRaise("x = T; x[1];", 8);									// subscript out of range (singleton logical)
+	EidosAssertScriptRaise("x = T; x[-1];", 8);									// subscript out of range (singleton logical)
+	EidosAssertScriptRaise("x = T; x[1] = T;", 8);								// subscript out of range in assignment (singleton logical)
+	EidosAssertScriptRaise("x = T; x[-1] = T;", 8);								// subscript out of range in assignment (singleton logical)
+	EidosAssertScriptRaise("x = c(T,F); x[2];", 13);							// subscript out of range (vector logical)
+	EidosAssertScriptRaise("x = c(T,F); x[-1];", 13);							// subscript out of range (vector logical)
+	EidosAssertScriptRaise("x = c(T,F); x[2] = F;", 13);						// subscript out of range in assignment (vector logical)
+	EidosAssertScriptRaise("x = c(T,F); x[-1] = F;", 13);						// subscript out of range in assignment (vector logical)
+
+	EidosAssertScriptRaise("x = 8; x[1];", 8);									// subscript out of range (singleton int)
+	EidosAssertScriptRaise("x = 8; x[-1];", 8);									// subscript out of range (singleton int)
+	EidosAssertScriptRaise("x = 8; x[1] = 7;", 8);								// subscript out of range in assignment (singleton int)
+	EidosAssertScriptRaise("x = 8; x[-1] = 7;", 8);								// subscript out of range in assignment (singleton int)
+	EidosAssertScriptRaise("x = 7:9; x[3];", 10);								// subscript out of range (vector int)
+	EidosAssertScriptRaise("x = 7:9; x[-1];", 10);								// subscript out of range (vector int)
+	EidosAssertScriptRaise("x = 7:9; x[3] = 12;", 10);							// subscript out of range in assignment (vector int)
+	EidosAssertScriptRaise("x = 7:9; x[-1] = 12;", 10);							// subscript out of range in assignment (vector int)
+
+	EidosAssertScriptRaise("x = 8.0; x[1];", 10);								// subscript out of range (singleton float)
+	EidosAssertScriptRaise("x = 8.0; x[-1];", 10);								// subscript out of range (singleton float)
+	EidosAssertScriptRaise("x = 8.0; x[1] = 7.0;", 10);							// subscript out of range in assignment (singleton float)
+	EidosAssertScriptRaise("x = 8.0; x[-1] = 7.0;", 10);						// subscript out of range in assignment (singleton float)
+	EidosAssertScriptRaise("x = 7.0:9; x[3];", 12);								// subscript out of range (vector float)
+	EidosAssertScriptRaise("x = 7.0:9; x[-1];", 12);							// subscript out of range (vector float)
+	EidosAssertScriptRaise("x = 7.0:9; x[3] = 12.0;", 12);						// subscript out of range in assignment (vector float)
+	EidosAssertScriptRaise("x = 7.0:9; x[-1] = 12.0;", 12);						// subscript out of range in assignment (vector float)
+
+	EidosAssertScriptRaise("x = \"foo\"; x[1];", 12);							// subscript out of range (singleton string)
+	EidosAssertScriptRaise("x = \"foo\"; x[-1];", 12);							// subscript out of range (singleton string)
+	EidosAssertScriptRaise("x = \"foo\"; x[1] = _Test(6);", 12);				// subscript out of range in assignment (singleton string)
+	EidosAssertScriptRaise("x = \"foo\"; x[-1] = _Test(6);", 12);				// subscript out of range in assignment (singleton string)
+	EidosAssertScriptRaise("x = c(\"foo\", \"bar\"); x[2];", 22);				// subscript out of range (vector string)
+	EidosAssertScriptRaise("x = c(\"foo\", \"bar\"); x[-1];", 22);				// subscript out of range (vector string)
+	EidosAssertScriptRaise("x = c(\"foo\", \"bar\"); x[2] = _Test(6);", 22);	// subscript out of range in assignment (vector string)
+	EidosAssertScriptRaise("x = c(\"foo\", \"bar\"); x[-1] = _Test(6);", 22);	// subscript out of range in assignment (vector string)
+
+	EidosAssertScriptRaise("x = _Test(8); x[1];", 15);							// subscript out of range (singleton object)
+	EidosAssertScriptRaise("x = _Test(8); x[-1];", 15);							// subscript out of range (singleton object)
+	EidosAssertScriptRaise("x = _Test(8); x[1] = _Test(6);", 15);				// subscript out of range in assignment (singleton object)
+	EidosAssertScriptRaise("x = _Test(8); x[-1] = _Test(6);", 15);				// subscript out of range in assignment (singleton object)
+	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[2];", 23);					// subscript out of range (vector object)
+	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[-1];", 23);					// subscript out of range (vector object)
+	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[2] = _Test(6);", 23);		// subscript out of range in assignment (vector object)
+	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[-1] = _Test(6);", 23);		// subscript out of range in assignment (vector object)
+
 	
 	// ************************************************************************************
 	//
