@@ -2916,7 +2916,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			
 			if (arg0_value && !signature_found)
-				output_stream << "WARNING (ExecuteFunctionCall): function function() could not find a function signature for \"" << match_string << "\"." << endl;
+				output_stream << "No function signature found for \"" << match_string << "\"." << endl;
 			
 			break;
 		}
