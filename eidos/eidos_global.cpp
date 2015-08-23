@@ -323,8 +323,9 @@ void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosSc
 
 eidos_terminate::eidos_terminate(const EidosToken *p_error_token)
 {
+	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
-		EidosScript::SetErrorPositionFromToken(p_error_token);
+		EidosScript::PushErrorPositionFromToken(p_error_token);
 }
 
 eidos_terminate::eidos_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
@@ -333,8 +334,9 @@ eidos_terminate::eidos_terminate(bool p_print_backtrace) : print_backtrace_(p_pr
 
 eidos_terminate::eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
 {
+	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
-		EidosScript::SetErrorPositionFromToken(p_error_token);
+		EidosScript::PushErrorPositionFromToken(p_error_token);
 }
 
 std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)

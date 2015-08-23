@@ -33,7 +33,7 @@
 
 
 // Utility functions usable by everybody
-EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count);
+EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, bool p_allow_null);
 
 
 // A numeric identifier for a function once its name has been looked up; just for efficiency, to allow switch()

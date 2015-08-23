@@ -42,6 +42,14 @@ extern bool gEidosLogTokens;
 extern bool gEidosLogAST;
 extern bool gEidosLogEvaluation;
 
+// a struct used for saving and restoring the error position in a stack-like manner;
+// see PushErrorPositionFromToken() and RestoreErrorPosition(), below
+typedef struct
+{
+	int characterStartOfError;
+	int characterEndOfError;
+} EidosErrorPosition;
+
 
 // A class representing an entire script and all associated tokenization and parsing baggage
 class EidosScript
@@ -86,13 +94,23 @@ public:
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
 	
 	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
-	static inline void SetErrorPositionFromToken(const EidosToken *p_naughty_token_)
+	static inline EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
 	{
+		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError};
+		
 		gEidosCharacterStartOfError = p_naughty_token_->token_start_;
 		gEidosCharacterEndOfError = p_naughty_token_->token_end_;
+		
+		return old_position;
 	}
 	
-	static inline void ResetErrorPosition(void)
+	static inline void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
+	{
+		gEidosCharacterStartOfError = p_saved_position.characterStartOfError;
+		gEidosCharacterEndOfError = p_saved_position.characterEndOfError;
+	}
+	
+	static inline void ClearErrorPosition()
 	{
 		gEidosCharacterStartOfError = -1;
 		gEidosCharacterEndOfError = -1;

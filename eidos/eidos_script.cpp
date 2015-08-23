@@ -236,6 +236,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \\), newlines not allowed
 					do 
 					{
+						// during tokenization we don't treat the error position as a stack
 						gEidosCharacterStartOfError = token_start;
 						gEidosCharacterEndOfError = token_end;
 						
@@ -297,6 +298,7 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 		if (token_type == EidosTokenType::kTokenNone)
 		{
 			// failed to find a match; this causes a syntax error raise
+			// during tokenization we don't treat the error position as a stack
 			gEidosCharacterStartOfError = token_start;
 			gEidosCharacterEndOfError = token_end;
 			

@@ -1850,7 +1850,7 @@ EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID 
 		}
 		
 		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gEidosStr_GetPropertyOfElements, results.data(), (int)results.size());
+		EidosValue *result = ConcatenateEidosValues(gEidosStr_GetPropertyOfElements, results.data(), (int)results.size(), true);
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)
@@ -1925,7 +1925,7 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 			results.push_back(value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
 		
 		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gEidosStr_ExecuteInstanceMethod, results.data(), (int)results.size());
+		EidosValue *result = ConcatenateEidosValues(gEidosStr_ExecuteInstanceMethod, results.data(), (int)results.size(), true);
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)

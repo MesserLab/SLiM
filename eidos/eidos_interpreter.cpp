@@ -344,7 +344,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			EidosValue *second_child_value = FastEvaluateNode(right_operand);
 			EidosValueType second_child_type = second_child_value->Type();
 			
-			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical) && (second_child_type != EidosValueType::kValueNULL))
+			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
 			{
 				if (second_child_value->IsTemporary()) delete second_child_value;
 				
@@ -389,12 +389,6 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 					else
 						p_indices_ptr->push_back(base_indices[index_value]);
 				}
-			}
-			else if (second_child_type == EidosValueType::kValueNULL)
-			{
-				// A NULL index selects no values; this will likely cause a raise downstream, but that is not our problem, it's legal syntax
-				base_indices.clear();
-				*p_indices_ptr = base_indices;
 			}
 			
 			break;
@@ -1007,7 +1001,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosScript::SetErrorPositionFromToken(call_identifier_token);
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 		if (method_object)
@@ -1016,7 +1010,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 			result = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::ResetErrorPosition();
+		EidosScript::RestoreErrorPosition(error_pos_save);
 		
 		// And now we can free the arguments
 		for (argument_index = 0; argument_index < arguments_count; ++argument_index)
@@ -1052,7 +1046,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosScript::SetErrorPositionFromToken(call_identifier_token);
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 		EidosValue **arguments_ptr = arguments.data();
@@ -1063,7 +1057,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 			result = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::ResetErrorPosition();
+		EidosScript::RestoreErrorPosition(error_pos_save);
 		
 		// And now we can free the arguments
 		for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
@@ -1116,7 +1110,7 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
-		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical) && (second_child_type != EidosValueType::kValueNULL))
+		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
 		{
 			if (first_child_value->IsTemporary()) delete first_child_value;
 			if (second_child_value->IsTemporary()) delete second_child_value;
@@ -1231,14 +1225,14 @@ EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	}
 	
 	// If an error occurs inside a function or method call, we want to highlight the call
-	EidosScript::SetErrorPositionFromToken(second_child_token);
+	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
 	
 	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID;
 	result = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(property_string_ID);
 	
 	// Forget the function token, since it is not responsible for any future errors
-	EidosScript::ResetErrorPosition();
+	EidosScript::RestoreErrorPosition(error_pos_save);
 	
 	// free our operand
 	if (first_child_value->IsTemporary()) delete first_child_value;
@@ -1290,7 +1284,7 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// binary plus is legal either between two numeric types, or between a string and any other operand
+		// binary plus is legal either between two numeric types, or between a string and any other non-NULL operand
 		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
@@ -1309,6 +1303,14 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
 			EidosValue_String *string_result = new EidosValue_String();
+			
+			if (((first_child_type == EidosValueType::kValueNULL) || (second_child_type == EidosValueType::kValueNULL)))
+			{
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << eidos_terminate(operator_token);
+			}
 			
 			if (first_child_count == second_child_count)
 			{
@@ -2610,9 +2612,11 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	EidosASTNode *lvalue_node = p_node->children_[0];
 	EidosValue *rvalue = FastEvaluateNode(p_node->children_[1]);
 	
-	EidosScript::SetErrorPositionFromToken(operator_token);
+	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(operator_token);
+	
 	_AssignRValueToLValue(rvalue, lvalue_node);		// disposes of rvalue somehow
-	EidosScript::ResetErrorPosition();
+	
+	EidosScript::RestoreErrorPosition(error_pos_save);
 	
 	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
 	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
@@ -2710,8 +2714,11 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): testing NULL with the '==' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -2810,8 +2817,11 @@ EidosValue *EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): testing NULL with the '<' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -2910,8 +2920,11 @@ EidosValue *EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): testing NULL with the '<=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -3010,8 +3023,11 @@ EidosValue *EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): testing NULL with the '>' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -3110,8 +3126,11 @@ EidosValue *EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): testing NULL with the '>=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -3207,8 +3226,11 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), we return logical(0)
-		result = new EidosValue_Logical;
+		// if either operand is NULL (including if both are), it is an error
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): testing NULL with the '!=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -3664,6 +3686,9 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	int range_count = range_value->Count();
 	EidosValue *result = nullptr;
 	
+	if ((range_count == 0) && (range_value->Type() == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
+	
 	for (int range_index = 0; range_index < range_count; ++range_index)
 	{
 		// set the index variable to the range value and then throw the range value away
@@ -3730,7 +3755,7 @@ EidosValue *EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	next_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::SetErrorPositionFromToken(p_node->token_);
+	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue *result = gStaticEidosValueNULLInvisible;
 	
@@ -3761,7 +3786,7 @@ EidosValue *EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	break_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::SetErrorPositionFromToken(p_node->token_);
+	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue *result = gStaticEidosValueNULLInvisible;
 	
@@ -3791,7 +3816,7 @@ EidosValue *EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	return_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::SetErrorPositionFromToken(p_node->token_);
+	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue *result = nullptr;
 	

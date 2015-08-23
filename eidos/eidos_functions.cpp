@@ -234,7 +234,7 @@ EidosFunctionMap *EidosInterpreter::BuiltInFunctionMap(void)
 //	Executing function calls
 //
 
-EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count)
+EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, bool p_allow_null)
 {
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
@@ -249,6 +249,9 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 	{
 		EidosValue *arg_value = p_arguments[arg_index];
 		EidosValueType arg_type = arg_value->Type();
+		
+		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
+			EIDOS_TERMINATION << "ERROR (" << p_function_name << "): NULL is not allowed to be used with this function." << eidos_terminate(nullptr);
 		
 		if (arg_type > highest_type)
 			highest_type = arg_type;
@@ -289,6 +292,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 		return (all_invisible ? gStaticEidosValueNULLInvisible : gStaticEidosValueNULL);
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
+	// Note that NULLs here concatenate away silently; a bit dangerous!
 	if (highest_type == EidosValueType::kValueLogical)
 	{
 		EidosValue_Logical *result = new EidosValue_Logical();
@@ -1270,7 +1274,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark c
 		case EidosFunctionIdentifier::cFunction:
 		{
-			result = ConcatenateEidosValues(p_function_name, p_arguments, p_argument_count);
+			result = ConcatenateEidosValues(p_function_name, p_arguments, p_argument_count, false);
 			break;
 		}
 			

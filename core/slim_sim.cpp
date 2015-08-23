@@ -129,7 +129,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 		rng_seed_ = EidosGenerateSeedFromPIDAndTime();
 	
 	// Reset error position indicators used by SLiMgui
-	EidosScript::ResetErrorPosition();
+	EidosScript::ClearErrorPosition();
 	
 	// Read in the file; going through stringstream is fast...
 	std::stringstream buffer;
@@ -155,7 +155,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	}
 	
 	// Reset error position indicators used by SLiMgui
-	EidosScript::ResetErrorPosition();
+	EidosScript::ClearErrorPosition();
 	
 	// initialize rng; this is either a value given at the command line, or the value generate above by EidosGenerateSeedFromPIDAndTime()
 	EidosInitializeRNGFromSeed(rng_seed_);
