@@ -2079,21 +2079,77 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("asString(c(T,F,T,F));", new EidosValue_String("T","F","T","F"));
 	EidosAssertScriptSuccess("asString(c(\"1\",\"2\",\"3\"));", new EidosValue_String("1","2","3"));
 	
-	// element()
+	// elementType()
+	EidosAssertScriptSuccess("elementType(NULL);", new EidosValue_String("NULL"));
+	EidosAssertScriptSuccess("elementType(T);", new EidosValue_String("logical"));
+	EidosAssertScriptSuccess("elementType(3);", new EidosValue_String("integer"));
+	EidosAssertScriptSuccess("elementType(3.5);", new EidosValue_String("float"));
+	EidosAssertScriptSuccess("elementType(\"foo\");", new EidosValue_String("string"));
+	EidosAssertScriptSuccess("elementType(_Test(7));", new EidosValue_String("_TestElement"));
+	EidosAssertScriptSuccess("elementType(object());", new EidosValue_String("undefined"));
 	
 	// isFloat()
+	EidosAssertScriptSuccess("isFloat(NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isFloat(T);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isFloat(3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isFloat(3.5);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isFloat(\"foo\");", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isFloat(_Test(7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isFloat(object());", new EidosValue_Logical(false));
 	
 	// isInteger()
+	EidosAssertScriptSuccess("isInteger(NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isInteger(T);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isInteger(3);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isInteger(3.5);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isInteger(\"foo\");", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isInteger(_Test(7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isInteger(object());", new EidosValue_Logical(false));
 	
 	// isLogical()
+	EidosAssertScriptSuccess("isLogical(NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isLogical(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isLogical(3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isLogical(3.5);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isLogical(\"foo\");", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isLogical(_Test(7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isLogical(object());", new EidosValue_Logical(false));
 	
 	// isNULL()
+	EidosAssertScriptSuccess("isNULL(NULL);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isNULL(T);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isNULL(3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isNULL(3.5);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isNULL(\"foo\");", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isNULL(_Test(7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isNULL(object());", new EidosValue_Logical(false));
 	
 	// isObject()
+	EidosAssertScriptSuccess("isObject(NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isObject(T);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isObject(3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isObject(3.5);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isObject(\"foo\");", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isObject(_Test(7));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isObject(object());", new EidosValue_Logical(true));
 	
 	// isString()
+	EidosAssertScriptSuccess("isString(NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isString(T);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isString(3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isString(3.5);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isString(\"foo\");", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("isString(_Test(7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("isString(object());", new EidosValue_Logical(false));
 	
 	// type()
+	EidosAssertScriptSuccess("type(NULL);", new EidosValue_String("NULL"));
+	EidosAssertScriptSuccess("type(T);", new EidosValue_String("logical"));
+	EidosAssertScriptSuccess("type(3);", new EidosValue_String("integer"));
+	EidosAssertScriptSuccess("type(3.5);", new EidosValue_String("float"));
+	EidosAssertScriptSuccess("type(\"foo\");", new EidosValue_String("string"));
+	EidosAssertScriptSuccess("type(_Test(7));", new EidosValue_String("object"));
+	EidosAssertScriptSuccess("type(object());", new EidosValue_String("object"));
 	
 	#pragma mark filesystem access
 	
