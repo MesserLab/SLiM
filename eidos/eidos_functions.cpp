@@ -191,9 +191,9 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	filesystem access functions
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		EidosFunctionIdentifier::filesAtPathFunction,	kEidosValueMaskString))->AddString_S("path")->AddString_OS("fullPaths"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		EidosFunctionIdentifier::filesAtPathFunction,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			EidosFunctionIdentifier::readFileFunction,		kEidosValueMaskString))->AddString_S("filePath"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kEidosValueMaskNULL))->AddString_S("filePath")->AddString("contents"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents"));
 
 		
 		// ************************************************************************************
@@ -2704,6 +2704,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			string base_path = arg0_value->StringAtIndex(0, nullptr);
+			int base_path_length = (int)base_path.length();
+			bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
 			string path = EidosResolvedPath(base_path);
 			bool fullPaths = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
 			
@@ -2724,7 +2726,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					string filename = ep->d_name;
 					
 					if (fullPaths)
-						filename = base_path + "/" + filename;
+						filename = base_path + (base_path_ends_in_slash ? "" : "/") + filename;
 					
 					string_result->PushString(filename);
 				}
@@ -2735,7 +2737,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// not a fatal error, just a warning log
 				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function filesAtPath() could not open path " << path << "." << endl;
-				result = gStaticEidosValueNULLInvisible;
+				result = gStaticEidosValueNULL;
 			}
 			break;
 		}
@@ -2754,7 +2756,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// not a fatal error, just a warning log
 				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() could not read file at path " << file_path << "." << endl;
-				result = gStaticEidosValueNULLInvisible;
+				result = gStaticEidosValueNULL;
 			}
 			else
 			{
@@ -2770,6 +2772,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					// not a fatal error, just a warning log
 					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() encountered stream errors while reading file at path " << file_path << "." << endl;
+					if (string_result->IsTemporary()) delete string_result;
+					
+					result = gStaticEidosValueNULL;
 				}
 			}
 			break;
@@ -2793,21 +2798,22 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// Not a fatal error, just a warning log
 				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() could not write to file at path " << file_path << "." << endl;
+				result = gStaticEidosValue_LogicalF;
 			}
 			else
 			{
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
-				{
-					if (value_index > 0)
-						file_stream << endl;
-					
-					file_stream << arg1_value->StringAtIndex(value_index, nullptr);
-				}
+					file_stream << arg1_value->StringAtIndex(value_index, nullptr) << endl;
 				
 				if (file_stream.bad())
 				{
 					// Not a fatal error, just a warning log
 					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+					result = gStaticEidosValue_LogicalF;
+				}
+				else
+				{
+					result = gStaticEidosValue_LogicalT;
 				}
 			}
 			break;
