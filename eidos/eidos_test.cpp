@@ -2153,11 +2153,19 @@ void RunEidosTests(void)
 	
 	#pragma mark filesystem access
 	
-	// filesAtPath()
-	
-	// readFile()
+	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
+	EidosAssertScriptSuccess("type(filesAtPath(\"/tmp\")) == \"string\";", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("sum(filesAtPath(\"/\") == \"bin\");", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("sum(filesAtPath(\"/\", T) == \"/bin\");", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("filesAtPath(\"foo_is_a_bad_path\");", gStaticEidosValueNULL);
 	
 	// writeFile()
+	EidosAssertScriptSuccess("writeFile(\"/tmp/EidosTest.txt\", c(paste(0:4), paste(5:9)));", new EidosValue_Logical(true));
+	
+	// readFile() – note that the readFile() tests depend on the previous writeFile() test
+	EidosAssertScriptSuccess("readFile(\"/tmp/EidosTest.txt\") == c(paste(0:4), paste(5:9));", new EidosValue_Logical(true, true));
+	EidosAssertScriptSuccess("all(asInteger(strsplit(paste(readFile(\"/tmp/EidosTest.txt\")))) == 0:9);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("readFile(\"foo_is_a_bad_path.txt\");", gStaticEidosValueNULL);
 	
 	#pragma mark miscellaneous
 	
