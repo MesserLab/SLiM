@@ -2162,28 +2162,121 @@ void RunEidosTests(void)
 	#pragma mark miscellaneous
 	
 	// date()
+	EidosAssertScriptSuccess("size(strsplit(date(), \"-\"));", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptRaise("date(NULL);", 0);
+	EidosAssertScriptRaise("date(T);", 0);
+	EidosAssertScriptRaise("date(3);", 0);
+	EidosAssertScriptRaise("date(3.5);", 0);
+	EidosAssertScriptRaise("date(\"foo\");", 0);
+	EidosAssertScriptRaise("date(_Test(7));", 0);
 	
 	// executeLambda()
+	EidosAssertScriptSuccess("x=7; executeLambda(\"x^2;\");", new EidosValue_Float_singleton_const(49));
+	EidosAssertScriptRaise("x=7; executeLambda(\"x^2\");", 5);
+	EidosAssertScriptRaise("x=7; executeLambda(c(\"x^2;\", \"5;\"));", 5);
+	EidosAssertScriptRaise("x=7; executeLambda(string(0));", 5);
+	EidosAssertScriptSuccess("x=7; executeLambda(\"x=x^2+4;\"); x;", new EidosValue_Float_singleton_const(53));
+	EidosAssertScriptRaise("executeLambda(NULL);", 0);
+	EidosAssertScriptRaise("executeLambda(T);", 0);
+	EidosAssertScriptRaise("executeLambda(3);", 0);
+	EidosAssertScriptRaise("executeLambda(3.5);", 0);
+	EidosAssertScriptRaise("executeLambda(_Test(7));", 0);
 	
 	// function()
+	EidosAssertScriptSuccess("function();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("function(\"function\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("function(\"foo\");", gStaticEidosValueNULL);	// does not throw at present
+	EidosAssertScriptRaise("function(string(0));", 0);
+	EidosAssertScriptRaise("function(NULL);", 0);
+	EidosAssertScriptRaise("function(T);", 0);
+	EidosAssertScriptRaise("function(3);", 0);
+	EidosAssertScriptRaise("function(3.5);", 0);
+	EidosAssertScriptRaise("function(_Test(7));", 0);
 	
 	// globals()
+	EidosAssertScriptSuccess("globals();", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("globals(NULL);", 0);
+	EidosAssertScriptRaise("globals(T);", 0);
+	EidosAssertScriptRaise("globals(3);", 0);
+	EidosAssertScriptRaise("globals(3.5);", 0);
+	EidosAssertScriptRaise("globals(\"foo\");", 0);
+	EidosAssertScriptRaise("globals(_Test(7));", 0);
 	
 	// help()
+	EidosAssertScriptSuccess("help();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("help(\"help\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("help(\"foo\");", gStaticEidosValueNULL);	// does not throw at present
+	EidosAssertScriptRaise("help(string(0));", 0);
+	EidosAssertScriptRaise("help(NULL);", 0);
+	EidosAssertScriptRaise("help(T);", 0);
+	EidosAssertScriptRaise("help(3);", 0);
+	EidosAssertScriptRaise("help(3.5);", 0);
+	EidosAssertScriptRaise("help(_Test(7));", 0);
 	
 	// license()
+	EidosAssertScriptSuccess("license();", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("license(NULL);", 0);
+	EidosAssertScriptRaise("license(T);", 0);
+	EidosAssertScriptRaise("license(3);", 0);
+	EidosAssertScriptRaise("license(3.5);", 0);
+	EidosAssertScriptRaise("license(\"foo\");", 0);
+	EidosAssertScriptRaise("license(_Test(7));", 0);
 	
 	// rm()
+	EidosAssertScriptRaise("x=37; rm(\"x\"); x;", 15);
+	EidosAssertScriptSuccess("x=37; rm(\"y\"); x;", new EidosValue_Int_singleton_const(37));
+	EidosAssertScriptRaise("x=37; rm(); x;", 12);
+	EidosAssertScriptRaise("rm(NULL);", 0);
+	EidosAssertScriptRaise("rm(T);", 0);
+	EidosAssertScriptRaise("rm(3);", 0);
+	EidosAssertScriptRaise("rm(3.5);", 0);
+	EidosAssertScriptRaise("rm(_Test(7));", 0);
 	
 	// setSeed()
+	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(5); y=runif(10); all(x==y);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(6); y=runif(10); all(x==y);", new EidosValue_Logical(false));
+	EidosAssertScriptRaise("setSeed(NULL);", 0);
+	EidosAssertScriptRaise("setSeed(T);", 0);
+	EidosAssertScriptRaise("setSeed(3.5);", 0);
+	EidosAssertScriptRaise("setSeed(\"foo\");", 0);
+	EidosAssertScriptRaise("setSeed(_Test(7));", 0);
 	
 	// getSeed()
+	EidosAssertScriptSuccess("setSeed(13); getSeed();", new EidosValue_Int_singleton_const(13));
+	EidosAssertScriptSuccess("setSeed(13); setSeed(7); getSeed();", new EidosValue_Int_singleton_const(7));
+	EidosAssertScriptRaise("getSeed(NULL);", 0);
+	EidosAssertScriptRaise("getSeed(T);", 0);
+	EidosAssertScriptRaise("getSeed(3);", 0);
+	EidosAssertScriptRaise("getSeed(3.5);", 0);
+	EidosAssertScriptRaise("getSeed(\"foo\");", 0);
+	EidosAssertScriptRaise("getSeed(_Test(7));", 0);
 	
 	// stop()
+	EidosAssertScriptRaise("stop();", 0);
+	EidosAssertScriptRaise("stop(\"Error\");", 0);
+	EidosAssertScriptRaise("stop(NULL);", 0);
+	EidosAssertScriptRaise("stop(T);", 0);
+	EidosAssertScriptRaise("stop(3);", 0);
+	EidosAssertScriptRaise("stop(3.5);", 0);
+	EidosAssertScriptRaise("stop(_Test(7));", 0);
 	
 	// time()
+	EidosAssertScriptSuccess("size(strsplit(time(), \":\"));", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptRaise("time(NULL);", 0);
+	EidosAssertScriptRaise("time(T);", 0);
+	EidosAssertScriptRaise("time(3);", 0);
+	EidosAssertScriptRaise("time(3.5);", 0);
+	EidosAssertScriptRaise("time(\"foo\");", 0);
+	EidosAssertScriptRaise("time(_Test(7));", 0);
 	
 	// version()
+	EidosAssertScriptSuccess("version();", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("version(NULL);", 0);
+	EidosAssertScriptRaise("version(T);", 0);
+	EidosAssertScriptRaise("version(3);", 0);
+	EidosAssertScriptRaise("version(3.5);", 0);
+	EidosAssertScriptRaise("version(\"foo\");", 0);
+	EidosAssertScriptRaise("version(_Test(7));", 0);
 	
 #pragma mark code examples
 	
