@@ -1979,6 +1979,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			EidosValueType arg0_type = arg0_value->Type();
 			std::ostringstream &output_stream = ExecutionOutputStream();
 			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0, nullptr) : gEidosStr_space_string);
 			
@@ -1987,7 +1988,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (value_index > 0)
 					output_stream << separator;
 				
-				output_stream << arg0_value->StringAtIndex(value_index, nullptr);
+				if (arg0_type == EidosValueType::kValueObject)
+					output_stream << *arg0_value->ObjectElementAtIndex(value_index, nullptr);
+				else
+					output_stream << arg0_value->StringAtIndex(value_index, nullptr);
 			}
 			break;
 		}
@@ -2049,6 +2053,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			EidosValueType arg0_type = arg0_value->Type();
 			string separator = ((p_argument_count >= 2) ? p_arguments[1]->StringAtIndex(0, nullptr) : gEidosStr_space_string);
 			string result_string;
 			
@@ -2057,7 +2062,16 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (value_index > 0)
 					result_string.append(separator);
 				
-				result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
+				if (arg0_type == EidosValueType::kValueObject)
+				{
+					std::ostringstream oss;
+					
+					oss << *arg0_value->ObjectElementAtIndex(value_index, nullptr);
+					
+					result_string.append(oss.str());
+				}
+				else
+					result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
 			result = new EidosValue_String(result_string);
