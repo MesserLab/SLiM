@@ -1798,18 +1798,107 @@ void RunEidosTests(void)
 	#pragma mark value inspection / manipulation
 	
 	// all()
+	EidosAssertScriptRaise("all(NULL);", 0);
+	EidosAssertScriptRaise("all(0);", 0);
+	EidosAssertScriptRaise("all(0.5);", 0);
+	EidosAssertScriptRaise("all(\"foo\");", 0);
+	EidosAssertScriptRaise("all(_Test(7));", 0);
+	EidosAssertScriptSuccess("all(logical(0));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("all(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("all(F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("all(c(T,T,T,T,T,T,T,T,T,T));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("all(c(T,T,T,T,T,T,T,F,T,T));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("all(c(F,F,F,F,F,F,F,F,F,F));", new EidosValue_Logical(false));
 	
 	// any()
+	EidosAssertScriptRaise("any(NULL);", 0);
+	EidosAssertScriptRaise("any(0);", 0);
+	EidosAssertScriptRaise("any(0.5);", 0);
+	EidosAssertScriptRaise("any(\"foo\");", 0);
+	EidosAssertScriptRaise("any(_Test(7));", 0);
+	EidosAssertScriptSuccess("any(logical(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("any(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("any(F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("any(c(T,T,T,T,T,T,T,T,T,T));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("any(c(T,T,T,T,T,T,T,F,T,T));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("any(c(F,F,F,F,F,F,F,F,F,F));", new EidosValue_Logical(false));
 	
-	// cat()
+	// cat() – can't test the actual output, but we can make sure it executes...
+	EidosAssertScriptSuccess("cat(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(\"foo\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(_Test(7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(NULL, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(T, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5.5, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(\"foo\", \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(_Test(7), \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(c(T,T,F,T), \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5:9, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(5.5:8.9, \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(c(\"foo\", \"bar\", \"baz\"), \"$$\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cat(c(_Test(7), _Test(7), _Test(7)), \"$$\");", gStaticEidosValueNULL);
 	
-	// ifelse()
+	// ifelse() – since this function treats parameters trueValues and falseValues type-agnostically, we'll test integers only (and NULL a little bit)
+	EidosAssertScriptRaise("ifelse(NULL, integer(0), integer(0));", 0);
+	EidosAssertScriptRaise("ifelse(logical(0), NULL, integer(0));", 0);
+	EidosAssertScriptRaise("ifelse(logical(0), integer(0), NULL);", 0);
+	EidosAssertScriptSuccess("ifelse(logical(0), integer(0), integer(0));", new EidosValue_Int_vector());
+	EidosAssertScriptRaise("ifelse(logical(0), 5, 2);", 0);
+	EidosAssertScriptRaise("ifelse(T, integer(0), integer(0));", 0);
+	EidosAssertScriptRaise("ifelse(T, 5, 2:3);", 0);
+	EidosAssertScriptRaise("ifelse(T, 5:6, 2);", 0);
+	EidosAssertScriptRaise("ifelse(c(T,T), 5, 2);", 0);
+	EidosAssertScriptSuccess("ifelse(T, 5, 2);", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("ifelse(F, 5, 2);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("ifelse(c(T,F,F,T,F,T), 1:6, -6:-1);", new EidosValue_Int_vector(1, -5, -4, 4, -2, 6));
 	
 	// nchar()
+	EidosAssertScriptRaise("nchar(NULL);", 0);
+	EidosAssertScriptRaise("nchar(T);", 0);
+	EidosAssertScriptRaise("nchar(5);", 0);
+	EidosAssertScriptRaise("nchar(5.5);", 0);
+	EidosAssertScriptRaise("nchar(_Test(7));", 0);
+	EidosAssertScriptSuccess("nchar(\"\");", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("nchar(\" \");", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("nchar(\"abcde\");", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("nchar(\"abc\tde\");", new EidosValue_Int_singleton_const(6));
+	EidosAssertScriptSuccess("nchar(c(\"\", \"abcde\", \"\", \"wumpus\"));", new EidosValue_Int_vector(0, 5, 0, 6));
 	
 	// paste()
+	EidosAssertScriptSuccess("paste(NULL);", new EidosValue_String(""));
+	EidosAssertScriptSuccess("paste(T);", new EidosValue_String("T"));
+	EidosAssertScriptSuccess("paste(5);", new EidosValue_String("5"));
+	EidosAssertScriptSuccess("paste(5.5);", new EidosValue_String("5.5"));
+	EidosAssertScriptSuccess("paste(\"foo\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("paste(_Test(7));", new EidosValue_String("_TestElement"));
+	EidosAssertScriptSuccess("paste(NULL, \"$$\");", new EidosValue_String(""));
+	EidosAssertScriptSuccess("paste(T, \"$$\");", new EidosValue_String("T"));
+	EidosAssertScriptSuccess("paste(5, \"$$\");", new EidosValue_String("5"));
+	EidosAssertScriptSuccess("paste(5.5, \"$$\");", new EidosValue_String("5.5"));
+	EidosAssertScriptSuccess("paste(\"foo\", \"$$\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("paste(_Test(7), \"$$\");", new EidosValue_String("_TestElement"));
+	EidosAssertScriptSuccess("paste(c(T,T,F,T), \"$$\");", new EidosValue_String("T$$T$$F$$T"));
+	EidosAssertScriptSuccess("paste(5:9, \"$$\");", new EidosValue_String("5$$6$$7$$8$$9"));
+	EidosAssertScriptSuccess("paste(5.5:8.9, \"$$\");", new EidosValue_String("5.5$$6.5$$7.5$$8.5"));
+	EidosAssertScriptSuccess("paste(c(\"foo\", \"bar\", \"baz\"), \"$$\");", new EidosValue_String("foo$$bar$$baz"));
+	EidosAssertScriptSuccess("paste(c(_Test(7), _Test(7), _Test(7)), \"$$\");", new EidosValue_String("_TestElement$$_TestElement$$_TestElement"));
 	
 	// print()
+	EidosAssertScriptSuccess("print(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(5.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(\"foo\");", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(_Test(7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(c(T,T,F,T));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(5:9);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(5.5:8.9);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(c(\"foo\", \"bar\", \"baz\"));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("print(c(_Test(7), _Test(7), _Test(7)));", gStaticEidosValueNULL);
 	
 	// rev()
 	EidosAssertScriptSuccess("rev(6:10);", new EidosValue_Int_vector(10,9,8,7,6));
@@ -1822,14 +1911,67 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rev(c(T,T,T,F));", new EidosValue_Logical(false, true, true, true));
 	
 	// size()
+	EidosAssertScriptSuccess("size(NULL);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("size(logical(0));", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("size(5);", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("size(c(5.5, 8.7));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("size(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("size(rep(_Test(7), 4));", new EidosValue_Int_singleton_const(4));
 	
 	// sort()
+	EidosAssertScriptSuccess("sort(integer(0));", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("sort(integer(0), T);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("sort(integer(0), F);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("sort(3);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("sort(3, T);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("sort(3, F);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("sort(c(6, 19, -3, 5, 2));", new EidosValue_Int_vector(-3, 2, 5, 6, 19));
+	EidosAssertScriptSuccess("sort(c(6, 19, -3, 5, 2), T);", new EidosValue_Int_vector(-3, 2, 5, 6, 19));
+	EidosAssertScriptSuccess("sort(c(6, 19, -3, 5, 2), F);", new EidosValue_Int_vector(19, 6, 5, 2, -3));
+	EidosAssertScriptSuccess("sort(c(T, F, T, T, F));", new EidosValue_Logical(false, false, true, true, true));
+	EidosAssertScriptSuccess("sort(c(6.1, 19.3, -3.7, 5.2, 2.3));", new EidosValue_Float_vector(-3.7, 2.3, 5.2, 6.1, 19.3));
+	EidosAssertScriptSuccess("sort(c(\"a\", \"q\", \"m\", \"f\", \"w\"));", new EidosValue_String("a", "f", "m", "q", "w"));
+	EidosAssertScriptRaise("sort(_Test(7));", 0);
 	
 	// sortBy()
+	EidosAssertScriptRaise("sortBy(NULL);", 0);
+	EidosAssertScriptRaise("sortBy(T);", 0);
+	EidosAssertScriptRaise("sortBy(5);", 0);
+	EidosAssertScriptRaise("sortBy(9.1);", 0);
+	EidosAssertScriptRaise("sortBy(\"foo\");", 0);
+	EidosAssertScriptSuccess("sortBy(object(), \"foo\");", new EidosValue_Object_vector());
+	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), \"_yolk\")._yolk;", new EidosValue_Int_vector(-8, 2, 3, 7, 75));
+	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), \"_yolk\", T)._yolk;", new EidosValue_Int_vector(-8, 2, 3, 7, 75));
+	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), \"_yolk\", F)._yolk;", new EidosValue_Int_vector(75, 7, 3, 2, -8));
+	EidosAssertScriptRaise("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), \"_foo\")._yolk;", 0);
 	
-	// str()
+	// str() – can't test the actual output, but we can make sure it executes...
+	EidosAssertScriptSuccess("str(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(c(5.5, 8.7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(c(\"foo\", \"bar\", \"baz\"));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(rep(_Test(7), 4));", gStaticEidosValueNULL);
 	
 	// strsplit()
+	EidosAssertScriptRaise("strsplit(NULL);", 0);
+	EidosAssertScriptRaise("strsplit(T);", 0);
+	EidosAssertScriptRaise("strsplit(5);", 0);
+	EidosAssertScriptRaise("strsplit(5.6);", 0);
+	EidosAssertScriptRaise("strsplit(string(0));", 0);
+	EidosAssertScriptRaise("strsplit(string(0), \"$$\");", 0);
+	EidosAssertScriptRaise("strsplit(c(\"foo\", \"bar\"));", 0);
+	EidosAssertScriptRaise("strsplit(c(\"foo\", \"bar\"), \"$$\");", 0);
+	EidosAssertScriptSuccess("strsplit(\"\");", new EidosValue_String(""));
+	EidosAssertScriptSuccess("strsplit(\"\", \"$$\");", new EidosValue_String(""));
+	EidosAssertScriptSuccess("strsplit(\" \");", new EidosValue_String("", ""));
+	EidosAssertScriptSuccess("strsplit(\"$$\", \"$$\");", new EidosValue_String("", ""));
+	EidosAssertScriptSuccess("strsplit(\"  \");", new EidosValue_String("", "", ""));
+	EidosAssertScriptSuccess("strsplit(\"$$$$\", \"$$\");", new EidosValue_String("", "", ""));
+	EidosAssertScriptSuccess("strsplit(\"This is a test.\");", new EidosValue_String("This", "is", "a", "test."));
+	EidosAssertScriptSuccess("strsplit(\"This is a test.\", \"$$\");", new EidosValue_String("This is a test."));
+	EidosAssertScriptSuccess("strsplit(\"This is a test.\", \"i\");", new EidosValue_String("Th", "s ", "s a test."));
+	EidosAssertScriptSuccess("strsplit(\"This is a test.\", \"s\");", new EidosValue_String("Thi", " i", " a te", "t."));
 	
 	// substr()
 	EidosAssertScriptSuccess("substr(string(0), 1);", new EidosValue_String());
@@ -1849,12 +1991,67 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("x=c(\"foo\",\"bar\",\"foobaz\"); substr(x, c(1, 2), 4);", 27);
 	
 	// unique()
+	EidosAssertScriptSuccess("unique(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("unique(logical(0));", new EidosValue_Logical());
+	EidosAssertScriptSuccess("unique(integer(0));", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("unique(float(0));", new EidosValue_Float_vector());
+	EidosAssertScriptSuccess("unique(string(0));", new EidosValue_String());
+	EidosAssertScriptSuccess("unique(object());", new EidosValue_Object_vector());
+	EidosAssertScriptSuccess("unique(T);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("unique(5);", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("unique(3.5);", new EidosValue_Float_singleton_const(3.5));
+	EidosAssertScriptSuccess("unique(\"foo\");", new EidosValue_String("foo"));
+	EidosAssertScriptSuccess("unique(_Test(7))._yolk;", new EidosValue_Int_singleton_const(7));
+	EidosAssertScriptSuccess("unique(c(T,T,T,T,F,T,T));", new EidosValue_Logical(true, false));
+	EidosAssertScriptSuccess("unique(c(3,5,3,9,2,3,3,7,5));", new EidosValue_Int_vector(3, 5, 9, 2, 7));
+	EidosAssertScriptSuccess("unique(c(3.5,1.2,9.3,-1.0,1.2,-1.0,1.2,7.6,3.5));", new EidosValue_Float_vector(3.5, 1.2, 9.3, -1, 7.6));
+	EidosAssertScriptSuccess("unique(c(\"foo\", \"bar\", \"foo\", \"baz\", \"baz\", \"bar\", \"foo\"));", new EidosValue_String("foo", "bar", "baz"));
+	EidosAssertScriptSuccess("unique(c(_Test(7), _Test(7), _Test(2), _Test(7), _Test(2)))._yolk;", new EidosValue_Int_vector(7, 7, 2, 7, 2));
 	
 	// which()
+	EidosAssertScriptRaise("which(NULL);", 0);
+	EidosAssertScriptRaise("which(5);", 0);
+	EidosAssertScriptRaise("which(5.7);", 0);
+	EidosAssertScriptRaise("which(\"foo\");", 0);
+	EidosAssertScriptRaise("which(_Test(7));", 0);
+	EidosAssertScriptSuccess("which(logical(0));", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("which(F);", new EidosValue_Int_vector());
+	EidosAssertScriptSuccess("which(T);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("which(c(T,F,F,T,F,T,F,F,T));", new EidosValue_Int_vector(0, 3, 5, 8));
 	
 	// whichMax()
+	EidosAssertScriptSuccess("whichMax(T);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMax(3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMax(3.5);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMax(\"foo\");", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMax(c(F, F, T, F, T));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("whichMax(c(3, 7, 19, -5, 9));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("whichMax(c(3.3, 7.7, 19.1, -5.8, 9.0));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("whichMax(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptRaise("whichMax(_Test(7));", 0);
+	EidosAssertScriptSuccess("whichMax(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMax(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMax(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMax(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMax(string(0));", gStaticEidosValueNULL);
 	
 	// whichMin()
+	EidosAssertScriptSuccess("whichMin(T);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMin(3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMin(3.5);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMin(\"foo\");", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMin(c(F, F, T, F, T));", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("whichMin(c(3, 7, 19, -5, 9));", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("whichMin(c(3.3, 7.7, 19.1, -5.8, 9.0));", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("whichMin(c(\"foo\", \"bar\", \"baz\"));", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptRaise("whichMin(_Test(7));", 0);
+	EidosAssertScriptSuccess("whichMin(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMin(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMin(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMin(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("whichMin(string(0));", gStaticEidosValueNULL);
+	
+	#pragma mark value type testing / coercion
 	
 	// asFloat()
 	EidosAssertScriptSuccess("asFloat(-1:3);", new EidosValue_Float_vector(-1,0,1,2,3));
@@ -1862,8 +2059,6 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("asFloat(c(T,F,T,F));", new EidosValue_Float_vector(1,0,1,0));
 	EidosAssertScriptSuccess("asFloat(c(\"1\",\"2\",\"3\"));", new EidosValue_Float_vector(1,2,3));
 	EidosAssertScriptRaise("asFloat(\"foo\");", 0);
-	
-	#pragma mark value type testing / coercion
 	
 	// asInteger()
 	EidosAssertScriptSuccess("asInteger(-1:3);", new EidosValue_Int_vector(-1,0,1,2,3));
@@ -1958,6 +2153,7 @@ void RunEidosTests(void)
 								while (counter > 0);					\
 								factorial;",
 							 new EidosValue_Int_singleton_const(479001600));
+	
 	std::vector<int> correct_primes = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199};
 	
 	EidosAssertScriptSuccess(	"last = 200;				\
