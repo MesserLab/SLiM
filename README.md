@@ -11,7 +11,7 @@ SLiM 2.0 (prerelease)
 
 SLiM can incorporate complex scenarios of demography and population substructure, various models for selection and dominance of new mutations, realistic gene and chromosome structure, and user-defined recombination maps. Emphasis was further placed on the ability to model and track individual selective sweeps – both complete and partial. While retaining all capabilities of a forward simulation, SLiM utilizes sophisticated algorithms and optimized data structures that enable simulations on the scale of entire eukaryotic chromosomes in reasonably large populations. All these features are implemented in an easy-to-use C++ command line program.
 
-SLiM is a product of the Messer Lab at Cornell University. It was developed by Philipp Messer, and is now maintained and extended by Philipp Messer and Ben Haller.
+SLiM is a product of the Messer Lab at Cornell University. It was developed by Philipp Messer, and is now maintained and extended by Benjamin C. Haller and Philipp Messer.
 
 GitHub home page for SLiM: [https://github.com/MesserLab/SLiM](https://github.com/MesserLab/SLiM)
 
@@ -30,9 +30,20 @@ SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
 
 You should have received a copy of the GNU General Public License along with SLiM.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
-Building and Running SLiM
+Building SLiM
 ------------------------------------
-For Mac OS X users, an Xcode project is provided that can be used to build SLiM. For users on other platforms, or for those who prefer not to use Xcode, SLiM can be built in Terminal with the commands:
+
+First of all, regardless of what platform you are on, you need to have the GNU Scientific Library (GSL) installed on your machine to use SLiM.  On Mac OS X, we recommend installing it using MacPorts.  Ample documentation on this should be available on the web.  The instructions below assume that you have already done that.
+
+**OS X**
+
+For Mac OS X users, we will provide a package with pre-built binaries for SLiM, SLiMgui,and EidosScribe; installing that package is the simplest way to get going.  That package is not yet available since SLiM 2.0 has not yet been officially released; stay tuned.
+
+For those on OS X who want to build SLiM themselves, an Xcode project is provided in this repository. On OS X, building SLiM in Xcode is recommended so that your build uses all of the settings defined by the Xcode project.  The Xcode project also has targets for building SLiMgui and EidosScribe.  It is recommended that you use the Release build configuration for all SLiM targets, for better runtime performance; this can be achieved either by editing the build scheme of the chosen target, or by using Xcode's Archive feature.  See the Xcode documentation for details.
+
+**Other Un\*x-based platforms**
+
+For users on other Un*x-based platforms, SLiM can be built in a shell with the commands:
 
 ```
 cd SLiM
@@ -41,7 +52,7 @@ g++ -O3 ./core/*.cpp ./eidos/*.cpp -iquote./eidos -lgsl -lgslcblas -std=c++11 -o
 
 Note that SLiM uses C++11 extensions, and thus that standard is specified at compilation.
 
-If your GNU Standard Library headers are not in the default search paths for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
+If your GNU Scientific Library (GSL) headers are not in the default search path for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
 
 ```
 gsl-config --cflags --libs
@@ -53,14 +64,29 @@ For example, I have installed gsl using MacPorts, so my compilation command look
 g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 ```
 
-Once SLiM is built, just run it at Terminal's command line. For example, to run the first example provided in SLiM's distribution, execute:
+**Other non-Un\*x platforms**
+
+If you are not on a Unix-based platform, you will need to figure out how to obtain, install, and use the g++ compiler on your platform; building SLiM with other C++ compilers has not been tested and is not recommended.  Your build command should ensure that SLiM is build as a 64-bit executable.  If you figure out good build instructions for your platform, let us know and we will add them to this document.
+
+Running SLiM
+-------------------
+
+Once SLiM is installed or built, it is a good idea to have it run a few self-tests.  This is done in your shell – the Terminal app, on Mac OS X, for example.  At your shell's command line (assuming you are in the directory where the built SLiM executable is located), you can run these two commands:
 
 ```
-cd SLiM
+./slim -testEidos
+./slim -testSLiM
+```
+
+Each command should print out a "SUCCESS" line with a count of the number of tests performed.  If you see "FAILURE" messages instead, there is some problem with your build; contact us for help if you can't determine the problem.
+
+Assuming those self-tests indicate that SLiM is working well, you can now just run SLiM at your shell's command line. For example, to run the first example provided in SLiM's distribution (again, assuming you are in the right directory, with the examples as a subdirectory there), execute:
+
+```
 ./slim ./examples/input_example_1.txt
 ```
 
-If you have made a Release build of SLiM with Xcode, it should be at /usr/local/bin/slim; you can provide that path or ensure that it is part of your shell's default search path.
+If Xcode installed SLiM on your OS X, it should be at /usr/local/bin/slim; you can provide that path or ensure that it is part of your shell's default search path.
 
 Development & Feedback
 -----------------------------------
