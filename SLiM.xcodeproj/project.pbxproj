@@ -116,6 +116,9 @@
 		989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
+		98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
+		98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
+		98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A2405C1B8E338E005C9A30 /* OpenGL.framework */; };
 		98A4EC941B67C1CD00CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
 		98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
 		98A5134F1B66B69E005A753D /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
@@ -384,6 +387,8 @@
 		989790D91AF3D0E100C6B14C /* eidos_test_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test_element.h; sourceTree = "<group>"; };
 		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
 		9898172E1A59750300F7417C /* slim_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_global.h; sourceTree = "<group>"; };
+		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ConsoleWindow.xib; sourceTree = "<group>"; };
 		98A5134D1B66B69E005A753D /* eidos_token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_token.cpp; sourceTree = "<group>"; };
 		98A5134E1B66B69E005A753D /* eidos_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_token.h; sourceTree = "<group>"; };
@@ -475,6 +480,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,6 +488,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */,
+				98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */,
 				9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */,
 				98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */,
 				98D4C2101A716E0E00FFB083 /* WebKit.framework in Frameworks */,
@@ -562,6 +570,7 @@
 				9857249E1AD34B120047C223 /* Eidos */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
 				985724B01AD478630047C223 /* EidosScribe */,
+				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				982663511A3BABD300A0CBBF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -703,6 +712,14 @@
 			name = Graphing;
 			sourceTree = "<group>";
 		};
+		98A2405B1B8E32F4005C9A30 /* Shared Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				98A240581B8E3295005C9A30 /* Cocoa.framework */,
+			);
+			name = "Shared Frameworks";
+			sourceTree = "<group>";
+		};
 		98A4EC911B67C02000CD92FD /* buttons */ = {
 			isa = PBXGroup;
 			children = (
@@ -761,6 +778,7 @@
 			children = (
 				98D4C1B61A6F537B00FFB083 /* Info.plist */,
 				98D4C1BA1A6F537B00FFB083 /* main.m */,
+				98A2405C1B8E338E005C9A30 /* OpenGL.framework */,
 				98D4C2151A7187E200FFB083 /* Quartz.framework */,
 				9821E2031ABDBC300036EAEA /* QuartzCore.framework */,
 				98D4C20F1A716E0E00FFB083 /* WebKit.framework */,
@@ -1391,7 +1409,6 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_ASSIGN_ENUM = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
@@ -1447,7 +1464,6 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_ASSIGN_ENUM = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
