@@ -116,25 +116,25 @@ void RunSLiMTests(void)
 	// Test that a basic script works
 	SLiMAssertScriptSuccess("initialize() {\n"
 							"   initializeMutationRate(1e-7);\n"
-							"   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-							"   initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+							"   initializeMutationType('m1', 0.5, 'f', 0.0);\n"
+							"   initializeGenomicElementType('g1', m1, 1.0);\n"
 							"   initializeGenomicElement(g1, 0, 99999);\n"
 							"   initializeRecombinationRate(1e-8);\n"
 							"}\n"
-							"1 { sim.addSubpop(\"p1\", 500); }\n"
+							"1 { sim.addSubpop('p1', 500); }\n"
 							"5 { sim.outputFull(); }\n"
 							);
 	
 	// Test that stop() raises as it is supposed to
 	SLiMAssertScriptRaise("initialize() {\n"
 						  "   initializeMutationRate(1e-7);\n"
-						  "   initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-						  "   initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+						  "   initializeMutationType('m1', 0.5, 'f', 0.0);\n"
+						  "   initializeGenomicElementType('g1', m1, 1.0);\n"
 						  "   initializeGenomicElement(g1, 0, 99999);\n"
 						  "   initializeRecombinationRate(1e-8);\n"
 						  "}\n"
-						  "1 { sim.addSubpop(\"p1\", 500); }\n"
-						  "3 { stop(\"fail!\"); }\n"
+						  "1 { sim.addSubpop('p1', 500); }\n"
+						  "3 { stop('fail!'); }\n"
 						  "5 { sim.outputFull(); }\n"
 						  , 9, 4);
 	

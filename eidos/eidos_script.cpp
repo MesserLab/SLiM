@@ -231,9 +231,11 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 					
 					token_type = EidosTokenType::kTokenIdentifier;
 				}
-				else if (ch == '"')
+				else if ((ch == '"') || (ch == '\''))
 				{
-					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \\), newlines not allowed
+					bool double_quoted = (ch == '"');
+					
+					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \', \\), newlines not allowed
 					do 
 					{
 						// during tokenization we don't treat the error position as a stack
@@ -242,11 +244,11 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
-							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << eidos_terminate();
 						
 						int chn = script_string_[token_end + 1];
 						
-						if (chn == '"')
+						if (chn == (double_quoted ? '"' : '\''))
 						{
 							// end of string
 							token_end++;
@@ -256,30 +258,31 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						{
 							// escape sequence; another character must exist
 							if (token_end + 2 == len)
-								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal \"" << token_string << "\"" << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << eidos_terminate();
 							
 							int ch_esq = script_string_[token_end + 2];
 							
-							if ((ch_esq == 't') || (ch_esq == 'r') || (ch_esq == 'n') || (ch_esq == '"') || (ch_esq == '\\'))
+							if ((ch_esq == 't') || (ch_esq == 'r') || (ch_esq == 'n') || (ch_esq == '"') || (ch_esq == '\'') || (ch_esq == '\\'))
 							{
 								// a legal escape, so replace it with the escaped character here
 								if (ch_esq == 't')			token_string += '\t';
 								else if (ch_esq == 'r')		token_string += '\r';
 								else if (ch_esq == 'n')		token_string += '\n';
 								else if (ch_esq == '"')		token_string += '"';
+								else if (ch_esq == '\'')	token_string += '\'';
 								else if (ch_esq == '\\')	token_string += '\\';
 								token_end += 2;
 							}
 							else
 							{
 								// an illegal escape
-								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal \"" << token_string << "\"" << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << eidos_terminate();
 							}
 						}
 						else if ((chn == '\n') || (chn == '\r'))
 						{
 							// literal newlines are not allowed within string literals at present
-							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal \"" << token_string << "\"" << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << eidos_terminate();
 						}
 						else
 						{
