@@ -290,7 +290,16 @@
 				EidosValue *element_value = value->GetValueAtIndex(value_index, nullptr);
 				
 				if (value_index > 0)
+				{
 					outstream << ", ";
+					
+					// terminate the list at some reasonable point, otherwise we generate massively long strings for large vectors...
+					if (value_index > 50)
+					{
+						outstream << ", ...";
+						break;
+					}
+				}
 				
 				outstream << *element_value;
 				
