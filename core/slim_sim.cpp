@@ -1739,8 +1739,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 						}
 					}
 					
-					// output the frequencies of these mutations in each subpopulation
-					// FIXME the format here comes from the old tracked mutations code; what format do we actually want?
+					// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code
 					for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 					{ 
 						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
