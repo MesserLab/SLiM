@@ -259,8 +259,8 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		iss >> sub;
 		double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
 		
-		iss >> sub;		// dominance coefficient, which is given in the mutation type and presumably matches here
-						// FIXME now that these can be modified in script, it might not match...?
+		iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
+		double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
 		
 		iss >> sub;
 		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
@@ -276,6 +276,9 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has not been defined" << eidos_terminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
+		
+		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << eidos_terminate();
 		
 		// construct the new mutation
 		Mutation *new_mutation = new Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
