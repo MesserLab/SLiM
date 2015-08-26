@@ -567,18 +567,16 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
-							MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
 							Mutation **genome2_matchscan = genome2_iter; 
 							bool homozygous = false;
 							
 							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
 							while (genome2_matchscan != genome2_max && (*genome2_matchscan)->position_ == position)
 							{
-								if (mutation_type_ptr == (*genome2_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome2_matchscan)->selection_coeff_)		// FIXME should use pointer equality!!!
+								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									double rel_fitness = (1.0 + selection_coeff);
+									double rel_fitness = (1.0 + genome1_mutation->selection_coeff_);
 									
 									w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, genome1, genome2);
 									homozygous = true;
@@ -595,7 +593,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							if (!homozygous)
 							{
-								double rel_fitness = (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
+								double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * genome1_mutation->selection_coeff_);
 								
 								w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
 								
@@ -616,15 +614,13 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
-							MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
 							Mutation **genome1_matchscan = genome1_start; 
 							bool homozygous = false;
 							
 							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
 							while (genome1_matchscan != genome1_max && (*genome1_matchscan)->position_ == position)
 							{
-								if (mutation_type_ptr == (*genome1_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome1_matchscan)->selection_coeff_)		// FIXME should use pointer equality!!!
+								if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
 								{
 									// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
 									homozygous = true;
@@ -637,7 +633,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							if (!homozygous)
 							{
-								double rel_fitness = (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
+								double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * genome2_mutation->selection_coeff_);
 								
 								w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
 								
@@ -722,14 +718,13 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 							
 							if (selection_coeff != 0.0f)
 							{
-								MutationType *mutation_type_ptr = genome1_mutation->mutation_type_ptr_;
 								Mutation **genome2_matchscan = genome2_iter; 
 								bool homozygous = false;
 								
 								// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
 								while (genome2_matchscan != genome2_max && (*genome2_matchscan)->position_ == position)
 								{
-									if (mutation_type_ptr == (*genome2_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome2_matchscan)->selection_coeff_) 		// FIXME should use pointer equality!!!
+									if (genome1_mutation == *genome2_matchscan) 		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
 										w *= (1.0 + selection_coeff);
@@ -747,7 +742,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 								if (!homozygous)
 								{
-									w *= (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
+									w *= (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 									
 									if (w <= 0.0)
 										return 0.0;
@@ -771,14 +766,13 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 							
 							if (selection_coeff != 0.0f)
 							{
-								MutationType *mutation_type_ptr = genome2_mutation->mutation_type_ptr_;
 								Mutation **genome1_matchscan = genome1_start; 
 								bool homozygous = false;
 								
 								// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
 								while (genome1_matchscan != genome1_max && (*genome1_matchscan)->position_ == position)
 								{
-									if (mutation_type_ptr == (*genome1_matchscan)->mutation_type_ptr_ && selection_coeff == (*genome1_matchscan)->selection_coeff_)		// FIXME should use pointer equality!!!
+									if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
 									{
 										// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
 										homozygous = true;
@@ -791,7 +785,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_i
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 								if (!homozygous)
 								{
-									w *= (1.0 + mutation_type_ptr->dominance_coeff_ * selection_coeff);
+									w *= (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 									
 									if (w <= 0.0)
 										return 0.0;
