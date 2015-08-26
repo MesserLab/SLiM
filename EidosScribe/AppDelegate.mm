@@ -31,6 +31,8 @@
 
 - (void)dealloc
 {
+	[_consoleController setDelegate:nil];
+	
 	[super dealloc];
 }
 

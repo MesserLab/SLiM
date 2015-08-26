@@ -336,6 +336,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 {
 	//NSLog(@"[SLiMWindowController dealloc]");
 	
+	[_consoleController setDelegate:nil];
+	
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
 	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
