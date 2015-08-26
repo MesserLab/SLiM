@@ -262,7 +262,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_i
 	
 	errno = 0;
 	char *end_scan_char = nullptr;
-	int64_t long_block_id = strtoq(id_cstr + 1, &end_scan_char, 10);	// +1 to omit the prefix character  // FIXME need to check for errno, end==start pointers
+	int64_t long_block_id = strtoq(id_cstr + 1, &end_scan_char, 10);	// +1 to omit the prefix character
 	
 	if (errno || (end_scan_char == id_cstr + 1))
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the identifier " << p_identifier_string << " was not parseable." << eidos_terminate(p_blame_token);

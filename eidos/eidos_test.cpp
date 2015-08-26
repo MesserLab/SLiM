@@ -1011,7 +1011,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("10^(0:2);", new EidosValue_Float_vector(1, 10, 100));
 	EidosAssertScriptSuccess("(15:13)^(0:2);", new EidosValue_Float_vector(1, 14, 169));
 	EidosAssertScriptRaise("(15:12)^(0:2);", 7);
-	EidosAssertScriptRaise("NULL^(0:2);", 4);		// FIXME should this be an error?
+	EidosAssertScriptRaise("NULL^(0:2);", 4);
 	EidosAssertScriptSuccess("1^1.0;", new EidosValue_Float_singleton_const(1));
 	EidosAssertScriptSuccess("1.0^1;", new EidosValue_Float_singleton_const(1));
 	EidosAssertScriptSuccess("1.0^-1.0;", new EidosValue_Float_singleton_const(1));
@@ -1019,7 +1019,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("10.0^(0:2);", new EidosValue_Float_vector(1, 10, 100));
 	EidosAssertScriptSuccess("(15.0:13)^(0:2.0);", new EidosValue_Float_vector(1, 14, 169));
 	EidosAssertScriptRaise("(15:12.0)^(0:2);", 9);
-	EidosAssertScriptRaise("NULL^(0:2.0);", 4);		// FIXME should this be an error?
+	EidosAssertScriptRaise("NULL^(0:2.0);", 4);
 	EidosAssertScriptRaise("'foo'^5;", 5);
 	EidosAssertScriptRaise("T^F;", 1);
 	EidosAssertScriptRaise("T^T;", 1);
