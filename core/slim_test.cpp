@@ -146,6 +146,10 @@ void RunSLiMTests(void)
 	if (gSLiMTestFailureCount)
 		std::cerr << "\e[31mFAILURE\e[0m count: " << gSLiMTestFailureCount << endl;
 	std::cerr << "\e[32mSUCCESS\e[0m count: " << gSLiMTestSuccessCount << endl;
+	
+	// Clear out the SLiM output stream post-test
+	gSLiMOut.clear();
+	gSLiMOut.str("");
 }
 
 
