@@ -754,7 +754,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			genomic_element_type_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
 		}
 		
-		// FIXME bounds-check start and end
+		if (end_position < start_position)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << eidos_terminate();
 		
 		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
 		
@@ -1730,9 +1731,6 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 							Mutation *scan_mutation = subpop_pair.second->child_genomes_[i][k];
 							
 							// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
-							// if speed is a problem here, we could provide special versions of this function for common tasks like
-							// printing all the mutations that match a given mutation type... or maybe instead of a vector of Mutation*
-							// we could use a set or an ordered map or some such, with a faster search time...  FIXME
 							if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
 								AddMutationToPolymorphismMap(&polymorphisms, *scan_mutation);
 						}
