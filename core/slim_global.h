@@ -36,7 +36,7 @@
 //	Output handling for SLiM
 //
 
-// Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, orindary output goes to cout,
+// Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, ordinary output goes to cout,
 // and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use a global
 // ostringstream to capture all output to both the output and error streams.  This stream should get emptied out after
 // every SLiM operation, so a single stream can be safely used by multiple SLiM instances (as long as we do not
