@@ -1524,7 +1524,10 @@ EidosValue_Object_vector::EidosValue_Object_vector(void)
 
 EidosValue_Object_vector::EidosValue_Object_vector(std::vector<EidosObjectElement *> &p_elementvec)
 {
-	values_ = p_elementvec;		// FIXME should this retain?
+	values_ = p_elementvec;
+	
+	for (auto value : values_)
+		value->Retain();
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
