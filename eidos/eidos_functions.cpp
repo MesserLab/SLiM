@@ -2029,11 +2029,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
 			
 			result = gStaticEidosValue_LogicalT;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (!arg0_value->LogicalAtIndex(value_index, nullptr))
+				if (!bool_vec[value_index])
 				{
 					result = gStaticEidosValue_LogicalF;
 					break;
@@ -2047,11 +2048,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
 			
 			result = gStaticEidosValue_LogicalF;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (arg0_value->LogicalAtIndex(value_index, nullptr))
+				if (bool_vec[value_index])
 				{
 					result = gStaticEidosValue_LogicalT;
 					break;
@@ -2087,6 +2089,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
 			
 			EidosValue *arg1_value = p_arguments[1];
 			EidosValueType arg1_type = arg1_value->Type();
@@ -2105,7 +2108,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (arg0_value->LogicalAtIndex(value_index, nullptr))
+				if (bool_vec[value_index])
 					result->PushValueFromIndexOfEidosValue(value_index, arg1_value, nullptr);
 				else
 					result->PushValueFromIndexOfEidosValue(value_index, arg2_value, nullptr);
