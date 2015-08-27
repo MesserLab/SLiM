@@ -1060,45 +1060,77 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
 				bool max = arg0_value->LogicalAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						bool temp = bool_vec[value_index];
+						if (max < temp)
+							max = temp;
+					}
 				}
+				
 				result = (max ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else if (arg0_type == EidosValueType::kValueInt)
 			{
 				int64_t max = arg0_value->IntAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						int64_t temp = int_vec[value_index];
+						if (max < temp)
+							max = temp;
+					}
 				}
+				
 				result = new EidosValue_Int_singleton_const(max);
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
 				double max = arg0_value->FloatAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						double temp = float_vec[value_index];
+						if (max < temp)
+							max = temp;
+					}
 				}
+				
 				result = new EidosValue_Float_singleton_const(max);
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
 				string max = arg0_value->StringAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
+					const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						const string &temp = string_vec[value_index];
+						if (max < temp)
+							max = temp;
+					}
 				}
+				
 				result = new EidosValue_String(max);
 			}
 			break;
@@ -1139,45 +1171,77 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
 				bool min = arg0_value->LogicalAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					bool temp = arg0_value->LogicalAtIndex(value_index, nullptr);
-					if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						bool temp = bool_vec[value_index];
+						if (min > temp)
+							min = temp;
+					}
 				}
+				
 				result = (min ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else if (arg0_type == EidosValueType::kValueInt)
 			{
 				int64_t min = arg0_value->IntAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
-					if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						int64_t temp = int_vec[value_index];
+						if (min > temp)
+							min = temp;
+					}
 				}
+				
 				result = new EidosValue_Int_singleton_const(min);
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
 				double min = arg0_value->FloatAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
-					if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						double temp = float_vec[value_index];
+						if (min > temp)
+							min = temp;
+					}
 				}
+				
 				result = new EidosValue_Float_singleton_const(min);
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
 				string min = arg0_value->StringAtIndex(0, nullptr);
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				
+				if (arg0_count > 1)
 				{
-					string &&temp = arg0_value->StringAtIndex(value_index, nullptr);
-					if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
+					const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						const string &temp = string_vec[value_index];
+						if (min > temp)
+							min = temp;
+					}
 				}
+				
 				result = new EidosValue_String(min);
 			}
 			break;
@@ -1202,14 +1266,21 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int64_t max = arg0_value->IntAtIndex(0, nullptr);
 				int64_t min = max;
 
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (arg0_count > 1)
 				{
-					int64_t temp = arg0_value->IntAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
-					else if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						int64_t temp = int_vec[value_index];
+						if (max < temp)
+							max = temp;
+						else if (min > temp)
+							min = temp;
+					}
 				}
+				
 				int_result->PushInt(min);
 				int_result->PushInt(max);
 			}
@@ -1221,14 +1292,21 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double max = arg0_value->FloatAtIndex(0, nullptr);
 				double min = max;
 
-				for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (arg0_count > 1)
 				{
-					double temp = arg0_value->FloatAtIndex(value_index, nullptr);
-					if (max < temp)
-						max = temp;
-					else if (min > temp)
-						min = temp;
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
+					
+					for (int value_index = 1; value_index < arg0_count; ++value_index)
+					{
+						double temp = float_vec[value_index];
+						if (max < temp)
+							max = temp;
+						else if (min > temp)
+							min = temp;
+					}
 				}
+				
 				float_result->PushFloat(min);
 				float_result->PushFloat(max);
 			}
