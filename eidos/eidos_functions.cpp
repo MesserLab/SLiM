@@ -2953,8 +2953,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
+				const std::vector<std::string> &string_vec = ((EidosValue_String *)arg1_value)->StringVector();
+				
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					file_stream << arg1_value->StringAtIndex(value_index, nullptr) << endl;
+					file_stream << string_vec[value_index] << endl;
 				
 				if (file_stream.bad())
 				{
@@ -3149,9 +3151,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				EidosValue *arg0_value = p_arguments[0];
 				int arg0_count = arg0_value->Count();
+				const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index, nullptr));
+					symbols_to_remove.push_back(string_vec[value_index]);
 			}
 			
 			for (string &symbol : symbols_to_remove)
