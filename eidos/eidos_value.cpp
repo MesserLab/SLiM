@@ -751,11 +751,6 @@ void EidosValue_String::Print(std::ostream &p_ostream) const
 	}
 }
 
-const std::vector<std::string> &EidosValue_String::StringVector(void) const
-{
-	return values_;
-}
-
 bool EidosValue_String::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
@@ -793,11 +788,6 @@ double EidosValue_String::FloatAtIndex(int p_idx, EidosToken *p_blame_token) con
 		EIDOS_TERMINATION << "ERROR (EidosValue_String::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
-}
-
-void EidosValue_String::PushString(const std::string &p_string)
-{
-	values_.push_back(p_string);
 }
 
 EidosValue *EidosValue_String::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
@@ -963,11 +953,6 @@ void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-const std::vector<int64_t> &EidosValue_Int_vector::IntVector(void) const
-{
-	return values_;
-}
-
 bool EidosValue_Int_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
@@ -1003,11 +988,6 @@ double EidosValue_Int_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return values_[p_idx];
-}
-
-void EidosValue_Int_vector::PushInt(int64_t p_int)
-{
-	values_.push_back(p_int);
 }
 
 EidosValue *EidosValue_Int_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
@@ -1266,11 +1246,6 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-const std::vector<double> &EidosValue_Float_vector::FloatVector(void) const
-{
-	return values_;
-}
-
 bool EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
@@ -1320,11 +1295,6 @@ double EidosValue_Float_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_toke
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return values_[p_idx];
-}
-
-void EidosValue_Float_vector::PushFloat(double p_float)
-{
-	values_.push_back(p_float);
 }
 
 EidosValue *EidosValue_Float_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const

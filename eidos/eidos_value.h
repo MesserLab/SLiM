@@ -359,14 +359,13 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	const std::vector<std::string> &StringVector(void) const;
+	const std::vector<std::string> &StringVector(void) const { return values_; }
+	inline void PushString(const std::string &p_string) { values_.push_back(p_string); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	
-	void PushString(const std::string &p_string);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
@@ -438,14 +437,13 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	const std::vector<int64_t> &IntVector(void) const;
+	inline const std::vector<int64_t> &IntVector(void) const { return values_; }
+	inline void PushInt(int64_t p_int) { values_.push_back(p_int); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	
-	void PushInt(int64_t p_int);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
@@ -547,14 +545,13 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	const std::vector<double> &FloatVector(void) const;
+	inline const std::vector<double> &FloatVector(void) const { return values_; }
+	inline void PushFloat(double p_float) { values_.push_back(p_float); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	
-	void PushFloat(double p_float);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
