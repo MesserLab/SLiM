@@ -380,6 +380,14 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("+T;", 0);
 	EidosAssertScriptSuccess("3+4+5;", new EidosValue_Int_singleton_const(12));
 	
+	// operator +: raise on integer addition overflow for all code paths
+	EidosAssertScriptSuccess("5e18;", new EidosValue_Int_singleton_const(5000000000000000000LL));
+	EidosAssertScriptRaise("1e19;", 0);
+	EidosAssertScriptRaise("5e18 + 5e18;", 5);
+	EidosAssertScriptRaise("5e18 + c(0, 0, 5e18, 0);", 5);
+	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17);
+	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + c(0, 0, 5e18, 0);", 17);
+	
 	// operator -
 	#pragma mark operator −
 	EidosAssertScriptRaise("NULL-T;", 4);
@@ -418,6 +426,16 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("-T;", 0);
 	EidosAssertScriptSuccess("3-4-5;", new EidosValue_Int_singleton_const(-6));
 	
+	// operator -: raise on integer subtraction overflow for all code paths
+	EidosAssertScriptSuccess("9223372036854775807;", new EidosValue_Int_singleton_const(INT64_MAX));
+	EidosAssertScriptSuccess("-9223372036854775807 - 1;", new EidosValue_Int_singleton_const(INT64_MIN));
+	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0);
+	EidosAssertScriptSuccess("-5e18;", new EidosValue_Int_singleton_const(-5000000000000000000LL));
+	EidosAssertScriptRaise("-5e18 - 5e18;", 6);
+	EidosAssertScriptRaise("-5e18 - c(0, 0, 5e18, 0);", 6);
+	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - 5e18;", 18);
+	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - c(0, 0, 5e18, 0);", 18);
+	
     // operator *
 	#pragma mark operator *
 	EidosAssertScriptRaise("NULL*T;", 4);
@@ -455,7 +473,16 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("*'foo';", 0);
 	EidosAssertScriptRaise("*T;", 0);
     EidosAssertScriptSuccess("3*4*5;", new EidosValue_Int_singleton_const(60));
-    
+	
+	// operator *: raise on integer multiplication overflow for all code paths
+	EidosAssertScriptSuccess("5e18;", new EidosValue_Int_singleton_const(5000000000000000000LL));
+	EidosAssertScriptRaise("1e19;", 0);
+	EidosAssertScriptRaise("5e18 * 2;", 5);
+	EidosAssertScriptRaise("5e18 * c(0, 0, 2, 0);", 5);
+	EidosAssertScriptRaise("c(0, 0, 2, 0) * 5e18;", 14);
+	EidosAssertScriptRaise("c(0, 0, 2, 0) * c(0, 0, 5e18, 0);", 14);
+	EidosAssertScriptRaise("c(0, 0, 5e18, 0) * c(0, 0, 2, 0);", 17);
+	
     // operator /
 	#pragma mark operator /
 	EidosAssertScriptRaise("NULL/T;", 4);
@@ -1352,6 +1379,8 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("abs(integer(0));", new EidosValue_Int_vector());
 	EidosAssertScriptSuccess("abs(float(0));", new EidosValue_Float_vector());
 	EidosAssertScriptRaise("abs(string(0));", 0);
+	EidosAssertScriptSuccess("-9223372036854775807 - 1;", new EidosValue_Int_singleton_const(INT64_MIN));
+	EidosAssertScriptRaise("abs(-9223372036854775807 - 1);", 0);
 	
 	// acos()
 	EidosAssertScriptSuccess("abs(acos(0) - PI/2) < 0.000001;", new EidosValue_Logical(true));
@@ -2317,6 +2346,20 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("asInteger(c(T,F,T,F));", new EidosValue_Int_vector(1,0,1,0));
 	EidosAssertScriptSuccess("asInteger(c('1','2','3'));", new EidosValue_Int_vector(1,2,3));
 	EidosAssertScriptRaise("asInteger('foo');", 0);
+	
+	// asInteger() overflow tests; these may be somewhat platform-dependent but I doubt it will bite us
+	EidosAssertScriptRaise("asInteger(asFloat(9223372036854775807));", 0);																// the double representation is larger than INT64_MAX
+	EidosAssertScriptRaise("asInteger(asFloat(9223372036854775807-511));", 0);															// the same double representation as previous
+	EidosAssertScriptSuccess("asInteger(asFloat(9223372036854775807-512));", new EidosValue_Int_singleton_const(9223372036854774784));	// 9223372036854774784 == 9223372036854775807-1023, the closest value to INT64_MAX that double can represent
+	EidosAssertScriptSuccess("asInteger(asFloat(-9223372036854775807 - 1));", new EidosValue_Int_singleton_const(INT64_MIN));			// the double representation is exact
+	EidosAssertScriptSuccess("asInteger(asFloat(-9223372036854775807 - 1) - 1024);", new EidosValue_Int_singleton_const(INT64_MIN));	// the same double representation as previous; the closest value to INT64_MIN that double can represent
+	EidosAssertScriptRaise("asInteger(asFloat(-9223372036854775807 - 1) - 1025);", 0);													// overflow on cast
+	EidosAssertScriptRaise("asInteger(asFloat(c(9223372036854775807, 0)));", 0);																// the double representation is larger than INT64_MAX
+	EidosAssertScriptRaise("asInteger(asFloat(c(9223372036854775807, 0)-511));", 0);															// the same double representation as previous
+	EidosAssertScriptSuccess("asInteger(asFloat(c(9223372036854775807, 0)-512));", new EidosValue_Int_vector(9223372036854774784, -512));	// 9223372036854774784 == 9223372036854775807-1023, the closest value to INT64_MAX that double can represent
+	EidosAssertScriptSuccess("asInteger(asFloat(c(-9223372036854775807, 0) - 1));", new EidosValue_Int_vector(INT64_MIN, -1));			// the double representation is exact
+	EidosAssertScriptSuccess("asInteger(asFloat(c(-9223372036854775807, 0) - 1) - 1024);", new EidosValue_Int_vector(INT64_MIN, -1025));	// the same double representation as previous; the closest value to INT64_MIN that double can represent
+	EidosAssertScriptRaise("asInteger(asFloat(c(-9223372036854775807, 0) - 1) - 1025);", 0);													// overflow on cast
 	
 	// asLogical()
 	EidosAssertScriptSuccess("asLogical(-1:3);", new EidosValue_Logical(true,false,true,true,true));

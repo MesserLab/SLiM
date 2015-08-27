@@ -429,7 +429,17 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(llabs(arg0_value->IntAtIndex(0, nullptr)));
+					// This is an overflow-safe version of:
+					//result = new EidosValue_Int_singleton_const(llabs(arg0_value->IntAtIndex(0, nullptr)));
+					
+					int64_t operand = arg0_value->IntAtIndex(0, nullptr);
+					int64_t abs_result = llabs(operand);
+					
+					// llabs() man page: "The absolute value of the most negative integer remains negative."
+					if (abs_result < 0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+					
+					result = new EidosValue_Int_singleton_const(abs_result);
 				}
 				else
 				{
@@ -439,7 +449,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result = int_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						int_result->PushInt(llabs(int_vec[value_index]));
+					{
+						// This is an overflow-safe version of:
+						//int_result->PushInt(llabs(int_vec[value_index]));
+						
+						int64_t operand = int_vec[value_index];
+						int64_t abs_result = llabs(operand);
+						
+						// llabs() man page: "The absolute value of the most negative integer remains negative."
+						if (abs_result < 0)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(abs_result);
+					}
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)

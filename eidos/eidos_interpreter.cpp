@@ -1340,7 +1340,18 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) + second_child_value->IntAtIndex(0, operator_token));
+					// This is an overflow-safe version of:
+					//result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) + second_child_value->IntAtIndex(0, operator_token));
+					
+					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
+					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
+					int64_t add_result;
+					bool overflow = __builtin_saddll_overflow(first_operand, second_operand, &add_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+					
+					result = new EidosValue_Int_singleton_const(add_result);
 				}
 				else
 				{
@@ -1348,7 +1359,20 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					result = int_result;
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) + second_child_value->IntAtIndex(value_index, operator_token));
+					{
+						// This is an overflow-safe version of:
+						//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) + second_child_value->IntAtIndex(value_index, operator_token));
+						
+						int64_t first_operand = first_child_value->IntAtIndex(value_index, operator_token);
+						int64_t second_operand = second_child_value->IntAtIndex(value_index, operator_token);
+						int64_t add_result;
+						bool overflow = __builtin_saddll_overflow(first_operand, second_operand, &add_result);
+						
+						if (overflow)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+						
+						int_result->PushInt(add_result);
+					}
 				}
 			}
 			else if (first_child_count == 1)
@@ -1358,7 +1382,19 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					int_result->PushInt(singleton_int + second_child_value->IntAtIndex(value_index, operator_token));
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(singleton_int + second_child_value->IntAtIndex(value_index, operator_token));
+					
+					int64_t second_operand = second_child_value->IntAtIndex(value_index, operator_token);
+					int64_t add_result;
+					bool overflow = __builtin_saddll_overflow(singleton_int, second_operand, &add_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(add_result);
+				}
 			}
 			else if (second_child_count == 1)
 			{
@@ -1367,7 +1403,19 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) + singleton_int);
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) + singleton_int);
+					
+					int64_t first_operand = first_child_value->IntAtIndex(value_index, operator_token);
+					int64_t add_result;
+					bool overflow = __builtin_saddll_overflow(first_operand, singleton_int, &add_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(add_result);
+				}
 			}
 		}
 		else
@@ -1463,7 +1511,17 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 		{
 			if (first_child_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(-first_child_value->IntAtIndex(0, operator_token));
+				// This is an overflow-safe version of:
+				//result = new EidosValue_Int_singleton_const(-first_child_value->IntAtIndex(0, operator_token));
+				
+				int64_t operand = first_child_value->IntAtIndex(0, operator_token);
+				int64_t subtract_result;
+				bool overflow = __builtin_ssubll_overflow(0, operand, &subtract_result);
+				
+				if (overflow)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
+				
+				result = new EidosValue_Int_singleton_const(subtract_result);
 			}
 			else
 			{
@@ -1471,7 +1529,19 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(-first_child_value->IntAtIndex(value_index, operator_token));
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(-first_child_value->IntAtIndex(value_index, operator_token));
+					
+					int64_t operand = first_child_value->IntAtIndex(value_index, operator_token);
+					int64_t subtract_result;
+					bool overflow = __builtin_ssubll_overflow(0, operand, &subtract_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(subtract_result);
+				}
 			}
 		}
 		else
@@ -1523,7 +1593,18 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) - second_child_value->IntAtIndex(0, operator_token));
+					// This is an overflow-safe version of:
+					//result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) - second_child_value->IntAtIndex(0, operator_token));
+					
+					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
+					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
+					int64_t subtract_result;
+					bool overflow = __builtin_ssubll_overflow(first_operand, second_operand, &subtract_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+					
+					result = new EidosValue_Int_singleton_const(subtract_result);
 				}
 				else
 				{
@@ -1531,7 +1612,20 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					result = int_result;
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - second_child_value->IntAtIndex(value_index, operator_token));
+					{
+						// This is an overflow-safe version of:
+						//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - second_child_value->IntAtIndex(value_index, operator_token));
+						
+						int64_t first_operand = first_child_value->IntAtIndex(value_index, operator_token);
+						int64_t second_operand = second_child_value->IntAtIndex(value_index, operator_token);
+						int64_t subtract_result;
+						bool overflow = __builtin_ssubll_overflow(first_operand, second_operand, &subtract_result);
+						
+						if (overflow)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+						
+						int_result->PushInt(subtract_result);
+					}
 				}
 			}
 			else if (first_child_count == 1)
@@ -1541,7 +1635,19 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					int_result->PushInt(singleton_int - second_child_value->IntAtIndex(value_index, operator_token));
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(singleton_int - second_child_value->IntAtIndex(value_index, operator_token));
+					
+					int64_t second_operand = second_child_value->IntAtIndex(value_index, operator_token);
+					int64_t subtract_result;
+					bool overflow = __builtin_ssubll_overflow(singleton_int, second_operand, &subtract_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(subtract_result);
+				}
 			}
 			else if (second_child_count == 1)
 			{
@@ -1550,7 +1656,19 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - singleton_int);
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - singleton_int);
+					
+					int64_t first_operand = first_child_value->IntAtIndex(value_index, operator_token);
+					int64_t subtract_result;
+					bool overflow = __builtin_ssubll_overflow(first_operand, singleton_int, &subtract_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(subtract_result);
+				}
 			}
 		}
 		else
@@ -1819,7 +1937,18 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		{
 			if (first_child_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) * second_child_value->IntAtIndex(0, operator_token));
+				// This is an overflow-safe version of:
+				//result = new EidosValue_Int_singleton_const(first_child_value->IntAtIndex(0, operator_token) * second_child_value->IntAtIndex(0, operator_token));
+				
+				int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
+				int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
+				int64_t multiply_result;
+				bool overflow = __builtin_smulll_overflow(first_operand, second_operand, &multiply_result);
+				
+				if (overflow)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+				
+				result = new EidosValue_Int_singleton_const(multiply_result);
 			}
 			else
 			{
@@ -1827,7 +1956,20 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				result = int_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) * second_child_value->IntAtIndex(value_index, operator_token));
+				{
+					// This is an overflow-safe version of:
+					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) * second_child_value->IntAtIndex(value_index, operator_token));
+					
+					int64_t first_operand = first_child_value->IntAtIndex(value_index, operator_token);
+					int64_t second_operand = second_child_value->IntAtIndex(value_index, operator_token);
+					int64_t multiply_result;
+					bool overflow = __builtin_smulll_overflow(first_operand, second_operand, &multiply_result);
+					
+					if (overflow)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+					
+					int_result->PushInt(multiply_result);
+				}
 			}
 		}
 		else
@@ -1860,7 +2002,19 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			result = int_result;
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
-				int_result->PushInt(any_count_child->IntAtIndex(value_index, operator_token) * singleton_int);
+			{
+				// This is an overflow-safe version of:
+				//int_result->PushInt(any_count_child->IntAtIndex(value_index, operator_token) * singleton_int);
+				
+				int64_t first_operand = any_count_child->IntAtIndex(value_index, operator_token);
+				int64_t multiply_result;
+				bool overflow = __builtin_smulll_overflow(first_operand, singleton_int, &multiply_result);
+				
+				if (overflow)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+				
+				int_result->PushInt(multiply_result);
+			}
 		}
 		else
 		{
@@ -3265,7 +3419,9 @@ int64_t EidosInterpreter::IntegerForString(const std::string &p_number_string, c
 		
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
-		if ((converted_value < INT64_MIN) || (converted_value > INT64_MAX))
+		
+		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
+		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
@@ -3326,7 +3482,9 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
-		if ((converted_value < INT64_MIN) || (converted_value > INT64_MAX))
+		
+		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
+		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
 		return new EidosValue_Int_singleton_const(static_cast<int64_t>(converted_value));
