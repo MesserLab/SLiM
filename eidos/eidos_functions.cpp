@@ -2363,13 +2363,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				result = arg0_value->NewMatchingType();
 			}
+			else if (arg0_count == 1)
+			{
+				result = arg0_value->CopyValues();
+			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
+				const std::vector<bool> &bool_vec = ((EidosValue_Logical *)arg0_value)->LogicalVector();
 				bool containsF = false, containsT = false;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					if (arg0_value->LogicalAtIndex(value_index, nullptr))
+					if (bool_vec[value_index])
 						containsT = true;
 					else
 						containsF = true;
@@ -2387,7 +2392,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					EidosValue_Logical *logical_result = new EidosValue_Logical();
 					result = logical_result;
 					
-					if (arg0_value->LogicalAtIndex(0, nullptr))
+					if (bool_vec[0])
 					{
 						logical_result->PushLogical(true);
 						logical_result->PushLogical(false);
@@ -2401,17 +2406,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueInt)
 			{
+				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					int64_t value = arg0_value->IntAtIndex(value_index, nullptr);
+					int64_t value = int_vec[value_index];
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->IntAtIndex(scan_index, nullptr))
+						if (value == int_vec[scan_index])
 							break;
 					}
 					
@@ -2421,17 +2428,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
+				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					double value = arg0_value->FloatAtIndex(value_index, nullptr);
+					double value = float_vec[value_index];
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->FloatAtIndex(scan_index, nullptr))
+						if (value == float_vec[scan_index])
 							break;
 					}
 					
@@ -2441,17 +2450,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
+				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
+				const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
 				EidosValue_String *string_result = new EidosValue_String();
 				result = string_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					string value = arg0_value->StringAtIndex(value_index, nullptr);
+					string value = string_vec[value_index];
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->StringAtIndex(scan_index, nullptr))
+						if (value == string_vec[scan_index])
 							break;
 					}
 					
