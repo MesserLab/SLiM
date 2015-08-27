@@ -433,11 +433,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 					result = int_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						int_result->PushInt(llabs(arg0_value->IntAtIndex(value_index, nullptr)));
+						int_result->PushInt(llabs(int_vec[value_index]));
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
@@ -448,11 +450,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = ((EidosValue_Float_vector *)arg0_value)->FloatVector();
 					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 					result = float_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						float_result->PushFloat(fabs(arg0_value->FloatAtIndex(value_index, nullptr)));
+						float_result->PushFloat(fabs(float_vec[value_index]));
 				}
 			}
 			break;
