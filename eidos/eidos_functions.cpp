@@ -173,7 +173,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_globals,	EidosFunctionIdentifier::globalsFunction,		kEidosValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kEidosValueMaskNULL))->AddString_OS("topic"));
@@ -2852,6 +2852,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			EidosScript script(arg0_value->StringAtIndex(0, nullptr));
+			bool timed = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
+			clock_t begin = 0, end = 0;
 			
 			// Errors in lambdas are reported for the lambda script, not for the calling script
 			int error_start_save = gEidosCharacterStartOfError;
@@ -2873,7 +2875,14 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				EidosSymbolTable &symbols = GetSymbolTable();			// get our own symbol table
 				EidosInterpreter interpreter(script, symbols);		// give the interpreter the symbol table
 				
+				if (timed)
+					begin = clock();
+				
 				result = interpreter.EvaluateInterpreterBlock(false);
+				
+				if (timed)
+					end = clock();
+				
 				ExecutionOutputStream() << interpreter.ExecutionOutput();
 			}
 			catch (std::runtime_error err)
@@ -2898,6 +2907,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			gEidosCharacterEndOfError = error_end_save;
 			gEidosCurrentScript = current_script_save;
 			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			
+			if (timed)
+			{
+				double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+				
+				ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
+			}
 			
 			break;
 		}
