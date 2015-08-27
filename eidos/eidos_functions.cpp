@@ -2121,10 +2121,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr).length());
+				result = new EidosValue_Int_singleton_const(string_vec[0].length());
 			}
 			else
 			{
@@ -2132,7 +2133,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(arg0_value->StringAtIndex(value_index, nullptr).length());
+					int_result->PushInt(string_vec[value_index].length());
 			}
 			break;
 		}
@@ -2289,6 +2290,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
+			const std::vector<std::string> &string_vec = ((EidosValue_String *)arg0_value)->StringVector();
 			EidosValue *arg_first = p_arguments[1];
 			int arg_first_count = arg_first->Count();
 			bool first_singleton = (arg_first_count == 1);
@@ -2315,7 +2317,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg0_value->StringAtIndex(value_index, nullptr);
+					std::string str = string_vec[value_index];
 					string::size_type len = str.length();
 					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
@@ -2334,7 +2336,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				// last not supplied; take substrings to the end of each string
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					std::string str = arg0_value->StringAtIndex(value_index, nullptr);
+					std::string str = string_vec[value_index];
 					string::size_type len = str.length();
 					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 					
