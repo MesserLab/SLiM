@@ -104,7 +104,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 				{
 					gSLiMTestSuccessCount++;
 					
-					std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+					//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
 				}
 			}
 		}
@@ -243,6 +243,8 @@ void RunSLiMTests(void)
 	// Test (object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions)
 	std::string define_m12(" initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m2', 0.5, 'f', 0.5); ");
 	
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', object(), integer(0)); stop(); }");			// legal: genomic element with no mutations
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', integer(0), float(0)); stop(); }");			// legal: genomic element with no mutations
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1:2); stop(); }");					// legal
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType(1, c(m1,m2), 1:2); stop(); }");						// legal
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 1:2, 1:2); stop(); }");						// legal
@@ -305,7 +307,7 @@ void RunSLiMTests(void)
 	
 	// ************************************************************************************
 	//
-	//	Gen 1 tests
+	//	Gen 1+ tests
 	//
 	
 	std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
@@ -343,8 +345,127 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ");															// legal
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ");														// legal
 	
-	// Test sim methods
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 50); } " + gen2_stop);									// legal with subpop
+	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop);									// legal with subpop string
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10); } " + gen2_stop);										// legal with subpop id
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, 1, 220);						// sex ratio supplied in non-sexual simulation
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220);							// sex ratio supplied in non-sexual simulation
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop);							// legal
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop);								// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop('p7', 10); if (x == p7) stop(); }");						// check that symbol is defined
+	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop(7, 10); if (x == p7) stop(); }");							// check that symbol is defined
+	SLiMAssertScriptRaise(gen1_setup + "1 { p7 = 17; sim.addSubpop('p7', 10); stop(); }", 1, 229);						// symbol collision
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p7', 10); sim.addSubpop(7, 10); stop(); }", 1, 245);			// same id defined twice
+	
+	// Test sim - (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, object<Subpopulation>$ sourceSubpop, [float$ sexRatio])
+	std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1); } " + gen2_stop);										// legal with subpop string
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1); } " + gen2_stop);											// legal with subpop id
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, 1, 251);							// sex ratio supplied in non-sexual simulation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, 1, 251);							// sex ratio supplied in non-sexual simulation
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop);								// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop);									// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit('p7', 10, p1); if (x == p7) stop(); }");							// check that symbol is defined
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit(7, 10, p1); if (x == p7) stop(); }");								// check that symbol is defined
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p7 = 17; sim.addSubpopSplit('p7', 10, p1); stop(); }", 1, 260);							// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p7', 10, p1); sim.addSubpopSplit(7, 10, p1); stop(); }", 1, 285);	// same id defined twice
+	
+	// Test sim - (void)deregisterScriptBlock(object<SLiMEidosBlock> scriptBlocks)
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); } s1 2 { stop(); }");										// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(object()); } s1 2 { stop(); }");									// legal: deregister nothing
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s1)); } s1 2 { stop(); }", 1, 251);							// double deregister
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); sim.deregisterScriptBlock(s1); } s1 2 { stop(); }", 1, 282);	// double deregister
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }");				// legal
+	
+	// Test sim - (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
+	std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }");					// legal
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }");			// legal
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }");				// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations); }");	// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }");			// legal to specify an empty object vector
+	
+	// Test sim - (void)outputFixedMutations(void)
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");				// legal
+	
+	// Test sim - (void)outputFull([string$ filePath])
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull(); }");									// legal
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull('/tmp/slimOutputFullTest.txt'); }");	// legal, output to file path; this test might work only on Un*x systems
+	
+	// Test sim - (void)outputMutations(object<Mutation> mutations)
+	std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations); }");						// legal; should have some mutations by gen 5
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[0]); }");					// legal; output just one mutation
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[integer(0)]); }");			// legal to specify an empty object vector
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(object()); }");							// legal to specify an empty object vector
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 { sim.outputMutations(NULL); }", 1, 251);							// NULL not allowed
+	
+	// Test - (void)readFromPopulationFile(string$ filePath)
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");		// legal, read from file path; depends on the outputFull() test above
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220);			// no file at path
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");	// legal; should wipe previous state
+	
+	// Test sim - (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptEvent(NULL, '{ stop(); }', 2, 2); }");														// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent('s1', '{ stop(); }', 2, 2); }", 1, 259);										// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 259);										// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 2, 2); registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 296);	// same id defined twice
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 3, 2); }", 1, 251);												// start < end
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', -1, -1); }", 1, 251);												// generation -1
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 0, 0); }", 1, 251);												// generation 0
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ $; }', 2, 2); }", 1, 2);														// syntax error inside block
+	
+	// Test sim - (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }");																					// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");																					// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");																					// legal
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }'); }", 1, 251);																						// missing param
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259);																// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259);																// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 320);	// same id defined twice
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251);																		// start < end
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251);																		// generation -1
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251);																		// generation 0
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	
+	// Test sim - (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }");																					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }");																					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");																							// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");																							// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL); }", 1, 251);																									// missing param
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259);																	// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 319);		// same id defined twice
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251);																			// start < end
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251);																		// generation -1
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251);																			// generation 0
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	
+	// Test sim - (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }");																					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");																							// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");																							// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL); }", 1, 251);																								// missing param
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 320);	// same id defined twice
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251);																		// start < end
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251);																		// generation -1
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251);																		// generation 0
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2);																				// syntax error inside block
 	
 	
 	// ************************************************************************************
@@ -355,6 +476,7 @@ void RunSLiMTests(void)
 	if (gSLiMTestFailureCount)
 		std::cerr << "\e[31mFAILURE\e[0m count: " << gSLiMTestFailureCount << endl;
 	std::cerr << "\e[32mSUCCESS\e[0m count: " << gSLiMTestSuccessCount << endl;
+	std::cerr.flush();
 	
 	// Clear out the SLiM output stream post-test
 	gSLiMOut.clear();
