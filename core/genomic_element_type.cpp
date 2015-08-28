@@ -29,19 +29,7 @@
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
 {
-	if (mutation_type_ptrs_.size() != mutation_fractions_.size())
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::GenomicElementType): mutation types and fractions have different sizes" << eidos_terminate();
-	
-	// Prepare to randomly draw mutation types
-	double A[mutation_type_ptrs_.size()];
-	
-	for (int i = 0; i < mutation_type_ptrs_.size(); i++)
-		A[i] = mutation_fractions_[i];
-	
-	if (lookup_mutation_type)
-		gsl_ran_discrete_free(lookup_mutation_type);
-	
-	lookup_mutation_type = gsl_ran_discrete_preproc(p_mutation_fractions.size(), A);
+	InitializeDraws();
 }
 
 GenomicElementType::~GenomicElementType(void)
@@ -61,8 +49,38 @@ GenomicElementType::~GenomicElementType(void)
 		delete cached_value_getype_id_;
 }
 
+void GenomicElementType::InitializeDraws(void)
+{
+	int mutation_type_count = (int)mutation_type_ptrs_.size();
+	
+	if (mutation_type_count != mutation_fractions_.size())
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes" << eidos_terminate();
+	
+	if (lookup_mutation_type)
+	{
+		gsl_ran_discrete_free(lookup_mutation_type);
+		lookup_mutation_type = NULL;
+	}
+	
+	// We allow an empty mutation type vector initially, because people might want to add mutation types in script.
+	// However, if DrawMutationType() is called and our vector is still empty, that will be an error.
+	if (mutation_type_count)
+	{
+		// Prepare to randomly draw mutation types
+		double A[mutation_type_count];
+		
+		for (int i = 0; i < mutation_type_count; i++)
+			A[i] = mutation_fractions_[i];
+		
+		lookup_mutation_type = gsl_ran_discrete_preproc(mutation_type_count, A);
+	}
+}
+
 MutationType *GenomicElementType::DrawMutationType() const
 {
+	if (!lookup_mutation_type)
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type" << eidos_terminate();
+	
 	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type)];
 }
 
@@ -213,8 +231,8 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 		int mut_type_id_count = arg0_value->Count();
 		int proportion_count = arg1_value->Count();
 		
-		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
-			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << eidos_terminate();
+		if (mut_type_id_count != proportion_count)
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -234,6 +252,9 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 		// Everything seems to be in order, so replace our mutation info with the new info
 		mutation_type_ptrs_ = mutation_types;
 		mutation_fractions_ = mutation_fractions;
+		
+		// Reinitialize our mutation type lookup based on the new info
+		InitializeDraws();
 		
 		return gStaticEidosValueNULLInvisible;
 	}

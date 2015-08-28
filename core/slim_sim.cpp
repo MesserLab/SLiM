@@ -788,8 +788,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		int mut_type_id_count = arg1_value->Count();
 		int proportion_count = arg2_value->Count();
 		
-		if ((mut_type_id_count != proportion_count) || (mut_type_id_count == 0))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypeIDs and proportions to be equal and nonzero." << eidos_terminate();
+		if (mut_type_id_count != proportion_count)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypeIDs and proportions to be equal." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;

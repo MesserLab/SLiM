@@ -68,6 +68,7 @@ public:
 	GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	~GenomicElementType(void);
 	
+	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions
 	MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
 	
 	//
