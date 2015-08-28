@@ -52,6 +52,32 @@ void SLiMRaiseUsertagRangeError(int64_t long_value)
 }
 
 
+// stream output for enumerations
+std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
+{
+	switch (p_genome_type)
+	{
+		case GenomeType::kAutosome:		p_out << gStr_A; break;
+		case GenomeType::kXChromosome:	p_out << gStr_X; break;	// SEX ONLY
+		case GenomeType::kYChromosome:	p_out << gStr_Y; break;	// SEX ONLY
+	}
+	
+	return p_out;
+}
+
+std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
+{
+	switch (p_sex)
+	{
+		case IndividualSex::kUnspecified:		p_out << "*"; break;
+		case IndividualSex::kHermaphrodite:		p_out << "H"; break;
+		case IndividualSex::kFemale:			p_out << "F"; break;	// SEX ONLY
+		case IndividualSex::kMale:				p_out << "M"; break;	// SEX ONLY
+	}
+	
+	return p_out;
+}
+
 // initialize...() functions defined by SLiMSim
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
 const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";
@@ -177,9 +203,9 @@ const std::string gStr_Subpopulation = "Subpopulation";
 const std::string gStr_Substitution = "Substitution";
 
 // mostly other fixed strings
-const std::string gStr_Autosome = "Autosome";
-const std::string gStr_X_chromosome = "X chromosome";
-const std::string gStr_Y_chromosome = "Y chromosome";
+const std::string gStr_A = "A";
+const std::string gStr_X = "X";
+const std::string gStr_Y = "Y";
 const std::string gStr_event = "event";
 const std::string gStr_initialize = "initialize";
 const std::string gStr_mateChoice = "mateChoice";

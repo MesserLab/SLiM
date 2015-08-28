@@ -303,6 +303,49 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }");								// legal: no maximum value for dominance coeff (FIXME should there be?)
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35);			// two sex declarations
 	
+	// ************************************************************************************
+	//
+	//	Gen 1 tests
+	//
+	
+	std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
+	std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
+	std::string gen2_stop(" 2 { stop(); } ");
+	
+	// Test sim properties
+	SLiMAssertScriptStop(gen1_setup + "1 { } " + gen2_stop);															// legal; simplest simulation, no subpop
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome; } " + gen2_stop);											// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosome = sim.chromosome; } " + gen2_stop, 1, 231);					// read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.chromosomeType == 'A') stop(); } ");									// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosomeType = 'A'; } " + gen2_stop, 1, 235);							// read-only property
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.chromosomeType == 'X') stop(); } ");								// legal
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { sim.chromosomeType = 'X'; } " + gen2_stop, 1, 255);						// read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);										// legal: the property is meaningless but may be accessed
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236);									// setting disallowed property
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop);									// legal: property enabled
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop);								// legal: property enabled
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ");														// legal
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop);										// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ");								// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240);									// read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ");									// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234);										// read-only property
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.mutations; } ");														// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutations = _Test(7); } ", 1, 230);										// type Mutation required
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.scriptBlocks; } ");													// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.scriptBlocks = sim.scriptBlocks[0]; } ", 1, 233);						// read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.sexEnabled == F) stop(); } ");										// legal
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.sexEnabled == T) stop(); } ");			// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.subpopulations) == 0) stop(); } ");								// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.subpopulations = _Test(7); } ", 1, 235);								// type Subpopulation required
+	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.substitutions) == 0) stop(); } ");								// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.substitutions = _Test(7); } ", 1, 234);									// type Substitution required
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ");															// legal
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ");														// legal
+	
+	// Test sim methods
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 50); } " + gen2_stop);									// legal with subpop
+	
 	
 	// ************************************************************************************
 	//

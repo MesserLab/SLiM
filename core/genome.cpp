@@ -235,9 +235,9 @@ void Genome::Print(std::ostream &p_ostream) const
 	
 	switch (genome_type_)
 	{
-		case GenomeType::kAutosome:		p_ostream << "A"; break;
-		case GenomeType::kXChromosome:	p_ostream << "X"; break;
-		case GenomeType::kYChromosome:	p_ostream << "Y"; break;
+		case GenomeType::kAutosome:		p_ostream << gStr_A; break;
+		case GenomeType::kXChromosome:	p_ostream << gStr_X; break;
+		case GenomeType::kYChromosome:	p_ostream << gStr_Y; break;
 	}
 	
 	if (mutations_ == nullptr)
@@ -256,9 +256,9 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String(gStr_Autosome);
-				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X_chromosome);
-				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y_chromosome);
+				case GenomeType::kAutosome:		return new EidosValue_String(gStr_A);
+				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X);
+				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y);
 			}
 		}
 		case gID_isNullGenome:

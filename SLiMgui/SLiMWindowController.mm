@@ -1342,7 +1342,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
 		sim->population_.PrintAll(SLIM_OUTSTREAM);
 		
-		// dump fixed substitutions also; so the dump in SLiMgui is like output events 'A' + 'F'
+		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;

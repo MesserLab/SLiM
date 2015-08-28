@@ -336,17 +336,15 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
 		{
-			char genome_type = sub[0];
-			
 			// check whether this token is a genome type
-			if (genome_type == 'A' || genome_type == 'X' || genome_type == 'Y')
+			if ((sub.compare(gStr_A) == 0) || (sub.compare(gStr_X) == 0) || (sub.compare(gStr_Y) == 0))
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
-				if (genome_type == 'A' && genome.GenomeType() != GenomeType::kAutosome)
+				if ((sub.compare(gStr_A) == 0) && genome.GenomeType() != GenomeType::kAutosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match" << eidos_terminate();
-				if (genome_type == 'X' && genome.GenomeType() != GenomeType::kXChromosome)
+				if ((sub.compare(gStr_X) == 0) && genome.GenomeType() != GenomeType::kXChromosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match" << eidos_terminate();
-				if (genome_type == 'Y' && genome.GenomeType() != GenomeType::kYChromosome)
+				if ((sub.compare(gStr_Y) == 0) && genome.GenomeType() != GenomeType::kYChromosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match" << eidos_terminate();
 				
 				if (iss >> sub)
@@ -1081,11 +1079,11 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
 		
-		if (chromosome_type.compare("A") == 0)
+		if (chromosome_type.compare(gStr_A) == 0)
 			modeled_chromosome_type_ = GenomeType::kAutosome;
-		else if (chromosome_type.compare("X") == 0)
+		else if (chromosome_type.compare(gStr_X) == 0)
 			modeled_chromosome_type_ = GenomeType::kXChromosome;
-		else if (chromosome_type.compare("Y") == 0)
+		else if (chromosome_type.compare(gStr_Y) == 0)
 			modeled_chromosome_type_ = GenomeType::kYChromosome;
 		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\"." << eidos_terminate();
@@ -1328,9 +1326,9 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (modeled_chromosome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String(gStr_Autosome);
-				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X_chromosome);
-				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y_chromosome);
+				case GenomeType::kAutosome:		return new EidosValue_String(gStr_A);
+				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X);
+				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y);
 			}
 		}
 		case gID_genomicElementTypes:

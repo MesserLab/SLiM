@@ -194,17 +194,7 @@ enum class GenomeType {
 	kYChromosome
 };
 
-inline std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
-{
-	switch (p_genome_type)
-	{
-		case GenomeType::kAutosome:		p_out << "A"; break;
-		case GenomeType::kXChromosome:	p_out << "X"; break;	// SEX ONLY
-		case GenomeType::kYChromosome:	p_out << "Y"; break;	// SEX ONLY
-	}
-	
-	return p_out;
-}
+std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type);
 
 
 // This enumeration represents the sex of an individual: hermaphrodite, female, or male.  It also includes an "unspecified"
@@ -217,18 +207,7 @@ enum class IndividualSex
 	kMale = 1
 };
 
-inline std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
-{
-	switch (p_sex)
-	{
-		case IndividualSex::kUnspecified:		p_out << "*"; break;
-		case IndividualSex::kHermaphrodite:		p_out << "H"; break;
-		case IndividualSex::kFemale:			p_out << "F"; break;	// SEX ONLY
-		case IndividualSex::kMale:				p_out << "M"; break;	// SEX ONLY
-	}
-	
-	return p_out;
-}
+std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 
 
 // *******************************************************************************************************************
@@ -379,9 +358,9 @@ extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
 extern const std::string gStr_Substitution;
 
-extern const std::string gStr_Autosome;
-extern const std::string gStr_X_chromosome;
-extern const std::string gStr_Y_chromosome;
+extern const std::string gStr_A;
+extern const std::string gStr_X;
+extern const std::string gStr_Y;
 extern const std::string gStr_event;
 extern const std::string gStr_initialize;
 extern const std::string gStr_mateChoice;
