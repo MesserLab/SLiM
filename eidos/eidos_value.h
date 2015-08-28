@@ -90,7 +90,6 @@ const EidosValueMask kEidosValueMaskObject =		0x00000020;
 	
 const EidosValueMask kEidosValueMaskOptional =		0x80000000;
 const EidosValueMask kEidosValueMaskSingleton =		0x40000000;
-const EidosValueMask kEidosValueMaskOptSingleton =	(kEidosValueMaskOptional | kEidosValueMaskSingleton);
 const EidosValueMask kEidosValueMaskFlagStrip =		0x3FFFFFFF;
 	
 const EidosValueMask kEidosValueMaskNumeric =		(kEidosValueMaskInt | kEidosValueMaskFloat);									// integer or float

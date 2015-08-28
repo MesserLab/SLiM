@@ -730,7 +730,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeGenomicElement(integer$ genomicElementTypeID, integer$ start, integer$ end)
+	//	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
 	//
 	#pragma mark initializeGenomicElement()
 	
@@ -774,7 +774,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeGenomicElementType(integer$ id, integer mutationTypeIDs, numeric proportions)
+	//	*********************	(object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions)
 	//
 	#pragma mark initializeGenomicElementType()
 	
@@ -851,7 +851,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeMutationType(integer$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
+	//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
 	//
 	#pragma mark initializeMutationType()
 	
@@ -919,7 +919,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeRecombinationRate(numeric rates, [integer ends])
+	//	*********************	(void)initializeRecombinationRate(numeric rates, [integer ends])
 	//
 	#pragma mark initializeRecombinationRate()
 	
@@ -1016,7 +1016,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
+	//	*********************	(void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
 	//
 	#pragma mark initializeGeneConversion()
 	
@@ -1044,7 +1044,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeMutationRate(numeric$ rate)
+	//	*********************	(void)initializeMutationRate(numeric$ rate)
 	//
 #pragma mark initializeMutationRate()
 	
@@ -1068,7 +1068,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	
 	//
-	//	*********************	initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff])
+	//	*********************	(void)initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff])
 	//
 	#pragma mark initializeSex()
 	
@@ -1473,7 +1473,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 	switch (p_method_id)
 	{
 			//
-			//	*********************	- (object$)addSubpop(integer$ subpopID, integer$ size, [float$ sexRatio])
+			//	*********************	- (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 			//
 #pragma mark -addSubpop()
 			
@@ -1505,7 +1505,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object$)addSubpopSplit(integer$ subpopID, integer$ size, object$ sourceSubpop, [float$ sexRatio])
+			//	*********************	- (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, object<Subpopulation>$ sourceSubpop, [float$ sexRatio])
 			//
 #pragma mark -addSubpopSplit()
 			
@@ -1538,7 +1538,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (void)deregisterScriptBlock(object scriptBlocks)
+			//	*********************	- (void)deregisterScriptBlock(object<SLiMEidosBlock> scriptBlocks)
 			//
 #pragma mark -deregisterScriptBlock()
 			
@@ -1562,7 +1562,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (float)mutationFrequencies(object subpops, [object mutations])
+			//	*********************	- (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
 			//
 #pragma mark -mutationFrequencies()
 			
@@ -1720,7 +1720,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (void)outputMutations(object mutations)
+			//	*********************	- (void)outputMutations(object<Mutation> mutations)
 			//
 #pragma mark -outputMutations()
 			
@@ -1816,7 +1816,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object$)registerScriptEvent(integer$ id, string$ source, [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 			//
 #pragma mark -registerScriptEvent()
 			
@@ -1856,7 +1856,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object$)registerScriptFitnessCallback(integer$ id, string$ source, integer$ mutTypeID, [integer$ subpopID], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 			//
 #pragma mark -registerScriptFitnessCallback()
 			
@@ -1864,7 +1864,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
-			slim_objectid_t mut_type_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			slim_objectid_t mut_type_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((MutationType *)arg2_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
 			slim_objectid_t subpop_id = -1;
 			slim_generation_t start_generation = (arg4_value ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
 			slim_generation_t end_generation = (arg5_value ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
@@ -1873,7 +1873,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (arg3_value && (arg3_value->Type() != EidosValueType::kValueNULL))
-				subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
+				subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptFitnessCallback() requires start <= end." << endl << eidos_terminate();
@@ -1904,8 +1904,8 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object$)registerScriptMateChoiceCallback(integer$ id, string$ source, [integer$ subpopID], [integer$ start], [integer$ end])
-			//	*********************	- (object$)registerScriptModifyChildCallback(integer$ id, string$ source, [integer$ subpopID], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 			//
 #pragma mark -registerScriptMateChoiceCallback()
 #pragma mark -registerScriptModifyChildCallback()
@@ -1923,7 +1923,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (arg2_value && (arg2_value->Type() != EidosValueType::kValueNULL))
-				subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+				subpop_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg2_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << endl << eidos_terminate();
@@ -2126,9 +2126,9 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskNULL))->AddString_S("filePath");
 		registerScriptEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptEvent, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_S("mutTypeID")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptModifyChildCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("subpopID")->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		registerScriptModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptModifyChildCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
