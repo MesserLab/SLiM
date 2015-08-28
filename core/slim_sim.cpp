@@ -1428,6 +1428,9 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 				cached_value_generation_ = nullptr;
 			}
 			
+			// FIXME need to handle mutationLossTimes, mutationFixationTimes, fitnessHistory for SLiMgui here
+			// FIXME also need to do something with population_.substitutions_, perhaps; remove all subs that occurred on/after the new generation?
+			
 			return;
 		}
 			
@@ -1774,6 +1777,38 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		{
 			string file_path = arg0_value->StringAtIndex(0, nullptr);
 			
+			// first we clear out all variables of type Subpopulation from the symbol table; they will all be invalid momentarily
+			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
+			
+			std::vector<std::string> read_only_symbols = symbols.ReadOnlySymbols();
+			std::vector<std::string> read_write_symbols = symbols.ReadWriteSymbols();
+			std::vector<std::string> all_symbols;
+			std::vector<std::string> symbols_to_remove;
+			
+			all_symbols.insert(all_symbols.end(), read_only_symbols.begin(), read_only_symbols.end());
+			all_symbols.insert(all_symbols.end(), read_write_symbols.begin(), read_write_symbols.end());
+			
+			for (string symbol_name : all_symbols)
+			{
+				EidosValue *symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_name);
+				
+				if (symbol_value->Type() == EidosValueType::kValueObject)
+				{
+					const EidosObjectClass *symbol_class = ((EidosValue_Object *)(symbol_value))->Class();
+					
+					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
+						symbols_to_remove.push_back(symbol_name);
+				}
+			}
+			
+			for (string symbol_name : symbols_to_remove)
+				symbols.RemoveValueForSymbol(symbol_name, true);
+			
+			// then we dispose of all existing subpopulations, mutations, etc.
+			// FIXME needs implementation!
+			population_;
+			
+			// then read from the file to get our new info
 			InitializePopulationFromFile(file_path.c_str());
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1807,7 +1842,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			{
 				// define a new Eidos variable to refer to the new subpopulation
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
 				EidosValue *symbol_value = symbol_entry->second;
 				
@@ -1855,7 +1890,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			{
 				// define a new Eidos variable to refer to the new subpopulation
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
 				EidosValue *symbol_value = symbol_entry->second;
 				
@@ -1905,7 +1940,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			{
 				// define a new Eidos variable to refer to the new subpopulation
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedSymbolTableEntry();
+				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
 				EidosValue *symbol_value = symbol_entry->second;
 				
