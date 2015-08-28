@@ -1545,7 +1545,14 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 			for (int block_index = 0; block_index < block_count; ++block_index)
-				scheduled_deregistrations_.push_back((SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index, nullptr)));
+			{
+				SLiMEidosBlock *block = (SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index, nullptr));
+				
+				if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
+				
+				scheduled_deregistrations_.push_back(block);
+			}
 			
 			return gStaticEidosValueNULLInvisible;
 		}
