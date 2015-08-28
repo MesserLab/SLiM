@@ -255,6 +255,8 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			
 			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero." << eidos_terminate();
+			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once in setMutationFractions()." << eidos_terminate();
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);

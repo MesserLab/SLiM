@@ -817,6 +817,9 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 				mutation_type_ptr = dynamic_cast<MutationType *>(arg1_value->ObjectElementAtIndex(mut_type_index, nullptr));
 			}
 			
+			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once in initializeGenomicElementType()." << eidos_terminate();
+			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);
 		}

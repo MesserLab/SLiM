@@ -253,7 +253,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1); stop(); }", 1, 105);			// proportions count wrong
 	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), c(-1,2)); stop(); }", 1, 105);		// proportion is negative
 	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 2:3, 1:2); stop(); }", 1, 105);				// reference to undefined mutation type
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(1,1,2), 1:3); stop(); }");					// same mut-type used more than once (FIXME should this be illegal?)
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(2,2), 1:2); stop(); }", 1, 105);			// reference to a mutation type more than once
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType('g7', c(m1,m2), 1:2); if (x == g7) stop(); }");	// check that symbol is defined
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType(7, c(m1,m2), 1:2); if (x == g7) stop(); }");		// check that symbol is defined
 	SLiMAssertScriptRaise("initialize() {" + define_m12 + "g7 = 17; initializeGenomicElementType(7, c(m1,m2), 1:2); stop(); }", 1, 114);	// symbol collision
