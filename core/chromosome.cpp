@@ -279,7 +279,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		{
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
-			if (value < 0.0)
+			if (value <= 0.0)		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			gene_conversion_avg_length_ = value;
@@ -289,7 +289,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		{
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
-			if ((value < 0.0) || (value > 1.0))
+			if (value < 0.0)	// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			overall_mutation_rate_ = value;
@@ -332,7 +332,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
-			if (recombination_rate < 0.0)
+			if (recombination_rate < 0.0)		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			
 			// then adopt them
@@ -359,7 +359,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
 						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
-				if (recombination_rate < 0.0)
+				if (recombination_rate < 0.0)		// intentionally no upper bound
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			}
 			

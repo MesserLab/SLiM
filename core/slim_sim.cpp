@@ -799,8 +799,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			MutationType *mutation_type_ptr;
 			double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
 			
-			if (proportion <= 0)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() proportions must be greater than zero." << eidos_terminate();
+			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() proportions must be greater than or equal to zero." << eidos_terminate();
 			
 			if (arg1_value->Type() == EidosValueType::kValueInt)
 			{
@@ -882,6 +882,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
+		// intentionally no bounds checks for all DFE parameters
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
@@ -935,7 +936,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
-			if (recombination_rate < 0.0)
+			if (recombination_rate < 0.0)		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			
 			// then adopt them
@@ -962,7 +963,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
 						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
 				
-				if (recombination_rate < 0.0)
+				if (recombination_rate < 0.0)		// intentionally no upper bound
 					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0." << eidos_terminate();
 			}
 			
@@ -1030,7 +1031,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 (inclusive)." << eidos_terminate();
-		if (gene_conversion_avg_length <= 0.0)
+		if (gene_conversion_avg_length <= 0.0)		// intentionally no upper bound
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() meanLength must be greater than 0.0." << eidos_terminate();
 		
 		chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
@@ -1055,7 +1056,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		double rate = arg0_value->FloatAtIndex(0, nullptr);
 		
-		if (rate < 0.0)
+		if (rate < 0.0)		// intentionally no upper bound
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rate >= 0." << eidos_terminate();
 		
 		chromosome_.overall_mutation_rate_ = rate;
@@ -1091,7 +1092,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (p_argument_count == 2)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
-				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);
+				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
 			else
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): xDominanceCoeff may be supplied to initializeSex() only for chromosomeType \"X\"." << eidos_terminate();
 		}
@@ -1441,7 +1442,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 			
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
-			x_chromosome_dominance_coeff_ = value;
+			x_chromosome_dominance_coeff_ = value;		// intentionally no bounds check
 			return;
 		}
 			

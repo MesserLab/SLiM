@@ -68,11 +68,22 @@ void GenomicElementType::InitializeDraws(void)
 	{
 		// Prepare to randomly draw mutation types
 		double A[mutation_type_count];
+		bool nonzero_seen = false;
 		
 		for (int i = 0; i < mutation_type_count; i++)
-			A[i] = mutation_fractions_[i];
+		{
+			double fraction = mutation_fractions_[i];
+			
+			if (fraction > 0.0)
+				nonzero_seen = true;
+			
+			A[i] = fraction;
+		}
 		
-		lookup_mutation_type = gsl_ran_discrete_preproc(mutation_type_count, A);
+		// A mutation type vector with all zero proportions is treated the same as an empty vector: we allow it
+		// on the assumption that it will be fixed later, but if it isn't, that will be an error.
+		if (nonzero_seen)
+			lookup_mutation_type = gsl_ran_discrete_preproc(mutation_type_count, A);
 	}
 }
 
@@ -242,8 +253,8 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ObjectElementAtIndex(mut_type_index, nullptr);
 			double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 			
-			if (proportion <= 0)
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than zero." << eidos_terminate();
+			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero." << eidos_terminate();
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);

@@ -47,6 +47,8 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type '" << dfe_type_ << "'" << eidos_terminate();
 	if (dfe_parameters_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters" << eidos_terminate();
+	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
+	// intentionally no bounds check for dominance_coeff_
 }
 
 MutationType::~MutationType(void)
@@ -168,7 +170,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 		{
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
-			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);
+			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			return;
 		}
 			
@@ -218,6 +220,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
+		// intentionally no bounds checks for DFE parameters
 		
 		// Everything seems to be in order, so replace our distribution info with the new info
 		dfe_type_ = dfe_type;
