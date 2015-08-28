@@ -287,22 +287,25 @@ public:
 	
 	inline void copy_from_genome(const Genome &p_source_genome)
 	{
-#ifdef DEBUG
-		if (mutations_ == nullptr)
-			NullGenomeAccessError();
-#endif
 		if (p_source_genome.mutations_ == nullptr)
 		{
-			// p_original is a null genome, so make ourselves null too
-			if (mutations_ != mutations_buffer_)
-				free(mutations_);
-			
-			mutations_ = nullptr;
-			mutation_capacity_ = 0;
-			mutation_count_ = 0;
+			// p_original is a null genome, so make ourselves null too, if we aren't already
+			if (mutations_ != nullptr)
+			{
+				if (mutations_ != mutations_buffer_)
+					free(mutations_);
+				
+				mutations_ = nullptr;
+				mutation_capacity_ = 0;
+				mutation_count_ = 0;
+			}
 		}
 		else
 		{
+#ifdef DEBUG
+			if (mutations_ == nullptr)
+				NullGenomeAccessError();
+#endif
 			int source_mutation_count = p_source_genome.mutation_count_;
 			
 			// first we need to ensure that we have sufficient capacity
