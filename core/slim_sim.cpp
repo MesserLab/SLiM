@@ -1478,6 +1478,10 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		{
 			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p', nullptr);
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			
+			if (arg2_value && !sex_enabled_)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): sex ratio supplied to addSubpop() in non-sexual simulation." << eidos_terminate();
+			
 			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
@@ -1507,6 +1511,10 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p', nullptr);
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0, nullptr));
+			
+			if (arg3_value && !sex_enabled_)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): sex ratio supplied to addSubpopSplit() in non-sexual simulation." << eidos_terminate();
+			
 			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
 			// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
