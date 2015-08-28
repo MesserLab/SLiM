@@ -216,12 +216,21 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 					
 					// If the argument is object type, and is allowed to be object type, and an object element type was specified
 					// in the signature, check the object element type of the argument.  Note this uses pointer equality!
-					const EidosObjectClass *arg_obj_class = arg_classes_[arg_index];
+					const EidosObjectClass *signature_class = arg_classes_[arg_index];
 					
-					if (type_ok && arg_obj_class && (((EidosValue_Object *)argument)->Class() != arg_obj_class))
+					if (type_ok && signature_class)
 					{
-						type_ok = false;
-						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << arg_obj_class->ElementType() << "." << eidos_terminate(nullptr);
+						const EidosObjectClass *argument_class = ((EidosValue_Object *)argument)->Class();
+						
+						if (argument_class != signature_class)
+						{
+							// Empty object vectors are allowed to be passed for type-specified parameters; an empty object vector is generic
+							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
+								break;
+							
+							type_ok = false;
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
+						}
 					}
 					break;
 			}
