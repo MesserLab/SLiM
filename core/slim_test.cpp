@@ -404,9 +404,9 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 { sim.outputMutations(NULL); }", 1, 251);							// NULL not allowed
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");		// legal, read from file path; depends on the outputFull() test above
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220);			// no file at path
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");	// legal; should wipe previous state
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");												// legal, read from file path; depends on the outputFull() test above
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220);													// no file at path
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); if (size(sim.subpopulations) != 3) stop(); }");	// legal; should wipe previous state
 	
 	// Test sim - (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptEvent(NULL, '{ stop(); }', 2, 2); }");														// legal

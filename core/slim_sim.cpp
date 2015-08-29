@@ -1809,8 +1809,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				symbols.RemoveValueForSymbol(symbol_name, true);
 			
 			// then we dispose of all existing subpopulations, mutations, etc.
-			// FIXME needs implementation!
-			population_;
+			population_.RemoveAllSubpopulationInfo();
 			
 			// then read from the file to get our new info
 			InitializePopulationFromFile(file_path.c_str());

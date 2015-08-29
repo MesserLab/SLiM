@@ -127,6 +127,9 @@ public:
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 	void PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
 	
+	// remove subpopulations, purge all mutations and substitutions, etc.; called before InitializePopulationFromFile()
+	void RemoveAllSubpopulationInfo(void);
+	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
 	void SurveyPopulation();

@@ -41,11 +41,22 @@ Population::Population(SLiMSim &p_sim) : sim_(p_sim)
 
 Population::~Population(void)
 {
+	RemoveAllSubpopulationInfo();
+}
+
+void Population::RemoveAllSubpopulationInfo(void)
+{
+	// Free all subpopulations and then clear out our subpopulation list
 	for (auto subpopulation : *this)
 		delete subpopulation.second;
 	
+	this->clear();
+	
+	// Free all substitutions andclear out the substitution vector
 	for (auto substitution : substitutions_)
 		delete substitution;
+	
+	substitutions_.clear();
 	
 	// The malloced storage of mutation_registry_ will be freed when it is destroyed, but it
 	// does not know that the Mutation pointers inside it are owned, so we need to free them.
@@ -54,6 +65,8 @@ Population::~Population(void)
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		delete *registry_iter;
+	
+	mutation_registry_.clear();
 	
 #ifdef SLIMGUI
 	// release malloced storage for SLiMgui statistics collection
