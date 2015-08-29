@@ -884,8 +884,16 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
-			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
-		// intentionally no bounds checks for all DFE parameters
+		{
+			EidosValue *dfe_param_value = p_arguments[3 + dfe_param_index];
+			EidosValueType dfe_param_type = dfe_param_value->Type();
+			
+			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
+			
+			dfe_parameters.push_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			// intentionally no bounds checks for DFE parameters
+		}
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
@@ -1340,7 +1348,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
-				vec->PushElement(ge_type->second);
+				vec->PushObjectElement(ge_type->second);
 			
 			return vec;
 		}
@@ -1351,7 +1359,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			int mutation_count = mutation_registry.size();
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->PushElement(mutation_registry[mut_index]);
+				vec->PushObjectElement(mutation_registry[mut_index]);
 			
 			return vec;
 		}
@@ -1360,7 +1368,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
-				vec->PushElement(mutation_type->second);
+				vec->PushObjectElement(mutation_type->second);
 			
 			return vec;
 		}
@@ -1369,7 +1377,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
-				vec->PushElement(*script_block);
+				vec->PushObjectElement(*script_block);
 			
 			return vec;
 		}
@@ -1380,7 +1388,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
-				vec->PushElement(pop->second);
+				vec->PushObjectElement(pop->second);
 			
 			return vec;
 		}
@@ -1389,7 +1397,7 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
-				vec->PushElement(*sub_iter);
+				vec->PushObjectElement(*sub_iter);
 			
 			return vec;
 		}

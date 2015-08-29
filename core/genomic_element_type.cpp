@@ -191,7 +191,7 @@ EidosValue *GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
-				vec->PushElement(*mut_type);
+				vec->PushObjectElement(*mut_type);
 			
 			return vec;
 		}

@@ -268,7 +268,7 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
 			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
-				vec->PushElement(mutations_[mut_index]);
+				vec->PushObjectElement(mutations_[mut_index]);
 			
 			return vec;
 		}

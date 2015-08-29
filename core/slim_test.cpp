@@ -218,7 +218,7 @@ void RunSLiMTests(void)
 	//
 	
 	// Test (void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
-	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }");			// legal; no max for meanLength (FIXME should this be illegal?)
+	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }");			// legal; no max for meanLength
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000); stop(); }", 1, 15);	// conversionFraction out of range
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000); stop(); }", 1, 15);	// conversionFraction out of range
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0); stop(); }", 1, 15);				// meanLength out of range
@@ -234,6 +234,14 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", 1, 15);		// DFE param count wrong
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0); stop(); }", 1, 15);			// DFE param count wrong
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", 1, 15);		// DFE param count wrong
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", 1, 15);		// DFE params must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", 1, 15);	// DFE param must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", 1, 15);	// DFE param must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 'foo'); stop(); }", 1, 15);		// DFE param must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', '1'); stop(); }", 1, 15);			// DFE params must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', '1', 0.0); stop(); }", 1, 15);		// DFE param must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, '1'); stop(); }", 1, 15);		// DFE param must be numeric
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', '1'); stop(); }", 1, 15);			// DFE param must be numeric
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", 1, 15);			// DFE type undefined
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }");	// check that symbol is defined
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType(7, 0.5, 'f', 0.0); if (x == m7) stop(); }");	// check that symbol is defined
@@ -274,13 +282,13 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop("initialize() { initializeMutationRate(0.0); stop(); }");					// legal
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(); stop(); }", 1, 15);				// missing param
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(-0.0000001); stop(); }", 1, 15);	// rate out of range
-	SLiMAssertScriptStop("initialize() { initializeMutationRate(10000000); stop(); }");				// legal; no maximum rate (FIXME should this be illegal?)
+	SLiMAssertScriptStop("initialize() { initializeMutationRate(10000000); stop(); }");				// legal; no maximum rate
 	
 	// Test (void)initializeRecombinationRate(numeric rates, [integer ends])
 	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.0); stop(); }");										// legal: singleton rate, no end
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(); stop(); }", 1, 15);								// missing param
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(-0.00001); stop(); }", 1, 15);						// rate out of range
-	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(10000); stop(); }");									// legal; no maximum rate (FIXME should there be a max?)
+	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(10000); stop(); }");									// legal; no maximum rate
 	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000)); stop(); }");				// legal: multiple rates, matching ends
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 15);						// missing param
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(integer(0), integer(0)); stop(); }", 1, 15);			// length zero params
@@ -300,13 +308,13 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }");									// legal: X chromosome with dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15);							// disallowed dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15);							// unknown chromosome type
-	SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }");								// legal: no minimum value for dominance coeff (FIXME should there be?)
-	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }");								// legal: no maximum value for dominance coeff (FIXME should there be?)
+	SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }");								// legal: no minimum value for dominance coeff
+	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }");								// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35);			// two sex declarations
 	
 	// ************************************************************************************
 	//
-	//	Gen 1+ tests
+	//	Gen 1+ tests: SLiMSim
 	//
 	
 	std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
@@ -343,12 +351,13 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.substitutions = _Test(7); } ", 1, 234);									// type Substitution required
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ");															// legal
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ");														// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }");						// legal
 	
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop);									// legal with subpop string
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10); } " + gen2_stop);										// legal with subpop id
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, 1, 220);						// sex ratio supplied in non-sexual simulation
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220);							// sex ratio supplied in non-sexual simulation
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220);						// sex ratio supplied in non-sexual simulation
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop);							// legal
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop);								// legal
 	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop('p7', 10); if (x == p7) stop(); }");						// check that symbol is defined
@@ -465,6 +474,45 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251);																		// generation -1
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251);																		// generation 0
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	
+	
+	// ************************************************************************************
+	//
+	//	Gen 1+ tests: MutationType
+	//
+	
+	//std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
+	//std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
+	//std::string gen2_stop(" 2 { stop(); } ");
+
+	// Test MutationType properties
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }");		// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.dominanceCoeff == 0.5) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.id == 1) stop(); }");							// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");	// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionParams = 0.1; }", 1, 238);			// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionType = 'g'; }", 1, 236);				// setting read-only property
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.dominanceCoeff = 0.3; }");						// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.id = 2; }", 1, 222);								// setting read-only property
+	
+	// Test MutationType - (void)setDistribution(string$ distributionType, ...)
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('f', 2.2); if (m1.distributionType == 'f' & m1.distributionParams == 2.2) stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('g', 3.1, 7.5); if (m1.distributionType == 'g' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }");	// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('e', -3); if (m1.distributionType == 'e' & m1.distributionParams == -3) stop(); }");							// legal
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('x', 1.5); stop(); }", 1, 219);																				// no such DFE
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', 'foo'); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 'foo', 7.5); stop(); }", 1, 219);																		// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 'foo'); stop(); }", 1, 219);																		// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', 'foo'); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', '1'); stop(); }", 1, 219);																				// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', '1', 7.5); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, '1'); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', '1'); stop(); }", 1, 219);																				// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', T); stop(); }", 1, 219);																				// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', T, 7.5); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, T); stop(); }", 1, 219);																			// DFE params must be numeric
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', T); stop(); }", 1, 219);																				// DFE params must be numeric
 	
 	
 	// ************************************************************************************

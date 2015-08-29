@@ -964,10 +964,10 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (child_generation_valid)
 				for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-					vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+					vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
 			else
 				for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-					vec->PushElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+					vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
 			
 			return vec;
 		}

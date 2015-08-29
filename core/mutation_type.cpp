@@ -211,7 +211,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		else if (dfe_type_string.compare("e") == 0)
 			expected_dfe_param_count = 1;
 		else
-			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "must be \"f\", \"g\", or \"e\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", or \"e\"." << eidos_terminate();
 		
 		char dfe_type = dfe_type_string[0];
 		
@@ -219,8 +219,16 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
-			dfe_parameters.push_back(p_arguments[3 + dfe_param_index]->FloatAtIndex(0, nullptr));
-		// intentionally no bounds checks for DFE parameters
+		{
+			EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index];
+			EidosValueType dfe_param_type = dfe_param_value->Type();
+			
+			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
+			
+			dfe_parameters.push_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			// intentionally no bounds checks for DFE parameters
+		}
 		
 		// Everything seems to be in order, so replace our distribution info with the new info
 		dfe_type_ = dfe_type;
