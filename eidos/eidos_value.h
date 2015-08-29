@@ -654,7 +654,8 @@ public:
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	
-	void PushElement(EidosObjectElement *p_element);
+	inline const std::vector<EidosObjectElement *> &ObjectElementVector(void) const { return values_; }
+	void PushObjectElement(EidosObjectElement *p_element);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);

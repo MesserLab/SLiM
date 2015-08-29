@@ -1557,10 +1557,10 @@ EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, Ei
 	return values_[p_idx];
 }
 
-void EidosValue_Object_vector::PushElement(EidosObjectElement *p_element)
+void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
 {
 	if ((values_.size() > 0) && (Class() != p_element->Class()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushElement): the type of an object cannot be changed." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushObjectElement): the type of an object cannot be changed." << eidos_terminate(nullptr);
 	else
 		values_.push_back(p_element->Retain());
 }
@@ -1982,7 +1982,7 @@ EidosValue *EidosValue_Object_singleton_const::MutableCopy(void) const
 {
 	EidosValue_Object_vector *new_vec = new EidosValue_Object_vector();
 	
-	new_vec->PushElement(value_);
+	new_vec->PushObjectElement(value_);
 	
 	return new_vec;
 }

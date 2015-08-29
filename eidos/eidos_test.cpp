@@ -2122,6 +2122,70 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("cat(c('foo', 'bar', 'baz'), '$$');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("cat(c(_Test(7), _Test(7), _Test(7)), '$$');", gStaticEidosValueNULL);
 	
+	// identical()
+	EidosAssertScriptSuccess("identical(NULL, NULL);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(NULL, F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(NULL, 0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(NULL, 0.0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(NULL, '');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(NULL, _Test(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(F, NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(F, F);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(F, 0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(F, 0.0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(F, '');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(F, _Test(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0, NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0, F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0, 0);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(0, 0.0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0, '');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0, _Test(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0.0, NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0.0, F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0.0, 0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0.0, 0.0);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(0.0, '');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(0.0, _Test(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('', NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('', F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('', 0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('', 0.0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('', '');", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical('', _Test(0));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), NULL);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), 0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), 0.0);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), '');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(0), _Test(0));", new EidosValue_Logical(false));	// object elements not equal
+	EidosAssertScriptSuccess("identical(F, c(F,F));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(F,F), F);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(F,F), c(F,F));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(F,T,F,T,T), c(F,T,F,T,T));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(F,T,T,T,T), c(F,T,F,T,T));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(3, c(3,3));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(3,3), 3);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(3,3), c(3,3));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(3,7,3,7,7), c(3,7,3,7,7));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(3,7,7,7,7), c(3,7,3,7,7));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(3.1, c(3.1,3.1));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(3.1,3.1), 3.1);", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(3.1,3.1), c(3.1,3.1));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(3.1,7.1,3.1,7.1,7.1), c(3.1,7.1,3.1,7.1,7.1));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c(3.1,7.1,7.1,7.1,7.1), c(3.1,7.1,3.1,7.1,7.1));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical('bar', c('bar','bar'));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c('bar','bar'), 'bar');", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c('bar','bar'), c('bar','bar'));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c('bar','baz','bar','baz','baz'), c('bar','baz','bar','baz','baz'));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("identical(c('bar','baz','baz','baz','baz'), c('bar','baz','bar','baz','baz'));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(_Test(3), c(_Test(3),_Test(3)));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(_Test(3),_Test(3)), _Test(3));", new EidosValue_Logical(false));
+	EidosAssertScriptSuccess("identical(c(_Test(3),_Test(3)), c(_Test(3),_Test(3)));", new EidosValue_Logical(false));	// object elements not equal
+	EidosAssertScriptSuccess("x = c(_Test(3),_Test(3)); y = x; identical(x, y);", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("x = _Test(3); y = _Test(7); identical(c(x, y, x, x), c(x, y, x, x));", new EidosValue_Logical(true));
+	EidosAssertScriptSuccess("x = _Test(3); y = _Test(7); identical(c(x, y, x, x), c(x, y, y, x));", new EidosValue_Logical(false));
+	
 	// ifelse() – since this function treats parameters trueValues and falseValues type-agnostically, we'll test integers only (and NULL a little bit)
 	EidosAssertScriptRaise("ifelse(NULL, integer(0), integer(0));", 0);
 	EidosAssertScriptRaise("ifelse(logical(0), NULL, integer(0));", 0);
