@@ -21,6 +21,7 @@
 #include "genomic_element_type.h"
 
 #include "slim_global.h"
+#include "slim_sim.h"
 #include "mutation_type.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
@@ -233,7 +234,7 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
 	
 	//
-	//	*********************	- (void)setMutationFractions(object mutationTypes, numeric proportions)
+	//	*********************	- (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
 	//
 #pragma mark -setMutationFractions()
 	
@@ -243,18 +244,43 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 		int proportion_count = arg1_value->Count();
 		
 		if (mut_type_id_count != proportion_count)
-			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() requires the sizes of mutationTypeIDs and proportions to be equal." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
 		
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 		{ 
-			MutationType *mutation_type_ptr = (MutationType *)arg0_value->ObjectElementAtIndex(mut_type_index, nullptr);
+			MutationType *mutation_type_ptr = nullptr;
 			double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero." << eidos_terminate();
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				// Look up a mutation type by identifier.  This is not simple, because we don't have access to the list of defined mutation types.
+				// We construct a symbol, look it up in the interpreter's symbol table, and get the first element for the EidosValue.  At each
+				// step, we have to be careful that types are correct and that the values exist.  Pretty gross, but this is a useful feature.
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+				
+				if (sim)
+				{
+					auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+					
+					if (found_muttype_pair != sim->MutationTypes().end())
+						mutation_type_ptr = found_muttype_pair->second;
+				}
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(mut_type_index, nullptr));
+			}
+			
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once in setMutationFractions()." << eidos_terminate();
 			
@@ -382,7 +408,7 @@ const EidosMethodSignature *GenomicElementType_Class::SignatureForMethod(EidosGl
 	
 	if (!setMutationFractionsSig)
 	{
-		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions");
+		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions");
 	}
 	
 	if (p_method_id == gID_setMutationFractions)
