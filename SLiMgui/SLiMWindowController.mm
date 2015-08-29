@@ -1610,6 +1610,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 #pragma mark -
 #pragma mark ConsoleWindowController delegate
 
+- (EidosContext *)eidosContext
+{
+	return sim;
+}
+
 - (void)appendWelcomeMessageAddendum
 {
 	EidosConsoleTextView *textView = [_consoleController textView];

@@ -210,7 +210,7 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 {
 #pragma unused(p_generation, p_chromosome)
 	EidosSymbolTable global_symbols(&p_script_block->eidos_contains_);
-	EidosInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols);
+	EidosInterpreter interpreter(p_script_block->compound_statement_node_, global_symbols, &sim_);
 	
 	sim_.InjectIntoInterpreter(interpreter, p_script_block, true);
 	
@@ -246,7 +246,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
 				EidosSymbolTable global_symbols(&mate_choice_callback->eidos_contains_);
-				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols);
+				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, global_symbols, &sim_);
 				
 				sim_.InjectIntoInterpreter(interpreter, mate_choice_callback, true);
 				
@@ -423,7 +423,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 		{
 			// The callback is active, so we need to execute it
 			EidosSymbolTable global_symbols(&modify_child_callback->eidos_contains_);
-			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols);
+			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, global_symbols, &sim_);
 			
 			sim_.InjectIntoInterpreter(interpreter, modify_child_callback, true);
 			

@@ -91,7 +91,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, Eidos
 //
 #pragma mark EidosInterpreter
 
-EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols) : root_node_(p_script.AST()), global_symbols_(p_symbols)
+EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context)
+	: root_node_(p_script.AST()), global_symbols_(p_symbols), eidos_context_(p_eidos_context)
 {
 	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
 	
@@ -101,7 +102,8 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
-EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols) : root_node_(p_root_node_), global_symbols_(p_symbols)
+EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context)
+	: root_node_(p_root_node_), global_symbols_(p_symbols), eidos_context_(p_eidos_context)
 {
 	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
 	

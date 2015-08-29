@@ -79,7 +79,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	}
 	
 	try {
-		EidosInterpreter interpreter(script, symbol_table);
+		EidosInterpreter interpreter(script, symbol_table, nullptr);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		
@@ -136,7 +136,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 		script.Tokenize();
 		script.ParseInterpreterBlockToAST();
 		
-		EidosInterpreter interpreter(script, symbol_table);
+		EidosInterpreter interpreter(script, symbol_table, nullptr);
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		

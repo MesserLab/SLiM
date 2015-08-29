@@ -359,7 +359,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 			// We need to get up to the Population in order to register the new mutation, and we don't have
 			// an up pointer; but we can use the context pointer stored by the interpreter
-			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
@@ -389,7 +389,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 			// We need to get up to the Population in order to register the new mutation, and we don't have
 			// an up pointer; but we can use the context pointer stored by the interpreter
-			SLiMSim *sim = (SLiMSim *)p_interpreter.context_pointer_;
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();

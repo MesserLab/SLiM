@@ -212,7 +212,12 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	if ([delegate respondsToSelector:@selector(willExecuteScript)])
 		[delegate willExecuteScript];
 	
-	EidosInterpreter interpreter(script, *global_symbols);		// give the interpreter the symbol table
+	EidosContext *eidos_context = nullptr;
+	
+	if ([delegate respondsToSelector:@selector(eidosContext)])
+		eidos_context = [delegate eidosContext];
+	
+	EidosInterpreter interpreter(script, *global_symbols, eidos_context);		// give the interpreter the symbol table
 	
 	// Give our delegate a chance to add variables and other context to the interpreter
 	if ([delegate respondsToSelector:@selector(injectIntoInterpreter:)])

@@ -789,7 +789,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		int proportion_count = arg2_value->Count();
 		
 		if (mut_type_id_count != proportion_count)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypeIDs and proportions to be equal." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -807,10 +807,11 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg1_value->IntAtIndex(mut_type_index, nullptr));
 				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 				
-				if (found_muttype_pair == mutation_types_.end())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+				if (found_muttype_pair != mutation_types_.end())
+					mutation_type_ptr = found_muttype_pair->second;
 				
-				mutation_type_ptr = found_muttype_pair->second;
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
 			}
 			else
 			{
@@ -1316,9 +1317,6 @@ void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBl
 						global_symbols.ReinitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
 		}
 	}
-	
-	// We use the context pointer in EidosInterpreter to point to the sim object
-	p_interpreter.context_pointer_ = this;
 }
 
 const EidosObjectClass *SLiMSim::Class(void) const

@@ -3161,8 +3161,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				script.Tokenize();
 				script.ParseInterpreterBlockToAST();
 				
-				EidosSymbolTable &symbols = GetSymbolTable();			// get our own symbol table
-				EidosInterpreter interpreter(script, symbols);		// give the interpreter the symbol table
+				EidosSymbolTable &symbols = GetSymbolTable();								// get our own symbol table
+				EidosInterpreter interpreter(script, symbols, this->eidos_context_);		// give the interpreter the symbol table
 				
 				if (timed)
 					begin = clock();

@@ -38,6 +38,14 @@
 #include "eidos_ast_node.h"
 
 
+// EidosInterpreter keeps track of the EidosContext object that is in charge of the whole show.  This should
+// be an object of type EidosObjectElement; this allows dynamic_cast to work, whereas void* would not.  This
+// is optional; you can pass nullptr if you don't want to register a Context.  Eidos itself does nothing
+// with the Context except keep track of it for you; the purpose of it is to allow your Eidos method
+// implementations, function implementations, etc., to get up to the big picture without every object in
+// your object graph having a back pointer of some kind.  If you think this is gross, don't use it.  :->
+typedef EidosObjectElement EidosContext;
+
 // typedefs used to set up our map table of EidosFunctionSignature objects
 typedef std::pair<std::string, const EidosFunctionSignature*> EidosFunctionMapPair;
 typedef std::map<std::string, const EidosFunctionSignature*> EidosFunctionMap;
@@ -52,6 +60,7 @@ class EidosInterpreter
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 private:
+	EidosContext *eidos_context_;				// not owned
 	const EidosASTNode *root_node_;				// not owned
 	EidosSymbolTable &global_symbols_;				// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
 	EidosFunctionMap *function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
@@ -76,12 +85,10 @@ public:
 	EidosInterpreter& operator=(const EidosInterpreter&) = delete;		// no copying
 	EidosInterpreter(void) = delete;										// no null construction
 	
-	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols);				// we use the passed symbol table but do not own it
-	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols);		// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context);				// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context);		// we use the passed symbol table but do not own it
 	
 	~EidosInterpreter(void);												// destructor
-	
-	void *context_pointer_ = nullptr;		// a pointer to the Context object that owns this interpreter; what this means and is used for is Context-dependent
 	
 	inline std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
 	
@@ -93,6 +100,7 @@ public:
 	std::string ExecutionOutput(void);
 	
 	EidosSymbolTable &GetSymbolTable(void);						// the returned reference is to the symbol table that the interpreter has borrowed
+	inline EidosContext *GetEidosContext(void) const { return eidos_context_; };
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosValue *EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output

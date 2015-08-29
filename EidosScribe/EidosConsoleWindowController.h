@@ -30,6 +30,7 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 
 @protocol EidosConsoleControllerDelegate <NSObject>
 @optional
+- (EidosContext *)eidosContext;
 - (void)appendWelcomeMessageAddendum;
 - (void)injectIntoInterpreter:(EidosInterpreter *)interpreter;
 - (void)checkScriptDidSucceed:(BOOL)succeeded;
