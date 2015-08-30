@@ -127,6 +127,7 @@ public:
 	inline Chromosome &Chromosome(void)												{ return chromosome_; }
 	inline Population &Population(void)												{ return population_; }
 	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }
+	inline const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void) { return genomic_element_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
