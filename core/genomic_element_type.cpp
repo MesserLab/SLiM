@@ -259,9 +259,6 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			
 			if (arg0_value->Type() == EidosValueType::kValueInt)
 			{
-				// Look up a mutation type by identifier.  This is not simple, because we don't have access to the list of defined mutation types.
-				// We construct a symbol, look it up in the interpreter's symbol table, and get the first element for the EidosValue.  At each
-				// step, we have to be careful that types are correct and that the values exist.  Pretty gross, but this is a useful feature.
 				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
 				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 				
