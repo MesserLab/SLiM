@@ -1569,7 +1569,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (void)deregisterScriptBlock(object<SLiMEidosBlock> scriptBlocks)
+			//	*********************	- (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
 			//
 #pragma mark -deregisterScriptBlock()
 			
@@ -1580,7 +1580,26 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 			for (int block_index = 0; block_index < block_count; ++block_index)
 			{
-				SLiMEidosBlock *block = (SLiMEidosBlock *)(arg0_value->ObjectElementAtIndex(block_index, nullptr));
+				SLiMEidosBlock *block = nullptr;
+				
+				if (arg0_value->Type() == EidosValueType::kValueInt)
+				{
+					slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(block_index, nullptr));
+					
+					for (SLiMEidosBlock *found_block : script_blocks_)
+						if (found_block->block_id_ == block_id)
+						{
+							block = found_block;
+							break;
+						}
+					
+					if (!block)
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() SLiMEidosBlock s" << block_id << " not defined" << eidos_terminate();
+				}
+				else
+				{
+					block = dynamic_cast<SLiMEidosBlock *>(arg0_value->ObjectElementAtIndex(block_index, nullptr));
+				}
 				
 				if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
@@ -2149,7 +2168,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	{
 		addSubpopSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio");
 		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio");
-		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
+		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_O("mutations", gSLiM_Mutation_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL));
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OS("filePath");
