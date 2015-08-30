@@ -1515,7 +1515,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, object<Subpopulation>$ sourceSubpop, [float$ sexRatio])
+			//	*********************	- (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, io<Subpopulation>$ sourceSubpop, [float$ sexRatio])
 			//
 #pragma mark -addSubpopSplit()
 			
@@ -1523,7 +1523,28 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 		{
 			slim_objectid_t subpop_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'p', nullptr);
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-			Subpopulation *source_subpop = (Subpopulation *)(arg2_value->ObjectElementAtIndex(0, nullptr));
+			Subpopulation *source_subpop = nullptr;
+			
+			if (arg2_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+				
+				if (sim)
+				{
+					auto found_subpop_pair = sim->Population().find(source_subpop_id);
+					
+					if (found_subpop_pair != sim->Population().end())
+						source_subpop = found_subpop_pair->second;
+				}
+				
+				if (!source_subpop)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() subpopulation p" << source_subpop_id << " not defined" << eidos_terminate();
+			}
+			else
+			{
+				source_subpop = dynamic_cast<Subpopulation *>(arg2_value->ObjectElementAtIndex(0, nullptr));
+			}
 			
 			if (arg3_value && !sex_enabled_)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): sex ratio supplied to addSubpopSplit() in non-sexual simulation." << eidos_terminate();
@@ -2127,7 +2148,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	if (!addSubpopSig)
 	{
 		addSubpopSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio");
-		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio");
+		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio");
 		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_O("mutations", gSLiM_Mutation_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL));
