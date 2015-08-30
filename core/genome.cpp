@@ -374,7 +374,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			slim_generation_t origin_generation;
 			
 			if (arg1_value->Type() == EidosValueType::kValueNULL)
-				origin_generation = sim->generation_;
+				origin_generation = sim->Generation();
 			else
 				origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
@@ -430,7 +430,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			slim_generation_t origin_generation;
 			
 			if (arg1_value->Type() == EidosValueType::kValueNULL)
-				origin_generation = sim->generation_;
+				origin_generation = sim->Generation();
 			else
 				origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
