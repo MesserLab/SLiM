@@ -115,6 +115,7 @@ EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eid
 		double value = arg0_value->FloatAtIndex(0, nullptr);
 		
 		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
+		// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
 		
 		return gStaticEidosValueNULLInvisible;
 	}
