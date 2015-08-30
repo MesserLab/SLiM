@@ -20,6 +20,7 @@
 
 #include "genomic_element.h"
 #include "slim_global.h"
+#include "slim_sim.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
@@ -142,15 +143,39 @@ EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
 	
 	//
-	//	*********************	- (void)setGenomicElementType(object$ genomicElementType)
+	//	*********************	- (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
 	//
 #pragma mark -setGenomicElementType()
 	
 	if (p_method_id == gID_setGenomicElementType)
 	{
-		GenomicElementType *getype = (GenomicElementType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+		GenomicElementType *getype_ptr = nullptr;
 		
-		genomic_element_type_ptr_ = getype;
+		if (arg0_value->Type() == EidosValueType::kValueInt)
+		{
+			// Look up a mutation type by identifier.  This is not simple, because we don't have access to the list of defined mutation types.
+			// We construct a symbol, look it up in the interpreter's symbol table, and get the first element for the EidosValue.  At each
+			// step, we have to be careful that types are correct and that the values exist.  Pretty gross, but this is a useful feature.
+			slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+			
+			if (sim)
+			{
+				auto found_getype_pair = sim->GenomicElementTypes().find(getype_id);
+				
+				if (found_getype_pair != sim->GenomicElementTypes().end())
+					getype_ptr = found_getype_pair->second;
+			}
+			
+			if (!getype_ptr)
+				EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteInstanceMethod): setGenomicElementType() genomic element type g" << getype_id << " not defined" << eidos_terminate();
+		}
+		else
+		{
+			getype_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+		}
+		
+		genomic_element_type_ptr_ = getype_ptr;
 		
 		return gStaticEidosValueNULLInvisible;
 	}
@@ -265,7 +290,7 @@ const EidosMethodSignature *GenomicElement_Class::SignatureForMethod(EidosGlobal
 	
 	if (!setGenomicElementTypeSig)
 	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddObject_S("genomicElementType", gSLiM_GenomicElementType_Class);
+		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class);
 	}
 	
 	if (p_method_id == gID_setGenomicElementType)
