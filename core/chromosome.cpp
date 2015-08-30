@@ -101,7 +101,7 @@ void Chromosome::InitializeDraws(void)
 	
 	overall_recombination_rate_ = 0.0;
 	
-	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);
+	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0] + 1);		// +1 here because position zero is included; fixed BCH 30 August 2015
 	overall_recombination_rate_ += B[0];
 	
 	for (int i = 1; i < recombination_rates_.size(); i++) 
