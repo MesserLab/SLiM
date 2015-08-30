@@ -342,27 +342,53 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 			
 			//
-			//	*********************	- (object$)addNewDrawnMutation(object$ mutationType, integer$ originGeneration, integer$ position, integer$ originSubpopID)
+			//	*********************	- (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, io<Subpopulation>$ originSubpop)
 			//
 #pragma mark -addNewDrawnMutation()
 			
 		case gID_addNewDrawnMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0, nullptr);
-			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
-			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
-			
-			MutationType *mut_type = (MutationType *)mut_type_value;
-			double selection_coeff = mut_type->DrawSelectionCoefficient();
-			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
-			
-			// We need to get up to the Population in order to register the new mutation, and we don't have
-			// an up pointer; but we can use the context pointer stored by the interpreter
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
+			
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair != sim->MutationTypes().end())
+					mutation_type_ptr = found_muttype_pair->second;
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			slim_generation_t origin_generation;
+			
+			if (arg1_value->Type() == EidosValueType::kValueNULL)
+				origin_generation = sim->generation_;
+			else
+				origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			
+			slim_objectid_t origin_subpop_id;
+			
+			if (arg3_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
+			else
+				origin_subpop_id = dynamic_cast<Subpopulation *>(arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+			
+			double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+			Mutation *mutation = new Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -372,27 +398,52 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 			
 			//
-			//	*********************	- (object$)addNewMutation(object$ mutationType, integer$ originGeneration, integer$ position, numeric$ selectionCoeff, integer$ originSubpopID)
+			//	*********************	- (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, numeric$ selectionCoeff, io<Subpopulation>$ originSubpop)
 			//
 #pragma mark -addNewMutation()
 			
 		case gID_addNewMutation:
 		{
-			EidosObjectElement *mut_type_value = arg0_value->ObjectElementAtIndex(0, nullptr);
-			slim_generation_t origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
-			double selection_coeff = arg3_value->FloatAtIndex(0, nullptr);
-			slim_objectid_t origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0, nullptr));
-			
-			MutationType *mut_type = (MutationType *)mut_type_value;
-			Mutation *mutation = new Mutation(mut_type, position, selection_coeff, origin_subpop_id, origin_generation);
-			
-			// We need to get up to the Population in order to register the new mutation, and we don't have
-			// an up pointer; but we can use the context pointer stored by the interpreter
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
+			
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair != sim->MutationTypes().end())
+					mutation_type_ptr = found_muttype_pair->second;
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			slim_generation_t origin_generation;
+			
+			if (arg1_value->Type() == EidosValueType::kValueNULL)
+				origin_generation = sim->generation_;
+			else
+				origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			double selection_coeff = arg3_value->FloatAtIndex(0, nullptr);
+			slim_objectid_t origin_subpop_id;
+			
+			if (arg4_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0, nullptr));
+			else
+				origin_subpop_id = dynamic_cast<Subpopulation *>(arg4_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+			
+			Mutation *mutation = new Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -574,8 +625,8 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	if (!addMutationsSig)
 	{
 		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("originGeneration")->AddInt_S("position")->AddInt_S("originSubpopID");
-		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddInt_S("originSubpopID");
+		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
+		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 	}
 	
