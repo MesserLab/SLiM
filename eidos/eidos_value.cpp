@@ -2354,8 +2354,27 @@ EidosValue *EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id
 			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			bool signature_found = false;
 			
+			// Output class methods first
 			for (auto method_sig : *methods)
 			{
+				if (!method_sig->is_class_method)
+					continue;
+				
+				const std::string &method_name = method_sig->function_name_;
+				
+				if (has_match_string && (method_name.compare(match_string) != 0))
+					continue;
+				
+				output_stream << *method_sig << endl;
+				signature_found = true;
+			}
+			
+			// Then instance methods
+			for (auto method_sig : *methods)
+			{
+				if (method_sig->is_class_method)
+					continue;
+				
 				const std::string &method_name = method_sig->function_name_;
 				
 				if (has_match_string && (method_name.compare(match_string) != 0))
