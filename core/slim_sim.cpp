@@ -160,6 +160,9 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	// initialize rng; this is either a value given at the command line, or the value generate above by EidosGenerateSeedFromPIDAndTime()
 	EidosInitializeRNGFromSeed(rng_seed_);
 	
+	if (DEBUG_INPUT)
+		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed_ << "\n" << endl;
+	
 	gEidosCurrentScript = nullptr;
 }
 
