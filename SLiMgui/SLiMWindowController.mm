@@ -438,25 +438,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		
 		for (int i = 0; i < subpopCount; ++i)
 		{
-			Subpopulation *subpop = popIter->second;
-			BOOL rowSelected = subpop->gui_selected_;
-			
-			// OK, this is a bit tricky.  Suppose we are just starting a simulation; the subpop tableview is empty.  When a subpop gets added, we want to select
-			// it automatically.  If five subpops get added simultaneously, we want to select them all; it would make no sense to select just the first one.  In
-			// fact, if five subpops get added sequentially, we want to add each one in to the selection as it gets added.  This is because the default mode
-			// should be to show all individuals, for all subpops, in the UI.  But now suppose the user selects just one subpop out of two that exist.  Now they
-			// have expressed a deliberate preference to see only that subpop.  As other subpops get added and removed, we should not override that stated
-			// preference.  So once the tableview has had a partial selection, we should abandon our behavior of automatically extending the selection to new
-			// subpops.  The tricky question is: should we ever go back to the old behavior?  I think we should, if and only if the user selects all (>0)
-			// subpops; that indicates a desire to see everything once again (although it could also be interpreted as a specific desire to see only those
-			// subpops, even as others get added later; but that interpretation seems strained to me).
-			if (!subpopTableviewHasHadPartialSelection)
-			{
-				rowSelected = YES;
-				subpop->gui_selected_ = true;	// since we are now selecting this row, we need to let it know that...
-			}
-			
-			if (rowSelected)
+			if (popIter->second->gui_selected_)
 				[indicesToSelect addIndex:i];
 			
 			popIter++;
@@ -1901,28 +1883,13 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 			Population &population = sim->population_;
 			int subpopCount = (int)population.size();
 			auto popIter = population.begin();
-			int selectedCount = 0;
 			
 			for (int i = 0; i < subpopCount; ++i)
 			{
-				Subpopulation *subpop = popIter->second;
-				BOOL rowSelected = [subpopTableView isRowSelected:i];
-				
-				subpop->gui_selected_ = rowSelected;
-				
-				// remember if we have ever had anything other than a complete selection; see comments in -updateAfterTick
-				if (rowSelected)
-					selectedCount++;
-				else
-					subpopTableviewHasHadPartialSelection = YES;
+				popIter->second->gui_selected_ = [subpopTableView isRowSelected:i];
 				
 				popIter++;
 			}
-			
-			// If every subpop has been selected (and that is more than zero subpops), the user has expressed a desire to go back to showing
-			// all of the subpops, not a subset.  See comment in -updateAfterTick for more on subpopTableviewHasHadPartialSelection.
-			if ((selectedCount == subpopCount) && (subpopCount > 0))
-				subpopTableviewHasHadPartialSelection = NO;
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
 			population.TallyMutationReferences();

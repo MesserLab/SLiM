@@ -56,7 +56,7 @@
 	BOOL zoomedChromosomeShowsGenomicElements;
 	BOOL zoomedChromosomeShowsMutations;
 	BOOL zoomedChromosomeShowsFixedSubstitutions;
-	BOOL reloadingSubpopTableview, subpopTableviewHasHadPartialSelection;
+	BOOL reloadingSubpopTableview;
 	
 	// outlets
 	IBOutlet NSButton *buttonForDrawer;
