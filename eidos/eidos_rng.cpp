@@ -21,7 +21,7 @@
 #include "eidos_rng.h"
 
 #include <unistd.h>
-#include <time.h>
+#include <sys/time.h>
 
 
 gsl_rng *gEidos_rng = nullptr;
@@ -32,13 +32,18 @@ unsigned long int gEidos_rng_last_seed = 0;				// unsigned long int is the type 
 
 unsigned long int EidosGenerateSeedFromPIDAndTime(void)
 {
+	static long int hereCounter = 0;
 	unsigned long int pid = getpid();
-	time_t t;
+	struct timeval te; 
 	
-	time(&t);
-	t += pid;
+	gettimeofday(&te, NULL); // get current time
 	
-	return t;
+	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
+	
+	milliseconds += (pid * 10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
+	milliseconds += (hereCounter++);
+	
+	return (unsigned long int)milliseconds;
 }
 
 void EidosInitializeRNGFromSeed(unsigned long int p_seed)
