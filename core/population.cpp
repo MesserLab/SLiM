@@ -174,7 +174,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
-		// Note that we don't free the subpopulation here, because there may be live references to it.  In fact, I'm not sure we ever free it!
+		// Note that we don't free the subpopulation here, because there may be live references to it.  In fact, I'm not sure we ever free it!  FIXME
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 		
 		erase(subpop_id);

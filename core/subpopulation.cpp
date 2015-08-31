@@ -1048,6 +1048,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		{
 			int source_subpops_count = arg0_value->Count();
 			int rates_count = arg1_value->Count();
+			std::vector<slim_objectid_t> subpops_seen;
 			
 			if (source_subpops_count != rates_count)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
@@ -1072,9 +1073,16 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				}
 				
 				slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
+				
+				if (source_subpop_id == subpopulation_id_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)" << eidos_terminate();
+				if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): two rates set for subpopulation p" << source_subpop_id << " in setMigrationRates()" << eidos_terminate();
+				
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
 				
 				population_.SetMigration(*this, source_subpop_id, migrant_fraction);
+				subpops_seen.push_back(source_subpop_id);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1165,6 +1173,9 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			double sex_ratio = arg0_value->FloatAtIndex(0, nullptr);
 			
+			if (sex_ratio < 0.0 || sex_ratio > 1.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() requires a sex ratio within [0,1]." << eidos_terminate();
+			
 			// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 			child_sex_ratio_ = sex_ratio;
 			GenerateChildrenToFit(false);	// false means generate only new children, not new parents
@@ -1189,7 +1200,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			
 			//
-			//	*********************	- (float)fitness(integer indices)
+			//	*********************	- (float)fitness(Ni indices)
 			//
 #pragma mark -fitness()
 			
@@ -1205,7 +1216,16 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			if (index_count == 1)
 			{
-				slim_popsize_t index = (do_all_indices ? 0 : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)));
+				slim_popsize_t index = 0;
+				
+				if (!do_all_indices)
+				{
+					index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+					
+					if (index >= cached_fitness_size_)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index out of range." << eidos_terminate();
+				}
+				
 				double fitness = cached_parental_fitness_[index];
 				
 				return new EidosValue_Float_singleton_const(fitness);
@@ -1216,7 +1236,16 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				
 				for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 				{
-					slim_popsize_t index = (do_all_indices ? value_index : SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr)));
+					slim_popsize_t index = value_index;
+					
+					if (!do_all_indices)
+					{
+						index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
+						
+						if (index >= cached_fitness_size_)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index out of range." << eidos_terminate();
+					}
+					
 					double fitness = cached_parental_fitness_[index];
 					
 					float_return->PushFloat(fitness);
@@ -1237,6 +1266,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		case gID_outputMSSample:
 		case gID_outputSample:
 		{
+			SLiMSim &sim = population_.sim_;
 			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			IndividualSex requested_sex = IndividualSex::kUnspecified;
 			
@@ -1250,9 +1280,12 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 					requested_sex = IndividualSex::kFemale;
 				else if (sex_string.compare("*") == 0)
 					requested_sex = IndividualSex::kUnspecified;
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): requested sex \"" << sex_string << "\" unsupported in " << ((p_method_id == gID_outputMSSample) ? "outputMSSample()" : "outputSample()") << "." << eidos_terminate();
+				
+				if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << ((p_method_id == gID_outputMSSample) ? "outputMSSample()" : "outputSample()") << ": requested sex is not legal in a non-sexual simulation." << eidos_terminate();
 			}
-			
-			SLiMSim &sim = population_.sim_;
 			
 			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
 			
@@ -1423,7 +1456,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
-		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kEidosValueMaskFloat))->AddInt("indices");
+		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 	}
