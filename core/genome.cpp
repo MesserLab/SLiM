@@ -380,6 +380,9 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
+			if (position > sim->Chromosome().last_position_)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome" << eidos_terminate();
+			
 			slim_objectid_t origin_subpop_id;
 			
 			if (arg3_value->Type() == EidosValueType::kValueInt)
@@ -435,6 +438,10 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 				origin_generation = SLiMCastToGenerationTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			
+			if (position > sim->Chromosome().last_position_)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome" << eidos_terminate();
+			
 			double selection_coeff = arg3_value->FloatAtIndex(0, nullptr);
 			slim_objectid_t origin_subpop_id;
 			
