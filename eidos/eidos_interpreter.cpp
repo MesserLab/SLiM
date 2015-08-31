@@ -625,7 +625,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 
 void EidosInterpreter::NullReturnRaiseForNode(const EidosASTNode *p_node)
 {
-	EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): nullptr returned from evaluation of token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
+	EIDOS_TERMINATION << "ERROR (EidosInterpreter::NullReturnRaiseForNode): nullptr returned from evaluation of token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
 }
 
 EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)

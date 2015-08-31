@@ -1364,7 +1364,7 @@ bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_b
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
 	
 	if (isnan(value_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
 	
 	return (value_ == 0 ? false : true);
 }
@@ -1388,13 +1388,13 @@ int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx, EidosToken *p_bl
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
 	
 	if (isnan(value_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
 	if (isinf(value_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 	if ((value_ < INT64_MIN) || (value_ >= INT64_MAX))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): float value " << value_ << " is too large to be converted to integer type." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): float value " << value_ << " is too large to be converted to integer type." << eidos_terminate(p_blame_token);
 	
 	return static_cast<int64_t>(value_);
 }
@@ -1838,8 +1838,8 @@ EidosValue *EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID 
 			}
 		}
 		
-		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gEidosStr_GetPropertyOfElements, results.data(), (int)results.size(), true);
+		// concatenate the results using ConcatenateEidosValues()
+		EidosValue *result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)
@@ -1913,8 +1913,8 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 		for (auto value : values_)
 			results.push_back(value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
 		
-		// concatenate the results using ConcatenateEidosValues(); we pass our own name as p_function_name, which just makes errors be in our name
-		EidosValue *result = ConcatenateEidosValues(gEidosStr_ExecuteInstanceMethod, results.data(), (int)results.size(), true);
+		// concatenate the results using ConcatenateEidosValues()
+		EidosValue *result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 		
 		// Now we just need to dispose of our temporary EidosValues
 		for (EidosValue *temp_value : results)

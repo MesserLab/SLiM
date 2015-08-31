@@ -279,7 +279,7 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			}
 			
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once in setMutationFractions()." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);

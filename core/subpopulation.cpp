@@ -1077,7 +1077,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				if (source_subpop_id == subpopulation_id_)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)" << eidos_terminate();
 				if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): two rates set for subpopulation p" << source_subpop_id << " in setMigrationRates()" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << eidos_terminate();
 				
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
 				
@@ -1281,10 +1281,10 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				else if (sex_string.compare("*") == 0)
 					requested_sex = IndividualSex::kUnspecified;
 				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): requested sex \"" << sex_string << "\" unsupported in " << ((p_method_id == gID_outputMSSample) ? "outputMSSample()" : "outputSample()") << "." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 				
 				if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << ((p_method_id == gID_outputMSSample) ? "outputMSSample()" : "outputSample()") << ": requested sex is not legal in a non-sexual simulation." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requested sex is not legal in a non-sexual simulation." << eidos_terminate();
 			}
 			
 			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;

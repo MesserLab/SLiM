@@ -822,7 +822,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			}
 			
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once in initializeGenomicElementType()." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 			
 			mutation_types.push_back(mutation_type_ptr);
 			mutation_fractions.push_back(proportion);
@@ -839,7 +839,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosValue *symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): symbol " << symbol_name << " was already defined prior to its definition by initializeGenomicElementType()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 		symbols.SetValueForSymbol(symbol_name, symbol_value);
 		
 		if (DEBUG_INPUT)
@@ -916,7 +916,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosValue *symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): symbol " << symbol_name << " was already defined prior to its definition by initializeMutationType()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 		symbols.SetValueForSymbol(symbol_name, symbol_value);
 		
 		if (DEBUG_INPUT)
@@ -1109,7 +1109,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
 			else
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): xDominanceCoeff may be supplied to initializeSex() only for chromosomeType \"X\"." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << eidos_terminate();
 		}
 		
 		if (DEBUG_INPUT)
@@ -1496,7 +1496,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
 			if (arg2_value && !sex_enabled_)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): sex ratio supplied to addSubpop() in non-sexual simulation." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() sex ratio supplied in non-sexual simulation." << eidos_terminate();
 			
 			double sex_ratio = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
@@ -1510,7 +1510,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			EidosValue *symbol_value = symbol_entry->second;
 			
 			if (symbols.GetValueOrNullForSymbol(symbol_name))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): symbol " << symbol_name << " was already defined prior to its definition by addSubpop()." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 			symbols.SetValueForSymbol(symbol_name, symbol_value);
 			
 			return symbol_value;
@@ -1550,7 +1550,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			}
 			
 			if (arg3_value && !sex_enabled_)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): sex ratio supplied to addSubpopSplit() in non-sexual simulation." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() sex ratio supplied in non-sexual simulation." << eidos_terminate();
 			
 			double sex_ratio = (arg3_value ? arg3_value->FloatAtIndex(0, nullptr) : 0.5);		// 0.5 is the default whenever sex is enabled and a ratio is not given
 			
@@ -1564,7 +1564,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			EidosValue *symbol_value = symbol_entry->second;
 			
 			if (symbols.GetValueOrNullForSymbol(symbol_name))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): symbol " << symbol_name << " was already defined prior to its definition by addSubpopSplit()." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 			symbols.SetValueForSymbol(symbol_name, symbol_value);
 			
 			return symbol_value;
@@ -1899,7 +1899,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				EidosValue *symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): symbol " << symbol_name << " was already defined prior to its definition by registerScriptEvent()." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptEvent() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 				symbols.SetValueForSymbol(symbol_name, symbol_value);
 			}
 			
@@ -1947,7 +1947,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				EidosValue *symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): symbol " << symbol_name << " was already defined prior to its definition by registerScriptFitnessCallback()." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptFitnessCallback() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 				symbols.SetValueForSymbol(symbol_name, symbol_value);
 			}
 			
@@ -1997,7 +1997,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				EidosValue *symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): symbol " << symbol_name << " was already defined prior to its definition by " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 				symbols.SetValueForSymbol(symbol_name, symbol_value);
 			}
 			

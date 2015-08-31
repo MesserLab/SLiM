@@ -598,7 +598,7 @@ void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
 	if (block_id_ == -1)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GenerateCachedSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << eidos_terminate();
 	
 	std::ostringstream script_stream;
 	

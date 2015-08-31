@@ -235,12 +235,11 @@ EidosFunctionMap *EidosInterpreter::BuiltInFunctionMap(void)
 //	Executing function calls
 //
 
-EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, bool p_allow_null)
+EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_argument_count, bool p_allow_null)
 {
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
 	
-#pragma unused(p_function_name)
 	EidosValueType highest_type = EidosValueType::kValueNULL;
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
 	const EidosObjectClass *element_class = nullptr;
@@ -252,7 +251,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
-			EIDOS_TERMINATION << "ERROR (" << p_function_name << "): NULL is not allowed to be used with this function." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used with this function." << eidos_terminate(nullptr);
 		
 		if (arg_type > highest_type)
 			highest_type = arg_type;
@@ -275,7 +274,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 				{
 					// we've already seen a object type, so check that this one is the same type
 					if (element_class != this_element_class)
-						EIDOS_TERMINATION << "ERROR (" << p_function_name << "): objects of different types cannot be mixed." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): objects of different types cannot be mixed." << eidos_terminate(nullptr);
 				}
 			}
 			
@@ -286,7 +285,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 	}
 	
 	if (has_object_type && has_nonobject_type)
-		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): object and non-object types cannot be mixed." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): object and non-object types cannot be mixed." << eidos_terminate(nullptr);
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == EidosValueType::kValueNULL)
@@ -370,7 +369,7 @@ EidosValue *ConcatenateEidosValues(const std::string &p_function_name, EidosValu
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (" << p_function_name << "): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << eidos_terminate(nullptr);
 	}
 	
 	return nullptr;
@@ -1379,7 +1378,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark c
 		case EidosFunctionIdentifier::cFunction:
 		{
-			result = ConcatenateEidosValues(p_function_name, p_arguments, p_argument_count, false);
+			result = ConcatenateEidosValues(p_arguments, p_argument_count, false);
 			break;
 		}
 			
@@ -1843,7 +1842,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			
 			if ((arg0_count == 0) || (!replace && (arg0_count < sample_size)))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): insufficient elements provided to function sample()." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() provided with insufficient elements." << eidos_terminate(nullptr);
 			
 			result = arg0_value->NewMatchingType();
 			
@@ -3387,7 +3386,7 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
 	
 	if (!method_signature)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << " is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << "() is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate(nullptr);
 	
 	method_signature->CheckArguments(p_arguments, p_argument_count);
 	
