@@ -1568,7 +1568,7 @@ void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
 EidosValue *EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ObjectElementAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return new EidosValue_Object_singleton_const(values_[p_idx]);
 }
