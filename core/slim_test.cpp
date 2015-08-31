@@ -639,7 +639,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.originGeneration = 1; stop(); }", 1, 293);									// setting read-only property
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.position = 0; stop(); }", 1, 285);											// setting read-only property
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", 1, 291);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.subpopID = 2; stop(); }", 1, 285);											// setting read-only property
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }");						// legal; this field may be used as a user tag
 	
 	// Test Mutation - (void)setSelectionCoeff(float$ selectionCoeff)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(0.5); if (mut.selectionCoeff == 0.5) stop(); }");			// legal
@@ -652,41 +652,49 @@ void RunSLiMTests(void)
 	//	Gen 1+ tests: Genome
 	//
 	
-	//std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
-	
 	// Test Genome properties
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.isNullGenome == F) stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.isNullGenome == F) stop(); }");								// legal
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.mutations[0].mutationType == m1) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.tag = 278; if (gen.tag == 278) stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.genomeType = 'A'; stop(); }", 1, 284);					// legal
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.isNullGenome = F; stop(); }", 1, 286);					// legal
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.mutations[0].mutationType = m1; stop(); }", 1, 299);	// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.tag = 278; if (gen.tag == 278) stop(); }");						// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.genomeType = 'A'; stop(); }", 1, 283);							// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.isNullGenome = F; stop(); }", 1, 285);							// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.mutations[0].mutationType = m1; stop(); }", 1, 299);	// setting read-only property
 	
 	// Test Genome - (void)addMutations(object<Mutation> mutations)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(object()); stop(); }");																				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.addMutations(object()); stop(); }");																							// legal
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(gen.mutations[0]); stop(); }");																		// legal
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(p1.genomes[1].mutations[0]); stop(); }");																// legal
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = p1.genomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); if (sum(gen.mutations == mut) == 1) stop(); }");		// legal
 	
 	// Test Genome - (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, io<Subpopulation>$ originSubpop)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(7, NULL, 5000, 1); stop(); }", 1, 278);									// bad mutation type
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 0, 5000, 1); stop(); }", 1, 278);										// bad generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, -1, 1); stop(); }", 1, 278);										// bad position
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 100000, 1); stop(); }", 1, 278);									// bad position
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 237); stop(); }");											// bad subpop, but this is legal to allow "tagging" of mutations
 	
 	// Test Genome - (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, numeric$ selectionCoeff, io<Subpopulation>$ originSubpop)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(7, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad mutation type
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, -1, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad position
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 100000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);	// bad position
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 237); p1.genomes.addMutations(mut); stop(); }");			// bad subpop, but this is legal to allow "tagging" of mutations
 	
 	// Test Genome - (void)removeMutations(object<Mutation> mutations)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");									// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");																		// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");																// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");												// legal
 	
 	
 	// ************************************************************************************
