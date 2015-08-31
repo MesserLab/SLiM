@@ -183,6 +183,7 @@ void RunSLiMTests(void)
 	gSLiMTestSuccessCount = 0;
 	gSLiMTestFailureCount = 0;
 	
+	#pragma mark basic tests
 	
 	// Test that a basic script works
 	std::string basic_script(R"V0G0N(
@@ -225,6 +226,7 @@ void RunSLiMTests(void)
 	//
 	//	Initialization function tests
 	//
+	#pragma mark initialize() tests
 	
 	// Test (void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
 	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }");			// legal; no max for meanLength
@@ -325,6 +327,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: SLiMSim
 	//
+	#pragma mark SLiMSim tests
 	
 	std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
 	std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
@@ -496,6 +499,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: MutationType
 	//
+	#pragma mark MutationType tests
 	
 	// Test MutationType properties
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }");		// legal
@@ -531,6 +535,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: GenomicElementType
 	//
+	#pragma mark GenomicElementType tests
 	
 	// Test GenomicElementType properties
 	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.id == 1) stop(); }");							// legal
@@ -561,6 +566,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: GenomicElement
 	//
+	#pragma mark GenomicElement tests
 	
 	std::string gen1_setup_2ge("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 999); initializeGenomicElement(g1, 1000, 99999); initializeRecombinationRate(1e-8); } ");
 	
@@ -592,6 +598,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: Chromosome
 	//
+	#pragma mark Chromosome tests
 	
 	// Test Chromosome properties
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }");					// legal
@@ -639,6 +646,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: Mutation
 	//
+	#pragma mark Mutation tests
 	
 	// Test Mutation properties
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }");											// legal
@@ -662,6 +670,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: Genome
 	//
+	#pragma mark Genome tests
 	
 	// Test Genome properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }");								// legal
@@ -712,6 +721,7 @@ void RunSLiMTests(void)
 	//
 	//	Gen 1+ tests: Subpopulation
 	//
+	#pragma mark Subpopulation tests
 	
 	// Test Subpopulation properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }");									// legal
@@ -851,6 +861,32 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }");					// legal; does not take visible effect until child generation
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }");				// p1 undefined after child generation
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250);										// legal
+	
+	
+	// ************************************************************************************
+	//
+	//	Gen 1+ tests: Substitution
+	//
+	#pragma mark Substitution tests
+	
+	// Test Substitution properties
+	std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } 10 { sim.mutations[0].setSelectionCoeff(50.0); } ");
+	
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (size(sim.substitutions) > 0) stop(); }");																// check that our script generates substitutions fast enough
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.fixationTime > 0 & sub.fixationTime <= 30) stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }");										// legal
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.originGeneration > 0 & sub.originGeneration <= 10) stop(); }");		// legal
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.position > 0 & sub.position <= 99999) stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (sum(sim.substitutions.selectionCoeff == 50.0) == 1) stop(); }");										// legal
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }");											// legal
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.fixationTime = 10; stop(); }", 1, 342);									// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", 1, 342);									// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.originGeneration = 10; stop(); }", 1, 346);								// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", 1, 338);									// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", 1, 344);								// setting read-only property
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 1; stop(); }", 1, 338);										// setting read-only property
+	
+	// No methods on Substitution
 	
 	
 	// ************************************************************************************
