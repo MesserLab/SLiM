@@ -81,11 +81,20 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		{
 			if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
 			{
-				gSLiMTestFailureCount++;
-				
-				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
-				std::cerr << "   raise message: " << raise_message << endl;
-				std::cerr << "--------------------" << std::endl << std::endl;
+				if ((p_bad_line == -1) && (p_bad_position == -1))
+				{
+					gSLiMTestSuccessCount++;
+					
+					//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+				}
+				else
+				{
+					gSLiMTestFailureCount++;
+					
+					std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
+					std::cerr << "   raise message: " << raise_message << endl;
+					std::cerr << "--------------------" << std::endl << std::endl;
+				}
 			}
 			else
 			{
@@ -697,6 +706,151 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");					// legal
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");																// legal
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");												// legal
+	
+	
+	// ************************************************************************************
+	//
+	//	Gen 1+ tests: Subpopulation
+	//
+	
+	// Test Subpopulation properties
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }");									// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.firstMaleIndex == p1.firstMaleIndex) stop(); }");					// legal but undefined value in non-sexual sims
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");									// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.id == 1) stop(); }");												// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");		// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }");									// legal but always 0.0 in non-sexual sims
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.sexRatio == 0.0) stop(); }");										// legal but always 0.0 in non-sexual sims
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.individualCount == 10) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");								// legal
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.firstMaleIndex == 5) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.id == 1) stop(); }");											// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");	// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");		// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.sexRatio == 0.5) stop(); }");									// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.individualCount == 10) stop(); }");							// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");							// legal
+	
+	// Test Subpopulation - (float)fitness(Ni indices)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after subpop construction)
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after child generation)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0), 1.0)) stop(); }");							// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0:3), rep(1.0, 4))) stop(); }");					// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
+	
+	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(5); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(10); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(20); stop(); }");					// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }", 1, 250);		// non-sexual simulation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }", 1, 250);		// non-sexual simulation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 250);		// unsupported sex selector
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(5); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(10); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(20); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");			// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 270);	// unsupported sex selector
+	
+	// Test Subpopulation - (void)outputSample(integer$ sampleSize, [string$ requestedSex])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1); stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(5); stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(10); stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(20); stop(); }");						// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'M'); stop(); }", 1, 250);		// non-sexual simulation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'F'); stop(); }", 1, 250);		// non-sexual simulation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1, '*'); stop(); }");					// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 250);		// unsupported sex selector
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(5); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(10); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(20); stop(); }");					// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'M'); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'F'); stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, '*'); stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 270);	// unsupported sex selector
+	
+	// Test Subpopulation - (void)setCloningRate(numeric rate)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (p1.cloningRate == 0.0) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (p1.cloningRate == 0.5) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (p1.cloningRate == 1.0) stop(); }");								// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 250);														// out of range
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 250);														// out of range
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (identical(p1.cloningRate, c(0.0, 0.0))) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (identical(p1.cloningRate, c(0.5, 0.5))) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (identical(p1.cloningRate, c(1.0, 1.0))) stop(); }");			// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 270);													// out of range
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 270);													// out of range
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.0, 0.1))) stop(); }");	// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.5, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.5, 0.1))) stop(); }");	// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(1.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(1.0, 0.1))) stop(); }");	// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, -0.001)); stop(); }", 1, 270);											// out of range
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 1.001)); stop(); }", 1, 270);											// out of range
+	
+	// Test Subpopulation - (void)setMigrationRates(io<Subpopulation> sourceSubpops, numeric rates)
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 0.1); } 10 { stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(3, 0.1); } 10 { stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.1, 0.1)); } 10 { stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(1, 0.1); } 10 { stop(); }", 1, 300);					// self-reference
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(4, 0.1); } 10 { stop(); }", 1, 300);					// non-existent subpop
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 1), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// self-reference
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 4), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// non-existent subpop
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// duplicate reference
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(p2, p2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);	// duplicate reference
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), 0.1); } 10 { stop(); }", 1, 300);				// size mismatch
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, c(0.1, 0.1)); } 10 { stop(); }", 1, 300);			// size mismatch
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, -0.0001); } 10 { stop(); }", 1, 300);				// rate out of range
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 1.0001); } 10 { stop(); }", 1, 300);					// rate out of range
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.6, 0.6)); } 10 { stop(); }", -1, -1);		// total rates out of range; raise is from EvolveSubpopulation(), we don't want to force constraints prematurely
+	
+	// Test Subpopulation - (void)setSelfingRate(numeric$ rate)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.0); } 10 { if (p1.selfingRate == 0.0) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } 10 { if (p1.selfingRate == 0.5) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(1.0); } 10 { if (p1.selfingRate == 1.0) stop(); }");			// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(-0.001); }", 1, 250);											// out of range
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(1.001); }", 1, 250);											// out of range
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.0); stop(); }");											// we permit this, since a rate of 0.0 makes sense even in sexual sims
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.1); stop(); }", 1, 270);									// no selfing in sexual simulations
+	
+	// Test Subpopulation - (void)setSexRatio(float$ sexRatio)
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.0); stop(); }", 1, 250);										// no sex ratio in nonsexual simulations
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.1); stop(); }", 1, 250);										// no sex ratio in nonsexual simulations
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.0); } 10 { if (p1.sexRatio == 0.0) stop(); }", 1, 270);		// produces no males
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.1); } 10 { if (p1.sexRatio == 0.1) stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } 10 { if (p1.sexRatio == 0.5) stop(); }");				// legal
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.9); } 10 { if (p1.sexRatio == 0.9) stop(); }");				// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.0); } 10 { if (p1.sexRatio == 1.0) stop(); }", 1, 270);		// produces no females
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(-0.001); }", 1, 270);											// out of range
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.001); }", 1, 270);											// out of range
+	
+	// Test Subpopulation - (void)setSubpopulationSize(integer$ size)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); stop(); }");													// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }");					// legal; does not take visible effect until child generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); } 2 { if (p1.individualCount == 0) stop(); }", 1, 285);		// p1 undefined after child generation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); stop(); }");													// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }");					// legal; does not take visible effect until child generation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }");				// p1 undefined after child generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250);										// legal
 	
 	
 	// ************************************************************************************
