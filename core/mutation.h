@@ -47,7 +47,7 @@ public:
 	MutationType *mutation_type_ptr_;					// mutation type identifier
 	const slim_position_t position_;					// position on the chromosome
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
-	const slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
+	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t generation_;				// generation in which mutation arose
 	mutable slim_refcount_t reference_count_;			// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
 #ifdef SLIMGUI
