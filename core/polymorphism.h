@@ -49,7 +49,7 @@ public:
 	Polymorphism(void) = delete;				// no null construction
 	Polymorphism(int p_mutation_id, const MutationType *p_mutation_type_ptr, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_refcount_t p_prevalence);
 	
-	void print(std::ostream &p_out, slim_position_t p_index, bool include_id = true) const;
+	void print(std::ostream &p_out, slim_position_t p_index, bool p_include_id = true) const;
 };
 
 

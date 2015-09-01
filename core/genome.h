@@ -111,13 +111,13 @@ public:
 		return mutations_[index];
 	}
 	
-	inline Mutation *& operator[] (int index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline Mutation *& operator[] (int p_index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 	{
 #ifdef DEBUG
 		if (mutations_ == nullptr)
 			NullGenomeAccessError();
 #endif
-		return mutations_[index];
+		return mutations_[p_index];
 	}
 	
 	inline int size(void)

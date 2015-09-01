@@ -90,7 +90,7 @@ public:
 	inline const EidosASTNode *AST(void) const						{ return parse_root_; }
 	
 	// Parsing methods; see grammar for definitions
-	void Consume();
+	void Consume(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
 	
 	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
@@ -110,7 +110,7 @@ public:
 		gEidosCharacterEndOfError = p_saved_position.characterEndOfError;
 	}
 	
-	static inline void ClearErrorPosition()
+	static inline void ClearErrorPosition(void)
 	{
 		gEidosCharacterStartOfError = -1;
 		gEidosCharacterEndOfError = -1;

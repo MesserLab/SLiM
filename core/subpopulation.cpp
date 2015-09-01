@@ -293,7 +293,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 #endif
 }
 
-double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2)
+double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *p_genome1, Genome *p_genome2)
 {
 	slim_objectid_t mutation_type_id = p_mutation->mutation_type_ptr_->mutation_type_id_;
 	SLiMSim &sim = population_.sim_;
@@ -351,9 +351,9 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, &local_relFitness);
 						}
 						if (fitness_callback->contains_genome1_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, genome1->CachedEidosValue());
+							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, p_genome1->CachedEidosValue());
 						if (fitness_callback->contains_genome2_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome2, genome2->CachedEidosValue());
+							global_symbols.InitializeConstantSymbolEntry(gStr_genome2, p_genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
 							global_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
 						

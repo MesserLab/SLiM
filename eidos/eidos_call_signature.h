@@ -57,7 +57,7 @@ public:
 	// C++ doesn't have Objective-C's instancetype return, but that's what is needed for all of these...
 	// instead, callers will have to cast back to the correct subclass type
 	EidosCallSignature *AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class);
-	EidosCallSignature *AddEllipsis();
+	EidosCallSignature *AddEllipsis(void);
 	
 	// vanilla type-specified arguments
 	EidosCallSignature *AddLogical(const std::string &p_argument_name);
@@ -166,7 +166,7 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_signature);
-bool CompareEidosCallSignatures(const EidosCallSignature *i, const EidosCallSignature *j);
+bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j);
 
 
 class EidosFunctionSignature : public EidosCallSignature

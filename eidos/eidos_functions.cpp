@@ -3380,12 +3380,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 	return result;
 }
 
-EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count)
+EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *p_method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count)
 {
 	EidosValue *result = nullptr;
 	
 	// Get the function signature and check our arguments against it
-	const EidosObjectClass *object_class = method_object->Class();
+	const EidosObjectClass *object_class = p_method_object->Class();
 	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
 	
 	if (!method_signature)
@@ -3397,7 +3397,7 @@ EidosValue *EidosInterpreter::ExecuteMethodCall(EidosValue_Object *method_object
 	if (method_signature->is_class_method)
 		result = object_class->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, *this);
 	else
-		result = method_object->ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
+		result = p_method_object->ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
 	
 	// Check the return value against the signature
 	method_signature->CheckReturn(result);

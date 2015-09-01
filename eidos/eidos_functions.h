@@ -152,7 +152,7 @@ enum class EidosFunctionIdentifier {
 // functions with Eidos; this is how the Context can get its functions into Eidos.  This registration is done with a delegate object and
 // a delegate function pointer (NOT a pointer to method).  This is the prototype for a function implementation delegate.  The function
 // pointed to will be called, and passed the delegate object along with other parameters for the function call.
-typedef EidosValue *(*EidosDelegateFunctionPtr)(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+typedef EidosValue *(*EidosDelegateFunctionPtr)(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 
 #endif /* defined(__Eidos__eidos_functions__) */

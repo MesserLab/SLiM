@@ -31,9 +31,9 @@ Polymorphism::Polymorphism(int p_mutation_id, const MutationType *p_mutation_typ
 {
 }
 
-void Polymorphism::print(std::ostream &p_out, slim_position_t p_index, bool include_id /* = true*/) const
+void Polymorphism::print(std::ostream &p_out, slim_position_t p_index, bool p_include_id /* = true*/) const
 {
-	if (include_id)
+	if (p_include_id)
 		p_out << mutation_id_ << " ";
 	
 	p_out << "m" << mutation_type_ptr_->mutation_type_id_ << " " << p_index << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " " << prevalence_ << std::endl;		// used to have a +1 on p_index, which is the position; switched to zero-based

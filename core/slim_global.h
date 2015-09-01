@@ -80,92 +80,92 @@ typedef float slim_selcoeff_t;		// storage of selection coefficients in memory-t
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
-void SLiMRaiseGenerationRangeError(int64_t long_value);
-void SLiMRaisePositionRangeError(int64_t long_value);
-void SLiMRaiseObjectidRangeError(int64_t long_value);
-void SLiMRaisePopsizeRangeError(int64_t long_value);
-void SLiMRaiseUsertagRangeError(int64_t long_value);
+void SLiMRaiseGenerationRangeError(int64_t p_long_value);
+void SLiMRaisePositionRangeError(int64_t p_long_value);
+void SLiMRaiseObjectidRangeError(int64_t p_long_value);
+void SLiMRaisePopsizeRangeError(int64_t p_long_value);
+void SLiMRaiseUsertagRangeError(int64_t p_long_value);
 
-inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationTypeOrRaise(int64_t long_value)
+inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationTypeOrRaise(int64_t p_long_value)
 {
-	if ((long_value < 1) || (long_value > SLIM_MAX_GENERATION))
-		SLiMRaiseGenerationRangeError(long_value);
+	if ((p_long_value < 1) || (p_long_value > SLIM_MAX_GENERATION))
+		SLiMRaiseGenerationRangeError(p_long_value);
 	
-	return static_cast<slim_generation_t>(long_value);
+	return static_cast<slim_generation_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRaise(int64_t long_value)
+inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRaise(int64_t p_long_value)
 {
-	if ((long_value < 0) || (long_value > SLIM_MAX_BASE_POSITION))
-		SLiMRaisePositionRangeError(long_value);
+	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_BASE_POSITION))
+		SLiMRaisePositionRangeError(p_long_value);
 	
-	return static_cast<slim_position_t>(long_value);
+	return static_cast<slim_position_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRaise(int64_t long_value)
+inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRaise(int64_t p_long_value)
 {
-	if ((long_value < 0) || (long_value > SLIM_MAX_ID_VALUE))
-		SLiMRaiseObjectidRangeError(long_value);
+	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_ID_VALUE))
+		SLiMRaiseObjectidRangeError(p_long_value);
 	
-	return static_cast<slim_objectid_t>(long_value);
+	return static_cast<slim_objectid_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_popsize_t SLiMCastToPopsizeTypeOrRaise(int64_t long_value)
+inline __attribute__((always_inline)) slim_popsize_t SLiMCastToPopsizeTypeOrRaise(int64_t p_long_value)
 {
-	if ((long_value < 0) || (long_value > SLIM_MAX_SUBPOP_SIZE))
-		SLiMRaisePopsizeRangeError(long_value);
+	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_SUBPOP_SIZE))
+		SLiMRaisePopsizeRangeError(p_long_value);
 	
-	return static_cast<slim_popsize_t>(long_value);
+	return static_cast<slim_popsize_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRaise(int64_t long_value)
+inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRaise(int64_t p_long_value)
 {
 	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
 	// SLiMRaiseUsertagRangeError(long_value);
 	
-	return static_cast<slim_usertag_t>(long_value);
+	return static_cast<slim_usertag_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_generation_t SLiMClampToGenerationType(int64_t long_value)
+inline __attribute__((always_inline)) slim_generation_t SLiMClampToGenerationType(int64_t p_long_value)
 {
-	if (long_value < 1)
+	if (p_long_value < 1)
 		return 1;
-	if (long_value > SLIM_MAX_GENERATION)
+	if (p_long_value > SLIM_MAX_GENERATION)
 		return SLIM_MAX_GENERATION;
-	return static_cast<slim_generation_t>(long_value);
+	return static_cast<slim_generation_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_position_t SLiMClampToPositionType(int64_t long_value)
+inline __attribute__((always_inline)) slim_position_t SLiMClampToPositionType(int64_t p_long_value)
 {
-	if (long_value < 0)
+	if (p_long_value < 0)
 		return 0;
-	if (long_value > SLIM_MAX_BASE_POSITION)
+	if (p_long_value > SLIM_MAX_BASE_POSITION)
 		return SLIM_MAX_BASE_POSITION;
-	return static_cast<slim_position_t>(long_value);
+	return static_cast<slim_position_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_objectid_t SLiMClampToObjectidType(int64_t long_value)
+inline __attribute__((always_inline)) slim_objectid_t SLiMClampToObjectidType(int64_t p_long_value)
 {
-	if (long_value < 0)
+	if (p_long_value < 0)
 		return 0;
-	if (long_value > SLIM_MAX_ID_VALUE)
+	if (p_long_value > SLIM_MAX_ID_VALUE)
 		return SLIM_MAX_ID_VALUE;
-	return static_cast<slim_objectid_t>(long_value);
+	return static_cast<slim_objectid_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_popsize_t SLiMClampToPopsizeType(int64_t long_value)
+inline __attribute__((always_inline)) slim_popsize_t SLiMClampToPopsizeType(int64_t p_long_value)
 {
-	if (long_value < 0)
+	if (p_long_value < 0)
 		return 0;
-	if (long_value > SLIM_MAX_SUBPOP_SIZE)
+	if (p_long_value > SLIM_MAX_SUBPOP_SIZE)
 		return SLIM_MAX_SUBPOP_SIZE;
-	return static_cast<slim_popsize_t>(long_value);
+	return static_cast<slim_popsize_t>(p_long_value);
 }
 
-inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int64_t long_value)
+inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int64_t p_long_value)
 {
 	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
-	return static_cast<slim_usertag_t>(long_value);
+	return static_cast<slim_usertag_t>(p_long_value);
 }
 
 
@@ -216,8 +216,8 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 //
 
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
-size_t getPeakRSS( );
-size_t getCurrentRSS( );
+size_t getPeakRSS(void);
+size_t getCurrentRSS(void);
 
 
 // *******************************************************************************************************************

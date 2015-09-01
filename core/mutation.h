@@ -62,7 +62,7 @@ public:
 	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation);
 	
 #if DEBUG_MUTATIONS
-	~Mutation();										// destructor, if we are debugging
+	~Mutation(void);									// destructor, if we are debugging
 #endif
 	
 	//

@@ -99,7 +99,7 @@ public:
 };
 
 // draw the number of mutations that occur, based on the overall mutation rate
-inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
+inline __attribute__((always_inline)) int Chromosome::DrawMutationCount(void) const
 {
 #ifdef USE_GSL_POISSON
 	return gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
@@ -109,7 +109,7 @@ inline __attribute__((always_inline)) int Chromosome::DrawMutationCount() const
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
-inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount() const
+inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(void) const
 {
 #ifdef USE_GSL_POISSON
 	return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);

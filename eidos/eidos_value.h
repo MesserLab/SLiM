@@ -181,8 +181,8 @@ public:
 	inline bool IsTemporary(void) const							{ return !(external_temporary_ || external_permanent_); };
 	inline bool IsExternalTemporary(void) const					{ return external_temporary_; };
 	inline bool IsExternalPermanent(void) const					{ return external_permanent_; };
-	inline EidosValue *SetExternalTemporary()					{ external_temporary_ = true; return this; };
-	inline EidosValue *SetExternalPermanent()					{ external_permanent_ = true; return this; };
+	inline EidosValue *SetExternalTemporary(void)				{ external_temporary_ = true; return this; };
+	inline EidosValue *SetExternalPermanent(void)				{ external_permanent_ = true; return this; };
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;

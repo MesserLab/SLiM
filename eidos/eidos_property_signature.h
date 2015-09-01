@@ -53,7 +53,7 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature);
-bool CompareEidosPropertySignatures(const EidosPropertySignature *i, const EidosPropertySignature *j);
+bool CompareEidosPropertySignatures(const EidosPropertySignature *p_i, const EidosPropertySignature *p_j);
 
 
 #endif /* defined(__Eidos__eidos_property_signature__) */

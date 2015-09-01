@@ -88,7 +88,7 @@ void GenomicElementType::InitializeDraws(void)
 	}
 }
 
-MutationType *GenomicElementType::DrawMutationType() const
+MutationType *GenomicElementType::DrawMutationType(void) const
 {
 	if (!lookup_mutation_type_)
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << eidos_terminate();

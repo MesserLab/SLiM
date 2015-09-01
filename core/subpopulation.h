@@ -122,7 +122,7 @@ public:
 	inline IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks);							// update the fitness lookup table based upon current mutations
 	double FitnessOfParentWithGenomeIndices(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks);	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *genome1, Genome *genome2);
+	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *p_genome1, Genome *p_genome2);
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	
 	//

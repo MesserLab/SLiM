@@ -56,7 +56,7 @@ extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_termina
 
 
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
-void eidos_print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63);
+void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
 void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script);

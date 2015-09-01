@@ -53,7 +53,7 @@ void EidosInitializeRNGFromSeed(unsigned long int p_seed);
 
 // optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
 // I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
-static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
+static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r)
 {
 	bool retval;
 	
@@ -65,7 +65,7 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
 	}
 	else
 	{
-		gEidos_random_bool_bit_buffer = (uint32_t)gsl_rng_get(r);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
+		gEidos_random_bool_bit_buffer = (uint32_t)gsl_rng_get(p_r);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
 		retval = gEidos_random_bool_bit_buffer & 0x01;
 		gEidos_random_bool_bit_counter = 31;				// 32 good bits originally, and now we've used one
 	}
@@ -86,17 +86,17 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *r)
 
 #ifndef USE_GSL_POISSON
 
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double mu)
+static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu)
 {
 	unsigned int x = 0;
-	double p = exp(-mu);
+	double p = exp(-p_mu);
 	double s = p;
 	double u = gsl_rng_uniform(gEidos_rng);
 	
 	while (u > s)
 	{
 		++x;
-		p *= (mu / x);
+		p *= (p_mu / x);
 		s += p;
 	}
 	
@@ -104,17 +104,17 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 }
 
 // This version allows the caller to supply a precalculated exp(-mu) value
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double mu, double exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu, double p_exp_neg_mu)
 {
 	unsigned int x = 0;
-	double p = exp_neg_mu;
+	double p = p_exp_neg_mu;
 	double s = p;
 	double u = gsl_rng_uniform(gEidos_rng);
 	
 	while (u > s)
 	{
 		++x;
-		p *= (mu / x);
+		p *= (p_mu / x);
 		s += p;
 	}
 	
@@ -122,10 +122,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 }
 
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson_nonzero(double mu, double exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson_nonzero(double p_mu, double p_exp_neg_mu)
 {
 	unsigned int x = 0;
-	double p = exp_neg_mu;
+	double p = p_exp_neg_mu;
 	double s = p;
 	double u = gsl_rng_uniform_pos(gEidos_rng);	// exclude 0.0 so u != s after rescaling
 	
@@ -134,13 +134,13 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	
 	// do the first round, since we now know u > s
 	++x;
-	p *= mu;
+	p *= p_mu;
 	s += p;
 	
 	while (u > s)
 	{
 		++x;
-		p *= (mu / x);
+		p *= (p_mu / x);
 		s += p;
 	}
 	

@@ -374,7 +374,7 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
-void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant)
+void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bool p_remove_constant)
 {
 	int key_length = (int)p_symbol_name.length();
 	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
@@ -384,7 +384,7 @@ void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bo
 		EidosSymbolTableSlot *symbol_slot_ptr = symbols_ + symbol_slot;
 		EidosValue *value = symbol_slot_ptr->symbol_value_;
 		
-		if (symbol_slot_ptr->symbol_is_const_ && !remove_constant)
+		if (symbol_slot_ptr->symbol_is_const_ && !p_remove_constant)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
 		
 		// see comment on our destructor, above

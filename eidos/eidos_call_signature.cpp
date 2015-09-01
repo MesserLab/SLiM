@@ -72,7 +72,7 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	return this;
 }
 
-EidosCallSignature *EidosCallSignature::AddEllipsis()
+EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 {
 	if (has_optional_args_)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << eidos_terminate(nullptr);
@@ -339,9 +339,9 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 	return p_outstream;
 }
 
-bool CompareEidosCallSignatures(const EidosCallSignature *i, const EidosCallSignature *j)
+bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j)
 {
-	return (i->function_name_ < j->function_name_);
+	return (p_i->function_name_ < p_j->function_name_);
 }
 
 

@@ -40,7 +40,7 @@ using std::ifstream;
 using std::vector;
 
 
-SLiMSim::SLiMSim(std::istream &infile, unsigned long int *p_override_seed_ptr) : population_(*this)
+SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this)
 {
 	// track the random number seed given, if there is one
 	if (p_override_seed_ptr)
@@ -59,9 +59,9 @@ SLiMSim::SLiMSim(std::istream &infile, unsigned long int *p_override_seed_ptr) :
 	SLiM_RegisterGlobalStringsAndIDs();
 	
 	// read all configuration information from the input file
-	infile.clear();
-	infile.seekg(0, std::fstream::beg);
-	InitializeFromFile(infile);
+	p_infile.clear();
+	p_infile.seekg(0, std::fstream::beg);
+	InitializeFromFile(p_infile);
 }
 
 SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this)
@@ -123,7 +123,7 @@ SLiMSim::~SLiMSim(void)
 		delete cached_value_generation_;
 }
 
-void SLiMSim::InitializeFromFile(std::istream &infile)
+void SLiMSim::InitializeFromFile(std::istream &p_infile)
 {
 	if (!rng_seed_supplied_to_constructor_)
 		rng_seed_ = EidosGenerateSeedFromPIDAndTime();
@@ -134,7 +134,7 @@ void SLiMSim::InitializeFromFile(std::istream &infile)
 	// Read in the file; going through stringstream is fast...
 	std::stringstream buffer;
 	
-	buffer << infile.rdbuf();
+	buffer << p_infile.rdbuf();
 	
 	// Tokenize and parse
 	script_ = new SLiMEidosScript(buffer.str());
@@ -521,7 +521,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	chromosome_.InitializeDraws();
 }
 
-slim_generation_t SLiMSim::EstimatedLastGeneration()
+slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 {
 	slim_generation_t last_gen = 1;
 	
@@ -710,9 +710,9 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-EidosValue *SLiMSim::StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue *SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	SLiMSim *sim = static_cast<SLiMSim *>(delegate);
+	SLiMSim *sim = static_cast<SLiMSim *>(p_delegate);
 	
 	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_argument_count, p_interpreter);
 }

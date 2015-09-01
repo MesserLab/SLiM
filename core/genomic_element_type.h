@@ -69,7 +69,7 @@ public:
 	~GenomicElementType(void);
 	
 	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions
-	MutationType *DrawMutationType() const;						// draw a mutation type from the distribution for this genomic element type
+	MutationType *DrawMutationType(void) const;					// draw a mutation type from the distribution for this genomic element type
 	
 	//
 	// Eidos support

@@ -92,7 +92,7 @@ public:
 	EidosValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
 	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
 	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
-	void RemoveValueForSymbol(const std::string &p_symbol_name, bool remove_constant);
+	void RemoveValueForSymbol(const std::string &p_symbol_name, bool p_remove_constant);
 	
 	// Special-purpose methods used for fast setup of new symbol tables; these methods require an externally-owned, non-invisible
 	// EidosValue that is guaranteed by the caller to live longer than we will live; no copy is made of the value!

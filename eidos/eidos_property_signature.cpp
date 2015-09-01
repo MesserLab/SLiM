@@ -138,9 +138,9 @@ ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signat
 	return p_outstream;
 }
 
-bool CompareEidosPropertySignatures(const EidosPropertySignature *i, const EidosPropertySignature *j)
+bool CompareEidosPropertySignatures(const EidosPropertySignature *p_i, const EidosPropertySignature *p_j)
 {
-	return (i->property_name_ < j->property_name_);
+	return (p_i->property_name_ < p_j->property_name_);
 }
 
 

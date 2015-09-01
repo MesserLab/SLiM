@@ -748,7 +748,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
+void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -771,11 +771,11 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
 	
-	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
+	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.GenomeType();
-	Genome *parent_genome_1 = &(source_subpop->parent_genomes_[p_parent1_genome_index]);
+	Genome *parent_genome_1 = &(p_source_subpop->parent_genomes_[p_parent1_genome_index]);
 	GenomeType parent1_genome_type = parent_genome_1->GenomeType();
-	Genome *parent_genome_2 = &(source_subpop->parent_genomes_[p_parent2_genome_index]);
+	Genome *parent_genome_2 = &(p_source_subpop->parent_genomes_[p_parent2_genome_index]);
 	GenomeType parent2_genome_type = parent_genome_2->GenomeType();
 	
 	if (child_genome_type == GenomeType::kAutosome)
@@ -927,7 +927,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		if (num_breakpoints == 0)
 		{
 			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
-			child_genome.copy_from_genome(source_subpop->parent_genomes_[p_parent1_genome_index]);
+			child_genome.copy_from_genome(p_source_subpop->parent_genomes_[p_parent1_genome_index]);
 		}
 		else
 		{
@@ -939,11 +939,11 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
 			// do the crossover
-			Mutation **parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
-			Mutation **parent2_iter		= source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
+			Mutation **parent1_iter		= p_source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
+			Mutation **parent2_iter		= p_source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
 			
-			Mutation **parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
-			Mutation **parent2_iter_max	= source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
+			Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
+			Mutation **parent2_iter_max	= p_source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
 			
 			Mutation **parent_iter		= parent1_iter;
 			Mutation **parent_iter_max	= parent1_iter_max;
@@ -1001,11 +1001,11 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
-		Mutation **parent1_iter		= source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
-		Mutation **parent2_iter		= (num_breakpoints == 0) ? nullptr : source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
+		Mutation **parent1_iter		= p_source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
+		Mutation **parent2_iter		= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
 		
-		Mutation **parent1_iter_max	= source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
-		Mutation **parent2_iter_max	= (num_breakpoints == 0) ? nullptr : source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
+		Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
+		Mutation **parent2_iter_max	= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
 		
 		Mutation **mutation_iter		= mutations_to_add.begin_pointer();
 		Mutation **mutation_iter_max	= mutations_to_add.end_pointer();
@@ -1094,7 +1094,7 @@ void Population::DoCrossoverMutation(Subpopulation *subpop, Subpopulation *sourc
 	}
 }
 
-void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
+void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
 #pragma unused(p_child_sex)
 #ifdef DEBUG
@@ -1102,9 +1102,9 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << eidos_terminate();
 #endif
 	
-	Genome &child_genome = subpop->child_genomes_[p_child_genome_index];
+	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.GenomeType();
-	Genome *parent_genome = &(source_subpop->parent_genomes_[p_parent_genome_index]);
+	Genome *parent_genome = &(p_source_subpop->parent_genomes_[p_parent_genome_index]);
 	GenomeType parent_genome_type = parent_genome->GenomeType();
 	
 	if (child_genome_type != parent_genome_type)
@@ -1133,7 +1133,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 	if (num_mutations == 0)
 	{
 		// no mutations, so the child genome is just a copy of the parental genome
-		child_genome.copy_from_genome(source_subpop->parent_genomes_[p_parent_genome_index]);
+		child_genome.copy_from_genome(p_source_subpop->parent_genomes_[p_parent_genome_index]);
 	}
 	else
 	{
@@ -1149,8 +1149,8 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 		}
 		
 		// interleave the parental genome with the new mutations
-		Mutation **parent_iter		= source_subpop->parent_genomes_[p_parent_genome_index].begin_pointer();
-		Mutation **parent_iter_max	= source_subpop->parent_genomes_[p_parent_genome_index].end_pointer();
+		Mutation **parent_iter		= p_source_subpop->parent_genomes_[p_parent_genome_index].begin_pointer();
+		Mutation **parent_iter_max	= p_source_subpop->parent_genomes_[p_parent_genome_index].end_pointer();
 		Mutation **mutation_iter		= mutations_to_add.begin_pointer();
 		Mutation **mutation_iter_max	= mutations_to_add.end_pointer();
 		
@@ -1184,7 +1184,7 @@ void Population::DoClonalMutation(Subpopulation *subpop, Subpopulation *source_s
 
 #ifdef SLIMGUI
 // This method is used to record population statistics that are kept per generation for SLiMgui
-void Population::SurveyPopulation()
+void Population::SurveyPopulation(void)
 {
 	// Calculate mean fitness for this generation; this integrates the subpop mean fitness values from UpdateFitness()
 	double totalFitness = 0.0;
@@ -1248,7 +1248,7 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 #endif
 
 // step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations()
+void Population::SwapGenerations(void)
 {
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences();
@@ -1410,7 +1410,7 @@ void Population::TallyMutationReferences(void)
 }
 
 // handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
-void Population::RemoveFixedMutations()
+void Population::RemoveFixedMutations(void)
 {
 	Genome removed_mutation_accumulator;
 	Genome fixed_mutation_accumulator;

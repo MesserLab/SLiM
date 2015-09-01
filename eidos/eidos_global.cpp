@@ -52,19 +52,19 @@ bool gEidosTerminated;
 
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
-void eidos_print_stacktrace(FILE *out, unsigned int max_frames)
+void eidos_print_stacktrace(FILE *p_out, unsigned int p_max_frames)
 {
-	fprintf(out, "stack trace:\n");
+	fprintf(p_out, "stack trace:\n");
 	
 	// storage array for stack trace address data
-	void* addrlist[max_frames+1];
+	void* addrlist[p_max_frames+1];
 	
 	// retrieve current stack addresses
 	int addrlen = backtrace(addrlist, static_cast<int>(sizeof(addrlist) / sizeof(void*)));
 	
 	if (addrlen == 0)
 	{
-		fprintf(out, "  <empty, possibly corrupt>\n");
+		fprintf(p_out, "  <empty, possibly corrupt>\n");
 		return;
 	}
 	
@@ -187,26 +187,26 @@ void eidos_print_stacktrace(FILE *out, unsigned int max_frames)
 			if (status == 0)
 			{
 				funcname = ret; // use possibly realloc()-ed string
-				fprintf(out, "  %s : %s + %s\n", symbollist[i], funcname, begin_offset);
+				fprintf(p_out, "  %s : %s + %s\n", symbollist[i], funcname, begin_offset);
 			}
 			else
 			{
 				// demangling failed. Output function name as a C function with
 				// no arguments.
-				fprintf(out, "  %s : %s() + %s\n", symbollist[i], begin_name, begin_offset);
+				fprintf(p_out, "  %s : %s() + %s\n", symbollist[i], begin_name, begin_offset);
 			}
 		}
 		else
 		{
 			// couldn't parse the line? print the whole line.
-			fprintf(out, "URF:  %s\n", symbollist[i]);
+			fprintf(p_out, "URF:  %s\n", symbollist[i]);
 		}
 	}
 	
 	free(funcname);
 	free(symbollist);
 	
-	fflush(out);
+	fflush(p_out);
 }
 
 void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script)

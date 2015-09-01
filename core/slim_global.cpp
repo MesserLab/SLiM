@@ -26,29 +26,29 @@ std::ostringstream gSLiMOut;
 
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
-void SLiMRaiseGenerationRangeError(int64_t long_value)
+void SLiMRaiseGenerationRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseGenerationRangeError): value " << long_value << " for a generation index or duration is out of range." << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMRaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << "." << eidos_terminate();
 }
 
-void SLiMRaisePositionRangeError(int64_t long_value)
+void SLiMRaisePositionRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaisePositionRangeError): value " << long_value << " for a chromosome position or length is out of range." << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMRaisePositionRangeError): value " << p_long_value << " for a chromosome position or length is out of range." << "." << eidos_terminate();
 }
 
-void SLiMRaiseObjectidRangeError(int64_t long_value)
+void SLiMRaiseObjectidRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseObjectidRangeError): value " << long_value << " for a SLiM object identifier value is out of range." << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMRaiseObjectidRangeError): value " << p_long_value << " for a SLiM object identifier value is out of range." << "." << eidos_terminate();
 }
 
-void SLiMRaisePopsizeRangeError(int64_t long_value)
+void SLiMRaisePopsizeRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaisePopsizeRangeError): value " << long_value << " for a subpopulation size, individual index, or genome index is out of range." << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMRaisePopsizeRangeError): value " << p_long_value << " for a subpopulation size, individual index, or genome index is out of range." << "." << eidos_terminate();
 }
 
-void SLiMRaiseUsertagRangeError(int64_t long_value)
+void SLiMRaiseUsertagRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseUsertagRangeError): value " << long_value << " for a user-supplied tag is out of range." << "." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMRaiseUsertagRangeError): value " << p_long_value << " for a user-supplied tag is out of range." << "." << eidos_terminate();
 }
 
 
@@ -357,7 +357,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
  * memory use) measured in bytes, or zero if the value cannot be
  * determined on this OS.
  */
-size_t getPeakRSS( )
+size_t getPeakRSS(void)
 {
 #if defined(_WIN32)
 	/* Windows -------------------------------------------------- */
@@ -403,7 +403,7 @@ size_t getPeakRSS( )
  * Returns the current resident set size (physical memory use) measured
  * in bytes, or zero if the value cannot be determined on this OS.
  */
-size_t getCurrentRSS( )
+size_t getCurrentRSS(void)
 {
 #if defined(_WIN32)
 	/* Windows -------------------------------------------------- */

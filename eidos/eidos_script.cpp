@@ -395,7 +395,7 @@ void EidosScript::AddOptionalSemicolon(void)
 	}
 }
 
-void EidosScript::Consume()
+void EidosScript::Consume(void)
 {
 	// consume the token unless it is an EOF; we effectively have an infinite number of EOF tokens at the end
 	if (current_token_type_ != EidosTokenType::kTokenEOF)

@@ -43,7 +43,7 @@ Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position
 }
 
 #if DEBUG_MUTATIONS
-Mutation::~Mutation()
+Mutation::~Mutation(void)
 {
 	EIDOS_OUTSTREAM << "Mutation destructed: " << this << std::endl;
 }

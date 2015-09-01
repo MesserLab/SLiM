@@ -470,7 +470,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 	}
 }
 
-void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTNode *p_lvalue_node)
+void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosASTNode *p_lvalue_node)
 {
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
@@ -502,18 +502,18 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			_ProcessSubscriptAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
 			
 			int index_count = (int)indices.size();
-			int rvalue_count = rvalue->Count();
+			int rvalue_count = p_rvalue->Count();
 			
 			if (rvalue_count == 1)
 			{
 				if (property_string_id == gEidosID_none)
 				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
+					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(p_rvalue, base_value))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
-						base_value->SetValueAtIndex(indices[value_idx], rvalue, nullptr);
+						base_value->SetValueAtIndex(indices[value_idx], p_rvalue, nullptr);
 				}
 				else
 				{
@@ -527,7 +527,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
 						
-						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, rvalue);
+						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, p_rvalue);
 						
 						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
 					}
@@ -537,13 +537,13 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			{
 				if (property_string_id == gEidosID_none)
 				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
+					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(p_rvalue, base_value))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
-						EidosValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx, nullptr);
+						EidosValue *temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
 						
 						base_value->SetValueAtIndex(indices[value_idx], temp_rvalue, nullptr);
 						
@@ -557,7 +557,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
 						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
-						EidosValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx, nullptr);
+						EidosValue *temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
@@ -603,7 +603,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID_, rvalue);
+			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID_, p_rvalue);
 			break;
 		}
 		case EidosTokenType::kTokenIdentifier:
@@ -614,7 +614,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 #endif
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, rvalue);
+			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, p_rvalue);
 			break;
 		}
 		default:
@@ -3420,11 +3420,11 @@ int64_t EidosInterpreter::IntegerForString(const std::string &p_number_string, c
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
 	}
@@ -3433,7 +3433,7 @@ int64_t EidosInterpreter::IntegerForString(const std::string &p_number_string, c
 		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString(): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
 		
 		return converted_value;
 	}
@@ -3474,7 +3474,7 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
 		
 		return new EidosValue_Float_singleton_const(converted_value);
 	}
@@ -3483,11 +3483,11 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
 		return new EidosValue_Int_singleton_const(static_cast<int64_t>(converted_value));
 	}
@@ -3496,7 +3496,7 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString(): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
 		
 		return new EidosValue_Int_singleton_const(converted_value);
 	}

@@ -78,7 +78,7 @@ public:
 #endif
 	~MutationType(void);
 	
-	double DrawSelectionCoefficient() const;					// draw a selection coefficient from this mutation type's DFE
+	double DrawSelectionCoefficient(void) const;					// draw a selection coefficient from this mutation type's DFE
 	
 	//
 	// Eidos support

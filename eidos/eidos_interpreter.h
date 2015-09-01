@@ -107,7 +107,7 @@ public:
 	EidosValue *EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in Eidos, which do not require braces
 	
 	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
-	void _AssignRValueToLValue(EidosValue *rvalue, const EidosASTNode *p_lvalue_node);
+	void _AssignRValueToLValue(EidosValue *p_rvalue, const EidosASTNode *p_lvalue_node);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue *EvaluateNode(const EidosASTNode *p_node);
@@ -152,7 +152,7 @@ public:
 	inline void RegisterFunctionMap(EidosFunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
 	EidosValue *ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, EidosValue *const *const p_arguments, int p_argument_count);
-	EidosValue *ExecuteMethodCall(EidosValue_Object *method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count);
+	EidosValue *ExecuteMethodCall(EidosValue_Object *p_method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count);
 	
 	// Utility static methods for numeric conversions
 	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);

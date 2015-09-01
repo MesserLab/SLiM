@@ -84,7 +84,7 @@ private:
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
-	void InitializeFromFile(std::istream &infile);									// parse a input file and set up the simulation state from its contents
+	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
 	int num_mutation_types_;
@@ -109,7 +109,7 @@ public:
 	
 	SLiMSim(const SLiMSim&) = delete;														// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;											// no copying
-	SLiMSim(std::istream &infile, unsigned long int *p_override_seed_ptr = nullptr);		// construct a SLiMSim from an input stream, with an optional RNG seed value
+	SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr = nullptr);		// construct a SLiMSim from an input stream, with an optional RNG seed value
 	SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr = nullptr);	// construct a SLiMSim from an input file, with an optional RNG seed value
 	~SLiMSim(void);																			// destructor
 	
@@ -120,7 +120,7 @@ public:
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
 	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
-	slim_generation_t EstimatedLastGeneration();									// derived from the last generation in which an Eidos block is registered
+	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
 	
 	// accessors
 	inline slim_generation_t Generation(void) const									{ return generation_; }
@@ -139,7 +139,7 @@ public:
 	void GenerateCachedSymbolTableEntry(void);
 	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
-	static EidosValue *StaticFunctionDelegationFunnel(void *delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	static EidosValue *StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance

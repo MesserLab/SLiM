@@ -63,7 +63,7 @@ MutationType::~MutationType(void)
 		delete cached_value_muttype_id_;
 }
 
-double MutationType::DrawSelectionCoefficient() const
+double MutationType::DrawSelectionCoefficient(void) const
 {
 	switch (dfe_type_)
 	{
