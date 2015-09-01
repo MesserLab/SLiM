@@ -44,9 +44,9 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 	static string possible_dfe_types = "fge";
 	
 	if (possible_dfe_types.find(dfe_type_) == string::npos)
-		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type '" << dfe_type_ << "'" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type '" << dfe_type_ << "'." << eidos_terminate();
 	if (dfe_parameters_.size() == 0)
-		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
 	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
 }
@@ -70,7 +70,7 @@ double MutationType::DrawSelectionCoefficient() const
 		case 'f': return dfe_parameters_[0];
 		case 'g': return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
 		case 'e': return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
-		default: EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): invalid DFE type" << eidos_terminate(); return 0;
+		default: EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): invalid DFE type \"" << dfe_type_ << "\"." << eidos_terminate(); return 0;
 	}
 }
 

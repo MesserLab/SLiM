@@ -49,7 +49,7 @@ Genome::Genome(enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Genome::NullGenomeAccessError(void) const
 {
-	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed!" << std::endl << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << eidos_terminate();
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
@@ -351,7 +351,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			MutationType *mutation_type_ptr = nullptr;
 			
@@ -364,7 +364,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 					mutation_type_ptr = found_muttype_pair->second;
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{
@@ -381,7 +381,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
 			if (position > sim->Chromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			slim_objectid_t origin_subpop_id;
 			
@@ -410,7 +410,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer!" << std::endl << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			MutationType *mutation_type_ptr = nullptr;
 			
@@ -423,7 +423,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 					mutation_type_ptr = found_muttype_pair->second;
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{
@@ -440,7 +440,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
 			if (position > sim->Chromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			double selection_coeff = arg3_value->FloatAtIndex(0, nullptr);
 			slim_objectid_t origin_subpop_id;

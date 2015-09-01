@@ -133,7 +133,7 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 	EidosValueType type2 = p_value2->Type();
 	
 	if ((type1 == EidosValueType::kValueNULL) || (type2 == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (CompareEidosValues): internal error: comparison with NULL is illegal." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with NULL is illegal." << eidos_terminate(p_blame_token);
 	
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((type1 == EidosValueType::kValueObject) && (type2 == EidosValueType::kValueObject))
@@ -182,7 +182,7 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 	}
 	
 	// that's the end of the road; we should never reach this point
-	EIDOS_TERMINATION << "ERROR (CompareEidosValues): internal error: comparison involving type " << type1 << " and type " << type2 << " is undefined." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison involving type " << type1 << " and type " << type2 << " is undefined." << eidos_terminate(p_blame_token);
 	return 0;
 }
 
@@ -333,7 +333,7 @@ void EidosValue_NULL::Sort(bool p_ascending)
 
 EidosValue_NULL_const::~EidosValue_NULL_const(void)
 {
-	EIDOS_TERMINATION << "ERROR (EidosValue_NULL_const::~EidosValue_NULL_const): internal error: global constant deallocated." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_NULL_const::~EidosValue_NULL_const): (internal error) global constant deallocated." << eidos_terminate(nullptr);
 }
 
 /* static */ EidosValue_NULL *EidosValue_NULL_const::Static_EidosValue_NULL(void)
@@ -567,7 +567,7 @@ EidosValue_Logical_const::EidosValue_Logical_const(bool p_bool1) : EidosValue_Lo
 
 EidosValue_Logical_const::~EidosValue_Logical_const(void)
 {
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::~EidosValue_Logical_const): internal error: global constant deallocated." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::~EidosValue_Logical_const): (internal error) global constant deallocated." << eidos_terminate(nullptr);
 }
 
 /* static */ EidosValue_Logical *EidosValue_Logical_const::Static_EidosValue_Logical_T(void)
@@ -611,31 +611,31 @@ EidosValue *EidosValue_Logical_const::MutableCopy(void) const
 void EidosValue_Logical_const::PushLogical(bool p_logical)
 {
 #pragma unused(p_logical)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushLogical): internal error: EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushLogical): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, bool p_logical, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_logical)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetLogicalAtIndex): internal error: EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetLogicalAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetValueAtIndex): internal error: EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetValueAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Logical_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Logical_const::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Sort): internal error: EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Sort): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 
@@ -1053,7 +1053,7 @@ void EidosValue_Int_singleton_const::Print(std::ostream &p_ostream) const
 bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return (value_ == 0 ? false : true);
 }
@@ -1061,7 +1061,7 @@ bool EidosValue_Int_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_bla
 std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::StringAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(value_)
 	ostringstream ss;
@@ -1074,7 +1074,7 @@ std::string EidosValue_Int_singleton_const::StringAtIndex(int p_idx, EidosToken 
 int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return value_;
 }
@@ -1082,7 +1082,7 @@ int64_t EidosValue_Int_singleton_const::IntAtIndex(int p_idx, EidosToken *p_blam
 double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::FloatAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return value_;
 }
@@ -1090,7 +1090,7 @@ double EidosValue_Int_singleton_const::FloatAtIndex(int p_idx, EidosToken *p_bla
 EidosValue *EidosValue_Int_singleton_const::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return new EidosValue_Int_singleton_const(value_);
 }
@@ -1117,19 +1117,19 @@ EidosValue *EidosValue_Int_singleton_const::MutableCopy(void) const
 void EidosValue_Int_singleton_const::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::SetValueAtIndex): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::SetValueAtIndex): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Int_singleton_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Int_singleton_const::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::Sort): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton_const::Sort): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 
@@ -1361,7 +1361,7 @@ void EidosValue_Float_singleton_const::Print(std::ostream &p_ostream) const
 bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	if (isnan(value_))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
@@ -1372,7 +1372,7 @@ bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_b
 std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::StringAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(value_)
 	ostringstream ss;
@@ -1385,7 +1385,7 @@ std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx, EidosToke
 int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	if (isnan(value_))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
@@ -1402,7 +1402,7 @@ int64_t EidosValue_Float_singleton_const::IntAtIndex(int p_idx, EidosToken *p_bl
 double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::FloatAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return value_;
 }
@@ -1410,7 +1410,7 @@ double EidosValue_Float_singleton_const::FloatAtIndex(int p_idx, EidosToken *p_b
 EidosValue *EidosValue_Float_singleton_const::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return new EidosValue_Float_singleton_const(value_);
 }
@@ -1437,19 +1437,19 @@ EidosValue *EidosValue_Float_singleton_const::MutableCopy(void) const
 void EidosValue_Float_singleton_const::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::SetValueAtIndex): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::SetValueAtIndex): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Float_singleton_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Float_singleton_const::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::Sort): internal error: EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton_const::Sort): (internal error) EidosValue_Float_singleton_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 
@@ -1955,7 +1955,7 @@ void EidosValue_Object_singleton_const::Print(std::ostream &p_ostream) const
 EidosObjectElement *EidosValue_Object_singleton_const::ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ObjectElementAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::ObjectElementAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return value_;
 }
@@ -1963,7 +1963,7 @@ EidosObjectElement *EidosValue_Object_singleton_const::ObjectElementAtIndex(int 
 EidosValue *EidosValue_Object_singleton_const::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetValueAtIndex): non-zero index accessed." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return new EidosValue_Object_singleton_const(value_);
 }
@@ -1990,13 +1990,13 @@ EidosValue *EidosValue_Object_singleton_const::MutableCopy(void) const
 void EidosValue_Object_singleton_const::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetValueAtIndex): internal error: EidosValue_Object_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::SetValueAtIndex): (internal error) EidosValue_Object_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 void EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue): internal error: EidosValue_Object_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Object_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
 EidosValue *EidosValue_Object_singleton_const::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
@@ -2070,7 +2070,7 @@ EidosObjectElement *EidosObjectElement::Release(void)
 
 EidosValue *EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): internal error: attempt to get a value for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): (internal error) attempt to get a value for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
 	
 	return nullptr;
 }
@@ -2089,7 +2089,7 @@ void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, EidosVal
 	if (readonly)
 		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): attempt to set a new value for read-only property " << StringForEidosGlobalStringID(p_property_id) << "." << eidos_terminate(nullptr);
 	else
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): internal error: setting a new value for read-write property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): (internal error) setting a new value for read-write property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
 }
 
 EidosValue *EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2149,7 +2149,7 @@ EidosValue *EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			
 			for (auto method_sig : *methods)
 				if (method_sig->function_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
 			EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): unrecognized method name " << method_name << "." << eidos_terminate(nullptr);
@@ -2256,7 +2256,7 @@ const EidosPropertySignature *EidosObjectClass::SignatureForPropertyOrRaise(Eido
 	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForPropertyOrRaise for " << ElementType() << "): internal error: missing property " << StringForEidosGlobalStringID(p_property_id) << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForPropertyOrRaise for " << ElementType() << "): (internal error) missing property " << StringForEidosGlobalStringID(p_property_id) << "." << eidos_terminate(nullptr);
 	
 	return signature;
 }
@@ -2310,7 +2310,7 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlo
 	const EidosMethodSignature *signature = SignatureForMethod(p_method_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethodOrRaise for " << ElementType() << "): internal error: missing method " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethodOrRaise for " << ElementType() << "): (internal error) missing method " << StringForEidosGlobalStringID(p_method_id) << "." << eidos_terminate(nullptr);
 	
 	return signature;
 }
@@ -2399,7 +2399,7 @@ EidosValue *EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id
 			
 			for (auto method_sig : *methods)
 				if (method_sig->function_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): internal error: method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
 			EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): unrecognized method name " << method_name << "." << eidos_terminate(nullptr);

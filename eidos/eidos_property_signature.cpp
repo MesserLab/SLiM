@@ -29,14 +29,14 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
 	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): internal error: read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
 }
 
 EidosPropertySignature::~EidosPropertySignature(void)
@@ -69,7 +69,7 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
@@ -106,18 +106,18 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
 				value_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: object value cannot be element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!value_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_value->Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): internal error: value must be a singleton (size() == 1) for " << PropertyType() << " property " << property_name_ << ", but size() == " << p_value->Count() << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value must be a singleton (size() == 1) for " << PropertyType() << " property " << property_name_ << ", but size() == " << p_value->Count() << "." << eidos_terminate(nullptr);
 }
 
 std::string EidosPropertySignature::PropertyType(void) const

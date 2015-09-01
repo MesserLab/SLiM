@@ -51,11 +51,11 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << eidos_terminate();
 	if (recombination_rates_.size() == 0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination rate not specified" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination rate not specified." << eidos_terminate();
 	if (!(overall_mutation_rate_ >= 0))
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): invalid mutation rate" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): invalid mutation rate " << overall_mutation_rate_ << "." << eidos_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	if (cached_value_lastpos_)
@@ -91,7 +91,7 @@ void Chromosome::InitializeDraws(void)
 	{
 		// patching can only be done when a single uniform rate is specified
 		if (recombination_rates_.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified." << eidos_terminate();
 		
 		recombination_end_positions_.push_back(last_position_);
 	}
@@ -114,7 +114,7 @@ void Chromosome::InitializeDraws(void)
 	}
 	
 	if (recombination_end_positions_[recombination_rates_.size() - 1] < last_position_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover all genomic elements" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover all genomic elements." << eidos_terminate();
 	
 	// EIDOS_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
 	
@@ -270,7 +270,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if ((value < 0.0) || (value > 1.0))
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			gene_conversion_fraction_ = value;
 			return;
@@ -280,7 +280,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if (value <= 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			gene_conversion_avg_length_ = value;
 			return;
@@ -290,7 +290,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 			double value = p_value->FloatAtIndex(0, nullptr);
 			
 			if (value < 0.0)	// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
 			
 			overall_mutation_rate_ = value;
 			InitializeDraws();
@@ -333,7 +333,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			
 			// check values
 			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
 			
 			// then adopt them
 			recombination_rates_.clear();
@@ -357,17 +357,19 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)		// intentionally no upper bound
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be >= 0." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
 			}
 			
 			// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 			// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 			// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-			if (arg1_value->IntAtIndex(end_count - 1, nullptr) != last_position_)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires the last interval to end at the last position of the chromosome." << eidos_terminate();
+			int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
+			
+			if (new_last_position != last_position_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << new_last_position << " noncomplient; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
 			
 			// then adopt them
 			recombination_rates_.clear();

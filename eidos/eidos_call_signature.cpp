@@ -197,7 +197,7 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 			if (is_optional)
 				break;			// all the rest of the arguments must be optional, so we're done checking
 			else
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
 		}
 		
 		// an argument was passed, so check its type
@@ -240,11 +240,11 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 			}
 			
 			if (!type_ok)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be type " << arg_type << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
 			
 			// if NULL is explicitly permitted by the signature, we skip the singleton check
 			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
 		}
 	}
 }
@@ -274,18 +274,18 @@ void EidosCallSignature::CheckReturn(EidosValue *p_result) const
 			if (return_type_ok && return_class_ && (((EidosValue_Object *)p_result)->Class() != return_class_))
 			{
 				return_type_ok = false;
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: object return value cannot be element type " << p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: return value cannot be type " << p_result->Type() << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result->Type() << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_result->Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): internal error: return value must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << p_result->Count() << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << p_result->Count() << "." << eidos_terminate(nullptr);
 }
 
 std::string EidosCallSignature::CallDelegate(void) const

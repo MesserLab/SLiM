@@ -52,18 +52,18 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
 		
 		if (child_first_male_index_ <= 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females." << eidos_terminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males." << eidos_terminate();
 		
 		if (p_parents_also)
 		{
 			parent_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
 			
 			if (parent_first_male_index_ <= 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females." << eidos_terminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males." << eidos_terminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -1063,7 +1063,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 					auto found_subpop_pair = population_.find(subpop_id);
 					
 					if (found_subpop_pair == population_.end())
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() subpopulation p" << subpop_id << " not defined" << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() subpopulation p" << subpop_id << " not defined." << eidos_terminate();
 					
 					source_subpop = found_subpop_pair->second;
 				}
@@ -1075,7 +1075,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 				
 				if (source_subpop_id == subpopulation_id_)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)." << eidos_terminate();
 				if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << eidos_terminate();
 				
@@ -1108,9 +1108,9 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
 				
 				if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1] (" << female_cloning_fraction << " supplied)." << eidos_terminate();
 				if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1] (" << male_cloning_fraction << " supplied)." << eidos_terminate();
 				
 				female_clone_fraction_ = female_cloning_fraction;
 				male_clone_fraction_ = male_cloning_fraction;
@@ -1124,7 +1124,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				double cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
 				
 				if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1]." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setCloningRate() requires cloning fractions within [0,1] (" << cloning_fraction << " supplied)." << eidos_terminate();
 				
 				female_clone_fraction_ = cloning_fraction;
 				male_clone_fraction_ = cloning_fraction;
@@ -1147,7 +1147,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
 			
 			if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() requires a selfing fraction within [0,1]." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSelfingRate() requires a selfing fraction within [0,1] (" << selfing_fraction << " supplied)." << eidos_terminate();
 			
 			selfing_fraction_ = selfing_fraction;
 			
@@ -1165,7 +1165,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() called when the child generation was valid" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() called when the child generation was valid." << eidos_terminate();
 			
 			// SEX ONLY
 			if (!sex_enabled_)
@@ -1174,7 +1174,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			double sex_ratio = arg0_value->FloatAtIndex(0, nullptr);
 			
 			if (sex_ratio < 0.0 || sex_ratio > 1.0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() requires a sex ratio within [0,1]." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() requires a sex ratio within [0,1] (" << sex_ratio << " supplied)." << eidos_terminate();
 			
 			// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 			child_sex_ratio_ = sex_ratio;
@@ -1223,7 +1223,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 					index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 					
 					if (index >= cached_fitness_size_)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index out of range." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index " << index << " out of range." << eidos_terminate();
 				}
 				
 				double fitness = cached_parental_fitness_[index];
@@ -1243,7 +1243,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 						index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
 						
 						if (index >= cached_fitness_size_)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index out of range." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index " << index << " out of range." << eidos_terminate();
 					}
 					
 					double fitness = cached_parental_fitness_[index];

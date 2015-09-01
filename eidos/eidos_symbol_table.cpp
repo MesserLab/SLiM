@@ -267,7 +267,7 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 	int symbol_slot = _SlotIndexForSymbol(p_symbol_name, key_length);
 	
 	if ((symbol_slot >= 0) && symbols_[symbol_slot].symbol_is_const_)
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): Identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
 	
 	// get a version of the value that is suitable for insertion into the symbol table
 	if (p_value->IsExternalTemporary() || p_value->Invisible())
@@ -331,9 +331,9 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	{
 		// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
 		if (symbols_[symbol_slot].symbol_is_const_)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) Identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate(nullptr);
 		else
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) Identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate(nullptr);
 	}
 	
 	// get a version of the value that is suitable for insertion into the symbol table
@@ -385,7 +385,7 @@ void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bo
 		EidosValue *value = symbol_slot_ptr->symbol_value_;
 		
 		if (symbol_slot_ptr->symbol_is_const_ && !remove_constant)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): Identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
 		
 		// see comment on our destructor, above
 		if (!value->IsExternalPermanent())
@@ -475,7 +475,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != entry_value))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) Identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
 		return;
@@ -515,7 +515,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != p_value))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) Identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
 		return;

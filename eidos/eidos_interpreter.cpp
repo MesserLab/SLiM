@@ -141,7 +141,7 @@ void EidosInterpreter::SetShouldLogExecution(bool p_log)
 			execution_log_ = new std::ostringstream();
 #else
 		// Logging execution is disabled until we are either in a DEBUG build or a GUI (EIDOS_GUI)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::SetShouldLogExecution): Execution logging is disabled in this build configuration of Eidos." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::SetShouldLogExecution): execution logging is disabled in this build configuration of Eidos." << eidos_terminate(nullptr);
 #endif
 	}
 }
@@ -465,7 +465,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): Unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(parent_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(parent_token);
 			break;
 	}
 }
@@ -509,7 +509,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -525,7 +525,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, rvalue);
 						
@@ -538,7 +538,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(rvalue, base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -560,7 +560,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 						EidosValue *temp_rvalue = rvalue->GetValueAtIndex(value_idx, nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error: dot operator used with non-object value." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, temp_rvalue);
 						
@@ -618,7 +618,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): Unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(nullptr);
 			break;
 	}
 }
@@ -668,7 +668,7 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				if (result) return result;	break;
 		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				if (result) return result;	break;
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): Unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
 			result = nullptr;
 			break;
 	}
@@ -792,7 +792,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		
 		if (first_int <= second_int)
 		{
-			if (second_int - first_int >= 100000)
+			if (second_int - first_int >= 1000000)
 				too_wide = true;
 			else
 				for (int64_t range_index = first_int; range_index <= second_int; ++range_index)
@@ -800,7 +800,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		}
 		else
 		{
-			if (first_int - second_int >= 100000)
+			if (first_int - second_int >= 1000000)
 				too_wide = true;
 			else
 				for (int64_t range_index = first_int; range_index >= second_int; --range_index)
@@ -826,7 +826,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		
 		if (first_float <= second_float)
 		{
-			if (second_float - first_float >= 100000)
+			if (second_float - first_float >= 1000000)
 				too_wide = true;
 			else
 				for (double range_index = first_float; range_index <= second_float; )
@@ -847,7 +847,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		}
 		else
 		{
-			if (first_float - second_float >= 100000)
+			if (first_float - second_float >= 1000000)
 				too_wide = true;
 			else
 				for (double range_index = first_float; range_index >= second_float; )
@@ -884,7 +884,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	{
 		if (result->IsTemporary()) delete result;
 		
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 100000 entries cannot be constructed." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 	}
 	
 #if defined(DEBUG) || defined(EIDOS_GUI)
@@ -3645,7 +3645,7 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	{
 		if (condition_result->IsTemporary()) delete condition_result;
 		
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): condition has size() != 1." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): condition for if statement has size() != 1." << eidos_terminate(p_node->token_);
 	}
 	
 #if defined(DEBUG) || defined(EIDOS_GUI)
@@ -3723,7 +3723,7 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		{
 			if (condition_result->IsTemporary()) delete condition_result;
 			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): condition has size() != 1." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): condition for do-while loop has size() != 1." << eidos_terminate(p_node->token_);
 		}
 	}
 	while (true);
@@ -3783,7 +3783,7 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		{
 			if (condition_result->IsTemporary()) delete condition_result;
 			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): condition has size() != 1." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): condition for while loop has size() != 1." << eidos_terminate(p_node->token_);
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away

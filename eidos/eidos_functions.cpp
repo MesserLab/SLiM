@@ -251,7 +251,7 @@ EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_a
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
-			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used with this function." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << eidos_terminate(nullptr);
 		
 		if (arg_type > highest_type)
 			highest_type = arg_type;
@@ -1389,7 +1389,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 			
 			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
 			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 			result = float_result;
@@ -1406,7 +1406,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 			
 			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
 			EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 			result = int_result;
@@ -1423,7 +1423,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 			
 			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
 			EidosValue_Logical *logical_result = new EidosValue_Logical();
 			result = logical_result;
@@ -1453,7 +1453,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool prob_singleton = (arg_prob_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 			if (!size_singleton && (arg_size_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size to be of length 1 or n." << eidos_terminate(nullptr);
 			if (!prob_singleton && (arg_prob_count != num_draws))
@@ -1465,9 +1465,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (size_singleton && prob_singleton)
 			{
 				if (size0 < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0 (" << size0 << " supplied)." << eidos_terminate(nullptr);
 				if ((probability0 < 0.0) || (probability0 > 1.0))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0] (" << probability0 << " supplied)." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1493,9 +1493,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
 					
 					if (size < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires size >= 0 (" << size << " supplied)." << eidos_terminate(nullptr);
 					if ((probability < 0.0) || (probability > 1.0))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0]." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << eidos_terminate(nullptr);
 					
 					int_result->PushInt(gsl_ran_binomial(gEidos_rng, probability, size));
 				}
@@ -1514,7 +1514,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 			
 			if (rep_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rep() requires count to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
 			
 			// the return type depends on the type of the first argument, which will get replicated
 			result = arg0_value->NewMatchingType();
@@ -1542,7 +1542,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 				
 				if (rep_count < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires count to be greater than or equal to 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
 				
 				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
@@ -1555,7 +1555,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
 					
 					if (rep_count < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires all elements of count to be greater than or equal to 0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
 					
 					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
 						result->PushValueFromIndexOfEidosValue(value_idx, arg0_value, nullptr);
@@ -1579,7 +1579,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool rate_singleton = (arg_rate_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 			if (!rate_singleton && (arg_rate_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << eidos_terminate(nullptr);
 			
@@ -1589,7 +1589,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double mu0 = 1.0 / rate0;
 				
 				if (rate0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0 (" << rate0 << " supplied)." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1614,7 +1614,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double rate = arg_rate->FloatAtIndex(draw_index, nullptr);
 					
 					if (rate <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0 (" << rate << " supplied)." << eidos_terminate(nullptr);
 					
 					float_result->PushFloat(gsl_ran_exponential(gEidos_rng, 1.0 / rate));
 				}
@@ -1636,7 +1636,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool sigma_singleton = (arg_sigma_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 			if (!mu_singleton && (arg_mu_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires mean to be of length 1 or n." << eidos_terminate(nullptr);
 			if (!sigma_singleton && (arg_sigma_count != num_draws))
@@ -1648,7 +1648,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (mu_singleton && sigma_singleton)
 			{
 				if (sigma0 < 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0 (" << sigma0 << " supplied)." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1674,7 +1674,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index, nullptr));
 					
 					if (sigma < 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd >= 0.0 (" << sigma << " supplied)." << eidos_terminate(nullptr);
 					
 					float_result->PushFloat(gsl_ran_gaussian(gEidos_rng, sigma) + mu);
 				}
@@ -1693,7 +1693,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool lambda_singleton = (arg_lambda_count == 1);
 			
 			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 			if (!lambda_singleton && (arg_lambda_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda to be of length 1 or n." << eidos_terminate(nullptr);
 			
@@ -1706,7 +1706,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double lambda0 = arg_lambda->FloatAtIndex(0, nullptr);
 				
 				if (lambda0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0 (" << lambda0 << " supplied)." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
@@ -1731,7 +1731,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double lambda = arg_lambda->FloatAtIndex(draw_index, nullptr);
 					
 					if (lambda <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rpois() requires lambda > 0.0 (" << lambda << " supplied)." << eidos_terminate(nullptr);
 					
 					int_result->PushInt(gsl_ran_poisson(gEidos_rng, lambda));
 				}
@@ -1756,7 +1756,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				else
 				{
 					if (num_draws < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 					
 					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
 					result = float_result;
@@ -1775,7 +1775,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				bool max_singleton = (arg_max_count == 1);
 				
 				if (num_draws < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 				if (!min_singleton && (arg_min_count != num_draws))
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires min to be of length 1 or n." << eidos_terminate(nullptr);
 				if (!max_singleton && (arg_max_count != num_draws))
@@ -1834,15 +1834,18 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool replace = ((p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0, nullptr) : false);
 			
 			if (sample_size < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires a sample size >= 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires a sample size >= 0 (" << sample_size << " supplied)." << eidos_terminate(nullptr);
 			if (sample_size == 0)
 			{
 				result = arg0_value->NewMatchingType();
 				break;
 			}
 			
-			if ((arg0_count == 0) || (!replace && (arg0_count < sample_size)))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() provided with insufficient elements." << eidos_terminate(nullptr);
+			if (arg0_count == 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() provided with insufficient elements (0 supplied)." << eidos_terminate(nullptr);
+			
+			if (!replace && (arg0_count < sample_size))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() provided with insufficient elements (" << arg0_count << " supplied, " << sample_size << " needed)." << eidos_terminate(nullptr);
 			
 			result = arg0_value->NewMatchingType();
 			
@@ -1863,7 +1866,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					double weight = arg3_value->FloatAtIndex(value_index, nullptr);
 					
 					if (weight < 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires all weights to be non-negative." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function sample() requires all weights to be non-negative (" << weight << " supplied)." << eidos_terminate(nullptr);
 					
 					weights_vector.push_back(weight);
 					weights_sum += weight;
@@ -1932,7 +1935,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					{
 						// this error should never occur, since we checked the count above
 						if (contender_count <= 0)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): internal error: function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): (internal error) function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
 						
 						int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
 						
@@ -1969,9 +1972,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				double by_value = (arg2_value ? arg2_value->FloatAtIndex(0, nullptr) : default_by);
 				
 				if (by_value == 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires by != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by has incorrect sign." << eidos_terminate(nullptr);
 				
 				if (by_value > 0)
 					for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -1992,9 +1995,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				int64_t by_value = (arg2_value ? arg2_value->IntAtIndex(0, nullptr) : default_by);
 				
 				if (by_value == 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires a by argument != 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires by != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by argument has incorrect sign." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by has incorrect sign." << eidos_terminate(nullptr);
 				
 				if (by_value > 0)
 					for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -2027,7 +2030,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 			
 			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function string() requires length to be greater than or equal to 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
 			EidosValue_String *string_result = new EidosValue_String();
 			result = string_result;
@@ -2241,7 +2244,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (arg0_count != arg1_count || arg0_count != arg2_count)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments of equal length." << eidos_terminate(nullptr);
 			if (arg1_type != arg2_type)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type (" << arg1_type << " and " << arg2_type << " supplied)." << eidos_terminate(nullptr);
 			
 			result = arg1_value->NewMatchingType();
 			

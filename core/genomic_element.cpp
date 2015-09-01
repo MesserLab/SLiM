@@ -165,7 +165,7 @@ EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			}
 			
 			if (!getype_ptr)
-				EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteInstanceMethod): setGenomicElementType() genomic element type g" << getype_id << " not defined" << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteInstanceMethod): setGenomicElementType() genomic element type g" << getype_id << " not defined." << eidos_terminate();
 		}
 		else
 		{

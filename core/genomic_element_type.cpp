@@ -55,7 +55,7 @@ void GenomicElementType::InitializeDraws(void)
 	int mutation_type_count = (int)mutation_type_ptrs_.size();
 	
 	if (mutation_type_count != mutation_fractions_.size())
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes." << eidos_terminate();
 	
 	if (lookup_mutation_type)
 	{
@@ -91,7 +91,7 @@ void GenomicElementType::InitializeDraws(void)
 MutationType *GenomicElementType::DrawMutationType() const
 {
 	if (!lookup_mutation_type)
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << eidos_terminate();
 	
 	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type)];
 }
@@ -255,7 +255,7 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 			double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
 			
 			if (arg0_value->Type() == EidosValueType::kValueInt)
 			{
@@ -271,7 +271,7 @@ EidosValue *GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 				}
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_id << " not defined" << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{

@@ -92,7 +92,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end" << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
 			}
 		}
 	}
@@ -127,7 +127,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions" << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << eidos_terminate(current_token_);
 			}
 			
 			if (current_token_type_ == EidosTokenType::kTokenComma)
@@ -144,7 +144,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected" << eidos_terminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << eidos_terminate(current_token_);
 				}
 			}
 			
@@ -356,10 +356,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
 			{
 				if (n_callback_children != 0)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters" << eidos_terminate(callback_token);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters." << eidos_terminate(callback_token);
 				
 				if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback" << eidos_terminate(callback_token);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback." << eidos_terminate(callback_token);
 				
 				start_generation_ = 0;
 				end_generation_ = 0;
@@ -368,7 +368,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
 			{
 				if ((n_callback_children != 1) && (n_callback_children != 2))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters" << eidos_terminate(callback_token);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters." << eidos_terminate(callback_token);
 				
 				EidosToken *mutation_type_id_token = callback_children[0]->token_;
 				
@@ -386,7 +386,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mateChoice) == 0))
 			{
 				if ((n_callback_children != 0) && (n_callback_children != 1))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mateChoice() callback needs 0 or 1 parameters." << eidos_terminate(callback_token);
 				
 				if (n_callback_children == 1)
 				{
@@ -400,7 +400,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_modifyChild) == 0))
 			{
 				if ((n_callback_children != 0) && (n_callback_children != 1))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters" << eidos_terminate(callback_token);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): modifyChild() callback needs 0 or 1 parameters." << eidos_terminate(callback_token);
 				
 				if (n_callback_children == 1)
 				{
@@ -413,7 +413,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type" << eidos_terminate(callback_token);
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type." << eidos_terminate(callback_token);
 			}
 			
 			child_index++;
@@ -428,10 +428,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	}
 	
 	if (!compound_statement_node_)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): no compound statement found for SLiMEidosBlock" << eidos_terminate(child_index > 0 ? block_children[child_index - 1]->token_ : nullptr);
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): no compound statement found for SLiMEidosBlock." << eidos_terminate(child_index > 0 ? block_children[child_index - 1]->token_ : nullptr);
 	
 	if (child_index != n_children)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unexpected node in SLiMEidosBlock" << eidos_terminate(block_children[child_index]->token_);
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unexpected node in SLiMEidosBlock." << eidos_terminate(block_children[child_index]->token_);
 	
 	ScanTreeForIdentifiersUsed();
 }
@@ -598,7 +598,7 @@ void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
 	if (block_id_ == -1)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry): internal error: cached symbol table entries for anonymous script blocks are not supported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry): (internal error) cached symbol table entries for anonymous script blocks are not supported." << eidos_terminate();
 	
 	std::ostringstream script_stream;
 	
