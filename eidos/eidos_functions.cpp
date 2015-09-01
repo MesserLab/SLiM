@@ -418,7 +418,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Math functions
 #pragma mark -
 			
-#pragma mark abs
+			
+			//	(numeric)abs(numeric x)
+			#pragma mark abs
+			
 		case EidosFunctionIdentifier::absFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -484,7 +487,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark acos
+			
+			//	(float)acos(numeric x)
+			#pragma mark acos
+			
 		case EidosFunctionIdentifier::acosFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -505,7 +511,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark asin
+			
+			//	(float)asin(numeric x)
+			#pragma mark asin
+			
 		case EidosFunctionIdentifier::asinFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -526,7 +535,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark atan
+			
+			//	(float)atan(numeric x)
+			#pragma mark atan
+			
 		case EidosFunctionIdentifier::atanFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -547,7 +559,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark atan2
+			
+			//	(float)atan2(numeric x, numeric y)
+			#pragma mark atan2
+			
 		case EidosFunctionIdentifier::atan2Function:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -573,7 +588,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark ceil
+			
+			//	(float)ceil(float x)
+			#pragma mark ceil
+			
 		case EidosFunctionIdentifier::ceilFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -596,7 +614,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark cos
+			
+			//	(float)cos(numeric x)
+			#pragma mark cos
+			
 		case EidosFunctionIdentifier::cosFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -617,7 +638,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark exp
+			
+			//	(float)exp(numeric x)
+			#pragma mark exp
+			
 		case EidosFunctionIdentifier::expFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -638,7 +662,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark floor
+			
+			//	(float)floor(float x)
+			#pragma mark floor
+			
 		case EidosFunctionIdentifier::floorFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -661,7 +688,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isFinite
+			
+			//	(logical)isFinite(float x)
+			#pragma mark isFinite
+			
 		case EidosFunctionIdentifier::isFiniteFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -684,7 +714,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isInfinite
+			
+			//	(logical)isInfinite(float x)
+			#pragma mark isInfinite
+			
 		case EidosFunctionIdentifier::isInfiniteFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -707,7 +740,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isNAN
+			
+			//	(logical)isNAN(float x)
+			#pragma mark isNAN
+			
 		case EidosFunctionIdentifier::isNaNFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -730,7 +766,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark log
+			
+			//	(float)log(numeric x)
+			#pragma mark log
+			
 		case EidosFunctionIdentifier::logFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -751,7 +790,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark log10
+			
+			//	(float)log10(numeric x)
+			#pragma mark log10
+			
 		case EidosFunctionIdentifier::log10Function:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -772,7 +814,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark log2
+			
+			//	(float)log2(numeric x)
+			#pragma mark log2
+			
 		case EidosFunctionIdentifier::log2Function:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -793,7 +838,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark product
+			
+			//	(numeric$)product(numeric x)
+			#pragma mark product
+			
 		case EidosFunctionIdentifier::productFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -866,7 +914,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sum
+			
+			//	(numeric$)sum(lif x)
+			#pragma mark sum
+			
 		case EidosFunctionIdentifier::sumFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -950,7 +1001,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark round
+			
+			//	(float)round(float x)
+			#pragma mark round
+			
 		case EidosFunctionIdentifier::roundFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -973,7 +1027,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sin
+			
+			//	(float)sin(numeric x)
+			#pragma mark sin
+			
 		case EidosFunctionIdentifier::sinFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -994,7 +1051,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sqrt
+			
+			//	(float)sqrt(numeric x)
+			#pragma mark sqrt
+			
 		case EidosFunctionIdentifier::sqrtFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1015,7 +1075,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark tan
+			
+			//	(float)tan(numeric x)
+			#pragma mark tan
+			
 		case EidosFunctionIdentifier::tanFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1036,7 +1099,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark trunc
+			
+			//	(float)trunc(float x)
+			#pragma mark trunc
+			
 		case EidosFunctionIdentifier::truncFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1068,7 +1134,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Summary statistics functions
 #pragma mark -
 			
-#pragma mark max
+			
+			//	(+$)max(+ x)
+			#pragma mark max
+			
 		case EidosFunctionIdentifier::maxFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1158,7 +1227,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark mean
+			
+			//	(float)mean(numeric x)
+			#pragma mark mean
+			
 		case EidosFunctionIdentifier::meanFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1179,7 +1251,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark min
+			
+			//	(+$)min(+ x)
+			#pragma mark min
+			
 		case EidosFunctionIdentifier::minFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1269,7 +1344,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark range
+			
+			//	(numeric)range(numeric x)
+			#pragma mark range
+			
 		case EidosFunctionIdentifier::rangeFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1335,7 +1413,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sd
+			
+			//	(float$)sd(numeric x)
+			#pragma mark sd
+			
 		case EidosFunctionIdentifier::sdFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1375,14 +1456,20 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Vector conversion functions
 #pragma mark -
 			
-#pragma mark c
+			
+			//	(*)c(...)
+			#pragma mark c
+			
 		case EidosFunctionIdentifier::cFunction:
 		{
 			result = ConcatenateEidosValues(p_arguments, p_argument_count, false);
 			break;
 		}
 			
-#pragma mark float
+			
+			//	(float)float(integer$ length)
+			#pragma mark float
+			
 		case EidosFunctionIdentifier::floatFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1399,7 +1486,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark integer
+			
+			//	(integer)integer(integer$ length)
+			#pragma mark integer
+			
 		case EidosFunctionIdentifier::integerFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1416,7 +1506,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark logical
+			
+			//	(logical)logical(integer$ length)
+			#pragma mark logical
+			
 		case EidosFunctionIdentifier::logicalFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1433,14 +1526,20 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark object
+			
+			//	(object<undefined>)object(void)
+			#pragma mark object
+			
 		case EidosFunctionIdentifier::objectFunction:
 		{
 			result = new EidosValue_Object_vector();
 			break;
 		}
 			
-#pragma mark rbinom
+			
+			//	(integer)rbinom(integer$ n, integer size, float prob)
+			#pragma mark rbinom
+			
 		case EidosFunctionIdentifier::rbinomFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1504,7 +1603,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rep
+			
+			//	(*)rep(* x, integer$ count)
+			#pragma mark rep
+			
 		case EidosFunctionIdentifier::repFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1526,7 +1628,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark repEach
+			
+			//	(*)repEach(* x, integer count)
+			#pragma mark repEach
+			
 		case EidosFunctionIdentifier::repEachFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1569,7 +1674,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rexp
+			
+			//	(float)rexp(integer$ n, [numeric rate])
+			#pragma mark rexp
+			
 		case EidosFunctionIdentifier::rexpFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1623,7 +1731,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rnorm
+			
+			//	(float)rnorm(integer$ n, [numeric mean], [numeric sd])
+			#pragma mark rnorm
+			
 		case EidosFunctionIdentifier::rnormFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1683,7 +1794,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rpois
+			
+			//	(integer)rpois(integer$ n, numeric lambda)
+			#pragma mark rpois
+			
 		case EidosFunctionIdentifier::rpoisFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1740,7 +1854,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark runif
+			
+			//	(float)runif(integer$ n, [numeric min], [numeric max])
+			#pragma mark runif
+			
 		case EidosFunctionIdentifier::runifFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1825,7 +1942,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sample
+			
+			//	(*)sample(* x, integer size, [logical$ replace], [numeric weights])
+			#pragma mark sample
+			
 		case EidosFunctionIdentifier::sampleFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -1950,7 +2070,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark seq
+			
+			//	(numeric)seq(numeric$ from, numeric$ to, [numeric$ by])
+			#pragma mark seq
+			
 		case EidosFunctionIdentifier::seqFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2010,7 +2133,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark seqAlong
+			
+			//	(integer)seqAlong(* x)
+			#pragma mark seqAlong
+			
 		case EidosFunctionIdentifier::seqAlongFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2023,7 +2149,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark string
+			
+			//	(string)string(integer$ length)
+			#pragma mark string
+			
 		case EidosFunctionIdentifier::stringFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2049,7 +2178,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Value inspection/manipulation functions
 #pragma mark -
 			
-#pragma mark all
+			
+			//	(logical$)all(logical x)
+			#pragma mark all
+			
 		case EidosFunctionIdentifier::allFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2068,7 +2200,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark any
+			
+			//	(logical$)any(logical x)
+			#pragma mark any
+			
 		case EidosFunctionIdentifier::anyFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2087,7 +2222,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark cat
+			
+			//	(void)cat(* x, [string$ sep])
+			#pragma mark cat
+			
 		case EidosFunctionIdentifier::catFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2109,7 +2247,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark identical
+			
+			//	(logical$)identical(* x, * y)
+			#pragma mark identical
+			
 		case EidosFunctionIdentifier::identicalFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2226,7 +2367,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark ifelse
+			
+			//	(*)ifelse(logical test, * trueValues, * falseValues)
+			#pragma mark ifelse
+			
 		case EidosFunctionIdentifier::ifelseFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2258,7 +2402,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark nchar
+			
+			//	(integer)nchar(string x)
+			#pragma mark nchar
+			
 		case EidosFunctionIdentifier::ncharFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2280,7 +2427,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark paste
+			
+			//	(string$)paste(* x, [string$ sep])
+			#pragma mark paste
+			
 		case EidosFunctionIdentifier::pasteFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2310,7 +2460,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark print
+			
+			//	(void)print(* x)
+			#pragma mark print
+			
 		case EidosFunctionIdentifier::printFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2319,7 +2472,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rev
+			
+			//	(*)rev(* x)
+			#pragma mark rev
+			
 		case EidosFunctionIdentifier::revFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2332,7 +2488,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark size
+			
+			//	(integer$)size(* x)
+			#pragma mark size
+			
 		case EidosFunctionIdentifier::sizeFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2341,7 +2500,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sort
+			
+			//	(+)sort(+ x, [logical$ ascending])
+			#pragma mark sort
+			
 		case EidosFunctionIdentifier::sortFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2356,7 +2518,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark sortBy
+			
+			//	(object)sortBy(object x, string$ property, [logical$ ascending])
+			#pragma mark sortBy
+			
 		case EidosFunctionIdentifier::sortByFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2372,7 +2537,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark str
+			
+			//	(void)str(* x)
+			#pragma mark str
+			
 		case EidosFunctionIdentifier::strFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2397,7 +2565,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark strsplit
+			
+			//	(string)strsplit(string$ x, [string$ sep])
+			#pragma mark strsplit
+			
 		case EidosFunctionIdentifier::strsplitFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2427,7 +2598,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark substr
+			
+			//	(string)substr(string x, integer first, [integer last])
+			#pragma mark substr
+			
 		case EidosFunctionIdentifier::substrFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2494,7 +2668,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark unique
+			
+			//	(*)unique(* x)
+			#pragma mark unique
+			
 		case EidosFunctionIdentifier::uniqueFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2635,7 +2812,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark which
+			
+			//	(integer)which(logical x)
+			#pragma mark which
+			
 		case EidosFunctionIdentifier::whichFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2650,7 +2830,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark whichMax
+			
+			//	(integer)whichMax(+ x)
+			#pragma mark whichMax
+			
 		case EidosFunctionIdentifier::whichMaxFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2735,7 +2918,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark whichMin
+			
+			//	(integer)whichMin(+ x)
+			#pragma mark whichMin
+			
 		case EidosFunctionIdentifier::whichMinFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2829,7 +3015,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Value type testing/coercion functions
 #pragma mark -
 			
-#pragma mark asFloat
+			
+			//	(float)asFloat(* x)
+			#pragma mark asFloat
+			
 		case EidosFunctionIdentifier::asFloatFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2850,7 +3039,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
             break;
 		}
 			
-#pragma mark asInteger
+			
+			//	(integer)asInteger(* x)
+			#pragma mark asInteger
+			
 		case EidosFunctionIdentifier::asIntegerFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2871,7 +3063,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
             break;
 		}
 			
-#pragma mark asLogical
+			
+			//	(logical)asLogical(* x)
+			#pragma mark asLogical
+			
 		case EidosFunctionIdentifier::asLogicalFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2892,7 +3087,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark asString
+			
+			//	(string)asString(* x)
+			#pragma mark asString
+			
 		case EidosFunctionIdentifier::asStringFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2905,7 +3103,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
             break;
 		}
 			
-#pragma mark elementType
+			
+			//	(string$)elementType(* x)
+			#pragma mark elementType
+			
 		case EidosFunctionIdentifier::elementTypeFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2914,7 +3115,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isFloat
+			
+			//	(logical$)isFloat(* x)
+			#pragma mark isFloat
+			
 		case EidosFunctionIdentifier::isFloatFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2924,7 +3128,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isInteger
+			
+			//	(logical$)isInteger(* x)
+			#pragma mark isInteger
+			
 		case EidosFunctionIdentifier::isIntegerFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2934,7 +3141,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isLogical
+			
+			//	(logical$)isLogical(* x)
+			#pragma mark isLogical
+			
 		case EidosFunctionIdentifier::isLogicalFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2944,7 +3154,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isNULL
+			
+			//	(logical$)isNULL(* x)
+			#pragma mark isNULL
+			
 		case EidosFunctionIdentifier::isNULLFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2954,7 +3167,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isObject
+			
+			//	(logical$)isObject(* x)
+			#pragma mark isObject
+			
 		case EidosFunctionIdentifier::isObjectFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2964,7 +3180,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark isString
+			
+			//	(logical$)isString(* x)
+			#pragma mark isString
+			
 		case EidosFunctionIdentifier::isStringFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2974,7 +3193,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark type
+			
+			//	(string$)type(* x)
+			#pragma mark type
+			
 		case EidosFunctionIdentifier::typeFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -2992,7 +3214,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Filesystem access functions
 #pragma mark -
 			
-#pragma mark filesAtPath
+			
+			//	(string)filesAtPath(string$ path, [logical$ fullPaths])
+			#pragma mark filesAtPath
+			
 		case EidosFunctionIdentifier::filesAtPathFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3035,7 +3260,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark readFile
+			
+			//	(string)readFile(string$ filePath)
+			#pragma mark readFile
+			
 		case EidosFunctionIdentifier::readFileFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3073,7 +3301,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark writeFile
+			
+			//	(logical$)writeFile(string$ filePath, string contents)
+			#pragma mark writeFile
+			
 		case EidosFunctionIdentifier::writeFileFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3123,7 +3354,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Miscellaneous functions
 #pragma mark -
 		
-#pragma mark date
+			
+			//	(string$)date(void)
+			#pragma mark date
+			
 		case EidosFunctionIdentifier::dateFunction:
 		{
 			time_t rawtime;
@@ -3138,7 +3372,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark executeLambda
+			
+			//	(*)executeLambda(string$ lambdaSource, [logical$ timed])
+			#pragma mark executeLambda
+			
 		case EidosFunctionIdentifier::executeLambdaFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3209,7 +3446,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark function
+			
+			//	(void)function([string$ functionName])
+			#pragma mark function
+			
 		case EidosFunctionIdentifier::functionFunction:
 		{
 			EidosValue *arg0_value = (p_argument_count >= 1) ? p_arguments[0] : nullptr;
@@ -3238,21 +3478,30 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark globals
+			
+			//	(void)globals(void)
+			#pragma mark globals
+			
 		case EidosFunctionIdentifier::globalsFunction:
 		{
 			ExecutionOutputStream() << global_symbols_;
 			break;
 		}
 			
-#pragma mark help
+			
+			//	(void)help([string$ topic])
+			#pragma mark help
+			
 		case EidosFunctionIdentifier::helpFunction:
 		{
 			ExecutionOutputStream() << "Help for Eidos is currently unimplemented." << endl;
 			break;
 		}
 			
-#pragma mark license
+			
+			//	(void)license(void)
+			#pragma mark license
+			
 		case EidosFunctionIdentifier::licenseFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
@@ -3282,7 +3531,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark rm
+			
+			//	(void)rm([string variableNames])
+			#pragma mark rm
+			
 		case EidosFunctionIdentifier::rmFunction:
 		{
 			vector<string> symbols_to_remove;
@@ -3305,7 +3557,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark setSeed
+			
+			//	(void)setSeed(integer$ seed)
+			#pragma mark setSeed
+			
 		case EidosFunctionIdentifier::setSeedFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3314,14 +3569,20 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark getSeed
+			
+			//	(integer$)getSeed(void)
+			#pragma mark getSeed
+			
 		case EidosFunctionIdentifier::getSeedFunction:
 		{
 			result = new EidosValue_Int_singleton_const(gEidos_rng_last_seed);
 			break;
 		}
 			
-#pragma mark stop
+			
+			//	(void)stop([string$ message])
+			#pragma mark stop
+			
 		case EidosFunctionIdentifier::stopFunction:
 		{
 			if (p_argument_count >= 1)
@@ -3331,7 +3592,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark time
+			
+			//	(string$)time(void)
+			#pragma mark time
+			
 		case EidosFunctionIdentifier::timeFunction:
 		{
 			time_t rawtime;
@@ -3346,7 +3610,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			break;
 		}
 			
-#pragma mark version
+			
+			//	(void)version(void)
+			#pragma mark version
+			
 		case EidosFunctionIdentifier::versionFunction:
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
@@ -3364,6 +3631,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		//	object instantiation
 		//
 			
+			
+			//	(object<_TestElement>$)_Test(integer$ yolk)
+			#pragma mark _TestFunction
+			
 		case EidosFunctionIdentifier::_TestFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
@@ -3372,6 +3643,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			testElement->Release();
 			break;
 		}
+			
 	}
 	
 	// Check the return value against the signature
