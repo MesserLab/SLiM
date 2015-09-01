@@ -21,7 +21,7 @@ using std::endl;
 
 // Helper functions for testing
 void SLiMAssertScriptSuccess(const string &p_script_string);
-void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position);
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip);
 void SLiMAssertScriptStop(const string &p_script_string);
 
 // Keeping records of test success / failure
@@ -61,7 +61,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	//std::cerr << p_script_string << " : \e[32mSUCCESS\e[0m" << endl;
 }
 
-void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position)
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip)
 {
 	try {
 		std::istringstream infile(p_script_string);
@@ -70,7 +70,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		
 		gSLiMTestFailureCount++;
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during SLiM execution." << endl;
+		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << endl;
 	}
 	catch (std::runtime_error err)
 	{
@@ -79,49 +79,60 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		
 		if (raise_message.find("stop() called") == string::npos)
 		{
-			if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
+			if (raise_message.find(p_reason_snip) != string::npos)
 			{
-				if ((p_bad_line == -1) && (p_bad_position == -1))
+				if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
 				{
-					gSLiMTestSuccessCount++;
-					
-					//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+					if ((p_bad_line == -1) && (p_bad_position == -1))
+					{
+						gSLiMTestSuccessCount++;
+						
+						//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+					}
+					else
+					{
+						gSLiMTestFailureCount++;
+						
+						std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
+						std::cerr << "   raise message: " << raise_message << endl;
+						std::cerr << "--------------------" << std::endl << std::endl;
+					}
 				}
 				else
 				{
-					gSLiMTestFailureCount++;
+					eidos_script_error_position(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
 					
-					std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
-					std::cerr << "   raise message: " << raise_message << endl;
-					std::cerr << "--------------------" << std::endl << std::endl;
+					if ((gEidosErrorLine != p_bad_line) || (gEidosErrorLineCharacter != p_bad_position))
+					{
+						gSLiMTestFailureCount++;
+						
+						std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but error position unexpected" << endl;
+						std::cerr << "   raise message: " << raise_message << endl;
+						eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+						std::cerr << "--------------------" << std::endl << std::endl;
+					}
+					else
+					{
+						gSLiMTestSuccessCount++;
+						
+						//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+					}
 				}
 			}
 			else
 			{
-				eidos_script_error_position(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
+				gSLiMTestFailureCount++;
 				
-				if ((gEidosErrorLine != p_bad_line) || (gEidosErrorLineCharacter != p_bad_position))
-				{
-					gSLiMTestFailureCount++;
-					
-					std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but error position unexpected" << endl;
-					std::cerr << "   raise message: " << raise_message << endl;
-					eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
-					std::cerr << "--------------------" << std::endl << std::endl;
-				}
-				else
-				{
-					gSLiMTestSuccessCount++;
-					
-					//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
-				}
+				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
+				std::cerr << "   raise message: " << raise_message << endl;
+				std::cerr << "--------------------" << std::endl << std::endl;
 			}
 		}
 		else
 		{
 			gSLiMTestFailureCount++;
 			
-			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : stop() reached" << endl;
+			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : stop() reached (expected \"" << p_reason_snip << "\")." << endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
 	}
@@ -229,35 +240,35 @@ void RunSLiMTests(void)
 	#pragma mark initialize() tests
 	
 	// Test (void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
-	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }");			// legal; no max for meanLength
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000); stop(); }", 1, 15);	// conversionFraction out of range
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000); stop(); }", 1, 15);	// conversionFraction out of range
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0); stop(); }", 1, 15);				// meanLength out of range
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5); stop(); }", 1, 15);					// missing param
+	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }");										// legal; no max for meanLength
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000); stop(); }", 1, 15, "must be between 0.0 and 1.0");
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000); stop(); }", 1, 15, "must be between 0.0 and 1.0");
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0); stop(); }", 1, 15, "must be greater than 0.0");
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5); stop(); }", 1, 15, "missing required argument");
 	
 	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
-	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }");					// legal
-	SLiMAssertScriptStop("initialize() { initializeMutationType(1, 0.5, 'f', 0.0); stop(); }");						// legal
-	SLiMAssertScriptRaise("initialize() { initializeMutationType(-1, 0.5, 'f', 0.0); stop(); }", 1, 15);			// id invalid
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('p2', 0.5, 'f', 0.0); stop(); }", 1, 15);			// id invalid
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('mm1', 0.5, 'f', 0.0); stop(); }", 1, 15);			// id invalid
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f'); stop(); }", 1, 15);				// missing param
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", 1, 15);		// DFE param count wrong
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0); stop(); }", 1, 15);			// DFE param count wrong
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", 1, 15);		// DFE param count wrong
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", 1, 15);		// DFE params must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", 1, 15);	// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", 1, 15);	// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 'foo'); stop(); }", 1, 15);		// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', '1'); stop(); }", 1, 15);			// DFE params must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', '1', 0.0); stop(); }", 1, 15);		// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, '1'); stop(); }", 1, 15);		// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', '1'); stop(); }", 1, 15);			// DFE param must be numeric
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", 1, 15);			// DFE type undefined
-	SLiMAssertScriptStop("initialize() { x = initializeMutationType('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }");	// check that symbol is defined
-	SLiMAssertScriptStop("initialize() { x = initializeMutationType(7, 0.5, 'f', 0.0); if (x == m7) stop(); }");	// check that symbol is defined
-	SLiMAssertScriptRaise("initialize() { m7 = 15; initializeMutationType(7, 0.5, 'f', 0.0); stop(); }", 1, 24);	// symbol collision
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", 1, 60);	// same id defined twice
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType(1, 0.5, 'f', 0.0); stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType(-1, 0.5, 'f', 0.0); stop(); }", 1, 15, "identifier value is out of range");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('p2', 0.5, 'f', 0.0); stop(); }", 1, 15, "identifier prefix \"m\" was expected");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('mm1', 0.5, 'f', 0.0); stop(); }", 1, 15, "must be a simple integer");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f'); stop(); }", 1, 15, "requires exactly 1 DFE parameter");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", 1, 15, "requires exactly 1 DFE parameter");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0); stop(); }", 1, 15, "requires exactly 2 DFE parameters");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", 1, 15, "requires exactly 1 DFE parameter");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', '1', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", 1, 15, "must be \"f\", \"g\", or \"e\"");
+	SLiMAssertScriptStop("initialize() { x = initializeMutationType('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }");
+	SLiMAssertScriptStop("initialize() { x = initializeMutationType(7, 0.5, 'f', 0.0); if (x == m7) stop(); }");
+	SLiMAssertScriptRaise("initialize() { m7 = 15; initializeMutationType(7, 0.5, 'f', 0.0); stop(); }", 1, 24, "already defined");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", 1, 60, "already defined");
 	
 	// Test (object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions)
 	std::string define_m12(" initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m2', 0.5, 'f', 0.5); ");
@@ -265,63 +276,63 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', object(), integer(0)); stop(); }");			// legal: genomic element with no mutations
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', integer(0), float(0)); stop(); }");			// legal: genomic element with no mutations
 	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), c(0,0)); stop(); }");				// legal: genomic element with all zero proportions (must be fixed later...)
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1:2); stop(); }");					// legal
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType(1, c(m1,m2), 1:2); stop(); }");						// legal
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 1:2, 1:2); stop(); }");						// legal
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2)); stop(); }", 1, 105);				// missing param
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1); stop(); }", 1, 105);			// proportions count wrong
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), c(-1,2)); stop(); }", 1, 105);		// proportion is negative
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 2:3, 1:2); stop(); }", 1, 105);				// reference to undefined mutation type
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(2,2), 1:2); stop(); }", 1, 105);			// reference to a mutation type more than once
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType('g7', c(m1,m2), 1:2); if (x == g7) stop(); }");	// check that symbol is defined
-	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType(7, c(m1,m2), 1:2); if (x == g7) stop(); }");		// check that symbol is defined
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "g7 = 17; initializeGenomicElementType(7, c(m1,m2), 1:2); stop(); }", 1, 114);	// symbol collision
-	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1:2); initializeGenomicElementType('g1', c(m1,m2), c(0,0)); stop(); }", 1, 156);	// same id defined twice
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1:2); stop(); }");
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType(1, c(m1,m2), 1:2); stop(); }");
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 1:2, 1:2); stop(); }");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2)); stop(); }", 1, 105, "missing required argument");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1); stop(); }", 1, 105, "requires the sizes");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), c(-1,2)); stop(); }", 1, 105, "must be greater than or equal to zero");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', 2:3, 1:2); stop(); }", 1, 105, "not defined");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(2,2), 1:2); stop(); }", 1, 105, "used more than once");
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType('g7', c(m1,m2), 1:2); if (x == g7) stop(); }");
+	SLiMAssertScriptStop("initialize() {" + define_m12 + "x = initializeGenomicElementType(7, c(m1,m2), 1:2); if (x == g7) stop(); }");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "g7 = 17; initializeGenomicElementType(7, c(m1,m2), 1:2); stop(); }", 1, 114, "already defined");
+	SLiMAssertScriptRaise("initialize() {" + define_m12 + "initializeGenomicElementType('g1', c(m1,m2), 1:2); initializeGenomicElementType('g1', c(m1,m2), c(0,0)); stop(); }", 1, 156, "already defined");
 	
 	// Test (void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
 	std::string define_g1(define_m12 + " initializeGenomicElementType('g1', c(m1,m2), 1:2); ");
 	
-	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000000); stop(); }");				// legal
-	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeGenomicElement(1, 0, 1000000000); stop(); }");				// legal
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0); stop(); }", 1, 157);					// missing param
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(2, 0, 1000000000); stop(); }", 1, 157);		// reference to undefined genomic element type
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, -1, 1000000000); stop(); }", 1, 157);	// start out of range
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000001); stop(); }", 1, 157);		// end out of range
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 100, 99); stop(); }", 1, 157);			// end before start
+	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000000); stop(); }");
+	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeGenomicElement(1, 0, 1000000000); stop(); }");
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0); stop(); }", 1, 157, "missing required argument");
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(2, 0, 1000000000); stop(); }", 1, 157, "not defined");
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, -1, 1000000000); stop(); }", 1, 157, "out of range");
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000001); stop(); }", 1, 157, "out of range");
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 100, 99); stop(); }", 1, 157, "is less than start position");
 	
 	// Test (void)initializeMutationRate(numeric$ rate)
-	SLiMAssertScriptStop("initialize() { initializeMutationRate(0.0); stop(); }");					// legal
-	SLiMAssertScriptRaise("initialize() { initializeMutationRate(); stop(); }", 1, 15);				// missing param
-	SLiMAssertScriptRaise("initialize() { initializeMutationRate(-0.0000001); stop(); }", 1, 15);	// rate out of range
-	SLiMAssertScriptStop("initialize() { initializeMutationRate(10000000); stop(); }");				// legal; no maximum rate
+	SLiMAssertScriptStop("initialize() { initializeMutationRate(0.0); stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(); stop(); }", 1, 15, "missing required argument");
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(-0.0000001); stop(); }", 1, 15, "requires rate >= 0");
+	SLiMAssertScriptStop("initialize() { initializeMutationRate(10000000); stop(); }");														// legal; no maximum rate
 	
 	// Test (void)initializeRecombinationRate(numeric rates, [integer ends])
-	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.0); stop(); }");										// legal: singleton rate, no end
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(); stop(); }", 1, 15);								// missing param
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(-0.00001); stop(); }", 1, 15);						// rate out of range
-	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(10000); stop(); }");									// legal; no maximum rate
-	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000)); stop(); }");				// legal: multiple rates, matching ends
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 15);						// missing param
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(integer(0), integer(0)); stop(); }", 1, 15);			// length zero params
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), 1000); stop(); }", 1, 15);				// length mismatch
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), 1:3); stop(); }", 1, 15);				// length mismatch
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000)); stop(); }", 1, 15);		// ends out of order
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000)); stop(); }", 1, 15);		// identical ends
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 15);	// rate out of range
+	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.0); stop(); }");														// legal: singleton rate, no end
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(); stop(); }", 1, 15, "missing required argument");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(-0.00001); stop(); }", 1, 15, "requires rates to be >= 0");
+	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(10000); stop(); }");													// legal; no maximum rate
+	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000)); stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 15, "requires rates to be a singleton if");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(integer(0), integer(0)); stop(); }", 1, 15, "ends and rates to be");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), 1000); stop(); }", 1, 15, "ends and rates to be");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), 1:3); stop(); }", 1, 15, "ends and rates to be");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000)); stop(); }", 1, 15, "ascending order");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000)); stop(); }", 1, 15, "ascending order");
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 15, "requires rates to be >= 0");
 	
 	// Test (void)initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff])
-	SLiMAssertScriptStop("initialize() { initializeSex('A'); stop(); }");										// legal: autosome
-	SLiMAssertScriptStop("initialize() { initializeSex('X'); stop(); }");										// legal: X chromosome
-	SLiMAssertScriptStop("initialize() { initializeSex('Y'); stop(); }");										// legal: Y chromosome
-	SLiMAssertScriptRaise("initialize() { initializeSex('Z'); stop(); }", 1, 15);								// unknown chromosome type
-	SLiMAssertScriptRaise("initialize() { initializeSex(); stop(); }", 1, 15);									// missing param
-	SLiMAssertScriptRaise("initialize() { initializeSex('A', 0.0); stop(); }", 1, 15);							// disallowed dominance coeff
-	SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }");									// legal: X chromosome with dominance coeff
-	SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15);							// disallowed dominance coeff
-	SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15);							// unknown chromosome type
-	SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }");								// legal: no minimum value for dominance coeff
-	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }");								// legal: no maximum value for dominance coeff
-	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35);			// two sex declarations
+	SLiMAssertScriptStop("initialize() { initializeSex('A'); stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeSex('X'); stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeSex('Y'); stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeSex('Z'); stop(); }", 1, 15, "requires a chromosomeType of");
+	SLiMAssertScriptRaise("initialize() { initializeSex(); stop(); }", 1, 15, "missing required argument");
+	SLiMAssertScriptRaise("initialize() { initializeSex('A', 0.0); stop(); }", 1, 15, "may be supplied only for");
+	SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15, "may be supplied only for");
+	SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15, "requires a chromosomeType of");
+	SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }");															// legal: no minimum value for dominance coeff
+	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }");															// legal: no maximum value for dominance coeff
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once");
 	
 	// ************************************************************************************
 	//
@@ -334,165 +345,166 @@ void RunSLiMTests(void)
 	std::string gen2_stop(" 2 { stop(); } ");
 	
 	// Test sim properties
-	SLiMAssertScriptStop(gen1_setup + "1 { } " + gen2_stop);															// legal; simplest simulation, no subpop
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome; } " + gen2_stop);											// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosome = sim.chromosome; } " + gen2_stop, 1, 231);					// read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.chromosomeType == 'A') stop(); } ");									// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosomeType = 'A'; } " + gen2_stop, 1, 235);							// read-only property
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.chromosomeType == 'X') stop(); } ");								// legal
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { sim.chromosomeType = 'X'; } " + gen2_stop, 1, 255);						// read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);										// legal: the property is meaningless but may be accessed
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236);									// setting disallowed property
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop);									// legal: property enabled
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop);								// legal: property enabled
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ");														// legal
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop);										// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ");								// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240);									// read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ");									// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234);										// read-only property
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.mutations; } ");														// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutations = _Test(7); } ", 1, 230);										// type Mutation required
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.scriptBlocks; } ");													// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.scriptBlocks = sim.scriptBlocks[0]; } ", 1, 233);						// read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.sexEnabled == F) stop(); } ");										// legal
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.sexEnabled == T) stop(); } ");			// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.subpopulations) == 0) stop(); } ");								// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.subpopulations = _Test(7); } ", 1, 235);								// type Subpopulation required
-	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.substitutions) == 0) stop(); } ");								// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.substitutions = _Test(7); } ", 1, 234);									// type Substitution required
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ");															// legal
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ");														// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }");						// legal
+	SLiMAssertScriptStop(gen1_setup + "1 { } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome; } " + gen2_stop);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosome = sim.chromosome; } " + gen2_stop, 1, 231, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.chromosomeType == 'A') stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosomeType = 'A'; } " + gen2_stop, 1, 235, "read-only property");
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.chromosomeType == 'X') stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { sim.chromosomeType = 'X'; } " + gen2_stop, 1, 255, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);															// legal: the property is meaningless but may be accessed
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236, "when not simulating an X chromosome");
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234, "read-only property");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.mutations; } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutations = _Test(7); } ", 1, 230, "cannot be object element type");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.scriptBlocks; } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.scriptBlocks = sim.scriptBlocks[0]; } ", 1, 233, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.sexEnabled == F) stop(); } ");
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.sexEnabled == T) stop(); } ");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.subpopulations) == 0) stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.subpopulations = _Test(7); } ", 1, 235, "cannot be object element type");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.substitutions) == 0) stop(); } ");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.substitutions = _Test(7); } ", 1, 234, "cannot be object element type");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ");
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }");
 	
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop);									// legal with subpop string
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10); } " + gen2_stop);										// legal with subpop id
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, 1, 220);						// sex ratio supplied in non-sexual simulation
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220);						// sex ratio supplied in non-sexual simulation
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop);							// legal
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop);								// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop('p7', 10); if (x == p7) stop(); }");						// check that symbol is defined
-	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop(7, 10); if (x == p7) stop(); }");							// check that symbol is defined
-	SLiMAssertScriptRaise(gen1_setup + "1 { p7 = 17; sim.addSubpop('p7', 10); stop(); }", 1, 229);						// symbol collision
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p7', 10); sim.addSubpop(7, 10); stop(); }", 1, 245);			// same id defined twice
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10); } " + gen2_stop);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, 1, 220, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop('p7', 10); if (x == p7) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop(7, 10); if (x == p7) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { p7 = 17; sim.addSubpop('p7', 10); stop(); }", 1, 229, "already defined");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p7', 10); sim.addSubpop(7, 10); stop(); }", 1, 245, "already exists");
 	
 	// Test sim - (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, io<Subpopulation>$ sourceSubpop, [float$ sexRatio])
 	std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ");
 	std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
 	
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1); } " + gen2_stop);										// legal with subpop string
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, 1); } " + gen2_stop);										// legal with subpop string
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1); } " + gen2_stop);											// legal with subpop id
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 1); } " + gen2_stop);											// legal with subpop id
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 7); } " + gen2_stop, 1, 251);									// nonexistent source subpop
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, 1, 251);							// sex ratio supplied in non-sexual simulation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, 1, 251);							// sex ratio supplied in non-sexual simulation
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop);								// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop);									// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit('p7', 10, p1); if (x == p7) stop(); }");							// check that symbol is defined
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit(7, 10, p1); if (x == p7) stop(); }");								// check that symbol is defined
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p7 = 17; sim.addSubpopSplit('p7', 10, p1); stop(); }", 1, 260);							// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p7', 10, p1); sim.addSubpopSplit(7, 10, p1); stop(); }", 1, 285);	// same id defined twice
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, 1); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 1); } " + gen2_stop);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 7); } " + gen2_stop, 1, 251, "not defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, 1, 251, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, 1, 251, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit('p7', 10, p1); if (x == p7) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit(7, 10, p1); if (x == p7) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p7 = 17; sim.addSubpopSplit('p7', 10, p1); stop(); }", 1, 260, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p7', 10, p1); sim.addSubpopSplit(7, 10, p1); stop(); }", 1, 285, "already exists");
 	
 	// Test sim - (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); } s1 2 { stop(); }");										// legal
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); } s1 2 { stop(); }");										// legal
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); } s1 2 { stop(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); } s1 2 { stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(object()); } s1 2 { stop(); }");									// legal: deregister nothing
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s1)); } s1 2 { stop(); }", 1, 251);							// double deregister
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 1)); } s1 2 { stop(); }", 1, 251);							// double deregister
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); sim.deregisterScriptBlock(s1); } s1 2 { stop(); }", 1, 282);	// double deregister
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); sim.deregisterScriptBlock(1); } s1 2 { stop(); }", 1, 281);	// double deregister
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }");				// legal
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }");					// legal
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s1)); } s1 2 { stop(); }", 1, 251, "same script block");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 1)); } s1 2 { stop(); }", 1, 251, "same script block");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); sim.deregisterScriptBlock(s1); } s1 2 { stop(); }", 1, 282, "same script block");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); sim.deregisterScriptBlock(1); } s1 2 { stop(); }", 1, 281, "same script block");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }");
 	
 	// Test sim - (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
 	std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
 	
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }");					// legal
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }");			// legal
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }");				// legal, requests population-wide frequencies
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations); }");	// legal, requests population-wide frequencies
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }");			// legal to specify an empty object vector
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }");													// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations); }");										// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }");												// legal to specify an empty object vector
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1); }", 1, 301, "cannot be type integer");						// this is one API where integer identifiers can't be used
 	
 	// Test sim - (void)outputFixedMutations(void)
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");				// legal
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");
 	
 	// Test sim - (void)outputFull([string$ filePath])
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull(); }");									// legal
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull('/tmp/slimOutputFullTest.txt'); }");	// legal, output to file path; this test might work only on Un*x systems
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull('/tmp/slimOutputFullTest.txt'); }");									// legal, output to file path; this test might work only on Un*x systems
 	
 	// Test sim - (void)outputMutations(object<Mutation> mutations)
 	std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
 	
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations); }");						// legal; should have some mutations by gen 5
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[0]); }");					// legal; output just one mutation
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[integer(0)]); }");			// legal to specify an empty object vector
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(object()); }");							// legal to specify an empty object vector
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 { sim.outputMutations(NULL); }", 1, 251);							// NULL not allowed
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations); }");											// legal; should have some mutations by gen 5
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[0]); }");										// legal; output just one mutation
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[integer(0)]); }");								// legal to specify an empty object vector
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(object()); }");												// legal to specify an empty object vector
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 { sim.outputMutations(NULL); }", 1, 251, "cannot be type NULL");
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");												// legal, read from file path; depends on the outputFull() test above
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220);													// no file at path
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220, "could not open");
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); if (size(sim.subpopulations) != 3) stop(); }");	// legal; should wipe previous state
 	
 	// Test sim - (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptEvent(NULL, '{ stop(); }', 2, 2); }");														// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent('s1', '{ stop(); }', 2, 2); }", 1, 259);										// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 259);										// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 2, 2); registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 296);	// same id defined twice
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 3, 2); }", 1, 251);												// start < end
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', -1, -1); }", 1, 251);												// generation -1
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 0, 0); }", 1, 251);												// generation 0
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ $; }', 2, 2); }", 1, 2);														// syntax error inside block
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptEvent(NULL, '{ stop(); }', 2, 2); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 2, 2); sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 300, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
 	
 	// Test sim - (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }");																					// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");																					// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");																					// legal
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }'); }", 1, 251);																						// missing param
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259);																// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259);																// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 320);	// same id defined twice
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251);																		// start < end
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251);																		// generation -1
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251);																		// generation 0
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }'); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 320, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
 	// Test sim - (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }");																					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }");																					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");																							// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");																							// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL); }", 1, 251);																									// missing param
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259);																	// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 319);		// same id defined twice
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251);																			// start < end
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251);																		// generation -1
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251);																			// generation 0
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 319, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
 	// Test sim - (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }");																					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }");																				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");																							// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");																							// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL); }", 1, 251);																								// missing param
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259);																// symbol collision
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 320);	// same id defined twice
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251);																		// start < end
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251);																		// generation -1
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251);																		// generation 0
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2);																				// syntax error inside block
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 320, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
 	
 	// ************************************************************************************
@@ -502,33 +514,33 @@ void RunSLiMTests(void)
 	#pragma mark MutationType tests
 	
 	// Test MutationType properties
-	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.dominanceCoeff == 0.5) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.id == 1) stop(); }");							// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");	// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionParams = 0.1; }", 1, 238);			// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionType = 'g'; }", 1, 236);				// setting read-only property
-	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.dominanceCoeff = 0.3; }");						// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.id = 2; }", 1, 222);								// setting read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.dominanceCoeff == 0.5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.id == 1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionParams = 0.1; }", 1, 238, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionType = 'g'; }", 1, 236, "read-only property");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.dominanceCoeff = 0.3; }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.id = 2; }", 1, 222, "read-only property");
 	
 	// Test MutationType - (void)setDistribution(string$ distributionType, ...)
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('f', 2.2); if (m1.distributionType == 'f' & m1.distributionParams == 2.2) stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('g', 3.1, 7.5); if (m1.distributionType == 'g' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }");	// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('e', -3); if (m1.distributionType == 'e' & m1.distributionParams == -3) stop(); }");							// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('x', 1.5); stop(); }", 1, 219);																				// no such DFE
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', 'foo'); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 'foo', 7.5); stop(); }", 1, 219);																		// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 'foo'); stop(); }", 1, 219);																		// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', 'foo'); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', '1'); stop(); }", 1, 219);																				// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', '1', 7.5); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, '1'); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', '1'); stop(); }", 1, 219);																				// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', T); stop(); }", 1, 219);																				// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', T, 7.5); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, T); stop(); }", 1, 219);																			// DFE params must be numeric
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', T); stop(); }", 1, 219);																				// DFE params must be numeric
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('f', 2.2); if (m1.distributionType == 'f' & m1.distributionParams == 2.2) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('g', 3.1, 7.5); if (m1.distributionType == 'g' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('e', -3); if (m1.distributionType == 'e' & m1.distributionParams == -3) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('x', 1.5); stop(); }", 1, 219, "must be \"f\", \"g\", or \"e\"");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', 'foo'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 'foo', 7.5); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 'foo'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', 'foo'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', '1'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', '1', 7.5); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, '1'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', '1'); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', T); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', T, 7.5); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, T); stop(); }", 1, 219, "requires that DFE parameters be numeric");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', T); stop(); }", 1, 219, "requires that DFE parameters be numeric");
 	
 	
 	// ************************************************************************************
@@ -538,28 +550,28 @@ void RunSLiMTests(void)
 	#pragma mark GenomicElementType tests
 	
 	// Test GenomicElementType properties
-	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.id == 1) stop(); }");							// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { g1.id = 2; }", 1, 222);								// setting read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationFractions == 1.0) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationTypes == m1) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");	// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationFractions = 1.0; }", 1, 237);			// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationTypes = m1; }", 1, 233);					// setting read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.id == 1) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { g1.id = 2; }", 1, 222, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationFractions == 1.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationTypes == m1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationFractions = 1.0; }", 1, 237, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationTypes = m1; }", 1, 233, "read-only property");
 	
 	// Test GenomicElementType - (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
-	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(object(), integer(0)); stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(m1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(m1, 0.3); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.3) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(1, 0.3); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.3) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), c(0.3, 0.7)); if (identical(g1.mutationTypes, c(m1,m2)) & identical(g1.mutationFractions, c(0.3,0.7))) stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(1,2), c(0.3, 0.7)); if (identical(g1.mutationTypes, c(m1,m2)) & identical(g1.mutationFractions, c(0.3,0.7))) stop(); }");						// legal
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2)); stop(); }", 1, 281);				// missing param
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), 0.3); stop(); }", 1, 281);			// proportions count wrong
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), c(-1, 2)); stop(); }", 1, 281);		// proportion is negative
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,3), c(1, 2)); stop(); }", 1, 281);		// reference to undefined mutation type
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m2,m2), c(1, 2)); stop(); }", 1, 281);		// reference to a mutation type more than once
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,2), c(1, 2)); stop(); }", 1, 281);		// reference to a mutation type more than once
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(object(), integer(0)); stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(m1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(m1, 0.3); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.3) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.setMutationFractions(1, 0.3); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.3) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), c(0.3, 0.7)); if (identical(g1.mutationTypes, c(m1,m2)) & identical(g1.mutationFractions, c(0.3,0.7))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(1,2), c(0.3, 0.7)); if (identical(g1.mutationTypes, c(m1,m2)) & identical(g1.mutationFractions, c(0.3,0.7))) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2)); stop(); }", 1, 281, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), 0.3); stop(); }", 1, 281, "requires the sizes");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m1,m2), c(-1, 2)); stop(); }", 1, 281, "must be greater than or equal to zero");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,3), c(1, 2)); stop(); }", 1, 281, "not defined");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m2,m2), c(1, 2)); stop(); }", 1, 281, "used more than once");
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,2), c(1, 2)); stop(); }", 1, 281, "used more than once");
 	
 	
 	// ************************************************************************************
@@ -571,27 +583,27 @@ void RunSLiMTests(void)
 	std::string gen1_setup_2ge("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 999); initializeGenomicElement(g1, 1000, 99999); initializeRecombinationRate(1e-8); } ");
 	
 	// Test GenomicElement properties
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.endPosition == 999) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.startPosition == 0) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.genomicElementType == g1) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.tag = -12; if (ge.tag == -12) stop(); }");		// legal
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.endPosition = 999; stop(); }", 1, 312);			// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.startPosition = 0; stop(); }", 1, 314);			// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.genomicElementType = g1; stop(); }", 1, 319);	// setting read-only property
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.endPosition == 99999) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.startPosition == 1000) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.genomicElementType == g1) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.tag = -17; if (ge.tag == -17) stop(); }");		// legal
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.endPosition = 99999; stop(); }", 1, 312);		// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.startPosition = 1000; stop(); }", 1, 314);		// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.genomicElementType = g1; stop(); }", 1, 319);	// setting read-only property
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.endPosition == 999) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.startPosition == 0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.genomicElementType == g1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.tag = -12; if (ge.tag == -12) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.endPosition = 999; stop(); }", 1, 312, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.startPosition = 0; stop(); }", 1, 314, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.genomicElementType = g1; stop(); }", 1, 319, "read-only property");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.endPosition == 99999) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.startPosition == 1000) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.genomicElementType == g1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.tag = -17; if (ge.tag == -17) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.endPosition = 99999; stop(); }", 1, 312, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.startPosition = 1000; stop(); }", 1, 314, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.genomicElementType = g1; stop(); }", 1, 319, "read-only property");
 	
 	// Test GenomicElement - (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(g1); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(1); stop(); }");					// legal
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(); stop(); }", 1, 300);			// missing parameter
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(object()); stop(); }", 1, 300);	// missing object
-	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(2); stop(); }", 1, 300);			// undefined genomic element
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(g1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(1); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(); stop(); }", 1, 300, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(object()); stop(); }", 1, 300, "must be a singleton");
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(2); stop(); }", 1, 300, "not defined");
 	
 	
 	// ************************************************************************************
@@ -601,45 +613,45 @@ void RunSLiMTests(void)
 	#pragma mark Chromosome tests
 	
 	// Test Chromosome properties
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }");	// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }");							// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallMutationRate == 1e-7) stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallRecombinationRate == 1e-8 * 100000) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationEndPositions == 99999) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationRates == 1e-8) stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }");			// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 263);									// value out of range
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 1.001; stop(); }", 1, 263);									// value out of range
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.2; if (ch.geneConversionMeanLength == 0.2) stop(); }");		// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.0; stop(); }", 1, 265);									// value out of range
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }");											// legal; no upper bound
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 256);								// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 253);												// setting read-only property
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e-6; if (ch.overallMutationRate == 1e-6) stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = -1e-6; stop(); }", 1, 260);										// value out of range
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e6; stop(); }");													// legal; no upper bound
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 265);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationEndPositions = 99999; stop(); }", 1, 266);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationRates = 1e-8; stop(); }", 1, 259);											// setting read-only property
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallMutationRate == 1e-7) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallRecombinationRate == 1e-8 * 100000) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationEndPositions == 99999) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationRates == 1e-8) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 263, "out of range");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 1.001; stop(); }", 1, 263, "out of range");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.2; if (ch.geneConversionMeanLength == 0.2) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.0; stop(); }", 1, 265, "out of range");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }");												// legal; no upper bound
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 256, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 253, "read-only property");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e-6; if (ch.overallMutationRate == 1e-6) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = -1e-6; stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e6; stop(); }");														// legal; no upper bound
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 265, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationEndPositions = 99999; stop(); }", 1, 266, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationRates = 1e-8; stop(); }", 1, 259, "read-only property");
 	
 	// Test Chromosome - (void)setRecombinationRate(numeric rates, [integer ends])
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.0); stop(); }");										// legal: singleton rate, no end
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(); stop(); }", 1, 240);								// missing param
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(-0.00001); stop(); }", 1, 240);						// rate out of range
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }");									// legal; no maximum rate
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }");				// legal: multiple rates, matching ends
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 240);						// missing param
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(integer(0), integer(0)); stop(); }", 1, 240);			// length zero params
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99999); stop(); }", 1, 240);				// length mismatch
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999); stop(); }", 1, 240);		// length mismatch
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000)); stop(); }", 1, 240);		// ends out of order
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999)); stop(); }", 1, 240);	// identical ends
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 240);	// rate out of range
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 240);	// end out of range
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 240);	// end out of range
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.0); stop(); }");														// legal: singleton rate, no end
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(); stop(); }", 1, 240, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(-0.00001); stop(); }", 1, 240, "out of range");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }");													// legal; no maximum rate
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 240, "to be a singleton if");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(integer(0), integer(0)); stop(); }", 1, 240, "to be of equal and nonzero size");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99999); stop(); }", 1, 240, "to be of equal and nonzero size");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999); stop(); }", 1, 240, "to be of equal and nonzero size");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000)); stop(); }", 1, 240, "ascending order");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999)); stop(); }", 1, 240, "ascending order");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 240, "must be >= 0");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 240, "must be >= 0");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 240, "must be >= 0");
 	
 	
 	// ************************************************************************************
@@ -649,19 +661,20 @@ void RunSLiMTests(void)
 	#pragma mark Mutation tests
 	
 	// Test Mutation properties
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }");											// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if ((mut.originGeneration >= 1) & (mut.originGeneration < 10)) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if ((mut.position >= 0) & (mut.position < 100000)) stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.selectionCoeff == 0.0) stop(); }");										// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.subpopID == 1) stop(); }");												// legal
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.mutationType = m1; stop(); }", 1, 289);										// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.originGeneration = 1; stop(); }", 1, 293);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.position = 0; stop(); }", 1, 285);											// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", 1, 291);									// setting read-only property
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if ((mut.originGeneration >= 1) & (mut.originGeneration < 10)) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if ((mut.position >= 0) & (mut.position < 100000)) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.selectionCoeff == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.subpopID == 1) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.mutationType = m1; stop(); }", 1, 289, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.originGeneration = 1; stop(); }", 1, 293, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.position = 0; stop(); }", 1, 285, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", 1, 291, "read-only property");
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }");						// legal; this field may be used as a user tag
 	
 	// Test Mutation - (void)setSelectionCoeff(float$ selectionCoeff)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(0.5); if (mut.selectionCoeff == 0.5) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(0.5); if (mut.selectionCoeff == 0.5) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(1); if (mut.selectionCoeff == 1) stop(); }", 1, 276, "cannot be type integer");
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(-500.0); if (mut.selectionCoeff == -500.0) stop(); }");	// legal; no lower bound
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(500.0); if (mut.selectionCoeff == 500.0) stop(); }");		// legal; no upper bound
 	
@@ -673,48 +686,49 @@ void RunSLiMTests(void)
 	#pragma mark Genome tests
 	
 	// Test Genome properties
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.isNullGenome == F) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.mutations[0].mutationType == m1) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.tag = 278; if (gen.tag == 278) stop(); }");						// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.genomeType = 'A'; stop(); }", 1, 283);							// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.isNullGenome = F; stop(); }", 1, 285);							// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.mutations[0].mutationType = m1; stop(); }", 1, 299);	// setting read-only property
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.isNullGenome == F) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.mutations[0].mutationType == m1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.tag = 278; if (gen.tag == 278) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.genomeType = 'A'; stop(); }", 1, 283, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.isNullGenome = F; stop(); }", 1, 285, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.mutations[0].mutationType = m1; stop(); }", 1, 299, "read-only property");
 	
 	// Test Genome - (void)addMutations(object<Mutation> mutations)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.addMutations(object()); stop(); }");																							// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(gen.mutations[0]); stop(); }");																		// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(p1.genomes[1].mutations[0]); stop(); }");																// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = p1.genomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); if (sum(gen.mutations == mut) == 1) stop(); }");		// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.addMutations(object()); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(gen.mutations[0]); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(p1.genomes[1].mutations[0]); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = p1.genomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); if (sum(gen.mutations == mut) == 1) stop(); }");
 	
 	// Test Genome - (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, io<Subpopulation>$ originSubpop)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(7, NULL, 5000, 1); stop(); }", 1, 278);									// bad mutation type
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 0, 5000, 1); stop(); }", 1, 278);										// bad generation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, -1, 1); stop(); }", 1, 278);										// bad position
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 100000, 1); stop(); }", 1, 278);									// bad position
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, p1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 10, 5000, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(7, NULL, 5000, 1); stop(); }", 1, 278, "not defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 0, 5000, 1); stop(); }", 1, 278, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, -1, 1); stop(); }", 1, 278, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 100000, 1); stop(); }", 1, 278, "past the end");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, NULL, 5000, 237); stop(); }");											// bad subpop, but this is legal to allow "tagging" of mutations
 	
 	// Test Genome - (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, Ni$ originGeneration, integer$ position, numeric$ selectionCoeff, io<Subpopulation>$ originSubpop)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(7, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad mutation type
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad generation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, -1, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);		// bad position
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 100000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278);	// bad position
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, p1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 10, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(7, NULL, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "not defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0, 5000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, -1, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 100000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "past the end");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 237); p1.genomes.addMutations(mut); stop(); }");			// bad subpop, but this is legal to allow "tagging" of mutations
 	
 	// Test Genome - (void)removeMutations(object<Mutation> mutations)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");																// legal
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");												// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); gen.removeMutations(mut); stop(); }");	// legal to remove a mutation that is not present
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");
 	
 	
 	// ************************************************************************************
@@ -724,143 +738,163 @@ void RunSLiMTests(void)
 	#pragma mark Subpopulation tests
 	
 	// Test Subpopulation properties
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }");									// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.firstMaleIndex == p1.firstMaleIndex) stop(); }");					// legal but undefined value in non-sexual sims
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");									// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.id == 1) stop(); }");												// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");			// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.id == 1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }");									// legal but always 0.0 in non-sexual sims
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.sexRatio == 0.0) stop(); }");										// legal but always 0.0 in non-sexual sims
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.individualCount == 10) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");								// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.individualCount == 10) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");
+
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 262, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 265, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes = p1.genomes[0]; stop(); }", 1, 258, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.id = 1; stop(); }", 1, 253, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.immigrantSubpopFractions = 1.0; stop(); }", 1, 275, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.immigrantSubpopIDs = 1; stop(); }", 1, 269, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.selfingRate = 0.0; stop(); }", 1, 262, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.sexRatio = 0.5; stop(); }", 1, 259, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.individualCount = 10; stop(); }", 1, 266, "read-only property");
+
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.firstMaleIndex == 5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.id == 1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.sexRatio == 0.5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.individualCount == 10) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.firstMaleIndex == 5) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.genomes) == 20) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.id == 1) stop(); }");											// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }");	// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.sexRatio == 0.5) stop(); }");									// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.individualCount == 10) stop(); }");							// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }");							// legal
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 282, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 285, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.genomes = p1.genomes[0]; stop(); }", 1, 278, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.id = 1; stop(); }", 1, 273, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.immigrantSubpopFractions = 1.0; stop(); }", 1, 295, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.immigrantSubpopIDs = 1; stop(); }", 1, 289, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.selfingRate = 0.0; stop(); }", 1, 282, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.sexRatio = 0.5; stop(); }", 1, 279, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.individualCount = 10; stop(); }", 1, 286, "read-only property");
 	
 	// Test Subpopulation - (float)fitness(Ni indices)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after subpop construction)
 	SLiMAssertScriptStop(gen1_setup_p1 + "2 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after child generation)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0), 1.0)) stop(); }");							// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0:3), rep(1.0, 4))) stop(); }");					// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260);			// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260);		// index out of range 0..9
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0), 1.0)) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0:3), rep(1.0, 4))) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
 	
 	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(5); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(10); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(20); stop(); }");					// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }", 1, 250);		// non-sexual simulation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }", 1, 250);		// non-sexual simulation
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 250);		// unsupported sex selector
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(20); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }", 1, 250, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }", 1, 250, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 250, "requested sex");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(5); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(10); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(20); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");			// legal
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 270);	// unsupported sex selector
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(20); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 270, "requested sex");
 	
 	// Test Subpopulation - (void)outputSample(integer$ sampleSize, [string$ requestedSex])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1); stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(5); stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(10); stop(); }");						// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(20); stop(); }");						// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'M'); stop(); }", 1, 250);		// non-sexual simulation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'F'); stop(); }", 1, 250);		// non-sexual simulation
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1, '*'); stop(); }");					// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 250);		// unsupported sex selector
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(20); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'M'); stop(); }", 1, 250, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'F'); stop(); }", 1, 250, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 250, "requested sex");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(5); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(10); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(20); stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'M'); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'F'); stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, '*'); stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 270);	// unsupported sex selector
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(20); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'M'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'F'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 270, "requested sex");
 	
 	// Test Subpopulation - (void)setCloningRate(numeric rate)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (p1.cloningRate == 0.0) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (p1.cloningRate == 0.5) stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (p1.cloningRate == 1.0) stop(); }");								// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 250);														// out of range
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 250);														// out of range
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (p1.cloningRate == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (p1.cloningRate == 0.5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (p1.cloningRate == 1.0) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 250, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 250, "within [0,1]");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (identical(p1.cloningRate, c(0.0, 0.0))) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (identical(p1.cloningRate, c(0.5, 0.5))) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (identical(p1.cloningRate, c(1.0, 1.0))) stop(); }");			// legal
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 270);													// out of range
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 270);													// out of range
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (identical(p1.cloningRate, c(0.0, 0.0))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(0.5); } 10 { if (identical(p1.cloningRate, c(0.5, 0.5))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.0); } 10 { if (identical(p1.cloningRate, c(1.0, 1.0))) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(-0.001); stop(); }", 1, 270, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(1.001); stop(); }", 1, 270, "within [0,1]");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.0, 0.1))) stop(); }");	// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.5, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.5, 0.1))) stop(); }");	// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(1.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(1.0, 0.1))) stop(); }");	// legal
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, -0.001)); stop(); }", 1, 270);											// out of range
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 1.001)); stop(); }", 1, 270);											// out of range
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.0, 0.1))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.5, 0.1)); } 10 { if (identical(p1.cloningRate, c(0.5, 0.1))) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(1.0, 0.1)); } 10 { if (identical(p1.cloningRate, c(1.0, 0.1))) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, -0.001)); stop(); }", 1, 270, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setCloningRate(c(0.0, 1.001)); stop(); }", 1, 270, "within [0,1]");
 	
 	// Test Subpopulation - (void)setMigrationRates(io<Subpopulation> sourceSubpops, numeric rates)
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 0.1); } 10 { stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(3, 0.1); } 10 { stop(); }");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.1, 0.1)); } 10 { stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(1, 0.1); } 10 { stop(); }", 1, 300);					// self-reference
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(4, 0.1); } 10 { stop(); }", 1, 300);					// non-existent subpop
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 1), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// self-reference
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 4), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// non-existent subpop
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);		// duplicate reference
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(p2, p2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300);	// duplicate reference
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), 0.1); } 10 { stop(); }", 1, 300);				// size mismatch
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, c(0.1, 0.1)); } 10 { stop(); }", 1, 300);			// size mismatch
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, -0.0001); } 10 { stop(); }", 1, 300);				// rate out of range
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 1.0001); } 10 { stop(); }", 1, 300);					// rate out of range
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.6, 0.6)); } 10 { stop(); }", -1, -1);		// total rates out of range; raise is from EvolveSubpopulation(), we don't want to force constraints prematurely
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 0.1); } 10 { stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(3, 0.1); } 10 { stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.1, 0.1)); } 10 { stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(1, 0.1); } 10 { stop(); }", 1, 300, "self-referential");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(4, 0.1); } 10 { stop(); }", 1, 300, "not defined");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 1), c(0.1, 0.1)); } 10 { stop(); }", 1, 300, "self-referential");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 4), c(0.1, 0.1)); } 10 { stop(); }", 1, 300, "not defined");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300, "two rates set");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(p2, p2), c(0.1, 0.1)); } 10 { stop(); }", 1, 300, "two rates set");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), 0.1); } 10 { stop(); }", 1, 300, "to be equal in size");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, c(0.1, 0.1)); } 10 { stop(); }", 1, 300, "to be equal in size");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, -0.0001); } 10 { stop(); }", 1, 300, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(2, 1.0001); } 10 { stop(); }", 1, 300, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { p1.setMigrationRates(c(2, 3), c(0.6, 0.6)); } 10 { stop(); }", -1, -1, "must sum to <= 1.0");	// raise is from EvolveSubpopulation(); we don't force constraints prematurely
 	
 	// Test Subpopulation - (void)setSelfingRate(numeric$ rate)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.0); } 10 { if (p1.selfingRate == 0.0) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } 10 { if (p1.selfingRate == 0.5) stop(); }");			// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(1.0); } 10 { if (p1.selfingRate == 1.0) stop(); }");			// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(-0.001); }", 1, 250);											// out of range
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(1.001); }", 1, 250);											// out of range
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.0); stop(); }");											// we permit this, since a rate of 0.0 makes sense even in sexual sims
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.1); stop(); }", 1, 270);									// no selfing in sexual simulations
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.0); } 10 { if (p1.selfingRate == 0.0) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } 10 { if (p1.selfingRate == 0.5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSelfingRate(1.0); } 10 { if (p1.selfingRate == 1.0) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(-0.001); }", 1, 250, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSelfingRate(1.001); }", 1, 250, "within [0,1]");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.0); stop(); }");													// we permit this, since a rate of 0.0 makes sense even in sexual sims
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSelfingRate(0.1); stop(); }", 1, 270, "cannot be called in sexual simulations");
 	
 	// Test Subpopulation - (void)setSexRatio(float$ sexRatio)
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.0); stop(); }", 1, 250);										// no sex ratio in nonsexual simulations
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.1); stop(); }", 1, 250);										// no sex ratio in nonsexual simulations
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.0); } 10 { if (p1.sexRatio == 0.0) stop(); }", 1, 270);		// produces no males
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.1); } 10 { if (p1.sexRatio == 0.1) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } 10 { if (p1.sexRatio == 0.5) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.9); } 10 { if (p1.sexRatio == 0.9) stop(); }");				// legal
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.0); } 10 { if (p1.sexRatio == 1.0) stop(); }", 1, 270);		// produces no females
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(-0.001); }", 1, 270);											// out of range
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.001); }", 1, 270);											// out of range
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.0); stop(); }", 1, 250, "cannot be called in asexual simulations");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSexRatio(0.1); stop(); }", 1, 250, "cannot be called in asexual simulations");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.0); } 10 { if (p1.sexRatio == 0.0) stop(); }", 1, 270, "produced no males");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.1); } 10 { if (p1.sexRatio == 0.1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } 10 { if (p1.sexRatio == 0.5) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.9); } 10 { if (p1.sexRatio == 0.9) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.0); } 10 { if (p1.sexRatio == 1.0) stop(); }", 1, 270, "produced no females");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(-0.001); }", 1, 270, "within [0,1]");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.setSexRatio(1.001); }", 1, 270, "within [0,1]");
 	
 	// Test Subpopulation - (void)setSubpopulationSize(integer$ size)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); stop(); }");													// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }");					// legal; does not take visible effect until child generation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); } 2 { if (p1.individualCount == 0) stop(); }", 1, 285);		// p1 undefined after child generation
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); stop(); }");													// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }");					// legal; does not take visible effect until child generation
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }");				// p1 undefined after child generation
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250);										// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }");					// does not take visible effect until child generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); } 2 { if (p1.individualCount == 0) stop(); }", 1, 285, "undefined identifier");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }");					// does not take visible effect until child generation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250, "out of range");
 	
 	
 	// ************************************************************************************
@@ -872,19 +906,19 @@ void RunSLiMTests(void)
 	// Test Substitution properties
 	std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } 10 { sim.mutations[0].setSelectionCoeff(500.0); } ");
 	
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (size(sim.substitutions) > 0) stop(); }");																// check that our script generates substitutions fast enough
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.fixationTime > 0 & sub.fixationTime <= 30) stop(); }");				// legal
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }");										// legal
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.originGeneration > 0 & sub.originGeneration <= 10) stop(); }");		// legal
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.position > 0 & sub.position <= 99999) stop(); }");					// legal
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (sum(sim.substitutions.selectionCoeff == 500.0) == 1) stop(); }");										// legal
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }");											// legal
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.fixationTime = 10; stop(); }", 1, 343);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", 1, 343);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.originGeneration = 10; stop(); }", 1, 347);								// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", 1, 339);									// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", 1, 345);								// setting read-only property
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 1; stop(); }", 1, 339);										// setting read-only property
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (size(sim.substitutions) > 0) stop(); }");										// check that our script generates substitutions fast enough
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.fixationTime > 0 & sub.fixationTime <= 30) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.originGeneration > 0 & sub.originGeneration <= 10) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.position > 0 & sub.position <= 99999) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { if (sum(sim.substitutions.selectionCoeff == 500.0) == 1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.fixationTime = 10; stop(); }", 1, 343, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", 1, 343, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.originGeneration = 10; stop(); }", 1, 347, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", 1, 339, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", 1, 345, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 1; stop(); }", 1, 339, "read-only property");
 	
 	// No methods on Substitution
 	
@@ -896,20 +930,20 @@ void RunSLiMTests(void)
 	#pragma mark SLiMEidosBlock tests
 	
 	// Test SLiMEidosBlock properties
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.active == -1) stop(); } s1 2:4 { sim = 10; } ");							// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.end == 4) stop(); } s1 2:4 { sim = 10; } ");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.id == 1) stop(); } s1 2:4 { sim = 10; } ");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.source == '{ sim = 10; }') stop(); } s1 2:4 { sim = 10; } ");				// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.start == 2) stop(); } s1 2:4 { sim = 10; } ");								// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag; stop(); } s1 2:4 { sim = 10; } ");										// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'event') stop(); } s1 2:4 { sim = 10; } ");						// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.active = 198; if (s1.active == 198) stop(); } s1 2:4 { sim = 10; } ");			// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.end = 4; stop(); } s1 2:4 { sim = 10; } ", 1, 254);							// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.id = 1; stop(); } s1 2:4 { sim = 10; } ", 1, 253);							// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.source = '{ sim = 10; }'; stop(); } s1 2:4 { sim = 10; } ", 1, 257);			// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.start = 2; stop(); } s1 2:4 { sim = 10; } ", 1, 256);							// legal
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag = 219; if (s1.tag == 219) stop(); } s1 2:4 { sim = 10; } ");				// legal
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.type = 'event'; stop(); } s1 2:4 { sim = 10; } ", 1, 255);					// legal
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.active == -1) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.end == 4) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.id == 1) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.source == '{ sim = 10; }') stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.start == 2) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag; stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'event') stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.active = 198; if (s1.active == 198) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.end = 4; stop(); } s1 2:4 { sim = 10; } ", 1, 254, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.id = 1; stop(); } s1 2:4 { sim = 10; } ", 1, 253, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.source = '{ sim = 10; }'; stop(); } s1 2:4 { sim = 10; } ", 1, 257, "read-only property");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.start = 2; stop(); } s1 2:4 { sim = 10; } ", 1, 256, "read-only property");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag = 219; if (s1.tag == 219) stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.type = 'event'; stop(); } s1 2:4 { sim = 10; } ", 1, 255, "read-only property");
 	
 	// No methods on SLiMEidosBlock
 	
