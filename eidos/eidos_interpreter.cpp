@@ -331,7 +331,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 		{
 #ifdef DEBUG
 			if (p_parent_node->children_.size() != 2)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): internal error (expected 2 children for '[' node)." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) expected 2 children for '[' node." << eidos_terminate(parent_token);
 #endif
 			
 			EidosASTNode *left_operand = p_parent_node->children_[0];
@@ -399,7 +399,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 		{
 #ifdef DEBUG
 			if (p_parent_node->children_.size() != 2)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): internal error (expected 2 children for '.' node)." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) expected 2 children for '.' node." << eidos_terminate(parent_token);
 #endif
 			
 			EidosASTNode *left_operand = p_parent_node->children_[0];
@@ -436,7 +436,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 		{
 #ifdef DEBUG
 			if (p_parent_node->children_.size() != 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): internal error (expected 0 children for identifier node)." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) expected 0 children for identifier node." << eidos_terminate(parent_token);
 #endif
 			
 			EidosValue *identifier_value = global_symbols_.GetValueOrRaiseForToken(p_parent_node->token_);
@@ -492,7 +492,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 		{
 #ifdef DEBUG
 			if (p_lvalue_node->children_.size() != 2)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error (expected 2 children for '[' node)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) expected 2 children for '[' node." << eidos_terminate(nullptr);
 #endif
 			
 			EidosValue *base_value;
@@ -580,7 +580,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 		{
 #ifdef DEBUG
 			if (p_lvalue_node->children_.size() != 2)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error (expected 2 children for '.' node)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) expected 2 children for '.' node." << eidos_terminate(nullptr);
 #endif
 			
 			EidosValue *first_child_value = FastEvaluateNode(p_lvalue_node->children_[0]);
@@ -610,7 +610,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 		{
 #ifdef DEBUG
 			if (p_lvalue_node->children_.size() != 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): internal error (expected 0 children for identifier node)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) expected 0 children for identifier node." << eidos_terminate(nullptr);
 #endif
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
@@ -689,7 +689,7 @@ EidosValue *EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NullStatement): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NullStatement): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosValue *result = gStaticEidosValueNULLInvisible;
@@ -741,7 +741,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -928,7 +928,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	{
 #ifdef DEBUG
 		if (function_name_node->children_.size() != 2)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): internal error (expected 2 children for '.' node)." << eidos_terminate(function_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): (internal error) expected 2 children for '.' node." << eidos_terminate(function_name_node->token_);
 #endif
 		
 		EidosValue *first_child_value = FastEvaluateNode(function_name_node->children_[0]);
@@ -1092,7 +1092,7 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -1201,7 +1201,7 @@ EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -1262,7 +1262,7 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): internal error (expected 1 or 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): (internal error) expected 1 or 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -1489,7 +1489,7 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if ((p_node->children_.size() != 1) && (p_node->children_.size() != 2))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): internal error (expected 1 or 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): (internal error) expected 1 or 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -1734,7 +1734,7 @@ EidosValue *EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -1902,7 +1902,7 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -2059,7 +2059,7 @@ EidosValue *EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -2226,7 +2226,7 @@ EidosValue *EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
@@ -2321,7 +2321,7 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() < 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): internal error (expected 2+ children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): (internal error) expected 2+ children." << eidos_terminate(operator_token);
 #endif
 	
 	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
@@ -2509,7 +2509,7 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() < 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): internal error (expected 2+ children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): (internal error) expected 2+ children." << eidos_terminate(operator_token);
 #endif
 	
 	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
@@ -2697,7 +2697,7 @@ EidosValue *EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 1)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): internal error (expected 1 child)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): (internal error) expected 1 child." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
@@ -2762,7 +2762,7 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosASTNode *lvalue_node = p_node->children_[0];
@@ -2800,7 +2800,7 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -2900,7 +2900,7 @@ EidosValue *EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -3003,7 +3003,7 @@ EidosValue *EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -3106,7 +3106,7 @@ EidosValue *EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -3209,7 +3209,7 @@ EidosValue *EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -3312,7 +3312,7 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): internal error (expected 2 children)." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): (internal error) expected 2 children." << eidos_terminate(operator_token);
 #endif
 	
 	EidosValue_Logical *result = nullptr;
@@ -3511,7 +3511,7 @@ EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() > 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Number): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Number): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
@@ -3541,7 +3541,7 @@ EidosValue *EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() > 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_String): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_String): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
@@ -3567,7 +3567,7 @@ EidosValue *EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() > 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Identifier): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Identifier): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosValue *result = global_symbols_.GetValueOrRaiseForToken(p_node->token_);	// raises if undefined
@@ -3592,7 +3592,7 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if ((children_size != 2) && (children_size != 3))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): internal error (expected 2 or 3 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): (internal error) expected 2 or 3 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -3667,7 +3667,7 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): internal error (expected 2 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): (internal error) expected 2 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -3750,7 +3750,7 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 2)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): internal error (expected 2 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): (internal error) expected 2 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosValue *result = nullptr;
@@ -3832,7 +3832,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 3)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): internal error (expected 3 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): (internal error) expected 3 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	EidosASTNode *identifier_child = p_node->children_[0];
@@ -3907,7 +3907,7 @@ EidosValue *EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Next): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Next): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	// just like a null statement, except that we set a flag in the interpreter, which will be seen by the eval
@@ -3938,7 +3938,7 @@ EidosValue *EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() != 0)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Break): internal error (expected 0 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Break): (internal error) expected 0 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	// just like a null statement, except that we set a flag in the interpreter, which will be seen by the eval
@@ -3969,7 +3969,7 @@ EidosValue *EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	
 #ifdef DEBUG
 	if (p_node->children_.size() > 1)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Return): internal error (expected 0 or 1 children)." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Return): (internal error) expected 0 or 1 children." << eidos_terminate(p_node->token_);
 #endif
 	
 	// set a flag in the interpreter, which will be seen by the eval methods and will cause them to return up to the top-level block immediately
