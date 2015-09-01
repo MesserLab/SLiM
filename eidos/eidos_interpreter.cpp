@@ -603,7 +603,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *rvalue, const EidosASTN
 			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID, rvalue);
+			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID_, rvalue);
 			break;
 		}
 		case EidosTokenType::kTokenIdentifier:
@@ -952,7 +952,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 		call_identifier_token = second_child_node->token_;
-		method_id = second_child_node->cached_stringID;
+		method_id = second_child_node->cached_stringID_;
 		method_object = static_cast<EidosValue_Object *>(first_child_value);	// guaranteed by the Type() call above
 	}
 	else
@@ -1230,7 +1230,7 @@ EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
 	
 	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID;
+	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID_;
 	result = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(property_string_ID);
 	
 	// Forget the function token, since it is not responsible for any future errors

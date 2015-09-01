@@ -907,7 +907,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	parent_first_male_index_ = child_first_male_index_;
 	
 	// mark the child generation as invalid, until it is generated
-	child_generation_valid = false;
+	child_generation_valid_ = false;
 	
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
@@ -957,12 +957,12 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:
-			return new EidosValue_Int_singleton_const(child_generation_valid ? child_first_male_index_ : parent_first_male_index_);
+			return new EidosValue_Int_singleton_const(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_);
 		case gID_genomes:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			
-			if (child_generation_valid)
+			if (child_generation_valid_)
 				for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
 					vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
 			else
@@ -997,9 +997,9 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			else
 				return new EidosValue_Float_singleton_const(female_clone_fraction_);
 		case gID_sexRatio:
-			return new EidosValue_Float_singleton_const(child_generation_valid ? child_sex_ratio_ : parent_sex_ratio_);
+			return new EidosValue_Float_singleton_const(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_);
 		case gID_individualCount:
-			return new EidosValue_Int_singleton_const(child_generation_valid ? child_subpop_size_ : parent_subpop_size_);
+			return new EidosValue_Int_singleton_const(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
 			
 			// variables
 		case gID_tag:
@@ -1164,7 +1164,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 		{
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
-			if (child_generation_valid)
+			if (child_generation_valid_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSexRatio() called when the child generation was valid." << eidos_terminate();
 			
 			// SEX ONLY
@@ -1206,7 +1206,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 		case gID_fitness:
 		{
-			if (child_generation_valid)
+			if (child_generation_valid_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
 			if (cached_fitness_size_ == 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();

@@ -56,8 +56,8 @@
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
-	slim_generation_t *histogram = controller->sim->population_.mutationFixationTimes;
-	uint32_t histogramBins = controller->sim->population_.mutationFixationGenSlots;	// fewer than binCount * mutationTypeCount may exist
+	slim_generation_t *histogram = controller->sim->population_.mutation_fixation_times_;
+	uint32_t histogramBins = controller->sim->population_.mutation_fixation_gen_slots_;	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = NULL;
 	static uint32_t rebinBins = 0;
 	uint32_t usedRebinBins = binCount * mutationTypeCount;

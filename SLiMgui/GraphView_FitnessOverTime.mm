@@ -105,8 +105,8 @@
 	{
 		SLiMSim *sim = controller->sim;
 		Population &pop = sim->population_;
-		double *history = pop.fitnessHistory;
-		slim_generation_t historyLength = pop.fitnessHistoryLength;
+		double *history = pop.fitness_history_;
+		slim_generation_t historyLength = pop.fitness_history_length_;
 		double minHistory = INFINITY;
 		double maxHistory = -INFINITY;
 		
@@ -197,8 +197,8 @@
 	}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
-	double *history = pop.fitnessHistory;
-	slim_generation_t historyLength = pop.fitnessHistoryLength;
+	double *history = pop.fitness_history_;
+	slim_generation_t historyLength = pop.fitness_history_length_;
 	
 	[[NSColor blackColor] set];
 	
@@ -242,8 +242,8 @@
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];
 	
-	double *history = pop.fitnessHistory;
-	slim_generation_t historyLength = pop.fitnessHistoryLength;
+	double *history = pop.fitness_history_;
+	slim_generation_t historyLength = pop.fitness_history_length_;
 	
 	for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
 		[string appendFormat:@"%.4f, ", history[i]];

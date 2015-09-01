@@ -75,7 +75,7 @@
 		clampedSubpopSize = 10000;
 	
 	double subpopRadius = sqrt(clampedSubpopSize) / 500;	// size 10,000 has radius 0.2
-	subpop->gui_radius = subpopRadius;
+	subpop->gui_radius_ = subpopRadius;
 	
 	// calculate the color from the mean fitness of the population
 	double scalingFactor = controller->fitnessColorScale;
@@ -107,20 +107,20 @@
 
 - (void)drawArrowFromSubpop:(Subpopulation *)sourceSubpop toSubpop:(Subpopulation *)destSubpop migrantFraction:(double)migrantFraction
 {
-	double destCenterX = destSubpop->gui_center_x;
-	double destCenterY = destSubpop->gui_center_y;
-	double sourceCenterX = sourceSubpop->gui_center_x;
-	double sourceCenterY = sourceSubpop->gui_center_y;
+	double destCenterX = destSubpop->gui_center_x_;
+	double destCenterY = destSubpop->gui_center_y_;
+	double sourceCenterX = sourceSubpop->gui_center_x_;
+	double sourceCenterY = sourceSubpop->gui_center_y_;
 	
 	// we want to draw an arrow connecting these two subpops; first, we need to figure out the endpoints
 	// they start and end a small fixed distance outside of the source/dest subpop circles
 	double vectorDX = (destCenterX - sourceCenterX);
 	double vectorDY = (destCenterY - sourceCenterY);
 	double vectorLength = sqrt(vectorDX * vectorDX + vectorDY * vectorDY);
-	double sourceEndWeight = (0.01 + sourceSubpop->gui_radius) / vectorLength;
+	double sourceEndWeight = (0.01 + sourceSubpop->gui_radius_) / vectorLength;
 	double sourceEndX = sourceCenterX + (destCenterX - sourceCenterX) * sourceEndWeight;
 	double sourceEndY = sourceCenterY + (destCenterY - sourceCenterY) * sourceEndWeight;
-	double destEndWeight = (0.01 + destSubpop->gui_radius) / vectorLength;
+	double destEndWeight = (0.01 + destSubpop->gui_radius_) / vectorLength;
 	double destEndX = destCenterX + (sourceCenterX - destCenterX) * destEndWeight;
 	double destEndY = destCenterY + (sourceCenterY - destCenterY) * destEndWeight;
 	
@@ -148,7 +148,7 @@
 	// we have to use a clipping path to cut back the destination end of the vector, to make room for the arrowhead
 	[NSGraphicsContext saveGraphicsState];
 	
-	double clipRadius = vectorLength - (destSubpop->gui_radius + arrowheadSize + 0.01);
+	double clipRadius = vectorLength - (destSubpop->gui_radius_ + arrowheadSize + 0.01);
 	NSRect clipCircle = NSMakeRect(sourceCenterX - clipRadius, sourceCenterY - clipRadius, clipRadius * 2, clipRadius * 2);
 	NSBezierPath *clipBezier = [NSBezierPath bezierPathWithOvalInRect:clipCircle];
 	
@@ -249,9 +249,9 @@
 				Subpopulation *subpop = (*subpopIter).second;
 				double theta = (M_PI * 2.0 / subpopCount) * subpopIndex + M_PI_2;
 				
-				subpop->gui_center_x = 0.5 + cos(theta) * 0.29;
-				subpop->gui_center_y = 0.5 + sin(theta) * 0.29;
-				NSPoint center = NSMakePoint(subpop->gui_center_x, subpop->gui_center_y);
+				subpop->gui_center_x_ = 0.5 + cos(theta) * 0.29;
+				subpop->gui_center_y_ = 0.5 + sin(theta) * 0.29;
+				NSPoint center = NSMakePoint(subpop->gui_center_x_, subpop->gui_center_y_);
 				NSRect subpopRect = [self rectForSubpop:subpop centeredAt:center];
 				
 				boundingBox = ((subpopIndex == 0) ? subpopRect : NSUnionRect(boundingBox, subpopRect));
@@ -276,7 +276,7 @@
 			{
 				Subpopulation *subpop = (*subpopIter).second;
 				slim_objectid_t subpopID = (*subpopIter).first;
-				NSPoint center = NSMakePoint(subpop->gui_center_x, subpop->gui_center_y);
+				NSPoint center = NSMakePoint(subpop->gui_center_x_, subpop->gui_center_y_);
 				
 				[self drawSubpop:subpop withID:subpopID centeredAt:center controller:controller];
 				++subpopIter;

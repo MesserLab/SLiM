@@ -163,7 +163,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 			cached_signature_ = signature_iter->second;
 		
 		// if the identifier's name matches that of a property or method that we know about, cache an ID for it
-		cached_stringID = EidosGlobalStringIDForString(token_string);
+		cached_stringID_ = EidosGlobalStringIDForString(token_string);
 	}
 	else if (token_->token_type_ == EidosTokenType::kTokenLParen)
 	{
@@ -178,7 +178,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 			const EidosASTNode *first_child = children_[0];
 			
 			if (first_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-				if ((first_child->cached_signature_ == nullptr) && (first_child->cached_stringID == gEidosID_none))
+				if ((first_child->cached_signature_ == nullptr) && (first_child->cached_stringID_ == gEidosID_none))
 					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized function name \"" << first_child->token_->token_string_ << "\"." << eidos_terminate(first_child->token_);
 		}
 	}
@@ -193,7 +193,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 			const EidosASTNode *second_child = children_[1];
 			
 			if (second_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-				if (second_child->cached_stringID == gEidosID_none)
+				if (second_child->cached_stringID_ == gEidosID_none)
 					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << eidos_terminate(second_child->token_);
 		}
 	}
@@ -210,38 +210,38 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 	// The structure here avoids doing a break in the non-error case; a bit faster.
 	switch (token_type)
 	{
-		case EidosTokenType::kTokenSemicolon:	cached_evaluator = &EidosInterpreter::Evaluate_NullStatement;		break;
-		case EidosTokenType::kTokenColon:		cached_evaluator = &EidosInterpreter::Evaluate_RangeExpr;			break;
-		case EidosTokenType::kTokenLBrace:		cached_evaluator = &EidosInterpreter::Evaluate_CompoundStatement;	break;
-		case EidosTokenType::kTokenLParen:		cached_evaluator = &EidosInterpreter::Evaluate_FunctionCall;		break;
-		case EidosTokenType::kTokenLBracket:	cached_evaluator = &EidosInterpreter::Evaluate_Subset;				break;
-		case EidosTokenType::kTokenDot:			cached_evaluator = &EidosInterpreter::Evaluate_MemberRef;			break;
-		case EidosTokenType::kTokenPlus:		cached_evaluator = &EidosInterpreter::Evaluate_Plus;				break;
-		case EidosTokenType::kTokenMinus:		cached_evaluator = &EidosInterpreter::Evaluate_Minus;				break;
-		case EidosTokenType::kTokenMod:			cached_evaluator = &EidosInterpreter::Evaluate_Mod;					break;
-		case EidosTokenType::kTokenMult:		cached_evaluator = &EidosInterpreter::Evaluate_Mult;				break;
-		case EidosTokenType::kTokenExp:			cached_evaluator = &EidosInterpreter::Evaluate_Exp;					break;
-		case EidosTokenType::kTokenAnd:			cached_evaluator = &EidosInterpreter::Evaluate_And;					break;
-		case EidosTokenType::kTokenOr:			cached_evaluator = &EidosInterpreter::Evaluate_Or;					break;
-		case EidosTokenType::kTokenDiv:			cached_evaluator = &EidosInterpreter::Evaluate_Div;					break;
-		case EidosTokenType::kTokenAssign:		cached_evaluator = &EidosInterpreter::Evaluate_Assign;				break;
-		case EidosTokenType::kTokenEq:			cached_evaluator = &EidosInterpreter::Evaluate_Eq;					break;
-		case EidosTokenType::kTokenLt:			cached_evaluator = &EidosInterpreter::Evaluate_Lt;					break;
-		case EidosTokenType::kTokenLtEq:		cached_evaluator = &EidosInterpreter::Evaluate_LtEq;				break;
-		case EidosTokenType::kTokenGt:			cached_evaluator = &EidosInterpreter::Evaluate_Gt;					break;
-		case EidosTokenType::kTokenGtEq:		cached_evaluator = &EidosInterpreter::Evaluate_GtEq;				break;
-		case EidosTokenType::kTokenNot:			cached_evaluator = &EidosInterpreter::Evaluate_Not;					break;
-		case EidosTokenType::kTokenNotEq:		cached_evaluator = &EidosInterpreter::Evaluate_NotEq;				break;
-		case EidosTokenType::kTokenNumber:		cached_evaluator = &EidosInterpreter::Evaluate_Number;				break;
-		case EidosTokenType::kTokenString:		cached_evaluator = &EidosInterpreter::Evaluate_String;				break;
-		case EidosTokenType::kTokenIdentifier:	cached_evaluator = &EidosInterpreter::Evaluate_Identifier;			break;
-		case EidosTokenType::kTokenIf:			cached_evaluator = &EidosInterpreter::Evaluate_If;					break;
-		case EidosTokenType::kTokenDo:			cached_evaluator = &EidosInterpreter::Evaluate_Do;					break;
-		case EidosTokenType::kTokenWhile:		cached_evaluator = &EidosInterpreter::Evaluate_While;				break;
-		case EidosTokenType::kTokenFor:			cached_evaluator = &EidosInterpreter::Evaluate_For;					break;
-		case EidosTokenType::kTokenNext:		cached_evaluator = &EidosInterpreter::Evaluate_Next;				break;
-		case EidosTokenType::kTokenBreak:		cached_evaluator = &EidosInterpreter::Evaluate_Break;				break;
-		case EidosTokenType::kTokenReturn:		cached_evaluator = &EidosInterpreter::Evaluate_Return;				break;
+		case EidosTokenType::kTokenSemicolon:	cached_evaluator_ = &EidosInterpreter::Evaluate_NullStatement;		break;
+		case EidosTokenType::kTokenColon:		cached_evaluator_ = &EidosInterpreter::Evaluate_RangeExpr;			break;
+		case EidosTokenType::kTokenLBrace:		cached_evaluator_ = &EidosInterpreter::Evaluate_CompoundStatement;	break;
+		case EidosTokenType::kTokenLParen:		cached_evaluator_ = &EidosInterpreter::Evaluate_FunctionCall;		break;
+		case EidosTokenType::kTokenLBracket:	cached_evaluator_ = &EidosInterpreter::Evaluate_Subset;				break;
+		case EidosTokenType::kTokenDot:			cached_evaluator_ = &EidosInterpreter::Evaluate_MemberRef;			break;
+		case EidosTokenType::kTokenPlus:		cached_evaluator_ = &EidosInterpreter::Evaluate_Plus;				break;
+		case EidosTokenType::kTokenMinus:		cached_evaluator_ = &EidosInterpreter::Evaluate_Minus;				break;
+		case EidosTokenType::kTokenMod:			cached_evaluator_ = &EidosInterpreter::Evaluate_Mod;				break;
+		case EidosTokenType::kTokenMult:		cached_evaluator_ = &EidosInterpreter::Evaluate_Mult;				break;
+		case EidosTokenType::kTokenExp:			cached_evaluator_ = &EidosInterpreter::Evaluate_Exp;				break;
+		case EidosTokenType::kTokenAnd:			cached_evaluator_ = &EidosInterpreter::Evaluate_And;				break;
+		case EidosTokenType::kTokenOr:			cached_evaluator_ = &EidosInterpreter::Evaluate_Or;					break;
+		case EidosTokenType::kTokenDiv:			cached_evaluator_ = &EidosInterpreter::Evaluate_Div;				break;
+		case EidosTokenType::kTokenAssign:		cached_evaluator_ = &EidosInterpreter::Evaluate_Assign;				break;
+		case EidosTokenType::kTokenEq:			cached_evaluator_ = &EidosInterpreter::Evaluate_Eq;					break;
+		case EidosTokenType::kTokenLt:			cached_evaluator_ = &EidosInterpreter::Evaluate_Lt;					break;
+		case EidosTokenType::kTokenLtEq:		cached_evaluator_ = &EidosInterpreter::Evaluate_LtEq;				break;
+		case EidosTokenType::kTokenGt:			cached_evaluator_ = &EidosInterpreter::Evaluate_Gt;					break;
+		case EidosTokenType::kTokenGtEq:		cached_evaluator_ = &EidosInterpreter::Evaluate_GtEq;				break;
+		case EidosTokenType::kTokenNot:			cached_evaluator_ = &EidosInterpreter::Evaluate_Not;				break;
+		case EidosTokenType::kTokenNotEq:		cached_evaluator_ = &EidosInterpreter::Evaluate_NotEq;				break;
+		case EidosTokenType::kTokenNumber:		cached_evaluator_ = &EidosInterpreter::Evaluate_Number;				break;
+		case EidosTokenType::kTokenString:		cached_evaluator_ = &EidosInterpreter::Evaluate_String;				break;
+		case EidosTokenType::kTokenIdentifier:	cached_evaluator_ = &EidosInterpreter::Evaluate_Identifier;			break;
+		case EidosTokenType::kTokenIf:			cached_evaluator_ = &EidosInterpreter::Evaluate_If;					break;
+		case EidosTokenType::kTokenDo:			cached_evaluator_ = &EidosInterpreter::Evaluate_Do;					break;
+		case EidosTokenType::kTokenWhile:		cached_evaluator_ = &EidosInterpreter::Evaluate_While;				break;
+		case EidosTokenType::kTokenFor:			cached_evaluator_ = &EidosInterpreter::Evaluate_For;				break;
+		case EidosTokenType::kTokenNext:		cached_evaluator_ = &EidosInterpreter::Evaluate_Next;				break;
+		case EidosTokenType::kTokenBreak:		cached_evaluator_ = &EidosInterpreter::Evaluate_Break;				break;
+		case EidosTokenType::kTokenReturn:		cached_evaluator_ = &EidosInterpreter::Evaluate_Return;				break;
 		default:
 			// Node types with no known evaluator method just don't get an cached evaluator
 			break;

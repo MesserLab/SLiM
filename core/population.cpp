@@ -70,23 +70,23 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 #ifdef SLIMGUI
 	// release malloced storage for SLiMgui statistics collection
-	if (mutationLossTimes)
+	if (mutation_loss_times_)
 	{
-		free(mutationLossTimes);
-		mutationLossTimes = nullptr;
-		mutationLossGenSlots = 0;
+		free(mutation_loss_times_);
+		mutation_loss_times_ = nullptr;
+		mutation_loss_gen_slots_ = 0;
 	}
-	if (mutationFixationTimes)
+	if (mutation_fixation_times_)
 	{
-		free(mutationFixationTimes);
-		mutationFixationTimes = nullptr;
-		mutationFixationGenSlots = 0;
+		free(mutation_fixation_times_);
+		mutation_fixation_times_ = nullptr;
+		mutation_fixation_gen_slots_ = 0;
 	}
-	if (fitnessHistory)
+	if (fitness_history_)
 	{
-		free(fitnessHistory);
-		fitnessHistory = nullptr;
-		fitnessHistoryLength = 0;
+		free(fitness_history_);
+		fitness_history_ = nullptr;
+		fitness_history_length_ = 0;
 	}
 #endif
 }
@@ -107,7 +107,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size);
 	
-	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
+	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
@@ -146,7 +146,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopu
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size);
 	
-	new_subpop->child_generation_valid = child_generation_valid;	// synchronize its stage with ours
+	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
@@ -201,7 +201,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 {
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
-	if (child_generation_valid)
+	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::SetSize): called when the child generation was valid." << eidos_terminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
@@ -1202,18 +1202,18 @@ void Population::SurveyPopulation()
 	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
 	// Add the mean fitness to the population history
-	if (historyIndex >= fitnessHistoryLength)
+	if (historyIndex >= fitness_history_length_)
 	{
-		slim_generation_t oldHistoryLength = fitnessHistoryLength;
+		slim_generation_t oldHistoryLength = fitness_history_length_;
 		
-		fitnessHistoryLength = historyIndex + 1000;			// give some elbow room for expansion
-		fitnessHistory = (double *)realloc(fitnessHistory, fitnessHistoryLength * sizeof(double));
+		fitness_history_length_ = historyIndex + 1000;			// give some elbow room for expansion
+		fitness_history_ = (double *)realloc(fitness_history_, fitness_history_length_ * sizeof(double));
 		
-		for (slim_generation_t i = oldHistoryLength; i < fitnessHistoryLength; ++i)
-			fitnessHistory[i] = NAN;
+		for (slim_generation_t i = oldHistoryLength; i < fitness_history_length_; ++i)
+			fitness_history_[i] = NAN;
 	}
 	
-	fitnessHistory[historyIndex] = meanFitness;
+	fitness_history_[historyIndex] = meanFitness;
 }
 #endif
 
@@ -1266,7 +1266,7 @@ void Population::SwapGenerations()
 		subpop_pair.second->SwapChildAndParentGenomes();
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
-	child_generation_valid = false;
+	child_generation_valid_ = false;
 	
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
@@ -1347,8 +1347,8 @@ void Population::TallyMutationReferences(void)
 #ifdef SLIMGUI
 		// If we're running in SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 		// when the parental generation is active and the child generation is invalid.
-		slim_popsize_t subpop_genome_count = (child_generation_valid ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
-		std::vector<Genome> &subpop_genomes = (child_generation_valid ? subpop->child_genomes_ : subpop->parent_genomes_);
+		slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
+		std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
 #else
 		// Outside of SLiMgui, this method is only called when the child generation is active, so for speed, we skip the check.
 		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
@@ -1438,7 +1438,7 @@ void Population::RemoveFixedMutations()
 			slim_generation_t loss_time = sim_.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
-			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutationLossTimes, &mutationLossGenSlots);
+			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_gen_slots_);
 #endif
 			
 			remove_mutation = true;
@@ -1454,7 +1454,7 @@ void Population::RemoveFixedMutations()
 			slim_generation_t fixation_time = sim_.generation_ - mutation->generation_;
 			int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 			
-			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutationFixationTimes, &mutationFixationGenSlots);
+			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
 #endif
 			
 			// add the fixed mutation to a vector, to be converted to a Substitution object below
@@ -1569,8 +1569,8 @@ void Population::PrintAll(std::ostream &p_out) const
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
-		double subpop_sex_ratio = (child_generation_valid ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		double subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		
 		p_out << "p" << subpop_pair.first << " " << subpop_size;
 		
@@ -1589,11 +1589,11 @@ void Population::PrintAll(std::ostream &p_out) const
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
-			Genome &genome = child_generation_valid ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
+			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
 			if (!genome.IsNull())
 			{
@@ -1616,8 +1616,8 @@ void Population::PrintAll(std::ostream &p_out) const
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
-		slim_popsize_t first_male_index = (child_generation_valid ? subpop->child_first_male_index_ : subpop->parent_first_male_index_);
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t first_male_index = (child_generation_valid_ ? subpop->child_first_male_index_ : subpop->parent_first_male_index_);
 		
 		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
@@ -1641,11 +1641,11 @@ void Population::PrintAll(std::ostream &p_out) const
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = (child_generation_valid ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
-			Genome &genome = child_generation_valid ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
+			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
 			p_out << "p" << subpop_id << ":" << i << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
 			
@@ -1672,7 +1672,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
+	std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
 		EIDOS_TERMINATION << "ERROR (Population::PrintSample): called to output Y chromosomes from females." << eidos_terminate();
@@ -1734,7 +1734,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	std::vector<Genome> &subpop_genomes = (child_generation_valid ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
+	std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
 		EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): called to output Y chromosomes from females." << eidos_terminate();

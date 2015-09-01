@@ -29,7 +29,7 @@
 #include "eidos_property_signature.h"
 
 
-Chromosome::Chromosome(void) : lookup_mutation(nullptr), lookup_recombination(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0(0.0), probability_both_0_OR_mut_0_break_non0(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+Chromosome::Chromosome(void) : lookup_mutation_(nullptr), lookup_recombination_(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0_(0.0), probability_both_0_OR_mut_0_break_non0_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
 {
 }
 
@@ -37,11 +37,11 @@ Chromosome::~Chromosome(void)
 {
 	//EIDOS_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
 	
-	if (lookup_mutation)
-		gsl_ran_discrete_free(lookup_mutation);
+	if (lookup_mutation_)
+		gsl_ran_discrete_free(lookup_mutation_);
 	
-	if (lookup_recombination)
-		gsl_ran_discrete_free(lookup_recombination);
+	if (lookup_recombination_)
+		gsl_ran_discrete_free(lookup_recombination_);
 	
 	if (cached_value_lastpos_)
 		delete cached_value_lastpos_;
@@ -79,10 +79,10 @@ void Chromosome::InitializeDraws(void)
 		l += l_i;
 	}
 	
-	if (lookup_mutation)
-		gsl_ran_discrete_free(lookup_mutation);
+	if (lookup_mutation_)
+		gsl_ran_discrete_free(lookup_mutation_);
 	
-	lookup_mutation = gsl_ran_discrete_preproc(size(), A);
+	lookup_mutation_ = gsl_ran_discrete_preproc(size(), A);
 	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
 	// patch the recombination interval end vector if it is empty; see setRecombinationRate() and initializeRecombinationRate()
@@ -118,10 +118,10 @@ void Chromosome::InitializeDraws(void)
 	
 	// EIDOS_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
 	
-	if (lookup_recombination)
-		gsl_ran_discrete_free(lookup_recombination);
+	if (lookup_recombination_)
+		gsl_ran_discrete_free(lookup_recombination_);
 	
-	lookup_recombination = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
+	lookup_recombination_ = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
 	double prob_mutation_0 = exp(-element_mutation_rate_);
@@ -144,15 +144,15 @@ void Chromosome::InitializeDraws(void)
 	exp_neg_element_mutation_rate_ = prob_mutation_0;
 	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
 	
-	probability_both_0 = prob_both_0;
-	probability_both_0_OR_mut_0_break_non0 = prob_both_0 + prob_mutation_0_breakpoint_not_0;
-	probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0 = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
+	probability_both_0_ = prob_both_0;
+	probability_both_0_OR_mut_0_break_non0_ = prob_both_0 + prob_mutation_0_breakpoint_not_0;
+	probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_ = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
 }
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
 Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
 {
-	int genomic_element_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation));
+	int genomic_element_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation_));
 	const GenomicElement &source_element = (*this)[genomic_element_index];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
@@ -173,7 +173,7 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination_));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)

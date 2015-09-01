@@ -234,7 +234,7 @@
 	Genome &mutationRegistry = population.mutation_registry_;
 	static BOOL alreadyHere = NO;
 	
-	if (population.child_generation_valid)
+	if (population.child_generation_valid_)
 	{
 		NSLog(@"child_generation_valid set in fetchDataForFinishedGeneration");
 		return;
@@ -278,7 +278,7 @@
 	Mutation **registry_iter_end = mutationRegistry.end_pointer();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(*registry_iter)->gui_scratch_reference_count = 0;
+		(*registry_iter)->gui_scratch_reference_count_ = 0;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
 	{
@@ -303,7 +303,7 @@
 						const Mutation *mutation = *genome_iter;
 						
 						if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
-							(mutation->gui_scratch_reference_count)++;
+							(mutation->gui_scratch_reference_count_)++;
 					}
 					
 					subpop_total_genome_count++;
@@ -316,7 +316,7 @@
 	for (registry_iter = mutationRegistry.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
 	{
 		const Mutation *mutation = *registry_iter;
-		slim_refcount_t refcount = mutation->gui_scratch_reference_count;
+		slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
 		
 		if (refcount)
 		{

@@ -48,7 +48,7 @@ class GenomicElementType : public EidosObjectElement
 
 private:
 	
-	gsl_ran_discrete_t *lookup_mutation_type = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
+	gsl_ran_discrete_t *lookup_mutation_type_ = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
 	
 	EidosSymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
 	

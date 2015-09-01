@@ -49,16 +49,16 @@ class Chromosome : public std::vector<GenomicElement>, public EidosObjectElement
 
 private:
 	
-	gsl_ran_discrete_t *lookup_mutation = nullptr;			// OWNED POINTER: lookup table for drawing mutations
-	gsl_ran_discrete_t *lookup_recombination = nullptr;		// OWNED POINTER: lookup table for drawing recombination breakpoints
+	gsl_ran_discrete_t *lookup_mutation_ = nullptr;			// OWNED POINTER: lookup table for drawing mutations
+	gsl_ran_discrete_t *lookup_recombination_ = nullptr;	// OWNED POINTER: lookup table for drawing recombination breakpoints
 	
 	// caches to speed up Poisson draws in CrossoverMutation()
 	double exp_neg_element_mutation_rate_;
 	double exp_neg_overall_recombination_rate_;
 	
-	double probability_both_0;
-	double probability_both_0_OR_mut_0_break_non0;
-	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0;
+	double probability_both_0_;
+	double probability_both_0_OR_mut_0_break_non0_;
+	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_;
 	
 public:
 	
@@ -123,12 +123,12 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 {
 	double u = gsl_rng_uniform(gEidos_rng);
 	
-	if (u <= probability_both_0)
+	if (u <= probability_both_0_)
 	{
 		*p_mut_count = 0;
 		*p_break_count = 0;
 	}
-	else if (u <= probability_both_0_OR_mut_0_break_non0)
+	else if (u <= probability_both_0_OR_mut_0_break_non0_)
 	{
 		*p_mut_count = 0;
 		
@@ -138,7 +138,7 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
 #endif
 	}
-	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
+	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_)
 	{
 #ifdef USE_GSL_POISSON
 		*p_mut_count = gsl_ran_poisson(gEidos_rng, element_mutation_rate_);

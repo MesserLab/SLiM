@@ -110,7 +110,7 @@ SLiMSim::~SLiMSim(void)
 	delete script_;
 	
 	// We should not have any interpreter instances that still refer to us
-	for (const EidosFunctionSignature *signature : sim_0_signatures)
+	for (const EidosFunctionSignature *signature : sim_0_signatures_)
 		delete signature;
 	
 	if (self_symbol_)
@@ -462,13 +462,13 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 void SLiMSim::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
-	num_mutation_types = 0;
-	num_mutation_rates = 0;
-	num_genomic_element_types = 0;
-	num_genomic_elements = 0;
-	num_recombination_rates = 0;
-	num_gene_conversions = 0;
-	num_sex_declarations = 0;
+	num_mutation_types_ = 0;
+	num_mutation_rates_ = 0;
+	num_genomic_element_types_ = 0;
+	num_genomic_elements_ = 0;
+	num_recombination_rates_ = 0;
+	num_gene_conversions_ = 0;
+	num_sex_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
@@ -485,19 +485,19 @@ void SLiMSim::RunInitializeCallbacks(void)
 	DeregisterScheduledScriptBlocks();
 	
 	// check for complete initialization
-	if (num_mutation_rates == 0)
+	if (num_mutation_rates_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): A mutation rate must be supplied in an initialize() callback with initializeMutationRate()." << eidos_terminate();
 	
-	if (num_mutation_types == 0)
+	if (num_mutation_types_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << eidos_terminate();
 	
-	if (num_genomic_element_types == 0)
+	if (num_genomic_element_types_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << eidos_terminate();
 	
-	if (num_genomic_elements == 0)
+	if (num_genomic_elements_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << eidos_terminate();
 	
-	if (num_recombination_rates == 0)
+	if (num_recombination_rates_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << eidos_terminate();
 	
 	// figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
@@ -640,9 +640,9 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-			subpop_pair.second->child_generation_valid = true;
+			subpop_pair.second->child_generation_valid_ = true;
 		
-		population_.child_generation_valid = true;
+		population_.child_generation_valid_ = true;
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -772,7 +772,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (DEBUG_INPUT)
 			output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << endl;
 		
-		num_genomic_elements++;
+		num_genomic_elements_++;
 	}
 	
 	
@@ -852,7 +852,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			output_stream << ");" << endl;
 		}
 		
-		num_genomic_element_types++;
+		num_genomic_element_types_++;
 		return symbol_value;
 	}
 	
@@ -901,7 +901,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, num_mutation_types);
+		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, num_mutation_types_);
 #else
 		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
 #endif
@@ -929,7 +929,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			output_stream << ");" << endl;
 		}
 		
-		num_mutation_types++;
+		num_mutation_types_++;
 		return symbol_value;
 	}
 	
@@ -1027,7 +1027,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			output_stream << ");" << endl;
 		}
 		
-		num_recombination_rates++;
+		num_recombination_rates_++;
 	}
 	
 	
@@ -1038,7 +1038,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)
 	{
-		if (num_gene_conversions > 0)
+		if (num_gene_conversions_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() may be called only once." << eidos_terminate();
 		
 		double gene_conversion_fraction = arg0_value->FloatAtIndex(0, nullptr);
@@ -1055,7 +1055,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (DEBUG_INPUT)
 			output_stream << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
 		
-		num_gene_conversions++;
+		num_gene_conversions_++;
 	}
 	
 	
@@ -1066,7 +1066,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)
 	{
-		if (num_mutation_rates > 0)
+		if (num_mutation_rates_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once." << eidos_terminate();
 		
 		double rate = arg0_value->FloatAtIndex(0, nullptr);
@@ -1079,7 +1079,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		if (DEBUG_INPUT)
 			output_stream << "initializeMutationRate(" << chromosome_.overall_mutation_rate_ << ");" << endl;
 		
-		num_mutation_rates++;
+		num_mutation_rates_++;
 	}
 	
 	
@@ -1090,7 +1090,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	else if (p_function_name.compare(gStr_initializeSex) == 0)
 	{
-		if (num_sex_declarations > 0)
+		if (num_sex_declarations_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() may be called only once." << eidos_terminate();
 		
 		string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
@@ -1123,7 +1123,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		}
 		
 		sex_enabled_ = true;
-		num_sex_declarations++;
+		num_sex_declarations_++;
 	}
 	
 	// the initialize...() functions all return invisible NULL
@@ -1135,25 +1135,25 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::InjectedFunctionSigna
 	if (generation_ == 0)
 	{
 		// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
-		if (!sim_0_signatures.size())
+		if (!sim_0_signatures_.size())
 		{
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddNumeric("rates")->AddInt_O("ends"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddNumeric_S("rate"));
-			sim_0_signatures.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff"));
 		}
 		
-		return &sim_0_signatures;
+		return &sim_0_signatures_;
 	}
 	
 	return nullptr;
@@ -1625,7 +1625,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			// The code below blows away the reference counts kept by Mutation, which must be valid at the end of each generation for
 			// SLiM's internal machinery to work properly, so for simplicity we require that we're in the parental generation.
-			if (population_.child_generation_valid)
+			if (population_.child_generation_valid_)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): mutationFrequencies() may only be called when the parental generation is active (before offspring generation)." << eidos_terminate();
 			
 			// first zero out the refcounts in all registered Mutation objects

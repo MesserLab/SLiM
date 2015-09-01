@@ -43,31 +43,31 @@ class EidosASTNode
 	
 public:
 	
-	EidosToken *token_;											// normally not owned (owned by the Script's token stream) but:
-	bool token_is_owned_ = false;								// if T, we own token_ because it is a virtual token that replaced a real token
-	std::vector<EidosASTNode *> children_;						// OWNED POINTERS
+	EidosToken *token_;													// normally not owned (owned by the Script's token stream) but:
+	bool token_is_owned_ = false;										// if T, we own token_ because it is a virtual token that replaced a real token
+	std::vector<EidosASTNode *> children_;								// OWNED POINTERS
 	
-	mutable EidosValue *cached_value_ = nullptr;				// an optional pre-cached EidosValue representing the node
-	mutable bool cached_value_is_owned_ = false;				// if T, this node owns its own cached_value_; if F, a descendant node owns it
+	mutable EidosValue *cached_value_ = nullptr;						// an optional pre-cached EidosValue representing the node
+	mutable bool cached_value_is_owned_ = false;						// if T, this node owns its own cached_value_; if F, a descendant node owns it
 	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
-	mutable EidosGlobalStringID cached_stringID = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
-	mutable EidosEvaluationMethod cached_evaluator = nullptr;	// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
+	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
+	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	
-	EidosASTNode(const EidosASTNode&) = delete;					// no copying
-	EidosASTNode& operator=(const EidosASTNode&) = delete;		// no copying
-	EidosASTNode(void) = delete;								// no null construction
+	EidosASTNode(const EidosASTNode&) = delete;							// no copying
+	EidosASTNode& operator=(const EidosASTNode&) = delete;				// no copying
+	EidosASTNode(void) = delete;										// no null construction
 	EidosASTNode(EidosToken *p_token, bool p_token_is_owned = false);	// standard constructor; if p_token_is_owned, we own the token
 	EidosASTNode(EidosToken *p_token, EidosASTNode *p_child_node);
 	
-	~EidosASTNode(void);										// destructor
+	~EidosASTNode(void);												// destructor
 	
-	void AddChild(EidosASTNode *p_child_node);					// takes ownership of the passed node
-	void ReplaceTokenWithToken(EidosToken *p_token);			// used to fix virtual token to encompass their children; takes ownership
+	void AddChild(EidosASTNode *p_child_node);							// takes ownership of the passed node
+	void ReplaceTokenWithToken(EidosToken *p_token);					// used to fix virtual token to encompass their children; takes ownership
 	
-	void OptimizeTree(void) const;								// perform various (required) optimizations on the AST
-	void _OptimizeConstants(void) const;						// cache EidosValues for constants and propagate constants upward
-	void _OptimizeIdentifiers(void) const;						// cache function signatures, global strings for methods and properties, etc.
-	void _OptimizeEvaluators(void) const;						// cache pointers to method for evaluation
+	void OptimizeTree(void) const;										// perform various (required) optimizations on the AST
+	void _OptimizeConstants(void) const;								// cache EidosValues for constants and propagate constants upward
+	void _OptimizeIdentifiers(void) const;								// cache function signatures, global strings for methods and properties, etc.
+	void _OptimizeEvaluators(void) const;								// cache pointers to method for evaluation
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;

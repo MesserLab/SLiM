@@ -37,8 +37,8 @@ GenomicElementType::~GenomicElementType(void)
 {
 	//EIDOS_ERRSTREAM << "GenomicElementType::~GenomicElementType" << std::endl;
 	
-	if (lookup_mutation_type)
-		gsl_ran_discrete_free(lookup_mutation_type);
+	if (lookup_mutation_type_)
+		gsl_ran_discrete_free(lookup_mutation_type_);
 	
 	if (self_symbol_)
 	{
@@ -57,10 +57,10 @@ void GenomicElementType::InitializeDraws(void)
 	if (mutation_type_count != mutation_fractions_.size())
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes." << eidos_terminate();
 	
-	if (lookup_mutation_type)
+	if (lookup_mutation_type_)
 	{
-		gsl_ran_discrete_free(lookup_mutation_type);
-		lookup_mutation_type = NULL;
+		gsl_ran_discrete_free(lookup_mutation_type_);
+		lookup_mutation_type_ = NULL;
 	}
 	
 	// We allow an empty mutation type vector initially, because people might want to add mutation types in script.
@@ -84,16 +84,16 @@ void GenomicElementType::InitializeDraws(void)
 		// A mutation type vector with all zero proportions is treated the same as an empty vector: we allow it
 		// on the assumption that it will be fixed later, but if it isn't, that will be an error.
 		if (nonzero_seen)
-			lookup_mutation_type = gsl_ran_discrete_preproc(mutation_type_count, A);
+			lookup_mutation_type_ = gsl_ran_discrete_preproc(mutation_type_count, A);
 	}
 }
 
 MutationType *GenomicElementType::DrawMutationType() const
 {
-	if (!lookup_mutation_type)
+	if (!lookup_mutation_type_)
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << eidos_terminate();
 	
-	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type)];
+	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type_)];
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_genomic_element_type)

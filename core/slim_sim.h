@@ -80,20 +80,20 @@ private:
 	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
 	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
 	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<const EidosFunctionSignature*> sim_0_signatures;					// OWNED POINTERS: Eidos function signatures
+	std::vector<const EidosFunctionSignature*> sim_0_signatures_;					// OWNED POINTERS: Eidos function signatures
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
 	void InitializeFromFile(std::istream &infile);									// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
-	int num_mutation_types;
-	int num_mutation_rates;
-	int num_genomic_element_types;
-	int num_genomic_elements;
-	int num_recombination_rates;
-	int num_gene_conversions;
-	int num_sex_declarations;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
+	int num_mutation_types_;
+	int num_mutation_rates_;
+	int num_genomic_element_types_;
+	int num_genomic_elements_;
+	int num_recombination_rates_;
+	int num_gene_conversions_;
+	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
 	bool mutation_types_changed_ = true;

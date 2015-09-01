@@ -167,7 +167,7 @@ public:
 		
 		//if (p_node->cached_evaluator)
 		//{
-			EidosValue *retval = (this->*(p_node->cached_evaluator))(p_node);
+			EidosValue *retval = (this->*(p_node->cached_evaluator_))(p_node);
 			
 #ifdef DEBUG
 		if (!retval)
