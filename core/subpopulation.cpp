@@ -1055,7 +1055,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 			{
-				EidosObjectElement *source_subpop;
+				EidosObjectElement *source_subpop = nullptr;
 				
 				if (arg0_value->Type() == EidosValueType::kValueInt)
 				{

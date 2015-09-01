@@ -739,7 +739,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	
 	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)
 	{
-		GenomicElementType *genomic_element_type_ptr;
+		GenomicElementType *genomic_element_type_ptr = nullptr;
 		slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
 		slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
 		
@@ -799,7 +799,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 		{
-			MutationType *mutation_type_ptr;
+			MutationType *mutation_type_ptr = nullptr;
 			double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
@@ -976,7 +976,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)		// intentionally no upper bound
 					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
