@@ -456,6 +456,7 @@ const std::string gEidosStr_NULL = "NULL";
 const std::string gEidosStr_PI = "PI";
 const std::string gEidosStr_E = "E";
 const std::string gEidosStr_INF = "INF";
+const std::string gEidosStr_MINUS_INF = "-INF";
 const std::string gEidosStr_NAN = "NAN";
 
 // mostly Eidos type names

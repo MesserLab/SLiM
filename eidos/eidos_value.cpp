@@ -1242,7 +1242,18 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 			else
 				p_ostream << ' ';
 			
-			p_ostream << value;
+			// Customize our output a bit to look like Eidos, not C++
+			if (isinf(value))
+			{
+				if (signbit(value))
+					p_ostream << gEidosStr_MINUS_INF;
+				else
+					p_ostream << gEidosStr_INF;
+			}
+			else if (isnan(value))
+				p_ostream << gEidosStr_NAN;
+			else
+				p_ostream << value;
 		}
 	}
 }
@@ -1267,8 +1278,20 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blam
 	
 	// with C++11, could use std::to_string(values_[p_idx])
 	ostringstream ss;
+	double value = values_[p_idx];
 	
-	ss << values_[p_idx];
+	// Customize our output a bit to look like Eidos, not C++
+	if (isinf(value))
+	{
+		if (signbit(value))
+			ss << gEidosStr_MINUS_INF;
+		else
+			ss << gEidosStr_INF;
+	}
+	else if (isnan(value))
+		ss << gEidosStr_NAN;
+	else
+		ss << value;
 	
 	return ss.str();
 }
@@ -1355,7 +1378,18 @@ int EidosValue_Float_singleton_const::Count(void) const
 
 void EidosValue_Float_singleton_const::Print(std::ostream &p_ostream) const
 {
-	p_ostream << value_;
+	// Customize our output a bit to look like Eidos, not C++
+	if (isinf(value_))
+	{
+		if (signbit(value_))
+			p_ostream << gEidosStr_MINUS_INF;
+		else
+			p_ostream << gEidosStr_INF;
+	}
+	else if (isnan(value_))
+		p_ostream << gEidosStr_NAN;
+	else
+		p_ostream << value_;
 }
 
 bool EidosValue_Float_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -1377,7 +1411,18 @@ std::string EidosValue_Float_singleton_const::StringAtIndex(int p_idx, EidosToke
 	// with C++11, could use std::to_string(value_)
 	ostringstream ss;
 	
-	ss << value_;
+	// Customize our output a bit to look like Eidos, not C++
+	if (isinf(value_))
+	{
+		if (signbit(value_))
+			ss << gEidosStr_MINUS_INF;
+		else
+			ss << gEidosStr_INF;
+	}
+	else if (isnan(value_))
+		ss << gEidosStr_NAN;
+	else
+		ss << value_;
 	
 	return ss.str();
 }

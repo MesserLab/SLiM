@@ -134,6 +134,7 @@ extern const std::string gEidosStr_NULL;
 extern const std::string gEidosStr_PI;
 extern const std::string gEidosStr_E;
 extern const std::string gEidosStr_INF;
+extern const std::string gEidosStr_MINUS_INF;
 extern const std::string gEidosStr_NAN;
 
 extern const std::string gEidosStr_void;
