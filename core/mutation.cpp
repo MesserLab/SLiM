@@ -131,6 +131,7 @@ EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eid
 		
 		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
 		// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
+		// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
 		
 		return gStaticEidosValueNULLInvisible;
 	}
