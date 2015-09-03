@@ -1349,16 +1349,10 @@ void Population::TallyMutationReferences(void)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
-#ifdef SLIMGUI
-		// If we're running in SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
+		// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 		// when the parental generation is active and the child generation is invalid.
 		slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
 		std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
-#else
-		// Outside of SLiMgui, this method is only called when the child generation is active, so for speed, we skip the check.
-		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-		std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
-#endif
 		
 #ifdef SLIMGUI
 		// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
