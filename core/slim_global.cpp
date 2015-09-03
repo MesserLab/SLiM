@@ -156,6 +156,7 @@ const std::string gStr_outputFixedMutations = "outputFixedMutations";
 const std::string gStr_outputFull = "outputFull";
 const std::string gStr_outputMutations = "outputMutations";
 const std::string gStr_readFromPopulationFile = "readFromPopulationFile";
+const std::string gStr_recalculateFitness = "recalculateFitness";
 const std::string gStr_registerScriptEvent = "registerScriptEvent";
 const std::string gStr_registerScriptFitnessCallback = "registerScriptFitnessCallback";
 const std::string gStr_registerScriptMateChoiceCallback = "registerScriptMateChoiceCallback";
@@ -296,6 +297,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_outputFull, gID_outputFull);
 		Eidos_RegisterStringForGlobalID(gStr_outputMutations, gID_outputMutations);
 		Eidos_RegisterStringForGlobalID(gStr_readFromPopulationFile, gID_readFromPopulationFile);
+		Eidos_RegisterStringForGlobalID(gStr_recalculateFitness, gID_recalculateFitness);
 		Eidos_RegisterStringForGlobalID(gStr_registerScriptEvent, gID_registerScriptEvent);
 		Eidos_RegisterStringForGlobalID(gStr_registerScriptFitnessCallback, gID_registerScriptFitnessCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerScriptMateChoiceCallback, gID_registerScriptMateChoiceCallback);

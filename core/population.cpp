@@ -1247,27 +1247,8 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 }
 #endif
 
-// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations(void)
+void Population::RecalculateFitness(void)
 {
-	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
-	TallyMutationReferences();
-	
-	// remove any mutations that have been eliminated or have fixed
-	RemoveFixedMutations();
-	
-	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
-#if DEBUG_MUTATION_ZOMBIES
-	CheckMutationRegistry();
-#endif
-	
-	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
-		subpop_pair.second->SwapChildAndParentGenomes();
-	
-	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
-	child_generation_valid_ = false;
-	
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
@@ -1310,7 +1291,31 @@ void Population::SwapGenerations(void)
 			subpop->UpdateFitness(subpop_fitness_callbacks);
 		}
 	}
+}
+
+// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
+void Population::SwapGenerations(void)
+{
+	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
+	TallyMutationReferences();
 	
+	// remove any mutations that have been eliminated or have fixed
+	RemoveFixedMutations();
+	
+	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
+#if DEBUG_MUTATION_ZOMBIES
+	CheckMutationRegistry();
+#endif
+	
+	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		subpop_pair.second->SwapChildAndParentGenomes();
+	
+	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
+	child_generation_valid_ = false;
+	
+	// do fitness recalculations with the new parental generation
+	RecalculateFitness();
 	sim_.DeregisterScheduledScriptBlocks();
 	
 #ifdef SLIMGUI

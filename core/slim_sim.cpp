@@ -1868,6 +1868,22 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
+			//	*********************	- (void)recalculateFitness(void)
+			//
+#pragma mark -recalculateFitness()
+			
+		case gID_recalculateFitness:
+		{
+			// Trigger a fitness recalculation.  This is suggested after making a change that would modify fitness values, such as altering
+			// a selection coefficient or dominance coefficient, changing the mutation type for a mutation, etc.  It will have the side
+			// effect of calling fitness() callbacks, so this is quite a heavyweight operation.
+			population_.RecalculateFitness();
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
+			//
 			//	*********************	- (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 			//
 #pragma mark -registerScriptEvent()
@@ -2141,6 +2157,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->push_back(SignatureForMethodOrRaise(gID_outputFull));
 		methods->push_back(SignatureForMethodOrRaise(gID_outputMutations));
 		methods->push_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
+		methods->push_back(SignatureForMethodOrRaise(gID_recalculateFitness));
 		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptEvent));
 		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptFitnessCallback));
 		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptMateChoiceCallback));
@@ -2162,6 +2179,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *outputFullSig = nullptr;
 	static EidosInstanceMethodSignature *outputMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *readFromPopulationFileSig = nullptr;
+	static EidosInstanceMethodSignature *recalculateFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *registerScriptEventSig = nullptr;
 	static EidosInstanceMethodSignature *registerScriptFitnessCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerScriptMateChoiceCallbackSig = nullptr;
@@ -2177,6 +2195,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OS("filePath");
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskNULL))->AddString_S("filePath");
+		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL));
 		registerScriptEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptEvent, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
 		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
@@ -2194,6 +2213,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_outputFull:							return outputFullSig;
 		case gID_outputMutations:						return outputMutationsSig;
 		case gID_readFromPopulationFile:				return readFromPopulationFileSig;
+		case gID_recalculateFitness:					return recalculateFitnessSig;
 		case gID_registerScriptEvent:					return registerScriptEventSig;
 		case gID_registerScriptFitnessCallback:			return registerScriptFitnessCallbackSig;
 		case gID_registerScriptMateChoiceCallback:		return registerScriptMateChoiceCallbackSig;
