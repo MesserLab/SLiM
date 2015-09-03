@@ -1304,8 +1304,6 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		if ((first_child_type == EidosValueType::kValueString) || (second_child_type == EidosValueType::kValueString))
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
-			EidosValue_String *string_result = new EidosValue_String();
-			
 			if (((first_child_type == EidosValueType::kValueNULL) || (second_child_type == EidosValueType::kValueNULL)))
 			{
 				if (first_child_value->IsTemporary()) delete first_child_value;
@@ -1314,27 +1312,35 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << eidos_terminate(operator_token);
 			}
 			
-			if (first_child_count == second_child_count)
+			if ((first_child_count == 1) && (second_child_count == 1))
 			{
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + second_child_value->StringAtIndex(value_index, operator_token));
+				result = new EidosValue_String_singleton_const(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token));
 			}
-			else if (first_child_count == 1)
+			else
 			{
-				string singleton_int = first_child_value->StringAtIndex(0, operator_token);
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
+				result = string_result;
 				
-				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					string_result->PushString(singleton_int + second_child_value->StringAtIndex(value_index, operator_token));
+				if (first_child_count == second_child_count)
+				{
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + second_child_value->StringAtIndex(value_index, operator_token));
+				}
+				else if (first_child_count == 1)
+				{
+					string singleton_int = first_child_value->StringAtIndex(0, operator_token);
+					
+					for (int value_index = 0; value_index < second_child_count; ++value_index)
+						string_result->PushString(singleton_int + second_child_value->StringAtIndex(value_index, operator_token));
+				}
+				else if (second_child_count == 1)
+				{
+					string singleton_int = second_child_value->StringAtIndex(0, operator_token);
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_int);
+				}
 			}
-			else if (second_child_count == 1)
-			{
-				string singleton_int = second_child_value->StringAtIndex(0, operator_token);
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_int);
-			}
-			
-			result = string_result;
 		}
 		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
@@ -3548,7 +3554,7 @@ EidosValue *EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	EidosValue *result = p_node->cached_value_;
 	
 	if (!result)
-		result = new EidosValue_String(p_node->token_->token_string_);
+		result = new EidosValue_String_singleton_const(p_node->token_->token_string_);
 	
 #if defined(DEBUG) || defined(EIDOS_GUI)
 	if (logging_execution_)

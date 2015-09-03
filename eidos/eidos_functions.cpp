@@ -340,7 +340,7 @@ EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_a
 	}
 	else if (highest_type == EidosValueType::kValueString)
 	{
-		EidosValue_String *result = new EidosValue_String();
+		EidosValue_String_vector *result = new EidosValue_String_vector();
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
@@ -1211,8 +1211,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (arg0_count > 1)
 				{
-					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
-					const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+					const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
@@ -1222,7 +1222,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_String(max);
+				result = new EidosValue_String_singleton_const(max);
 			}
 			break;
 		}
@@ -1328,8 +1328,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (arg0_count > 1)
 				{
-					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
-					const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+					const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
@@ -1339,7 +1339,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_String(min);
+				result = new EidosValue_String_singleton_const(min);
 			}
 			break;
 		}
@@ -2161,7 +2161,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (element_count < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
-			EidosValue_String *string_result = new EidosValue_String();
+			EidosValue_String_vector *string_result = new EidosValue_String_vector();
 			result = string_result;
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
@@ -2341,8 +2341,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else if (arg0_type == EidosValueType::kValueString)
 				{
-					const std::vector<std::string> &string_vec0 = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
-					const std::vector<std::string> &string_vec1 = dynamic_cast<EidosValue_String *>(arg1_value)->StringVector();
+					const std::vector<std::string> &string_vec0 = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+					const std::vector<std::string> &string_vec1 = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 						if (string_vec0[value_index] != string_vec1[value_index])
@@ -2410,14 +2410,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(string_vec[0].length());
+				result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr).length());
 			}
 			else
 			{
+				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+				
 				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
 				result = int_result;
 				
@@ -2456,7 +2457,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
-			result = new EidosValue_String(result_string);
+			result = new EidosValue_String_singleton_const(result_string);
 			break;
 		}
 			
@@ -2572,7 +2573,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::strsplitFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0];
-			EidosValue_String *string_result = new EidosValue_String();
+			EidosValue_String_vector *string_result = new EidosValue_String_vector();
 			result = string_result;
 			
 			string joined_string = arg0_value->StringAtIndex(0, nullptr);
@@ -2606,62 +2607,113 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
-			EidosValue *arg_first = p_arguments[1];
-			int arg_first_count = arg_first->Count();
-			bool first_singleton = (arg_first_count == 1);
 			
-			if (!first_singleton && (arg_first_count != arg0_count))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
-			
-			EidosValue_String *string_result = new EidosValue_String();
-			result = string_result;
-			
-			int64_t first0 = arg_first->IntAtIndex(0, nullptr);
-			
-			if (p_argument_count >= 3)
+			if (arg0_count == 1)
 			{
-				// last supplied
-				EidosValue *arg_last = p_arguments[2];
-				int arg_last_count = arg_last->Count();
-				bool last_singleton = (arg_last_count == 1);
+				const std::string &string_value = arg0_value->StringAtIndex(0, nullptr);
+				string::size_type len = string_value.length();
+				EidosValue *arg_first = p_arguments[1];
+				int arg_first_count = arg_first->Count();
 				
-				if (!last_singleton && (arg_last_count != arg0_count))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+				if (arg_first_count != arg0_count)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
 				
-				int64_t last0 = arg_last->IntAtIndex(0, nullptr);
+				int64_t first0 = arg_first->IntAtIndex(0, nullptr);
 				
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (p_argument_count >= 3)
 				{
-					std::string str = string_vec[value_index];
-					string::size_type len = str.length();
-					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
-					int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
+					// last supplied
+					EidosValue *arg_last = p_arguments[2];
+					int arg_last_count = arg_last->Count();
+					
+					if (arg_last_count != arg0_count)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+					
+					int64_t last0 = arg_last->IntAtIndex(0, nullptr);
+					
+					int clamped_first = (int)first0;
+					int clamped_last = (int)last0;
 					
 					if (clamped_first < 0) clamped_first = 0;
 					if (clamped_last >= len) clamped_last = (int)len - 1;
 					
 					if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
-						string_result->PushString(gEidosStr_empty_string);
+						result = new EidosValue_String_singleton_const(gEidosStr_empty_string);
 					else
-						string_result->PushString(str.substr(clamped_first, clamped_last - clamped_first + 1));
+						result = new EidosValue_String_singleton_const(string_value.substr(clamped_first, clamped_last - clamped_first + 1));
 				}
-			}
-			else
-			{
-				// last not supplied; take substrings to the end of each string
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				else
 				{
-					std::string str = string_vec[value_index];
-					string::size_type len = str.length();
-					int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+					// last not supplied; take substrings to the end of each string
+					int clamped_first = (int)first0;
 					
 					if (clamped_first < 0) clamped_first = 0;
 					
 					if (clamped_first >= len)						
-						string_result->PushString(gEidosStr_empty_string);
+						result = new EidosValue_String_singleton_const(gEidosStr_empty_string);
 					else
-						string_result->PushString(str.substr(clamped_first, len));
+						result = new EidosValue_String_singleton_const(string_value.substr(clamped_first, len));
+				}
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+				EidosValue *arg_first = p_arguments[1];
+				int arg_first_count = arg_first->Count();
+				bool first_singleton = (arg_first_count == 1);
+				
+				if (!first_singleton && (arg_first_count != arg0_count))
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+				
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
+				result = string_result;
+				
+				int64_t first0 = arg_first->IntAtIndex(0, nullptr);
+				
+				if (p_argument_count >= 3)
+				{
+					// last supplied
+					EidosValue *arg_last = p_arguments[2];
+					int arg_last_count = arg_last->Count();
+					bool last_singleton = (arg_last_count == 1);
+					
+					if (!last_singleton && (arg_last_count != arg0_count))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+					
+					int64_t last0 = arg_last->IntAtIndex(0, nullptr);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						std::string str = string_vec[value_index];
+						string::size_type len = str.length();
+						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+						int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
+						
+						if (clamped_first < 0) clamped_first = 0;
+						if (clamped_last >= len) clamped_last = (int)len - 1;
+						
+						if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
+							string_result->PushString(gEidosStr_empty_string);
+						else
+							string_result->PushString(str.substr(clamped_first, clamped_last - clamped_first + 1));
+					}
+				}
+				else
+				{
+					// last not supplied; take substrings to the end of each string
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						std::string str = string_vec[value_index];
+						string::size_type len = str.length();
+						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+						
+						if (clamped_first < 0) clamped_first = 0;
+						
+						if (clamped_first >= len)						
+							string_result->PushString(gEidosStr_empty_string);
+						else
+							string_result->PushString(str.substr(clamped_first, len));
+					}
 				}
 			}
 			
@@ -2769,9 +2821,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
-				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
-				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
-				EidosValue_String *string_result = new EidosValue_String();
+				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
 				result = string_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -2902,8 +2954,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					if (arg0_count > 1)
 					{
-						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
-						const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
+						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+						const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
 						
 						for (int value_index = 1; value_index < arg0_count; ++value_index)
 						{
@@ -2990,8 +3042,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					if (arg0_count > 1)
 					{
-						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String; we can use the fast API
-						const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
+						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+						const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
 						
 						for (int value_index = 1; value_index < arg0_count; ++value_index)
 						{
@@ -3095,11 +3147,19 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			EidosValue_String *string_result = new EidosValue_String();
-			result = string_result;
 			
-            for (int value_index = 0; value_index < arg0_count; ++value_index)
-                string_result->PushString(arg0_value->StringAtIndex(value_index, nullptr));
+			if (arg0_count == 1)
+			{
+				result = new EidosValue_String_singleton_const(arg0_value->StringAtIndex(0, nullptr));
+			}
+			else
+			{
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
+				result = string_result;
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+					string_result->PushString(arg0_value->StringAtIndex(value_index, nullptr));
+			}
             break;
 		}
 			
@@ -3111,7 +3171,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			result = new EidosValue_String(arg0_value->ElementType());
+			result = new EidosValue_String_singleton_const(arg0_value->ElementType());
 			break;
 		}
 			
@@ -3201,7 +3261,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			result = new EidosValue_String(StringForEidosValueType(arg0_value->Type()));
+			result = new EidosValue_String_singleton_const(StringForEidosValueType(arg0_value->Type()));
 			break;
 		}
 			
@@ -3236,7 +3296,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (dp != NULL)
 			{
-				EidosValue_String *string_result = new EidosValue_String();
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
 				result = string_result;
 				
 				while ((ep = readdir(dp)))
@@ -3281,7 +3341,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_String *string_result = new EidosValue_String();
+				EidosValue_String_vector *string_result = new EidosValue_String_vector();
 				result = string_result;
 				
 				string line;
@@ -3326,10 +3386,17 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg1_value)->StringVector();
-				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
-					file_stream << string_vec[value_index] << endl;
+				if (arg1_count == 1)
+				{
+					file_stream << arg1_value->StringAtIndex(0, nullptr) << endl;
+				}
+				else
+				{
+					const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
+					
+					for (int value_index = 0; value_index < arg1_count; ++value_index)
+						file_stream << string_vec[value_index] << endl;
+				}
 				
 				if (file_stream.bad())
 				{
@@ -3368,7 +3435,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			timeinfo = localtime(&rawtime);
 			strftime(buffer, 25, "%d-%m-%Y", timeinfo);
 			
-			result = new EidosValue_String(string(buffer));
+			result = new EidosValue_String_singleton_const(string(buffer));
 			break;
 		}
 			
@@ -3545,10 +3612,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				EidosValue *arg0_value = p_arguments[0];
 				int arg0_count = arg0_value->Count();
-				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String *>(arg0_value)->StringVector();
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					symbols_to_remove.push_back(string_vec[value_index]);
+					symbols_to_remove.push_back(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
 			for (string &symbol : symbols_to_remove)
@@ -3606,7 +3672,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			timeinfo = localtime(&rawtime);
 			strftime(buffer, 20, "%H:%M:%S", timeinfo);
 			
-			result = new EidosValue_String(string(buffer));
+			result = new EidosValue_String_singleton_const(string(buffer));
 			break;
 		}
 			

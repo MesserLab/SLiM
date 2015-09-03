@@ -329,36 +329,64 @@ public:
 
 //	*********************************************************************************************************
 //
-//	EidosValue_String represents string values in Eidos.  At the present time it doesn't seem worth
-//	having a singleton class, since working with strings is not that common in Eidos and it unlikely
-//	to happen in hotspot areas like callbacks.
+//	EidosValue_String represents string (C++ std::string) values in Eidos.  The subclass
+//	EidosValue_String_vector is the standard instance class, used to hold vectors of strings.
+//	EidosValue_String_singleton_const is used for speed, to represent single constant values.
 //
 
 class EidosValue_String : public EidosValue
+{
+protected:
+	EidosValue_String(const EidosValue_String &p_original) = default;	// can copy-construct
+	EidosValue_String(void) = default;										// default constructor
+	
+public:
+	EidosValue_String& operator=(const EidosValue_String&) = delete;	// no copying
+	virtual ~EidosValue_String(void);
+	
+	virtual EidosValueType Type(void) const;
+	virtual const std::string &ElementType(void) const;
+	virtual int Count(void) const = 0;
+	virtual void Print(std::ostream &p_ostream) const = 0;
+	
+	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	
+	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token) = 0;
+	
+	virtual EidosValue *CopyValues(void) const = 0;
+	virtual EidosValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token) = 0;
+	virtual void Sort(bool p_ascending) = 0;
+};
+
+class EidosValue_String_vector : public EidosValue_String
 {
 private:
 	std::vector<std::string> values_;
 	
 public:
-	EidosValue_String(const EidosValue_String &p_original) = default;	// can copy-construct
-	EidosValue_String& operator=(const EidosValue_String&) = delete;	// no copying
+	EidosValue_String_vector(const EidosValue_String_vector &p_original) = default;		// can copy-construct
+	EidosValue_String_vector& operator=(const EidosValue_String_vector&) = delete;	// no copying
 	
-	EidosValue_String(void);
-	explicit EidosValue_String(std::vector<std::string> &p_stringvec);
-	explicit EidosValue_String(const std::string &p_string1);
-	EidosValue_String(const std::string &p_string1, const std::string &p_string2);
-	EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3);
-	EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4);
-	EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5);
-	EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6);
-	virtual ~EidosValue_String(void);
+	EidosValue_String_vector(void);
+	explicit EidosValue_String_vector(std::vector<std::string> &p_stringvec);
+	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
+	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton_const for this case
+	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2);
+	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3);
+	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4);
+	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5);
+	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6);
+	virtual ~EidosValue_String_vector(void);
 	
-	virtual EidosValueType Type(void) const;
-	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	const std::vector<std::string> &StringVector(void) const { return values_; }
+	inline const std::vector<std::string> &StringVector(void) const { return values_; }
 	inline void PushString(const std::string &p_string) { values_.push_back(p_string); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -370,7 +398,38 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	
 	virtual EidosValue *CopyValues(void) const;
-	virtual EidosValue *NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
+	virtual void Sort(bool p_ascending);
+};
+
+class EidosValue_String_singleton_const : public EidosValue_String
+{
+private:
+	std::string value_;
+	
+public:
+	EidosValue_String_singleton_const(const EidosValue_String_singleton_const &p_original) = delete;	// no copy-construct
+	EidosValue_String_singleton_const& operator=(const EidosValue_String_singleton_const&) = delete;	// no copying
+	EidosValue_String_singleton_const(void) = delete;
+	explicit EidosValue_String_singleton_const(const std::string &p_string1);
+	virtual ~EidosValue_String_singleton_const(void);
+	
+	virtual int Count(void) const;
+	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	
+	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosValue *CopyValues(void) const;
+	
+	virtual bool IsMutable(void) const;
+	virtual EidosValue *MutableCopy(void) const;
+	
+	// prohibited actions
+	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };

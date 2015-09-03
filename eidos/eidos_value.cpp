@@ -560,6 +560,8 @@ void EidosValue_Logical::Sort(bool p_ascending)
 		std::sort(values_.begin(), values_.end(), std::greater<bool>());
 }
 
+// EidosValue_Logical_const
+#pragma mark EidosValue_Logical_const
 
 EidosValue_Logical_const::EidosValue_Logical_const(bool p_bool1) : EidosValue_Logical(p_bool1)
 {
@@ -645,60 +647,6 @@ void EidosValue_Logical_const::Sort(bool p_ascending)
 #pragma mark -
 #pragma mark EidosValue_String
 
-EidosValue_String::EidosValue_String(void)
-{
-}
-
-EidosValue_String::EidosValue_String(std::vector<std::string> &p_stringvec)
-{
-	values_ = p_stringvec;
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1)
-{
-	values_.push_back(p_string1);
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1, const std::string &p_string2)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-	values_.push_back(p_string5);
-}
-
-EidosValue_String::EidosValue_String(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-	values_.push_back(p_string5);
-	values_.push_back(p_string6);
-}
-
 EidosValue_String::~EidosValue_String(void)
 {
 }
@@ -713,12 +661,74 @@ const std::string &EidosValue_String::ElementType(void) const
 	return gEidosStr_string;
 }
 
-int EidosValue_String::Count(void) const
+EidosValue *EidosValue_String::NewMatchingType(void) const
+{
+	return new EidosValue_String_vector;
+}
+
+
+// EidosValue_String_vector
+#pragma mark EidosValue_String_vector
+
+EidosValue_String_vector::EidosValue_String_vector(void)
+{
+}
+
+EidosValue_String_vector::EidosValue_String_vector(std::vector<std::string> &p_stringvec)
+{
+	values_ = p_stringvec;
+}
+
+EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2)
+{
+	values_.push_back(p_string1);
+	values_.push_back(p_string2);
+}
+
+EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3)
+{
+	values_.push_back(p_string1);
+	values_.push_back(p_string2);
+	values_.push_back(p_string3);
+}
+
+EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4)
+{
+	values_.push_back(p_string1);
+	values_.push_back(p_string2);
+	values_.push_back(p_string3);
+	values_.push_back(p_string4);
+}
+
+EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5)
+{
+	values_.push_back(p_string1);
+	values_.push_back(p_string2);
+	values_.push_back(p_string3);
+	values_.push_back(p_string4);
+	values_.push_back(p_string5);
+}
+
+EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6)
+{
+	values_.push_back(p_string1);
+	values_.push_back(p_string2);
+	values_.push_back(p_string3);
+	values_.push_back(p_string4);
+	values_.push_back(p_string5);
+	values_.push_back(p_string6);
+}
+
+EidosValue_String_vector::~EidosValue_String_vector(void)
+{
+}
+
+int EidosValue_String_vector::Count(void) const
 {
 	return (int)values_.size();
 }
 
-void EidosValue_String::Print(std::ostream &p_ostream) const
+void EidosValue_String_vector::Print(std::ostream &p_ostream) const
 {
 	if (values_.size() == 0)
 	{
@@ -751,26 +761,26 @@ void EidosValue_String::Print(std::ostream &p_ostream) const
 	}
 }
 
-bool EidosValue_String::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+bool EidosValue_String_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return (values_[p_idx].length() > 0);
 }
 
-std::string EidosValue_String::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_String_vector::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return values_[p_idx];
 }
 
-int64_t EidosValue_String::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_String_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// We don't use IntForString because an integer has been specifically requested, so even if the string appears to contain a
 	// float value we want to force it into being an int; the way to do that is to use FloatForString and then convert to int64_t
@@ -778,59 +788,172 @@ int64_t EidosValue_String::IntAtIndex(int p_idx, EidosToken *p_blame_token) cons
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 	if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::IntAtIndex): \"" << values_[p_idx] << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): \"" << values_[p_idx] << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
 }
 
-double EidosValue_String::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_String_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	return EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
 }
 
-EidosValue *EidosValue_String::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue *EidosValue_String_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return new EidosValue_String(values_[p_idx]);
+	return new EidosValue_String_singleton_const(values_[p_idx]);
 }
 
-void EidosValue_String::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
+void EidosValue_String_vector::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	values_[p_idx] = p_value->StringAtIndex(0, p_blame_token);
 }
 
-EidosValue *EidosValue_String::CopyValues(void) const
+EidosValue *EidosValue_String_vector::CopyValues(void) const
 {
-	return new EidosValue_String(*this);
+	return new EidosValue_String_vector(*this);
 }
 
-EidosValue *EidosValue_String::NewMatchingType(void) const
-{
-	return new EidosValue_String;
-}
-
-void EidosValue_String::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
 {
 	if (p_source_script_value->Type() == EidosValueType::kValueString)
 		values_.push_back(p_source_script_value->StringAtIndex(p_idx, p_blame_token));
 	else
-		EIDOS_TERMINATION << "ERROR (EidosValue_String::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_String::Sort(bool p_ascending)
+void EidosValue_String_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
 		std::sort(values_.begin(), values_.end());
 	else
 		std::sort(values_.begin(), values_.end(), std::greater<std::string>());
+}
+
+
+// EidosValue_String_singleton_const
+#pragma mark EidosValue_String_singleton_const
+
+EidosValue_String_singleton_const::EidosValue_String_singleton_const(const std::string &p_string1) : value_(p_string1)
+{
+}
+
+EidosValue_String_singleton_const::~EidosValue_String_singleton_const(void)
+{
+}
+
+int EidosValue_String_singleton_const::Count(void) const
+{
+	return 1;
+}
+
+void EidosValue_String_singleton_const::Print(std::ostream &p_ostream) const
+{
+	// Emit a quoted string.  Note that we do not attempt to escape characters so that the emitted string is a
+	// legal string for input into Eidos that would reproduce the original string, at present.
+	if (value_.find('"') != std::string::npos)
+	{
+		// contains ", so let's use '
+		p_ostream << '\'' << value_ << '\'';
+	}
+	else
+	{
+		// does not contain ", so let's use that; double quotes are the default/standard
+		p_ostream << '"' << value_ << '"';
+	}
+}
+
+bool EidosValue_String_singleton_const::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+	
+	return (value_.length() > 0);
+}
+
+std::string EidosValue_String_singleton_const::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+	
+	return value_;
+}
+
+int64_t EidosValue_String_singleton_const::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+	
+	// We don't use IntForString because an integer has been specifically requested, so even if the string appears to contain a
+	// float value we want to force it into being an int; the way to do that is to use FloatForString and then convert to int64_t
+	double converted_value = EidosInterpreter::FloatForString(value_, p_blame_token);
+	
+	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
+	if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): \"" << value_ << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+	
+	return static_cast<int64_t>(converted_value);
+}
+
+double EidosValue_String_singleton_const::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+	
+	return EidosInterpreter::FloatForString(value_, p_blame_token);
+}
+
+EidosValue *EidosValue_String_singleton_const::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
+	
+	return new EidosValue_String_singleton_const(value_);
+}
+
+EidosValue *EidosValue_String_singleton_const::CopyValues(void) const
+{
+	return new EidosValue_String_singleton_const(value_);
+}
+
+bool EidosValue_String_singleton_const::IsMutable(void) const
+{
+	return false;
+}
+
+EidosValue *EidosValue_String_singleton_const::MutableCopy(void) const
+{
+	EidosValue_String_vector *new_vec = new EidosValue_String_vector();
+	
+	new_vec->PushString(value_);
+	
+	return new_vec;
+}
+
+void EidosValue_String_singleton_const::SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token)
+{
+#pragma unused(p_idx, p_value)
+	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::SetValueAtIndex): (internal error) EidosValue_String_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+}
+
+void EidosValue_String_singleton_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token)
+{
+#pragma unused(p_idx, p_source_script_value)
+	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_String_singleton_const is not modifiable." << eidos_terminate(p_blame_token);
+}
+
+void EidosValue_String_singleton_const::Sort(bool p_ascending)
+{
+#pragma unused(p_ascending)
+	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton_const::Sort): (internal error) EidosValue_String_singleton_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 
@@ -861,6 +984,7 @@ EidosValue *EidosValue_Int::NewMatchingType(void) const
 
 
 // EidosValue_Int_vector
+#pragma mark EidosValue_Int_vector
 
 EidosValue_Int_vector::EidosValue_Int_vector(void)
 {
@@ -1031,6 +1155,7 @@ void EidosValue_Int_vector::Sort(bool p_ascending)
 
 
 // EidosValue_Int_singleton_const
+#pragma mark EidosValue_Int_singleton_const
 
 EidosValue_Int_singleton_const::EidosValue_Int_singleton_const(int64_t p_int1) : value_(p_int1)
 {
@@ -1160,6 +1285,7 @@ EidosValue *EidosValue_Float::NewMatchingType(void) const
 
 
 // EidosValue_Float_vector
+#pragma mark EidosValue_Float_vector
 
 EidosValue_Float_vector::EidosValue_Float_vector(void)
 {
@@ -1362,6 +1488,7 @@ void EidosValue_Float_vector::Sort(bool p_ascending)
 
 
 // EidosValue_Float_singleton_const
+#pragma mark EidosValue_Float_singleton_const
 
 EidosValue_Float_singleton_const::EidosValue_Float_singleton_const(double p_float1) : value_(p_float1)
 {
@@ -1531,6 +1658,7 @@ void EidosValue_Object::Sort(bool p_ascending)
 
 
 // EidosValue_Object_vector
+#pragma mark EidosValue_Object_vector
 
 EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original)
 {
@@ -1971,6 +2099,7 @@ EidosValue *EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGloba
 
 
 // EidosValue_Object_singleton_const
+#pragma mark EidosValue_Object_singleton_const
 
 EidosValue_Object_singleton_const::EidosValue_Object_singleton_const(EidosObjectElement *p_element1) : value_(p_element1)
 {

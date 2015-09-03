@@ -114,7 +114,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		EidosValue *result = new EidosValue_String(token_->token_string_);
+		EidosValue *result = new EidosValue_String_singleton_const(token_->token_string_);
 		
 		// See the above comment that begins "OK, so this is a weird thing".  It is still a weird thing down here, too.
 		result->SetExternalTemporary();

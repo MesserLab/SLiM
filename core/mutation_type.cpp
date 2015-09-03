@@ -145,7 +145,7 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
-			return new EidosValue_String(std::string(1, dfe_type_));
+			return new EidosValue_String_singleton_const(std::string(1, dfe_type_));
 		case gID_distributionParams:
 			return new EidosValue_Float_vector(dfe_parameters_);
 			

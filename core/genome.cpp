@@ -256,9 +256,9 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String(gStr_A);
-				case GenomeType::kXChromosome:	return new EidosValue_String(gStr_X);
-				case GenomeType::kYChromosome:	return new EidosValue_String(gStr_Y);
+				case GenomeType::kAutosome:		return new EidosValue_String_singleton_const(gStr_A);
+				case GenomeType::kXChromosome:	return new EidosValue_String_singleton_const(gStr_X);
+				case GenomeType::kYChromosome:	return new EidosValue_String_singleton_const(gStr_Y);
 			}
 		}
 		case gID_isNullGenome:

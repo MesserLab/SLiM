@@ -660,15 +660,15 @@ EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String(gStr_event);
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String(gStr_initialize);
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String(gStr_fitness);
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String(gStr_mateChoice);
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String(gStr_modifyChild);
+				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String_singleton_const(gStr_event);
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String_singleton_const(gStr_initialize);
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String_singleton_const(gStr_fitness);
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String_singleton_const(gStr_mateChoice);
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String_singleton_const(gStr_modifyChild);
 			}
 		}
 		case gID_source:
-			return new EidosValue_String(compound_statement_node_->token_->token_string_);
+			return new EidosValue_String_singleton_const(compound_statement_node_->token_->token_string_);
 			
 			// variables
 		case gID_active:
