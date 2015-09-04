@@ -2556,6 +2556,16 @@ void RunEidosTests(void)
 	
 	#pragma mark miscellaneous
 	
+	// apply()
+	EidosAssertScriptSuccess("x=integer(0); apply(x, 'applyValue^2;');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("x=1:5; apply(x, 'applyValue^2;');", new EidosValue_Float_vector(1, 4, 9, 16, 25));
+	EidosAssertScriptSuccess("x=1:5; apply(x, 'product(1:applyValue);');", new EidosValue_Int_vector(1, 2, 6, 24, 120));
+	EidosAssertScriptSuccess("x=1:3; apply(x, \"rep(''+applyValue, applyValue);\");", new EidosValue_String_vector("1", "2", "2", "3", "3", "3"));
+	EidosAssertScriptSuccess("x=1:5; apply(x, \"paste(rep(''+applyValue, applyValue), '');\");", new EidosValue_String_vector("1", "22", "333", "4444", "55555"));
+	EidosAssertScriptSuccess("x=1:10; apply(x, 'if (applyValue % 2) applyValue;');", new EidosValue_Int_vector(1, 3, 5, 7, 9));
+	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue;'); y;", new EidosValue_Int_singleton_const(5));
+	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue; y;');", new EidosValue_Int_vector(1, 2, 3, 4, 5));
+	
 	// date()
 	EidosAssertScriptSuccess("size(strsplit(date(), '-'));", new EidosValue_Int_singleton_const(3));
 	EidosAssertScriptRaise("date(NULL);", 0, "requires at most");

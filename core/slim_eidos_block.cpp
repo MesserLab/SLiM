@@ -485,6 +485,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 	{
 		const std::string &token_string = p_scan_node->token_->token_string_;
 		
+		if (token_string.compare(gEidosStr_apply) == 0)				contains_wildcard_ = true;
 		if (token_string.compare(gEidosStr_executeLambda) == 0)		contains_wildcard_ = true;
 		if (token_string.compare(gEidosStr_ls) == 0)				contains_wildcard_ = true;
 		if (token_string.compare(gEidosStr_rm) == 0)				contains_wildcard_ = true;

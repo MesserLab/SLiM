@@ -131,6 +131,7 @@ enum class EidosFunctionIdentifier {
 	writeFileFunction,
 	
 	// miscellaneous functions
+	applyFunction,
 	dateFunction,
 	executeLambdaFunction,
 	functionFunction,

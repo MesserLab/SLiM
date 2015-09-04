@@ -173,6 +173,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	miscellaneous functions
 		//
 		
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,	EidosFunctionIdentifier::applyFunction,			kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
@@ -3421,6 +3422,107 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark Miscellaneous functions
 #pragma mark -
 		
+			
+			//	(*)apply(* x, string$ lambdaSource)
+#pragma mark apply
+			
+		case EidosFunctionIdentifier::applyFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			EidosScript script(arg1_value->StringAtIndex(0, nullptr));
+			vector<EidosValue*> results;
+			
+			// Errors in lambdas should be reported for the lambda script, not for the calling script,
+			// if possible.  In the GUI this does not work well, however; there, errors should be
+			// reported as occurring in the call to apply().  Here we save off the current
+			// error context and set up the error context for reporting errors inside the lambda,
+			// in case that is possible; see how exceptions are handled below.
+			int error_start_save = gEidosCharacterStartOfError;
+			int error_end_save = gEidosCharacterEndOfError;
+			EidosScript *current_script_save = gEidosCurrentScript;
+			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+			
+			gEidosCharacterStartOfError = -1;
+			gEidosCharacterEndOfError = -1;
+			gEidosCurrentScript = &script;
+			gEidosExecutingRuntimeScript = true;
+			
+			// Tokenize, parse, and execute inside try/catch so we can handle errors well
+			try
+			{
+				script.Tokenize();
+				script.ParseInterpreterBlockToAST();
+				
+				EidosSymbolTable &symbols = GetSymbolTable();								// get our own symbol table
+				EidosInterpreter interpreter(script, symbols, this->eidos_context_);		// give the interpreter the symbol table
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					EidosValue *apply_value = arg0_value->GetValueAtIndex(value_index, nullptr);
+					
+					// Set the iterator variable "applyValue" to the value; the symbol table takes ownership here
+					// and set the value to external-temporary, so it is not ours any more!
+					symbols.SetValueForSymbol(gEidosStr_applyValue, apply_value);
+					
+					// Get the result
+					EidosValue *apply_result = interpreter.EvaluateInterpreterBlock(false);
+					
+					// If it is a temporary value, then we are fine, because that means that we own it; if it
+					// is external-permanent that is also fine because that means it will live long enough; if
+					// it is marked external-temporary, then that is a problem, because we need to keep it past
+					// the scope where it would be valid (since it could be a reference to something in the
+					// symbol table that might go away before we collate our results), so in that case we
+					// make a copy that we own all by ourselves.  A specific case where this bites us is if
+					// the lambda returns applyValue; that is an external-temporary reference to a symbol table
+					// entry that will be freed the next time around this loop, invalidating the result pointer.
+					// There could be other cases too, though, like a lambda that calls rm().  To be safe, we
+					// have to do this, because the way this loop works means that values are kept for longer
+					// than the guaranteed external-temporary lifetime.
+					if (apply_result->IsExternalTemporary())
+						apply_result = apply_result->CopyValues();
+					
+					results.push_back(apply_result);
+				}
+				
+				// We do not want a leftover applyValue symbol in the symbol table, so we remove it now
+				symbols.RemoveValueForSymbol(gEidosStr_applyValue, false);
+				
+				// Assemble all the individual results together, just as c() does
+				ExecutionOutputStream() << interpreter.ExecutionOutput();
+				result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+				
+				// Now we just need to dispose of our temporary EidosValues
+				for (EidosValue *temp_value : results)
+					if (temp_value->IsTemporary()) delete temp_value;
+			}
+			catch (std::runtime_error err)
+			{
+				// If exceptions throw, then we want to set up the error information to highlight the
+				// apply() that failed, since we can't highlight the actual error.  (If exceptions
+				// don't throw, this catch block will never be hit; exit() will already have been called
+				// and the error will have been reported from the context of the lambda script string.)
+				if (gEidosTerminateThrows)
+				{
+					gEidosCharacterStartOfError = error_start_save;
+					gEidosCharacterEndOfError = error_end_save;
+					gEidosCurrentScript = current_script_save;
+					gEidosExecutingRuntimeScript = executing_runtime_script_save;
+				}
+				
+				throw;
+			}
+			
+			// Restore the normal error context in the event that no exception occurring within the lambda
+			gEidosCharacterStartOfError = error_start_save;
+			gEidosCharacterEndOfError = error_end_save;
+			gEidosCurrentScript = current_script_save;
+			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			
+			break;
+		}
+			
 			
 			//	(string$)date(void)
 			#pragma mark date

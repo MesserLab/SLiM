@@ -434,6 +434,7 @@ const std::string gEidosStr_space_string = " ";
 // mostly function names used in multiple places
 const std::string gEidosStr_function = "function";
 const std::string gEidosStr_method = "method";
+const std::string gEidosStr_apply = "apply";
 const std::string gEidosStr_executeLambda = "executeLambda";
 const std::string gEidosStr_ls = "ls";
 const std::string gEidosStr_rm = "rm";
@@ -477,6 +478,7 @@ const std::string gEidosStr_str = "str";
 const std::string gEidosStr_GetPropertyOfElements = "GetPropertyOfElements";
 const std::string gEidosStr_ExecuteInstanceMethod = "ExecuteInstanceMethod";
 const std::string gEidosStr_undefined = "undefined";
+const std::string gEidosStr_applyValue = "applyValue";
 
 // strings for Eidos_TestElement
 const std::string gEidosStr__TestElement = "_TestElement";

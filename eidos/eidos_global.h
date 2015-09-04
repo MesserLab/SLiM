@@ -118,6 +118,7 @@ extern const std::string gEidosStr_space_string;
 
 extern const std::string gEidosStr_function;
 extern const std::string gEidosStr_method;
+extern const std::string gEidosStr_apply;
 extern const std::string gEidosStr_executeLambda;
 extern const std::string gEidosStr_ls;
 extern const std::string gEidosStr_rm;
@@ -156,6 +157,7 @@ extern const std::string gEidosStr_str;
 extern const std::string gEidosStr_GetPropertyOfElements;
 extern const std::string gEidosStr_ExecuteInstanceMethod;
 extern const std::string gEidosStr_undefined;
+extern const std::string gEidosStr_applyValue;
 
 extern const std::string gEidosStr__TestElement;
 extern const std::string gEidosStr__yolk;
