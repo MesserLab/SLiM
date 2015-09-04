@@ -431,6 +431,8 @@ using std::string;
 
 - (void)selectErrorRange
 {
+	// If there is error-tracking information set, and the error is not attributed to a runtime script
+	// such as a lambda or a callback, then we can highlight the error range
 	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError))
 	{
 		NSRange charRange = NSMakeRange(gEidosCharacterStartOfError, gEidosCharacterEndOfError - gEidosCharacterStartOfError + 1);
@@ -441,6 +443,13 @@ using std::string;
 		// Set the selection color to red for maximal visibility; this gets set back in setSelectedRanges:affinity:stillSelecting:
 		[self setSelectedTextAttributes:@{NSBackgroundColorAttributeName:[NSColor redColor], NSForegroundColorAttributeName:[NSColor whiteColor]}];
 	}
+	
+	// In any case, since we are the ultimate consumer of the error information, we should clear out
+	// the error state to avoid misattribution of future errors
+	gEidosCharacterStartOfError = -1;
+	gEidosCharacterEndOfError = -1;
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 - (void)setSelectedRanges:(NSArray *)ranges affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag

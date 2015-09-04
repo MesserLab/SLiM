@@ -3450,7 +3450,11 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			bool timed = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
 			clock_t begin = 0, end = 0;
 			
-			// Errors in lambdas are reported for the lambda script, not for the calling script
+			// Errors in lambdas should be reported for the lambda script, not for the calling script,
+			// if possible.  In the GUI this does not work well, however; there, errors should be
+			// reported as occurring in the call to executeLambda().  Here we save off the current
+			// error context and set up the error context for reporting errors inside the lambda,
+			// in case that is possible; see how exceptions are handled below.
 			int error_start_save = gEidosCharacterStartOfError;
 			int error_end_save = gEidosCharacterEndOfError;
 			EidosScript *current_script_save = gEidosCurrentScript;
@@ -3484,7 +3488,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// If exceptions throw, then we want to set up the error information to highlight the
 				// executeLambda() that failed, since we can't highlight the actual error.  (If exceptions
-				// don't throw, this catch block will neber be hit; exit() will already have been called
+				// don't throw, this catch block will never be hit; exit() will already have been called
 				// and the error will have been reported from the context of the lambda script string.)
 				if (gEidosTerminateThrows)
 				{
@@ -3497,7 +3501,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				throw;
 			}
 			
-			// Restore the normal error context
+			// Restore the normal error context in the event that no exception occurring within the lambda
 			gEidosCharacterStartOfError = error_start_save;
 			gEidosCharacterEndOfError = error_end_save;
 			gEidosCurrentScript = current_script_save;

@@ -139,7 +139,9 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	// Tokenize and parse
 	script_ = new SLiMEidosScript(buffer.str());
 	
+	// Set up top-level error-reporting info
 	gEidosCurrentScript = script_;
+	gEidosExecutingRuntimeScript = false;
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -163,7 +165,9 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed_ << "\n" << endl;
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by SLiMSim::InitializePopulationFromFile
@@ -535,16 +539,21 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 	return last_gen;
 }
 
+// This function is called only by the SLiM self-testing machinery.  It has no exception handling; raises will
+// blow through to the catch block in the test harness so that they can be handled there.
 bool SLiMSim::_RunOneGeneration(void)
 {
 	// Define the current script around each generation execution, for error reporting
 	gEidosCurrentScript = script_;
+	gEidosExecutingRuntimeScript = false;
 	
 	if (generation_ == 0)
 	{
 		RunInitializeCallbacks();
 		
+		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return true;
 	}
 	else
@@ -662,13 +671,21 @@ bool SLiMSim::_RunOneGeneration(void)
 		}
 		generation_++;
 		
+		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
+		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.
-		gEidosCurrentScript = nullptr;
 		return (generation_ <= EstimatedLastGeneration());
 	}
 }
 
+// This function is called by both SLiM and SLiMgui to run a generation.  In SLiM, it simply calls _RunOneGeneration(),
+// with no exception handling; in that scenario exceptions should not be thrown, since eidos_terminate() will log an
+// error and then call exit().  In SLiMgui, eidos_terminate() will raise an exception, and it will be caught right
+// here and converted to an "invalid simulation" state (simulationValid == false), which will be noticed by SLiMgui
+// and will cause error reporting to occur based upon the error-tracking variables set.
 bool SLiMSim::RunOneGeneration(void)
 {
 #ifdef SLIMGUI
@@ -684,6 +701,11 @@ bool SLiMSim::RunOneGeneration(void)
 		{
 			simulationValid = false;
 			
+			// In the event of a raise, we clear gEidosCurrentScript, which is not normally part of the error-
+			// reporting state, but is used only to inform eidos_terminate() about the current script at the point
+			// when a raise occurs.  We don't want raises after RunOneGeneration() returns to be attributed to us,
+			// so we clear the script pointer.  We do NOT clear any of the error-reporting state, since it will
+			// be used by higher levels to select the error in the GUI.
 			gEidosCurrentScript = nullptr;
 			return false;
 		}

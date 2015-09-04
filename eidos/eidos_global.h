@@ -47,7 +47,11 @@ extern std::ostringstream gEidosTermination;
 
 
 // The part of the input file that caused an error; used to highlight the token or text that caused the error.
-// Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.
+// Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.  The
+// error tracking and reporting stuff is unfortunately very fragile, because it is based on global variables
+// that get magically set up in various places and then get used in various completely different places.  This
+// is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
+// for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
 extern int gEidosCharacterStartOfError, gEidosCharacterEndOfError;
 extern EidosScript *gEidosCurrentScript;
 extern bool gEidosExecutingRuntimeScript;

@@ -58,6 +58,8 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	EidosValue *result = nullptr;
 	EidosSymbolTable symbol_table;
 	
+	gEidosCurrentScript = &script;
+	
 	gEidosTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
 	try {
@@ -66,6 +68,9 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	catch (std::runtime_error err)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during Tokenize(): " << EidosGetTrimmedRaiseMessage() << endl;
+		
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return;
 	}
 	
@@ -75,6 +80,9 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	catch (std::runtime_error err)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during ParseToAST(): " << EidosGetTrimmedRaiseMessage() << endl;
+		
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return;
 	}
 	
@@ -91,6 +99,9 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	catch (std::runtime_error err)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during EvaluateInterpreterBlock(): " << EidosGetTrimmedRaiseMessage() << endl;
+		
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return;
 	}
 	
@@ -98,32 +109,34 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	if (result == nullptr)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : return value is nullptr" << endl;
-		return;
 	}
-	if (result->Type() != p_correct_result->Type())
+	else if (result->Type() != p_correct_result->Type())
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return type (" << result->Type() << ", expected " << p_correct_result->Type() << ")" << endl;
-		return;
 	}
-	if (result->Count() != p_correct_result->Count())
+	else if (result->Count() != p_correct_result->Count())
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return length (" << result->Count() << ", expected " << p_correct_result->Count() << ")" << endl;
-		return;
 	}
-	
-	for (int value_index = 0; value_index < result->Count(); ++value_index)
+	else
 	{
-		if (CompareEidosValues(result, value_index, p_correct_result, value_index, nullptr) != 0)
+		for (int value_index = 0; value_index < result->Count(); ++value_index)
 		{
-			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << endl;
-			return;
+			if (CompareEidosValues(result, value_index, p_correct_result, value_index, nullptr) != 0)
+			{
+				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << endl;
+				return;
+			}
 		}
+		
+		gEidosTestFailureCount--;	// correct for our assumption of failure above
+		gEidosTestSuccessCount++;
+		
+		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : \e[32mSUCCESS\e[0m" << endl;
 	}
 	
-	gEidosTestFailureCount--;	// correct for our assumption of failure above
-	gEidosTestSuccessCount++;
-	
-	//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : \e[32mSUCCESS\e[0m" << endl;
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
@@ -131,6 +144,8 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 {
 	EidosScript script(p_script_string);
 	EidosSymbolTable symbol_table;
+	
+	gEidosCurrentScript = &script;
 	
 	try {
 		script.Tokenize();
@@ -186,6 +201,9 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
 	}
+	
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 void RunEidosTests(void)

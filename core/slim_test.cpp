@@ -43,6 +43,9 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	catch (std::runtime_error err)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during new SLiMSim(): " << EidosGetTrimmedRaiseMessage() << endl;
+		
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return;
 	}
 	
@@ -52,6 +55,9 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	catch (std::runtime_error err)
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during RunOneGeneration(): " << EidosGetTrimmedRaiseMessage() << endl;
+		
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
 		return;
 	}
 	
@@ -59,6 +65,9 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	gSLiMTestSuccessCount++;
 	
 	//std::cerr << p_script_string << " : \e[32mSUCCESS\e[0m" << endl;
+	
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip)
@@ -136,6 +145,9 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
 	}
+	
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 void SLiMAssertScriptStop(const string &p_script_string)
@@ -176,6 +188,9 @@ void SLiMAssertScriptStop(const string &p_script_string)
 			//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
 		}
 	}
+	
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
 }
 
 void RunSLiMTests(void)

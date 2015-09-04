@@ -186,7 +186,9 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_bl
 	EidosScript *current_script_save;
 	bool executing_runtime_script_save;
 	
-	// internal blocks may be associated with their own script object; if so, the error tracking code needs to track that
+	// Internal blocks may be associated with their own script object; if so, the error tracking code needs to track that
+	// Note that if there is not a separate script block, then we do NOT set up an error context here; we assume that
+	// that has been done externally, just like EvaluateInterpreterBlock().
 	if ((p_script_for_block != nullptr) && (p_script_for_block != gEidosCurrentScript))
 	{
 		// This script block is constructed at runtime and has its own script, so we need to redirect error tracking
@@ -221,7 +223,8 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_bl
 	// because it is for interactive use, but EvaluateInternalBlock() is for internal use, and so interactive output
 	// is undesirable.  Eidos code that wants to generate output can always use print(), cat(), etc.
 	
-	// Restore the normal error context
+	// Restore the normal error context; note that a raise blows through this, of course, since we want the raise-catch
+	// machinery to report the error using the error information set up by the raise.
 	if (saved_error_tracking)
 	{
 		// The saved_error_tracking flag guarantees that these statements do not use unused variables.  Unfortunately,
