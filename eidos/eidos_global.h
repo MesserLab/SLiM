@@ -115,7 +115,7 @@ extern const std::string gEidosStr_space_string;
 extern const std::string gEidosStr_function;
 extern const std::string gEidosStr_method;
 extern const std::string gEidosStr_executeLambda;
-extern const std::string gEidosStr_globals;
+extern const std::string gEidosStr_ls;
 extern const std::string gEidosStr_rm;
 
 extern const std::string gEidosStr_if;

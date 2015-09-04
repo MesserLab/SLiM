@@ -435,7 +435,7 @@ const std::string gEidosStr_space_string = " ";
 const std::string gEidosStr_function = "function";
 const std::string gEidosStr_method = "method";
 const std::string gEidosStr_executeLambda = "executeLambda";
-const std::string gEidosStr_globals = "globals";
+const std::string gEidosStr_ls = "ls";
 const std::string gEidosStr_rm = "rm";
 
 // mostly language keywords

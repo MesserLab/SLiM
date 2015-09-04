@@ -134,7 +134,7 @@ enum class EidosFunctionIdentifier {
 	dateFunction,
 	executeLambdaFunction,
 	functionFunction,
-	globalsFunction,
+	lsFunction,
 	helpFunction,
 	licenseFunction,
 	rmFunction,

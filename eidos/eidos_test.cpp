@@ -2570,14 +2570,14 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("function(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("function(_Test(7));", 0, "cannot be type");
 	
-	// globals()
-	EidosAssertScriptSuccess("globals();", gStaticEidosValueNULL);
-	EidosAssertScriptRaise("globals(NULL);", 0, "requires at most");
-	EidosAssertScriptRaise("globals(T);", 0, "requires at most");
-	EidosAssertScriptRaise("globals(3);", 0, "requires at most");
-	EidosAssertScriptRaise("globals(3.5);", 0, "requires at most");
-	EidosAssertScriptRaise("globals('foo');", 0, "requires at most");
-	EidosAssertScriptRaise("globals(_Test(7));", 0, "requires at most");
+	// ls()
+	EidosAssertScriptSuccess("ls();", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("ls(NULL);", 0, "requires at most");
+	EidosAssertScriptRaise("ls(T);", 0, "requires at most");
+	EidosAssertScriptRaise("ls(3);", 0, "requires at most");
+	EidosAssertScriptRaise("ls(3.5);", 0, "requires at most");
+	EidosAssertScriptRaise("ls('foo');", 0, "requires at most");
+	EidosAssertScriptRaise("ls(_Test(7));", 0, "requires at most");
 	
 	// help()
 	EidosAssertScriptSuccess("help();", gStaticEidosValueNULL);

@@ -176,7 +176,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_globals,	EidosFunctionIdentifier::globalsFunction,		kEidosValueMaskNULL)));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		EidosFunctionIdentifier::lsFunction,			kEidosValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kEidosValueMaskNULL))->AddString_OS("topic"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kEidosValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames"));
@@ -3546,10 +3546,10 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(void)globals(void)
-			#pragma mark globals
+			//	(void)ls(void)
+			#pragma mark ls
 			
-		case EidosFunctionIdentifier::globalsFunction:
+		case EidosFunctionIdentifier::lsFunction:
 		{
 			ExecutionOutputStream() << global_symbols_;
 			break;

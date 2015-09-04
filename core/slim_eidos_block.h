@@ -100,7 +100,7 @@ public:
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
-	bool contains_wildcard_ = false;			// "executeLambda", "globals", "rm"; all other contains_ flags will be T if this is T
+	bool contains_wildcard_ = false;			// "executeLambda", "ls", "rm"; all other contains_ flags will be T if this is T
 	EidosSymbolUsageParamBlock eidos_contains_;	// flags passed to Eidos regarding symbol usage
 	bool contains_pX_ = false;					// any subpop identifier like p1, p2...
 	bool contains_gX_ = false;					// any genomic element type identifier like g1, g2...
