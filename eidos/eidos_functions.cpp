@@ -133,6 +133,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				EidosFunctionIdentifier::catFunction,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("identical",		EidosFunctionIdentifier::identicalFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x")->AddAny("y"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			EidosFunctionIdentifier::ifelseFunction,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",			EidosFunctionIdentifier::matchFunction,			kEidosValueMaskInt))->AddAny("x")->AddAny("y"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",			EidosFunctionIdentifier::ncharFunction,			kEidosValueMaskInt))->AddString("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			EidosFunctionIdentifier::pasteFunction,			kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			EidosFunctionIdentifier::printFunction,			kEidosValueMaskNULL))->AddAny("x"));
@@ -2399,6 +2400,238 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result->PushValueFromIndexOfEidosValue(value_index, arg1_value, nullptr);
 				else
 					result->PushValueFromIndexOfEidosValue(value_index, arg2_value, nullptr);
+			}
+			break;
+		}
+			
+			
+			//	(integer)match(* x, * y)
+			#pragma mark match
+			
+		case EidosFunctionIdentifier::matchFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			EidosValueType arg0_type = arg0_value->Type();
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			EidosValueType arg1_type = arg1_value->Type();
+			int arg1_count = arg1_value->Count();
+			
+			if (arg0_type != arg1_type)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function match() requires arguments x and table to be the same type." << eidos_terminate(nullptr);
+			
+			if (arg0_type == EidosValueType::kValueNULL)
+			{
+				result = new EidosValue_Int_vector();
+				break;
+			}
+			
+			if ((arg0_count == 1) && (arg1_count == 1))
+			{
+				// Handle singleton matching separately, to allow the use of the fast vector API below
+				if (arg0_type == EidosValueType::kValueLogical)
+					result = new EidosValue_Int_singleton_const(arg0_value->LogicalAtIndex(0, nullptr) == arg1_value->LogicalAtIndex(0, nullptr) ? 0 : -1);
+				else if (arg0_type == EidosValueType::kValueInt)
+					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr) == arg1_value->IntAtIndex(0, nullptr) ? 0 : -1);
+				else if (arg0_type == EidosValueType::kValueFloat)
+					result = new EidosValue_Int_singleton_const(arg0_value->FloatAtIndex(0, nullptr) == arg1_value->FloatAtIndex(0, nullptr) ? 0 : -1);
+				else if (arg0_type == EidosValueType::kValueString)
+					result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr) == arg1_value->StringAtIndex(0, nullptr) ? 0 : -1);
+				else if (arg0_type == EidosValueType::kValueObject)
+					result = new EidosValue_Int_singleton_const(arg0_value->ObjectElementAtIndex(0, nullptr) == arg1_value->ObjectElementAtIndex(0, nullptr) ? 0 : -1);
+			}
+			else if (arg0_count == 1)	// && (arg1_count != 1)
+			{
+				int table_index;
+				
+				if (arg0_type == EidosValueType::kValueLogical)
+				{
+					bool value0 = arg0_value->LogicalAtIndex(0, nullptr);
+					const std::vector<bool> &bool_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					
+					for (table_index = 0; table_index < arg1_count; ++table_index)
+						if (value0 == bool_vec1[table_index])
+						{
+							result = new EidosValue_Int_singleton_const(table_index);
+							break;
+						}
+				}
+				else if (arg0_type == EidosValueType::kValueInt)
+				{
+					int64_t value0 = arg0_value->IntAtIndex(0, nullptr);
+					const std::vector<int64_t> &int_vec1 = dynamic_cast<EidosValue_Int_vector *>(arg1_value)->IntVector();
+					
+					for (table_index = 0; table_index < arg1_count; ++table_index)
+						if (value0 == int_vec1[table_index])
+						{
+							result = new EidosValue_Int_singleton_const(table_index);
+							break;
+						}
+				}
+				else if (arg0_type == EidosValueType::kValueFloat)
+				{
+					double value0 = arg0_value->FloatAtIndex(0, nullptr);
+					const std::vector<double> &float_vec1 = dynamic_cast<EidosValue_Float_vector *>(arg1_value)->FloatVector();
+					
+					for (table_index = 0; table_index < arg1_count; ++table_index)
+						if (value0 == float_vec1[table_index])
+						{
+							result = new EidosValue_Int_singleton_const(table_index);
+							break;
+						}
+				}
+				else if (arg0_type == EidosValueType::kValueString)
+				{
+					std::string value0 = arg0_value->StringAtIndex(0, nullptr);
+					const std::vector<std::string> &string_vec1 = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
+					
+					for (table_index = 0; table_index < arg1_count; ++table_index)
+						if (value0 == string_vec1[table_index])
+						{
+							result = new EidosValue_Int_singleton_const(table_index);
+							break;
+						}
+				}
+				else if (arg0_type == EidosValueType::kValueObject)
+				{
+					EidosObjectElement *value0 = arg0_value->ObjectElementAtIndex(0, nullptr);
+					const std::vector<EidosObjectElement *> &objelement_vec1 = dynamic_cast<EidosValue_Object_vector *>(arg1_value)->ObjectElementVector();
+					
+					for (table_index = 0; table_index < arg1_count; ++table_index)
+						if (value0 == objelement_vec1[table_index])
+						{
+							result = new EidosValue_Int_singleton_const(table_index);
+							break;
+						}
+				}
+				
+				if (table_index == arg1_count)
+					result = new EidosValue_Int_singleton_const(-1);
+			}
+			else if (arg1_count == 1)	// && (arg0_count != 1)
+			{
+				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				result = int_result;
+				
+				if (arg0_type == EidosValueType::kValueLogical)
+				{
+					bool value1 = arg1_value->LogicalAtIndex(0, nullptr);
+					const std::vector<bool> &bool_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(bool_vec0[value_index] == value1 ? 0 : -1);
+				}
+				else if (arg0_type == EidosValueType::kValueInt)
+				{
+					int64_t value1 = arg1_value->IntAtIndex(0, nullptr);
+					const std::vector<int64_t> &int_vec0 = dynamic_cast<EidosValue_Int_vector *>(arg0_value)->IntVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(int_vec0[value_index] == value1 ? 0 : -1);
+				}
+				else if (arg0_type == EidosValueType::kValueFloat)
+				{
+					double value1 = arg1_value->FloatAtIndex(0, nullptr);
+					const std::vector<double> &float_vec0 = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(float_vec0[value_index] == value1 ? 0 : -1);
+				}
+				else if (arg0_type == EidosValueType::kValueString)
+				{
+					std::string value1 = arg1_value->StringAtIndex(0, nullptr);
+					const std::vector<std::string> &string_vec0 = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(string_vec0[value_index] == value1 ? 0 : -1);
+				}
+				else if (arg0_type == EidosValueType::kValueObject)
+				{
+					EidosObjectElement *value1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+					const std::vector<EidosObjectElement *> &objelement_vec0 = dynamic_cast<EidosValue_Object_vector *>(arg0_value)->ObjectElementVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(objelement_vec0[value_index] == value1 ? 0 : -1);
+				}
+			}
+			else						// ((arg0_count != 1) && (arg1_count != 1))
+			{
+				// We can use the fast vector API; we want match() to be very fast since it is a common bottleneck
+				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				result = int_result;
+				
+				int table_index;
+				
+				if (arg0_type == EidosValueType::kValueLogical)
+				{
+					const std::vector<bool> &bool_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<bool> &bool_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						for (table_index = 0; table_index < arg1_count; ++table_index)
+							if (bool_vec0[value_index] == bool_vec1[table_index])
+								break;
+						
+						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
+					}
+				}
+				else if (arg0_type == EidosValueType::kValueInt)
+				{
+					const std::vector<int64_t> &int_vec0 = dynamic_cast<EidosValue_Int_vector *>(arg0_value)->IntVector();
+					const std::vector<int64_t> &int_vec1 = dynamic_cast<EidosValue_Int_vector *>(arg1_value)->IntVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						for (table_index = 0; table_index < arg1_count; ++table_index)
+							if (int_vec0[value_index] == int_vec1[table_index])
+								break;
+						
+						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
+					}
+				}
+				else if (arg0_type == EidosValueType::kValueFloat)
+				{
+					const std::vector<double> &float_vec0 = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
+					const std::vector<double> &float_vec1 = dynamic_cast<EidosValue_Float_vector *>(arg1_value)->FloatVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						for (table_index = 0; table_index < arg1_count; ++table_index)
+							if (float_vec0[value_index] == float_vec1[table_index])
+								break;
+						
+						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
+					}
+				}
+				else if (arg0_type == EidosValueType::kValueString)
+				{
+					const std::vector<std::string> &string_vec0 = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+					const std::vector<std::string> &string_vec1 = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						for (table_index = 0; table_index < arg1_count; ++table_index)
+							if (string_vec0[value_index] == string_vec1[table_index])
+								break;
+						
+						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
+					}
+				}
+				else if (arg0_type == EidosValueType::kValueObject)
+				{
+					const std::vector<EidosObjectElement *> &objelement_vec0 = dynamic_cast<EidosValue_Object_vector *>(arg0_value)->ObjectElementVector();
+					const std::vector<EidosObjectElement *> &objelement_vec1 = dynamic_cast<EidosValue_Object_vector *>(arg1_value)->ObjectElementVector();
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						for (table_index = 0; table_index < arg1_count; ++table_index)
+							if (objelement_vec0[value_index] == objelement_vec1[table_index])
+								break;
+						
+						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
+					}
+				}
 			}
 			break;
 		}

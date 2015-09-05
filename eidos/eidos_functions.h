@@ -96,6 +96,7 @@ enum class EidosFunctionIdentifier {
 	catFunction,
 	identicalFunction,
 	ifelseFunction,
+	matchFunction,
 	ncharFunction,
 	pasteFunction,
 	printFunction,

@@ -2229,6 +2229,77 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("ifelse(F, 5, 2);", new EidosValue_Int_singleton_const(2));
 	EidosAssertScriptSuccess("ifelse(c(T,F,F,T,F,T), 1:6, -6:-1);", new EidosValue_Int_vector(1, -5, -4, 4, -2, 6));
 	
+	// match()
+	EidosAssertScriptSuccess("match(NULL, NULL);", new EidosValue_Int_vector());
+	EidosAssertScriptRaise("match(NULL, F);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(NULL, 0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(NULL, 0.0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(NULL, '');", 0, "to be the same type");
+	EidosAssertScriptRaise("match(NULL, _Test(0));", 0, "to be the same type");
+	EidosAssertScriptRaise("match(F, NULL);", 0, "to be the same type");
+	EidosAssertScriptSuccess("match(F, F);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("match(F, T);", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptRaise("match(F, 0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(F, 0.0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(F, '');", 0, "to be the same type");
+	EidosAssertScriptRaise("match(F, _Test(0));", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0, NULL);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0, F);", 0, "to be the same type");
+	EidosAssertScriptSuccess("match(0, 0);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("match(0, 1);", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptRaise("match(0, 0.0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0, '');", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0, _Test(0));", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0.0, NULL);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0.0, F);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0.0, 0);", 0, "to be the same type");
+	EidosAssertScriptSuccess("match(0.0, 0.0);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("match(0.0, 0.1);", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptRaise("match(0.0, '');", 0, "to be the same type");
+	EidosAssertScriptRaise("match(0.0, _Test(0));", 0, "to be the same type");
+	EidosAssertScriptRaise("match('', NULL);", 0, "to be the same type");
+	EidosAssertScriptRaise("match('', F);", 0, "to be the same type");
+	EidosAssertScriptRaise("match('', 0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match('', 0.0);", 0, "to be the same type");
+	EidosAssertScriptSuccess("match('', '');", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("match('', 'f');", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptRaise("match('', _Test(0));", 0, "to be the same type");
+	EidosAssertScriptRaise("match(_Test(0), NULL);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(_Test(0), F);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(_Test(0), 0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(_Test(0), 0.0);", 0, "to be the same type");
+	EidosAssertScriptRaise("match(_Test(0), '');", 0, "to be the same type");
+	EidosAssertScriptSuccess("match(_Test(0), _Test(0));", new EidosValue_Int_singleton_const(-1));							// different elements
+	EidosAssertScriptSuccess("x = _Test(0); match(x, x);", new EidosValue_Int_singleton_const(0));
+	
+	EidosAssertScriptSuccess("match(c(F,T,F,F,T,T), T);", new EidosValue_Int_vector(-1, 0, -1, -1, 0, 0));
+	EidosAssertScriptSuccess("match(c(1,2,2,9,5,1), 5);", new EidosValue_Int_vector(-1, -1, -1, -1, 0, -1));
+	EidosAssertScriptSuccess("match(c(1,2,2,9,5,1.), 5.);", new EidosValue_Int_vector(-1, -1, -1, -1, 0, -1));
+	EidosAssertScriptSuccess("match(c('bar','q','f','baz','foo','bar'), 'foo');", new EidosValue_Int_vector(-1, -1, -1, -1, 0, -1));
+	EidosAssertScriptSuccess("match(c(_Test(0), _Test(1)), _Test(0));", new EidosValue_Int_vector(-1, -1));				// different elements
+	EidosAssertScriptSuccess("x1 = _Test(1); x2 = _Test(2); x9 = _Test(9); x5 = _Test(5); match(c(x1,x2,x2,x9,x5,x1), x5);", new EidosValue_Int_vector(-1, -1, -1, -1, 0, -1));
+	
+	EidosAssertScriptSuccess("match(F, c(T,F));", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("match(9, c(5,1,9));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("match(9., c(5,1,9.));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("match('baz', c('foo','bar','baz'));", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("match(_Test(0), c(_Test(0), _Test(1)));", new EidosValue_Int_singleton_const(-1));	// different elements
+	EidosAssertScriptSuccess("x1 = _Test(1); x2 = _Test(2); x9 = _Test(9); x5 = _Test(5); match(c(x9), c(x5,x1,x9));", new EidosValue_Int_singleton_const(2));
+	
+	EidosAssertScriptSuccess("match(F, c(T,T));", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("match(7, c(5,1,9));", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("match(7., c(5,1,9.));", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("match('zip', c('foo','bar','baz'));", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("match(_Test(7), c(_Test(0), _Test(1)));", new EidosValue_Int_singleton_const(-1));	// different elements
+	EidosAssertScriptSuccess("x1 = _Test(1); x2 = _Test(2); x9 = _Test(9); x5 = _Test(5); match(c(x2), c(x5,x1,x9));", new EidosValue_Int_singleton_const(-1));
+	
+	EidosAssertScriptSuccess("match(c(F,T,F,F,T,T), c(T,T));", new EidosValue_Int_vector(-1, 0, -1, -1, 0, 0));
+	EidosAssertScriptSuccess("match(c(1,2,2,9,5,1), c(5,1,9));", new EidosValue_Int_vector(1, -1, -1, 2, 0, 1));
+	EidosAssertScriptSuccess("match(c(1,2,2,9,5,1.), c(5,1,9.));", new EidosValue_Int_vector(1, -1, -1, 2, 0, 1));
+	EidosAssertScriptSuccess("match(c('bar','q','f','baz','foo','bar'), c('foo','bar','baz'));", new EidosValue_Int_vector(1, -1, -1, 2, 0, 1));
+	EidosAssertScriptSuccess("match(c(_Test(0), _Test(1)), c(_Test(0), _Test(1)));", new EidosValue_Int_vector(-1, -1));	// different elements
+	EidosAssertScriptSuccess("x1 = _Test(1); x2 = _Test(2); x9 = _Test(9); x5 = _Test(5); match(c(x1,x2,x2,x9,x5,x1), c(x5,x1,x9));", new EidosValue_Int_vector(1, -1, -1, 2, 0, 1));
+	
 	// nchar()
 	EidosAssertScriptRaise("nchar(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("nchar(T);", 0, "cannot be type");
