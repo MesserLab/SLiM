@@ -5,7 +5,6 @@ SLiM:
 Eidos:
 	remember what items are expanded in the variable browser
 	implement help() and apropos(), perhaps based on some sort of file-based representation
-	documentation work: revise docs for min, max, range, sum, product, sd, whichMax, whichMin as needed – returning NULL, returning only the first match
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
 

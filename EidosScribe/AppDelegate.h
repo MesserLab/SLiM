@@ -29,7 +29,7 @@
 	IBOutlet NSTextField *aboutVersionTextField;
 }
 
-@property (retain) IBOutlet EidosConsoleWindowController *consoleController;
+@property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
 
 // for ConsoleControllerDelegate
 @property (nonatomic) BOOL continuousPlayOn;
