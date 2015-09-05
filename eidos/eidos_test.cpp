@@ -366,13 +366,13 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("NULL+0.5;", 4, "combination of operand types");
 	EidosAssertScriptRaise("NULL+'foo';", 4, "does not support operands of type NULL");
 	EidosAssertScriptRaise("NULL+_Test(7);", 4, "combination of operand types");
-	EidosAssertScriptRaise("NULL+(0:2);", 4, "operator requires that either");
+	EidosAssertScriptRaise("NULL+(0:2);", 4, "combination of operand types");
 	EidosAssertScriptRaise("T+NULL;", 1, "combination of operand types");
 	EidosAssertScriptRaise("0+NULL;", 1, "combination of operand types");
 	EidosAssertScriptRaise("0.5+NULL;", 3, "combination of operand types");
 	EidosAssertScriptRaise("'foo'+NULL;", 5, "does not support operands of type NULL");
 	EidosAssertScriptRaise("_Test(7)+NULL;", 8, "combination of operand types");
-	EidosAssertScriptRaise("(0:2)+NULL;", 5, "operator requires that either");
+	EidosAssertScriptRaise("(0:2)+NULL;", 5, "combination of operand types");
 	EidosAssertScriptRaise("+NULL;", 0, "operand type NULL is not supported");
 	EidosAssertScriptSuccess("1+1;", new EidosValue_Int_singleton_const(2));
 	EidosAssertScriptSuccess("1+-1;", new EidosValue_Int_singleton_const(0));

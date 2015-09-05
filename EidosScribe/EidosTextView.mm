@@ -206,6 +206,7 @@ using std::string;
 			}
 		}
 		
+		[scriptString release];
 		[ts endEditing];
 		[self setSelectedRange:selectedRange];
 	}
@@ -275,6 +276,7 @@ using std::string;
 				break;
 		}
 		
+		[scriptString release];
 		[ts endEditing];
 		[self setSelectedRange:selectedRange];
 	}
@@ -415,6 +417,7 @@ using std::string;
 				break;
 		}
 		
+		[scriptString release];
 		[ts endEditing];
 		[self setSelectedRange:selectedRange];
 		

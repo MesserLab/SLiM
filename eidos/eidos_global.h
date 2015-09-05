@@ -83,7 +83,7 @@ public:
 	eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace);
 };
 
-std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminator);	// note this returns void, not std::ostream&; that is deliberate
+void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator) __attribute__((__noreturn__));
 
 // Get the message from the last raise out of gEidosTermination, optionally with newlines trimmed from the ends
 std::string EidosGetTrimmedRaiseMessage(void);

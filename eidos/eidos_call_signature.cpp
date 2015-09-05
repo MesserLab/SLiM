@@ -232,7 +232,6 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, in
 							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
 								break;
 							
-							type_ok = false;
 							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
 						}
 					}
@@ -273,7 +272,6 @@ void EidosCallSignature::CheckReturn(EidosValue *p_result) const
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object *)p_result)->Class() != return_class_))
 			{
-				return_type_ok = false;
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;

@@ -68,7 +68,6 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
-				value_type_ok = false;
 				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
@@ -105,7 +104,6 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
 			{
-				value_type_ok = false;
 				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;

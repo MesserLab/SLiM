@@ -186,7 +186,7 @@ void eidos_print_stacktrace(FILE *p_out, unsigned int p_max_frames)
 			
 			if (status == 0)
 			{
-				funcname = ret; // use possibly realloc()-ed string
+				funcname = ret; // use possibly realloc()-ed string; static analyzer doesn't like this but it is OK I think
 				fprintf(p_out, "  %s : %s + %s\n", symbollist[i], funcname, begin_offset);
 			}
 			else
@@ -339,7 +339,7 @@ eidos_terminate::eidos_terminate(const EidosToken *p_error_token, bool p_print_b
 		EidosScript::PushErrorPositionFromToken(p_error_token);
 }
 
-std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
+void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
 {
 	p_out << std::endl;
 	
@@ -362,8 +362,6 @@ std::ostream& operator<<(std::ostream& p_out, const eidos_terminate &p_terminato
 		
 		exit(EXIT_FAILURE);
 	}
-	
-	return p_out;
 }
 
 std::string EidosGetTrimmedRaiseMessage(void)

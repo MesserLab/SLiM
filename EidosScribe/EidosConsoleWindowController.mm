@@ -231,6 +231,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		result = interpreter.EvaluateInterpreterBlock(true);
 		output = interpreter.ExecutionOutput();
 		
+		if (result->IsTemporary()) delete result;
+		
 		// reload outline view to show new global symbols, in case they have changed
 		[browserController reloadBrowser];
 		
@@ -406,7 +408,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+		NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -439,7 +441,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 - (IBAction)showScriptHelp:(id)sender
 {
 	NSTextStorage *ts = [outputTextView textStorage];
-	NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:@"help()" attributes:[EidosConsoleTextView inputAttrs]];
+	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:@"help()" attributes:[EidosConsoleTextView inputAttrs]] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
 	[ts beginEditing];
@@ -467,7 +469,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 {
 	NSTextStorage *ts = [outputTextView textStorage];
 	NSString *fullScriptString = [scriptTextView string];
-	NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:fullScriptString attributes:[EidosConsoleTextView inputAttrs]];
+	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:fullScriptString attributes:[EidosConsoleTextView inputAttrs]] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
 	[ts beginEditing];
@@ -529,7 +531,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	if (executionRange.length > 0)
 	{
 		NSString *scriptString = [fullScriptString substringWithRange:executionRange];
-		NSAttributedString *scriptAttrString = [[NSAttributedString alloc] initWithString:scriptString attributes:[EidosConsoleTextView inputAttrs]];
+		NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:scriptString attributes:[EidosConsoleTextView inputAttrs]] autorelease];
 		NSUInteger promptEnd = [outputTextView promptRangeEnd];
 		
 		[ts beginEditing];

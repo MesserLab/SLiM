@@ -672,7 +672,6 @@ EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				if (result) return result;	break;
 		default:
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
-			result = nullptr;
 			break;
 	}
 	
@@ -961,7 +960,6 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	else
 	{
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(function_name_node->token_);
-		function_name = nullptr;	// to get rid of a warning
 	}
 	
 	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
@@ -1296,14 +1294,6 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
-		if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
-		}
-		
 		if ((first_child_type == EidosValueType::kValueString) || (second_child_type == EidosValueType::kValueString))
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
@@ -1342,6 +1332,14 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_int);
+				}
+				else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+				{
+					if (first_child_value->IsTemporary()) delete first_child_value;
+					if (second_child_value->IsTemporary()) delete second_child_value;
+					if (string_result->IsTemporary()) delete string_result;
+					
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 				}
 			}
 		}
@@ -1428,6 +1426,13 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					int_result->PushInt(add_result);
 				}
 			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			}
 		}
 		else
 		{
@@ -1471,6 +1476,13 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) + singleton_float);
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
 		
@@ -1590,14 +1602,6 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 		
 		int second_child_count = second_child_value->Count();
 		
-		if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
-		}
-		
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
 			if (first_child_count == second_child_count)
@@ -1681,6 +1685,13 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					int_result->PushInt(subtract_result);
 				}
 			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			}
 		}
 		else
 		{
@@ -1716,6 +1727,13 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) - singleton_float);
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				if (first_child_value->IsTemporary()) delete first_child_value;
+				if (second_child_value->IsTemporary()) delete second_child_value;
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
 		
@@ -1773,119 +1791,51 @@ EidosValue *EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
 	
-	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
-	}
-	
-	/*
 	// I've decided to make division perform float division always; wanting integer division is rare, and providing it as the default is error-prone.  If
 	// people want integer division, they will need to do float division and then use floor() and asInteger().  Alternatively, we could provide a separate
 	// operator for integer division, as R does.  However, the definition of integer division is tricky and contested; best to let people do their own.
 	// This decision applies also to modulo, for consistency.
 	
-	if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
+	// floating-point modulo by zero is safe; it will produce an NaN, following IEEE as implemented by C++
+	if (first_child_count == second_child_count)
 	{
-		// integer modulo has to check for division by zero and throw, otherwise we crash
-		EidosValue_Int *int_result = new EidosValue_Int();
-		
-		if (first_child_count == second_child_count)
+		if (first_child_count == 1)
 		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-			{
-				int64_t divisor = second_child_value->IntAtIndex(value_index);
-				
-				if (divisor == 0)
-				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					if (int_result->IsTemporary()) delete int_result;
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): integer modulo by zero." << eidos_terminate(operator_token);
-				}
-				
-				int_result->PushInt(first_child_value->IntAtIndex(value_index) % divisor);
-			}
+			result = new EidosValue_Float_singleton_const(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token)));
 		}
-		else if (first_child_count == 1)
+		else
 		{
-			int64_t singleton_int = first_child_value->IntAtIndex(0);
-			
-			for (int value_index = 0; value_index < second_child_count; ++value_index)
-			{
-				int64_t divisor = second_child_value->IntAtIndex(value_index);
-				
-				if (divisor == 0)
-				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					if (int_result->IsTemporary()) delete int_result;
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): integer modulo by zero." << eidos_terminate(operator_token);
-				}
-				
-				int_result->PushInt(singleton_int % divisor);
-			}
-		}
-		else if (second_child_count == 1)
-		{
-			int64_t singleton_int = second_child_value->IntAtIndex(0);
-			
-			if (singleton_int == 0)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				if (int_result->IsTemporary()) delete int_result;
-				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): integer modulo by zero." << eidos_terminate(operator_token);
-			}
+			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+			result = float_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				int_result->PushInt(first_child_value->IntAtIndex(value_index) % singleton_int);
+				float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), second_child_value->FloatAtIndex(value_index, operator_token)));
 		}
-		
-		result = int_result;
 	}
-	else
-	*/
+	else if (first_child_count == 1)
 	{
-		// floating-point modulo by zero is safe; it will produce an NaN, following IEEE as implemented by C++
-		if (first_child_count == second_child_count)
-		{
-			if (first_child_count == 1)
-			{
-				result = new EidosValue_Float_singleton_const(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token)));
-			}
-			else
-			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-				result = float_result;
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), second_child_value->FloatAtIndex(value_index, operator_token)));
-			}
-		}
-		else if (first_child_count == 1)
-		{
-			double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-			result = float_result;
-			
-			for (int value_index = 0; value_index < second_child_count; ++value_index)
-				float_result->PushFloat(fmod(singleton_float, second_child_value->FloatAtIndex(value_index, operator_token)));
-		}
-		else if (second_child_count == 1)
-		{
-			double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-			result = float_result;
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), singleton_float));
-		}
+		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
+		EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+		result = float_result;
+		
+		for (int value_index = 0; value_index < second_child_count; ++value_index)
+			float_result->PushFloat(fmod(singleton_float, second_child_value->FloatAtIndex(value_index, operator_token)));
+	}
+	else if (second_child_count == 1)
+	{
+		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
+		EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+		result = float_result;
+		
+		for (int value_index = 0; value_index < first_child_count; ++value_index)
+			float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), singleton_float));
+	}
+	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+	{
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
@@ -2098,118 +2048,50 @@ EidosValue *EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
 	
-	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+	// I've decided to make division perform float division always; wanting integer division is rare, and providing it as the default is error-prone.  If
+	// people want integer division, they will need to do float division and then use floor() and asInteger().  Alternatively, we could provide a separate
+	// operator for integer division, as R does.  However, the definition of integer division is tricky and contested; best to let people do their own.
+
+	// floating-point division by zero is safe; it will produce an infinity, following IEEE as implemented by C++
+	if (first_child_count == second_child_count)
+	{
+		if (first_child_count == 1)
+		{
+			result = new EidosValue_Float_singleton_const(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token));
+		}
+		else
+		{
+			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+			result = float_result;
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / second_child_value->FloatAtIndex(value_index, operator_token));
+		}
+	}
+	else if (first_child_count == 1)
+	{
+		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
+		EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+		result = float_result;
+		
+		for (int value_index = 0; value_index < second_child_count; ++value_index)
+			float_result->PushFloat(singleton_float / second_child_value->FloatAtIndex(value_index, operator_token));
+	}
+	else if (second_child_count == 1)
+	{
+		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
+		EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+		result = float_result;
+		
+		for (int value_index = 0; value_index < first_child_count; ++value_index)
+			float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / singleton_float);
+	}
+	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
 		if (first_child_value->IsTemporary()) delete first_child_value;
 		if (second_child_value->IsTemporary()) delete second_child_value;
 		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
-	}
-	
-	/*
-	// I've decided to make division perform float division always; wanting integer division is rare, and providing it as the default is error-prone.  If
-	// people want integer division, they will need to do float division and then use floor() and asInteger().  Alternatively, we could provide a separate
-	// operator for integer division, as R does.  However, the definition of integer division is tricky and contested; best to let people do their own.
-	 
-	if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
-	{
-		// integer division has to check for division by zero and throw, otherwise we crash
-		EidosValue_Int *int_result = new EidosValue_Int();
-		
-		if (first_child_count == second_child_count)
-		{
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-			{
-				int64_t divisor = second_child_value->IntAtIndex(value_index);
-				
-				if (divisor == 0)
-				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					if (int_result->IsTemporary()) delete int_result;
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): integer divide by zero." << eidos_terminate(operator_token);
-				}
-				
-				int_result->PushInt(first_child_value->IntAtIndex(value_index) / divisor);
-			}
-		}
-		else if (first_child_count == 1)
-		{
-			int64_t singleton_int = first_child_value->IntAtIndex(0);
-			
-			for (int value_index = 0; value_index < second_child_count; ++value_index)
-			{
-				int64_t divisor = second_child_value->IntAtIndex(value_index);
-				
-				if (divisor == 0)
-				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					if (int_result->IsTemporary()) delete int_result;
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): integer divide by zero." << eidos_terminate(operator_token);
-				}
-				
-				int_result->PushInt(singleton_int / divisor);
-			}
-		}
-		else if (second_child_count == 1)
-		{
-			int64_t singleton_int = second_child_value->IntAtIndex(0);
-			
-			if (singleton_int == 0)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				if (int_result->IsTemporary()) delete int_result;
-				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): integer divide by zero." << eidos_terminate(operator_token);
-			}
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				int_result->PushInt(first_child_value->IntAtIndex(value_index) / singleton_int);
-		}
-		
-		result = int_result;
-	}
-	else
-	*/
-	{
-		// floating-point division by zero is safe; it will produce an infinity, following IEEE as implemented by C++
-		if (first_child_count == second_child_count)
-		{
-			if (first_child_count == 1)
-			{
-				result = new EidosValue_Float_singleton_const(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token));
-			}
-			else
-			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-				result = float_result;
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / second_child_value->FloatAtIndex(value_index, operator_token));
-			}
-		}
-		else if (first_child_count == 1)
-		{
-			double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-			result = float_result;
-			
-			for (int value_index = 0; value_index < second_child_count; ++value_index)
-				float_result->PushFloat(singleton_float / second_child_value->FloatAtIndex(value_index, operator_token));
-		}
-		else if (second_child_count == 1)
-		{
-			double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-			result = float_result;
-			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / singleton_float);
-		}
 	}
 	
 	// free our operands
@@ -2263,13 +2145,6 @@ EidosValue *EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
 	
-	if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
-	}
-	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
 	EidosValue *result;
 	
@@ -2305,6 +2180,12 @@ EidosValue *EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
 			float_result->PushFloat(pow(first_child_value->FloatAtIndex(value_index, operator_token), singleton_float));
+	}
+	else
+	{
+		if (first_child_value->IsTemporary()) delete first_child_value;
+		if (second_child_value->IsTemporary()) delete second_child_value;
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
 	// free our operands
