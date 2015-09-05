@@ -183,7 +183,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	
 	// Show the error in the status bar also
 	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-	NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+	NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
 	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 	
 	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -1267,7 +1267,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor redColor]] retain];
+		NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];

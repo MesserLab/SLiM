@@ -855,9 +855,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		parent_genome_1 = parent_genome_2;
 		parent_genome_2 = swap2;
 		
-		GenomeType swap3 = parent1_genome_type;
-		parent1_genome_type = parent2_genome_type;
-		parent2_genome_type = swap3;
+		// Not used below this point...
+		//GenomeType swap3 = parent1_genome_type;
+		//parent1_genome_type = parent2_genome_type;
+		//parent2_genome_type = swap3;
 	}
 	
 	// check for null cases
@@ -1231,7 +1232,7 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
 		int newEntryCount = bufferBins * p_mutation_type_count;
 		
-		buffer = (slim_generation_t *)realloc(buffer, newEntryCount * sizeof(uint32_t));
+		buffer = (slim_generation_t *)realloc(buffer, newEntryCount * sizeof(slim_generation_t));
 		
 		// Zero out the new entries; the compiler should be smart enough to optimize this...
 		for (int i = oldEntryCount; i < newEntryCount; ++i)

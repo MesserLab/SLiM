@@ -232,7 +232,7 @@ public:
 		Mutation **sort_position = begin_pointer();
 		Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
-		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
+		for ( ; sort_position != end_position; ++sort_position)
 			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 				break;
 		
@@ -260,7 +260,7 @@ public:
 		Mutation **sort_position = begin_pointer();
 		Mutation **end_position = end_pointer() - 1;		// the position of the newly added element
 		
-		for (sort_position = mutations_; sort_position != end_position; ++sort_position)
+		for ( ; sort_position != end_position; ++sort_position)
 		{
 			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 			{

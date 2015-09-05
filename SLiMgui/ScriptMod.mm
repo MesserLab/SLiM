@@ -382,7 +382,7 @@
 	
 	// Break the script up into lines
 	NSTextView *scriptTextView = controller->scriptTextView;
-	NSMutableArray *scriptLines = [[[scriptTextView string] componentsSeparatedByString:@"\n"] mutableCopy];
+	NSMutableArray *scriptLines = [[[[scriptTextView string] componentsSeparatedByString:@"\n"] mutableCopy] autorelease];
 	NSUInteger lineCount = [scriptLines count];
 	
 	// Search forward until we find the right place for this line

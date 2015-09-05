@@ -320,7 +320,7 @@
 		
 		if (refcount)
 		{
-			uint16_t value = (uint16_t)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_genome_count);
+			uint16_t value = (uint16_t)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_genome_count);	// FIXME static analyzer says potential divide by zero here
 			NSNumber *mutationIDNumber = [[NSNumber alloc] initWithLongLong:mutation->mutation_id_];
 			MutationFrequencyHistory *history = [frequencyHistoryDict objectForKey:mutationIDNumber];
 			
@@ -358,7 +358,7 @@
 			Mutation **mutation_iter_end = mutationRegistry.end_pointer();
 			BOOL mutationStillExists = NO;
 			
-			for (mutation_iter = mutationRegistry.begin_pointer(); mutation_iter != mutation_iter_end; ++mutation_iter)
+			for ( ; mutation_iter != mutation_iter_end; ++mutation_iter)
 			{
 				const Mutation *mutation = *mutation_iter;
 				uint64_t mutationID = mutation->mutation_id_;
