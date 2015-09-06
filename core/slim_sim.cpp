@@ -889,22 +889,30 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'm', nullptr);
 		double dominance_coeff = arg1_value->FloatAtIndex(0, nullptr);
 		string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
+		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
 		
 		if (mutation_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
 		
-		if (dfe_type_string.compare("f") == 0)
+		if (dfe_type_string.compare(gStr_f) == 0)
+		{
+			dfe_type = DFEType::kFixed;
 			expected_dfe_param_count = 1;
-		else if (dfe_type_string.compare("g") == 0)
+		}
+		else if (dfe_type_string.compare(gStr_g) == 0)
+		{
+			dfe_type = DFEType::kGamma;
 			expected_dfe_param_count = 2;
-		else if (dfe_type_string.compare("e") == 0)
+		}
+		else if (dfe_type_string.compare(gStr_e) == 0)
+		{
+			dfe_type = DFEType::kExponential;
 			expected_dfe_param_count = 1;
+		}
 		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", or \"e\"." << eidos_terminate();
-		
-		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();

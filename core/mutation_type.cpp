@@ -33,18 +33,28 @@ using std::endl;
 using std::string;
 
 
+// stream output for enumerations
+std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
+{
+	switch (p_dfe_type)
+	{
+		case DFEType::kFixed:			p_out << gStr_f; break;
+		case DFEType::kGamma:			p_out << gStr_g; break;
+		case DFEType::kExponential:		p_out << gStr_e; break;
+	}
+	
+	return p_out;
+}
+
+
 #ifdef SLIMGUI
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), mutation_type_index_(p_mutation_type_index)
 #else
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters) :
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters)
 #endif
 {
-	static string possible_dfe_types = "fge";
-	
-	if (possible_dfe_types.find(dfe_type_) == string::npos)
-		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type '" << dfe_type_ << "'." << eidos_terminate();
 	if (dfe_parameters_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
 	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
@@ -67,10 +77,9 @@ double MutationType::DrawSelectionCoefficient(void) const
 {
 	switch (dfe_type_)
 	{
-		case 'f': return dfe_parameters_[0];
-		case 'g': return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
-		case 'e': return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
-		default: EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): invalid DFE type \"" << dfe_type_ << "\"." << eidos_terminate(); return 0;
+		case DFEType::kFixed:			return dfe_parameters_[0];
+		case DFEType::kGamma:			return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		case DFEType::kExponential:		return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
 	}
 }
 
@@ -145,7 +154,25 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
-			return new EidosValue_String_singleton_const(std::string(1, dfe_type_));
+		{
+			static EidosValue_String_singleton_const *static_dfe_string_f = nullptr;
+			static EidosValue_String_singleton_const *static_dfe_string_g = nullptr;
+			static EidosValue_String_singleton_const *static_dfe_string_e = nullptr;
+			
+			if (!static_dfe_string_f)
+			{
+				static_dfe_string_f = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_f))->SetExternalPermanent();
+				static_dfe_string_g = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_g))->SetExternalPermanent();
+				static_dfe_string_e = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_e))->SetExternalPermanent();
+			}
+			
+			switch (dfe_type_)
+			{
+				case DFEType::kFixed:			return static_dfe_string_f;
+				case DFEType::kGamma:			return static_dfe_string_g;
+				case DFEType::kExponential:		return static_dfe_string_e;
+			}
+		}
 		case gID_distributionParams:
 			return new EidosValue_Float_vector(dfe_parameters_);
 			
@@ -201,19 +228,27 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	if (p_method_id == gID_setDistribution)
 	{
 		string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
+		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
 		
-		if (dfe_type_string.compare("f") == 0)
+		if (dfe_type_string.compare(gStr_f) == 0)
+		{
+			dfe_type = DFEType::kFixed;
 			expected_dfe_param_count = 1;
-		else if (dfe_type_string.compare("g") == 0)
+		}
+		else if (dfe_type_string.compare(gStr_g) == 0)
+		{
+			dfe_type = DFEType::kGamma;
 			expected_dfe_param_count = 2;
-		else if (dfe_type_string.compare("e") == 0)
+		}
+		else if (dfe_type_string.compare(gStr_e) == 0)
+		{
+			dfe_type = DFEType::kExponential;
 			expected_dfe_param_count = 1;
+		}
 		else
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", or \"e\"." << eidos_terminate();
-		
-		char dfe_type = dfe_type_string[0];
 		
 		if (p_argument_count != 1 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();

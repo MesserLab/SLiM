@@ -39,6 +39,17 @@
 extern EidosObjectClass *gSLiM_MutationType_Class;
 
 
+// This enumeration represents a type of distribution of fitness effects (DFE)
+// that a mutation type can draw from; at present three types are supported
+enum class DFEType : char {
+	kFixed = 0,
+	kGamma,
+	kExponential
+};
+
+std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
+
+
 class MutationType : public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -59,7 +70,7 @@ public:
 	EidosValue *cached_value_muttype_id_ = nullptr;	// OWNED POINTER: a cached value for mutation_type_id_; delete and nil if that changes
 	
 	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
-	char dfe_type_;								// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
+	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
 	slim_usertag_t tag_value_;					// a user-defined tag value
@@ -72,9 +83,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
 #else
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, char p_dfe_type, std::vector<double> p_dfe_parameters);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters);
 #endif
 	~MutationType(void);
 	

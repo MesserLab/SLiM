@@ -2029,10 +2029,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				{
 					switch (mutationType->dfe_type_)
 					{
-						case 'f': return @"fixed";
-						case 'e': return @"exp";
-						case 'g': return @"gamma";
-						default: return @"?";
+						case DFEType::kFixed:			return @"fixed";
+						case DFEType::kGamma:			return @"gamma";
+						case DFEType::kExponential:		return @"exp";
 					}
 				}
 				else if (aTableColumn == mutTypeDFEParamsColumn)
@@ -2045,9 +2044,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 						
 						switch (mutationType->dfe_type_)
 						{
-							case 'f': paramSymbol = @"s"; break;
-							case 'e': paramSymbol = @"s̄"; break;
-							case 'g': paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
+							case DFEType::kFixed:			paramSymbol = @"s"; break;
+							case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
+							case DFEType::kExponential:		paramSymbol = @"s̄"; break;
 						}
 						
 						[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];
