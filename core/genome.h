@@ -41,14 +41,14 @@ extern EidosObjectClass *gSLiM_Genome_Class;
 // Genome now has an internal buffer that it can use to hold mutation pointers.  This makes every Genome object a bit bigger;
 // with 64-bit pointers, a buffer big enough to hold four pointers is 32 bytes, ouch.  But avoiding the malloc overhead is
 // worth it, for simulations with few mutations; and for simulations with many mutations, the 32-byte overhead is background noise.
-#define GENOME_MUT_BUFFER_SIZE	4
+#define SLIM_GENOME_MUT_BUFFER_SIZE	4
 
 
 class Genome : public EidosObjectElement
 {
 	// This class has a restricted copying policy; see below
 	
-	EidosValue *self_value_ = nullptr;					// OWNED POINTER: cached EidosValue object for speed
+	EidosValue *self_value_ = nullptr;							// OWNED POINTER: cached EidosValue object for speed
 	
 #ifdef SLIMGUI
 public:
@@ -56,17 +56,17 @@ public:
 private:
 #endif
 	
-	GenomeType genome_type_ = GenomeType::kAutosome;	// SEX ONLY: the type of chromosome represented by this genome
+	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
 	
-	int mutation_count_ = 0;							// the number of entries presently in mutations_
-	int mutation_capacity_ = GENOME_MUT_BUFFER_SIZE;	// the capacity of mutations_; we start by using our internal buffer
-	Mutation *(mutations_buffer_[GENOME_MUT_BUFFER_SIZE]);	// a built-in buffer to prevent the need for malloc with few mutations
-	Mutation **mutations_ = mutations_buffer_;			// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
-														// note that mutations_ == nullptr indicates a null (i.e. placeholder) genome
-	slim_usertag_t tag_value_;							// a user-defined tag value
+	int mutation_count_ = 0;									// the number of entries presently in mutations_
+	int mutation_capacity_ = SLIM_GENOME_MUT_BUFFER_SIZE;		// the capacity of mutations_; we start by using our internal buffer
+	Mutation *(mutations_buffer_[SLIM_GENOME_MUT_BUFFER_SIZE]);	// a built-in buffer to prevent the need for malloc with few mutations
+	Mutation **mutations_ = mutations_buffer_;					// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
+																// note that mutations_ == nullptr indicates a null (i.e. placeholder) genome
+	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 #ifdef DEBUG
-	static bool s_log_copy_and_assign_;					// true if logging is disabled (see below)
+	static bool s_log_copy_and_assign_;							// true if logging is disabled (see below)
 #endif
 	
 public:
@@ -181,7 +181,7 @@ public:
 				// than necessary can massively balloon SLiM's memory usage for very little gain.  The realloc() calls are very fast;
 				// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
 				// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
-				mutation_capacity_ = GENOME_MUT_BUFFER_SIZE * 2;
+				mutation_capacity_ = SLIM_GENOME_MUT_BUFFER_SIZE * 2;
 				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));

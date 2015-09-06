@@ -27,6 +27,10 @@
 #include <GLKit/GLKMatrix4.h>
 
 
+static const int kMaxGLRects = 2000;				// 2000 rects
+static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
+
+
 @implementation PopulationView
 
 - (void)dealloc
@@ -56,9 +60,6 @@
 	glRecti(ox + (int)bounds.size.width - 1, oy, ox + (int)bounds.size.width, oy + (int)bounds.size.height);
 	glRecti(ox + 1, oy + (int)bounds.size.height - 1, ox + (int)bounds.size.width - 1, oy + (int)bounds.size.height);
 }
-
-#define SLIM_MAX_GL_RECTS		2000						// 2000 rects
-#define SLIM_MAX_VERTICES		(SLIM_MAX_GL_RECTS * 4)		// 4 vertices each
 
 - (void)drawIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
 {
@@ -122,10 +123,10 @@
 		
 		// Set up the vertex and color arrays
 		if (!glArrayVertices)
-			glArrayVertices = (float *)malloc(SLIM_MAX_VERTICES * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
 		
 		if (!glArrayColors)
-			glArrayColors = (float *)malloc(SLIM_MAX_VERTICES * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
 		
 		// Set up to draw rects
 		displayListIndex = 0;
@@ -175,7 +176,7 @@
 			displayListIndex++;
 			
 			// If we've filled our buffers, get ready to draw more
-			if (displayListIndex == SLIM_MAX_GL_RECTS)
+			if (displayListIndex == kMaxGLRects)
 			{
 				// Draw our arrays
 				glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);

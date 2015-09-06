@@ -214,13 +214,13 @@
 	if (interiorRect.size.width > interiorRect.size.height)
 	{
 		[transform translateXBy:interiorRect.origin.x yBy:interiorRect.origin.y];
-		[transform translateXBy:SCREEN_ROUND((interiorRect.size.width - interiorRect.size.height) / 2) yBy:0];
+		[transform translateXBy:SLIM_SCREEN_ROUND((interiorRect.size.width - interiorRect.size.height) / 2) yBy:0];
 		[transform scaleBy:interiorRect.size.height];
 	}
 	else
 	{
 		[transform translateXBy:interiorRect.origin.x yBy:interiorRect.origin.y];
-		[transform translateXBy:0 yBy:SCREEN_ROUND((interiorRect.size.height - interiorRect.size.width) / 2)];
+		[transform translateXBy:0 yBy:SLIM_SCREEN_ROUND((interiorRect.size.height - interiorRect.size.width) / 2)];
 		[transform scaleBy:interiorRect.size.width];
 	}
 	[transform concat];

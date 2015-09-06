@@ -28,7 +28,7 @@
 
 // A quick and dirty macro to enable rounding of coordinates to the nearest pixel only when we are not generating PDF
 // FIXME this ought to be revisited in the light of Retina displays, printing, etc.
-#define SCREEN_ROUND(x)		(generatingPDF ? (x) : round(x))
+#define SLIM_SCREEN_ROUND(x)		(generatingPDF ? (x) : round(x))
 
 
 @interface GraphView : NSView

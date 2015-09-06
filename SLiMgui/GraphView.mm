@@ -185,7 +185,7 @@
 	double fractionAlongAxis = (plotx - _xAxisMin) / (_xAxisMax - _xAxisMin);
 	
 	// We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
-	return SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.width - 1.0) + interiorRect.origin.x) + 0.5;
+	return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.width - 1.0) + interiorRect.origin.x) + 0.5;
 }
 
 - (double)roundPlotToDeviceY:(double)ploty withInteriorRect:(NSRect)interiorRect
@@ -193,7 +193,7 @@
 	double fractionAlongAxis = (ploty - _yAxisMin) / (_yAxisMax - _yAxisMin);
 	
 	// We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
-	return SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.height - 1.0) + interiorRect.origin.y) + 0.5;
+	return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.size.height - 1.0) + interiorRect.origin.y) + 0.5;
 }
 
 - (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
@@ -215,7 +215,7 @@
 	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
 	{
 		BOOL isMajorTick = ((tickIndex % majorTickModulus) == 0);
-		double xValueForTick = SCREEN_ROUND(interiorRect.origin.x + (interiorRect.size.width - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
+		double xValueForTick = SLIM_SCREEN_ROUND(interiorRect.origin.x + (interiorRect.size.width - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
 		
 		//NSLog(@"tickValue == %f, isMajorTick == %@, xValueForTick == %f", tickValue, isMajorTick ? @"YES" : @"NO", xValueForTick);
 		
@@ -238,13 +238,13 @@
 				if (tickValue == axisMin)
 					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - 2.0, labelY)];
 				else if (tickValue == axisMax)
-					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width) + 2.0, labelY)];
+					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SLIM_SCREEN_ROUND(labelSize.width) + 2.0, labelY)];
 				else
-					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width / 2.0), labelY)];
+					[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SLIM_SCREEN_ROUND(labelSize.width / 2.0), labelY)];
 			}
 			else
 			{
-				[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SCREEN_ROUND(labelSize.width / 2.0), labelY)];
+				[attributedLabel drawAtPoint:NSMakePoint(xValueForTick - SLIM_SCREEN_ROUND(labelSize.width / 2.0), labelY)];
 			}
 			[attributedLabel release];
 		}
@@ -285,7 +285,7 @@
 	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
 	{
 		BOOL isMajorTick = ((tickIndex % majorTickModulus) == 0);
-		double yValueForTick = SCREEN_ROUND(interiorRect.origin.y + (interiorRect.size.height - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
+		double yValueForTick = SLIM_SCREEN_ROUND(interiorRect.origin.y + (interiorRect.size.height - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
 		
 		//NSLog(@"tickValue == %f, isMajorTick == %@, yValueForTick == %f", tickValue, isMajorTick ? @"YES" : @"NO", yValueForTick);
 		
@@ -302,7 +302,7 @@
 			NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:tickAttributes];
 			NSSize labelSize = [attributedLabel size];
 			
-			[attributedLabel drawAtPoint:NSMakePoint(interiorRect.origin.x - (labelSize.width + 8), yValueForTick - SCREEN_ROUND(labelSize.height / 2.0) + 2)];
+			[attributedLabel drawAtPoint:NSMakePoint(interiorRect.origin.x - (labelSize.width + 8), yValueForTick - SLIM_SCREEN_ROUND(labelSize.height / 2.0) + 2)];
 			[attributedLabel release];
 		}
 	}
@@ -327,10 +327,10 @@
 	[NSGraphicsContext saveGraphicsState];
 	
 	NSAffineTransform *transform = [NSAffineTransform transform];
-	[transform translateXBy:interiorRect.origin.x - 30 yBy:interiorRect.origin.y + SCREEN_ROUND(interiorRect.size.height / 2.0)];
+	[transform translateXBy:interiorRect.origin.x - 30 yBy:interiorRect.origin.y + SLIM_SCREEN_ROUND(interiorRect.size.height / 2.0)];
 	[transform rotateByDegrees:90];
 	[transform concat];
-	[label drawAtPoint:NSMakePoint(SCREEN_ROUND(-labelSize.width / 2.0), 0)];
+	[label drawAtPoint:NSMakePoint(SLIM_SCREEN_ROUND(-labelSize.width / 2.0), 0)];
 	
 	[NSGraphicsContext restoreGraphicsState];
 }
@@ -367,7 +367,7 @@
 	
 	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
 	{
-		double xValueForTick = SCREEN_ROUND(interiorRect.origin.x + (interiorRect.size.width - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
+		double xValueForTick = SLIM_SCREEN_ROUND(interiorRect.origin.x + (interiorRect.size.width - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
 		
 		if (fabs((xValueForTick - 0.5) - interiorRect.origin.x) < 0.001)
 			continue;
@@ -394,7 +394,7 @@
 	
 	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
 	{
-		double yValueForTick = SCREEN_ROUND(interiorRect.origin.y + (interiorRect.size.height - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
+		double yValueForTick = SLIM_SCREEN_ROUND(interiorRect.origin.y + (interiorRect.size.height - 1) * ((tickValue - axisMin) / (axisMax - axisMin))) + 0.5;
 		
 		if (fabs((yValueForTick - 0.5) - interiorRect.origin.y) < 0.001)
 			continue;
@@ -423,7 +423,7 @@
 	
 	NSPoint centerPoint = NSMakePoint(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2);
 	NSSize messageSize = [invalidMessage size];
-	NSPoint drawPoint = NSMakePoint(SCREEN_ROUND(centerPoint.x - messageSize.width / 2.0), SCREEN_ROUND(centerPoint.y - messageSize.height / 2.0));
+	NSPoint drawPoint = NSMakePoint(SLIM_SCREEN_ROUND(centerPoint.x - messageSize.width / 2.0), SLIM_SCREEN_ROUND(centerPoint.y - messageSize.height / 2.0));
 	
 	[invalidMessage drawAtPoint:drawPoint];
 }
@@ -997,8 +997,8 @@
 				{
 					double barWidth = barRect.size.width;
 					double subBarWidth = (barWidth - 1) / subBinCount;
-					double subbarLeft = SCREEN_ROUND(barRect.origin.x + subBinIndex * subBarWidth);
-					double subbarRight = SCREEN_ROUND(barRect.origin.x + (subBinIndex + 1) * subBarWidth) + 1;
+					double subbarLeft = SLIM_SCREEN_ROUND(barRect.origin.x + subBinIndex * subBarWidth);
+					double subbarRight = SLIM_SCREEN_ROUND(barRect.origin.x + (subBinIndex + 1) * subBarWidth) + 1;
 					
 					barRect.origin.x = subbarLeft;
 					barRect.size.width = subbarRight - subbarLeft;
