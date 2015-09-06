@@ -28,15 +28,15 @@
 
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue
 {
-	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:-1] autorelease];
+	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:-1 of:0] autorelease];
 }
 
-+ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex
++ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount
 {
-	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:anIndex] autorelease];
+	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:anIndex of:siblingCount] autorelease];
 }
 
-- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex
+- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount
 {
 	if (self = [super init])
 	{
@@ -44,6 +44,7 @@
 		
 		wrappedName = [aName retain];
 		wrappedIndex = anIndex;
+		wrappedSiblingCount = siblingCount;
 		
 		wrappedValue = aValue;
 		valueIsOurs = wrappedValue->IsTemporary();
@@ -94,7 +95,7 @@
 		{
 			NSString *childName = [NSString stringWithFormat:@"%@[%ld]", wrappedName, (long)index];
 			EidosValue *childValue = wrappedValue->GetValueAtIndex(index, nullptr);
-			EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:childValue index:index];
+			EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:childValue index:index of:elementCount];
 			
 			[childWrappers addObject:childWrapper];
 		}
@@ -150,6 +151,8 @@
 	
 	if (wrappedIndex != otherWrapper->wrappedIndex)
 		return NO;
+	if (wrappedSiblingCount != otherWrapper->wrappedSiblingCount)
+		return NO;
 	if (![wrappedName isEqualToString:otherWrapper->wrappedName])
 		return NO;
 	
@@ -176,6 +179,8 @@
 	
 	if (wrappedIndex != otherWrapper->wrappedIndex)
 		return NO;
+	if (wrappedSiblingCount != otherWrapper->wrappedSiblingCount)
+		return NO;
 	if (![wrappedName isEqualToString:otherWrapper->wrappedName])
 		return NO;
 	
@@ -199,6 +204,7 @@
 	NSUInteger hash = [wrappedName hash];
 	
 	hash ^= wrappedIndex;
+	hash ^= (wrappedSiblingCount << 16);
 	
 	if (parentWrapper)
 		hash ^= ([parentWrapper hash] << 1);
