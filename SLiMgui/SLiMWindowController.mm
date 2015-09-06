@@ -1352,7 +1352,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		
 		for (int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
-			SLIM_OUTSTREAM << i;	// used to have a +1; switched to zero-based
+			SLIM_OUTSTREAM << i;
 			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
 		}
 		

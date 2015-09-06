@@ -256,9 +256,9 @@ void EidosASTNode::PrintToken(std::ostream &p_outstream) const
 		case EidosTokenType::kTokenLBrace:		p_outstream << "BLOCK";				break;
 		case EidosTokenType::kTokenSemicolon:	p_outstream << "NULL_STATEMENT";	break;
 		case EidosTokenType::kTokenLParen:		p_outstream << "CALL";				break;
-		case EidosTokenType::kTokenLBracket:		p_outstream << "SUBSET";			break;
+		case EidosTokenType::kTokenLBracket:	p_outstream << "SUBSET";			break;
 		case EidosTokenType::kTokenComma:		p_outstream << "ARG_LIST";			break;
-		default:							p_outstream << *token_;				break;
+		default:								p_outstream << *token_;				break;
 	}
 }
 

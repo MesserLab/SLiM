@@ -74,8 +74,8 @@
 	// get the selected chromosome range
 	ChromosomeView *chromosome = controller->chromosomeOverview;
 	BOOL hasSelection = chromosome->hasSelection;
-	slim_position_t selectionFirstBase = chromosome->selectionFirstBase;	// used to have a -1; switched to zero-based
-	slim_position_t selectionLastBase = chromosome->selectionLastBase;		// used to have a -1; switched to zero-based
+	slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
+	slim_position_t selectionLastBase = chromosome->selectionLastBase;
 	
 	// tally into our bins
 	SLiMSim *sim = controller->sim;

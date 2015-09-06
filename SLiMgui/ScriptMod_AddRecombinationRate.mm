@@ -39,7 +39,7 @@
 	
 	for (auto positionIter = endPositions.begin(); positionIter != endPositions.end(); positionIter++)
 	{
-		slim_position_t endPosition = *positionIter;	// used to have a +1; switched to zero-based
+		slim_position_t endPosition = *positionIter;
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;

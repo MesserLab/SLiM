@@ -41,7 +41,7 @@
 	for (auto geIter = chromosome.begin(); geIter != chromosome.end(); geIter++)
 	{
 		GenomicElement &element = *geIter;
-		slim_position_t endPosition = element.end_position_;	// used to have a +1; switched to zero-based
+		slim_position_t endPosition = element.end_position_;
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;

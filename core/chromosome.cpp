@@ -378,7 +378,7 @@ EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, E
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));	// used to have a -1; switched to zero-based
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
 				recombination_rates_.push_back(recombination_rate);
 				recombination_end_positions_.push_back(recombination_end_position);

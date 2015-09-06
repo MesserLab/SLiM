@@ -1621,15 +1621,15 @@ void Population::PrintAll(std::ostream &p_out) const
 		
 		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
-			p_out << "p" << subpop_id << ":i" << i;						// individual identifier	// used to have a +1; switched to zero-based
+			p_out << "p" << subpop_id << ":i" << i;						// individual identifier
 			
 			if (subpop->sex_enabled_)
 				p_out << ((i < first_male_index) ? " F " : " M ");		// sex: SEX ONLY
 			else
 				p_out << " H ";											// hermaphrodite
 			
-			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1	// used to have a +1; switched to zero-based
-			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2	// used to have a +2; switched to zero-based
+			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1
+			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2
 			p_out << endl;
 		}
 	}
@@ -1647,7 +1647,7 @@ void Population::PrintAll(std::ostream &p_out) const
 		{
 			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
-			p_out << "p" << subpop_id << ":" << i << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
+			p_out << "p" << subpop_id << ":" << i << " " << genome.GenomeType();
 			
 			if (genome.IsNull())
 			{
@@ -1709,7 +1709,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.GenomeType();	// used to have a +1; switched to zero-based
+		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.GenomeType();
 		
 		if (genome.IsNull())
 		{

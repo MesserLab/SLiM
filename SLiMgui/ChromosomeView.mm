@@ -124,7 +124,6 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
-															// used to start at 1; switched to zero-based
 	}
 }
 
@@ -164,7 +163,6 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
-															// used to start at 1; switched to zero-based
 	}
 }
 
@@ -236,8 +234,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (GenomicElement &genomicElement : chromosome)
 	{
-		slim_position_t startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
-		slim_position_t endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
+		slim_position_t startPosition = genomicElement.start_position_;
+		slim_position_t endPosition = genomicElement.end_position_;
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		// if we're drawing recombination intervals as well, then they get the top half and we take the bottom half
@@ -262,11 +260,11 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
 	int recombinationIntervalCount = (int)chromosome.recombination_end_positions_.size();
-	slim_position_t intervalStartPosition = 0;	// used to be 1; switched to zero-based
+	slim_position_t intervalStartPosition = 0;
 	
 	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
 	{
-		slim_position_t intervalEndPosition = chromosome.recombination_end_positions_[interval];	// used to have a +1; switched to zero-based
+		slim_position_t intervalEndPosition = chromosome.recombination_end_positions_[interval];
 		double intervalRate = chromosome.recombination_rates_[interval];
 		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
@@ -322,7 +320,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_position_t substitutionPosition = substitution->position_;		// used to have a +1; switched to zero-based
+		slim_position_t substitutionPosition = substitution->position_;
 		NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 		
 		if (shouldDrawMutations)
@@ -357,7 +355,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	{
 		const Mutation *mutation = mutations[mutIndex];
 		slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-		slim_position_t mutationPosition = mutation->position_;					// used to have a +1; switched to zero-based
+		slim_position_t mutationPosition = mutation->position_;
 		NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		
@@ -520,8 +518,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 				
 				for (GenomicElement &genomicElement : chromosome)
 				{
-					slim_position_t startPosition = genomicElement.start_position_;		// used to have a +1; switched to zero-based
-					slim_position_t endPosition = genomicElement.end_position_;			// used to have a +1; switched to zero-based
+					slim_position_t startPosition = genomicElement.start_position_;
+					slim_position_t endPosition = genomicElement.end_position_;
 					
 					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
 						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);

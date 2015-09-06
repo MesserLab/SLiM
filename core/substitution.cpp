@@ -39,7 +39,7 @@ Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_ti
 
 void Substitution::print(std::ostream &p_out) const
 { 
-	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl;		// used to have a +1 on position_; switched to zero-based
+	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_time_ << std::endl;
 }
 
 

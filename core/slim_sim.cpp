@@ -260,7 +260,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'm', nullptr);
 		
 		iss >> sub;
-		int64_t position_long = EidosInterpreter::IntegerForString(sub, nullptr);		// used to have a -1; switched to zero-based
+		int64_t position_long = EidosInterpreter::IntegerForString(sub, nullptr);
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 		
 		iss >> sub;
@@ -332,7 +332,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		Subpopulation &subpop = *subpop_pair->second;
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int64_t genome_index_long = EidosInterpreter::IntegerForString(sub, nullptr);		// used to have a -1; switched to zero-based
+		int64_t genome_index_long = EidosInterpreter::IntegerForString(sub, nullptr);
 		
 		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome index out of permitted range." << eidos_terminate();
@@ -762,8 +762,8 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)
 	{
 		GenomicElementType *genomic_element_type_ptr = nullptr;
-		slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
-		slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));		// used to have a -1; switched to zero-based
+		slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+		slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 		
 		if (arg0_value->Type() == EidosValueType::kValueInt)
 		{
@@ -1011,7 +1011,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));	// used to have a -1; switched to zero-based
+				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
 				chromosome_.recombination_rates_.push_back(recombination_rate);
 				chromosome_.recombination_end_positions_.push_back(recombination_end_position);
@@ -1744,7 +1744,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			for (int i = 0; i < subs.size(); i++)
 			{
-				output_stream << i;				// used to have a +1; switched to zero-based
+				output_stream << i;
 				subs[i]->print(output_stream);
 			}
 			
