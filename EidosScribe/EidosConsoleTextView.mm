@@ -271,7 +271,7 @@ static NSDictionary *executionAttrs = nil;
 	static NSAttributedString *spacerString = nil;
 	
 	if (!spacerString)
-		spacerString = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSColor blackColor], NSForegroundColorAttributeName, [NSFont fontWithName:@"Menlo" size:3.0], NSFontAttributeName, nil]];
+		spacerString = [[NSAttributedString alloc] initWithString:@"\n" attributes:@{NSForegroundColorAttributeName : [NSColor blackColor], NSFontAttributeName : [NSFont fontWithName:@"Menlo" size:3.0]}];
 	
 	NSTextStorage *ts = [self textStorage];
 	

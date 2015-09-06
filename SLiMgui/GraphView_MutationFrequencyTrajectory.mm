@@ -99,7 +99,7 @@
 
 - (void)setConstraintsForPopups
 {
-	NSDictionary *viewsDictionary = [NSDictionary dictionaryWithObjectsAndKeys:subpopulationButton, @"subpopulationButton", mutationTypeButton, @"mutationTypeButton", nil];
+	NSDictionary *viewsDictionary = @{@"subpopulationButton" : subpopulationButton, @"mutationTypeButton" : mutationTypeButton};
 	
 	[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-6-[subpopulationButton]-6-[mutationTypeButton]" options:0 metrics:nil views:viewsDictionary]];
 	[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[subpopulationButton]-6-|" options:0 metrics:nil views:viewsDictionary]];
@@ -652,13 +652,13 @@
 		NSMutableArray *legendKey = [NSMutableArray array];
 		
 		if ([self plotLostMutations])
-			[legendKey addObject:[NSArray arrayWithObjects:@"lost", [NSColor redColor], nil]];
+			[legendKey addObject:@[@"lost", [NSColor redColor]]];
 		
 		if ([self plotFixedMutations])
-			[legendKey addObject:[NSArray arrayWithObjects:@"fixed", [NSColor colorWithCalibratedRed:0.4 green:0.4 blue:1.0 alpha:1.0], nil]];
+			[legendKey addObject:@[@"fixed", [NSColor colorWithCalibratedRed:0.4 green:0.4 blue:1.0 alpha:1.0]]];
 		
 		if ([self plotActiveMutations])
-			[legendKey addObject:[NSArray arrayWithObjects:@"active", [NSColor blackColor], nil]];
+			[legendKey addObject:@[@"active", [NSColor blackColor]]];
 		
 		return legendKey;
 	}

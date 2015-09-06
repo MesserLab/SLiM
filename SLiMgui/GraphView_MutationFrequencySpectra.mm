@@ -152,7 +152,7 @@
 		static NSDictionary *attrs = nil;
 		
 		if (!attrs)
-			attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[GraphView labelFontName] size:10], NSFontAttributeName, [NSColor darkGrayColor], NSForegroundColorAttributeName, nil];
+			attrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:10], NSForegroundColorAttributeName : [NSColor darkGrayColor]} retain];
 		
 		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
 		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];

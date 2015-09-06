@@ -59,9 +59,9 @@ using std::string;
 	}
 	
 	if (textColor)
-		return [NSDictionary dictionaryWithObjectsAndKeys:textColor, NSForegroundColorAttributeName, menlo11Font, NSFontAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
+		return @{NSForegroundColorAttributeName : textColor, NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
 	else
-		return [NSDictionary dictionaryWithObjectsAndKeys:menlo11Font, NSFontAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
+		return @{NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
 }
 
 - (void)awakeFromNib
@@ -139,7 +139,7 @@ using std::string;
 	
 	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
 	[pasteboard clearContents];
-	[pasteboard writeObjects:[NSArray arrayWithObject:attrStringInRange]];
+	[pasteboard writeObjects:@[attrStringInRange]];
 }
 
 - (IBAction)shiftSelectionLeft:(id)sender
@@ -574,11 +574,11 @@ using std::string;
 	
 	if (!poundDirectiveAttrs)
 	{
-		poundDirectiveAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-		commentAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-		subpopAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-		genomicElementAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
-		mutationTypeAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0], NSForegroundColorAttributeName, nil];
+		poundDirectiveAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]} retain];
+		commentAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]} retain];
+		subpopAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]} retain];
+		genomicElementAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]} retain];
+		mutationTypeAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]} retain];
 	}
 	
 	// And then tokenize and color

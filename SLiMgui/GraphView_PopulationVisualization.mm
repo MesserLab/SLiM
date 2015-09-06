@@ -63,7 +63,7 @@
 	static NSDictionary *labelAttrs = nil;
 	
 	if (!labelAttrs)
-		labelAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[GraphView labelFontName] size:0.04], NSFontAttributeName, nil];
+		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:0.04]} retain];
 	
 	// figure out the right radius, clamped to reasonable limits
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;

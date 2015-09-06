@@ -34,7 +34,7 @@
 	static NSDictionary *attrs = nil;
 	
 	if (!attrs)
-		attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[self labelFontName] size:14], NSFontAttributeName, nil];
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:14]} retain];
 	
 	return attrs;
 }
@@ -44,7 +44,7 @@
 	static NSDictionary *attrs = nil;
 	
 	if (!attrs)
-		attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[self labelFontName] size:10], NSFontAttributeName, nil];
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:10]} retain];
 	
 	return attrs;
 }
@@ -54,7 +54,7 @@
 	static NSDictionary *attrs = nil;
 	
 	if (!attrs)
-		attrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:[self labelFontName] size:10], NSFontAttributeName, nil];
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:10]} retain];
 	
 	return attrs;
 }
@@ -416,7 +416,7 @@
 	
 	if (!invalidMessage)
 	{
-		NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:[NSFont fontWithName:[[self class] labelFontName] size:16], NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.4 alpha:1.0], NSForegroundColorAttributeName, nil];
+		NSDictionary *attrs = @{NSFontAttributeName : [NSFont fontWithName:[[self class] labelFontName] size:16], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]};
 		
 		invalidMessage = [[NSAttributedString alloc] initWithString:@"   invalid\nsimulation" attributes:attrs];
 	}
@@ -713,7 +713,7 @@
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	
-	[pasteboard declareTypes:[NSArray arrayWithObject:NSPDFPboardType] owner:self];
+	[pasteboard declareTypes:@[NSPDFPboardType] owner:self];
 	
 	// We set generatingPDF to allow customization for PDF generation, such as not rounding to pixel values
 	generatingPDF = YES;
@@ -736,7 +736,7 @@
 	[sp setMessage:@"Export the graph to a file:"];
 	[sp setExtensionHidden:NO];
 	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:[NSArray arrayWithObject:@"pdf"]];
+	[sp setAllowedFileTypes:@[@"pdf"]];
 	
 	[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
 		if (result == NSFileHandlingPanelOKButton)
@@ -761,7 +761,7 @@
 	{
 		NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 		
-		[pasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:self];
+		[pasteboard declareTypes:@[NSStringPboardType] owner:self];
 		[pasteboard setString:[self stringForDataWithController:[self slimWindowController]] forType:NSStringPboardType];
 	}
 }
@@ -779,7 +779,7 @@
 		[sp setMessage:@"Export the graph data to a file:"];
 		[sp setExtensionHidden:NO];
 		[sp setCanSelectHiddenExtension:NO];
-		[sp setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+		[sp setAllowedFileTypes:@[@"txt"]];
 		
 		[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
 			if (result == NSFileHandlingPanelOKButton)
@@ -967,7 +967,7 @@
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		NSString *labelString = [NSString stringWithFormat:@"m%lld", (int64_t)mutationType->mutation_type_id_];
 		
-		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:[NSArray arrayWithObjects:labelString, [SLiMWindowController colorForIndex:mutationTypeIndex], nil]];
+		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:@[labelString, [SLiMWindowController colorForIndex:mutationTypeIndex]]];
 	}
 	
 	return legendKey;

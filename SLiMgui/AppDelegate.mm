@@ -36,13 +36,13 @@ NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 
 + (void)initialize
 {
-	[[NSUserDefaults standardUserDefaults] registerDefaults:[NSDictionary dictionaryWithObjectsAndKeys:
-															 [NSNumber numberWithInt:1], defaultsLaunchActionKey,
-															 [NSNumber numberWithBool:YES], defaultsSyntaxHighlightScriptKey,
-															 [NSNumber numberWithBool:YES], defaultsSyntaxHighlightOutputKey,
-															 [NSNumber numberWithBool:YES], defaultsPlaySoundParseSuccessKey,
-															 [NSNumber numberWithBool:YES], defaultsPlaySoundParseFailureKey,
-															 nil]];
+	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
+															  defaultsLaunchActionKey : @1,
+															  defaultsSyntaxHighlightScriptKey : @YES,
+															  defaultsSyntaxHighlightOutputKey : @YES,
+															  defaultsPlaySoundParseSuccessKey : @YES,
+															  defaultsPlaySoundParseFailureKey : @YES
+															  }];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
@@ -103,7 +103,7 @@ NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 	[op setAllowsMultipleSelection:NO];
 	[op setExtensionHidden:NO];
 	[op setCanSelectHiddenExtension:NO];
-	[op setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+	[op setAllowedFileTypes:@[@"txt"]];
 	[op setTitle:@"Open Script"];
 	
 	if ([op runModal] == NSFileHandlingPanelOKButton)

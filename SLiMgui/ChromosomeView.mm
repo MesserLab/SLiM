@@ -39,7 +39,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 + (void)initialize
 {
 	if (!tickAttrs)
-		tickAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor blackColor], NSForegroundColorAttributeName, [NSFont systemFontOfSize:9.0], NSFontAttributeName, nil];
+		tickAttrs = [@{NSForegroundColorAttributeName : [NSColor blackColor], NSFontAttributeName : [NSFont systemFontOfSize:9.0]} retain];
 	
 	[self exposeBinding:@"enabled"];
 }
@@ -66,7 +66,7 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 
 - (void)awakeFromNib
 {
-	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:[NSDictionary dictionaryWithObject:NSNegateBooleanTransformerName forKey:NSValueTransformerNameBindingOption]];
+	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
 }
 
 - (void)removeSelectionMarkers

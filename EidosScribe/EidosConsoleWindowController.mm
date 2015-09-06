@@ -54,12 +54,12 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 + (void)initialize
 {
-	[[NSUserDefaults standardUserDefaults] registerDefaults:[NSDictionary dictionaryWithObjectsAndKeys:
-															 [NSNumber numberWithBool:NO], defaultsShowTokensKey,
-															 [NSNumber numberWithBool:NO], defaultsShowParseKey,
-															 [NSNumber numberWithBool:NO], defaultsShowExecutionKey,
-															 [NSNumber numberWithBool:NO], defaultsSuppressScriptCheckSuccessPanelKey,
-															 nil]];
+	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
+															  defaultsShowTokensKey : @NO,
+															  defaultsShowParseKey : @NO,
+															  defaultsShowExecutionKey : @NO,
+															  defaultsSuppressScriptCheckSuccessPanelKey : @NO
+															  }];
 }
 
 - (instancetype)init

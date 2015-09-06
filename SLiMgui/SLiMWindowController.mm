@@ -1422,7 +1422,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[op setAllowsMultipleSelection:NO];
 	[op setExtensionHidden:NO];
 	[op setCanSelectHiddenExtension:NO];
-	[op setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+	[op setAllowedFileTypes:@[@"txt"]];
 	
 	[op beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSFileHandlingPanelOKButton)
@@ -1537,7 +1537,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[sp setMessage:@"Export the simulation script to a file:"];
 	[sp setExtensionHidden:NO];
 	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSFileHandlingPanelOKButton)
@@ -1560,7 +1560,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[sp setMessage:@"Export the simulation output to a file:"];
 	[sp setExtensionHidden:NO];
 	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSFileHandlingPanelOKButton)
@@ -1583,7 +1583,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[sp setMessage:@"Export the simulation state to a file:"];
 	[sp setExtensionHidden:NO];
 	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:[NSArray arrayWithObject:@"txt"]];
+	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSFileHandlingPanelOKButton)
@@ -1653,7 +1653,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (NSArray *)languageKeywordsForCompletion
 {
-	return [NSArray arrayWithObjects:@"initialize", @"fitness", @"mateChoice", @"modifyChild", nil];
+	return @[@"initialize", @"fitness", @"mateChoice", @"modifyChild"];
 }
 
 - (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures

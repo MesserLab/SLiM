@@ -64,9 +64,9 @@ const int heightForTicks = 15;
 + (void)initialize
 {
 	if (!tickAttrs)
-		tickAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor blackColor], NSForegroundColorAttributeName, [NSFont systemFontOfSize:9.0], NSFontAttributeName, nil];
+		tickAttrs = [@{NSForegroundColorAttributeName : [NSColor blackColor], NSFontAttributeName : [NSFont systemFontOfSize:9.0]} retain];
 	if (!disabledTickAttrs)
-		disabledTickAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedWhite:0.6 alpha:1.0], NSForegroundColorAttributeName, [NSFont systemFontOfSize:9.0], NSFontAttributeName, nil];
+		disabledTickAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.6 alpha:1.0], NSFontAttributeName : [NSFont systemFontOfSize:9.0]} retain];
 	
 	[self exposeBinding:@"enabled"];
 }
@@ -83,7 +83,7 @@ const int heightForTicks = 15;
 
 - (void)awakeFromNib
 {
-	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:[NSDictionary dictionaryWithObject:NSNegateBooleanTransformerName forKey:NSValueTransformerNameBindingOption]];
+	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
 }
 
 - (void)dealloc
@@ -304,7 +304,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 - (void)fixMenu
 {
 	NSMenu *menu = [self slimMenu];
-	NSDictionary *itemAttrs = [NSDictionary dictionaryWithObject:[NSFont systemFontOfSize:12.0] forKey:NSFontAttributeName];
+	NSDictionary *itemAttrs = @{NSFontAttributeName : [NSFont systemFontOfSize:12.0]};
 	
 	for (int i = 0; i < [menu numberOfItems]; ++i)
 	{
@@ -386,7 +386,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	static NSDictionary *labelAttrs = nil;
 	
 	if (!labelAttrs)
-		labelAttrs = [[NSDictionary alloc] initWithObjectsAndKeys:[NSFont fontWithName:@"Times New Roman" size:10], NSFontAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, nil];
+		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:10], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
 	
 	NSRect bounds = [self bounds];
 	SLiMSelectionMarker *marker = (SLiMSelectionMarker *)[self window];
@@ -606,7 +606,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			[tintFilter setValue:gVector forKey:@"inputGVector"];
 			[tintFilter setValue:bVector forKey:@"inputBVector"];
 			
-			[self setContentFilters:[NSArray arrayWithObject:tintFilter]];
+			[self setContentFilters:@[tintFilter]];
 		}
 		else
 		{

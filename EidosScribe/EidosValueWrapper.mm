@@ -169,7 +169,7 @@
 		NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
 		NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
 		
-		italicAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
+		italicAttrs = [@{NSFontAttributeName : italicFont} retain];
 	}
 	
 	return italicAttrs;
@@ -183,7 +183,7 @@
 	{
 		NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
 		
-		dimmedAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:baseFont, NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.5 alpha:1.0], NSForegroundColorAttributeName, nil] retain];
+		dimmedAttrs = [@{NSFontAttributeName : baseFont, NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.5 alpha:1.0]} retain];
 	}
 	
 	return dimmedAttrs;
@@ -200,7 +200,7 @@
 		
 		[paragraphStyle setAlignment:NSCenterTextAlignment];
 		
-		centeredDimmedAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:baseFont, NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.5 alpha:1.0], NSForegroundColorAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil] retain];
+		centeredDimmedAttrs = [@{NSFontAttributeName : baseFont, NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.5 alpha:1.0], NSParagraphStyleAttributeName : paragraphStyle} retain];
 		
 		[paragraphStyle release];
 	}
