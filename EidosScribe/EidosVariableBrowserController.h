@@ -30,8 +30,11 @@
 
 @interface EidosVariableBrowserController : NSObject <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
-	// Temporary wrappers for displayed objects
-	NSMutableArray *browserWrappers;
+	// Wrappers for the currently displayed objects
+	NSMutableArray *rootBrowserWrappers;
+	
+	// A set used to remember expanded items; see -reloadBrowser
+	NSMutableSet *expandedSet;
 }
 
 @property (nonatomic, assign) IBOutlet NSObject<EidosVariableBrowserDelegate> *delegate;

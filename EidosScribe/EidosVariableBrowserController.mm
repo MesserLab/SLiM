@@ -32,7 +32,6 @@
 {
 	if (self = [super init])
 	{
-		browserWrappers = [NSMutableArray new];
 	}
 	
 	return self;
@@ -40,17 +39,81 @@
 
 - (void)dealloc
 {
-	[browserWrappers release];
-	browserWrappers = nil;
+	[rootBrowserWrappers release];
+	rootBrowserWrappers = nil;
+	
+	[expandedSet release];
+	expandedSet = nil;
 	
 	[super dealloc];
 }
 
+- (void)expandItemsInSet:(NSSet *)set belowItem:(id)parentItem
+{
+	NSUInteger childCount = [_browserOutline numberOfChildrenOfItem:parentItem];
+	//NSLog(@"after reload, outline has %lu children (%ld rows), expandedSet has %lu items", (unsigned long)childCount, (long)[_browserOutline numberOfRows], (unsigned long)[expandedSet count]);
+	
+	for (int i = 0; i < childCount; ++i)
+	{
+		id childItem = [_browserOutline child:i ofItem:parentItem];
+		
+		if ([expandedSet containsObject:childItem])		// uses -hash and -isEqual:, not pointer equality!
+		{
+			if ([_browserOutline isExpandable:childItem])
+			{
+				[_browserOutline expandItem:childItem];
+				//NSLog(@"      requesting expansion for item with name %@ (%p, hash %lu)", ((EidosValueWrapper *)childItem)->wrappedName, childItem, (unsigned long)[childItem hash]);
+				
+				[self expandItemsInSet:set belowItem:childItem];
+			}
+		}
+	}
+}
+
 - (void)reloadBrowser
 {
-	// Reload symbols in outline view
-	[browserWrappers removeAllObjects];
+	// Reload symbols in our outline view.  This is complicated because we generally do a reload to a state that has zero items (while
+	// script is executing) and then do another reload to a state that has items again (because the script is done executing), and we
+	// want the expansion state to be preserved across that rather jumpy process.  The basic scheme is: (1) When we are about to
+	// reload, we save all expanded items by going through all the rows of the outline view, getting the item for each row, finding
+	// out if it is expanded, and if it is, keeping it in an NSSet – but we do this only if the outline view has items in it.  Then,
+	// (2) After reloading, we go through each new item, see if it exists in our saved set (which uses -hash and -isEqual:, which
+	// EidosValueWrapper implements for this purpose), and if so, we expand it and recurse down to check its children as well.
+	
+	// First, invalidate all of our old wrapped objects, to make sure that any invalid dereferences cause a clean crash
+	[rootBrowserWrappers makeObjectsPerformSelector:@selector(invalidateWrappedValues)];
+	
+	// Then go through the outline view and save all items that are expanded
+	NSUInteger rowCount = [_browserOutline numberOfRows];
+	
+	if (rowCount > 0)
+	{
+		// The outline has items in it, so we will start a new set to save the expanded items
+		[expandedSet release];
+		expandedSet = [[NSMutableSet alloc] init];
+		
+		for (int i = 0; i < rowCount; ++i)
+		{
+			id rowItem = [_browserOutline itemAtRow:i];
+			
+			if ([_browserOutline isItemExpanded:rowItem])
+			{
+				[expandedSet addObject:rowItem];
+				//NSLog(@"remembering item with name %@ (%p, hash %lu) as expanded", ((EidosValueWrapper *)rowItem)->wrappedName, rowItem, (unsigned long)[rowItem hash]);
+			}
+		}
+	}
+	
+	// Clear out our wrapper arrays; the ones that are expanded are now retained by expandedSet
+	[rootBrowserWrappers makeObjectsPerformSelector:@selector(releaseChildWrappers)];
+	[rootBrowserWrappers release];
+	rootBrowserWrappers = nil;		// this needs to be recached
+	
+	// Reload the outline view from scratch
 	[_browserOutline reloadData];
+	
+	// Go through and expand items as needed
+	[self expandItemsInSet:expandedSet belowItem:nil];
 }
 
 - (void)setDelegate:(NSObject<EidosVariableBrowserDelegate> *)newDelegate
@@ -92,6 +155,39 @@
 #pragma mark -
 #pragma mark NSOutlineView delegate
 
+- (void)recacheRootWrappers
+{
+	[rootBrowserWrappers release];
+	rootBrowserWrappers = [NSMutableArray new];
+	
+	EidosSymbolTable *symbols = [_delegate symbolTable];
+	
+	std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
+	int readOnlySymbolCount = (int)readOnlySymbols.size();
+	std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
+	int readWriteSymbolCount = (int)readWriteSymbols.size();
+	
+	for (int index = 0; index < readOnlySymbolCount;++ index)
+	{
+		const std::string &symbolName = readOnlySymbols[index];
+		EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+		NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+		EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+		
+		[rootBrowserWrappers addObject:wrapper];
+	}
+	
+	for (int index = 0; index < readWriteSymbolCount;++ index)
+	{
+		const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+		EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+		NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+		EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+		
+		[rootBrowserWrappers addObject:wrapper];
+	}
+}
+
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
 	EidosSymbolTable *symbols = [_delegate symbolTable];
@@ -100,29 +196,19 @@
 	{
 		if (item == nil)
 		{
-			std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
-			std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
+			if (!rootBrowserWrappers)
+				[self recacheRootWrappers];
 			
-			return (readOnlySymbols.size() + readWriteSymbols.size());
+			return [rootBrowserWrappers count];
 		}
 		else
 		{
 			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-			EidosValue_Object *value = (EidosValue_Object *)(wrapper->wrappedValue);
-			int elementCount = value->Count();
 			
-			// values which are of object type and contain more than one element get displayed as a list of elements
-			if (elementCount > 1)
-			{
-				return elementCount;
-			}
-			else
-			{
-				const EidosObjectClass *object_class = value->Class();
-				const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
-				
-				return properties->size();
-			}
+			if (!wrapper->childWrappers)
+				[wrapper recacheWrappers];
+			
+			return [wrapper->childWrappers count];
 		}
 	}
 	
@@ -137,65 +223,19 @@
 	{
 		if (item == nil)
 		{
-			std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
-			std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
+			if (!rootBrowserWrappers)
+				[self recacheRootWrappers];
 			
-			if (index < readOnlySymbols.size())
-			{
-				const std::string &symbolName = readOnlySymbols[index];
-				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
-				
-				[browserWrappers addObject:wrapper];
-				
-				return wrapper;
-			}
-			else
-			{
-				const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
-				
-				[browserWrappers addObject:wrapper];
-				
-				return wrapper;
-			}
+			return [rootBrowserWrappers objectAtIndex:index];
 		}
 		else
 		{
 			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-			EidosValue_Object *value = (EidosValue_Object *)(wrapper->wrappedValue);
-			int elementCount = value->Count();
 			
-			// values which are of object type and contain more than one element get displayed as a list of elements
-			if (elementCount > 1)
-			{
-				NSString *parentName = wrapper->wrappedName;
-				NSString *childName = [NSString stringWithFormat:@"%@[%ld]", parentName, (long)index];
-				EidosValue *childValue = value->GetValueAtIndex((int)index, nullptr);
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName value:childValue index:(int)index];
-				
-				[browserWrappers addObject:childWrapper];
-				
-				return childWrapper;
-			}
-			else
-			{
-				const EidosObjectClass *object_class = value->Class();
-				const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
-				const EidosPropertySignature *propertySig = (*properties)[index];
-				const std::string &symbolName = propertySig->property_name_;
-				EidosGlobalStringID symbolID = propertySig->property_id_;
-				EidosValue *symbolValue = value->GetPropertyOfElements(symbolID);
-				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName value:symbolValue];
-				
-				[browserWrappers addObject:childWrapper];
-				
-				return childWrapper;
-			}
+			if (!wrapper->childWrappers)
+				[wrapper recacheWrappers];
+			
+			return [wrapper->childWrappers objectAtIndex:index];
 		}
 	}
 	
@@ -207,13 +247,10 @@
 	if ([item isKindOfClass:[EidosValueWrapper class]])
 	{
 		EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-		EidosValue *value = wrapper->wrappedValue;
 		
-		if (value->Type() == EidosValueType::kValueObject)
-		{
-			// if it has >1 element, expansion will show a list of elements; if it has one element, expansion shows property values
-			return YES;
-		}
+		// this is a cached value, set an init time in EidosValueWrapper to avoid a null dereference here; if the value is an object, this is YES
+		// if it has >1 element, expansion will show a list of elements; if it has one element, expansion shows property values
+		return wrapper->isExpandable;
 	}
 	
 	return NO;
