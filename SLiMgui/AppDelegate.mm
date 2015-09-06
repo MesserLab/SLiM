@@ -31,13 +31,20 @@ NSString *defaultsSyntaxHighlightOutputKey = @"SyntaxHighlightOutput";
 NSString *defaultsPlaySoundParseSuccessKey = @"PlaySoundParseSuccess";
 NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 
+typedef enum SLiMLaunchAction
+{
+	kLaunchDoNothing = 0,
+	kLaunchNewScriptWindow,
+	kLaunchRunOpenPanel
+} SLiMLaunchAction;
+
 
 @implementation AppDelegate
 
 + (void)initialize
 {
 	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
-															  defaultsLaunchActionKey : @1,
+															  defaultsLaunchActionKey : @(kLaunchNewScriptWindow),
 															  defaultsSyntaxHighlightScriptKey : @YES,
 															  defaultsSyntaxHighlightOutputKey : @YES,
 															  defaultsPlaySoundParseSuccessKey : @YES,
@@ -54,14 +61,14 @@ NSString *defaultsPlaySoundParseFailureKey = @"PlaySoundParseFailure";
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	switch ([[NSUserDefaults standardUserDefaults] integerForKey:defaultsLaunchActionKey])
+	switch ((SLiMLaunchAction)[[NSUserDefaults standardUserDefaults] integerForKey:defaultsLaunchActionKey])
 	{
-		case 0:	// do nothing
+		case kLaunchDoNothing:
 			break;
-		case 1:	// new script window
+		case kLaunchNewScriptWindow:
 			[self newDocument:nil];
 			break;
-		case 2:	// open panel
+		case kLaunchRunOpenPanel:
 			[self openDocument:nil];
 			break;
 	}
