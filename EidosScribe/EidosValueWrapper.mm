@@ -48,6 +48,9 @@
 		
 		wrappedValue = aValue;
 		valueIsOurs = wrappedValue->IsTemporary();
+		
+		// we cache this so that we know whether we are expandable without needing to dereference wrappedValue;
+		// we therefore know whether or not we are expandable even after wrappedValue is invalidated
 		isExpandable = (wrappedValue->Type() == EidosValueType::kValueObject);
 		
 		childWrappers = nil;
@@ -81,46 +84,6 @@
 	[super dealloc];
 }
 
-- (void)recacheWrappers
-{
-	[childWrappers release];
-	childWrappers = [NSMutableArray new];
-	
-	int elementCount = wrappedValue->Count();
-	
-	// values which are of object type and contain more than one element get displayed as a list of elements
-	if (elementCount > 1)
-	{
-		for (int index = 0; index < elementCount;++ index)
-		{
-			NSString *childName = [NSString stringWithFormat:@"%@[%ld]", wrappedName, (long)index];
-			EidosValue *childValue = wrappedValue->GetValueAtIndex(index, nullptr);
-			EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:childValue index:index of:elementCount];
-			
-			[childWrappers addObject:childWrapper];
-		}
-	}
-	else if (wrappedValue->Type() == EidosValueType::kValueObject)
-	{
-		EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue);
-		const EidosObjectClass *object_class = wrapped_object->Class();
-		const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
-		int propertyCount = (int)properties->size();
-		
-		for (int index = 0; index < propertyCount; ++index)
-		{
-			const EidosPropertySignature *propertySig = (*properties)[index];
-			const std::string &symbolName = propertySig->property_name_;
-			EidosGlobalStringID symbolID = propertySig->property_id_;
-			EidosValue *symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
-			NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-			EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:symbolValue];
-			
-			[childWrappers addObject:childWrapper];
-		}
-	}
-}
-
 - (void)invalidateWrappedValues
 {
 	if (valueIsOurs && (wrappedIndex == -1))
@@ -139,6 +102,152 @@
 	[childWrappers release];
 	childWrappers = nil;
 }
+
+- (NSArray *)childWrappers
+{
+	if (!childWrappers)
+	{
+		// If we don't have our cache of child wrappers, set it up on demand
+		childWrappers = [NSMutableArray new];
+		
+		int elementCount = wrappedValue->Count();
+		
+		// values which are of object type and contain more than one element get displayed as a list of elements
+		if (elementCount > 1)
+		{
+			for (int index = 0; index < elementCount;++ index)
+			{
+				NSString *childName = [NSString stringWithFormat:@"%@[%ld]", wrappedName, (long)index];
+				EidosValue *childValue = wrappedValue->GetValueAtIndex(index, nullptr);
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:childValue index:index of:elementCount];
+				
+				[childWrappers addObject:childWrapper];
+			}
+		}
+		else if (wrappedValue->Type() == EidosValueType::kValueObject)
+		{
+			EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue);
+			const EidosObjectClass *object_class = wrapped_object->Class();
+			const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
+			int propertyCount = (int)properties->size();
+			
+			for (int index = 0; index < propertyCount; ++index)
+			{
+				const EidosPropertySignature *propertySig = (*properties)[index];
+				const std::string &symbolName = propertySig->property_name_;
+				EidosGlobalStringID symbolID = propertySig->property_id_;
+				EidosValue *symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:symbolValue];
+				
+				[childWrappers addObject:childWrapper];
+			}
+		}
+	}
+	
+	return childWrappers;
+}
+
+- (BOOL)isExpandable
+{
+	return isExpandable;
+}
+
+- (id)displaySymbol
+{
+	// If this row is a marker for an element within an object we treat it specially
+	if (wrappedIndex != -1)
+	{
+		static NSDictionary *indexLineAttrs = nil;
+		
+		if (!indexLineAttrs)
+		{
+			NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
+			NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
+			
+			indexLineAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
+		}
+		
+		NSAttributedString *attrName = [[NSAttributedString alloc] initWithString:wrappedName attributes:indexLineAttrs];
+		
+		return [attrName autorelease];
+	}
+	
+	return wrappedName;
+}
+
+- (id)displayType
+{
+	// If this row is a marker for an element within an object we treat it specially
+	if (wrappedIndex != -1)
+		return @"";
+	
+	EidosValueType type = wrappedValue->Type();
+	std::string type_string = StringForEidosValueType(type);
+	const char *type_cstr = type_string.c_str();
+	NSString *typeString = [NSString stringWithUTF8String:type_cstr];
+	
+	if (type == EidosValueType::kValueObject)
+	{
+		EidosValue_Object *object_value = (EidosValue_Object *)wrappedValue;
+		const std::string &element_string = object_value->ElementType();
+		const char *element_cstr = element_string.c_str();
+		NSString *elementString = [NSString stringWithUTF8String:element_cstr];
+		
+		typeString = [NSString stringWithFormat:@"%@<%@>", typeString, elementString];
+	}
+	
+	return typeString;
+}
+
+- (id)displaySize
+{
+	// If this row is a marker for an element within an object we treat it specially
+	if (wrappedIndex != -1)
+		return @"";
+	
+	return [NSString stringWithFormat:@"%d", wrappedValue->Count()];
+}
+
+- (id)displayValue
+{
+	// If this row is a marker for an element within an object we treat it specially
+	if (wrappedIndex != -1)
+		return @"";
+	
+	int value_count = wrappedValue->Count();
+	std::ostringstream outstream;
+	
+	// print values as a comma-separated list with strings quoted; halfway between print() and cat()
+	for (int value_index = 0; value_index < value_count; ++value_index)
+	{
+		EidosValue *element_value = wrappedValue->GetValueAtIndex(value_index, nullptr);
+		
+		if (value_index > 0)
+		{
+			outstream << ", ";
+			
+			// terminate the list at some reasonable point, otherwise we generate massively long strings for large vectors...
+			if (value_index > 50)
+			{
+				outstream << ", ...";
+				break;
+			}
+		}
+		
+		outstream << *element_value;
+		
+		if (element_value->IsTemporary()) delete element_value;
+	}
+	
+	NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];
+	
+	return outString;
+}
+
+//
+//	NSObject subclass overrides, to redefine equality
+//
 
 - (BOOL)isEqual:(id)anObject
 {
@@ -174,7 +283,7 @@
 - (BOOL)isEqualToWrapper:(EidosValueWrapper *)otherWrapper
 {
 	// Note that this method is missing the self==object test at the beginning!  This is because it
-	// was already done by the caller; this method is not designed to be called by arbitrary caller!
+	// was already done by the caller; this method is not designed to be called externally!
 	// Similarly, it does not check for object==nil, so it will crash if called with nil!
 	
 	if (wrappedIndex != otherWrapper->wrappedIndex)

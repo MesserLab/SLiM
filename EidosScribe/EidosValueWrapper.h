@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#import <Foundation/Foundation.h>
+#import <Cocoa/Cocoa.h>
 
 #include "eidos_value.h"
 
@@ -50,7 +50,7 @@
 
 @interface EidosValueWrapper : NSObject
 {
-@public
+@private
 	EidosValueWrapper *parentWrapper;
 	
 	NSString *wrappedName;		// the displayed name
@@ -69,9 +69,17 @@
 
 - (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount;
 
-- (void)recacheWrappers;
 - (void)invalidateWrappedValues;
 - (void)releaseChildWrappers;
+
+- (NSArray *)childWrappers;
+
+- (BOOL)isExpandable;
+
+- (id)displaySymbol;
+- (id)displayType;
+- (id)displaySize;
+- (id)displayValue;
 
 @end
 

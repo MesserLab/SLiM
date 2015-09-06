@@ -39,8 +39,7 @@
 
 - (void)dealloc
 {
-	[rootBrowserWrappers release];
-	rootBrowserWrappers = nil;
+	[self invalidateRootWrappers];
 	
 	[expandedSet release];
 	expandedSet = nil;
@@ -105,9 +104,7 @@
 	}
 	
 	// Clear out our wrapper arrays; the ones that are expanded are now retained by expandedSet
-	[rootBrowserWrappers makeObjectsPerformSelector:@selector(releaseChildWrappers)];
-	[rootBrowserWrappers release];
-	rootBrowserWrappers = nil;		// this needs to be recached
+	[self invalidateRootWrappers];
 	
 	// Reload the outline view from scratch
 	[_browserOutline reloadData];
@@ -129,6 +126,51 @@
 		[_browserWindow performClose:nil];
 	else
 		[_browserWindow makeKeyAndOrderFront:nil];
+}
+
+- (void)invalidateRootWrappers
+{
+	[rootBrowserWrappers makeObjectsPerformSelector:@selector(releaseChildWrappers)];
+	[rootBrowserWrappers release];
+	rootBrowserWrappers = nil;		// set up to be recached
+}
+
+- (NSArray *)rootWrappers
+{
+	if (!rootBrowserWrappers)
+	{
+		// If we don't have our root wrappers, set up the cache now
+		rootBrowserWrappers = [NSMutableArray new];
+		
+		EidosSymbolTable *symbols = [_delegate symbolTable];
+		
+		std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
+		int readOnlySymbolCount = (int)readOnlySymbols.size();
+		std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
+		int readWriteSymbolCount = (int)readWriteSymbols.size();
+		
+		for (int index = 0; index < readOnlySymbolCount;++ index)
+		{
+			const std::string &symbolName = readOnlySymbols[index];
+			EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+			NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+			EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+			
+			[rootBrowserWrappers addObject:wrapper];
+		}
+		
+		for (int index = 0; index < readWriteSymbolCount;++ index)
+		{
+			const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
+			EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+			NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+			EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+			
+			[rootBrowserWrappers addObject:wrapper];
+		}
+	}
+	
+	return rootBrowserWrappers;
 }
 
 
@@ -155,61 +197,15 @@
 #pragma mark -
 #pragma mark NSOutlineView delegate
 
-- (void)recacheRootWrappers
-{
-	[rootBrowserWrappers release];
-	rootBrowserWrappers = [NSMutableArray new];
-	
-	EidosSymbolTable *symbols = [_delegate symbolTable];
-	
-	std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
-	int readOnlySymbolCount = (int)readOnlySymbols.size();
-	std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
-	int readWriteSymbolCount = (int)readWriteSymbols.size();
-	
-	for (int index = 0; index < readOnlySymbolCount;++ index)
-	{
-		const std::string &symbolName = readOnlySymbols[index];
-		EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-		NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-		EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
-		
-		[rootBrowserWrappers addObject:wrapper];
-	}
-	
-	for (int index = 0; index < readWriteSymbolCount;++ index)
-	{
-		const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-		EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-		NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-		EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
-		
-		[rootBrowserWrappers addObject:wrapper];
-	}
-}
-
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
 	EidosSymbolTable *symbols = [_delegate symbolTable];
 	
 	if (symbols)
 	{
-		if (item == nil)
-		{
-			if (!rootBrowserWrappers)
-				[self recacheRootWrappers];
-			
-			return [rootBrowserWrappers count];
-		}
-		else
-		{
-			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-			
-			if (!wrapper->childWrappers)
-				[wrapper recacheWrappers];
-			
-			return [wrapper->childWrappers count];
-		}
+		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
+								 
+		return [wrapperArray count];
 	}
 	
 	return 0;
@@ -221,22 +217,9 @@
 	
 	if (symbols)
 	{
-		if (item == nil)
-		{
-			if (!rootBrowserWrappers)
-				[self recacheRootWrappers];
-			
-			return [rootBrowserWrappers objectAtIndex:index];
-		}
-		else
-		{
-			EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-			
-			if (!wrapper->childWrappers)
-				[wrapper recacheWrappers];
-			
-			return [wrapper->childWrappers objectAtIndex:index];
-		}
+		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
+		
+		return [wrapperArray objectAtIndex:index];
 	}
 	
 	return nil;
@@ -244,112 +227,29 @@
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
 {
-	if ([item isKindOfClass:[EidosValueWrapper class]])
-	{
-		EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-		
-		// this is a cached value, set an init time in EidosValueWrapper to avoid a null dereference here; if the value is an object, this is YES
-		// if it has >1 element, expansion will show a list of elements; if it has one element, expansion shows property values
-		return wrapper->isExpandable;
-	}
+	if (item)
+		return [(EidosValueWrapper *)item isExpandable];
 	
 	return NO;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
-	if ([item isKindOfClass:[EidosValueWrapper class]])
+	if (item)
 	{
 		EidosValueWrapper *wrapper = (EidosValueWrapper *)item;
-		int valueIndex = wrapper->wrappedIndex;
-		
-		if (valueIndex != -1)
-		{
-			// This row is a marker for an element within an object, so we treat it specially
-			if (tableColumn == _symbolColumn)
-			{
-				static NSDictionary *indexLineAttrs = nil;
-				
-				if (!indexLineAttrs)
-				{
-					NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
-					NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
-					
-					indexLineAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
-				}
-				
-				NSAttributedString *attrName = [[NSAttributedString alloc] initWithString:wrapper->wrappedName attributes:indexLineAttrs];
-				
-				return [attrName autorelease];
-			}
-			
-			return @"";
-		}
 		
 		if (tableColumn == _symbolColumn)
-		{
-			return wrapper->wrappedName;
-		}
-		else if (tableColumn == _typeColumn)
-		{
-			EidosValueType type = wrapper->wrappedValue->Type();
-			std::string type_string = StringForEidosValueType(type);
-			const char *type_cstr = type_string.c_str();
-			NSString *typeString = [NSString stringWithUTF8String:type_cstr];
-			
-			if (type == EidosValueType::kValueObject)
-			{
-				EidosValue_Object *object_value = (EidosValue_Object *)wrapper->wrappedValue;
-				const std::string &element_string = object_value->ElementType();
-				const char *element_cstr = element_string.c_str();
-				NSString *elementString = [NSString stringWithUTF8String:element_cstr];
-				
-				typeString = [NSString stringWithFormat:@"%@<%@>", typeString, elementString];
-			}
-			
-			return typeString;
-		}
-		else if (tableColumn == _sizeColumn)
-		{
-			int size = wrapper->wrappedValue->Count();
-			
-			return [NSString stringWithFormat:@"%d", size];
-		}
-		else if (tableColumn == _valueColumn)
-		{
-			EidosValue *value = wrapper->wrappedValue;
-			int value_count = value->Count();
-			std::ostringstream outstream;
-			
-			// print values as a comma-separated list with strings quoted; halfway between print() and cat()
-			for (int value_index = 0; value_index < value_count; ++value_index)
-			{
-				EidosValue *element_value = value->GetValueAtIndex(value_index, nullptr);
-				
-				if (value_index > 0)
-				{
-					outstream << ", ";
-					
-					// terminate the list at some reasonable point, otherwise we generate massively long strings for large vectors...
-					if (value_index > 50)
-					{
-						outstream << ", ...";
-						break;
-					}
-				}
-				
-				outstream << *element_value;
-				
-				if (element_value->IsTemporary()) delete element_value;
-			}
-			
-			NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];
-			
-			return outString;
-		}
+			return [wrapper displaySymbol];
+		if (tableColumn == _typeColumn)
+			return [wrapper displayType];
+		if (tableColumn == _sizeColumn)
+			return [wrapper displaySize];
+		if (tableColumn == _valueColumn)
+			return [wrapper displayValue];
 	}
 	
-	return nil;
+	return @"";
 }
 
 @end
