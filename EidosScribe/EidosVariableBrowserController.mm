@@ -158,29 +158,34 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 		
 		EidosSymbolTable *symbols = [_delegate symbolTable];
 		
-		std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
-		int readOnlySymbolCount = (int)readOnlySymbols.size();
-		std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
-		int readWriteSymbolCount = (int)readWriteSymbols.size();
-		
-		for (int index = 0; index < readOnlySymbolCount;++ index)
 		{
-			const std::string &symbolName = readOnlySymbols[index];
-			EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-			NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-			EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+			std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
+			int readOnlySymbolCount = (int)readOnlySymbols.size();
 			
-			[rootBrowserWrappers addObject:wrapper];
+			for (int index = 0; index < readOnlySymbolCount;++ index)
+			{
+				const std::string &symbolName = readOnlySymbols[index];
+				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+				
+				[rootBrowserWrappers addObject:wrapper];
+			}
 		}
 		
-		for (int index = 0; index < readWriteSymbolCount;++ index)
 		{
-			const std::string &symbolName = readWriteSymbols[index - readOnlySymbols.size()];
-			EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
-			NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-			EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+			std::vector<std::string> readWriteSymbols = symbols->ReadWriteSymbols();
+			int readWriteSymbolCount = (int)readWriteSymbols.size();
 			
-			[rootBrowserWrappers addObject:wrapper];
+			for (int index = 0; index < readWriteSymbolCount;++ index)
+			{
+				const std::string &symbolName = readWriteSymbols[index];
+				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
+				
+				[rootBrowserWrappers addObject:wrapper];
+			}
 		}
 	}
 	
