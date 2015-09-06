@@ -32,6 +32,8 @@
 {
 	if (self = [super init])
 	{
+		// We permanently keep a set of all elements that should be expanded; this persists across browser reloads, etc.
+		expandedSet = [[NSMutableSet alloc] init];
 	}
 	
 	return self;
@@ -61,7 +63,11 @@
 			if ([_browserOutline isExpandable:childItem])
 			{
 				[_browserOutline expandItem:childItem];
-				//NSLog(@"      requesting expansion for item with name %@ (%p, hash %lu)", ((EidosValueWrapper *)childItem)->wrappedName, childItem, (unsigned long)[childItem hash]);
+				//NSLog(@"      requested expansion for item with name %@ (%p, hash %lu)", ((EidosValueWrapper *)childItem)->wrappedName, childItem, (unsigned long)[childItem hash]);
+				
+				// having expanded the item, we forget it from our set; this way if the user collapses it we won't re-expand it
+				// note that if it stays expanded, it will be re-added to our set in reloadBrowser
+				[expandedSet removeObject:childItem];
 				
 				[self expandItemsInSet:set belowItem:childItem];
 			}
@@ -88,9 +94,6 @@
 	if (rowCount > 0)
 	{
 		// The outline has items in it, so we will start a new set to save the expanded items
-		[expandedSet release];
-		expandedSet = [[NSMutableSet alloc] init];
-		
 		for (int i = 0; i < rowCount; ++i)
 		{
 			id rowItem = [_browserOutline itemAtRow:i];
