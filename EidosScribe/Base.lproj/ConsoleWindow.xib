@@ -124,6 +124,7 @@
         <customObject id="Oju-rn-RJg" customClass="EidosConsoleWindowController">
             <connections>
                 <outlet property="browserController" destination="TRR-E4-jMc" id="Gvk-P5-BrF"/>
+                <outlet property="browserToggleButton" destination="mJ2-l4-FOc" id="6Va-LI-Rha"/>
                 <outlet property="delegate" destination="-2" id="IxL-BB-3pl"/>
                 <outlet property="mainSplitView" destination="OgO-Qu-oJA" id="fyP-eW-cZT"/>
                 <outlet property="outputTextView" destination="hNz-Jr-UfL" id="MKo-wH-BBs"/>
@@ -136,7 +137,6 @@
             <connections>
                 <outlet property="browserOutline" destination="hH1-M5-dOk" id="28G-hv-ZE9"/>
                 <outlet property="browserWindow" destination="NRo-a8-DAD" id="NkH-rE-hzf"/>
-                <outlet property="browserWindowButton" destination="mJ2-l4-FOc" id="Uyq-nO-elD"/>
                 <outlet property="delegate" destination="Oju-rn-RJg" id="dtc-qA-VZ2"/>
                 <outlet property="sizeColumn" destination="abz-vU-rF5" id="0TH-Is-lmp"/>
                 <outlet property="symbolColumn" destination="o39-eJ-hfF" id="12u-JE-0c6"/>

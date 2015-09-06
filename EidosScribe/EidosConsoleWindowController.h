@@ -61,6 +61,8 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 @property (nonatomic, assign) IBOutlet EidosConsoleTextView *outputTextView;
 @property (nonatomic, assign) IBOutlet NSTextField *statusTextField;
 
+@property (nonatomic, assign) IBOutlet NSButton *browserToggleButton;
+
 // This property controls the enable state of UI that depends on the state of Eidos or its Context.  Some of
 // the console window's UI does not; you can show/hide script help at any time, even if Eidos or its Context
 // is in an invalid state, for example.  Other UI does; you can't execute if things are in an invalid state.

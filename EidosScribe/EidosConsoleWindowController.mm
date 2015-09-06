@@ -67,6 +67,10 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	if (self = [super init])
 	{
 		[self setInterfaceEnabled:YES];
+		
+		// Observe notifications to keep our variable browser toggle button up to date
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillShow:) name:EidosVariableBrowserWillShowNotification object:nil];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillHide:) name:EidosVariableBrowserWillHideNotification object:nil];
 	}
 	
 	return self;
@@ -95,6 +99,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 
 - (void)dealloc
 {
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
 	delete global_symbols;
 	global_symbols = nil;
 	
@@ -109,6 +115,16 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	[self setOutputTextView:nil];
 	
 	[super dealloc];
+}
+
+- (void)browserWillShow:(NSNotification *)note
+{
+	[_browserToggleButton setState:NSOnState];
+}
+
+- (void)browserWillHide:(NSNotification *)note
+{
+	[_browserToggleButton setState:NSOffState];
 }
 
 - (void)showWindow
@@ -692,11 +708,15 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	
 	if (closingWindow == scriptWindow)
 	{
-		// If we're closing, the variable browser closes too, since it is an inspector on our state
-		if ([[browserController browserWindow] isVisible])
-			[browserController toggleBrowserVisibility:self];
+		// The variable browser is an inspector on our state, but we don't close it here.  In EidosScribe,
+		// we are quitting at this point anyway, so it doesn't matter.  In SLiMgui, the var browser is
+		// still meaningful even with our window closed, since it shows the current simulation state.
+		// This may need to be revisited for other Contexts.
 		
-		// Let our delegate do some; EidosScribe quits, SLiMgui toggles its console button
+		//if ([[browserController browserWindow] isVisible])
+		//	[browserController toggleBrowserVisibility:self];
+		
+		// Let our delegate do something; EidosScribe quits, SLiMgui toggles its console button
 		if ([delegate respondsToSelector:@selector(consoleWindowWillClose)])
 			[delegate consoleWindowWillClose];
 	}

@@ -28,6 +28,11 @@
 @end
 
 
+// Notifications sent to allow other objects that care about the visibility of the browser, such as toggle buttons, to update
+extern NSString *EidosVariableBrowserWillHideNotification;
+extern NSString *EidosVariableBrowserWillShowNotification;
+
+
 @interface EidosVariableBrowserController : NSObject <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
 	// Wrappers for the currently displayed objects
@@ -38,8 +43,6 @@
 }
 
 @property (nonatomic, assign) IBOutlet NSObject<EidosVariableBrowserDelegate> *delegate;
-
-@property (nonatomic, assign) IBOutlet NSButton *browserWindowButton;
 
 @property (nonatomic, retain) IBOutlet NSWindow *browserWindow;
 @property (nonatomic, assign) IBOutlet NSOutlineView *browserOutline;

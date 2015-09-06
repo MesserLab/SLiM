@@ -95,6 +95,7 @@
 	IBOutlet NSTextField *scriptStatusTextField;
 	IBOutlet EidosTextView *outputTextView;
 	IBOutlet NSButton *consoleButton;
+	IBOutlet NSButton *browserButton;
 	
 	IBOutlet NSTableView *subpopTableView;
 	IBOutlet NSTableColumn *subpopIDColumn;
@@ -202,6 +203,7 @@
 - (IBAction)checkScript:(id)sender;
 - (IBAction)showScriptHelp:(id)sender;
 - (IBAction)toggleConsoleVisibility:(id)sender;
+- (IBAction)toggleBrowserVisibility:(id)sender;
 - (IBAction)clearOutput:(id)sender;
 - (IBAction)dumpPopulationToOutput:(id)sender;
 

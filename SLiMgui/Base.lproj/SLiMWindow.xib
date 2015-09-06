@@ -6,6 +6,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="SLiMWindowController">
             <connections>
+                <outlet property="browserButton" destination="02L-Zx-QDl" id="IB3-WZ-ptP"/>
                 <outlet property="buttonForDrawer" destination="3fa-Za-QvL" id="I6i-kh-1gO"/>
                 <outlet property="chromosomeOverview" destination="KMS-2V-Mrb" id="tJ6-LQ-ybJ"/>
                 <outlet property="chromosomeZoomed" destination="nQF-Rr-G8N" id="5Ui-I9-Vky"/>
@@ -763,7 +764,7 @@
                                         </connections>
                                     </button>
                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
-                                        <rect key="frame" x="72" y="510" width="120" height="17"/>
+                                        <rect key="frame" x="95" y="510" width="120" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Input Commands:" id="5TY-HF-5xK">
                                             <font key="font" metaFont="systemBold"/>
                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -798,19 +799,34 @@
                                             <action selector="toggleConsoleVisibility:" target="-2" id="S9a-zL-vcz"/>
                                         </connections>
                                     </button>
+                                    <button toolTip="show/hide Eidos variable browser" translatesAutoresizingMaskIntoConstraints="NO" id="02L-Zx-QDl" userLabel="Variable Browser Button">
+                                        <rect key="frame" x="69" y="508" width="20" height="20"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="20" id="9am-gN-1cK"/>
+                                            <constraint firstAttribute="width" constant="20" id="lng-51-msY"/>
+                                        </constraints>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="overlaps" alignment="center" alternateImage="show_browser_H" imageScaling="proportionallyDown" inset="2" id="u9U-vi-gge">
+                                            <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="toggleBrowserVisibility:" target="-2" id="5tc-7r-IRA"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
                                 <constraints>
+                                    <constraint firstItem="0fj-1F-Ipl" firstAttribute="leading" secondItem="02L-Zx-QDl" secondAttribute="trailing" constant="8" id="4du-7e-ujj"/>
                                     <constraint firstItem="lnH-Vh-Iwz" firstAttribute="bottom" secondItem="aPl-XV-6R5" secondAttribute="bottom" id="5Bh-f4-LqY"/>
                                     <constraint firstItem="SAG-aF-oTT" firstAttribute="leading" secondItem="cas-KD-TD2" secondAttribute="leading" id="67B-Nf-WaO"/>
                                     <constraint firstAttribute="trailing" secondItem="yeL-B5-ZLS" secondAttribute="trailing" id="BFU-9F-N49"/>
                                     <constraint firstItem="SAG-aF-oTT" firstAttribute="bottom" secondItem="lnH-Vh-Iwz" secondAttribute="bottom" id="UMX-le-Zae"/>
                                     <constraint firstItem="yeL-B5-ZLS" firstAttribute="leading" secondItem="cas-KD-TD2" secondAttribute="leading" id="Wez-lZ-RKs"/>
-                                    <constraint firstItem="0fj-1F-Ipl" firstAttribute="bottom" secondItem="lnH-Vh-Iwz" secondAttribute="bottom" constant="-2" id="aNk-Db-7I9"/>
                                     <constraint firstItem="yeL-B5-ZLS" firstAttribute="top" secondItem="cas-KD-TD2" secondAttribute="top" constant="26" id="aS3-CL-9Qc"/>
                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="top" secondItem="cas-KD-TD2" secondAttribute="top" constant="4" id="cqQ-pm-0tq"/>
-                                    <constraint firstItem="0fj-1F-Ipl" firstAttribute="leading" secondItem="aPl-XV-6R5" secondAttribute="trailing" constant="8" id="gjG-r3-SF3"/>
                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="bottom" secondItem="SAG-aF-oTT" secondAttribute="bottom" constant="-2" id="hCG-Sg-XIW"/>
+                                    <constraint firstItem="02L-Zx-QDl" firstAttribute="leading" secondItem="aPl-XV-6R5" secondAttribute="trailing" constant="3" id="jwA-5a-wkm"/>
                                     <constraint firstItem="aPl-XV-6R5" firstAttribute="leading" secondItem="lnH-Vh-Iwz" secondAttribute="trailing" constant="3" id="r5l-Nb-fFj"/>
+                                    <constraint firstItem="aPl-XV-6R5" firstAttribute="bottom" secondItem="02L-Zx-QDl" secondAttribute="bottom" id="rBc-fK-WiC"/>
                                     <constraint firstItem="lnH-Vh-Iwz" firstAttribute="leading" secondItem="SAG-aF-oTT" secondAttribute="trailing" constant="3" id="s9u-d1-Byw"/>
                                     <constraint firstAttribute="bottom" secondItem="yeL-B5-ZLS" secondAttribute="bottom" id="vKN-YU-Eiw"/>
                                 </constraints>
@@ -1237,7 +1253,7 @@
                 <outlet property="delegate" destination="-2" id="6Gd-nE-pDY"/>
                 <outlet property="initialFirstResponder" destination="N45-af-9rm" id="HpY-hf-Oyx"/>
             </connections>
-            <point key="canvasLocation" x="843" y="449"/>
+            <point key="canvasLocation" x="986" y="437"/>
         </window>
         <menu showsStateColumn="NO" id="wnZ-1m-394" userLabel="Output Command Menu">
             <items>
@@ -1700,6 +1716,8 @@
         <image name="recycle" width="133" height="133"/>
         <image name="recycle_H" width="133" height="133"/>
         <image name="remove_subpop" width="72" height="72"/>
+        <image name="show_browser" width="137" height="137"/>
+        <image name="show_browser_H" width="137" height="137"/>
         <image name="show_console" width="137" height="137"/>
         <image name="show_console_H" width="137" height="137"/>
         <image name="show_fixed" width="137" height="137"/>

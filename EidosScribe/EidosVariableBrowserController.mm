@@ -26,6 +26,11 @@
 #include <sstream>
 
 
+// Notifications sent to allow other objects that care about the visibility of the browser, such as toggle buttons, to update
+NSString *EidosVariableBrowserWillHideNotification = @"EidosVariableBrowserWillHide";
+NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillShow";
+
+
 @implementation EidosVariableBrowserController
 
 - (instancetype)init
@@ -126,9 +131,15 @@
 - (IBAction)toggleBrowserVisibility:(id)sender
 {
 	if ([_browserWindow isVisible])
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
 		[_browserWindow performClose:nil];
+	}
 	else
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillShowNotification object:self];
 		[_browserWindow makeKeyAndOrderFront:nil];
+	}
 }
 
 - (void)invalidateRootWrappers
@@ -188,9 +199,7 @@
 	NSWindow *closingWindow = [notification object];
 	
 	if (closingWindow == _browserWindow)
-	{
-		[_browserWindowButton setState:NSOffState];
-	}
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
 }
 
 

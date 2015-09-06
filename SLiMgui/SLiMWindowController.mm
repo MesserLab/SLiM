@@ -157,6 +157,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey options:0 context:NULL];
 		
+		// Observe notifications to keep our variable browser toggle button up to date
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillShow:) name:EidosVariableBrowserWillShowNotification object:nil];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillHide:) name:EidosVariableBrowserWillHideNotification object:nil];
+		
 		// set default viewing state; this might come from user defaults on a per-script basis eventually...
 		zoomedChromosomeShowsRecombinationIntervals = NO;
 		zoomedChromosomeShowsGenomicElements = NO;
@@ -165,6 +169,16 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 	
 	return self;
+}
+
+- (void)browserWillShow:(NSNotification *)note
+{
+	[browserButton setState:NSOnState];
+}
+
+- (void)browserWillHide:(NSNotification *)note
+{
+	[browserButton setState:NSOffState];
 }
 
 - (void)showTerminationMessage:(NSString *)terminationMessage
@@ -335,6 +349,8 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (void)dealloc
 {
 	//NSLog(@"[SLiMWindowController dealloc]");
+	
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
 	[_consoleController setDelegate:nil];
 	
@@ -1311,6 +1327,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[_consoleController toggleConsoleVisibility:sender];
 }
 
+- (IBAction)toggleBrowserVisibility:(id)sender
+{
+	[[_consoleController browserController] toggleBrowserVisibility:self];
+}
+
 - (IBAction)clearOutput:(id)sender
 {
 	[outputTextView setString:@""];
@@ -2167,12 +2188,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMax - 200;
+	return proposedMax - 240;
 }
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMin + 200;
+	return proposedMin + 240;
 }
 
 
