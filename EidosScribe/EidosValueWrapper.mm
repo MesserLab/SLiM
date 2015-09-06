@@ -49,9 +49,16 @@
 		wrappedValue = aValue;
 		valueIsOurs = wrappedValue->IsTemporary();
 		
-		// we cache this so that we know whether we are expandable without needing to dereference wrappedValue;
+		// We cache this so that we know whether we are expandable without needing to dereference wrappedValue;
 		// we therefore know whether or not we are expandable even after wrappedValue is invalidated
 		isExpandable = (wrappedValue->Type() == EidosValueType::kValueObject);
+		
+		// We want to display Eidos constants in gray text, to de-emphasize them.  For now, we just hard-code them
+		// as a hack, because we *don't* want SLiM constants (sim, g1, p1, etc.) to display dimmed
+		isConstant = NO;
+		
+		if (!parentWrapper && ([wrappedName isEqualToString:@"T"] || [wrappedName isEqualToString:@"F"] || [wrappedName isEqualToString:@"E"] || [wrappedName isEqualToString:@"PI"] || [wrappedName isEqualToString:@"INF"] || [wrappedName isEqualToString:@"NAN"] || [wrappedName isEqualToString:@"NULL"]))
+			isConstant = YES;
 		
 		childWrappers = nil;
 	}
@@ -153,25 +160,62 @@
 	return isExpandable;
 }
 
++ (NSDictionary *)italicAttrs
+{
+	static NSDictionary *italicAttrs = nil;
+	
+	if (!italicAttrs)
+	{
+		NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
+		NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
+		
+		italicAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
+	}
+	
+	return italicAttrs;
+}
+
++ (NSDictionary *)dimmedAttrs
+{
+	static NSDictionary *dimmedAttrs = nil;
+	
+	if (!dimmedAttrs)
+	{
+		NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
+		
+		dimmedAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:baseFont, NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.5 alpha:1.0], NSForegroundColorAttributeName, nil] retain];
+	}
+	
+	return dimmedAttrs;
+}
+
++ (NSDictionary *)centeredDimmedAttrs
+{
+	static NSDictionary *centeredDimmedAttrs = nil;
+	
+	if (!centeredDimmedAttrs)
+	{
+		NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
+		NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
+		
+		[paragraphStyle setAlignment:NSCenterTextAlignment];
+		
+		centeredDimmedAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:baseFont, NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.5 alpha:1.0], NSForegroundColorAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil] retain];
+		
+		[paragraphStyle release];
+	}
+	
+	return centeredDimmedAttrs;
+}
+
 - (id)displaySymbol
 {
 	// If this row is a marker for an element within an object we treat it specially
 	if (wrappedIndex != -1)
-	{
-		static NSDictionary *indexLineAttrs = nil;
-		
-		if (!indexLineAttrs)
-		{
-			NSFont *baseFont = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSSmallControlSize]];
-			NSFont *italicFont = [[NSFontManager sharedFontManager] convertFont:baseFont toHaveTrait:NSItalicFontMask];
-			
-			indexLineAttrs = [[NSDictionary dictionaryWithObjectsAndKeys:italicFont, NSFontAttributeName, nil] retain];
-		}
-		
-		NSAttributedString *attrName = [[NSAttributedString alloc] initWithString:wrappedName attributes:indexLineAttrs];
-		
-		return [attrName autorelease];
-	}
+		return [[[NSAttributedString alloc] initWithString:wrappedName attributes:[EidosValueWrapper italicAttrs]] autorelease];
+	
+	if (isConstant)
+		return [[[NSAttributedString alloc] initWithString:wrappedName attributes:[EidosValueWrapper dimmedAttrs]] autorelease];
 	
 	return wrappedName;
 }
@@ -197,6 +241,9 @@
 		typeString = [NSString stringWithFormat:@"%@<%@>", typeString, elementString];
 	}
 	
+	if (isConstant)
+		return [[[NSAttributedString alloc] initWithString:typeString attributes:[EidosValueWrapper dimmedAttrs]] autorelease];
+	
 	return typeString;
 }
 
@@ -206,7 +253,12 @@
 	if (wrappedIndex != -1)
 		return @"";
 	
-	return [NSString stringWithFormat:@"%d", wrappedValue->Count()];
+	NSString *sizeString = [NSString stringWithFormat:@"%d", wrappedValue->Count()];
+	
+	if (isConstant)
+		return [[[NSAttributedString alloc] initWithString:sizeString attributes:[EidosValueWrapper centeredDimmedAttrs]] autorelease];
+	
+	return sizeString;
 }
 
 - (id)displayValue
@@ -241,6 +293,9 @@
 	}
 	
 	NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];
+	
+	if (isConstant)
+		return [[[NSAttributedString alloc] initWithString:outString attributes:[EidosValueWrapper dimmedAttrs]] autorelease];
 	
 	return outString;
 }

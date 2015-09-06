@@ -60,6 +60,7 @@
 	EidosValue *wrappedValue;	// the value upon which the row is based; this may be invalid after the state of the Eidos interpreter changes
 	BOOL valueIsOurs;			// if YES, we dispose of the wrapped value ourselves, if NO, the Context owns it
 	BOOL isExpandable;			// a cached value; YES if wrappedValue is of type object, NO otherwise
+	BOOL isConstant;			// is this value a built-in Eidos constant?
 	
 	NSMutableArray *childWrappers;
 }
