@@ -32,7 +32,7 @@
 
  */
 
-@protocol EidosConsoleControllerDelegate <NSObject>
+@protocol EidosConsoleWindowControllerDelegate <NSObject>
 @optional
 
 // If provided, this context object will be handed to EidosInterpreter objects created by the console

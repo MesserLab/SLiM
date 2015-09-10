@@ -46,8 +46,8 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 	EidosSymbolTable *global_symbols;
 }
 
-// A delegate may be provided to customize various aspects of this class; see EidosConsoleControllerDelegate.h
-@property (nonatomic, assign) IBOutlet NSObject<EidosConsoleControllerDelegate> *delegate;
+// A delegate may be provided to customize various aspects of this class; see EidosConsoleWindowControllerDelegate.h
+@property (nonatomic, assign) IBOutlet NSObject<EidosConsoleWindowControllerDelegate> *delegate;
 
 // This property controls the enable state of UI that depends on the state of Eidos or its Context.  Some of
 // the console window's UI does not; you can show/hide script help at any time, even if Eidos or its Context

@@ -31,7 +31,7 @@
 #import "EidosConsoleWindowController.h"
 
 
-@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleControllerDelegate>
+@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate>
 {
 @public
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!

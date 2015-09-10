@@ -31,7 +31,7 @@
  */
 
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, EidosConsoleControllerDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, EidosConsoleWindowControllerDelegate>
 {
 	// About window outlets associated with AboutWindow.xib
 	IBOutlet NSWindow *aboutWindow;
