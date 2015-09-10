@@ -70,6 +70,9 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 @property (nonatomic, assign) IBOutlet NSTableColumn *sizeColumn;
 @property (nonatomic, assign) IBOutlet NSTableColumn *valueColumn;
 
+// Normally EidosConsoleWindowController is instantiated in the ConsoleWindow.xib nib
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
+
 // Trigger a reload of the variable browser when symbols have changed
 - (void)reloadBrowser;
 

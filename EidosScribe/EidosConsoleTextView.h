@@ -61,6 +61,10 @@
 + (NSDictionary *)parseAttrs;
 + (NSDictionary *)executionAttrs;
 
+// Inisializers are inherited from NSTextView
+//- (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)container NS_DESIGNATED_INITIALIZER;
+//- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+
 // The last character position in the current Eidos prompt; user input starts at the next character position
 - (NSUInteger)promptRangeEnd;
 

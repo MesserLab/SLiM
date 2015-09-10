@@ -70,7 +70,7 @@
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue;
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount;
 
-- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount;
+- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount NS_DESIGNATED_INITIALIZER;
 
 - (void)invalidateWrappedValues;
 - (void)releaseChildWrappers;

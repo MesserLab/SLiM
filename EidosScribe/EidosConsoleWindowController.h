@@ -66,6 +66,8 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 @property (nonatomic, assign) IBOutlet NSButton *browserToggleButton;
 
+// Normally EidosConsoleWindowController is instantiated in the ConsoleWindow.xib nib
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 // Show the console window and make the console output first responder
 - (void)showWindow;
