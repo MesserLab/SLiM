@@ -86,11 +86,14 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	// Show a welcome message
 	[outputTextView showWelcomeMessage];
 	
-	if ([delegate respondsToSelector:@selector(appendWelcomeMessageAddendum)])
-		[delegate appendWelcomeMessageAddendum];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerAppendWelcomeMessageAddendum:)])
+		[delegate eidosConsoleWindowControllerAppendWelcomeMessageAddendum:self];
 	
 	// And show our prompt
 	[outputTextView showPrompt];
+	
+	// Set up syntax coloring for the script view; note the console view's coloring is handled internally by us
+	[scriptTextView setSyntaxColoring:kEidosSyntaxColoringEidos];
 	
 	// Execute a null statement to get our symbols set up, for code completion etc.
 	// Note this has the side effect of creating a random number generator gEidos_rng for our use.
@@ -225,19 +228,19 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		global_symbols = new EidosSymbolTable();
 	
 	// Interpret the parsed block
-	if ([delegate respondsToSelector:@selector(willExecuteScript)])
-		[delegate willExecuteScript];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerWillExecuteScript:)])
+		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
 	
 	EidosContext *eidos_context = nullptr;
 	
-	if ([delegate respondsToSelector:@selector(eidosContext)])
-		eidos_context = [delegate eidosContext];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerEidosContext:)])
+		eidos_context = [delegate eidosConsoleWindowControllerEidosContext:self];
 	
 	EidosInterpreter interpreter(script, *global_symbols, eidos_context);		// give the interpreter the symbol table
 	
 	// Give our delegate a chance to add variables and other context to the interpreter
-	if ([delegate respondsToSelector:@selector(injectIntoInterpreter:)])
-		[delegate injectIntoInterpreter:&interpreter];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:injectIntoInterpreter:)])
+		[delegate eidosConsoleWindowController:self injectIntoInterpreter:&interpreter];
 	
 	try
 	{
@@ -257,8 +260,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	}
 	catch (std::runtime_error err)
 	{
-		if ([delegate respondsToSelector:@selector(didExecuteScript)])
-			[delegate didExecuteScript];
+		if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerDidExecuteScript:)])
+			[delegate eidosConsoleWindowControllerDidExecuteScript:self];
 		
 		output = interpreter.ExecutionOutput();
 		
@@ -267,8 +270,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		return [NSString stringWithUTF8String:output.c_str()];
 	}
 	
-	if ([delegate respondsToSelector:@selector(didExecuteScript)])
-		[delegate didExecuteScript];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerDidExecuteScript:)])
+		[delegate eidosConsoleWindowControllerDidExecuteScript:self];
 	
 	return [NSString stringWithUTF8String:output.c_str()];
 }
@@ -403,8 +406,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		}
 	}
 	
-	if ([delegate respondsToSelector:@selector(checkScriptDidSucceed:)])
-		[delegate checkScriptDidSucceed:!errorDiagnostic];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:checkScriptDidSucceed:)])
+		[delegate eidosConsoleWindowController:self checkScriptDidSucceed:!errorDiagnostic];
 	else
 		[[NSSound soundNamed:(!errorDiagnostic ? @"Bottle" : @"Ping")] play];
 	
@@ -570,7 +573,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 #pragma mark -
 #pragma mark VariableBrowserController delegate
 
-- (EidosSymbolTable *)symbolTable
+- (EidosSymbolTable *)symbolTableForEidosVariableBrowserController:(EidosVariableBrowserController *)browserController
 {
 	return global_symbols;
 }
@@ -606,7 +609,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	return YES;
 }
 
-- (void)executeConsoleInput:(EidosConsoleTextView *)textView
+- (void)eidosConsoleTextViewExecuteInput:(EidosConsoleTextView *)textView
 {
 	if (textView == outputTextView)
 	{
@@ -618,50 +621,39 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	}
 }
 
-- (void)textDidChange:(NSNotification *)notification
-{
-	NSTextView *textView = (NSTextView *)[notification object];
-	
-	// Syntax color the script string
-	if (textView == scriptTextView)
-	{
-		[scriptTextView syntaxColorForEidos];
-	}
-}
-
-- (EidosSymbolTable *)globalSymbolTableForCompletion
+- (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
 {
 	return global_symbols;
 }
 
-- (NSArray *)languageKeywordsForCompletion
+- (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView
 {
-	if ([delegate respondsToSelector:@selector(languageKeywordsForCompletion)])
-		return [delegate languageKeywordsForCompletion];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerLanguageKeywordsForCompletion:)])
+		return [delegate eidosConsoleWindowControllerLanguageKeywordsForCompletion:self];
 	else
 		return nil;
 }
 
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
+- (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView
 {
-	if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-		return [delegate injectedFunctionSignatures];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerInjectedFunctionSignatures:)])
+		return [delegate eidosConsoleWindowControllerInjectedFunctionSignatures:self];
 	else
 		return nullptr;
 }
 
-- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
+- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView
 {
-	if ([delegate respondsToSelector:@selector(allMethodSignatures)])
-		return [delegate allMethodSignatures];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerAllMethodSignatures:)])
+		return [delegate eidosConsoleWindowControllerAllMethodSignatures:self];
 	else
 		return nullptr;
 }
 
-- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+- (bool)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
-	if ([delegate respondsToSelector:@selector(tokenStringIsSpecialIdentifier:)])
-		return [delegate tokenStringIsSpecialIdentifier:token_string];
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:tokenStringIsSpecialIdentifier:)])
+		return [delegate eidosConsoleWindowController:self tokenStringIsSpecialIdentifier:token_string];
 	else
 		return NO;
 }
@@ -717,8 +709,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 		//	[browserController toggleBrowserVisibility:self];
 		
 		// Let our delegate do something; EidosScribe quits, SLiMgui toggles its console button
-		if ([delegate respondsToSelector:@selector(consoleWindowWillClose)])
-			[delegate consoleWindowWillClose];
+		if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerConsoleWindowWillClose:)])
+			[delegate eidosConsoleWindowControllerConsoleWindowWillClose:self];
 	}
 }
 

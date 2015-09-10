@@ -19,6 +19,7 @@
 
 
 #import "EidosTextView.h"
+#import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextView.h"
 
 #include "eidos_script.h"
@@ -123,8 +124,9 @@ using std::string;
 	NSRange whitespaceRange = NSMakeRange(lineStart, whitespaceEnd - lineStart);
 	NSString *whitespaceString = [textString substringWithRange:whitespaceRange];
 	
+	// We use the insert... methods, which handle change notifications and undo correctly
 	[super insertNewline:sender];
-	[self insertText:whitespaceString];
+	[self insertText:whitespaceString replacementRange:NSMakeRange(NSNotFound, NSNotFound)];
 }
 
 // NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for the user; the
@@ -140,6 +142,13 @@ using std::string;
 	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
 	[pasteboard clearContents];
 	[pasteboard writeObjects:@[attrStringInRange]];
+}
+
+- (void)undoRedoSelectionRange:(NSRange)range
+{
+	[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:range];
+	
+	[self setSelectedRange: range];
 }
 
 - (IBAction)shiftSelectionLeft:(id)sender
@@ -164,6 +173,12 @@ using std::string;
 			--scanPosition;
 		}
 		
+		// we want to recolor only once, at the end of the whole operation
+		[self setShouldRecolorAfterChanges:NO];
+		
+		// save the current selection so undo restores it
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
+		
 		// ok, we're at the start of the line that the selection starts on; start removing tabs
 		[ts beginEditing];
 		
@@ -176,15 +191,22 @@ using std::string;
 			// insert a tab at the start of this line and adjust our selection
 			if ([scriptString characterAtIndex:scanPosition] == '\t')
 			{
-				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 1) withString:@""];
-				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 1) withString:@""];
-				scriptLength--;
+				NSRange changeRange = NSMakeRange(scanPosition, 1);
 				
-				if (scanPosition < selectedRange.location)
-					selectedRange.location--;
-				else
-					if (selectedRange.length > 0)
-						selectedRange.length--;
+				if ([self shouldChangeTextInRange:changeRange replacementString:@""])
+				{
+					[ts replaceCharactersInRange:changeRange withString:@""];
+					[self didChangeText];
+					
+					[scriptString replaceCharactersInRange:changeRange withString:@""];
+					scriptLength--;
+					
+					if (scanPosition < selectedRange.location)
+						selectedRange.location--;
+					else
+						if (selectedRange.length > 0)
+							selectedRange.length--;
+				}
 			}
 			
 			// now scan forward to the end of this line
@@ -208,7 +230,14 @@ using std::string;
 		
 		[scriptString release];
 		[ts endEditing];
+		
+		// set the new selection in a way that will work with redo
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
 		[self setSelectedRange:selectedRange];
+		
+		// recolor, coalesced
+		[self setShouldRecolorAfterChanges:YES];
+		[self recolorAfterChanges];
 	}
 	else
 	{
@@ -238,20 +267,33 @@ using std::string;
 			--scanPosition;
 		}
 		
+		// we want to recolor only once, at the end of the whole operation
+		[self setShouldRecolorAfterChanges:NO];
+		
+		// save the current selection so undo restores it
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
+		
 		// ok, we're at the start of the line that the selection starts on; start inserting tabs
 		[ts beginEditing];
 		
 		while ((scanPosition == selectedRange.location) || (scanPosition < selectedRange.location + selectedRange.length))
 		{
 			// insert a tab at the start of this line and adjust our selection
-			[ts replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"\t"];
-			[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"\t"];
-			scriptLength++;
+			NSRange changeRange = NSMakeRange(scanPosition, 0);
 			
-			if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
-				selectedRange.location++;
-			else
-				selectedRange.length++;
+			if ([self shouldChangeTextInRange:changeRange replacementString:@"\t"])
+			{
+				[ts replaceCharactersInRange:changeRange withString:@"\t"];
+				[self didChangeText];
+				
+				[scriptString replaceCharactersInRange:changeRange withString:@"\t"];
+				scriptLength++;
+				
+				if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
+					selectedRange.location++;
+				else
+					selectedRange.length++;
+			}
 			
 			// now scan forward to the end of this line
 			while (scanPosition < scriptLength)
@@ -278,7 +320,14 @@ using std::string;
 		
 		[scriptString release];
 		[ts endEditing];
+		
+		// set the new selection in a way that will work with redo
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
 		[self setSelectedRange:selectedRange];
+		
+		// recolor, coalesced
+		[self setShouldRecolorAfterChanges:YES];
+		[self recolorAfterChanges];
 	}
 	else
 	{
@@ -346,6 +395,12 @@ using std::string;
 		
 		scanPosition = scanPositionSave;
 		
+		// we want to recolor only once, at the end of the whole operation
+		[self setShouldRecolorAfterChanges:NO];
+		
+		// save the current selection so undo restores it
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
+		
 		// ok, we're at the start of the line that the selection starts on; start commenting / uncommenting
 		[ts beginEditing];
 		
@@ -358,40 +413,54 @@ using std::string;
 			// comment/uncomment at the start of this line and adjust our selection
 			if (uncommenting)
 			{
-				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 2) withString:@""];
-				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 2) withString:@""];
-				scriptLength -= 2;
+				NSRange changeRange = NSMakeRange(scanPosition, 2);
 				
-				if (scanPosition < selectedRange.location)
+				if ([self shouldChangeTextInRange:changeRange replacementString:@""])
 				{
-					if (scanPosition == selectedRange.location - 1)
+					[ts replaceCharactersInRange:changeRange withString:@""];
+					[self didChangeText];
+					
+					[scriptString replaceCharactersInRange:changeRange withString:@""];
+					scriptLength -= 2;
+					
+					if (scanPosition < selectedRange.location)
 					{
-						selectedRange.location--;
-						if (selectedRange.length > 0)
-							selectedRange.length--;
+						if (scanPosition == selectedRange.location - 1)
+						{
+							selectedRange.location--;
+							if (selectedRange.length > 0)
+								selectedRange.length--;
+						}
+						else
+							selectedRange.location -= 2;
 					}
 					else
-						selectedRange.location -= 2;
-				}
-				else
-				{
-					if (selectedRange.length > 2)
-						selectedRange.length -= 2;
-					else
-						selectedRange.length = 0;
+					{
+						if (selectedRange.length > 2)
+							selectedRange.length -= 2;
+						else
+							selectedRange.length = 0;
+					}
 				}
 			}
 			else
 			{
-				[ts replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"//"];
-				[ts setAttributes:[EidosTextView consoleTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
-				[scriptString replaceCharactersInRange:NSMakeRange(scanPosition, 0) withString:@"//"];
-				scriptLength += 2;
+				NSRange changeRange = NSMakeRange(scanPosition, 0);
 				
-				if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
-					selectedRange.location += 2;
-				else
-					selectedRange.length += 2;
+				if ([self shouldChangeTextInRange:changeRange replacementString:@"//"])
+				{
+					[ts replaceCharactersInRange:changeRange withString:@"//"];
+					[ts setAttributes:[EidosTextView consoleTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
+					[self didChangeText];
+					
+					[scriptString replaceCharactersInRange:changeRange withString:@"//"];
+					scriptLength += 2;
+					
+					if ((scanPosition < selectedRange.location) || (selectedRange.length == 0))
+						selectedRange.location += 2;
+					else
+						selectedRange.length += 2;
+				}
 			}
 			
 			// now scan forward to the end of this line
@@ -419,12 +488,14 @@ using std::string;
 		
 		[scriptString release];
 		[ts endEditing];
+		
+		// set the new selection in a way that will work with redo
+		[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:selectedRange];
 		[self setSelectedRange:selectedRange];
 		
-		if (syntaxColorState_ == 1)
-			[self syntaxColorForEidos];
-		else if (syntaxColorState_ == 2)
-			[self syntaxColorForOutput];
+		// recolor, coalesced
+		[self setShouldRecolorAfterChanges:YES];
+		[self recolorAfterChanges];
 	}
 	else
 	{
@@ -545,16 +616,14 @@ using std::string;
 			else
 			{
 				// we also let the Context specify special identifiers that we will syntax color
-				if ([delegate respondsToSelector:@selector(tokenStringIsSpecialIdentifier:)])
-					if ([delegate tokenStringIsSpecialIdentifier:token_string])
+				if ([delegate respondsToSelector:@selector(eidosTextView:tokenStringIsSpecialIdentifier:)])
+					if ([delegate eidosTextView:self tokenStringIsSpecialIdentifier:token_string])
 						[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
 			}
 		}
 	}
 	
 	[ts endEditing];
-	
-	syntaxColorState_ = 1;
 }
 
 - (void)syntaxColorForOutput
@@ -678,8 +747,6 @@ using std::string;
 	}
 	
 	[textStorage endEditing];
-	
-	syntaxColorState_ = 2;
 }
 
 - (void)clearSyntaxColoring
@@ -689,9 +756,53 @@ using std::string;
 	[textStorage beginEditing];
 	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
 	[textStorage endEditing];
-	
-	syntaxColorState_ = 0;
 }
+
+- (void)updateSyntaxColoring
+{
+	// This method will clear all syntax coloring if EidosSyntaxColoringOption::NoSyntaxColoring is set, so
+	// it should not be called on every text change, to allow the console textview to maintain its own coloring.
+	// This does not trigger textDidChange (that is done manually), so there is no need for re-entrancy protection.
+	switch (_syntaxColoring)
+	{
+		case kEidosSyntaxColoringNone:
+			[self clearSyntaxColoring];
+			break;
+		case kEidosSyntaxColoringEidos:
+			[self syntaxColorForEidos];
+			break;
+		case kEidosSyntaxColoringOutput:
+			[self syntaxColorForOutput];
+			break;
+	}
+}
+
+- (void)setSyntaxColoring:(EidosSyntaxColoringOption)syntaxColoring
+{
+	if (_syntaxColoring != syntaxColoring)
+	{
+		_syntaxColoring = syntaxColoring;
+		
+		[self updateSyntaxColoring];
+	}
+}
+
+- (void)recolorAfterChanges
+{
+	// We fold in syntax coloring as part of every change set.  If _syntaxColoring==NoSyntaxColoring, we don't do
+	// anything on text changes; we only clear attributes when NoSyntaxColoring is initially set on the textview.
+	if (_syntaxColoring != kEidosSyntaxColoringNone)
+		[self updateSyntaxColoring];
+}
+
+- (void)didChangeText
+{
+	if (_shouldRecolorAfterChanges)
+		[self recolorAfterChanges];
+	
+	[super didChangeText];
+}
+
 
 //
 //	Signature display
@@ -796,8 +907,8 @@ using std::string;
 		// Look for a matching injected function signature first
 		const std::vector<const EidosFunctionSignature *> *injectedSignatures = nullptr;
 		
-		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-				injectedSignatures = [delegate injectedFunctionSignatures];
+		if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
+			injectedSignatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
 		
 		if (injectedSignatures)
 		{
@@ -827,8 +938,8 @@ using std::string;
 		// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos
 		const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
 		
-		if ([delegate respondsToSelector:@selector(allMethodSignatures)])
-			methodSignatures = [delegate allMethodSignatures];
+		if ([delegate respondsToSelector:@selector(eidosTextViewAllMethodSignatures:)])
+			methodSignatures = [delegate eidosTextViewAllMethodSignatures:self];
 		
 		if (!methodSignatures)
 			methodSignatures = gEidos_UndefinedClassObject->Methods();
@@ -1025,8 +1136,8 @@ using std::string;
 	// First, a sorted list of globals
 	EidosSymbolTable *globalSymbolTable = nullptr;
 	
-	if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
-		globalSymbolTable = [delegate globalSymbolTableForCompletion];
+	if ([delegate respondsToSelector:@selector(eidosTextViewGlobalSymbolTableForCompletion:)])
+		globalSymbolTable = [delegate eidosTextViewGlobalSymbolTableForCompletion:self];
 	
 	if (globalSymbolTable)
 	{
@@ -1042,8 +1153,8 @@ using std::string;
 	// Next, a sorted list of injected functions, with () appended
 	const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
 	
-	if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-		signatures = [delegate injectedFunctionSignatures];
+	if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
+		signatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
 	
 	if (signatures)
 	{
@@ -1077,9 +1188,9 @@ using std::string;
 		[globals addObject:@"while"];
 		
 		// keywords from our Context, if any
-		if ([delegate respondsToSelector:@selector(languageKeywordsForCompletion)])
+		if ([delegate respondsToSelector:@selector(eidosTextViewLanguageKeywordsForCompletion:)])
 		{
-			NSArray *keywords = [delegate languageKeywordsForCompletion];
+			NSArray *keywords = [delegate eidosTextViewLanguageKeywordsForCompletion:self];
 			
 			if (keywords)
 				[globals addObjectsFromArray:keywords];
@@ -1225,8 +1336,8 @@ using std::string;
 		// Look in the delegate's list of functions first
 		const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
 		
-		if ([delegate respondsToSelector:@selector(injectedFunctionSignatures)])
-			signatures = [delegate injectedFunctionSignatures];
+		if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
+			signatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
 		
 		if (signatures)
 		{
@@ -1255,8 +1366,8 @@ using std::string;
 		EidosSymbolTable *globalSymbolTable = nullptr;
 		id delegate = [self delegate];
 		
-		if ([delegate respondsToSelector:@selector(globalSymbolTableForCompletion)])
-			globalSymbolTable = [delegate globalSymbolTableForCompletion];
+		if ([delegate respondsToSelector:@selector(eidosTextViewGlobalSymbolTableForCompletion:)])
+			globalSymbolTable = [delegate eidosTextViewGlobalSymbolTableForCompletion:self];
 		
 		EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
 		

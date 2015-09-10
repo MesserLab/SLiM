@@ -21,29 +21,18 @@
 #import <Cocoa/Cocoa.h>
 #import "EidosConsoleTextView.h"
 #import "EidosVariableBrowserController.h"
+#import "EidosConsoleWindowControllerDelegate.h"
 
-#include "eidos_interpreter.h"
 
+/*
+ 
+ EidosConsoleWindowController provides a prefab Eidos console window containing a script view, a console
+ view, a status bar, and various toolbar buttons.  It can be reused in Context code if you just want
+ a standard Eidos console, and can be customized by supplying a delegate to it.
+ 
+ */
 
 extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
-
-
-@protocol EidosConsoleControllerDelegate <NSObject>
-@optional
-- (EidosContext *)eidosContext;
-- (void)appendWelcomeMessageAddendum;
-- (void)injectIntoInterpreter:(EidosInterpreter *)interpreter;
-- (void)checkScriptDidSucceed:(BOOL)succeeded;
-- (void)willExecuteScript;
-- (void)didExecuteScript;
-- (void)consoleWindowWillClose;
-
-// messages from EidosTextViewDelegate that we forward on to our delegate
-- (NSArray *)languageKeywordsForCompletion;
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
-- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures;
-- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string;
-@end
 
 
 @interface EidosConsoleWindowController : NSObject <EidosVariableBrowserDelegate, EidosConsoleTextViewDelegate>
@@ -52,7 +41,16 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 	EidosSymbolTable *global_symbols;
 }
 
+// A delegate may be provided to customize various aspects of this class; see EidosConsoleControllerDelegate.h
 @property (nonatomic, assign) IBOutlet NSObject<EidosConsoleControllerDelegate> *delegate;
+
+// This property controls the enable state of UI that depends on the state of Eidos or its Context.  Some of
+// the console window's UI does not; you can show/hide script help at any time, even if Eidos or its Context
+// is in an invalid state, for example.  Other UI does; you can't execute if things are in an invalid state.
+@property (nonatomic) BOOL interfaceEnabled;
+
+
+// Outlets from ConsoleWindow.xib; it is unlikely that client code will need to access these
 @property (nonatomic, retain) IBOutlet EidosVariableBrowserController *browserController;
 
 @property (nonatomic, retain) IBOutlet NSWindow *scriptWindow;
@@ -63,29 +61,52 @@ extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
 
 @property (nonatomic, assign) IBOutlet NSButton *browserToggleButton;
 
-// This property controls the enable state of UI that depends on the state of Eidos or its Context.  Some of
-// the console window's UI does not; you can show/hide script help at any time, even if Eidos or its Context
-// is in an invalid state, for example.  Other UI does; you can't execute if things are in an invalid state.
-@property (nonatomic) BOOL interfaceEnabled;
 
+// Show the console window and make the console output first responder
 - (void)showWindow;
+
+// Get the console textview; this can be used to append new output in the console, for example
 - (EidosConsoleTextView *)textView;
 
+// Get the current symbol table
 - (EidosSymbolTable *)symbols;
-- (void)invalidateSymbolTable;		// throw away the current symbol table
-- (void)validateSymbolTable;		// make a new symbol table from our delegate's current state
 
+// Throw away the current symbol table
+- (void)invalidateSymbolTable;
+
+// Make a new symbol table from our delegate's current state; this actually executes a minimal script, ";",
+// to produce the symbol table as a side effect of setting up for the script's execution
+- (void)validateSymbolTable;
+
+// Execute the given script string, appending a semicolon if requested and necessary
 - (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon;
 
+
+// Actions used by ConsoleWindow.xib; may be called directly
+
+// Check the syntax of the current script; will call eidosConsoleWindowController:checkScriptDidSucceed:
+// if implemented by the delegate
 - (IBAction)checkScript:(id)sender;
+
+// Executes "help()" in the console, at present; might be made more GUI eventually
 - (IBAction)showScriptHelp:(id)sender;
+
+// Clears all output in the console textview
 - (IBAction)clearOutput:(id)sender;
+
+// Executes all script currently in the script textview
 - (IBAction)executeAll:(id)sender;
+
+// Executes the line(s) containing the selection in the script textview
 - (IBAction)executeSelection:(id)sender;
 
+// Toggles the visibility of the console window, showing it if it is hidden, hiding it if it is shown
 - (IBAction)toggleConsoleVisibility:(id)sender;
 
 @end
+
+
+
 
 
 

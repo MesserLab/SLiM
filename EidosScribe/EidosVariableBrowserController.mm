@@ -156,7 +156,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 		// If we don't have our root wrappers, set up the cache now
 		rootBrowserWrappers = [NSMutableArray new];
 		
-		EidosSymbolTable *symbols = [_delegate symbolTable];
+		EidosSymbolTable *symbols = [_delegate symbolTableForEidosVariableBrowserController:self];
 		
 		{
 			std::vector<std::string> readOnlySymbols = symbols->ReadOnlySymbols();
@@ -216,9 +216,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
-	EidosSymbolTable *symbols = [_delegate symbolTable];
-	
-	if (symbols)
+	if ([_delegate symbolTableForEidosVariableBrowserController:self])
 	{
 		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
 								 
@@ -230,9 +228,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item
 {
-	EidosSymbolTable *symbols = [_delegate symbolTable];
-	
-	if (symbols)
+	if ([_delegate symbolTableForEidosVariableBrowserController:self])
 	{
 		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
 		

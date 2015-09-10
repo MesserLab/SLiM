@@ -251,7 +251,7 @@ typedef enum SLiMLaunchAction
 		{
 			[scriptSyntaxTextView setString:scriptString];
 			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:9.0]];
-			[scriptSyntaxTextView syntaxColorForOutput];
+			[scriptSyntaxTextView setSyntaxColoring:kEidosSyntaxColoringOutput];
 		}
 	}
 	

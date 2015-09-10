@@ -20,31 +20,51 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "eidos_interpreter.h"
 
+/*
+ 
+ A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view.
+ This class uses the standard NSTextView delegate object, but will use the optional methods defined
+ by the EidosTextViewDelegate protocol if implemented by that delegate.
 
-// A subclass to provide various niceties for a syntax-colored, autoindenting, tab-stopped text view
+ */
 
 class EidosCallSignature;
 
+typedef enum EidosSyntaxColoringOption
+{
+	kEidosSyntaxColoringNone = 0,
+	kEidosSyntaxColoringEidos,
+	kEidosSyntaxColoringOutput
+} EidosSyntaxColoringOption;
+
+
 @interface EidosTextView : NSTextView
 {
-	int syntaxColorState_;	// 0 = off, 1 = Eidos, 2 = output; this should be a property, and the syntax coloring
-							// should be managed by this class internally, I suppose...
 }
 
-+ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;	// Menlo 11 with 3-space tabs
+// The syntax coloring option being used
+@property (nonatomic) EidosSyntaxColoringOption syntaxColoring;
 
+// A flag to temporarily disable syntax coloring, used to coalesce multiple changes into a single recolor
+@property (nonatomic) BOOL shouldRecolorAfterChanges;
+
+// The standard font (Menlo 11 with 3-space tabs) with a given color, used to assemble attributed strings
++ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;
+
+// Actions associated with code editing
 - (IBAction)shiftSelectionLeft:(id)sender;
 - (IBAction)shiftSelectionRight:(id)sender;
 - (IBAction)commentUncommentSelection:(id)sender;
 
+// If an error occurs while tokenizing/parsing/executing Eidos code in this textview, call this to highlight the error
 - (void)selectErrorRange;
 
-- (void)syntaxColorForEidos;
-- (void)syntaxColorForOutput;
-- (void)clearSyntaxColoring;
+// Called after disabling syntax coloring with shouldRecolorAfterChanges, to provide the coalesced recoloring
+- (void)recolorAfterChanges;
 
+// These methods are used to construct the function/method prototypes shown in the status bar; client code
+// probably will not call them, but possibly they could be used for context-sensitive help or something
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection;
 - (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall;
 - (NSAttributedString *)attributedStringForSignature:(const EidosCallSignature *)signature;
@@ -52,16 +72,6 @@ class EidosCallSignature;
 @end
 
 
-// A protocol of optional methods that the EidosTextView's delegate can implement
-@protocol EidosTextViewDelegate <NSObject>
-@optional
-- (NSRange)textView:(NSTextView *)textView rangeForUserCompletion:(NSRange)suggestedRange;
-- (EidosSymbolTable *)globalSymbolTableForCompletion;
-- (NSArray *)languageKeywordsForCompletion;
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures;
-- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures;
-- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string;
-@end
 
 
 

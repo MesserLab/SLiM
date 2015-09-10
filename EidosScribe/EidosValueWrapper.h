@@ -25,6 +25,8 @@
 
 /*
  
+ EidosValueWrapper is used by EidosVariableBrowserController; it should never be used directly by client code.
+ 
  EidosValueWrapper is a rather tricky little beast.  The basic point is to provide the variable browser's NSOutlineView with
  Obj-C objects to represent the items that it displays.  Those items are "really" EidosValues of one sort or another – root
  EidosValues from the current symbol table, or sub-values that represent individual elements, properties, etc. from those
@@ -83,4 +85,47 @@
 - (id)displayValue;
 
 @end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

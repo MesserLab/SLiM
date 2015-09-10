@@ -23,8 +23,24 @@
 #include "eidos_symbol_table.h"
 
 
+/*
+ 
+ EidosVariableBrowserController provides a prefab variable browser for Eidos.  It is integrated into
+ EidosConsoleWindowController, so if you use that class, you get the variable browser for free.  If
+ you build your own Eidos UI, you can use EidosVariableBrowserController directly.  In that case,
+ you will need to extract it from ConsoleWindow.xib.
+ 
+ */
+
+
+@class EidosVariableBrowserController;
+
+
+// The variable browser controller gets the symbols to display from its delegate; if you are using
+// EidosConsoleWindowController it typically acts as the delegate for the variable browser, but
+// if you are building your own Eidos user interface you will need to provide this delegate method.
 @protocol EidosVariableBrowserDelegate <NSObject>
-- (EidosSymbolTable *)symbolTable;
+- (EidosSymbolTable *)symbolTableForEidosVariableBrowserController:(EidosVariableBrowserController *)browserController;
 @end
 
 
@@ -35,6 +51,7 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 
 @interface EidosVariableBrowserController : NSObject <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
+@private
 	// Wrappers for the currently displayed objects
 	NSMutableArray *rootBrowserWrappers;
 	
@@ -42,8 +59,10 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 	NSMutableSet *expandedSet;
 }
 
+// The delegate is often EidosConsoleWindowController, but can be your own delegate object
 @property (nonatomic, assign) IBOutlet NSObject<EidosVariableBrowserDelegate> *delegate;
 
+// These properties are used by the nib, and are not likely to be used by clients
 @property (nonatomic, retain) IBOutlet NSWindow *browserWindow;
 @property (nonatomic, assign) IBOutlet NSOutlineView *browserOutline;
 @property (nonatomic, assign) IBOutlet NSTableColumn *symbolColumn;
@@ -51,8 +70,10 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 @property (nonatomic, assign) IBOutlet NSTableColumn *sizeColumn;
 @property (nonatomic, assign) IBOutlet NSTableColumn *valueColumn;
 
+// Trigger a reload of the variable browser when symbols have changed
 - (void)reloadBrowser;
 
+// Make the browser show or hide; will send the appropriate notifications
 - (IBAction)toggleBrowserVisibility:(id)sender;
 
 @end

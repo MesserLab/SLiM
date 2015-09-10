@@ -79,8 +79,8 @@ static NSDictionary *executionAttrs = nil;
 {
 	id delegate = [self delegate];
 	
-	if ([delegate respondsToSelector:@selector(executeConsoleInput:)])
-		[delegate executeConsoleInput:self];
+	if ([delegate respondsToSelector:@selector(eidosConsoleTextViewExecuteInput:)])
+		[delegate eidosConsoleTextViewExecuteInput:self];
 }
 
 // This is option-return or option-enter; we deliberately let it go, to let people put newlines into their input

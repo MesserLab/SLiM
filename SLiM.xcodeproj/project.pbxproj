@@ -387,6 +387,8 @@
 		989790D91AF3D0E100C6B14C /* eidos_test_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test_element.h; sourceTree = "<group>"; };
 		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
 		9898172E1A59750300F7417C /* slim_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_global.h; sourceTree = "<group>"; };
+		98A02F931BA1E3E1002DDE54 /* EidosTextViewDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosTextViewDelegate.h; sourceTree = "<group>"; };
+		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ConsoleWindow.xib; sourceTree = "<group>"; };
@@ -661,10 +663,12 @@
 				985724B31AD478630047C223 /* AppDelegate.h */,
 				985724B41AD478630047C223 /* AppDelegate.mm */,
 				98D218C31B2E213200156FC3 /* EidosTextView.h */,
+				98A02F931BA1E3E1002DDE54 /* EidosTextViewDelegate.h */,
 				98D218C41B2E213200156FC3 /* EidosTextView.mm */,
 				985724E51AD622880047C223 /* EidosConsoleTextView.h */,
 				985724E61AD622880047C223 /* EidosConsoleTextView.mm */,
 				987AD8881B2CDBB80035D6C8 /* EidosConsoleWindowController.h */,
+				98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */,
 				987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */,
 				987AD8841B2CC0C10035D6C8 /* EidosVariableBrowserController.h */,
 				987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */,

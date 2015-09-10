@@ -22,15 +22,26 @@
 #include "EidosConsoleWindowController.h"
 
 
+/*
+ 
+ AppDelegate is an NSApplication delegate for EidosScribe that provides some behavior for menu items and such.
+ If you make your own Context app, you are unlikely to want to reuse this class, although it might illustrate
+ how to set up an EidosConsoleWindowController.
+ 
+ */
+
+
 @interface AppDelegate : NSObject <NSApplicationDelegate, EidosConsoleControllerDelegate>
 {
-	// About window cruft
+	// About window outlets associated with AboutWindow.xib
 	IBOutlet NSWindow *aboutWindow;
 	IBOutlet NSTextField *aboutVersionTextField;
 }
 
+// An outlet for the console controller, associated with ConsoleWindow.xib
 @property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
 
+// Actions for menu commands in MainMenu.xib
 - (IBAction)showAboutWindow:(id)sender;
 
 - (IBAction)sendFeedback:(id)sender;

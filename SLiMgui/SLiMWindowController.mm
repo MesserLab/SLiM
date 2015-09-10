@@ -306,17 +306,17 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightScriptKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightScriptKey])
-				[scriptTextView syntaxColorForEidos];
+				[scriptTextView setSyntaxColoring:kEidosSyntaxColoringEidos];
 			else
-				[scriptTextView clearSyntaxColoring];
+				[scriptTextView setSyntaxColoring:kEidosSyntaxColoringNone];
 		}
 		
 		if ([keyPath isEqualToString:defaultsSyntaxHighlightOutputKey])
 		{
 			if ([defaults boolForKey:defaultsSyntaxHighlightOutputKey])
-				[outputTextView syntaxColorForOutput];
+				[outputTextView setSyntaxColoring:kEidosSyntaxColoringOutput];
 			else
-				[outputTextView clearSyntaxColoring];
+				[outputTextView setSyntaxColoring:kEidosSyntaxColoringNone];
 		}
 	}
 }
@@ -397,7 +397,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
 		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
-			[outputTextView syntaxColorForOutput];
+			[outputTextView recolorAfterChanges];
 		
 		// if the user was scrolled to the bottom, we keep them there; otherwise, we let them stay where they were
 		if (scrolledToBottom)
@@ -588,7 +588,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[scriptTextView setString:scriptString];
 	
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[scriptTextView syntaxColorForEidos];
+		[scriptTextView setSyntaxColoring:kEidosSyntaxColoringEidos];
 	
 	// Set up our chromosome views to show the proper stuff
 	[chromosomeOverview setReferenceChromosomeView:nil];
@@ -1004,9 +1004,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	// any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
 	BOOL stillRunning = YES;
 	
-	[self willExecuteScript];
+	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 	stillRunning = sim->RunOneGeneration();
-	[self didExecuteScript];
+	[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
 	
 	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
 	// happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
@@ -1265,7 +1265,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 	
 	// use our ConsoleWindowController delegate method to play the appropriate sound
-	[self checkScriptDidSucceed:!errorDiagnostic];
+	[self eidosConsoleWindowController:_consoleController checkScriptDidSucceed:!errorDiagnostic];
 	
 	if (errorDiagnostic)
 	{
@@ -1613,12 +1613,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 #pragma mark -
 #pragma mark ConsoleWindowController delegate
 
-- (EidosContext *)eidosContext
+- (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return sim;
 }
 
-- (void)appendWelcomeMessageAddendum
+- (void)eidosConsoleWindowControllerAppendWelcomeMessageAddendum:(EidosConsoleWindowController *)eidosConsoleController
 {
 	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
@@ -1635,28 +1635,23 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[dividerString release];
 	
 	// Run startup tests, if enabled
-	[self willExecuteScript];
+	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 	RunSLiMTests();
-	[self didExecuteScript];
+	[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
 }
 
-- (void)injectIntoInterpreter:(EidosInterpreter *)interpreter
+- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController injectIntoInterpreter:(EidosInterpreter *)interpreter
 {
 	if (sim && !invalidSimulation)
 		sim->InjectIntoInterpreter(*interpreter, nullptr, false);
 }
 
-- (EidosSymbolTable *)globalSymbolTableForCompletion
-{
-	return [_consoleController symbols];
-}
-
-- (NSArray *)languageKeywordsForCompletion
+- (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return @[@"initialize", @"fitness", @"mateChoice", @"modifyChild"];
 }
 
-- (const std::vector<const EidosFunctionSignature*> *)injectedFunctionSignatures
+- (const std::vector<const EidosFunctionSignature*> *)eidosConsoleWindowControllerInjectedFunctionSignatures:(EidosConsoleWindowController *)eidosConsoleController
 {
 	if (sim && !invalidSimulation)
 		return sim->InjectedFunctionSignatures();
@@ -1664,12 +1659,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return nullptr;
 }
 
-- (const std::vector<const EidosMethodSignature*> *)allMethodSignatures
+- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return SLiMSim::AllMethodSignatures();
 }
 
-- (bool)tokenStringIsSpecialIdentifier:(const std::string &)token_string
+- (bool)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if (token_string.compare("sim") == 0)
 		return YES;
@@ -1697,7 +1692,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	return NO;
 }
 
-- (void)checkScriptDidSucceed:(BOOL)succeeded
+- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController checkScriptDidSucceed:(BOOL)succeeded
 {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
@@ -1713,12 +1708,12 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	}
 }
 
-- (void)willExecuteScript
+- (void)eidosConsoleWindowControllerWillExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
 	// Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
 	// The goal here is to keep each SLiM window independent in its random number sequence.
 	if (gEidos_rng)
-		NSLog(@"willExecuteScript: gEidos_rng already set up!");
+		NSLog(@"eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!");
 	
 	gEidos_rng = sim_rng;
 	gEidos_random_bool_bit_counter = sim_random_bool_bit_counter;
@@ -1726,9 +1721,9 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	gEidos_rng_last_seed = sim_rng_last_seed;
 }
 
-- (void)didExecuteScript
+- (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
-	// Swap our random number generator back out again; see -willExecuteScript
+	// Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
 	sim_rng = gEidos_rng;
 	sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
 	sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
@@ -1737,7 +1732,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	gEidos_rng = NULL;
 }
 
-- (void)consoleWindowWillClose
+- (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController
 {
 	[consoleButton setState:NSOffState];
 }
@@ -1814,14 +1809,6 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (void)textDidChange:(NSNotification *)notification
 {
 	NSTextView *textView = (NSTextView *)[notification object];
-	
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-	{
-		if (textView == scriptTextView)
-			[scriptTextView syntaxColorForEidos];
-		else if (textView == outputTextView)
-			[outputTextView syntaxColorForOutput];
-	}
 	
 	if (textView == scriptTextView)
 		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument

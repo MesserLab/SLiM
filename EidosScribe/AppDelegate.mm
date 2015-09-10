@@ -31,6 +31,7 @@
 
 - (void)dealloc
 {
+	// Ask the console controller to forget us as its delegate, to avoid a stale pointer
 	[_consoleController setDelegate:nil];
 	
 	[super dealloc];
@@ -41,10 +42,10 @@
 	// Give Eidos a chance to warm up
 	Eidos_RegisterGlobalStringsAndIDs();
 	
-	// Load our console window nib, which runs Eidos tests as a side effect
+	// Load our console window nib; we are set up as the delegate in the nib
 	[[NSBundle mainBundle] loadNibNamed:@"ConsoleWindow" owner:self topLevelObjects:NULL];
 	
-	// Make the script window visible
+	// Make the console window visible
 	[_consoleController showWindow];
 }
 
@@ -61,6 +62,7 @@
 	
 	// The window is the top-level object in this nib.  It will release itself when closed, so we will retain it on its behalf here.
 	// Note that the aboutWindow and aboutWebView outlets do not get zeroed out when the about window closes; but we only use them here.
+	// This is not very clean programming practice – just a quick and dirty hack – so don't emulate this code.  :->
 	[aboutWindow retain];
 	
 	// Set our version number string
@@ -100,14 +102,17 @@
 #pragma mark -
 #pragma mark EidosConsoleControllerDelegate
 
-- (void)appendWelcomeMessageAddendum
+- (void)eidosConsoleWindowControllerAppendWelcomeMessageAddendum:(EidosConsoleWindowController *)eidosConsoleController
 {
-	// Run startup tests, if enabled
+	// EidosScribe runs the standard Eidos test suite on launch.
+	// You would probably not want to do this in your own Context.
 	RunEidosTests();
 }
 
-- (void)consoleWindowWillClose
+- (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController
 {
+	// EidosScribe quits when its console window is closed, but that
+	// behavior is not in any way required or expected.
 	[[NSApplication sharedApplication] terminate:nil];
 }
 
