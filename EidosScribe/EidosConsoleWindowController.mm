@@ -42,10 +42,10 @@ using std::ostream;
 
 
 // User defaults keys
-NSString *defaultsShowTokensKey = @"ShowTokens";
-NSString *defaultsShowParseKey = @"ShowParse";
-NSString *defaultsShowExecutionKey = @"ShowExecution";
-NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSuccessPanel";
+NSString *EidosDefaultsShowTokensKey = @"EidosShowTokens";
+NSString *EidosDefaultsShowParseKey = @"EidosShowParse";
+NSString *EidosDefaultsShowExecutionKey = @"EidosShowExecution";
+NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScriptCheckSuccessPanel";
 
 
 @implementation EidosConsoleWindowController
@@ -55,10 +55,10 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 + (void)initialize
 {
 	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
-															  defaultsShowTokensKey : @NO,
-															  defaultsShowParseKey : @NO,
-															  defaultsShowExecutionKey : @NO,
-															  defaultsSuppressScriptCheckSuccessPanelKey : @NO
+															  EidosDefaultsShowTokensKey : @NO,
+															  EidosDefaultsShowParseKey : @NO,
+															  EidosDefaultsShowExecutionKey : @NO,
+															  EidosDefaultsSuppressScriptCheckSuccessPanelKey : @NO
 															  }];
 }
 
@@ -283,9 +283,9 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	NSTextStorage *ts = [outputTextView textStorage];
 	NSString *tokenString = nil, *parseString = nil, *executionString = nil, *errorString = nil;
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-	BOOL showTokens = [defaults boolForKey:defaultsShowTokensKey];
-	BOOL showParse = [defaults boolForKey:defaultsShowParseKey];
-	BOOL showExecution = [defaults boolForKey:defaultsShowExecutionKey];
+	BOOL showTokens = [defaults boolForKey:EidosDefaultsShowTokensKey];
+	BOOL showParse = [defaults boolForKey:EidosDefaultsShowParseKey];
+	BOOL showExecution = [defaults boolForKey:EidosDefaultsShowExecutionKey];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	NSRange scriptRange = NSMakeRange(promptEnd, [scriptString length]);
 	
@@ -438,7 +438,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	else
 	{
 		// On success, we optionally show a success alert sheet
-		if (![defaults boolForKey:defaultsSuppressScriptCheckSuccessPanelKey])
+		if (![defaults boolForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey])
 		{
 			NSAlert *alert = [[NSAlert alloc] init];
 			
@@ -450,7 +450,7 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 			
 			[alert beginSheetModalForWindow:scriptWindow completionHandler:^(NSModalResponse returnCode) {
 				if ([[alert suppressionButton] state] == NSOnState)
-					[defaults setBool:YES forKey:defaultsSuppressScriptCheckSuccessPanelKey];
+					[defaults setBool:YES forKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
 				[alert autorelease];
 			}];
 		}

@@ -1294,7 +1294,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 		
 		// On success, we optionally show a success alert sheet
-		if (![defaults boolForKey:defaultsSuppressScriptCheckSuccessPanelKey])
+		if (![defaults boolForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey])
 		{
 			NSAlert *alert = [[NSAlert alloc] init];
 			
@@ -1306,7 +1306,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 			
 			[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
 				if ([[alert suppressionButton] state] == NSOnState)
-					[defaults setBool:YES forKey:defaultsSuppressScriptCheckSuccessPanelKey];
+					[defaults setBool:YES forKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
 				[alert autorelease];
 			}];
 		}

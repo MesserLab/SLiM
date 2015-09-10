@@ -361,7 +361,7 @@
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <connections>
-                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.ShowTokens" id="2YW-Vr-MDo"/>
+                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.EidosShowTokens" id="ZM2-vA-yDl"/>
                                         </connections>
                                     </button>
                                     <button toolTip="show parse tree" translatesAutoresizingMaskIntoConstraints="NO" id="cEY-2Y-8z7" userLabel="Show AST Button">
@@ -375,7 +375,7 @@
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <connections>
-                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.ShowParse" id="C7P-Xf-YqN"/>
+                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.EidosShowParse" id="W8J-Ko-z7R"/>
                                         </connections>
                                     </button>
                                     <button toolTip="show execution" translatesAutoresizingMaskIntoConstraints="NO" id="P85-4x-4pc" userLabel="Show Execution Button">
@@ -389,7 +389,7 @@
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <connections>
-                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.ShowExecution" id="X8E-J9-4gb"/>
+                                            <binding destination="LR2-bE-pWf" name="value" keyPath="values.EidosShowExecution" id="w1y-IU-Wo5"/>
                                         </connections>
                                     </button>
                                 </subviews>

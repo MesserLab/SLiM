@@ -52,6 +52,8 @@ changes to mention in docs:
 building on the command line for me:
 	g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
 
+look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
+	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
 future plans:
 	spatially and temporally varying selection pressures: for mutation-types

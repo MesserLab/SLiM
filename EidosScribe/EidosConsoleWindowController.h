@@ -32,7 +32,12 @@
  
  */
 
-extern NSString *defaultsSuppressScriptCheckSuccessPanelKey;
+
+// Defaults keys used to control various aspects of the user experience
+extern NSString *EidosDefaultsShowTokensKey;
+extern NSString *EidosDefaultsShowParseKey;
+extern NSString *EidosDefaultsShowExecutionKey;
+extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 
 @interface EidosConsoleWindowController : NSObject <EidosVariableBrowserDelegate, EidosConsoleTextViewDelegate>

@@ -137,7 +137,7 @@ typedef enum SLiMLaunchAction
 {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
-	[defaults removeObjectForKey:defaultsSuppressScriptCheckSuccessPanelKey];
+	[defaults removeObjectForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
 }
 
 
