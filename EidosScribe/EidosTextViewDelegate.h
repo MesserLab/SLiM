@@ -35,11 +35,22 @@
  */
 
 @protocol EidosTextViewDelegate <NSObject>
-@optional
+@required
 
 // Provide a global symbol table to use for completion; EidosConsoleWindowController
-// provides the symbol table for the ongoing interpreter context, for example
+// provides the symbol table for the ongoing interpreter context, for example.
+// This is required because without it code completion is completely disabled,
+// but if you really don't wish to implement it you can return nullptr.
 - (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView;
+
+// Supply all method signatures for all methods of all classes; used to show the
+// signature for the currently editing method call in the status bar (note that
+// multiple methods of the same name but with different signatures should be avoided).
+// This is required because without it the status bar's display of methods will not work,
+// but if you really don't wish to implement it you can return nullptr.
+- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
+
+@optional
 
 // Supply additional language keywords that should be completed; used if the Context
 // extends the grammar of Eidos, otherwise can be unimplemented
@@ -48,12 +59,6 @@
 // Supply additional function signatures for functions added by the Context, if any;
 // otherwise can be unimplemented
 - (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView;
-
-// Supply all method signatures for all methods of all classes; used to show the
-// signature for the currently editing method call in the status bar (note that
-// this will not work perfectly if the Context defines multiple methods of the same
-// name but with different signatures)
-- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
 
 // This allows the Context to define some special identifier tokens that should
 // receive different syntax coloring from standard identifiers because they are

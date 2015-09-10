@@ -33,6 +33,11 @@
  */
 
 @protocol EidosConsoleWindowControllerDelegate <NSObject>
+@required
+
+// a message from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
+- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController;
+
 @optional
 
 // If provided, this context object will be handed to EidosInterpreter objects created by the console
@@ -61,6 +66,6 @@
 // messages from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
 - (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController;
 - (const std::vector<const EidosFunctionSignature*> *)eidosConsoleWindowControllerInjectedFunctionSignatures:(EidosConsoleWindowController *)eidosConsoleController;
-- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController;
 - (bool)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+
 @end

@@ -118,6 +118,13 @@
 	[[NSApplication sharedApplication] terminate:nil];
 }
 
+- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
+{
+	// Most of the time, the Context will have classes defined with Eidos methods, and those would need to be returned here.
+	// Since EidosScribe is a very simple Context that defines no object classes, it has nothing to provide here.
+	return nullptr;
+}
+
 @end
 
 

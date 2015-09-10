@@ -40,7 +40,10 @@
 // EidosConsoleWindowController it typically acts as the delegate for the variable browser, but
 // if you are building your own Eidos user interface you will need to provide this delegate method.
 @protocol EidosVariableBrowserDelegate <NSObject>
+@required
+
 - (EidosSymbolTable *)symbolTableForEidosVariableBrowserController:(EidosVariableBrowserController *)browserController;
+
 @end
 
 
