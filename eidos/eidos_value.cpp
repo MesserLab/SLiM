@@ -1777,25 +1777,25 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
 
-bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
-bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first < j.first); }
-bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
-bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first > j.first); }
+static bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
+static bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first < j.first); }
+static bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
+static bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first > j.first); }
 
-bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
-bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)					{ return (i.first < j.first); }
-bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
-bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first > j.first); }
+static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
+static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first < j.first); }
+static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
+static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first > j.first); }
 
-bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
-bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)					{ return (i.first < j.first); }
-bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
-bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)				{ return (i.first > j.first); }
+static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
+static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)				{ return (i.first < j.first); }
+static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
+static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)				{ return (i.first > j.first); }
 
-bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
-bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)		{ return (i.first < j.first); }
-bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
-bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)		{ return (i.first > j.first); }
+static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
+static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)		{ return (i.first < j.first); }
+static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
+static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)	{ return (i.first > j.first); }
 
 void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)
 {
