@@ -107,8 +107,11 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 // Executes the line(s) containing the selection in the script textview
 - (IBAction)executeSelection:(id)sender;
 
-// Toggles the visibility of the console window, showing it if it is hidden, hiding it if it is shown
+// Toggles the visibility of the console window
 - (IBAction)toggleConsoleVisibility:(id)sender;
+
+// Toggles the visibility of the variables browser
+- (IBAction)toggleBrowserVisibility:(id)sender;
 
 @end
 

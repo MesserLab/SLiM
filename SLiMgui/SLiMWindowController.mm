@@ -756,6 +756,11 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	if (sel == @selector(dumpPopulationToOutput:))
 		return !(invalidSimulation);
 	
+	if (sel == @selector(toggleConsoleVisibility:))
+		return [_consoleController validateMenuItem:menuItem];
+	if (sel == @selector(toggleBrowserVisibility:))
+		return [_consoleController validateMenuItem:menuItem];
+	
 	return YES;
 }
 

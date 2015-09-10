@@ -130,20 +130,6 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	[self reloadBrowser];
 }
 
-- (IBAction)toggleBrowserVisibility:(id)sender
-{
-	if ([_browserWindow isVisible])
-	{
-		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
-		[_browserWindow performClose:nil];
-	}
-	else
-	{
-		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillShowNotification object:self];
-		[_browserWindow makeKeyAndOrderFront:nil];
-	}
-}
-
 - (void)invalidateRootWrappers
 {
 	[rootBrowserWrappers makeObjectsPerformSelector:@selector(releaseChildWrappers)];
@@ -192,6 +178,30 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	}
 	
 	return rootBrowserWrappers;
+}
+
+- (IBAction)toggleBrowserVisibility:(id)sender
+{
+	if ([_browserWindow isVisible])
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
+		[_browserWindow performClose:nil];
+	}
+	else
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillShowNotification object:self];
+		[_browserWindow makeKeyAndOrderFront:nil];
+	}
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	if (sel == @selector(toggleBrowserVisibility:))
+		[menuItem setTitle:([_browserWindow isVisible] ? @"Hide Variable Browser" : @"Show Variable Browser")];
+	
+	return YES;
 }
 
 

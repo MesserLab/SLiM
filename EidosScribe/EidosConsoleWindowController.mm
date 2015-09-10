@@ -372,6 +372,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		return uiEnabled;
 	if (sel == @selector(executeSelection:))
 		return uiEnabled;
+	if (sel == @selector(toggleConsoleVisibility:))
+		[menuItem setTitle:([scriptWindow isVisible] ? @"Hide Eidos Console" : @"Show Eidos Console")];
+	if (sel == @selector(toggleBrowserVisibility:))
+		return [browserController validateMenuItem:menuItem];
 	
 	return YES;
 }
@@ -484,6 +488,11 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[scriptWindow performClose:nil];
 	else
 		[scriptWindow makeKeyAndOrderFront:nil];
+}
+
+- (IBAction)toggleBrowserVisibility:(id)sender
+{
+	[browserController toggleBrowserVisibility:nil];
 }
 
 - (IBAction)executeAll:(id)sender
