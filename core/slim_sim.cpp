@@ -55,8 +55,8 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 	}
 	
 	// set up SLiM registrations in Eidos
-	Eidos_RegisterGlobalStringsAndIDs();
-	SLiM_RegisterGlobalStringsAndIDs();
+	Eidos_WarmUp();
+	SLiM_WarmUp();
 	
 	// read all configuration information from the input file
 	p_infile.clear();
@@ -79,8 +79,8 @@ SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_pt
 	}
 	
 	// set up SLiM registrations in Eidos
-	Eidos_RegisterGlobalStringsAndIDs();
-	SLiM_RegisterGlobalStringsAndIDs();
+	Eidos_WarmUp();
+	SLiM_WarmUp();
 	
 	// Open our file stream
 	std::ifstream infile(p_input_file);

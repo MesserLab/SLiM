@@ -31,6 +31,10 @@
 #include "eidos_global.h"
 
 
+// This should be called once at startup to give SLiM an opportunity to initialize static state
+void SLiM_WarmUp(void);
+
+
 // *******************************************************************************************************************
 //
 //	Output handling for SLiM

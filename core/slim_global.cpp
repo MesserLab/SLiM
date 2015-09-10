@@ -21,6 +21,19 @@
 #include "slim_global.h"
 
 
+void SLiM_WarmUp(void)
+{
+	static bool been_here = false;
+	
+	if (!been_here)
+	{
+		been_here = true;
+		
+		SLiM_RegisterGlobalStringsAndIDs();
+	}
+}
+
+
 // a stringstream for SLiM output; see the header for details
 std::ostringstream gSLiMOut;
 

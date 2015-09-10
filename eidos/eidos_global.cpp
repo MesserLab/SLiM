@@ -32,6 +32,19 @@
 #include <unistd.h>
 
 
+void Eidos_WarmUp(void)
+{
+	static bool been_here = false;
+	
+	if (!been_here)
+	{
+		been_here = true;
+		
+		Eidos_RegisterGlobalStringsAndIDs();
+	}
+}
+
+
 // Information on the Context within which Eidos is running (if any).
 std::string gEidosContextVersion;
 std::string gEidosContextLicense;

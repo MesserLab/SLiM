@@ -40,7 +40,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	// Give Eidos a chance to warm up
-	Eidos_RegisterGlobalStringsAndIDs();
+	Eidos_WarmUp();
 	
 	// Load our console window nib; we are set up as the delegate in the nib
 	[[NSBundle mainBundle] loadNibNamed:@"ConsoleWindow" owner:self topLevelObjects:NULL];

@@ -29,6 +29,10 @@ class EidosScript;
 class EidosToken;
 
 
+// This should be called once at startup to give Eidos an opportunity to initialize static state
+void Eidos_WarmUp(void);
+
+
 // Information on the Context within which Eidos is running (if any).  This is basically a way to let the Context
 // customize the version and license information printed by Eidos.
 

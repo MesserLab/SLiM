@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
-			Eidos_RegisterGlobalStringsAndIDs();
+			Eidos_WarmUp();
 			RunEidosTests();
 			exit(0);
 		}
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
-			Eidos_RegisterGlobalStringsAndIDs();
-			SLiM_RegisterGlobalStringsAndIDs();
+			Eidos_WarmUp();
+			SLiM_WarmUp();
 			RunSLiMTests();
 			exit(0);
 		}
