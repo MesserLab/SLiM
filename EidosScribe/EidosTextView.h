@@ -52,6 +52,10 @@ typedef enum EidosSyntaxColoringOption
 // The standard font (Menlo 11 with 3-space tabs) with a given color, used to assemble attributed strings
 + (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;
 
+// Same designated initializers as NSTextView
+- (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)container NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+
 // Actions associated with code editing
 - (IBAction)shiftSelectionLeft:(id)sender;
 - (IBAction)shiftSelectionRight:(id)sender;

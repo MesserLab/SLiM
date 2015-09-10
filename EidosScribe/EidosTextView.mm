@@ -65,6 +65,26 @@ using std::string;
 		return @{NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
 }
 
+- (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)aTextContainer
+{
+	if (self = [super initWithFrame:frameRect textContainer:aTextContainer])
+	{
+		_shouldRecolorAfterChanges = YES;
+	}
+	
+	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	if (self = [super initWithCoder:coder])
+	{
+		_shouldRecolorAfterChanges = YES;
+	}
+	
+	return self;
+}
+
 - (void)awakeFromNib
 {
 	// Turn off all of Cocoa's fancy text editing stuff
@@ -551,19 +571,7 @@ using std::string;
 	EidosScript script(script_string);
 	
 	// Tokenize
-	try
-	{
-		script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
-	}
-	catch (std::runtime_error err)
-	{
-		// if we get a raise, we just use as many tokens as we got; clear the error string buffer
-		EidosGetUntrimmedRaiseMessage();
-		
-		//string raise_msg = EidosGetUntrimmedRaiseMessage();
-		//NSString *errorString = [NSString stringWithUTF8String:raise_msg.c_str()];
-		//NSLog(@"raise during syntax coloring tokenization: %@", errorString);
-	}
+	script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 	
 	// Set up our shared colors
 	static NSColor *numberLiteralColor = nil;
@@ -818,15 +826,7 @@ using std::string;
 		EidosScript script(script_string);
 		
 		// Tokenize
-		try
-		{
-			script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
-		}
-		catch (std::runtime_error err)
-		{
-			// if we get a raise, we just use as many tokens as we got; clear the error string buffer
-			EidosGetUntrimmedRaiseMessage();
-		}
+		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 		const vector<EidosToken *> &tokens = script.Tokens();
 		int tokenCount = (int)tokens.size();
@@ -1528,6 +1528,7 @@ using std::string;
 			// If the previous token was an identifier and we can't extend it, the next thing probably needs to be an operator or something
 			return nil;
 			
+		case EidosTokenType::kTokenBad:
 		case EidosTokenType::kTokenNumber:
 		case EidosTokenType::kTokenString:
 		case EidosTokenType::kTokenRParen:
@@ -1603,15 +1604,7 @@ using std::string;
 		EidosScript script(script_string);
 		
 		// Tokenize
-		try
-		{
-			script.Tokenize(true);	// keep nonsignificant tokens - whitespace and comments
-		}
-		catch (std::runtime_error err)
-		{
-			// if we get a raise, we just use as many tokens as we got; clear the error string buffer
-			EidosGetUntrimmedRaiseMessage();
-		}
+		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 		auto tokens = script.Tokens();
 		int lastTokenIndex = (int)tokens.size() - 1;

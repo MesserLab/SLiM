@@ -77,10 +77,14 @@ public:
 	
 	virtual ~EidosScript(void);												// destructor
 	
-	void Tokenize(bool p_keep_nonsignificant = false);			// generate token stream from script string
-	void AddOptionalSemicolon(void);							// add a semicolon to unterminated input like "6+7" so it works in the console
+	// generate token stream from script string; if p_make_bad_tokens == true this function will not raise or fail
+	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);
 	
-	void ParseInterpreterBlockToAST(void);						// generate AST from token stream for an interpreter block ( statement* EOF )
+	// add a semicolon to unterminated input like "6+7" so it works in the console
+	void AddOptionalSemicolon(void);
+	
+	// generate AST from token stream for an interpreter block ( statement* EOF )
+	void ParseInterpreterBlockToAST(void);
 	
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;

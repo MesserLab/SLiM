@@ -31,9 +31,10 @@
 
 // An enumeration for all token types, whether real or virtual
 enum class EidosTokenType {
-	kTokenNone = 0,
-	kTokenEOF,
-	kTokenWhitespace,
+	kTokenNone = 0,		//			no token; this type should not be in the final token stream
+	kTokenBad,			//			bad token; produced if Tokenize() is instructed not to raise
+	kTokenEOF,			//			end of file; an EOF token is produced explicitly
+	kTokenWhitespace,	//			spaces, tabs, newlines
 	
 	kTokenSemicolon,	// ;		statement terminator
 	kTokenColon,		// :		range operator, as in R

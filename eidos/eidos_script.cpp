@@ -60,7 +60,7 @@ EidosScript::~EidosScript(void)
 	delete parse_root_;
 }
 
-void EidosScript::Tokenize(bool p_keep_nonsignificant)
+void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 {
 	// set up error tracking for this script
 	EidosScript *current_script_save = gEidosCurrentScript;
@@ -236,6 +236,8 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 					bool double_quoted = (ch == '"');
 					
 					// string literal: bounded by double quotes, with escapes (\t, \r, \n, \", \', \\), newlines not allowed
+					token_type = EidosTokenType::kTokenString;
+					
 					do 
 					{
 						// during tokenization we don't treat the error position as a stack
@@ -244,7 +246,15 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
+						{
+							if (p_make_bad_tokens)
+							{
+								token_type = EidosTokenType::kTokenBad;
+								break;
+							}
+							
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+						}
 						
 						int chn = script_string_[token_end + 1];
 						
@@ -258,9 +268,17 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						{
 							// escape sequence; another character must exist
 							if (token_end + 2 == len)
+							{
+								if (p_make_bad_tokens)
+								{
+									token_type = EidosTokenType::kTokenBad;
+									break;
+								}
+								
 								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+							}
 							
-							int ch_esq = script_string_[token_end + 2];
+							char ch_esq = script_string_[token_end + 2];
 							
 							if ((ch_esq == 't') || (ch_esq == 'r') || (ch_esq == 'n') || (ch_esq == '"') || (ch_esq == '\'') || (ch_esq == '\\'))
 							{
@@ -275,13 +293,30 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 							}
 							else
 							{
-								// an illegal escape
-								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+								// an illegal escape; if we are making bad tokens, we tolerate the error and continue
+								if (p_make_bad_tokens)
+								{
+									token_string += ch_esq;
+									token_end += 2;
+								}
+								else
+								{
+									gEidosCharacterStartOfError = token_end + 1;
+									gEidosCharacterEndOfError = token_end + 2;
+									
+									EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+								}
 							}
 						}
 						else if ((chn == '\n') || (chn == '\r'))
 						{
 							// literal newlines are not allowed within string literals at present
+							if (p_make_bad_tokens)
+							{
+								token_type = EidosTokenType::kTokenBad;
+								break;
+							}
+							
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 						}
 						else
@@ -292,20 +327,25 @@ void EidosScript::Tokenize(bool p_keep_nonsignificant)
 						}
 					}
 					while (true);
-					
-					token_type = EidosTokenType::kTokenString;
 				}
 				break;
 		}
 		
 		if (token_type == EidosTokenType::kTokenNone)
 		{
-			// failed to find a match; this causes a syntax error raise
-			// during tokenization we don't treat the error position as a stack
-			gEidosCharacterStartOfError = token_start;
-			gEidosCharacterEndOfError = token_end;
-			
-			EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at character '" << (char)ch << "'." << eidos_terminate();
+			// failed to find a match; this causes either a syntax error raise or a bad token
+			if (p_make_bad_tokens)
+			{
+				token_type = EidosTokenType::kTokenBad;
+			}
+			else
+			{
+				// during tokenization we don't treat the error position as a stack
+				gEidosCharacterStartOfError = token_start;
+				gEidosCharacterEndOfError = token_end;
+				
+				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at character '" << (char)ch << "'." << eidos_terminate();
+			}
 		}
 		
 		// if skip == true, we just discard the token and continue, as for whitespace and comments

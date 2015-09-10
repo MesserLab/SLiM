@@ -240,7 +240,7 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("3e-;", 0, "unrecognized token");
 	EidosAssertScriptRaise("3e;", 0, "unrecognized token");
 	EidosAssertScriptRaise("'foo' + 'foo;", 8, "unexpected EOF");
-	EidosAssertScriptRaise("'foo' + 'foo\\q';", 8, "illegal escape");
+	EidosAssertScriptRaise("'foo' + 'foo\\q';", 12, "illegal escape");
 	EidosAssertScriptRaise("'foo' + 'foo\\", 8, "unexpected EOF");
 	EidosAssertScriptRaise("'foo' + 'foo\n';", 8, "illegal newline");
 	EidosAssertScriptRaise("1e100;", 0, "could not be represented");							// out of range for integer

@@ -30,6 +30,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 	switch (p_token_type)
 	{
 		case EidosTokenType::kTokenNone:				p_outstream << "NO_TOKEN";		break;
+		case EidosTokenType::kTokenBad:					p_outstream << "BAD_TOKEN";		break;
 		case EidosTokenType::kTokenEOF:					p_outstream << "EOF";			break;
 		case EidosTokenType::kTokenWhitespace:			p_outstream << "WS";			break;
 		case EidosTokenType::kTokenSemicolon:			p_outstream << ";";				break;
