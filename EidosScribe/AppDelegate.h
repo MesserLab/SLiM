@@ -31,10 +31,6 @@
 
 @property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
 
-// for ConsoleControllerDelegate
-@property (nonatomic) BOOL continuousPlayOn;
-@property (nonatomic) BOOL generationPlayOn;
-
 - (IBAction)showAboutWindow:(id)sender;
 
 - (IBAction)sendFeedback:(id)sender;
