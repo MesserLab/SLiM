@@ -95,10 +95,10 @@
 
 
 //
-//	ConsoleWindowController delegate methods
+//	EidosConsoleControllerDelegate methods
 //
 #pragma mark -
-#pragma mark ConsoleWindowController delegate
+#pragma mark EidosConsoleControllerDelegate
 
 - (void)appendWelcomeMessageAddendum
 {
