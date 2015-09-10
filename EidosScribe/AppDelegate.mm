@@ -34,6 +34,8 @@
 	// Ask the console controller to forget us as its delegate, to avoid a stale pointer
 	[_consoleController setDelegate:nil];
 	
+	[self setConsoleController:nil];
+	
 	[super dealloc];
 }
 

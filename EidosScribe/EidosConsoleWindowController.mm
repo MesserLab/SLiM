@@ -116,6 +116,8 @@ NSString *defaultsSuppressScriptCheckSuccessPanelKey = @"SuppressScriptCheckSucc
 	[self setMainSplitView:nil];
 	[self setScriptTextView:nil];
 	[self setOutputTextView:nil];
+	[self setStatusTextField:nil];
+	[self setBrowserToggleButton:nil];
 	
 	[super dealloc];
 }

@@ -51,6 +51,8 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	[expandedSet release];
 	expandedSet = nil;
 	
+	[self setBrowserWindow:nil];
+	
 	[super dealloc];
 }
 
