@@ -21,7 +21,7 @@
 #import <Cocoa/Cocoa.h>
 #import "EidosTextView.h"
 
-@class EidosConsoleTextView;
+@protocol EidosConsoleTextViewDelegate;
 
 
 /*
@@ -31,16 +31,6 @@
  build your own Eidos UI, you might wish to use this class to provide a console.
  
  */
-
-
-// A protocol that the delegate should respond to, to be notified when the user presses return/enter; this should
-// trigger execution of the current line of input (i.e., all text after -promptRangeEnd).
-@protocol EidosConsoleTextViewDelegate <NSObject>
-@required
-
-- (void)eidosConsoleTextViewExecuteInput:(EidosConsoleTextView *)textView;
-
-@end
 
 
 @interface EidosConsoleTextView : EidosTextView
@@ -55,16 +45,16 @@
 	BOOL lastHistoryItemIsProvisional;	// got added to the history by a moveUp: event but is not an executed command
 }
 
-// Attribute dictionaries for some syntax coloring types
-+ (NSDictionary *)promptAttrs;
-+ (NSDictionary *)inputAttrs;
-+ (NSDictionary *)outputAttrs;
-+ (NSDictionary *)errorAttrs;
-+ (NSDictionary *)tokensAttrs;
-+ (NSDictionary *)parseAttrs;
-+ (NSDictionary *)executionAttrs;
+// A delegate for Eidos functionality; this is the same object as the NSText/NSTextView delegate, and is not declared explicitly
+// here because overriding properties with a different type doesn't really work.  So when you call setDelegate: on EidosTextView,
+// you will not get the proper type-checking, and you will get a runtime error if your delegate object does not in fact conform
+// to the EidosTextViewDelegate protocol.  But if you declare your conformance to the protocol, you should be fine.  This is a
+// little weird, but the only good alternative is to have a separate delegate object for Eidos, which would just be annoying and
+// confusing.
+//
+//@property (nonatomic, assign) id<EidosConsoleTextViewDelegate> delegate;
 
-// Inisializers are inherited from NSTextView
+// Initializers are inherited from NSTextView
 //- (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)container NS_DESIGNATED_INITIALIZER;
 //- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 

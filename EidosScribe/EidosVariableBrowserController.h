@@ -20,7 +20,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "eidos_symbol_table.h"
+@protocol EidosVariableBrowserControllerDelegate;
 
 
 /*
@@ -33,37 +33,17 @@
  */
 
 
-@class EidosVariableBrowserController;
-
-
-// The variable browser controller gets the symbols to display from its delegate; if you are using
-// EidosConsoleWindowController it typically acts as the delegate for the variable browser, but
-// if you are building your own Eidos user interface you will need to provide this delegate method.
-@protocol EidosVariableBrowserDelegate <NSObject>
-@required
-
-- (EidosSymbolTable *)symbolTableForEidosVariableBrowserController:(EidosVariableBrowserController *)browserController;
-
-@end
-
-
 // Notifications sent to allow other objects that care about the visibility of the browser, such as toggle buttons, to update
 extern NSString *EidosVariableBrowserWillHideNotification;
 extern NSString *EidosVariableBrowserWillShowNotification;
 
 
-@interface EidosVariableBrowserController : NSObject <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
+@interface EidosVariableBrowserController : NSObject
 {
-@private
-	// Wrappers for the currently displayed objects
-	NSMutableArray *rootBrowserWrappers;
-	
-	// A set used to remember expanded items; see -reloadBrowser
-	NSMutableSet *expandedSet;
 }
 
 // The delegate is often EidosConsoleWindowController, but can be your own delegate object
-@property (nonatomic, assign) IBOutlet NSObject<EidosVariableBrowserDelegate> *delegate;
+@property (nonatomic, assign) IBOutlet NSObject<EidosVariableBrowserControllerDelegate> *delegate;
 
 // These properties are used by the nib, and are not likely to be used by clients
 @property (nonatomic, retain) IBOutlet NSWindow *browserWindow;

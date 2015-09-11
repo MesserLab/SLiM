@@ -19,53 +19,11 @@
 
 
 #import "EidosConsoleTextView.h"
-
-
-static NSDictionary *promptAttrs = nil;
-static NSDictionary *inputAttrs = nil;
-static NSDictionary *outputAttrs = nil;
-static NSDictionary *errorAttrs = nil;
-static NSDictionary *tokensAttrs = nil;
-static NSDictionary *parseAttrs = nil;
-static NSDictionary *executionAttrs = nil;
+#import "EidosConsoleTextViewDelegate.h"
+#import "EidosCocoaExtra.h"
 
 
 @implementation EidosConsoleTextView
-
-+ (void)initialize
-{
-	if (!promptAttrs)
-		promptAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]] retain];
-	if (!inputAttrs)
-		inputAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]] retain];
-	if (!outputAttrs)
-		outputAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0]] retain];
-	if (!errorAttrs)
-		errorAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]] retain];
-	if (!tokensAttrs)
-		tokensAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0]] retain];
-	if (!parseAttrs)
-		parseAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]] retain];
-	if (!executionAttrs)
-		executionAttrs = [[EidosTextView consoleTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]] retain];
-}
-
-+ (NSDictionary *)promptAttrs { return promptAttrs; }
-+ (NSDictionary *)inputAttrs { return inputAttrs; }
-+ (NSDictionary *)outputAttrs { return outputAttrs; }
-+ (NSDictionary *)errorAttrs { return errorAttrs; }
-+ (NSDictionary *)tokensAttrs { return tokensAttrs; }
-+ (NSDictionary *)parseAttrs { return parseAttrs; }
-+ (NSDictionary *)executionAttrs { return executionAttrs; }
-
-+ (NSDictionary *)baseAttributes:(NSDictionary *)baseAttrs withHyperlink:(NSString *)link
-{
-	NSMutableDictionary *attrs = [NSMutableDictionary dictionaryWithDictionary:baseAttrs];
-	
-	[attrs setObject:link forKey:NSLinkAttributeName];
-	
-	return attrs;
-}
 
 - (void)dealloc
 {
@@ -100,6 +58,7 @@ static NSDictionary *executionAttrs = nil;
 {
 	NSTextStorage *ts = [self textStorage];
 	NSUInteger promptEnd = [self promptRangeEnd];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
 	NSAttributedString *newAttrCommand = [[NSAttributedString alloc] initWithString:newCommand attributes:inputAttrs];
 	
 	[ts beginEditing];
@@ -220,11 +179,12 @@ static NSDictionary *executionAttrs = nil;
 - (void)showWelcomeMessage
 {
 	NSTextStorage *ts = [self textStorage];
+	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
 	
 	NSAttributedString *welcomeString1 = [[NSAttributedString alloc] initWithString:@"Eidos version 1.0a1\n\nBy Benjamin C. Haller (" attributes:outputAttrs];
-	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[EidosConsoleTextView baseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
+	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
 	NSAttributedString *welcomeString3 = [[NSAttributedString alloc] initWithString:@").\nCopyright (c) 2015 Philipp Messer. All rights reserved.\n\nEidos is free software with ABSOLUTELY NO WARRANTY.\nType license() for license and distribution details.\n\nGo to " attributes:outputAttrs];
-	NSAttributedString *welcomeString4 = [[NSAttributedString alloc] initWithString:@"https://github.com/MesserLab/SLiM" attributes:[EidosConsoleTextView baseAttributes:outputAttrs withHyperlink:@"https://github.com/MesserLab/SLiM"]];
+	NSAttributedString *welcomeString4 = [[NSAttributedString alloc] initWithString:@"https://github.com/MesserLab/SLiM" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"https://github.com/MesserLab/SLiM"]];
 	NSAttributedString *welcomeString5 = [[NSAttributedString alloc] initWithString:@" for source code,\ndocumentation, examples, and other information.\n\nType help() for on-line help.\n\nWelcome to Eidos!\n\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];
@@ -245,6 +205,8 @@ static NSDictionary *executionAttrs = nil;
 - (void)showPrompt
 {
 	NSTextStorage *ts = [self textStorage];
+	NSDictionary *promptAttrs = [NSDictionary eidosPromptAttrs];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
 	
 	// The prompt uses the inputAttrs for the second (space) character, to make sure typing attributes are always correct
 	NSAttributedString *promptString1 = [[NSAttributedString alloc] initWithString:@">" attributes:promptAttrs];

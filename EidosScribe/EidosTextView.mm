@@ -21,6 +21,7 @@
 #import "EidosTextView.h"
 #import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextView.h"
+#import "EidosCocoaExtra.h"
 
 #include "eidos_script.h"
 #include "eidos_call_signature.h"
@@ -34,36 +35,6 @@ using std::string;
 
 
 @implementation EidosTextView
-
-// produce standard text attributes including our font (Menlo 11), tab stops (every three spaces), and font colors for syntax coloring
-+ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor
-{
-	static NSFont *menlo11Font = nil;
-	static NSMutableParagraphStyle *paragraphStyle = nil;
-	
-	if (!menlo11Font)
-		menlo11Font = [[NSFont fontWithName:@"Menlo" size:11.0] retain];
-	
-	if (!paragraphStyle)
-	{
-		paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
-		
-		CGFloat tabInterval = [menlo11Font maximumAdvancement].width * 3;
-		NSMutableArray *tabs = [NSMutableArray array];
-		
-		[paragraphStyle setDefaultTabInterval:tabInterval];
-		
-		for (int tabStop = 1; tabStop <= 20; ++tabStop)
-			[tabs addObject:[[NSTextTab alloc] initWithTextAlignment:NSLeftTextAlignment location:tabInterval * tabStop options:nil]];
-		
-		[paragraphStyle setTabStops:tabs];
-	}
-	
-	if (textColor)
-		return @{NSForegroundColorAttributeName : textColor, NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
-	else
-		return @{NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
-}
 
 - (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)aTextContainer
 {
@@ -100,7 +71,7 @@ using std::string;
 	
 	// Fix the font and typing attributes
 	[self setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
-	[self setTypingAttributes:[EidosTextView consoleTextAttributesWithColor:nil]];
+	[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil]];
 	
 	// Fix text container insets to look a bit nicer; {0,0} by default
 	[self setTextContainerInset:NSMakeSize(0.0, 5.0)];
@@ -470,7 +441,7 @@ using std::string;
 				if ([self shouldChangeTextInRange:changeRange replacementString:@"//"])
 				{
 					[ts replaceCharactersInRange:changeRange withString:@"//"];
-					[ts setAttributes:[EidosTextView consoleTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
+					[ts setAttributes:[NSDictionary eidosTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
 					[self didChangeText];
 					
 					[scriptString replaceCharactersInRange:changeRange withString:@"//"];
@@ -917,7 +888,7 @@ using std::string;
 				const std::string &sig_call_name = sig->function_name_;
 				
 				if (sig_call_name.compare(call_name) == 0)
-					return [self attributedStringForSignature:sig];
+					return [NSAttributedString eidosAttributedStringForSignature:sig];
 			}
 		}
 		
@@ -929,7 +900,7 @@ using std::string;
 			const std::string &sig_call_name = sig->function_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [self attributedStringForSignature:sig];
+				return [NSAttributedString eidosAttributedStringForSignature:sig];
 		}
 	}
 	
@@ -949,14 +920,14 @@ using std::string;
 			const std::string &sig_call_name = sig->function_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [self attributedStringForSignature:sig];
+				return [NSAttributedString eidosAttributedStringForSignature:sig];
 		}
 	}
 	
 	// Assemble an attributed string for our failed lookup message
 	NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
-	NSDictionary *plainAttrs = [EidosConsoleTextView outputAttrs];
-	NSDictionary *functionAttrs = [EidosConsoleTextView parseAttrs];
+	NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
+	NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
 	
 	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:callName attributes:functionAttrs] autorelease]];
 	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"() – unrecognized call" attributes:plainAttrs] autorelease]];
@@ -965,144 +936,6 @@ using std::string;
 	return attrStr;
 }
 
-- (NSAttributedString *)attributedStringForSignature:(const EidosCallSignature *)signature
-{
-	if (signature)
-	{
-		//
-		//	Note this logic is paralleled in the function operator<<(ostream &, const EidosCallSignature &).
-		//	These two should be kept in synch so the user-visible format of signatures is consistent.
-		//
-		
-		// Build an attributed string showing the call signature with syntax coloring for its parts
-		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
-		
-		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "- ", or "+ "
-		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "").c_str()];
-		NSString *functionNameString = [NSString stringWithUTF8String:signature->function_name_.c_str()];
-		
-		NSDictionary *plainAttrs = [EidosConsoleTextView outputAttrs];
-		NSDictionary *typeAttrs = [EidosConsoleTextView inputAttrs];
-		NSDictionary *functionAttrs = [EidosConsoleTextView parseAttrs];
-		NSDictionary *paramAttrs = [EidosConsoleTextView promptAttrs];
-		
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:prefixString attributes:plainAttrs] autorelease]];
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"(" attributes:plainAttrs] autorelease]];
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:returnTypeString attributes:typeAttrs] autorelease]];
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:functionNameString attributes:functionAttrs] autorelease]];
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"(" attributes:plainAttrs] autorelease]];
-		
-		int arg_mask_count = (int)signature->arg_masks_.size();
-		
-		if (arg_mask_count == 0)
-		{
-			if (!signature->has_ellipsis_)
-				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
-		}
-		else
-		{
-			for (int arg_index = 0; arg_index < arg_mask_count; ++arg_index)
-			{
-				EidosValueMask type_mask = signature->arg_masks_[arg_index];
-				const string &arg_name = signature->arg_names_[arg_index];
-				const EidosObjectClass *arg_obj_class = signature->arg_classes_[arg_index];
-				
-				if (arg_index > 0)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
-				
-				//
-				//	Note this logic is paralleled in the function StringForEidosValueMask().
-				//	These two should be kept in synch so the user-visible format of signatures is consistent.
-				//
-				bool is_optional = !!(type_mask & kEidosValueMaskOptional);
-				bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
-				EidosValueMask stripped_mask = type_mask & kEidosValueMaskFlagStrip;
-				
-				if (is_optional)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"[" attributes:plainAttrs] autorelease]];
-				
-				if (stripped_mask == kEidosValueMaskNone)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"?" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskAny)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"*" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskAnyBase)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"+" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskNULL)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskLogical)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"logical" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskString)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"string" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskInt)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"integer" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskFloat)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"float" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskObject)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"object" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskNumeric)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"numeric" attributes:typeAttrs] autorelease]];
-				else
-				{
-					if (stripped_mask & kEidosValueMaskNULL)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"N" attributes:typeAttrs] autorelease]];
-					if (stripped_mask & kEidosValueMaskLogical)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"l" attributes:typeAttrs] autorelease]];
-					if (stripped_mask & kEidosValueMaskInt)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"i" attributes:typeAttrs] autorelease]];
-					if (stripped_mask & kEidosValueMaskFloat)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"f" attributes:typeAttrs] autorelease]];
-					if (stripped_mask & kEidosValueMaskString)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"s" attributes:typeAttrs] autorelease]];
-					if (stripped_mask & kEidosValueMaskObject)
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"o" attributes:typeAttrs] autorelease]];
-				}
-				
-				if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
-				{
-					NSString *objTypeName = [NSString stringWithUTF8String:arg_obj_class->ElementType().c_str()];
-					
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"<" attributes:typeAttrs] autorelease]];
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:objTypeName attributes:typeAttrs] autorelease]];
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@">" attributes:typeAttrs] autorelease]];
-				}
-				
-				if (requires_singleton)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"$" attributes:typeAttrs] autorelease]];
-				
-				if (arg_name.length() > 0)
-				{
-					NSString *argName = [NSString stringWithUTF8String:arg_name.c_str()];
-					
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:argName attributes:paramAttrs] autorelease]];
-				}
-				
-				if (is_optional)
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"]" attributes:plainAttrs] autorelease]];
-			}
-		}
-		
-		if (signature->has_ellipsis_)
-		{
-			if (arg_mask_count > 0)
-				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
-			
-			[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"..." attributes:typeAttrs] autorelease]];
-		}
-		
-		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
-		
-		// if the function is provided by a delegate, show the delegate's name
-		//p_outstream << p_signature.CallDelegate();
-		
-		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
-		
-		return attrStr;
-	}
-	
-	return [[[NSAttributedString alloc] init] autorelease];
-}
 
 //
 //	Auto-completion

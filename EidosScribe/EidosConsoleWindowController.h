@@ -21,7 +21,8 @@
 #import <Cocoa/Cocoa.h>
 #import "EidosConsoleTextView.h"
 #import "EidosVariableBrowserController.h"
-#import "EidosConsoleWindowControllerDelegate.h"
+
+@protocol EidosConsoleWindowControllerDelegate;
 
 
 /*
@@ -40,10 +41,8 @@ extern NSString *EidosDefaultsShowExecutionKey;
 extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 
-@interface EidosConsoleWindowController : NSObject <EidosVariableBrowserDelegate, EidosConsoleTextViewDelegate>
+@interface EidosConsoleWindowController : NSObject
 {
-	// The symbol table for the console interpreter; needs to be wiped whenever the symbol table changes
-	EidosSymbolTable *global_symbols;
 }
 
 // A delegate may be provided to customize various aspects of this class; see EidosConsoleWindowControllerDelegate.h
@@ -74,9 +73,6 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 // Get the console textview; this can be used to append new output in the console, for example
 - (EidosConsoleTextView *)textView;
-
-// Get the current symbol table
-- (EidosSymbolTable *)symbols;
 
 // Throw away the current symbol table
 - (void)invalidateSymbolTable;

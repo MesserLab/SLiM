@@ -24,6 +24,25 @@
 #include "eidos_property_signature.h"
 
 
+@interface EidosValueWrapper ()
+{
+@private
+	EidosValueWrapper *parentWrapper;
+	
+	NSString *wrappedName;		// the displayed name
+	int wrappedIndex;			// the index of wrappedValue upon which the row is based; -1 if the row represents the whole value
+	int wrappedSiblingCount;	// the number of siblings of this item; used for -hash and -isEqual:
+	
+	EidosValue *wrappedValue;	// the value upon which the row is based; this may be invalid after the state of the Eidos interpreter changes
+	BOOL valueIsOurs;			// if YES, we dispose of the wrapped value ourselves, if NO, the Context owns it
+	BOOL isExpandable;			// a cached value; YES if wrappedValue is of type object, NO otherwise
+	BOOL isConstant;			// is this value a built-in Eidos constant?
+	
+	NSMutableArray *childWrappers;
+}
+@end
+
+
 @implementation EidosValueWrapper
 
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue

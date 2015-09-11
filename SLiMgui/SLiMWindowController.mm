@@ -42,6 +42,7 @@
 #import "ScriptMod_AddGenomicElement.h"
 #import "ScriptMod_AddRecombinationRate.h"
 #import "ScriptMod_AddSexConfiguration.h"
+#import "EidosCocoaExtra.h"
 #import "eidos_call_signature.h"
 #import "slim_test.h"
 
@@ -197,7 +198,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	
 	// Show the error in the status bar also
 	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-	NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
+	NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
 	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 	
 	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -1288,7 +1289,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
+		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -1627,7 +1628,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 {
 	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
-	NSDictionary *outputAttrs = [EidosConsoleTextView outputAttrs];
+	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
 	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\nSLiM version 2.0a3.\n" attributes:outputAttrs];
 	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
@@ -1838,7 +1839,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
 				
-				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"fitness()"])
 			{
@@ -1847,7 +1848,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("fitness", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"mateChoice()"])
 			{
@@ -1856,7 +1857,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("mateChoice", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"modifyChild()"])
 			{
@@ -1865,7 +1866,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("modifyChild", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [scriptTextView attributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
 			}
 		}
 		

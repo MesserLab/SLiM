@@ -20,11 +20,14 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "eidos_value.h"
+class EidosValue;
 
 
 /*
  
+ This is an Objective-C++ header, and so can only be included by Objective-C++ compilations (.mm files instead of .m files).
+ You should not need to include this header in your .h files, since you can declare protocol conformance in a class-continuation
+ category in your .m file, so only classes that conform to this protocol should need to be Objective-C++.  However,
  EidosValueWrapper is used by EidosVariableBrowserController; it should never be used directly by client code.
  
  EidosValueWrapper is a rather tricky little beast.  The basic point is to provide the variable browser's NSOutlineView with
@@ -52,19 +55,6 @@
 
 @interface EidosValueWrapper : NSObject
 {
-@private
-	EidosValueWrapper *parentWrapper;
-	
-	NSString *wrappedName;		// the displayed name
-	int wrappedIndex;			// the index of wrappedValue upon which the row is based; -1 if the row represents the whole value
-	int wrappedSiblingCount;	// the number of siblings of this item; used for -hash and -isEqual:
-	
-	EidosValue *wrappedValue;	// the value upon which the row is based; this may be invalid after the state of the Eidos interpreter changes
-	BOOL valueIsOurs;			// if YES, we dispose of the wrapped value ourselves, if NO, the Context owns it
-	BOOL isExpandable;			// a cached value; YES if wrappedValue is of type object, NO otherwise
-	BOOL isConstant;			// is this value a built-in Eidos constant?
-	
-	NSMutableArray *childWrappers;
 }
 
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue;

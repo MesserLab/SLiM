@@ -20,19 +20,29 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "eidos_interpreter.h"
+#include <vector>
+#include <string>
 
 @class EidosConsoleWindowController;
+class EidosInterpreter;
+class EidosObjectElement;
+typedef EidosObjectElement EidosContext;
+class EidosMethodSignature;
+class EidosFunctionSignature;
 
 
 /*
  
- A protocol of optional methods that EidosConsoleWindowController's delegate can implement,
- to provide various Context-defined behaviors and modifications.
+ This is an Objective-C++ header, and so can only be included by Objective-C++ compilations (.mm files instead of .m files).
+ You should not need to include this header in your .h files, since you can declare protocol conformance in a class-continuation
+ category in your .m file, so only classes that conform to this protocol should need to be Objective-C++.
+ 
+ EidosConsoleWindowControllerDelegate is a protocol of optional methods that EidosConsoleWindowController's delegate can
+ implement, to provide various Context-defined behaviors and modifications.
 
  */
 
-@protocol EidosConsoleWindowControllerDelegate <NSObject>
+@protocol EidosConsoleWindowControllerDelegate
 @required
 
 // a message from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h

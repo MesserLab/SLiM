@@ -20,6 +20,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+@protocol EidosTextViewDelegate;
+
 
 /*
  
@@ -28,8 +30,6 @@
  by the EidosTextViewDelegate protocol if implemented by that delegate.
 
  */
-
-class EidosCallSignature;
 
 typedef enum EidosSyntaxColoringOption
 {
@@ -43,14 +43,20 @@ typedef enum EidosSyntaxColoringOption
 {
 }
 
+// A delegate for Eidos functionality; this is the same object as the NSText/NSTextView delegate, and is not declared explicitly
+// here because overriding properties with a different type doesn't really work.  So when you call setDelegate: on EidosTextView,
+// you will not get the proper type-checking, and you will get a runtime error if your delegate object does not in fact conform
+// to the EidosTextViewDelegate protocol.  But if you declare your conformance to the protocol, you should be fine.  This is a
+// little weird, but the only good alternative is to have a separate delegate object for Eidos, which would just be annoying and
+// confusing.
+//
+//@property (nonatomic, assign) id<EidosTextViewDelegate> delegate;
+
 // The syntax coloring option being used
 @property (nonatomic) EidosSyntaxColoringOption syntaxColoring;
 
 // A flag to temporarily disable syntax coloring, used to coalesce multiple changes into a single recolor
 @property (nonatomic) BOOL shouldRecolorAfterChanges;
-
-// The standard font (Menlo 11 with 3-space tabs) with a given color, used to assemble attributed strings
-+ (NSDictionary *)consoleTextAttributesWithColor:(NSColor *)textColor;
 
 // Same designated initializers as NSTextView
 - (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)container NS_DESIGNATED_INITIALIZER;
@@ -71,7 +77,6 @@ typedef enum EidosSyntaxColoringOption
 // probably will not call them, but possibly they could be used for context-sensitive help or something
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection;
 - (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall;
-- (NSAttributedString *)attributedStringForSignature:(const EidosCallSignature *)signature;
 
 @end
 

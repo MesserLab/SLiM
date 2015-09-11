@@ -19,7 +19,11 @@
 
 
 #import "EidosConsoleWindowController.h"
+#import "EidosConsoleWindowControllerDelegate.h"
 #import "EidosTextView.h"
+#import "EidosCocoaExtra.h"
+#import "EidosVariableBrowserControllerDelegate.h"
+#import "EidosConsoleTextViewDelegate.h"
 
 #include "eidos_script.h"
 #include "eidos_global.h"
@@ -46,6 +50,14 @@ NSString *EidosDefaultsShowTokensKey = @"EidosShowTokens";
 NSString *EidosDefaultsShowParseKey = @"EidosShowParse";
 NSString *EidosDefaultsShowExecutionKey = @"EidosShowExecution";
 NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScriptCheckSuccessPanel";
+
+
+@interface EidosConsoleWindowController () <EidosVariableBrowserControllerDelegate, EidosConsoleTextViewDelegate>
+{
+	// The symbol table for the console interpreter; needs to be wiped whenever the symbol table changes
+	EidosSymbolTable *global_symbols;
+}
+@end
 
 
 @implementation EidosConsoleWindowController
@@ -297,12 +309,12 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 							 addOptionalSemicolon:addSemicolon];
 	
 	// make the attributed strings we will append
-	NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[EidosConsoleTextView inputAttrs]];
-	NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[EidosConsoleTextView outputAttrs]] : nil);
-	NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[EidosConsoleTextView errorAttrs]] : nil);
-	NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[EidosConsoleTextView tokensAttrs]] : nil);
-	NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[EidosConsoleTextView parseAttrs]] : nil);
-	NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[EidosConsoleTextView executionAttrs]] : nil);;
+	NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
+	NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[NSDictionary eidosOutputAttrs]] : nil);
+	NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[NSDictionary eidosErrorAttrs]] : nil);
+	NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[NSDictionary eidosTokensAttrs]] : nil);
+	NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[NSDictionary eidosParseAttrs]] : nil);
+	NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[NSDictionary eidosExecutionAttrs]] : nil);;
 	
 	// do the editing
 	[ts beginEditing];
@@ -433,7 +445,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [EidosTextView consoleTextAttributesWithColor:[NSColor redColor]];
+		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -466,7 +478,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 - (IBAction)showScriptHelp:(id)sender
 {
 	NSTextStorage *ts = [outputTextView textStorage];
-	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:@"help()" attributes:[EidosConsoleTextView inputAttrs]] autorelease];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:@"help()" attributes:inputAttrs] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
 	[ts beginEditing];
@@ -498,8 +511,9 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 - (IBAction)executeAll:(id)sender
 {
 	NSTextStorage *ts = [outputTextView textStorage];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
 	NSString *fullScriptString = [scriptTextView string];
-	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:fullScriptString attributes:[EidosConsoleTextView inputAttrs]] autorelease];
+	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:fullScriptString attributes:inputAttrs] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
 	[ts beginEditing];
@@ -561,7 +575,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if (executionRange.length > 0)
 	{
 		NSString *scriptString = [fullScriptString substringWithRange:executionRange];
-		NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:scriptString attributes:[EidosConsoleTextView inputAttrs]] autorelease];
+		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+		NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:scriptString attributes:inputAttrs] autorelease];
 		NSUInteger promptEnd = [outputTextView promptRangeEnd];
 		
 		[ts beginEditing];

@@ -19,22 +19,29 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "eidos_symbol_table.h"
+#include <vector>
+#include <string>
 
 @class EidosTextView;
+class EidosSymbolTable;
+class EidosFunctionSignature;
+class EidosMethodSignature;
 
 
 /*
  
- A protocol of optional methods that EidosTextView's delegate can implement, to
- allow the Context to customize code completion in an EidosTextView.  Note that
- if EidosConsoleWindowController is used, these methods get forwarded on by its
- delegate as well, so that EidosConsoleWindowController also gets Context-defined
- behavior.
+ This is an Objective-C++ header, and so can only be included by Objective-C++ compilations (.mm files instead of .m files).
+ You should not need to include this header in your .h files, since you can declare protocol conformance in a class-continuation
+ category in your .m file, so only classes that conform to this protocol should need to be Objective-C++.
+ 
+ EidosTextViewDelegate is a protocol of optional methods that EidosTextView's delegate can implement, to allow the Context to
+ customize code completion in an EidosTextView.  Note that if EidosConsoleWindowController is used, these methods get forwarded
+ on by its delegate as well, so that EidosConsoleWindowController also gets Context-defined behavior.
 
  */
 
-@protocol EidosTextViewDelegate <NSObject>
+
+@protocol EidosTextViewDelegate
 @required
 
 // Provide a global symbol table to use for completion; EidosConsoleWindowController

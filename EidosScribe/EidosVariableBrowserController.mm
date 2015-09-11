@@ -19,9 +19,11 @@
 
 
 #import "EidosVariableBrowserController.h"
+#import "EidosVariableBrowserControllerDelegate.h"
 #import "EidosValueWrapper.h"
 
 #include "eidos_property_signature.h"
+#include "eidos_symbol_table.h"
 
 #include <sstream>
 
@@ -29,6 +31,18 @@
 // Notifications sent to allow other objects that care about the visibility of the browser, such as toggle buttons, to update
 NSString *EidosVariableBrowserWillHideNotification = @"EidosVariableBrowserWillHide";
 NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillShow";
+
+
+@interface EidosVariableBrowserController () <NSWindowDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate>
+{
+@private
+	// Wrappers for the currently displayed objects
+	NSMutableArray *rootBrowserWrappers;
+	
+	// A set used to remember expanded items; see -reloadBrowser
+	NSMutableSet *expandedSet;
+}
+@end
 
 
 @implementation EidosVariableBrowserController
@@ -123,7 +137,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	[self expandItemsInSet:expandedSet belowItem:nil];
 }
 
-- (void)setDelegate:(NSObject<EidosVariableBrowserDelegate> *)newDelegate
+- (void)setDelegate:(NSObject<EidosVariableBrowserControllerDelegate> *)newDelegate
 {
 	_delegate = newDelegate;
 	

@@ -1,8 +1,8 @@
 //
-//  AppDelegate.h
-//  EidosScribe
+//  EidosConsoleTextViewDelegate.h
+//  SLiM
 //
-//  Created by Ben Haller on 4/7/15.
+//  Created by Ben Haller on 9/11/15.
 //  Copyright (c) 2015 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
@@ -20,49 +20,17 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class EidosConsoleWindowController;
+@class EidosConsoleTextView;
 
 
-/*
- 
- AppDelegate is an NSApplication delegate for EidosScribe that provides some behavior for menu items and such.
- If you make your own Context app, you are unlikely to want to reuse this class, although it might illustrate
- how to set up an EidosConsoleWindowController.
- 
- */
+// A protocol that the delegate should respond to, to be notified when the user presses return/enter; this should
+// trigger execution of the current line of input (i.e., all text after -promptRangeEnd).
+@protocol EidosConsoleTextViewDelegate
+@required
 
-
-@interface AppDelegate : NSObject
-{
-}
-
-// An outlet for the console controller, associated with ConsoleWindow.xib
-@property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
-
-// Actions for menu commands in MainMenu.xib
-- (IBAction)showAboutWindow:(id)sender;
-
-- (IBAction)sendFeedback:(id)sender;
-- (IBAction)showMesserLab:(id)sender;
-- (IBAction)showBenHaller:(id)sender;
-- (IBAction)showStickSoftware:(id)sender;
+- (void)eidosConsoleTextViewExecuteInput:(EidosConsoleTextView *)textView;
 
 @end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

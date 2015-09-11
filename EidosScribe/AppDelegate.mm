@@ -21,10 +21,22 @@
 #import "AppDelegate.h"
 #import "EidosTextView.h"
 #import "EidosValueWrapper.h"
+#import "EidosConsoleWindowController.h"
+#import "EidosConsoleWindowControllerDelegate.h"
 
+#include "eidos_global.h"
 #include "eidos_test.h"
 
 #include <stdexcept>
+
+
+@interface AppDelegate () <NSApplicationDelegate, EidosConsoleWindowControllerDelegate>
+{
+	// About window outlets associated with AboutWindow.xib
+	IBOutlet NSWindow *aboutWindow;
+	IBOutlet NSTextField *aboutVersionTextField;
+}
+@end
 
 
 @implementation AppDelegate

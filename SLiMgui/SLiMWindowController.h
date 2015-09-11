@@ -29,6 +29,7 @@
 #import "CocoaExtra.h"
 #import "EidosConsoleTextView.h"
 #import "EidosConsoleWindowController.h"
+#import "EidosConsoleWindowControllerDelegate.h"
 
 
 @interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate>
