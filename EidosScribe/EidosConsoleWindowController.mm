@@ -23,6 +23,7 @@
 #import "EidosTextView.h"
 #import "EidosCocoaExtra.h"
 #import "EidosVariableBrowserControllerDelegate.h"
+#import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextViewDelegate.h"
 
 #include "eidos_script.h"
@@ -132,6 +133,19 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[self setBrowserToggleButton:nil];
 	
 	[super dealloc];
+}
+
+- (void)setDelegate:(NSObject<EidosConsoleWindowControllerDelegate> *)newDelegate
+{
+	if (![newDelegate conformsToProtocol:@protocol(EidosConsoleWindowControllerDelegate)])
+		NSLog(@"Delegate %@ assigned to EidosConsoleWindowController %p does not conform to the EidosConsoleWindowControllerDelegate protocol!", newDelegate, self);
+	
+	delegate = newDelegate;	// nonatomic, assign
+}
+
+- (NSObject<EidosConsoleWindowControllerDelegate> *)delegate
+{
+	return delegate;
 }
 
 - (void)browserWillShow:(NSNotification *)note
@@ -594,10 +608,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 
 //
-//	VariableBrowserController delegate methods
+//	VariableBrowserControllerDelegate methods
 //
 #pragma mark -
-#pragma mark VariableBrowserController delegate
+#pragma mark VariableBrowserControllerDelegate
 
 - (EidosSymbolTable *)symbolTableForEidosVariableBrowserController:(EidosVariableBrowserController *)browserController
 {
@@ -606,10 +620,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 
 //
-//	NSTextView delegate methods
+//	NSTextViewDelegate methods
 //
 #pragma mark -
-#pragma mark NSTextView delegate
+#pragma mark NSTextViewDelegate
 
 - (NSRange)textView:(NSTextView *)textView willChangeSelectionFromCharacterRange:(NSRange)oldRange toCharacterRange:(NSRange)newRange
 {
@@ -635,6 +649,13 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return YES;
 }
 
+
+//
+//	EidosConsoleTextViewDelegate methods
+//
+#pragma mark -
+#pragma mark EidosConsoleTextViewDelegate
+
 - (void)eidosConsoleTextViewExecuteInput:(EidosConsoleTextView *)textView
 {
 	if (textView == outputTextView)
@@ -646,6 +667,13 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[self executeScriptString:scriptString addOptionalSemicolon:YES];
 	}
 }
+
+
+//
+//	EidosTextViewDelegate methods
+//
+#pragma mark -
+#pragma mark EidosTextViewDelegate
 
 - (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
 {

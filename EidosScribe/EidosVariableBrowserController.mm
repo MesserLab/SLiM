@@ -70,6 +70,17 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	[super dealloc];
 }
 
+- (void)setDelegate:(NSObject<EidosVariableBrowserControllerDelegate> *)newDelegate
+{
+	if (![newDelegate conformsToProtocol:@protocol(EidosVariableBrowserControllerDelegate)])
+		NSLog(@"Delegate %@ assigned to EidosVariableBrowserController %p does not conform to the EidosVariableBrowserControllerDelegate protocol!", newDelegate, self);
+	
+	_delegate = newDelegate;	// nonatomic, assign
+	
+	// Since our delegate defines what appears in our outline view, we need to reload when the delegate changes
+	[self reloadBrowser];
+}
+
 - (void)expandItemsInSet:(NSSet *)set belowItem:(id)parentItem
 {
 	NSUInteger childCount = [_browserOutline numberOfChildrenOfItem:parentItem];
@@ -135,13 +146,6 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	
 	// Go through and expand items as needed
 	[self expandItemsInSet:expandedSet belowItem:nil];
-}
-
-- (void)setDelegate:(NSObject<EidosVariableBrowserControllerDelegate> *)newDelegate
-{
-	_delegate = newDelegate;
-	
-	[self reloadBrowser];
 }
 
 - (void)invalidateRootWrappers

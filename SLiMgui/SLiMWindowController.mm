@@ -1614,10 +1614,10 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 
 //
-//	ConsoleWindowController delegate methods
+//	EidosConsoleWindowControllerDelegate methods
 //
 #pragma mark -
-#pragma mark ConsoleWindowController delegate
+#pragma mark EidosConsoleWindowControllerDelegate
 
 - (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController
 {
@@ -1741,6 +1741,44 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController
 {
 	[consoleButton setState:NSOffState];
+}
+
+
+//
+//	EidosTextViewDelegate methods
+//
+#pragma mark -
+#pragma mark EidosTextViewDelegate
+
+// This is necessary because we are both a EidosTextViewDelegate (for the views we directly contain) and an
+// EidosConsoleWindowControllerDelegate (for the console window we own), and the delegate protocols are similar
+// but not identical.  This protocol just forwards on to the EidosConsoleWindowControllerDelegate methods.
+
+- (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
+{
+	// This ugly cast is because EidosConsoleWindowController declares its conformance to EidosTextViewDelegate
+	// in its class continuation, which we don't want to change but which is not visible here.  Sigh.
+	return [(NSObject<EidosTextViewDelegate> *)_consoleController eidosTextViewGlobalSymbolTableForCompletion:eidosTextView];
+}
+
+- (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;
+{
+	return [self eidosConsoleWindowControllerLanguageKeywordsForCompletion:nullptr];
+}
+
+- (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView;
+{
+	return [self eidosConsoleWindowControllerInjectedFunctionSignatures:nullptr];
+}
+
+- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
+{
+	return [self eidosConsoleWindowControllerAllMethodSignatures:nullptr];
+}
+
+- (bool)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+{
+	return [self eidosConsoleWindowController:nullptr tokenStringIsSpecialIdentifier:token_string];
 }
 
 

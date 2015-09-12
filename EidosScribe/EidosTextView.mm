@@ -77,6 +77,15 @@ using std::string;
 	[self setTextContainerInset:NSMakeSize(0.0, 5.0)];
 }
 
+// The method signature is inherited from NSTextView, but we want to check that the delegate follows our delegate protocol
+- (void)setDelegate:(id<NSTextViewDelegate>)delegate
+{
+	if (![delegate conformsToProtocol:@protocol(EidosTextViewDelegate)])
+		NSLog(@"Delegate %@ assigned to EidosTextView %p does not conform to the EidosTextViewDelegate protocol!", delegate, self);
+	
+	[super setDelegate:delegate];
+}
+
 // handle autoindent by matching the whitespace beginning the current line
 - (void)insertNewline:(id)sender
 {

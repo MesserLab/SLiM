@@ -41,7 +41,7 @@ class EidosMethodSignature;
  */
 
 
-@protocol EidosTextViewDelegate
+@protocol EidosTextViewDelegate <NSTextViewDelegate>
 @required
 
 // Provide a global symbol table to use for completion; EidosConsoleWindowController

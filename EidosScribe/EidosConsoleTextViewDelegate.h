@@ -25,7 +25,7 @@
 
 // A protocol that the delegate should respond to, to be notified when the user presses return/enter; this should
 // trigger execution of the current line of input (i.e., all text after -promptRangeEnd).
-@protocol EidosConsoleTextViewDelegate
+@protocol EidosConsoleTextViewDelegate <EidosTextViewDelegate>
 @required
 
 - (void)eidosConsoleTextViewExecuteInput:(EidosConsoleTextView *)textView;

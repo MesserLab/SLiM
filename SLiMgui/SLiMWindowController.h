@@ -27,12 +27,14 @@
 #import "PopulationView.h"
 #import "GraphView.h"
 #import "CocoaExtra.h"
+#import "EidosTextView.h"
+#import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextView.h"
 #import "EidosConsoleWindowController.h"
 #import "EidosConsoleWindowControllerDelegate.h"
 
 
-@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate>
+@interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate, EidosTextViewDelegate>
 {
 @public
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
