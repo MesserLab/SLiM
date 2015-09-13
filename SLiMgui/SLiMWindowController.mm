@@ -1323,9 +1323,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (IBAction)showScriptHelp:(id)sender
 {
-	// the AppDelegate manages the syntax help window, since it is a singleton, but it needs to know that we're
-	// the one requesting it, so it can position the window next to us nicely, so we handle the action for it.
-	[(AppDelegate *)[NSApp delegate] showScriptSyntaxHelpForSLiMWindowController:self];
+	[_consoleController showScriptHelp:sender];
 }
 
 - (IBAction)toggleConsoleVisibility:(id)sender

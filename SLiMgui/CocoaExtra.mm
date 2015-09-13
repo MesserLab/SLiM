@@ -288,17 +288,6 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 }
 
 
-@implementation SLiMWhiteView
-
-- (void)drawRect:(NSRect)dirtyRect
-{
-	[[NSColor whiteColor] set];
-	NSRectFill(dirtyRect);
-}
-
-@end
-
-
 @implementation SLiMMenuButton
 
 - (void)fixMenu

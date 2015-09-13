@@ -20,6 +20,7 @@
 
 #import "AppDelegate.h"
 #import "SLiMWindowController.h"
+#import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import <WebKit/WebKit.h>
 
@@ -54,6 +55,13 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
+	// Warm up our back ends
+	Eidos_WarmUp();
+	SLiM_WarmUp();
+	
+	// Add SLiM help items
+	[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpText" underHeading:@"SLiM"];
+	
 	// Poke SLiMDocumentController so it gets set up before NSDocumentController gets in.  Note we don't need to keep a
 	// reference to this, because AppKit will return it to us as +[NSDocumentController sharedDocumentController].
 	[[SLiMDocumentController alloc] init];
@@ -225,56 +233,6 @@ typedef enum SLiMLaunchAction
 - (IBAction)showStickSoftware:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.sticksoftware.com/"]];
-}
-
-- (void)showScriptSyntaxHelpForSLiMWindowController:(SLiMWindowController *)windowController
-{
-	if (!scriptSyntaxWindow)
-	{
-		[[NSBundle mainBundle] loadNibNamed:@"ScriptSyntaxHelp" owner:self topLevelObjects:NULL];
-		
-		// The window is the top-level object in this nib.  It will not release itself when closed, so it will stay around forever
-		// (to improve reopening speed).  We retain it here on its behalf.
-		[scriptSyntaxWindow retain];
-		
-		// The textview is a separate object that needs to be added to the window's content view, because we don't want
-		// it inside a scrollview/clipview, and IB is weird about allowing that...
-		[scriptSyntaxTextView setFrame:[scriptSyntaxWhiteView frame]];
-		[scriptSyntaxWhiteView addSubview:scriptSyntaxTextView];
-		[scriptSyntaxTextView setFrame:NSOffsetRect([scriptSyntaxTextView frame], 0, -5)];
-		
-		// Load our help script, format it, etc.
-		NSURL *scriptURL = [[NSBundle mainBundle] URLForResource:@"ScriptSyntaxHelp" withExtension:@"txt"];
-		NSString *scriptString = [NSString stringWithContentsOfURL:scriptURL encoding:NSUTF8StringEncoding error:NULL];
-		
-		if (scriptString)
-		{
-			[scriptSyntaxTextView setString:scriptString];
-			[scriptSyntaxTextView setFont:[NSFont fontWithName:@"Menlo" size:9.0]];
-			[scriptSyntaxTextView setSyntaxColoring:kEidosSyntaxColoringOutput];
-		}
-	}
-	
-	if (([scriptSyntaxWindow occlusionState] & NSWindowOcclusionStateVisible) == 0)
-	{
-		// Position the window on the left side of the simulation window if we can
-		NSRect windowFrame = [scriptSyntaxWindow frame];
-		NSRect mainWindowFrame = [[windowController window] frame];
-		
-		// try on the left side; if that doesn't work, we use the position specified in the nib
-		{
-			NSRect candidateFrame = windowFrame;
-			
-			candidateFrame.origin.x = mainWindowFrame.origin.x - (candidateFrame.size.width + 5);
-			candidateFrame.origin.y = (mainWindowFrame.origin.y + mainWindowFrame.size.height - candidateFrame.size.height);
-			
-			if ([NSScreen visibleCandidateWindowFrame:candidateFrame])
-				[scriptSyntaxWindow setFrameOrigin:candidateFrame.origin];
-		}
-	}
-	
-	// Now that everything is set up, show the window
-	[scriptSyntaxWindow makeKeyAndOrderFront:nil];
 }
 
 @end

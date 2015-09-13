@@ -194,7 +194,7 @@
 	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
 	NSAttributedString *welcomeString3 = [[NSAttributedString alloc] initWithString:@").\nCopyright (c) 2015 Philipp Messer. All rights reserved.\n\nEidos is free software with ABSOLUTELY NO WARRANTY.\nType license() for license and distribution details.\n\nGo to " attributes:outputAttrs];
 	NSAttributedString *welcomeString4 = [[NSAttributedString alloc] initWithString:@"https://github.com/MesserLab/SLiM" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"https://github.com/MesserLab/SLiM"]];
-	NSAttributedString *welcomeString5 = [[NSAttributedString alloc] initWithString:@" for source code,\ndocumentation, examples, and other information.\n\nType help() for on-line help.\n\nWelcome to Eidos!\n\n---------------------------------------------------------\n\n" attributes:outputAttrs];
+	NSAttributedString *welcomeString5 = [[NSAttributedString alloc] initWithString:@" for source code,\ndocumentation, examples, and other information.\n\nWelcome to Eidos!\n\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];
 	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:welcomeString1];

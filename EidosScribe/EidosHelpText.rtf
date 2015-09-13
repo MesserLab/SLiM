@@ -1,0 +1,2183 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fnil\fcharset0 Menlo-Regular;
+\f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 Menlo-Bold;\f5\fswiss\fcharset0 Helvetica;
+}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.1.  Math functions\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\b0 \cf0 The math functions in Eidos are pattered closely upon those in C++, and are typically implemented by calling a C++ function of the same name, as described below when applicable.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (numeric)abs(numeric
+\f1 \'a0
+\f2 x)
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b absolute value
+\b0  of 
+\f2\fs18 x
+\f0\fs20 .  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 integer
+\f0\fs20 , the C++ function 
+\f2\fs18 llabs()
+\f0\fs20  is used and an 
+\f2\fs18 integer
+\f0\fs20  vector is returned; if 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 float
+\f0\fs20 , the C++ function 
+\f2\fs18 fabs()
+\f0\fs20  is used and a 
+\f2\fs18 float
+\f0\fs20  vector is returned.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)acos(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b arc cosine
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 acos()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)asin(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b arc sine
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 asin()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)atan(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b arc tangent
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 atan()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)atan2(numeric
+\f1 \'a0
+\f2 x, numeric
+\f1 \'a0
+\f2 y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b arc tangent
+\b0  of 
+\f2\fs18 y/x
+\f0\fs20  using the C++ function 
+\f2\fs18 atan2()
+\f0\fs20 , which uses the signs of both x and y to determine the correct quadrant for the result.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)ceil(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b ceiling
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the smallest integral value greater than or equal to 
+\f2\fs18 x
+\f0\fs20 .  Note that the return value is 
+\f2\fs18 float
+\f0\fs20  even though integral values are guaranteed, because values could be outside of the range representable by 
+\f2\fs18 integer
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)cos(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b cosine
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 cos()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)exp(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b base-
+\i e
+\i0  exponential
+\b0  of 
+\f2\fs18 x, 
+\f3\i e
+\f2\i0 \super x
+\f0\fs20 \nosupersub ,  using the C++ function 
+\f2\fs18 exp()
+\f1\fs20 .
+\f0   This may be somewhat faster than 
+\f2\fs18 E^x
+\f0\fs20  for large vectors.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)floor(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b floor
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the largest integral value less than or equal to 
+\f2\fs18 x
+\f1\fs20 .
+\f0   Note that the return value is 
+\f2\fs18 float
+\f0\fs20  even though integral values are guaranteed, because values could be outside of the range representable by 
+\f2\fs18 integer
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical)isFinite(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b finiteness
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  is not 
+\f2\fs18 INF
+\f0\fs20  or 
+\f2\fs18 NAN
+\f0\fs20 , 
+\f2\fs18 F
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 INF
+\f0\fs20  or 
+\f2\fs18 NAN
+\f1\fs20 .
+\f0   
+\f2\fs18 INF
+\f0\fs20  and 
+\f2\fs18 NAN
+\f0\fs20  are defined only for type 
+\f2\fs18 float
+\f0\fs20 , so x is required to be a 
+\f2\fs18 float
+\f1\fs20 .
+\f0   Note that 
+\f2\fs18 isFinite()
+\f0\fs20  is not the opposite of 
+\f2\fs18 isInfinite()
+\f0\fs20 , because 
+\f2\fs18 NAN
+\f0\fs20  is considered to be neither finite nor infinite.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical)isInfinite(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b infiniteness
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 INF
+\f0\fs20 , 
+\f2\fs18 F
+\f0\fs20  otherwise.  
+\f2\fs18 INF
+\f0\fs20  is defined only for type 
+\f2\fs18 float
+\f0\fs20 , so x is required to be a 
+\f2\fs18 float
+\f0\fs20 .  Note that 
+\f2\fs18 isInfinite()
+\f0\fs20  is not the opposite of 
+\f2\fs18 isFinite()
+\f0\fs20 , because 
+\f2\fs18 NAN
+\f0\fs20  is considered to be neither finite nor infinite.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical)isNAN(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b undefinedness
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  is not 
+\f2\fs18 NAN
+\f0\fs20 , 
+\f2\fs18 F
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 NAN
+\f1\fs20 .
+\f0   
+\f2\fs18 NAN
+\f0\fs20  is defined only for type 
+\f2\fs18 float
+\f0\fs20 , so x is required to be a 
+\f2\fs18 float
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)log(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b base-
+\i e
+\i0  logarithm
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 log()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)log10(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b base-10 logarithm
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 log10()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)log2(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b base-2 logarithm
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 log2()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (numeric$)product(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b product
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the result of multiplying all of the elements of 
+\f2\fs18 x
+\f0\fs20  together.  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 float
+\f0\fs20 , the result will be 
+\f2\fs18 float
+\f0\fs20 .  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 integer
+\f0\fs20 , things are a bit more complex; the result will be 
+\f2\fs18 integer
+\f0\fs20  if it can fit into the 
+\f2\fs18 integer
+\f0\fs20  type without overflow issues (including during intermediate stages of the computation), otherwise it will be 
+\f2\fs18 float
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)round(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b round
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the integral value nearest to 
+\f2\fs18 x
+\f0\fs20 , rounding half-way cases away from 
+\f2\fs18 0
+\f0\fs20 .  Note that the return value is 
+\f2\fs18 float
+\f0\fs20  even though integral values are guaranteed, because values could be outside of the range representable by 
+\f2\fs18 integer
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)sin(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b sine
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 sin()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)sqrt(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b square root
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 sqrt()
+\f1\fs20 .
+\f0   This may be somewhat faster than 
+\f2\fs18 x^0.5
+\f0\fs20  for large vectors.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (numeric$)sum(lif\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b sum
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the result of adding all of the elements of 
+\f2\fs18 x
+\f0\fs20  together.  The unusual parameter type signature 
+\f2\fs18 lif
+\f0\fs20  indicates that 
+\f2\fs18 x
+\f0\fs20  can be 
+\f2\fs18 logical
+\f0\fs20 , 
+\f2\fs18 integer
+\f0\fs20 , or 
+\f2\fs18 float
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 float
+\f0\fs20 , the result will be 
+\f2\fs18 float
+\f0\fs20 .  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 logical
+\f0\fs20 , the result will be 
+\f2\fs18 integer
+\f0\fs20  (the number of 
+\f2\fs18 T
+\f0\fs20  values in 
+\f2\fs18 x
+\f0\fs20 , since the 
+\f2\fs18 integer
+\f0\fs20  values of 
+\f2\fs18 T
+\f0\fs20  and 
+\f2\fs18 F
+\f0\fs20  are 
+\f2\fs18 1
+\f0\fs20  and 
+\f2\fs18 0
+\f0\fs20  respectively).  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 integer
+\f0\fs20 , things are a bit more complex; in this case, the result will be 
+\f2\fs18 integer
+\f0\fs20  if it can fit into the 
+\f2\fs18 integer
+\f0\fs20  type without overflow issues (including during intermediate stages of the computation), otherwise it will be 
+\f2\fs18 float
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)tan(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b tangent
+\b0  of 
+\f2\fs18 x
+\f0\fs20  using the C++ function 
+\f2\fs18 tan()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)trunc(float
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b truncation
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the integral value nearest to, but no larger in magnitude than, 
+\f2\fs18 x
+\f0\fs20 .  Note that the return value is 
+\f2\fs18 float
+\f0\fs20  even though integral values are guaranteed, because values could be outside of the range representable by 
+\f2\fs18 integer
+\f1\fs20 .\
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.2.  Summary statistics functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (+$)max(+\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b maximum
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the greatest value it contains.  The return type will match that of 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  has a size of 
+\f2\fs18 0
+\f0\fs20 , the return value will be 
+\f2\fs18 NULL
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float$)mean(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b arithmetic mean
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the sum of 
+\f2\fs18 x
+\f0\fs20  divided by the number of values in 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  has a size of 
+\f2\fs18 0
+\f0\fs20 , the return value will be 
+\f2\fs18 NULL
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (+$)min(+\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b minimum
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the least value it contains.  The return type will match that of 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  has a size of 
+\f2\fs18 0
+\f0\fs20 , the return value will be 
+\f2\fs18 NULL
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (numeric)range(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b range
+\b0  of 
+\f2\fs18 x
+\f0\fs20 , a vector of length 
+\f2\fs18 2
+\f0\fs20  composed of the minimum and maximum values of 
+\f2\fs18 x
+\f0\fs20  at indices 
+\f2\fs18 0
+\f0\fs20  and 
+\f2\fs18 1
+\f0\fs20 , respectively.  The return type will match that of 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  has a size of 
+\f2\fs18 0
+\f0\fs20 , the return value will be 
+\f2\fs18 NULL
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float$)sd(numeric
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b corrected sample standard deviation
+\b0  of 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  has a size of 
+\f2\fs18 0
+\f0\fs20  or 
+\f2\fs18 1
+\f1\fs20 ,
+\f0  the return value will be 
+\f2\fs18 NULL
+\f1\fs20 .\
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.3.  Vector construction functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (*)c(...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b concatenation
+\b0  of all of its parameters into a single vector.  The parameters will be promoted to the highest type represented among them, and that type will be the return type.  
+\f2\fs18 NULL
+\f0\fs20  values are ignored; they have no effect on the result.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)float(integer$
+\f1 \'a0
+\f2 length)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b new 
+\f4\fs18 float
+\f0\fs20  vector
+\b0  of the length specified by 
+\f2\fs18 length
+\f0\fs20 , filled with 
+\f2\fs18 0.0
+\f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)integer(integer$
+\f1 \'a0
+\f2 length)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b new 
+\f4\fs18 integer
+\f0\fs20  vector
+\b0  of the length specified by 
+\f2\fs18 length
+\f0\fs20 , filled with 
+\f2\fs18 0
+\f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical)logical(integer$
+\f1 \'a0
+\f2 length)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b new 
+\f4\fs18 logical
+\f0\fs20  vector
+\b0  of the length specified by 
+\f2\fs18 length
+\f0\fs20 , filled with 
+\f2\fs18 F
+\f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (object)object(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b new empty 
+\f4\fs18 object
+\f0\fs20  vector
+\b0 .  Unlike 
+\f2\fs18 float()
+\f0\fs20 , 
+\f2\fs18 integer()
+\f0\fs20 , 
+\f2\fs18 logical()
+\f0\fs20 , and 
+\f2\fs18 string()
+\f0\fs20 , a length cannot be specified and the new vector contains no elements.  This is because there is no default value for the object type.  Adding to such a vector is typically done with 
+\f2\fs18 c()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)rbinom(integer$
+\f1 \'a0
+\f2 n, integer\'a0size, float\'a0prob)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 n
+\f0\fs20  
+\b random draws from a binomial distribution
+\b0  with a number of trials specified by 
+\f2\fs18 size
+\f0\fs20  and a probability of success specified by 
+\f2\fs18 prob
+\f0\fs20 .  The 
+\f2\fs18 size
+\f0\fs20  and 
+\f2\fs18 prob
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f2\fs18 n
+\f0\fs20 , specifying a value for each draw.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)rep(*
+\f1 \'a0
+\f2 x, integer$
+\f1 \'a0
+\f2 count)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b repetition
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the entirety of 
+\f2\fs18 x
+\f0\fs20  is repeated 
+\f2\fs18 count
+\f0\fs20  times.  The return type matches the type of 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)repEach(*
+\f1 \'a0
+\f2 x, integer
+\f1 \'a0
+\f2 count)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b repetition of elements
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : each element of 
+\f2\fs18 x
+\f0\fs20  is repeated.  If 
+\f2\fs18 count
+\f0\fs20  is a singleton, it specifies the number of times that each element of 
+\f2\fs18 x
+\f0\fs20  will be repeated.  Otherwise, the length of 
+\f2\fs18 count
+\f0\fs20  must be equal to the length of 
+\f2\fs18 x
+\f0\fs20 ; in this case, each element of 
+\f2\fs18 x
+\f0\fs20  is repeated a number of times specified by the corresponding value of 
+\f2\fs18 count
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)rexp(integer$
+\f1 \'a0
+\f2 n, [numeric\'a0rate])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 n
+\f0\fs20  
+\b random draws from an exponential distribution
+\b0  with rate parameter 
+\f2\fs18 rate
+\f0\fs20  (i.e. mean 
+\f2\fs18 1/rate
+\f0\fs20 ).  The 
+\f2\fs18 rate
+\f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
+\f2\fs18 n
+\f0\fs20 , specifying a value for each draw.  By default, 
+\f2\fs18 rate
+\f0\fs20  is 
+\f2\fs18 1.0
+\f0\fs20 ; it must have a value greater than 
+\f2\fs18 0
+\f1\fs20 .
+\f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)rnorm(integer$
+\f1 \'a0
+\f2 n, [numeric\'a0mean], [numeric\'a0sd])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 n
+\f0\fs20  
+\b random draws from a normal distribution
+\b0  with mean 
+\f2\fs18 mean
+\f0\fs20  and standard deviation 
+\f2\fs18 sd
+\f1\fs20 .
+\f0   The 
+\f2\fs18 mean
+\f0\fs20  and 
+\f2\fs18 sd
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f2\fs18 n
+\f0\fs20 , specifying a value for each draw.  By default, 
+\f2\fs18 mean
+\f0\fs20  is 
+\f2\fs18 0.0
+\f0\fs20  and 
+\f2\fs18 sd
+\f0\fs20  is 
+\f2\fs18 1.0
+\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)rpois(integer$
+\f1 \'a0
+\f2 n, numeric\'a0lambda)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 n
+\f0\fs20  
+\b random draws from a Poisson distribution
+\b0  with parameter 
+\f2\fs18 lambda
+\f0\fs20  (not to be confused with the language concept of a \'93lambda\'94; 
+\f2\fs18 lambda
+\f0\fs20  here is just the name of a parameter, because the symbol typically used for the parameter of a Poisson distribution is the Greek letter 
+\f5 \uc0\u955 
+\f0 ).  The 
+\f2\fs18 lambda
+\f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
+\f2\fs18 n
+\f0\fs20 , specifying a value for each draw.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (float)runif(integer$\'a0n, [numeric\'a0min], [numeric\'a0max])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 n
+\f0\fs20  
+\b random draws from a uniform distribution
+\b0  from 
+\f2\fs18 min
+\f0\fs20  to 
+\f2\fs18 max
+\f0\fs20 , inclusive.  The 
+\f2\fs18 min
+\f0\fs20  and 
+\f2\fs18 max
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f2\fs18 n
+\f0\fs20 , specifying a value for each draw.  By default, 
+\f2\fs18 min
+\f0\fs20  is 
+\f2\fs18 0.0
+\f0\fs20  and 
+\f2\fs18 max
+\f0\fs20  is 
+\f2\fs18 1.0
+\f1\fs20 .
+\f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)sample(*\'a0x, integer$\'a0size, [logical$
+\f1 \'a0
+\f2 replace], [numeric\'a0weights])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f2\fs18 size
+\f0\fs20  containing a 
+\b sample from the elements of 
+\f4\fs18 x
+\f0\b0\fs20 .  If 
+\f2\fs18 replace
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , sampling is conducted with replacement (the same element may be drawn more than once); if it is 
+\f2\fs18 F
+\f0\fs20  sampling is done without replacement.  If 
+\f2\fs18 replace
+\f0\fs20  is not specified, it is 
+\f2\fs18 F
+\f0\fs20  by default.  A vector of weights may be supplied in 
+\f2\fs18 weights
+\f0\fs20 ; if supplied, it must be equal in size to 
+\f2\fs18 x
+\f0\fs20 , all weights must be non-negative, and the sum of the weights must be greater than 
+\f2\fs18 0
+\f0\fs20 .  If 
+\f2\fs18 weights
+\f0\fs20  is not supplied, equal weights are used for all elements of 
+\f2\fs18 x
+\f0\fs20 .  An error occurs if 
+\f2\fs18 sample()
+\f0\fs20  runs out of viable elements from which to draw; most notably, if sampling is done without replacement then 
+\f2\fs18 size
+\f0\fs20  must be at most equal to the size of 
+\f2\fs18 x
+\f0\fs20 , but if weights of zero are supplied then the restriction on 
+\f2\fs18 size
+\f0\fs20  will be even more stringent.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (numeric)seq(numeric$
+\f1 \'a0
+\f2 from, numeric$
+\f1 \'a0
+\f2 to, [numeric$
+\f1 \'a0
+\f2 by])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b sequence
+\b0 , starting at 
+\f2\fs18 from
+\f0\fs20  and proceeding in the direction of 
+\f2\fs18 to
+\f0\fs20  until the next value in the sequence would fall beyond 
+\f2\fs18 to
+\f0\fs20 .  By default, the sequence steps by values of 
+\f2\fs18 1
+\f0\fs20  or 
+\f2\fs18 -1
+\f0\fs20  (as needed to proceed in the direction of 
+\f2\fs18 to
+\f0\fs20 ); a different step value may optionally be supplied in 
+\f2\fs18 by
+\f1\fs20 .
+\f0   If 
+\f2\fs18 from
+\f0\fs20 , 
+\f2\fs18 to
+\f0\fs20 , and 
+\f2\fs18 by
+\f0\fs20  are all 
+\f2\fs18 integer
+\f0\fs20  then the return type will be 
+\f2\fs18 integer
+\f0\fs20 , otherwise it will be 
+\f2\fs18 float
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)seqAlong(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns an 
+\b index sequence
+\b0 , from 
+\f2\fs18 0
+\f0\fs20  to 
+\f2\fs18 size(x) - 1
+\f0\fs20 , with a step of 
+\f2\fs18 1
+\f0\fs20 .  This is a convenience function for easily obtaining a set of indices to address or iterate through a vector.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string)string(integer$
+\f1 \'a0
+\f2 length)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b new 
+\f4\fs18 string
+\f0\fs20  vector
+\b0  of the length specified by 
+\f2\fs18 length
+\f0\fs20 , filled with 
+\f2\fs18 ""
+\f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
+\f1 \
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.4.  Value inspection & manipulation functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (logical$)all(logical
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\b all values are 
+\f4\fs18 T
+\f0\b0\fs20  in 
+\f2\fs18 x
+\f0\fs20 ; if any value is 
+\f2\fs18 F
+\f0\fs20 , returns 
+\f2\fs18 F
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  is zero-length, 
+\f2\fs18 T
+\f0\fs20  is returned.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)any(logical
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\b any value is 
+\f4\fs18 T
+\f0\b0\fs20  in 
+\f2\fs18 x
+\f0\fs20 ; if all values are 
+\f2\fs18 F
+\f0\fs20 , returns 
+\f2\fs18 F
+\f1\fs20 .
+\f0   If 
+\f2\fs18 x
+\f0\fs20  is zero-length, 
+\f2\fs18 F
+\f0\fs20  is returned.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)cat(*
+\f1 \'a0
+\f2 x, [string$
+\f1 \'a0
+\f2 sep])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Concatenates output
+\b0  to Eidos\'92s output stream, joined together by 
+\f2\fs18 sep
+\f0\fs20 .  The value 
+\f2\fs18 x
+\f0\fs20  that is output may be of any type.  By default, sep is a single space, 
+\f2\fs18 " "
+\f0\fs20 .  A newline is not appended to the output, unlike the behavior of 
+\f2\fs18 print()
+\f1\fs20 .
+\f0   Also unlike 
+\f2\fs18 print()
+\f0\fs20 , 
+\f2\fs18 cat()
+\f0\fs20  tends to emit very literal output; 
+\f2\fs18 print(logical(0))
+\f0\fs20  will emit \'93
+\f2\fs18 logical(0)
+\f0\fs20 \'94, for example \'96 showing a semantic interpretation of the value \'96 whereas 
+\f2\fs18 cat(logical(0))
+\f0\fs20  will emit nothing at all, since there are no elements in the value (it is zero-length).  Similarly, 
+\f2\fs18 print(NULL)
+\f0\fs20  will emit \'93
+\f2\fs18 NULL
+\f0\fs20 \'94, but 
+\f2\fs18 cat(NULL)
+\f0\fs20  will emit nothing.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\f2\fs18 logical
+\f0\fs20  value indicating 
+\b whether two values are identical
+\b0 .  If 
+\f2\fs18 x
+\f0\fs20  and 
+\f2\fs18 y
+\f0\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, this will return 
+\f2\fs18 T
+\f0\fs20 , otherwise it will return 
+\f2\fs18 F
+\f0\fs20 .  The test here is for 
+\i exact
+\i0  equality; an 
+\f2\fs18 integer
+\f0\fs20  value of 
+\f2\fs18 1
+\f0\fs20  is not considered identical to a 
+\f2\fs18 float
+\f0\fs20  value of 
+\f2\fs18 1.0
+\f0\fs20 , for example.  Elements in 
+\f2\fs18 object
+\f0\fs20  values must be literally the same element, not simply identical in all of their properties.  Type promotion is never done.  For testing whether two values are the same, this is generally preferable to the use of operator\'a0
+\f2\fs18 ==
+\f0\fs20  or operator\'a0
+\f2\fs18 !=
+\f0\fs20 ; see the discussion at section 2.5.1.  Note that 
+\f2\fs18 identical(NULL,NULL)
+\f0\fs20  is 
+\f2\fs18 T
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)ifelse(logical\'a0test, *\'a0trueValues, *\'a0falseValues)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the result of a 
+\b vector conditional
+\b0  operation: a vector composed of values from 
+\f2\fs18 trueValues
+\f0\fs20 , for indices where 
+\f2\fs18 test
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , and values from 
+\f2\fs18 falseValues
+\f0\fs20 , for indices where 
+\f2\fs18 test
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 .  The lengths of 
+\f2\fs18 test
+\f0\fs20 , 
+\f2\fs18 trueValues
+\f0\fs20 , and 
+\f2\fs18 falseValues
+\f0\fs20  must be equal, and the type of 
+\f2\fs18 trueValues
+\f0\fs20  and 
+\f2\fs18 falseValues
+\f0\fs20  must be the same (including, if they are 
+\f2\fs18 object
+\f0\fs20  type, their element type).  The return will be of the same length and type as 
+\f2\fs18 trueValues
+\f0\fs20  and 
+\f2\fs18 falseValues
+\f0\fs20 .  This is quite similar to a function in R of the same name; note, however, that Eidos evaluates all arguments to functions calls immediately, so 
+\f2\fs18 trueValues
+\f0\fs20  and 
+\f2\fs18 falseValues
+\f0\fs20  will be evaluated fully regardless of the values in 
+\f2\fs18 test
+\f0\fs20 , unlike in R.  Value expressions without side effects are therefore recommended.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)match(*\'a0x, *\'a0table)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of the 
+\b positions of (first) matches
+\b0  of 
+\f2\fs18 x
+\f0\fs20  in 
+\f2\fs18 table
+\f0\fs20 .  Type promotion is not performed; x and 
+\f2\fs18 table
+\f0\fs20  must be of the same type.  For each element of 
+\f2\fs18 x
+\f0\fs20 , the corresponding element in the result will give the position of the first match for that element of 
+\f2\fs18 x
+\f0\fs20  in 
+\f2\fs18 table
+\f0\fs20 ; if the element has no match in 
+\f2\fs18 table
+\f0\fs20 , the element in the result vector will be 
+\f2\fs18 -1
+\f0\fs20 .  The result is therefore a vector of the same length as 
+\f2\fs18 x
+\f0\fs20 .  If a 
+\f2\fs18 logical
+\f0\fs20  result is desired, with 
+\f2\fs18 T
+\f0\fs20  indicating that a match was found for the corresponding element of 
+\f2\fs18 x
+\f0\fs20 , use 
+\f2\fs18 (match(x, table) >= 0)
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)nchar(string
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of the 
+\b number of characters
+\b0  in the string-elements of 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string$)paste(*\'a0x, [string$
+\f1 \'a0
+\f2 sep])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b joined string
+\b0  composed from the 
+\f2\fs18 string
+\f0\fs20  representations of the elements of 
+\f2\fs18 x
+\f0\fs20 , joined together by 
+\f2\fs18 sep
+\f0\fs20 .  By default, sep is a single space, 
+\f2\fs18 " "
+\f0\fs20 .  Although this function is based upon the R function of the same name, note that it is much simpler and less powerful; in particular, only the elements of a single vector may be joined, rather than the var-args functionality of the R 
+\f2\fs18 paste()
+\f1\fs20 .
+\f0   The string representation used by 
+\f2\fs18 paste()
+\f0\fs20  is the same as that emitted by 
+\f2\fs18 cat()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)print(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints output
+\b0  to Eidos\'92s output stream.  The value 
+\f2\fs18 x
+\f0\fs20  that is output may be of any type.  A newline is appended to the output.  See 
+\f2\fs18 cat()
+\f0\fs20  for a discussion of the differences between 
+\f2\fs18 print()
+\f0\fs20  and 
+\f2\fs18 cat()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)rev(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b reverse
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : a new vector with the same elements as 
+\f2\fs18 x
+\f0\fs20 , but in the opposite order.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer$)size(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b size
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : the number of elements contained in 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (+)sort(+\'a0x, [logical$
+\f1 \'a0
+\f2 ascending])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b sorted copy
+\b0  of x: a new vector with the same elements as x, but in ascending sorted order.  If the optional 
+\f2\fs18 logical
+\f0\fs20  value 
+\f2\fs18 ascending
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , the sorted order will be descending.  The ordering is determined according to the same logic as the 
+\f2\fs18 <
+\f0\fs20  and 
+\f2\fs18 >
+\f0\fs20  operators in Eidos.  To sort an object vector, use 
+\f2\fs18 sortBy()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (object)sortBy(object\'a0x, string$
+\f1 \'a0
+\f2 property, [logical$
+\f1 \'a0
+\f2 ascending])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b sorted copy
+\b0  of x: a new vector with the same elements as x, but in ascending sorted order.  If the optional 
+\f2\fs18 logical
+\f0\fs20  value 
+\f2\fs18 ascending
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , the sorted order will be descending.  The ordering is determined according to the same logic as the 
+\f2\fs18 <
+\f0\fs20  and 
+\f2\fs18 >
+\f0\fs20  operators in Eidos.  The 
+\f2\fs18 property
+\f0\fs20  argument gives the name of the property within the elements of 
+\f2\fs18 x
+\f0\fs20  according to which sorting should be done.  This must be a simple property name; it cannot be a property path.  For example, to sort a 
+\f2\fs18 Mutation
+\f0\fs20  vector by the selection coefficients of the mutations, you would simply pass 
+\f2\fs18 "selectionCoeff"
+\f0\fs20 , including the quotes, for 
+\f2\fs18 property
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)str(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints the structure
+\b0  of 
+\f2\fs18 x
+\f0\fs20 : a summary of its type and the values it contains.  If 
+\f2\fs18 x
+\f0\fs20  is an 
+\f2\fs18 object
+\f1\fs20 ,
+\f0  note that 
+\f2\fs18 str()
+\f0\fs20  produces different results from the 
+\f2\fs18 str()
+\f0\fs20  method of 
+\f2\fs18 x
+\f0\fs20 ; the 
+\f2\fs18 str()
+\f0\fs20  function prints the external structure of 
+\f2\fs18 x
+\f0\fs20  (the fact that it is an object, and the number and type of its elements), whereas the 
+\f2\fs18 str()
+\f0\fs20  method prints the internal structure of 
+\f2\fs18 x
+\f0\fs20  (the external structure of all the properties contained by 
+\f2\fs18 x
+\f0\fs20 ).
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string)strsplit(string$
+\f1 \'a0
+\f2 x, [string$
+\f1 \'a0
+\f2 sep])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\b substrings
+\b0  of 
+\f2\fs18 x
+\f0\fs20  that were separated by the separator string 
+\f2\fs18 sep
+\f0\fs20 .  By default, 
+\f2\fs18 sep
+\f0\fs20  is a single space, 
+\f2\fs18 " "
+\f0\fs20 .  Every substring defined by an occurrence of the separator is included, and thus zero-length substrings may be returned.  For example, 
+\f2\fs18 strsplit(".foo..bar.", ".")
+\f0\fs20  returns a string vector containing 
+\f2\fs18 ""
+\f0\fs20 , 
+\f2\fs18 "foo"
+\f0\fs20 , 
+\f2\fs18 ""
+\f0\fs20 , 
+\f2\fs18 "bar"
+\f0\fs20 , 
+\f2\fs18 ""
+\f0\fs20 .  In that example, the empty string between 
+\f2\fs18 "foo"
+\f0\fs20  and 
+\f2\fs18 "bar"
+\f0\fs20  in the returned vector is present because there were two periods between 
+\f2\fs18 foo
+\f0\fs20  and 
+\f2\fs18 bar
+\f0\fs20  in the input string \'96 the empty string is the substring between those two separators.  Note that 
+\f2\fs18 paste()
+\f0\fs20  performs the inverse operation of 
+\f2\fs18 strsplit()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string)substr(string\'a0x, integer\'a0first, [integer\'a0last])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\b substrings
+\b0  extracted from the elements of 
+\f2\fs18 x,
+\f0\fs20  spanning character position 
+\f2\fs18 first
+\f0\fs20  to character position 
+\f2\fs18 last
+\f0\fs20  (inclusive).  Character positions are numbered from 
+\f2\fs18 0
+\f0\fs20  to 
+\f2\fs18 nchar(x)-1
+\f0\fs20 .  Positions that fall outside of that range are legal; a substring range that encompasses no characters will produce an empty string.  If 
+\f2\fs18 first
+\f0\fs20  is greater than 
+\f2\fs18 last
+\f0\fs20 , an empty string will also result.  If 
+\f2\fs18 last
+\f0\fs20  is omitted, the substring will extend to the end of the string.  The parameters 
+\f2\fs18 first
+\f0\fs20  and 
+\f2\fs18 last
+\f0\fs20  may either be singletons, specifying a single value to be used for all of the substrings, or they may be vectors of the same length as 
+\f2\fs18 x
+\f0\fs20 , specifying a value for each substring.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)unique(*\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b unique values
+\b0  in 
+\f2\fs18 x
+\f0\fs20 .  In other words, for each value 
+\f2\fs18 k
+\f0\fs20  in 
+\f2\fs18 x
+\f0\fs20  that occurs at least once, the vector returned will contain 
+\f2\fs18 k
+\f0\fs20  exactly once.  The order of values in 
+\f2\fs18 x
+\f0\fs20  is preserved, taking the first instance of each value.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)which(logical
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b indices of 
+\f4\fs18 T
+\f0\fs20  values
+\b0  in 
+\f2\fs18 x
+\f0\fs20 .  In other words, if an index 
+\f2\fs18 k
+\f0\fs20  in 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , then the vector returned will contain 
+\f2\fs18 k
+\f0\fs20 ; if index 
+\f2\fs18 k
+\f0\fs20  in 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , the vector returned will omit 
+\f2\fs18 k
+\f0\fs20 .  One way to look at this is that it converts from a 
+\f2\fs18 logical
+\f0\fs20  subsetting vector to an 
+\f2\fs18 integer
+\f0\fs20  (index-based) subsetting vector, without changing which subset positions would be selected.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)whichMax(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b index of the (first) maximum value
+\b0  in 
+\f2\fs18 x
+\f0\fs20 .  In other words, if 
+\f2\fs18 k
+\f0\fs20  is equal to the maximum value in 
+\f2\fs18 x
+\f0\fs20 , then the vector returned will contain the index of the first occurrence of 
+\f2\fs18 k
+\f0\fs20  in 
+\f2\fs18 x
+\f1\fs20 .
+\f0   If the maximum value is unique, the result is the same as (but more efficient than) the expression 
+\f2\fs18 which(x==max(x))
+\f0\fs20 , which returns the indices of 
+\i all
+\i0  of the occurrences of the maximum value in 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)whichMin(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b index of the (first) minimum value
+\b0  in 
+\f2\fs18 x
+\f0\fs20 .  In other words, if 
+\f2\fs18 k
+\f0\fs20  is equal to the minimum value in 
+\f2\fs18 x
+\f0\fs20 , then the vector returned will contain the index of the first occurrence of 
+\f2\fs18 k
+\f0\fs20  in 
+\f2\fs18 x
+\f0\fs20 .  If the minimum value is unique, the result is the same as (but more efficient than) the expression 
+\f2\fs18 which(x==min(x))
+\f0\fs20 , which returns the indices of 
+\i all
+\i0  of the occurrences of the minimum value in 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.5.  Value type testing and coercion functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (float)asFloat(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b conversion to 
+\f4\fs18 float
+\f0\b0\fs20  of 
+\f2\fs18 x
+\f0\fs20 .  If 
+\f2\fs18 x
+\f0\fs20  is 
+\f2\fs18 string
+\f0\fs20  and cannot be converted to 
+\f2\fs18 float
+\f0\fs20 , Eidos will throw an error.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)asInteger(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b conversion to 
+\f4\fs18 integer
+\f0\b0\fs20  of 
+\f2\fs18 x
+\f0\fs20 .  If 
+\f2\fs18 x
+\f0\fs20  is of type 
+\f2\fs18 string
+\f0\fs20  or 
+\f2\fs18 float
+\f0\fs20  and cannot be converted to 
+\f2\fs18 integer
+\f0\fs20 , Eidos will throw an error.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical)asLogical(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b conversion to 
+\f4\fs18 logical
+\f0\b0\fs20  of 
+\f2\fs18 x
+\f0\fs20 .  Recall that in Eidos the empty 
+\f2\fs18 string
+\f0\fs20  
+\f2\fs18 ""
+\f0\fs20  is considered 
+\f2\fs18 F
+\f0\fs20 , and all other 
+\f2\fs18 string
+\f0\fs20  values are considered 
+\f2\fs18 T
+\f1\fs20 .
+\f0   Converting 
+\f2\fs18 INF
+\f0\fs20  or 
+\f2\fs18 -INF
+\f0\fs20  to 
+\f2\fs18 logical
+\f0\fs20  yields 
+\f2\fs18 T
+\f0\fs20  (since those values are not equal to zero); converting 
+\f2\fs18 NAN
+\f0\fs20  to 
+\f2\fs18 logical
+\f0\fs20  throws an error.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string)asString(+
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b conversion to 
+\f4\fs18 string
+\f0\b0\fs20  of 
+\f2\fs18 x
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string$)elementType(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b element type
+\b0  of 
+\f2\fs18 x
+\f0\fs20 , as a 
+\f2\fs18 string
+\f0\fs20 .  For the non-
+\f2\fs18 object
+\f0\fs20  types, the element type is the same as the type: 
+\f2\fs18 "NULL"
+\f0\fs20 , 
+\f2\fs18 "logical"
+\f0\fs20 , 
+\f2\fs18 "integer"
+\f0\fs20 , 
+\f2\fs18 "float"
+\f0\fs20 , or 
+\f2\fs18 "string"
+\f0\fs20 .  For 
+\f2\fs18 object
+\f0\fs20  type, however, 
+\f2\fs18 elementType()
+\f0\fs20  returns the name of the type of element contained by the object, such as 
+\f2\fs18 "SLiMSim"
+\f0\fs20  or 
+\f2\fs18 "Mutation"
+\f0\fs20  in the Context of SLiM.  Contrast this with 
+\f2\fs18 type()
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isFloat(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 float
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isInteger(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 integer
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isLogical(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 logical
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isNULL(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 NULL
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isObject(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 object
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)isString(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 x
+\f0\fs20  
+\b is 
+\f4\fs18 string
+\f0\fs20  type
+\b0 , 
+\f2\fs18 F
+\f0\fs20  otherwise.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string$)type(*
+\f1 \'a0
+\f2 x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b type
+\b0  of 
+\f2\fs18 x
+\f0\fs20 , as a 
+\f2\fs18 string
+\f0\fs20 : 
+\f2\fs18 "NULL"
+\f0\fs20 , 
+\f2\fs18 "logical"
+\f0\fs20 , 
+\f2\fs18 "integer"
+\f0\fs20 , 
+\f2\fs18 "float"
+\f0\fs20 , 
+\f2\fs18 "string"
+\f0\fs20 , or 
+\f2\fs18 "object"
+\f0\fs20 .  Contrast this with 
+\f2\fs18 elementType()
+\f1\fs20 .\
+\pard\pardeftab720\ri720\sb360\sa60
+
+\f0\b\fs22 \cf0 3.6.  Filesystem access functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths])
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\f2\fs18 string
+\f0\fs20  vector containing the 
+\b names of all files in a directory
+\b0  specified by 
+\f2\fs18 path
+\f1\fs20 .
+\f0   If 
+\f2\fs18 fullPaths
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , full filesystem paths are returned for each file; if 
+\f2\fs18 fullPaths
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20  or omitted, only the filenames relative to the specified directory are returned.  This list includes directories (i.e. subfolders), including the 
+\f2\fs18 "."
+\f0\fs20  and 
+\f2\fs18 ".."
+\f0\fs20  directories on Un*x systems.  The list also includes invisible files, such as those that begin with a 
+\f2\fs18 "."
+\f0\fs20  on Un*x systems.  This function does not descend recursively into subdirectories.  If an error occurs during the read, 
+\f2\fs18 NULL
+\f0\fs20  will be returned.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string)readFile(string$\'a0filePath)
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Reads in the contents of a file
+\b0  specified by 
+\f2\fs18 filePath
+\f0\fs20  and returns a 
+\f2\fs18 string
+\f0\fs20  vector containing the lines (separated by 
+\f2\fs18 \\n
+\f0\fs20  and 
+\f2\fs18 \\r
+\f0\fs20  characters) of the file.  Reading files other than text files is not presently supported.  If an error occurs during the read, 
+\f2\fs18 NULL
+\f0\fs20  will be returned.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents)
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Writes out a new file
+\b0  to 
+\f2\fs18 filePath
+\f0\fs20  with contents specified by 
+\f2\fs18 contents
+\f0\fs20 , a 
+\f2\fs18 string
+\f0\fs20  vector of lines.  Note that newline characters will be added at the ends of the lines in 
+\f2\fs18 contents
+\f0\fs20 .  If you do not wish to have newlines added, you should use 
+\f2\fs18 paste()
+\f0\fs20  to assemble the elements of 
+\f2\fs18 contents
+\f0\fs20  together into a singleton 
+\f2\fs18 string
+\f1\fs20 .
+\f0   If the write is successful, 
+\f2\fs18 T
+\f0\fs20  will be returned; if not, 
+\f2\fs18 F
+\f0\fs20  will be returned.\
+\pard\pardeftab720\ri720\sb360\sa60
+
+\b\fs22 \cf0 3.7.  Miscellaneous functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\b0\fs18 \cf0 (*)apply(* x, string$\'a0lambdaSource)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Applies a block of Eidos code to the elements of a vector
+\b0 .  This function is sort of a hybrid between 
+\f2\fs18 c()
+\f0\fs20  and 
+\f2\fs18 executeLambda()
+\f0\fs20 ; it might be useful to consult the documentation for both of those functions to better understand what 
+\f2\fs18 apply()
+\f0\fs20  does.  For each element in 
+\f2\fs18 x
+\f0\fs20 , the lambda defined by 
+\f2\fs18 lambdaSource
+\f0\fs20  will be called.  For the duration of that callout, a variable named 
+\f2\fs18 applyValue
+\f0\fs20  will be defined to have as its value the element of 
+\f2\fs18 x
+\f0\fs20  currently being processed.  The expectation is that the lambda will use 
+\f2\fs18 applyValue
+\f0\fs20  in some way, and will return either NULL or a new value (which need not be a singleton, and need not be of the same type as 
+\f2\fs18 x
+\f0\fs20 ).  The return value of 
+\f2\fs18 apply()
+\f0\fs20  is generated by concatenating together all of the individual vectors returned by the lambda, in exactly the same manner as the 
+\f2\fs18 c()
+\f0\fs20  function (including the possibility of type promotion).\
+Since this function can be hard to understand at first, here is an example:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 apply(1:10, "if (applyValue % 2) applyValue ^ 2;");
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 This produces the output 
+\f2\fs18 1 9 25 49 81
+\f0\fs20 .  The 
+\f2\fs18 apply()
+\f0\fs20  operation begins with the vector 
+\f2\fs18 1:10
+\f0\fs20 .  For each element of that vector, the lambda is called and 
+\f2\fs18 applyValue
+\f0\fs20  is defined with the element value.  In this respect, 
+\f2\fs18 apply()
+\f0\fs20  is actually very much like a 
+\f2\fs18 for
+\f0\fs20  loop.  If 
+\f2\fs18 applyValue
+\f0\fs20  is even (as evaluated by the modulo operator, 
+\f2\fs18 %
+\f0\fs20 ), the condition for the 
+\f2\fs18 if
+\f0\fs20  statement is 
+\f2\fs18 F
+\f0\fs20  and so 
+\f2\fs18 NULL
+\f0\fs20  is implicitly returned by the lambda (since the 
+\f2\fs18 if
+\f0\fs20  has no 
+\f2\fs18 else
+\f0\fs20  clause).  If 
+\f2\fs18 applyValue
+\f0\fs20  is odd, on the other hand, the lambda returns its square (as calculated by the exponential operator, 
+\f2\fs18 ^
+\f0\fs20 ).  Just as with the 
+\f2\fs18 c()
+\f0\fs20  function, 
+\f2\fs18 NULL
+\f0\fs20  values are dropped during concatenation, so the final result contains only the squares of the odd values.\
+This example illustrates that the lambda can \'93drop\'94 values by returning 
+\f2\fs18 NULL
+\f0\fs20 , so 
+\f2\fs18 apply()
+\f0\fs20  can be used to select particular elements of a vector that satisfy some condition, much like the subscript operator, 
+\f2\fs18 []
+\f0\fs20 .  The example also illustrates that input and result types do not have to match; the vector passed in is 
+\f2\fs18 integer
+\f0\fs20 , whereas the result vector is 
+\f2\fs18 float
+\f1\fs20 .\
+
+\f0 There is no scoping in Eidos, so as with 
+\f2\fs18 executeLambda()
+\f0\fs20 , all defined variables are accessible within the lambda, and changes made to variables inside the lambda will persist beyond the end of the 
+\f2\fs18 apply()
+\f0\fs20  call; the lambda is executing in the same scope as the rest of your code.\
+The 
+\f2\fs18 apply()
+\f0\fs20  function can seem daunting at first, but it is an essential tool in the Eidos toolbox.  It combines the iteration of a 
+\f2\fs18 for
+\f0\fs20  loop, the ability to select elements like operator 
+\f2\fs18 []
+\f0\fs20 , and the ability to assemble results of mixed type together into a single vector like 
+\f2\fs18 c()
+\f0\fs20 , all with the power of arbitrary Eidos code execution like 
+\f2\fs18 executeLambda()
+\f0\fs20 .  It is much faster than calling 
+\f2\fs18 executeLambda()
+\f0\fs20  on each element of a vector using a 
+\f2\fs18 for
+\f0\fs20  loop; if the alternative to using 
+\f2\fs18 apply()
+\f0\fs20  is a 
+\f2\fs18 for
+\f0\fs20  loop that adds new values to a result vector one at a time, apply() is also likely to be much faster.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string$)date(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b standard date string
+\b0  for the current date in the local time of the executing machine.  The format is 
+\f2\fs18 %d-%m-%Y
+\f0\fs20  (day in two digits, then month in two digits, then year in four digits, zero-padded and separated by dashes) regardless of the localization of the executing machine, for predictability and consistency.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (*)executeLambda(string$\'a0lambdaSource, [logical$\'a0timed])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Executes a block of Eidos code
+\b0  defined by 
+\f2\fs18 lambdaSource
+\f0\fs20 .  It has been said at various points in this manual that Eidos does not allow you to define your own functions.  That is, strictly speaking, true.  However, it does allow you to execute 
+\i lambdas
+\i0 : blocks of Eidos code which can be called.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (They share the scope of the caller, however, so you may effectively pass values in and out of a lambda using global variables.)  The 
+\f2\fs18 string
+\f0\fs20  argument 
+\f2\fs18 lambdaSource
+\f0\fs20  may contain one or many Eidos statements as a single 
+\f2\fs18 string
+\f0\fs20  value.  Lambdas are represented, to the caller, only as the source code 
+\f2\fs18 string
+\f0\fs20  
+\f2\fs18 lambdaSource
+\f0\fs20 ; the executable code is not made available programmatically.  For this reason, every time that 
+\f2\fs18 executeLambda()
+\f0\fs20  is called, the source string will be tokenized and parsed anew.  This exacts a small price in efficiency, but Eidos tokenization and parsing is quite fast, so it is unlikely to be a major concern.  If an error occurs during the tokenization, parsing, or execution of the lambda, that error is raised as usual; executing code inside a lambda does not provide any additional protection against exceptions raised.  The return value produced by the code in the lambda is returned by 
+\f2\fs18 executeLambda()
+\f1\fs20 .
+\f0   If the optional parameter 
+\f2\fs18 timed
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed; the default for 
+\f2\fs18 timed
+\f0\fs20  is 
+\f2\fs18 F
+\f1\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)function([string$
+\f1 \'a0
+\f2 functionName])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints function signatures
+\b0  for all functions, or for the function named by 
+\f2\fs18 functionName
+\f0\fs20 , to Eidos\'92s output stream.  See section 2.7.3 for more information.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer$)getSeed(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the 
+\b random number seed
+\b0 .  This is the last seed value set using 
+\f2\fs18 setSeed()
+\f0\fs20 ; if 
+\f2\fs18 setSeed()
+\f0\fs20  has not been called, it will be a seed value chosen based on the process-id and the current time when Eidos was initialized, unless the Context has set a different seed value.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)help([string$
+\f1 \'a0
+\f2 topic])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints help
+\b0  to Eidos\'92s output stream.  If no 
+\f2\fs18 topic
+\f0\fs20  is supplied a top-level topic overview will be printed, otherwise help on the requested 
+\f2\fs18 topic
+\f0\fs20  will be printed (if available).
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)license(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints Eidos\'92s license terms
+\b0  to Eidos\'92s output stream.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)ls(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints all currently defined variables
+\b0  to Eidos\'92s output stream.  See section 2.4.1 for more information.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)rm([string
+\f1 \'a0
+\f2 variableNames])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Removes global variables
+\b0  from the Eidos namespace; in other words, it causes the variables to become undefined.  Variables are specified by their 
+\f2\fs18 string
+\f0\fs20  name in the 
+\f2\fs18 variableNames
+\f0\fs20  parameter.  If the optional 
+\f2\fs18 variableNames
+\f0\fs20  parameter is omitted, 
+\i all
+\i0  variables will be removed (be careful!).  Attempting to remove a constant is an error.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)setSeed(integer$\'a0seed)
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Set the random number seed
+\b0 .  Future random numbers will be based upon the seed value set, and the random number sequence generated from a particular seed value is guaranteed to be reproducible.  The last seed set can be recovered with the 
+\f2\fs18 getSeed()
+\f0\fs20  function.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)stop([string$
+\f1 \'a0
+\f2 message])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Stops execution
+\b0  of Eidos (and of the Context, such as the running SLiM simulation, if applicable), in the event of an error.  If the optional 
+\f2\fs18 message
+\f0\fs20  parameter is supplied it will be printed to Eidos\'92s output stream prior to stopping.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (string$)time(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a 
+\b standard time string
+\b0  for the current time in the local time of the executing machine.  The format is 
+\f2\fs18 %H:%M:%S
+\f0\fs20  (hour in two digits, then minute in two digits, then seconds in two digits, zero-padded and separated by dashes) regardless of the localization of the executing machine, for predictability and consistency.  The 24-hour clock time is used (i.e., no AM/PM).
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (void)version(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\b\fs20 \cf0 Prints Eidos\'92s version 
+\b0 to Eidos\'92s output stream.
+\f1 \
+}

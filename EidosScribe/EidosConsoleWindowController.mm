@@ -25,6 +25,7 @@
 #import "EidosVariableBrowserControllerDelegate.h"
 #import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextViewDelegate.h"
+#import "EidosHelpController.h"
 
 #include "eidos_script.h"
 #include "eidos_global.h"
@@ -491,17 +492,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (IBAction)showScriptHelp:(id)sender
 {
-	NSTextStorage *ts = [outputTextView textStorage];
-	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
-	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:@"help()" attributes:inputAttrs] autorelease];
-	NSUInteger promptEnd = [outputTextView promptRangeEnd];
-	
-	[ts beginEditing];
-	[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
-	[ts endEditing];
-	
-	[outputTextView registerNewHistoryItem:@"help()"];
-	[self executeScriptString:@"help()" addOptionalSemicolon:YES];
+	[[EidosHelpController sharedController] showWindow];
 }
 
 - (IBAction)clearOutput:(id)sender

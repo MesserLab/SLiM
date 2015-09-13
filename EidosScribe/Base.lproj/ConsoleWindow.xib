@@ -214,7 +214,7 @@
                                             <binding destination="Oju-rn-RJg" name="enabled" keyPath="interfaceEnabled" id="hjH-3M-ZLi"/>
                                         </connections>
                                     </button>
-                                    <button toolTip="script syntax help" translatesAutoresizingMaskIntoConstraints="NO" id="VKv-8h-11O" userLabel="Show Script Help Button">
+                                    <button toolTip="Eidos scripting help" translatesAutoresizingMaskIntoConstraints="NO" id="VKv-8h-11O" userLabel="Show Script Help Button">
                                         <rect key="frame" x="27" y="724" width="20" height="20"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="20" id="Jfh-eS-JIk"/>

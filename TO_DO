@@ -3,13 +3,12 @@ SLiM:
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
 
 Eidos:
-	implement help() and apropos(), perhaps based on some sort of file-based representation
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
+	an Objective-C port of Eidos would be nice
 
 SLiMgui work:
 	do a better job saving window positions, splitter positions, etc.
-	change script help window to a more complete help browser, with help on functions, classes, properties, methods, etc.; leverage the built-in Eidos help, make it extensible by the Context
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though

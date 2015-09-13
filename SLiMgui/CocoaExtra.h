@@ -43,10 +43,6 @@
 @property (nonatomic) BOOL enabled;
 @end
 
-// A view that simply draws white; used as a shim in the script syntax help window
-@interface SLiMWhiteView : NSView
-@end
-
 // A button that runs a pop-up menu when clicked
 @interface SLiMMenuButton : NSButton
 @property (nonatomic, retain) NSMenu *slimMenu;

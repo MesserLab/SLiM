@@ -91,7 +91,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 // if implemented by the delegate
 - (IBAction)checkScript:(id)sender;
 
-// Executes "help()" in the console, at present; might be made more GUI eventually
+// Shows the shared script help window
 - (IBAction)showScriptHelp:(id)sender;
 
 // Clears all output in the console textview

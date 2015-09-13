@@ -23,7 +23,6 @@
 #import <Quartz/Quartz.h>
 
 
-@class SLiMWhiteView;
 @class SLiMWindowController;
 @class EidosTextView;
 
@@ -46,11 +45,6 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 	// Help window cruft
 	IBOutlet NSWindow *helpWindow;
 	IBOutlet PDFView *helpPDFView;
-	
-	// Script Syntax Help
-	IBOutlet NSWindow *scriptSyntaxWindow;
-	IBOutlet SLiMWhiteView *scriptSyntaxWhiteView;
-	IBOutlet EidosTextView *scriptSyntaxTextView;
 }
 
 - (IBAction)newDocument:(id)sender;
@@ -65,8 +59,6 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 - (IBAction)showMesserLab:(id)sender;
 - (IBAction)showBenHaller:(id)sender;
 - (IBAction)showStickSoftware:(id)sender;
-
-- (void)showScriptSyntaxHelpForSLiMWindowController:(SLiMWindowController *)windowController;
 
 @end
 
