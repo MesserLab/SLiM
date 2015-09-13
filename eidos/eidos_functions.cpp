@@ -94,7 +94,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				EidosFunctionIdentifier::maxFunction,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				EidosFunctionIdentifier::meanFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				EidosFunctionIdentifier::meanFunction,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				EidosFunctionIdentifier::minFunction,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",			EidosFunctionIdentifier::rangeFunction,			kEidosValueMaskNumeric))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				EidosFunctionIdentifier::sdFunction,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
@@ -117,7 +117,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt_S("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				EidosFunctionIdentifier::seqFunction,			kEidosValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OS("by"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			EidosFunctionIdentifier::seqAlongFunction,		kEidosValueMaskInt))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_string,	EidosFunctionIdentifier::stringFunction,		kEidosValueMaskString))->AddInt_S("length"));
@@ -133,7 +133,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				EidosFunctionIdentifier::catFunction,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("identical",		EidosFunctionIdentifier::identicalFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x")->AddAny("y"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			EidosFunctionIdentifier::ifelseFunction,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",			EidosFunctionIdentifier::matchFunction,			kEidosValueMaskInt))->AddAny("x")->AddAny("y"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",			EidosFunctionIdentifier::matchFunction,			kEidosValueMaskInt))->AddAny("x")->AddAny("table"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",			EidosFunctionIdentifier::ncharFunction,			kEidosValueMaskInt))->AddString("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			EidosFunctionIdentifier::pasteFunction,			kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			EidosFunctionIdentifier::printFunction,			kEidosValueMaskNULL))->AddAny("x"));
@@ -155,10 +155,10 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	value type testing/coercion functions
 		//
 		
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asFloat",			EidosFunctionIdentifier::asFloatFunction,		kEidosValueMaskFloat))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asInteger",		EidosFunctionIdentifier::asIntegerFunction,		kEidosValueMaskInt))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asLogical",		EidosFunctionIdentifier::asLogicalFunction,		kEidosValueMaskLogical))->AddAny("x"));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asString",			EidosFunctionIdentifier::asStringFunction,		kEidosValueMaskString))->AddAny("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asFloat",			EidosFunctionIdentifier::asFloatFunction,		kEidosValueMaskFloat))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asInteger",		EidosFunctionIdentifier::asIntegerFunction,		kEidosValueMaskInt))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asLogical",		EidosFunctionIdentifier::asLogicalFunction,		kEidosValueMaskLogical))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("asString",			EidosFunctionIdentifier::asStringFunction,		kEidosValueMaskString))->AddAnyBase("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("elementType",		EidosFunctionIdentifier::elementTypeFunction,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFloat",			EidosFunctionIdentifier::isFloatFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInteger",		EidosFunctionIdentifier::isIntegerFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x"));
@@ -1229,7 +1229,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(float)mean(numeric x)
+			//	(float$)mean(numeric x)
 			#pragma mark mean
 			
 		case EidosFunctionIdentifier::meanFunction:
@@ -1944,7 +1944,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(*)sample(* x, integer size, [logical$ replace], [numeric weights])
+			//	(*)sample(* x, integer$ size, [logical$ replace], [numeric weights])
 			#pragma mark sample
 			
 		case EidosFunctionIdentifier::sampleFunction:
@@ -2404,7 +2404,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(integer)match(* x, * y)
+			//	(integer)match(* x, * table)
 			#pragma mark match
 			
 		case EidosFunctionIdentifier::matchFunction:
@@ -3301,7 +3301,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 #pragma mark -
 			
 			
-			//	(float)asFloat(* x)
+			//	(float)asFloat(+ x)
 			#pragma mark asFloat
 			
 		case EidosFunctionIdentifier::asFloatFunction:
@@ -3325,7 +3325,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(integer)asInteger(* x)
+			//	(integer)asInteger(+ x)
 			#pragma mark asInteger
 			
 		case EidosFunctionIdentifier::asIntegerFunction:
@@ -3349,7 +3349,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(logical)asLogical(* x)
+			//	(logical)asLogical(+ x)
 			#pragma mark asLogical
 			
 		case EidosFunctionIdentifier::asLogicalFunction:
@@ -3373,7 +3373,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		}
 			
 			
-			//	(string)asString(* x)
+			//	(string)asString(+ x)
 			#pragma mark asString
 			
 		case EidosFunctionIdentifier::asStringFunction:

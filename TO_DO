@@ -3,6 +3,8 @@ SLiM:
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
 
 Eidos:
+	add help items for other topics – operators, keywords, callbacks – by making new reference sections in the doc
+	option-click could open doc window with a search on the clicked token
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
 	an Objective-C port of Eidos would be nice

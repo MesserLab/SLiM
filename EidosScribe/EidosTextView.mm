@@ -897,7 +897,7 @@ using std::string;
 				const std::string &sig_call_name = sig->function_name_;
 				
 				if (sig_call_name.compare(call_name) == 0)
-					return [NSAttributedString eidosAttributedStringForSignature:sig];
+					return [NSAttributedString eidosAttributedStringForCallSignature:sig];
 			}
 		}
 		
@@ -909,7 +909,7 @@ using std::string;
 			const std::string &sig_call_name = sig->function_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForSignature:sig];
+				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
 		}
 	}
 	
@@ -929,7 +929,7 @@ using std::string;
 			const std::string &sig_call_name = sig->function_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForSignature:sig];
+				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
 		}
 	}
 	

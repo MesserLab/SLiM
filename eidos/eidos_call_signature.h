@@ -161,7 +161,7 @@ public:
 	
 	// virtual functions defined by the subclasses below
 	virtual std::string CallType(void) const = 0;				// "function" or "method"; used for error output
-	virtual std::string CallPrefix(void) const = 0;				// "", "- ", or "+ "; used for stream output
+	virtual std::string CallPrefix(void) const = 0;				// "", "– ", or "+ "; used for stream output
 	virtual std::string CallDelegate(void) const;				// used for stream output
 };
 

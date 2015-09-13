@@ -19,6 +19,11 @@
 
 
 #import "EidosHelpController.h"
+#import "EidosCocoaExtra.h"
+
+#include "eidos_interpreter.h"
+#include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 //	EidosHelpTextStorage – a little subclass to make line wrapping in the help textview work the way it should, defined below
@@ -78,13 +83,11 @@
 {
 	if (self = [super init])
 	{
-		// Set up a dummy topic root for testing – either a sample with two top-level elements (in which case group rows
-		// should display) or a sample with one top-level element (in which case the top level should not display)
-		//topicRoot = [@{@"Eidos" : @{@"eidosFoo" : @"foo foo foo", @"eidosBar" : @"bar bar bar"}, @"SLiM" : @{@"slimFoo" : @{@"slimFoo1" : @"foo1 foo1 foo1", @"slimFoo2" : @"foo2 foo2 foo2"}, @"slimBaz" : @"baz baz baz"}} mutableCopy];
-		//topicRoot = [@{@"Eidos" : @{@"eidosFoo" : @"foo foo foo", @"eidosBar" : @"bar bar bar"}} retain];
-		
 		topicRoot = [NSMutableDictionary new];
-		[self addTopicsFromRTFFile:@"EidosHelpText" underHeading:@"Eidos Functions"];
+		
+		// Add Eidos topics; the only methods defined by Eidos come from EidosObjectClass
+		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
 		
 		//NSLog(@"topicRoot == %@", topicRoot);
 	}
@@ -141,7 +144,7 @@
 	//NSLog(@"attributed string for key %@ == %@", topicItemKey, topicItemAttrString);
 }
 
-// This is a helper method for addTopicsFromRTFFile:underHeading: that creates a new "topic dictionary" under which items will be placed, and finds the right parent
+// This is a helper method for addTopicsFromRTFFile:... that creates a new "topic dictionary" under which items will be placed, and finds the right parent
 // dictionary to insert it under.  This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
 - (NSMutableDictionary *)topicDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
 {
@@ -204,7 +207,7 @@
 // that string for topic headings, function/method/property signature lines, etc., and creates a hierarchy of help topics from the results.  This process
 // assumes that the RTF doc file is laid out in a standard way that fits the regex patterns used here; it is designed to work directly with content copied
 // and pasted out of our Word documentation files into RTF in TextEdit.
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<const EidosFunctionSignature *> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
 {
 	NSString *topicFilePath = [[NSBundle mainBundle] pathForResource:rtfFile ofType:@"rtf"];
 	NSData *topicFileData = [NSData dataWithContentsOfFile:topicFilePath];
@@ -225,7 +228,7 @@
 	NSRegularExpression *topicHeaderRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  (.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];									// 2 captures
 	NSRegularExpression *topicFunctionRegex = [NSRegularExpression regularExpressionWithPattern:@"^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];						// 1 capture
 	NSRegularExpression *topicMethodRegex = [NSRegularExpression regularExpressionWithPattern:@"^([-–+])[  ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];			// 2 captures
-	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[  ]((?:<->)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];		// 2 captures
+	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[  ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];		// 2 captures
 	
 	// Scan through the file one line at a time, parsing out topic headers
 	NSString *topicFileString = [topicFileAttrString string];
@@ -241,6 +244,15 @@
 		NSRange lineRangeInAttrString = NSMakeRange(lineStartIndex, lineLength);
 		NSAttributedString *lineAttrString = [topicFileAttrString attributedSubstringFromRange:lineRangeInAttrString];
 		
+		// on the assumption (usually true) that we will need the corrected attributed string for this line, we reformat it now
+		{
+			NSMutableAttributedString *correctedLineAttrString = [[lineAttrString mutableCopy] autorelease];
+			
+			[self reformatTopicItemString:correctedLineAttrString];
+			lineAttrString = correctedLineAttrString;
+		}
+		
+		// figure out what kind of line we have and handle it
 		lineStartIndex += (lineLength + 1);		// +1 to jump over the newline
 		
 		NSUInteger isTopicHeaderLine = ([topicHeaderRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
@@ -270,7 +282,6 @@
 			// This line starts a new header or item or ends the file, so we need to terminate the current item
 			if (topicItemAttrString && topicItemKey)
 			{
-				[self reformatTopicItemString:topicItemAttrString];
 				[currentTopicDict setObject:topicItemAttrString forKey:topicItemKey];
 				
 				topicItemAttrString= nil;
@@ -300,6 +311,43 @@
 			
 			//NSLog(@"topic function name: %@, line: %@", callName, line);
 			
+			// check for a built-in function signature that matches and substitute it in
+			if (functionList)
+			{
+				std::string function_name([callName UTF8String]);
+				const EidosFunctionSignature *function_signature = nullptr;
+				
+				for (auto signature_iter = functionList->begin(); signature_iter != functionList->end(); signature_iter++)
+					if ((*signature_iter)->function_name_.compare(function_name) == 0)
+					{
+						function_signature = *signature_iter;
+						break;
+					}
+				
+				if (function_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:function_signature];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for function %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** function signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no function signature found for function name %@", callName);
+				}
+			}
+			
 			topicItemKey = [callName stringByAppendingString:@"()"];
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
@@ -314,7 +362,44 @@
 			
 			//NSLog(@"topic method name: %@, line: %@", callName, line);
 			
-			topicItemKey = [NSString stringWithFormat:@"%@%@()", classMethodString, callName];
+			// check for a built-in method signature that matches and substitute it in
+			if (methodList)
+			{
+				std::string method_name([callName UTF8String]);
+				const EidosMethodSignature *method_signature = nullptr;
+				
+				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
+					if ((*signature_iter)->function_name_.compare(method_name) == 0)
+					{
+						method_signature = *signature_iter;
+						break;
+					}
+				
+				if (method_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for method %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no method signature found for method name %@", callName);
+				}
+			}
+			
+			topicItemKey = [NSString stringWithFormat:@"%@ %@()", classMethodString, callName];
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
 		else if (isTopicPropertyLine)
@@ -327,6 +412,43 @@
 			NSString *readOnlyName = [line substringWithRange:readOnlyRange];
 			
 			//NSLog(@"topic property name: %@, line: %@", callName, line);
+			
+			// check for a built-in method signature that matches and substitute it in
+			if (propertyList)
+			{
+				std::string property_name([callName UTF8String]);
+				const EidosPropertySignature *property_signature = nullptr;
+				
+				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
+					if ((*signature_iter)->property_name_.compare(property_name) == 0)
+					{
+						property_signature = *signature_iter;
+						break;
+					}
+				
+				if (property_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for method %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no property signature found for property name %@", callName);
+				}
+			}
 			
 			topicItemKey = [NSString stringWithFormat:@"%@ %@", callName, readOnlyName];
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
@@ -360,10 +482,15 @@
 	{
 		id clickItem = [sender itemAtRow:[_topicOutlineView clickedRow]];
 		
-		if ([_topicOutlineView isItemExpanded:clickItem])
-			[_topicOutlineView.animator collapseItem:clickItem];
-		else
-			[_topicOutlineView.animator expandItem:clickItem];
+		if (clickItem)
+		{
+			BOOL optionPressed = (([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) == NSAlternateKeyMask);
+			
+			if ([_topicOutlineView isItemExpanded:clickItem])
+				[_topicOutlineView.animator collapseItem:clickItem collapseChildren:optionPressed];
+			else
+				[_topicOutlineView.animator expandItem:clickItem expandChildren:optionPressed];
+		}
 	}
 }
 
@@ -466,13 +593,18 @@
 
 - (id)findObjectForKey:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
 {
-	__block id value = [searchDict objectForKey:searchKey];
+	__block id value = nullptr;
 	
 	if (value)
 		return value;
 	
 	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-		if ([obj isKindOfClass:[NSDictionary class]])
+		// Search by pointer equality, not by hash/isEqual:, so that items with identical (but not pointer-equal) keys
+		// can refer to different values in our topic tree; the "subpopID" property, for example, has the same name
+		// in both Mutation and Substitution, but has different descriptions.
+		if (key == searchKey)
+			value = obj;
+		else if ([obj isKindOfClass:[NSDictionary class]])
 			value = [self findObjectForKey:searchKey withinDictionary:obj];
 		
 		if (value)

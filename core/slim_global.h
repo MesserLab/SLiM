@@ -319,10 +319,10 @@ extern const std::string gStr_outputFull;
 extern const std::string gStr_outputMutations;
 extern const std::string gStr_readFromPopulationFile;
 extern const std::string gStr_recalculateFitness;
-extern const std::string gStr_registerScriptEvent;
-extern const std::string gStr_registerScriptFitnessCallback;
-extern const std::string gStr_registerScriptMateChoiceCallback;
-extern const std::string gStr_registerScriptModifyChildCallback;
+extern const std::string gStr_registerEvent;
+extern const std::string gStr_registerFitnessCallback;
+extern const std::string gStr_registerMateChoiceCallback;
+extern const std::string gStr_registerModifyChildCallback;
 extern const std::string gStr_setMigrationRates;
 extern const std::string gStr_setCloningRate;
 extern const std::string gStr_setSelfingRate;
@@ -450,10 +450,10 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMutations,
 	gID_readFromPopulationFile,
 	gID_recalculateFitness,
-	gID_registerScriptEvent,
-	gID_registerScriptFitnessCallback,
-	gID_registerScriptMateChoiceCallback,
-	gID_registerScriptModifyChildCallback,
+	gID_registerEvent,
+	gID_registerFitnessCallback,
+	gID_registerMateChoiceCallback,
+	gID_registerModifyChildCallback,
 	gID_setMigrationRates,
 	gID_setCloningRate,
 	gID_setSelfingRate,

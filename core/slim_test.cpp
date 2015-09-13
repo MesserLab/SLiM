@@ -463,63 +463,63 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220, "could not open");
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); if (size(sim.subpopulations) != 3) stop(); }");	// legal; should wipe previous state
 	
-	// Test sim - (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptEvent(NULL, '{ stop(); }', 2, 2); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 2, 2); sim.registerScriptEvent(1, '{ stop(); }', 2, 2); }", 1, 300, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
+	// Test sim - (object<SLiMEidosBlock>)registerEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEvent(NULL, '{ stop(); }', 2, 2); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 2, 2); sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 294, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
 	
-	// Test sim - (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }");
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }");
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }");
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(NULL, '{ stop(); }'); }", 1, 251, "missing required argument");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 320, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251, "requires start <= end");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerScriptFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unrecognized token");
+	// Test sim - (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }'); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 314, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
-	// Test sim - (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL, '{ stop(); }'); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(NULL); }", 1, 251, "missing required argument");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 319, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
+	// Test sim - (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 313, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
-	// Test sim - (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL, '{ stop(); }'); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(NULL); }", 1, 251, "missing required argument");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 320, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerScriptModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
+	// Test sim - (object<SLiMEidosBlock>)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 314, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
 	
 	// ************************************************************************************
@@ -933,7 +933,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.originGeneration = 10; stop(); }", 1, 373, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", 1, 365, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", 1, 371, "read-only property");
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 1; stop(); }", 1, 365, "read-only property");
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }");						// legal; this field may be used as a user tag
 	
 	// No methods on Substitution
 	

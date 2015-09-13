@@ -21,11 +21,12 @@
 #import "EidosCocoaExtra.h"
 
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 
 @implementation NSAttributedString (EidosAdditions)
 
-+ (NSAttributedString *)eidosAttributedStringForSignature:(const EidosCallSignature *)signature
++ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature
 {
 	if (signature)
 	{
@@ -37,7 +38,7 @@
 		// Build an attributed string showing the call signature with syntax coloring for its parts
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
-		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "- ", or "+ "
+		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "– ", or "+ "
 		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "").c_str()];
 		NSString *functionNameString = [NSString stringWithUTF8String:signature->function_name_.c_str()];
 		
@@ -134,7 +135,7 @@
 				{
 					NSString *argName = [NSString stringWithUTF8String:arg_name.c_str()];
 					
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];	// non-breaking space
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:argName attributes:paramAttrs] autorelease]];
 				}
 				
@@ -155,6 +156,42 @@
 		
 		// if the function is provided by a delegate, show the delegate's name
 		//p_outstream << p_signature.CallDelegate();
+		
+		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+		
+		return attrStr;
+	}
+	
+	return [[[NSAttributedString alloc] init] autorelease];
+}
+
++ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature
+{
+	if (signature)
+	{
+		//
+		//	Note this logic is paralleled in the function operator<<(ostream &, const EidosPropertySignature &).
+		//	These two should be kept in synch so the user-visible format of signatures is consistent.
+		//
+		
+		// Build an attributed string showing the call signature with syntax coloring for its parts
+		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
+		
+		NSString *connectorString = [NSString stringWithUTF8String:signature->PropertySymbol().c_str()];	// "<–>" or "=>"
+		NSString *valueTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->value_mask_, signature->value_class_, "").c_str()];
+		NSString *propertyNameString = [NSString stringWithUTF8String:signature->property_name_.c_str()];
+		
+		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
+		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrs];
+		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
+		NSDictionary *paramAttrs = [NSDictionary eidosPromptAttrs];
+		
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:propertyNameString attributes:functionAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:connectorString attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" (" attributes:plainAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:valueTypeString attributes:typeAttrs] autorelease]];
+		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
 		
 		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
 		

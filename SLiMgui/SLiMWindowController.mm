@@ -42,6 +42,7 @@
 #import "ScriptMod_AddGenomicElement.h"
 #import "ScriptMod_AddRecombinationRate.h"
 #import "ScriptMod_AddSexConfiguration.h"
+#import "EidosHelpController.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_call_signature.h"
 #import "slim_test.h"
@@ -50,35 +51,6 @@
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
-
-
-static NSString *defaultScriptString = @"// set up a simple neutral simulation\n"
-										"initialize() {\n"
-										"	initializeMutationRate(1e-7);\n"
-										"	\n"
-										"	// m1 mutation type: neutral\n"
-										"	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-										"	\n"
-										"	// g1 genomic element type: uses m1 for all mutations\n"
-										"	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
-										"	\n"
-										"	// uniform chromosome of length 100 kb with uniform recombination\n"
-										"	initializeGenomicElement(g1, 0, 99999);\n"
-										"	initializeRecombinationRate(1e-8);\n"
-										"}\n"
-										"\n"
-										"// create a population of 500 individuals\n"
-										"1 {\n"
-										"	sim.addSubpop(\"p1\", 500);\n"
-										"}\n"
-										"\n"
-										"// output events: samples of 10 genomes periodically, all fixed mutations at end\n"
-										"2000 { p1.outputSample(10); }\n"
-										"4000 { p1.outputSample(10); }\n"
-										"6000 { p1.outputSample(10); }\n"
-										"8000 { p1.outputSample(10); }\n"
-										"10000 { p1.outputSample(10); }\n"
-										"10000 { sim.outputFixedMutations(); }\n";
 
 
 @implementation SLiMWindowController
@@ -128,6 +100,39 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 //
 #pragma mark -
 #pragma mark Core class methods
+
++ (NSString *)defaultScriptString
+{
+	static NSString *str = @"// set up a simple neutral simulation\n"
+							"initialize() {\n"
+							"	initializeMutationRate(1e-7);\n"
+							"	\n"
+							"	// m1 mutation type: neutral\n"
+							"	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+							"	\n"
+							"	// g1 genomic element type: uses m1 for all mutations\n"
+							"	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+							"	\n"
+							"	// uniform chromosome of length 100 kb with uniform recombination\n"
+							"	initializeGenomicElement(g1, 0, 99999);\n"
+							"	initializeRecombinationRate(1e-8);\n"
+							"}\n"
+							"\n"
+							"// create a population of 500 individuals\n"
+							"1 {\n"
+							"	sim.addSubpop(\"p1\", 500);\n"
+							"}\n"
+							"\n"
+							"// output events: samples of 10 genomes periodically, all fixed mutations at end\n"
+							"2000 { p1.outputSample(10); }\n"
+							"4000 { p1.outputSample(10); }\n"
+							"6000 { p1.outputSample(10); }\n"
+							"8000 { p1.outputSample(10); }\n"
+							"10000 { p1.outputSample(10); }\n"
+							"10000 { sim.outputFixedMutations(); }\n";
+	
+	return str;
+}
 
 + (NSColor *)colorForIndex:(int)index
 {
@@ -295,7 +300,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 
 - (void)setDefaultScriptStringAndInitializeSimulation
 {
-	[self setScriptStringAndInitializeSimulation:defaultScriptString];
+	[self setScriptStringAndInitializeSimulation:[SLiMWindowController defaultScriptString]];
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
@@ -1638,10 +1643,31 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 	[launchString release];
 	[dividerString release];
 	
-	// Run startup tests, if enabled
-	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
-	RunSLiMTests();
-	[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
+	// We have some one-time work that we do when the first window opens; this is here instead of
+	// applicationWillFinishLaunching: because we don't want to mess up gEidos_rng
+	static BOOL beenHere = NO;
+	
+	if (!beenHere)
+	{
+		beenHere = YES;
+		
+		// We will be executing scripts, so bracket that with our delegate method call
+		[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
+		
+		// Add SLiM help items; we need a SLiMSim instance here to get function prototypes
+		std::istringstream infile([[SLiMWindowController defaultScriptString] UTF8String]);
+		
+		SLiMSim signature_sim(infile);
+		
+		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"3. SLiM Functions" functions:signature_sim.InjectedFunctionSignatures() methods:nullptr properties:nullptr];
+		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"4. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
+		
+		// Run startup tests, if enabled
+		RunSLiMTests();
+		
+		// Done executing scripts
+		[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
+	}
 }
 
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController injectIntoInterpreter:(EidosInterpreter *)interpreter
@@ -1875,7 +1901,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
 				
-				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"fitness()"])
 			{
@@ -1884,7 +1910,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("fitness", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"mateChoice()"])
 			{
@@ -1893,7 +1919,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("mateChoice", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 			}
 			else if ([signatureString hasPrefix:@"modifyChild()"])
 			{
@@ -1902,7 +1928,7 @@ static NSString *defaultScriptString = @"// set up a simple neutral simulation\n
 				if (!callbackSig)
 					callbackSig = (new EidosFunctionSignature("modifyChild", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
 				
-				attributedSignature = [NSAttributedString eidosAttributedStringForSignature:callbackSig];
+				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 			}
 		}
 		

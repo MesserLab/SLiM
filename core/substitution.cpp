@@ -86,7 +86,22 @@ EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
 
 void Substitution::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 {
-	return EidosObjectElement::SetProperty(p_property_id, p_value);
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+		case gID_subpopID:
+		{
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			
+			subpop_index_ = value;
+			return;
+		}
+			
+		default:
+		{
+			return EidosObjectElement::SetProperty(p_property_id, p_value);
+		}
+	}
 }
 
 EidosValue *Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -165,7 +180,7 @@ const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlob
 		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class));
 		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		fixationTimeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTime,		gID_fixationTime,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}

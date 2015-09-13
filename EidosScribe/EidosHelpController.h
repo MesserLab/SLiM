@@ -20,6 +20,13 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include <string>
+#include <vector>
+
+class EidosFunctionSignature;
+class EidosMethodSignature;
+class EidosPropertySignature;
+
 
 @interface EidosHelpController : NSObject
 {
@@ -29,7 +36,10 @@
 
 - (void)showWindow;
 
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading;
+// Add topics and items drawn from a specially formatted RTF file, under a designated top-level heading.
+// The signatures found for functions, methods, and prototypes will be checked against the supplied lists,
+// if they are not NULL, and if matches are found, colorized versions will be substituted.
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<const EidosFunctionSignature *> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList;
 
 @end
 

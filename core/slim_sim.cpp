@@ -1169,9 +1169,9 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::InjectedFunctionSigna
 		{
 			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddNumeric("rates")->AddInt_O("ends"));
@@ -1246,6 +1246,70 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 	}
 	
 	return methodSignatures;
+}
+
+const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures(void)
+{
+	static std::vector<const EidosPropertySignature*> *propertySignatures = nullptr;
+	
+	if (!propertySignatures)
+	{
+		auto baseProperties =					gEidos_UndefinedClassObject->Properties();
+		auto propertiesChromosome =				gSLiM_Chromosome_Class->Properties();
+		auto propertiesGenome =					gSLiM_Genome_Class->Properties();
+		auto propertiesGenomicElement =			gSLiM_GenomicElement_Class->Properties();
+		auto propertiesGenomicElementType =		gSLiM_GenomicElementType_Class->Properties();
+		auto propertiesMutation =				gSLiM_Mutation_Class->Properties();
+		auto propertiesMutationType =			gSLiM_MutationType_Class->Properties();
+		auto propertiesSLiMEidosBlock =			gSLiM_SLiMEidosBlock_Class->Properties();
+		auto propertiesSLiMSim =				gSLiM_SLiMSim_Class->Properties();
+		auto propertiesSubpopulation =			gSLiM_Subpopulation_Class->Properties();
+		auto propertiesSubstitution =			gSLiM_Substitution_Class->Properties();
+		
+		propertySignatures = new std::vector<const EidosPropertySignature*>(*baseProperties);
+		
+		propertySignatures->insert(propertySignatures->end(), propertiesChromosome->begin(), propertiesChromosome->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesGenome->begin(), propertiesGenome->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElement->begin(), propertiesGenomicElement->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElementType->begin(), propertiesGenomicElementType->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesMutation->begin(), propertiesMutation->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesMutationType->begin(), propertiesMutationType->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesSLiMEidosBlock->begin(), propertiesSLiMEidosBlock->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesSLiMSim->begin(), propertiesSLiMSim->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesSubpopulation->begin(), propertiesSubpopulation->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesSubstitution->begin(), propertiesSubstitution->end());
+		
+		// sort by pointer; we want pointer-identical signatures to end up adjacent
+		std::sort(propertySignatures->begin(), propertySignatures->end());
+		
+		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
+		propertySignatures->resize(std::distance(propertySignatures->begin(), unique_end_iter));
+		
+		// print out any signatures that are identical by name
+		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
+		
+		const EidosPropertySignature *previous_sig = nullptr;
+		
+		for (const EidosPropertySignature *sig : *propertySignatures)
+		{
+			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
+			{
+				// We have a name collision.  That is not legal for methods, which need to be uniquely named;
+				// but for properties it's OK as long as the property signatures are identical.  (That would
+				// probably be OK for methods too, actually, but checking for it would be a hassle.)
+				if ((sig->property_id_ != previous_sig->property_id_) ||
+					(sig->read_only_ != previous_sig->read_only_) ||
+					(sig->value_mask_ != previous_sig->value_mask_) ||
+					(sig->value_class_ != previous_sig->value_class_))
+					std::cout << "Duplicate property name: " << sig->property_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+	}
+	
+	return propertySignatures;
 }
 
 void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table)
@@ -1916,11 +1980,11 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object<SLiMEidosBlock>)registerScriptEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 			//
-#pragma mark -registerScriptEvent()
+#pragma mark -registerEvent()
 			
-		case gID_registerScriptEvent:
+		case gID_registerEvent:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
@@ -1931,7 +1995,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (start_generation > end_generation)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptEvent() requires start <= end." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() requires start <= end." << eidos_terminate();
 			
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			
@@ -1947,7 +2011,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				EidosValue *symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptEvent() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 				symbols.SetValueForSymbol(symbol_name, symbol_value);
 			}
 			
@@ -1956,11 +2020,11 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 			//
-#pragma mark -registerScriptFitnessCallback()
+#pragma mark -registerFitnessCallback()
 			
-		case gID_registerScriptFitnessCallback:
+		case gID_registerFitnessCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
@@ -1976,7 +2040,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			if (start_generation > end_generation)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptFitnessCallback() requires start <= end." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() requires start <= end." << eidos_terminate();
 			
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosFitnessCallback, start_generation, end_generation);
 			
@@ -1995,7 +2059,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 				EidosValue *symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerScriptFitnessCallback() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
 				symbols.SetValueForSymbol(symbol_name, symbol_value);
 			}
 			
@@ -2004,14 +2068,14 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			
 			//
-			//	*********************	- (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-			//	*********************	- (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 			//
-#pragma mark -registerScriptMateChoiceCallback()
-#pragma mark -registerScriptModifyChildCallback()
+#pragma mark -registerMateChoiceCallback()
+#pragma mark -registerModifyChildCallback()
 			
-		case gID_registerScriptMateChoiceCallback:
-		case gID_registerScriptModifyChildCallback:
+		case gID_registerMateChoiceCallback:
+		case gID_registerModifyChildCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
@@ -2028,7 +2092,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlockType block_type = ((p_method_id == gID_registerScriptMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
+			SLiMEidosBlockType block_type = ((p_method_id == gID_registerMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 			
 			script_block->subpopulation_id_ = subpop_id;
@@ -2190,10 +2254,10 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->push_back(SignatureForMethodOrRaise(gID_outputMutations));
 		methods->push_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
 		methods->push_back(SignatureForMethodOrRaise(gID_recalculateFitness));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptEvent));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptFitnessCallback));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptMateChoiceCallback));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerScriptModifyChildCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerEvent));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
@@ -2212,10 +2276,10 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *outputMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *readFromPopulationFileSig = nullptr;
 	static EidosInstanceMethodSignature *recalculateFitnessSig = nullptr;
-	static EidosInstanceMethodSignature *registerScriptEventSig = nullptr;
-	static EidosInstanceMethodSignature *registerScriptFitnessCallbackSig = nullptr;
-	static EidosInstanceMethodSignature *registerScriptMateChoiceCallbackSig = nullptr;
-	static EidosInstanceMethodSignature *registerScriptModifyChildCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerEventSig = nullptr;
+	static EidosInstanceMethodSignature *registerFitnessCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
 	
 	if (!addSubpopSig)
 	{
@@ -2228,10 +2292,10 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskNULL))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OS("generation");
-		registerScriptEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptEvent, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
-		registerScriptModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerScriptModifyChildCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		registerEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEvent, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
+		registerFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2246,10 +2310,10 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_outputMutations:						return outputMutationsSig;
 		case gID_readFromPopulationFile:				return readFromPopulationFileSig;
 		case gID_recalculateFitness:					return recalculateFitnessSig;
-		case gID_registerScriptEvent:					return registerScriptEventSig;
-		case gID_registerScriptFitnessCallback:			return registerScriptFitnessCallbackSig;
-		case gID_registerScriptMateChoiceCallback:		return registerScriptMateChoiceCallbackSig;
-		case gID_registerScriptModifyChildCallback:		return registerScriptModifyChildCallbackSig;
+		case gID_registerEvent:							return registerEventSig;
+		case gID_registerFitnessCallback:				return registerFitnessCallbackSig;
+		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
+		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
 			
 			// all others, including gID_none
 		default:

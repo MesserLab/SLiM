@@ -125,7 +125,7 @@ std::string EidosPropertySignature::PropertyType(void) const
 
 std::string EidosPropertySignature::PropertySymbol(void) const
 {
-	return (read_only_ ? "=>" : "<->");
+	return (read_only_ ? "=>" : "<–>");
 }
 
 ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)

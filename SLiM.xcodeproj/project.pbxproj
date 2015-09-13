@@ -21,9 +21,12 @@
 		982556661BA450980054CB3F /* EidosHelpController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 982556641BA450980054CB3F /* EidosHelpController.mm */; };
 		982556691BA451D00054CB3F /* EidosHelpWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 982556671BA451D00054CB3F /* EidosHelpWindow.xib */; };
 		9825566A1BA451D00054CB3F /* EidosHelpWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 982556671BA451D00054CB3F /* EidosHelpWindow.xib */; };
-		9825566C1BA477D60054CB3F /* EidosHelpText.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpText.rtf */; };
-		9825566D1BA477D60054CB3F /* EidosHelpText.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpText.rtf */; };
-		9825566F1BA4FAD00054CB3F /* SLiMHelpText.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566E1BA4FAD00054CB3F /* SLiMHelpText.rtf */; };
+		9825566C1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */; };
+		9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */; };
+		9825566F1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */; };
+		982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
+		982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
+		982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98321F911B406417007337A3 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98321F941B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
@@ -310,8 +313,10 @@
 		982556631BA450980054CB3F /* EidosHelpController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosHelpController.h; sourceTree = "<group>"; };
 		982556641BA450980054CB3F /* EidosHelpController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosHelpController.mm; sourceTree = "<group>"; };
 		982556681BA451D00054CB3F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosHelpWindow.xib; sourceTree = "<group>"; };
-		9825566B1BA477D60054CB3F /* EidosHelpText.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpText.rtf; sourceTree = "<group>"; };
-		9825566E1BA4FAD00054CB3F /* SLiMHelpText.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpText.rtf; sourceTree = "<group>"; };
+		9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpFunctions.rtf; sourceTree = "<group>"; };
+		9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpFunctions.rtf; sourceTree = "<group>"; };
+		9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpMethods.rtf; sourceTree = "<group>"; };
+		982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpClasses.rtf; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_global.cpp; sourceTree = "<group>"; };
@@ -698,7 +703,8 @@
 				98EFE6321ADD92BC00CBEC78 /* AboutWindow.xib */,
 				98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */,
 				982556671BA451D00054CB3F /* EidosHelpWindow.xib */,
-				9825566B1BA477D60054CB3F /* EidosHelpText.rtf */,
+				9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */,
+				9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */,
 				98A4EC911B67C02000CD92FD /* buttons */,
 				985724B11AD478630047C223 /* Supporting Files */,
 			);
@@ -790,7 +796,8 @@
 				98D4C1FF1A70192A00FFB083 /* SLiMWindow.xib */,
 				98D4C20B1A715F6100FFB083 /* AboutWindow.xib */,
 				98D4C2121A71838400FFB083 /* HelpWindow.xib */,
-				9825566E1BA4FAD00054CB3F /* SLiMHelpText.rtf */,
+				9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */,
+				982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */,
 				98D4C1E41A6FD8D600FFB083 /* buttons */,
 				98D4C1B51A6F537B00FFB083 /* Supporting Files */,
 			);
@@ -955,7 +962,8 @@
 				985724E11AD4C3310047C223 /* execute_script.pdf in Resources */,
 				985724D61AD489AA0047C223 /* check_H.pdf in Resources */,
 				985724E01AD4C3310047C223 /* execute_script_H.pdf in Resources */,
-				9825566D1BA477D60054CB3F /* EidosHelpText.rtf in Resources */,
+				9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */,
+				982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
 				98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */,
 				9825566A1BA451D00054CB3F /* EidosHelpWindow.xib in Resources */,
 				985724B91AD478630047C223 /* Images.xcassets in Resources */,
@@ -997,7 +1005,7 @@
 				98DE4C191B713F10004FDF5F /* ScriptMod_ChangeSubpopSize.xib in Resources */,
 				98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */,
 				98453F5A1A76004300C058CB /* show_genomicelements_H.pdf in Resources */,
-				9825566F1BA4FAD00054CB3F /* SLiMHelpText.rtf in Resources */,
+				9825566F1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf in Resources */,
 				98453F631A76041200C058CB /* edit_submenu.pdf in Resources */,
 				98DE4C171B713EEA004FDF5F /* ScriptModSheet.xib in Resources */,
 				98DE4C271B713F49004FDF5F /* ScriptMod_OutputFullPopulation.xib in Resources */,
@@ -1016,6 +1024,7 @@
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				987AD8801B2CBE580035D6C8 /* show_execution_H.pdf in Resources */,
+				982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */,
 				98DE4C231B713F3A004FDF5F /* ScriptMod_ChangeSelfing.xib in Resources */,
 				98DE4C311B713F6B004FDF5F /* ScriptMod_AddGenomicElement.xib in Resources */,
 				98453F591A76004300C058CB /* show_fixed.pdf in Resources */,
@@ -1033,13 +1042,14 @@
 				98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */,
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
 				98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */,
+				982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
 				987AD87F1B2CBE550035D6C8 /* show_tokens.pdf in Resources */,
 				98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */,
 				98D4C20D1A715F6100FFB083 /* AboutWindow.xib in Resources */,
 				98D4C1FD1A700DC100FFB083 /* play_step_H.pdf in Resources */,
 				98DE4C211B713F33004FDF5F /* ScriptMod_ChangeMigration.xib in Resources */,
 				98453F5E1A76004300C058CB /* show_recombination_H.pdf in Resources */,
-				9825566C1BA477D60054CB3F /* EidosHelpText.rtf in Resources */,
+				9825566C1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */,
 				98C0943F1B7663DF00766A9A /* male_symbol.pdf in Resources */,
 				98D4C1FE1A700DC100FFB083 /* recycle_H.pdf in Resources */,
 				98453F5D1A76004300C058CB /* show_mutations.pdf in Resources */,

@@ -49,7 +49,7 @@ public:
 	
 	// informational strings about the property
 	std::string PropertyType(void) const;				// "read-only" or "read-write"
-	std::string PropertySymbol(void) const;				// "=>" or "->"
+	std::string PropertySymbol(void) const;				// "=>" or "–>"
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature);

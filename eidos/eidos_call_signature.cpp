@@ -298,7 +298,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 	//	These two should be kept in synch so the user-visible format of signatures is consistent.
 	//
 	
-	p_outstream << p_signature.CallPrefix();	// "", "- ", or "+ " depending on our subclass
+	p_outstream << p_signature.CallPrefix();	// "", "– ", or "+ " depending on our subclass
 	
 	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_class_, "");
 	
@@ -444,7 +444,7 @@ EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_
 
 std::string EidosInstanceMethodSignature::CallPrefix(void) const
 {
-	return "- ";
+	return "– ";	// en-dash, non-breaking space
 }
 
 EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
@@ -470,7 +470,7 @@ EidosClassMethodSignature::EidosClassMethodSignature(const std::string &p_functi
 
 std::string EidosClassMethodSignature::CallPrefix(void) const
 {
-	return "+ ";
+	return "+ ";	// non-breaking space
 }
 
 EidosClassMethodSignature::~EidosClassMethodSignature(void)

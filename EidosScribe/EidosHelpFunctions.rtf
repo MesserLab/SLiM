@@ -682,7 +682,7 @@
 \f1 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\fs18 \cf0 (object)object(void)\
+\f2\fs18 \cf0 (object<undefined>)object(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Returns a 
@@ -1915,7 +1915,7 @@
 \b\fs22 \cf0 3.7.  Miscellaneous functions\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\b0\fs18 \cf0 (*)apply(* x, string$\'a0lambdaSource)\
+\f2\b0\fs18 \cf0 (*)apply(*\'a0x, string$\'a0lambdaSource)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\b\fs20 \cf0 Applies a block of Eidos code to the elements of a vector
@@ -2090,20 +2090,6 @@ The
 \f0\fs20 ; if 
 \f2\fs18 setSeed()
 \f0\fs20  has not been called, it will be a seed value chosen based on the process-id and the current time when Eidos was initialized, unless the Context has set a different seed value.
-\f1 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f2\fs18 \cf0 (void)help([string$
-\f1 \'a0
-\f2 topic])\
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\b\fs20 \cf0 Prints help
-\b0  to Eidos\'92s output stream.  If no 
-\f2\fs18 topic
-\f0\fs20  is supplied a top-level topic overview will be printed, otherwise help on the requested 
-\f2\fs18 topic
-\f0\fs20  will be printed (if available).
 \f1 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 

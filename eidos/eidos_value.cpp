@@ -116,7 +116,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	
 	if (p_name.length() > 0)
 	{
-		out_string += " ";
+		out_string += " ";	// non-breaking space
 		out_string += p_name;
 	}
 	

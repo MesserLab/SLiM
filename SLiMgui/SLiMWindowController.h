@@ -140,6 +140,7 @@
 	int openedGraphCount;						// used for new graph window positioning
 }
 
++ (NSString *)defaultScriptString;
 + (NSColor *)colorForIndex:(int)index;
 
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;

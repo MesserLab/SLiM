@@ -21,6 +21,7 @@
 #import <Cocoa/Cocoa.h>
 
 class EidosCallSignature;
+class EidosPropertySignature;
 
 
 /*
@@ -36,7 +37,8 @@ class EidosCallSignature;
 @interface NSAttributedString (EidosAdditions)
 
 // This provides a nicely syntax-colored call signature string for use in the console window status bar and such places.
-+ (NSAttributedString *)eidosAttributedStringForSignature:(const EidosCallSignature *)signature;
++ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature;
++ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature;
 
 @end
 

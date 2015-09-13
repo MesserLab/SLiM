@@ -20,7 +20,6 @@
 
 #import "AppDelegate.h"
 #import "SLiMWindowController.h"
-#import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import <WebKit/WebKit.h>
 
@@ -58,9 +57,6 @@ typedef enum SLiMLaunchAction
 	// Warm up our back ends
 	Eidos_WarmUp();
 	SLiM_WarmUp();
-	
-	// Add SLiM help items
-	[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpText" underHeading:@"SLiM"];
 	
 	// Poke SLiMDocumentController so it gets set up before NSDocumentController gets in.  Note we don't need to keep a
 	// reference to this, because AppKit will return it to us as +[NSDocumentController sharedDocumentController].

@@ -1,1043 +1,867 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
-{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
-\f3\fnil\fcharset0 Menlo-Italic;}
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
+\f3\froman\fcharset0 TimesNewRomanPSMT;}
 {\colortbl;\red255\green255\blue255;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb360\sa60
 
-\f0\b\fs22 \cf0 5.2  Simulation initialization\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\b0\fs18 \cf0 (void)initializeGeneConversion(numeric$\'a0conversionFraction, numeric$\'a0meanLength)
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Configure the likelihood and behavior of gene conversion events.  The probably of gene conversion occurring for any one recombination event is given by 
-\f1\fs18 conversionFraction
-\f0\fs20 , and the mean of the geometric distribution from which the length of the gene conversion stretch will be drawn is specified by 
-\f1\fs18 meanLength
-\f2\fs20 .
-\i \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\i0\fs18 \cf0 (void)initializeGenomicElement(io<GenomicElementType>$\'a0genomicElementType, integer$\'a0start, integer$\'a0end)
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Add a genomic element to the chromosome at initialization time.  The 
-\f1\fs18 start
-\f0\fs20  and 
-\f1\fs18 end
-\f0\fs20  parameters give the first and last nucleotide positions to be spanned by the new genomic element.  The new element based upon the genomic element type identified by 
-\f1\fs18 genomicElementType
-\f2\fs20 ,
-\f0  which can be either an 
-\f1\fs18 integer
-\f0\fs20 , representing the ID of the desired element type, or an 
-\f1\fs18 object
-\f0\fs20  of type 
-\f1\fs18 GenomicElementType
-\f0\fs20 , specified directly.
-\f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\fs18 \cf0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Add a genomic element type at initialization time.  The 
-\f1\fs18 id
-\f0\fs20  must not already be used for any genomic element type in the simulation.  The 
-\f1\fs18 mutationTypes
-\f0\fs20  vector identifies the mutation types used by the genomic element, and the 
-\f1\fs18 proportions
-\f0\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from the corresponding mutation type.  The 
-\f1\fs18 id
-\f0\fs20  parameter may be either an 
-\f1\fs18 integer
-\f0\fs20  giving the ID of the new genomic element type, or a 
-\f1\fs18 string
-\f0\fs20  giving the name of the new genomic element type (such as 
-\f1\fs18 "g5"
-\f0\fs20  to specify an ID of 5).  The 
-\f1\fs18 mutationTypes
-\f0\fs20  parameter may be either an 
-\f1\fs18 integer
-\f0\fs20  vector representing the IDs of the desired mutation types, or an 
-\f1\fs18 object
-\f0\fs20  vector of 
-\f1\fs18 MutationType
-\f0\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
-\f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\fs18 \cf0 (void)initializeMutationRate(numeric$\'a0rate)
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Set the uniform mutation rate per nucleotide per generation along the chromosome.
-\f2\i \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\i0\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Add a mutation type at initialization time.  The 
-\f1\fs18 id
-\f0\fs20  must not already be used for any mutation type in the simulation.  The 
-\f1\fs18 id
-\f0\fs20  parameter may be either an 
-\f1\fs18 integer
-\f0\fs20  giving the ID of the new mutation type, or a 
-\f1\fs18 string
-\f0\fs20  giving the name of the new mutation type (such as 
-\f1\fs18 "m5"
-\f0\fs20  to specify an ID of 5).  The 
-\f1\fs18 distributionType
-\f0\fs20  may be 
-\f1\fs18 "f"
-\f0\fs20 , in which case the ellipsis 
-\f1\fs18 ...
-\f0\fs20  should supply a 
-\f1\fs18 numeric$
-\f0\fs20  fixed selection coefficient; 
-\f1\fs18 "e"
-\f0\fs20 , in which case the ellipsis should supply a 
-\f1\fs18 numeric$
-\f0\fs20  mean selection coefficient for an exponential distribution; or 
-\f1\fs18 "g"
-\f0\fs20 , in which case the ellipsis should supply a 
-\f1\fs18 numeric$
-\f0\fs20  mean selection coefficient and a 
-\f1\fs18 numeric$
-\f0\fs20  alpha shape parameter for a gamma distribution.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.
-\f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [integer\'a0ends])
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Set the recombination rate per nucleotide per generation along the chromosome.  There are two ways to call this function.  If the optional 
-\f1\fs18 ends
-\f0\fs20  parameter is omitted, 
-\f1\fs18 rates
-\f0\fs20  must be a singleton value that specifies a single recombination rate to be used along the entire chromosome.  If, on the other hand, 
-\f1\fs18 ends
-\f0\fs20  is supplied, then 
-\f1\fs18 rates
-\f0\fs20  and 
-\f1\fs18 ends
-\f0\fs20  must be the same length, and the values in 
-\f1\fs18 ends
-\f0\fs20  must be specified in ascending order.  In that case, 
-\f1\fs18 rates
-\f0\fs20  and 
-\f1\fs18 ends
-\f0\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
-\f1\fs18 ends
-\f0\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).
-\f2\i \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
-
-\f1\i0\fs18 \cf0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff])
-\f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60
-
-\f0\fs20 \cf0 Enable and configure sex in the simulation.  The argument 
-\f1\fs18 chromosomeType
-\f0\fs20  gives the type of chromosome to be simulated; this should be 
-\f1\fs18 "A"
-\f0\fs20 , 
-\f1\fs18 "X"
-\f0\fs20 , or 
-\f1\fs18 "Y"
-\f0\fs20 .  If the 
-\f1\fs18 chromosomeType
-\f0\fs20  is 
-\f1\fs18 "X"
-\f0\fs20 , 
-\f1\fs18 xDominanceCoeff
-\f0\fs20  can optionally supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
-\f1\fs18 chromosomeType
-\f0\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
-\pard\pardeftab720\ri720\sb360\sa60
-
-\b\fs22 \cf0 5.3  Class SLiMSim\
+\f0\b\fs22 \cf0 5.3  Class SLiMSim\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.3.1  
-\f3\fs18 SLiMSim
+\f1\fs18 SLiMSim
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 chromosome => (object<Chromosome>$)\
+\f2\i0\fs18 \cf0 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 Chromosome
+\f2\fs18 Chromosome
 \f0\fs20  
-\f1\fs18 object
+\f2\fs18 object
 \f0\fs20  used by the simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 chromosomeType => (string$)\
+\f2\fs18 \cf0 chromosomeType => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The type of chromosome being simulated; this will be one of 
-\f1\fs18 "A"
+\f2\fs18 "A"
 \f0\fs20 , 
-\f1\fs18 "X"
+\f2\fs18 "X"
 \f0\fs20 , or 
-\f1\fs18 "Y"
-\f2\fs20 .\
+\f2\fs18 "Y"
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 dominanceCoeffX <-> (float$)\
+\f2\fs18 \cf0 dominanceCoeffX <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM documentation for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 generation <-> (integer$)\
+\f2\fs18 \cf0 generation <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The current generation number.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\
+\f2\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 GenomicElementType
+\f2\fs18 GenomicElementType
 \f0\fs20  objects being used in the simulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutationTypes => (object<MutationType>)\
+\f2\fs18 \cf0 mutationTypes => (object<MutationType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  objects being used in the simulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutations => (object<Mutation>)\
+\f2\fs18 \cf0 mutations => (object<Mutation>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects that are currently active in the simulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 scriptBlocks => (object<SLiMEidosBlock>)\
+\f2\fs18 \cf0 scriptBlocks => (object<SLiMEidosBlock>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 All registered 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects in the simulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 sexEnabled => (logical$)\
+\f2\fs18 \cf0 sexEnabled => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 If 
-\f1\fs18 T
+\f2\fs18 T
 \f0\fs20 , sex is enabled in the simulation; if 
-\f1\fs18 F
+\f2\fs18 F
 \f0\fs20 , individuals are hermaphroditic.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 subpopulations => (object<Subpopulation>)\
+\f2\fs18 \cf0 subpopulations => (object<Subpopulation>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  instances currently defined in the simulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 substitutions => (object<Substitution>)\
+\f2\fs18 \cf0 substitutions => (object<Substitution>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A vector of 
-\f1\fs18 Substitution
+\f2\fs18 Substitution
 \f0\fs20  objects, representing all mutations that have been fixed.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.3.2  
-\f3\fs18 SLiMSim
+\f1\fs18 SLiMSim
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (object<Subpopulation>)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio])
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Add a new subpopulation with id 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  and 
-\f1\fs18 size
+\f2\fs18 size
 \f0\fs20  individuals (see SLiM\'92s documentation for further details).  The 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  parameter may be either an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  giving the ID of the new subpopulation, or a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  giving the name of the new subpopulation (such as 
-\f1\fs18 "p5"
+\f2\fs18 "p5"
 \f0\fs20  to specify an ID of 5).  Only if sex is enabled in the simulation, the initial sex ratio may optionally be specified as 
-\f1\fs18 sexRatio
+\f2\fs18 sexRatio
 \f0\fs20 ; if it is not specified, a default of 
-\f1\fs18 0.5
+\f2\fs18 0.5
 \f0\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (object<Subpopulation>)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio])
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(object<Subpopulation>)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Split off a new subpopulation with id 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  and 
-\f1\fs18 size
+\f2\fs18 size
 \f0\fs20  individuals derived from subpopulation 
-\f1\fs18 sourceSubpop
+\f2\fs18 sourceSubpop
 \f0\fs20  (see SLiM\'92s documentation for further details).  The 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  parameter may be either an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  giving the ID of the new subpopulation, or a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  giving the name of the new subpopulation (such as 
-\f1\fs18 "p5"
+\f2\fs18 "p5"
 \f0\fs20  to specify an ID of 5).  The 
-\f1\fs18 sourceSubpop
+\f2\fs18 sourceSubpop
 \f0\fs20  parameter may specify the source subpopulation either as a 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  object or by 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier.  Only if sex is enabled in the simulation, the initial sex ratio may optionally be specified as 
-\f1\fs18 sexRatio
+\f2\fs18 sexRatio
 \f0\fs20 ; if it is not specified, a default of 
-\f1\fs18 0.5
+\f2\fs18 0.5
 \f0\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\
+\f2\fs18 \cf0 \'96\'a0(void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 All 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects specified by 
-\f1\fs18 scriptBlocks
+\f2\fs18 scriptBlocks
 \f0\fs20  (either with 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects or with 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifiers) will be scheduled for deregistration.  The deregistered blocks remain valid, and may even still be executed in the current stage of the current generation (see section 5.13.5); the blocks are not actually deregistered and deallocated until sometime after the currently executing script block has completed.  To immediately prevent a script block from executing, even when it is scheduled to execute in the current stage of the current generation, use the 
-\f1\fs18 active
+\f2\fs18 active
 \f0\fs20  property of the script block (section 5.12).
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (float)mutationFrequencies(No<Subpopulation>\'a0subpops, [object<Mutation>\'a0mutations])\
+\f2\fs18 \cf0 \'96\'a0(float)mutationFrequencies(No<Subpopulation>\'a0subpops, [object<Mutation>\'a0mutations])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Return a 
-\f1\fs18 float
+\f2\fs18 float
 \f0\fs20  vector with the frequencies of all of the 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects passed in 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20 , within the 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  objects in 
-\f1\fs18 subpops
-\f2\fs20 .
+\f2\fs18 subpops
+\f3\fs20 .
 \f0   The 
-\f1\fs18 subpops
+\f2\fs18 subpops
 \f0\fs20  argument is required, but you may pass 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to get population-wide frequencies; that is the meaning of the unusual parameter signature 
-\f1\fs18 No
+\f2\fs18 No
 \f0\fs20  (
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  or 
-\f1\fs18 object
+\f2\fs18 object
 \f0\fs20 ).  If the optional 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20  argument is not supplied, frequencies will be returned for all of the active 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects in the simulation \'96 the same 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects, and in the same order, as would be returned by the 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20  property of 
-\f1\fs18 sim
+\f2\fs18 sim
 \f0\fs20 , in other words.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)outputFixedMutations(void)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations(void)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Output all fixed mutations (see SLiM\'92s documentation for further details).\
 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f1\fs18 n+1
+\f2\fs18 n+1
 \f0\fs20  to see the final state in generation 
-\f1\fs18 n
-\f2\fs20 .\
+\f2\fs18 n
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)outputFull([string$\'a0filePath])
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)outputFull([string$\'a0filePath])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Output the state of the entire population.  Output will be sent to the filesystem path 
-\f1\fs18 filePath
+\f2\fs18 filePath
 \f0\fs20  if supplied, otherwise to Eidos\'92s output stream (see SLiM\'92s documentation for further details).
-\f2 \
+\f3 \
 
 \f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f1\fs18 n+1
+\f2\fs18 n+1
 \f0\fs20  to see the final state in generation 
-\f1\fs18 n
-\f2\fs20 .\
+\f2\fs18 n
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)outputMutations(object<Mutation>\'a0mutations)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.
-\f2 \
+\f3 \
 
 \f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f1\fs18 n+1
+\f2\fs18 n+1
 \f0\fs20  to see the final state in generation 
-\f1\fs18 n
-\f2\fs20 .\
+\f2\fs18 n
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)readFromPopulationFile(string$\'a0filePath)\
+\f2\fs18 \cf0 \'96\'a0(void)readFromPopulationFile(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Read from a population initialization file.  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in generation 1, immediately after simulation initialization), it may be called in any Eidos event; the current state of all populations will be wiped and replaced by the state in the file at 
-\f1\fs18 filePath
+\f2\fs18 filePath
 \f0\fs20 .  All Eidos variables that are of type 
-\f1\fs18 object
+\f2\fs18 object
 \f0\fs20  and have element type 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20 , 
-\f1\fs18 Genome
+\f2\fs18 Genome
 \f0\fs20 , 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20 , or 
-\f1\fs18 Substitution
+\f2\fs18 Substitution
 \f0\fs20  will be removed as a side effect of this method, since all such variables would refer to objects that no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  objects loaded from the file.  Fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks.\
 This method can be used to restore the state of a simulation to a previous point in time that was saved to a file; however, this method does not change the generation counter, so if you want the generation counterto reset you should do that manually by setting 
-\f1\fs18 sim.generation
-\f2\fs20 .
+\f2\fs18 sim.generation
+\f3\fs20 .
 \f0   Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
-\f1\fs18 setSeed()
+\f2\fs18 setSeed()
 \f0\fs20  can be used to establish a new seed value.  Any changes made to the simulation\'92s structure (mutation types, genomic element types, etc.) will not be wiped and re-established by 
-\f1\fs18 readFromPopulationFile()
+\f2\fs18 readFromPopulationFile()
 \f0\fs20 ; this method loads only the population\'92s state, not the simulation configuration, so care should be taken to ensure that the simulation structure meshes coherently with the loaded data.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\fs18 \cf0 -\'a0
-\f1 (void)recalculateFitness([integer$ generation])\
+\f2\fs18 \cf0 \'96\'a0(void)recalculateFitness([integer$\'a0generation])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at the end of each generation, and those values are cached and used throughout the following generation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the end of the current generation, you may call 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  to force an immediate recalculation and recache.\
 The optional parameter 
-\f1\fs18 generation
+\f2\fs18 generation
 \f0\fs20  provides the generation for which 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks should be selected.  You may wish this to be 
-\f1\fs18 sim.generation - 1
+\f2\fs18 sim.generation - 1
 \f0\fs20  in order to utilize the 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks for the previous generation, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous generation when the new generation was first created and evaluated.  However, regardless of the value supplied for 
-\f1\fs18 generation
+\f2\fs18 generation
 \f0\fs20  here, 
-\f1\fs18 sim.generation
+\f2\fs18 sim.generation
 \f0\fs20  inside 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks will report the true generation number, so if your callbacks consult that parameter in order to create generation-specific fitness effects you will need to handle the discrepancy somehow.\
 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks, so this is quite a heavyweight operation; you should think carefully about what side effects might result (which is why fitness recalculation does not just occur automatically after changes that might affect fitness values).
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (object<SLiMEidosBlock>)registerScriptEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  singleton 
-\f1\fs18 source
+\f2\fs18 source
 \f0\fs20 , as an Eidos event in the current simulation, with optional 
-\f1\fs18 start
+\f2\fs18 start
 \f0\fs20  and 
-\f1\fs18 end
+\f2\fs18 end
 \f0\fs20  generations limiting its applicability.  The script block will be given identifier 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  (specified as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , or as a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  symbolic name such as 
-\f1\fs18 "s5"
+\f2\fs18 "s5"
 \f0\fs20 ); this may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  if there is no need to be able to refer to the block later (thus the parameter signature 
-\f1\fs18 Nis
+\f2\fs18 Nis
 \f0\fs20 : 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  / 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  / 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20 ).  The registered event is added to the end of the list of registered 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
 \i may
 \i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (object<SLiMEidosBlock>)registerScriptFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  singleton 
-\f1\fs18 source
+\f2\fs18 source
 \f0\fs20 , as an Eidos 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callback in the current simulation, with a required mutation type 
-\f1\fs18 muttype
+\f2\fs18 muttype
 \f0\fs20  (which may be an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier), optional subpopulation 
-\f1\fs18 subpop
+\f2\fs18 subpop
 \f0\fs20  (which may also be an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier, or 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to indicate all subpopulations), and optional 
-\f1\fs18 start
+\f2\fs18 start
 \f0\fs20  and 
-\f1\fs18 end
+\f2\fs18 end
 \f0\fs20  generations all limiting its applicability.  The script block will be given identifier 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  (specified as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , or as a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  symbolic name such as 
-\f1\fs18 "s5"
+\f2\fs18 "s5"
 \f0\fs20 ); this may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  if there is no need to be able to refer to the block later (thus the parameter signature 
-\f1\fs18 Nis
+\f2\fs18 Nis
 \f0\fs20 : 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  / 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  / 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20 ).  The registered callback is added to the end of the list of registered 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
 \i may
 \i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (object<SLiMEidosBlock>)registerScriptMateChoiceCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  singleton 
-\f1\fs18 source
+\f2\fs18 source
 \f0\fs20 , as an Eidos 
-\f1\fs18 mateChoice()
+\f2\fs18 mateChoice()
 \f0\fs20  callback in the current simulation, with optional subpopulation 
-\f1\fs18 subpop
+\f2\fs18 subpop
 \f0\fs20  (which may be an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier, or 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to indicate all subpopulations) and optional 
-\f1\fs18 start
+\f2\fs18 start
 \f0\fs20  and 
-\f1\fs18 end
+\f2\fs18 end
 \f0\fs20  generations all limiting its applicability.  The script block will be given identifier 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  (specified as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , or as a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  symbolic name such as 
-\f1\fs18 "s5"
+\f2\fs18 "s5"
 \f0\fs20 ); this may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  if there is no need to be able to refer to the block later (thus the parameter signature 
-\f1\fs18 Nis
+\f2\fs18 Nis
 \f0\fs20 : 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  / 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  / 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20 ).  The registered callback is added to the end of the list of registered 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
 \i may
 \i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (object<SLiMEidosBlock>)registerScriptModifyChildCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerModifyChildCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  singleton 
-\f1\fs18 source
+\f2\fs18 source
 \f0\fs20 , as an Eidos 
-\f1\fs18 modifyChild()
+\f2\fs18 modifyChild()
 \f0\fs20  callback in the current simulation, with optional subpopulation 
-\f1\fs18 subpop
+\f2\fs18 subpop
 \f0\fs20  (which may be an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier, or 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to indicate all subpopulations) and optional 
-\f1\fs18 start
+\f2\fs18 start
 \f0\fs20  and 
-\f1\fs18 end
+\f2\fs18 end
 \f0\fs20  generations all limiting its applicability.  The script block will be given identifier 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  (specified as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , or as a 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20  symbolic name such as 
-\f1\fs18 "s5"
+\f2\fs18 "s5"
 \f0\fs20 ); this may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  if there is no need to be able to refer to the block later (thus the parameter signature 
-\f1\fs18 Nis
+\f2\fs18 Nis
 \f0\fs20 : 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  / 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  / 
-\f1\fs18 string
+\f2\fs18 string
 \f0\fs20 ).  The registered callback is added to the end of the list of registered 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
 \i may
 \i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
-\f1\fs18 SLiMEidosBlock
+\f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60
 
 \f0\b\fs22 \cf0 5.4  Class MutationType\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.4.1  
-\f3\fs18 MutationType
+\f1\fs18 MutationType
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 distributionParams => (float)\
+\f2\i0\fs18 \cf0 distributionParams => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The parameters that configure the chosen distribution of fitness effects.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 distributionType => (string$)\
+\f2\fs18 \cf0 distributionType => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The type of distribution of fitness effects; one of 
-\f1\fs18 "f"
+\f2\fs18 "f"
 \f0\fs20 , 
-\f1\fs18 "g"
+\f2\fs18 "g"
 \f0\fs20 , or 
-\f1\fs18 "e"
+\f2\fs18 "e"
 \f0\fs20  (see SLiM\'92s documentation).
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 dominanceCoeff <-> (float$)\
+\f2\fs18 \cf0 dominanceCoeff <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The dominance coefficient used for mutations of this type when heterozygous.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 id => (integer$)\
+\f2\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier for this mutation type; for mutation type 
-\f1\fs18 m3
+\f2\fs18 m3
 \f0\fs20 , for example, this is 
-\f1\fs18 3
-\f2\fs20 .\
+\f2\fs18 3
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.4.2  
-\f3\fs18 MutationType
+\f1\fs18 MutationType
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)setDistribution(string$\'a0distributionType, ...)
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the distribution of fitness effects for a mutation type.  The 
-\f1\fs18 distributionType
+\f2\fs18 distributionType
 \f0\fs20  may be 
-\f1\fs18 "f"
+\f2\fs18 "f"
 \f0\fs20 , in which case the ellipsis 
-\f1\fs18 ...
+\f2\fs18 ...
 \f0\fs20  should supply a 
-\f1\fs18 numeric$
+\f2\fs18 numeric$
 \f0\fs20  fixed selection coefficient; 
-\f1\fs18 "e"
+\f2\fs18 "e"
 \f0\fs20 , in which case the ellipsis should supply a 
-\f1\fs18 numeric$
+\f2\fs18 numeric$
 \f0\fs20  mean selection coefficient for the exponential distribution; or 
-\f1\fs18 "g"
+\f2\fs18 "g"
 \f0\fs20 , in which case the ellipsis should supply a 
-\f1\fs18 numeric$
+\f2\fs18 numeric$
 \f0\fs20  mean selection coefficient and a 
-\f1\fs18 numeric$
+\f2\fs18 numeric$
 \f0\fs20  alpha shape parameter (see SLiM\'92s documentation for further details).  This is normally a constant in simulations, so be sure you know what you are doing.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60
 
 \f0\b\fs22 \cf0 5.5  Class GenomicElementType\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.5.1  
-\f3\fs18 GenomicElementType
+\f1\fs18 GenomicElementType
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 id => (integer$)\
+\f2\i0\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier for this genomic element type; for genomic element type 
-\f1\fs18 g3
+\f2\fs18 g3
 \f0\fs20 , for example, this is 
-\f1\fs18 3
-\f2\fs20 .\
+\f2\fs18 3
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutationFractions => (float)\
+\f2\fs18 \cf0 mutationFractions => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 For each 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  represented in this genomic element type, this property has the corresponding fraction of all mutations that will be drawn from that 
-\f1\fs18 MutationType
-\f2\fs20 .\
+\f2\fs18 MutationType
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutationTypes => (object<MutationType>)\
+\f2\fs18 \cf0 mutationTypes => (object<MutationType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  instances used by this genomic element type.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.5.2  
-\f3\fs18 GenomicElementType
+\f1\fs18 GenomicElementType
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the mutation type fractions contributing to a genomic element type.  The 
-\f1\fs18 mutationTypes
+\f2\fs18 mutationTypes
 \f0\fs20  vector should supply the mutation types used by the genomic element (either as 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  objects or as 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifiers), and the 
-\f1\fs18 proportions
+\f2\fs18 proportions
 \f0\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from each corresponding type (see SLiM\'92s documentation for further details).  This is normally a constant in simulations, so be sure you know what you are doing.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60
 
 \f0\b\fs22 \cf0 5.6  Class GenomicElement\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.6.1  
-\f3\fs18 GenomicElement
+\f1\fs18 GenomicElement
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 endPosition => (integer$)\
+\f2\i0\fs18 \cf0 endPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The last position in the chromosome contained by this genomic element.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 genomicElementType => (object<GenomicElementType>$)\
+\f2\fs18 \cf0 genomicElementType => (object<GenomicElementType>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 GenomicElementType
+\f2\fs18 GenomicElementType
 \f0\fs20  object that defines the behavior of this genomic element.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 startPosition => (integer$)\
+\f2\fs18 \cf0 startPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The first position in the chromosome contained by this genomic element.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.6.2  
-\f3\fs18 GenomicElement
+\f1\fs18 GenomicElement
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)setGenomicElementType(io<GenomicElementType>$\'a0genomicElementType)
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)setGenomicElementType(io<GenomicElementType>$\'a0genomicElementType)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the genomic element type used for a genomic element (see SLiM\'92s documentation for further details).  The genomicElementType parameter should supply the new genomic element type for the element, either as a 
-\f1\fs18 GenomicElementType
+\f2\fs18 GenomicElementType
 \f0\fs20  object or as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier.  The genomic element type for a genomic element is normally a constant in simulations, so be sure you know what you are doing.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60
 
 \f0\b\fs22 \cf0 5.7  Class Chromosome\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.7.1  
-\f3\fs18 Chromosome
+\f1\fs18 Chromosome
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 geneConversionFraction <-> (float$)\
+\f2\i0\fs18 \cf0 geneConversionFraction <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The fraction of crossover events that result in gene conversion; see SLiM\'92s manual for details.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 geneConversionMeanLength <-> (float$)\
+\f2\fs18 \cf0 geneConversionMeanLength <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The mean length of a gene conversion event.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 genomicElements => (object<GenomicElement>)\
+\f2\fs18 \cf0 genomicElements => (object<GenomicElement>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 All of the 
-\f1\fs18 GenomicElement
+\f2\fs18 GenomicElement
 \f0\fs20  objects that comprise the chromosome.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 lastPosition => (integer$)\
+\f2\fs18 \cf0 lastPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The last valid position in the chromosome; its length, essentially.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 overallMutationRate <-> (float$)\
+\f2\fs18 \cf0 overallMutationRate <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The overall mutation rate across the whole chromosome.  This is the mutation rate per nucleotide per generation, as specified with 
-\f1\fs18 setMutationRate0()
-\f2\fs20 .\
+\f2\fs18 setMutationRate0()
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 overallRecombinationRate => (float$)\
+\f2\fs18 \cf0 overallRecombinationRate => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The overall recombination rate across the chromosome, calculated from the individual recombination ranges and rates.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 recombinationEndPositions => (integer)\
+\f2\fs18 \cf0 recombinationEndPositions => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The end positions for recombination regions along the chromosome.  Each recombination region is assumed to start at the position following the end of the previous recombination region; in other words, the regions are assumed to be contiguous.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 recombinationRates => (float)\
+\f2\fs18 \cf0 recombinationRates => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
-\f1\fs18 recombinationEndPositions
-\f2\fs20 .\
+\f2\fs18 recombinationEndPositions
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.7.2  
-\f3\fs18 Chromosome
+\f1\fs18 Chromosome
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)setRecombinationRate(numeric\'a0rates, [integer\'a0ends])
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [integer\'a0ends])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the recombination rate per nucleotide per generation along the chromosome.  There are two ways to call this function.  If the optional 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  parameter is omitted, 
-\f1\fs18 rates
+\f2\fs18 rates
 \f0\fs20  must be a singleton value that specifies a single recombination rate to be used along the entire chromosome.  If, on the other hand, 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  is supplied, then 
-\f1\fs18 rates
+\f2\fs18 rates
 \f0\fs20  and 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  must be the same length, and the values in 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  must be specified in ascending order.  In that case, 
-\f1\fs18 rates
+\f2\fs18 rates
 \f0\fs20  and 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
-\f1\fs18 ends
+\f2\fs18 ends
 \f0\fs20  should extend to the end of the chromosome (i.e. to exactly the same length as the previously specified recombination intervals extended to).  The recombination intervals are normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60
 
@@ -1045,77 +869,76 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.8.1  
-\f3\fs18 Mutation
+\f1\fs18 Mutation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 mutationType => (object<MutationType>$)\
+\f2\i0\fs18 \cf0 mutationType => (object<MutationType>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  from which this mutation was drawn.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 originGeneration => (integer$)\
+\f2\fs18 \cf0 originGeneration => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The generation in which this mutation arose.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 position => (integer$)\
+\f2\fs18 \cf0 position => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The position in the chromosome of this mutation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 selectionCoeff => (float$)\
+\f2\fs18 \cf0 selectionCoeff => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f1\fs18 MutationType
-\f2\fs20 .\
+\f2\fs18 MutationType
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 subpopID <-> (integer$)\
+\f2\fs18 \cf0 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier of the subpopulation in which this mutation arose.  If you don\'92t care which subpopulation a mutation originated in, the 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  may be used as an arbitrary 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  \'93tag\'94 value for any purpose you wish; SLiM does not do anything with the value of 
-\f1\fs18 subpopID
+\f2\fs18 subpopID
 \f0\fs20  except propagate it to 
-\f1\fs18 Substitution
+\f2\fs18 Substitution
 \f0\fs20  objects and report it in output.  (It must still be 
-\f1\fs18 >= 0
+\f2\fs18 >= 0
 \f0\fs20 , however, since SLiM object identifiers are limited to nonnegative integers).\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\fs22 \cf0 5.8.2  
-\f3\fs18 Mutation
+\f1\fs18 Mutation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)setSelectionCoeff(float$\'a0selectionCoeff)
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the selection coefficient of the mutation to 
-\f1\fs18 selectionCoeff
+\f2\fs18 selectionCoeff
 \f0\fs20 .  The selection coefficient will be changed for all individuals that possess the mutation, since they all share a single 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  object.  This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callback (see section 5.11.2) is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\ri720\sb360\sa60
 
@@ -1123,197 +946,193 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.9.1  
-\f3\fs18 Genome
+\f1\fs18 Genome
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 genomeType => (string$)\
+\f2\i0\fs18 \cf0 genomeType => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The type of chromosome represented by this genome; one of 
-\f1\fs18 "A"
+\f2\fs18 "A"
 \f0\fs20 , 
-\f1\fs18 "X"
+\f2\fs18 "X"
 \f0\fs20 , or 
-\f1\fs18 "Y"
-\f2\fs20 .\
+\f2\fs18 "Y"
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 isNullGenome => (logical$)\
+\f2\fs18 \cf0 isNullGenome => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 \cf0 T
 \f0\fs20  if the genome is a \'93null\'94 genome, 
-\f1\fs18 F
+\f2\fs18 F
 \f0\fs20  if it is an ordinary genome object.  When a sex chromosome (X or Y) is simulated, the other sex chromosome also exists in the simulation, but it is a \'93null\'94 genome that does not carry any mutations.  Instead, it is a placeholder, present to allow SLiM\'92s code to operate in much the same way as it does when an autosome is simulated.  Null genomes should not be accessed or manipulated.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutations => (object<Mutation>)\
+\f2\fs18 \cf0 mutations => (object<Mutation>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 All of the 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects present in this genome.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.\
 Note that the 
-\f1\fs18 Genome
+\f2\fs18 Genome
 \f0\fs20  objects used by SLiM are new with every generation, so the 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  value of each new offspring generated in each generation will be initially undefined.  If you set a 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  value for an offspring genome inside a 
-\f1\fs18 modifyChild()
+\f2\fs18 modifyChild()
 \f0\fs20  callback, that 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  value will be preserved as the offspring individual becomes a parent (across the generation boundary, in other words).  If you take advantage of this, however, you should be careful to set up initial values for the tag values of 
 \i all
 \i0  offspring, otherwise undefined initial values might happen to match the values that you are trying to use to tag particular individuals.  A rule of thumb in programming: undefined values should always be assumed to take on the most inconvenient value possible.
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.9.2  
-\f3\fs18 Genome
+\f1\fs18 Genome
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (void)addMutations(object<Mutation>\'a0mutations)
-\f2 \
+\f2\i0\fs18 \cf0 \'96\'a0(void)addMutations(object<Mutation>\'a0mutations)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Add the existing mutations in 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20  to the genome, if they are not already present (if they are already present, they will be ignored).\
 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\fs18 \cf0 -\'a0
-\f1 (object<Mutation>)addNewDrawnMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, io<Subpopulation>$\'a0originSubpop)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, io<Subpopulation>$\'a0originSubpop)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Add a new mutation to the genome with the specified 
-\f1\fs18 mutationType
+\f2\fs18 mutationType
 \f0\fs20  (specified by the 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  object or by 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier), 
-\f1\fs18 originGeneration
+\f2\fs18 originGeneration
 \f0\fs20  (which may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to specify the current generation), 
-\f1\fs18 position
+\f2\fs18 position
 \f0\fs20 , and 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  (specified by the 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  object or by 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier).  If 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  is supplied as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  to \'93tag\'94 the mutations that you create (see section 5.8.1).  The selection coefficient of the mutation is drawn from the mutation type.  The new mutation is returned.\
 Note that if you wish to add the same new mutation to multiple genomes, you should call 
-\f1\fs18 addNewDrawnMutation()
+\f2\fs18 addNewDrawnMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  object to all of the other genomes using 
-\f1\fs18 addMutations()
+\f2\fs18 addMutations()
 \f0\fs20 ; calling 
-\f1\fs18 addNewDrawnMutation()
+\f2\fs18 addNewDrawnMutation()
 \f0\fs20  on a vector containing multiple genomes will generate a different drawn mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\fs18 \cf0 -\'a0
-\f1 (object<Mutation>)addNewMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, numeric$\'a0selectionCoeff, io<Subpopulation>$\'a0originSubpop)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>)addNewMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, numeric$\'a0selectionCoeff, io<Subpopulation>$\'a0originSubpop)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Add a new mutation to the genome with the specified 
-\f1\fs18 mutationType
+\f2\fs18 mutationType
 \f0\fs20  (specified by the 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  object or by 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier), 
-\f1\fs18 originGeneration
+\f2\fs18 originGeneration
 \f0\fs20  (which may be 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  to specify the current generation), 
-\f1\fs18 position
+\f2\fs18 position
 \f0\fs20 , 
-\f1\fs18 selectionCoeff
+\f2\fs18 selectionCoeff
 \f0\fs20 , and 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  (specified by the 
-\f1\fs18 Subpopulation
+\f2\fs18 Subpopulation
 \f0\fs20  object or by 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  identifier).  If 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  is supplied as an 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
-\f1\fs18 originSubpop
+\f2\fs18 originSubpop
 \f0\fs20  to \'93tag\'94 the mutations that you create (see section 5.8.1).  The new mutation is returned.\
 Note that if you wish to add the same new mutation to multiple genomes, you should call 
-\f1\fs18 addNewMutation()
+\f2\fs18 addNewMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  object to all of the other genomes using 
-\f1\fs18 addMutations()
+\f2\fs18 addMutations()
 \f0\fs20 ; calling 
-\f1\fs18 addNewMutation()
+\f2\fs18 addNewMutation()
 \f0\fs20  on a vector containing multiple genomes will generate a different mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\fs18 \cf0 -\'a0
-\f1 (void)removeMutations(object<Mutation>\'a0mutations)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)removeMutations(object<Mutation>\'a0mutations)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Remove the mutations in 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20  from the genome, if they are present (if they are not present, they will be ignored).  Note that the 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  objects removed remain valid, and will still be in the simulation\'92s mutation registry (i.e. will be returned by 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s 
-\f1\fs18 mutations
+\f2\fs18 mutations
 \f0\fs20  property), until the next generation.\
 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
-\f1\fs18 SLiMSim
+\f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
-\f1\fs18 recalculateFitness()
+\f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\ri720\sb360\sa60
 
@@ -1321,256 +1140,248 @@ Changing this will normally affect the fitness values calculated at the end of t
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.10.1  
-\f3\fs18 Subpopulation
+\f1\fs18 Subpopulation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 cloningRate => (float)\
+\f2\i0\fs18 \cf0 cloningRate => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The fraction of children in the next generation that will be produced by cloning (as opposed to biparental mating).  In non-sexual (i.e. hermaphroditic) simulations, this property is a singleton 
-\f1\fs18 float
+\f2\fs18 float
 \f0\fs20  representing the overall subpopulation cloning rate.  In sexual simulations, this property is a 
-\f1\fs18 float
+\f2\fs18 float
 \f0\fs20  vector with two values: the cloning rate for females (at index 
-\f1\fs18 0
+\f2\fs18 0
 \f0\fs20 ) and for males (at index 
-\f1\fs18 1
+\f2\fs18 1
 \f0\fs20 ).
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 firstMaleIndex => (integer$)\
+\f2\fs18 \cf0 firstMaleIndex => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The index of the first male individual in the subpopulation.  The 
-\f1\fs18 genomes
+\f2\fs18 genomes
 \f0\fs20  vector is sorted into females first and males second; 
-\f1\fs18 firstMaleIndex
+\f2\fs18 firstMaleIndex
 \f0\fs20  gives the position of the boundary between those sections.  Note, however, that there are two genomes per diploid individual, and the 
-\f1\fs18 firstMaleIndex
+\f2\fs18 firstMaleIndex
 \f0\fs20  is 
 \i not
 \i0  premultiplied by 
-\f1\fs18 2
+\f2\fs18 2
 \f0\fs20 ; you must multiply it by 
-\f1\fs18 2
+\f2\fs18 2
 \f0\fs20  before using it to decide whether a given index into 
-\f1\fs18 genomes
+\f2\fs18 genomes
 \f0\fs20  is a genome for a male or a female.  The 
-\f1\fs18 firstMaleIndex
+\f2\fs18 firstMaleIndex
 \f0\fs20  property is also the number of females in the subpopulation, given this design.  For non-sexual (i.e. hermaphroditic) simulations, this property has an undefined value.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 genomes => (object<Genome>)\
+\f2\fs18 \cf0 genomes => (object<Genome>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 All of the genomes contained by the subpopulation; there are two genomes per diploid individual.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 id => (integer$)\
+\f2\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier for this subpopulation; for subpopulation 
-\f1\fs18 p3
+\f2\fs18 p3
 \f0\fs20 , for example, this is 
-\f1\fs18 3
-\f2\fs20 .\
+\f2\fs18 3
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 immigrantSubpopFractions => (float)\
+\f2\fs18 \cf0 immigrantSubpopFractions => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The fraction of children in the next generation that are immigrants arriving from particular subpopulations.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 immigrantSubpopIDs => (integer)\
+\f2\fs18 \cf0 immigrantSubpopIDs => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifiers of the particular subpopulations from which immigrants will arrive in the next generation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 selfingRate => (float$)\
+\f2\fs18 \cf0 selfingRate => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The fraction of children in the next generation that will be produced by selfing (as opposed to biparental mating).  Selfing is only possible in sexual simulations; for non-sexual (i.e. hermaphroditic) simulations, this property always has a value of 
-\f1\fs18 0.0
-\f2\fs20 .\
+\f2\fs18 0.0
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 sexRatio => (float$)\
+\f2\fs18 \cf0 sexRatio => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 For sexual simulations, the sex ratio for the subpopulation.  This is defined, in SLiM, as the fraction of the subpopulation that is male; in other words, it is actually the M:(M+F) ratio.  For non-sexual (i.e. hermaphroditic) simulations, this property has an undefined value.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 individualCount => (integer$)\
+\f2\fs18 \cf0 individualCount => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The number of individuals in the subpopulation; one-half of the number of genomes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\fs22 \cf0 5.10.2  
-\f3\fs18 Subpopulation
+\f1\fs18 Subpopulation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f2\i0\fs18 \cf0 -\'a0
-\f1 (float)fitness(Ni\'a0indices)\
+\f2\i0\fs18 \cf0 \'96\'a0(float)fitness(Ni\'a0indices)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The fitness values calculated for the individuals at the indices given are returned.  If 
-\f1\fs18 NULL
+\f2\fs18 NULL
 \f0\fs20  is passed, fitness values for all individuals in the subpopulation are returned.  The fitness values returned are cached values; 
-\f1\fs18 fitness()
+\f2\fs18 fitness()
 \f0\fs20  callbacks are therefore not called as a side effect of this method.  The cached values are only valid during the parental stage of each generation, so this function may not be called after generation of offspring has completed.  (At present there is no way for Eidos to be called after offspring generation has completed anyway.)
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)outputMSSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Output a random sample from the subpopulation in MS format.  A sample of size 
-\f1\fs18 sampleSize
+\f2\fs18 sampleSize
 \f0\fs20  from the subpopulation will be output.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
-\f1\fs18 "M"
+\f2\fs18 "M"
 \f0\fs20  or 
-\f1\fs18 "F"
+\f2\fs18 "F"
 \f0\fs20  for 
-\f1\fs18 requestedSex
+\f2\fs18 requestedSex
 \f0\fs20 ; passing 
-\f1\fs18 "*"
+\f2\fs18 "*"
 \f0\fs20  or not supplying 
-\f1\fs18 requestedSex
+\f2\fs18 requestedSex
 \f0\fs20  indicates that individuals should be selected randomly, without respect for sex.  If non-MS format is desired, use 
-\f1\fs18 outputSample()
-\f2\fs20 .\
+\f2\fs18 outputSample()
+\f3\fs20 .\
 
 \f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f1\fs18 n+1
+\f2\fs18 n+1
 \f0\fs20  to see the final state in generation 
-\f1\fs18 n
-\f2\fs20 .\
+\f2\fs18 n
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)outputSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Output a random sample from the subpopulation.  A sample of size 
-\f1\fs18 sampleSize
+\f2\fs18 sampleSize
 \f0\fs20  from the subpopulation will be output.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
-\f1\fs18 "M"
+\f2\fs18 "M"
 \f0\fs20  or 
-\f1\fs18 "F"
+\f2\fs18 "F"
 \f0\fs20  for 
-\f1\fs18 requestedSex
+\f2\fs18 requestedSex
 \f0\fs20 ; passing 
-\f1\fs18 "*"
+\f2\fs18 "*"
 \f0\fs20  or not supplying 
-\f1\fs18 requestedSex
+\f2\fs18 requestedSex
 \f0\fs20  indicates that individuals should be selected randomly, without respect for sex.  If MS format is desired, use 
-\f1\fs18 outputMSSample()
-\f2\fs20 .\
+\f2\fs18 outputMSSample()
+\f3\fs20 .\
 
 \f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f1\fs18 n+1
+\f2\fs18 n+1
 \f0\fs20  to see the final state in generation 
-\f1\fs18 n
-\f2\fs20 .\
+\f2\fs18 n
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)setCloningRate(numeric\'a0rate)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)setCloningRate(numeric\'a0rate)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the cloning rate of this subpopulation.  The rate is changed to 
-\f1\fs18 rate
+\f2\fs18 rate
 \f0\fs20 , which should be between 0.0 and 1.0, inclusive (see SLiM\'92s documentation for further details).  Clonal reproduction can be enabled in both non-sexual (i.e. hermaphroditic) and sexual simulations.  In non-sexual simulations, 
-\f1\fs18 rate
+\f2\fs18 rate
 \f0\fs20  must be a singleton value representing the overall clonal reproduction rate for the subpopulation.  In sexual simulations, 
-\f1\fs18 rate
+\f2\fs18 rate
 \f0\fs20  may be either a singleton (specifying the clonal reproduction rate for both sexes) or a vector containing two numeric values (the female and male cloning rates specified separately, at indices 
-\f1\fs18 0
+\f2\fs18 0
 \f0\fs20  and 
-\f1\fs18 1
+\f2\fs18 1
 \f0\fs20  respectively).  During mating and offspring generation, the probability that any given offspring individual will be generated by cloning \'96 by asexual reproduction without gametes or meiosis \'96 will be equal to the cloning rate (for its sex, in sexual simulations) set in the parental (not the offspring!) subpopulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)setMigrationRates(io<Subpopulation>\'a0sourceSubpops, numeric\'a0rates)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)setMigrationRates(io<Subpopulation>\'a0sourceSubpops, numeric\'a0rates)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the migration rates to this subpopulation from the subpopulations in 
-\f1\fs18 sourceSubpops
+\f2\fs18 sourceSubpops
 \f0\fs20  to the corresponding rates specified in 
-\f1\fs18 rates
+\f2\fs18 rates
 \f0\fs20 ; in other words, 
-\f1\fs18 rates
+\f2\fs18 rates
 \f0\fs20  gives the fractions of the children in this subpopulation that will subsequently be generated from parents in the subpopulations 
-\f1\fs18 sourceSubpops
+\f2\fs18 sourceSubpops
 \f0\fs20  (see SLiM\'92s documentation for further details).  This method will only set the migration fractions from the subpopulations given; migration rates from other subpopulations will be left unchanged (explicitly set a zero rate to turn off migration from a given subpopulation).  The type of 
-\f1\fs18 sourceSubpops
+\f2\fs18 sourceSubpops
 \f0\fs20  may be either 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20 , specifying subpopulations by identifier, or 
-\f1\fs18 object
+\f2\fs18 object
 \f0\fs20 , specifying subpopulations directly.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)setSelfingRate(numeric$\'a0rate)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)setSelfingRate(numeric$\'a0rate)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the selfing rate of this subpopulation.  The rate is changed to 
-\f1\fs18 rate
+\f2\fs18 rate
 \f0\fs20 , which should be between 0.0 and 1.0, inclusive (see SLiM\'92s documentation for further details).  Selfing can only be enabled in non-sexual (i.e. hermaphroditic) simulations.  During mating and offspring generation, the probability that any given offspring individual will be generated by selfing \'96 by self-fertilization via gametes produced by meiosis by a single parent \'96 will be equal to the selfing rate set in the parental (not the offspring!) subpopulation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)setSexRatio(float$\'a0sexRatio)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)setSexRatio(float$\'a0sexRatio)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the sex ratio of this subpopulation to 
-\f1\fs18 sexRatio
+\f2\fs18 sexRatio
 \f0\fs20 .  As defined in SLiM, this is actually the fraction of the subpopulation that is male; in other words, the M:(M+F) ratio.  This will take effect when children are next generated; it does not change the current subpopulation state.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\fs18 \cf0 -\'a0
-\f1 (void)setSubpopulationSize(integer$\'a0size)
-\f2 \
+\f2\fs18 \cf0 \'96\'a0(void)setSubpopulationSize(integer$\'a0size)
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 Set the size of this subpopulation to 
-\f1\fs18 size
+\f2\fs18 size
 \f0\fs20  individuals (see SLiM\'92s documentation for further details).  This will take effect when children are next generated; it does not change the current subpopulation state.\
 \pard\pardeftab720\ri720\sb360\sa60
 
@@ -1578,164 +1389,170 @@ Changing this will normally affect the fitness values calculated at the end of t
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.11.1  
-\f3\fs18 Substitution
+\f1\fs18 Substitution
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 fixationTime => (integer$)\
+\f2\i0\fs18 \cf0 fixationTime => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The number of generations it took for the mutation to fix.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 mutationType => (object<MutationType>$)\
+\f2\fs18 \cf0 mutationType => (object<MutationType>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The 
-\f1\fs18 MutationType
+\f2\fs18 MutationType
 \f0\fs20  from which this mutation was drawn.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 originGeneration => (integer$)\
+\f2\fs18 \cf0 originGeneration => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The generation in which this mutation arose.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 position => (integer$)\
+\f2\fs18 \cf0 position => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The position in the chromosome of this mutation.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 selectionCoeff => (float$)\
+\f2\fs18 \cf0 selectionCoeff => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f1\fs18 MutationType
-\f2\fs20 .\
+\f2\fs18 MutationType
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 subpopID => (integer$)\
+\f2\fs18 \cf0 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier of the subpopulation in which this mutation arose.  This value is carried over from the 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  object directly; if a \'93tag\'94 value was used in the 
-\f1\fs18 Mutation
+\f2\fs18 Mutation
 \f0\fs20  object (see section 5.8.1), that value will carry over to the corresponding 
-\f1\fs18 Substitution
+\f2\fs18 Substitution
 \f0\fs20  object.\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\fs22 \cf0 5.11.2  
-\f3\fs18 Substitution
+\f1\fs18 Substitution
 \f0\fs22  methods\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f3\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60
 
-\i0\b \cf0 5.12  Class SLiMEidosBlock\
+\f0\b \cf0 5.12  Class SLiMEidosBlock\
 \pard\pardeftab720\ri720\sb120\sa60
 
 \i\b0 \cf0 5.12.1  
-\f3\fs18 SLiMEidosBlock
+\f1\fs18 SLiMEidosBlock
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\i0\fs18 \cf0 active <-> (integer$)\
+\f2\i0\fs18 \cf0 active <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 If this evaluates to 
-\f1\fs18 logical
+\f2\fs18 logical
 \f0\fs20  
-\f1\fs18 F
+\f2\fs18 F
 \f0\fs20  (i.e., is equal to 
-\f1\fs18 0
+\f2\fs18 0
 \f0\fs20 ), the script block is inactive and will not be called.  The value of 
-\f1\fs18 active
+\f2\fs18 active
 \f0\fs20  for all registered script blocks is reset to 
-\f1\fs18 -1
+\f2\fs18 -1
 \f0\fs20  at the beginning of each generation, prior to script events being called, thus activating all blocks.  Any 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value other than 
-\f1\fs18 -1
+\f2\fs18 -1
 \f0\fs20  may be used instead of 
-\f1\fs18 -1
+\f2\fs18 -1
 \f0\fs20  to represent that a block is active; for example, 
-\f1\fs18 active
+\f2\fs18 active
 \f0\fs20  may be used as a counter to make a block execute a fixed number of times in each generation.  This value is not cached by SLiM; if it is changed, the new value takes effect immediately.  For example, a callback might be activated and inactivated repeatedly during a single generation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 end => (integer$)\
+\f2\fs18 \cf0 end => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The last generation in which the script block is active.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 id => (integer$)\
+\f2\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The identifier for this script block; for script 
-\f1\fs18 s3
+\f2\fs18 s3
 \f0\fs20 , for example, this is 
-\f1\fs18 3
+\f2\fs18 3
 \f0\fs20 .  A script block for which no 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  was given will have an 
-\f1\fs18 id
+\f2\fs18 id
 \f0\fs20  of 
-\f1\fs18 -1
-\f2\fs20 .\
+\f2\fs18 -1
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 source => (string$)\
+\f2\fs18 \cf0 source => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The source code string of the script block.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 start => (integer$)\
+\f2\fs18 \cf0 start => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The first generation in which the script block is active.
-\f2 \
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 tag <-> (integer$)\
+\f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 A user-defined 
-\f1\fs18 integer
+\f2\fs18 integer
 \f0\fs20  value.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
-\f1\fs18 tag
+\f2\fs18 tag
 \f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
-\f1\fs18 \cf0 type => (string$)\
+\f2\fs18 \cf0 type => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60
 
 \f0\fs20 \cf0 The type of the script block; this will be 
-\f1\fs18 "event"
+\f2\fs18 "event"
 \f0\fs20  for an Eidos event, or 
-\f1\fs18 "initialize"
+\f2\fs18 "initialize"
 \f0\fs20 , 
-\f1\fs18 "fitness"
+\f2\fs18 "fitness"
 \f0\fs20 , 
-\f1\fs18 "mateChoice"
+\f2\fs18 "mateChoice"
 \f0\fs20 , or 
-\f1\fs18 "modifyChild"
+\f2\fs18 "modifyChild"
 \f0\fs20  for the respective types of Eidos callbacks (see section 5.2 and 5.13).
-\f2 \
+\f3 \
 \pard\pardeftab720\ri720\sb120\sa60
 
 \f0\i\fs22 \cf0 5.12.2  
-\f3\fs18 SLiMEidosBlock
+\f1\fs18 SLiMEidosBlock
 \f0\fs22  methods\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f3\i0 \cf0 \
 }
