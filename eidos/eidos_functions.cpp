@@ -179,7 +179,6 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		EidosFunctionIdentifier::lsFunction,			kEidosValueMaskNULL)));
-		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("help",				EidosFunctionIdentifier::helpFunction,			kEidosValueMaskNULL))->AddString_OS("topic"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kEidosValueMaskNULL)));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			EidosFunctionIdentifier::setSeedFunction,		kEidosValueMaskNULL))->AddInt_S("seed"));
@@ -3891,16 +3890,6 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		case EidosFunctionIdentifier::lsFunction:
 		{
 			ExecutionOutputStream() << global_symbols_;
-			break;
-		}
-			
-			
-			//	(void)help([string$ topic])
-			#pragma mark help
-			
-		case EidosFunctionIdentifier::helpFunction:
-		{
-			ExecutionOutputStream() << "Help for Eidos is currently unimplemented." << endl;
 			break;
 		}
 			

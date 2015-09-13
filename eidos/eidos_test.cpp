@@ -2678,17 +2678,6 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("ls('foo');", 0, "requires at most");
 	EidosAssertScriptRaise("ls(_Test(7));", 0, "requires at most");
 	
-	// help()
-	EidosAssertScriptSuccess("help();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("help('help');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("help('foo');", gStaticEidosValueNULL);	// does not throw at present
-	EidosAssertScriptRaise("help(string(0));", 0, "must be a singleton");
-	EidosAssertScriptRaise("help(NULL);", 0, "cannot be type");
-	EidosAssertScriptRaise("help(T);", 0, "cannot be type");
-	EidosAssertScriptRaise("help(3);", 0, "cannot be type");
-	EidosAssertScriptRaise("help(3.5);", 0, "cannot be type");
-	EidosAssertScriptRaise("help(_Test(7));", 0, "cannot be type");
-	
 	// license()
 	EidosAssertScriptSuccess("license();", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("license(NULL);", 0, "requires at most");
