@@ -3,6 +3,7 @@ SLiM:
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
 
 Eidos:
+	add pmax(), pmin()
 	add help items for other topics – operators, keywords, callbacks – by making new reference sections in the doc
 	option-click could open doc window with a search on the clicked token
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
@@ -10,6 +11,7 @@ Eidos:
 	an Objective-C port of Eidos would be nice
 
 SLiMgui work:
+	update the SLiMgui Help file, which is presently the version 1.8 PDF
 	do a better job saving window positions, splitter positions, etc.
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
