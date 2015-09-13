@@ -637,7 +637,7 @@
 	[self updateAfterTick];
 	
 	// Load our console window nib
-	[[NSBundle mainBundle] loadNibNamed:@"ConsoleWindow" owner:self topLevelObjects:NULL];
+	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
 }
 
 - (std::vector<Subpopulation*>)selectedSubpopulations

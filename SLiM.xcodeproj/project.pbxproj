@@ -60,7 +60,7 @@
 		985724A51AD435310047C223 /* eidos_value.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A31AD435310047C223 /* eidos_value.cpp */; };
 		985724A61AD435310047C223 /* eidos_value.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A31AD435310047C223 /* eidos_value.cpp */; };
 		985724AA1AD4551C0047C223 /* eidos_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A71AD4551C0047C223 /* eidos_test.cpp */; };
-		985724B51AD478630047C223 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985724B41AD478630047C223 /* AppDelegate.mm */; };
+		985724B51AD478630047C223 /* EidosAppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985724B41AD478630047C223 /* EidosAppDelegate.mm */; };
 		985724B71AD478630047C223 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 985724B61AD478630047C223 /* main.m */; };
 		985724B91AD478630047C223 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 985724B81AD478630047C223 /* Images.xcassets */; };
 		985724BC1AD478630047C223 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985724BA1AD478630047C223 /* MainMenu.xib */; };
@@ -129,8 +129,8 @@
 		98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A2405C1B8E338E005C9A30 /* OpenGL.framework */; };
-		98A4EC941B67C1CD00CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
-		98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */; };
+		98A4EC941B67C1CD00CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
+		98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
 		98A5134F1B66B69E005A753D /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
 		98A513501B66B69E005A753D /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
 		98A513511B66B69E005A753D /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
@@ -235,7 +235,7 @@
 		98EFE62F1ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */; };
 		98EFE6301ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */; };
 		98EFE6311ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */; };
-		98EFE6341ADD92BC00CBEC78 /* AboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98EFE6321ADD92BC00CBEC78 /* AboutWindow.xib */; };
+		98EFE6341ADD92BC00CBEC78 /* EidosAboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98EFE6321ADD92BC00CBEC78 /* EidosAboutWindow.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -354,8 +354,8 @@
 		985724A81AD4551C0047C223 /* eidos_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test.h; sourceTree = "<group>"; };
 		985724AF1AD478630047C223 /* EidosScribe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EidosScribe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		985724B21AD478630047C223 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		985724B31AD478630047C223 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		985724B41AD478630047C223 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
+		985724B31AD478630047C223 /* EidosAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosAppDelegate.h; sourceTree = "<group>"; };
+		985724B41AD478630047C223 /* EidosAppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosAppDelegate.mm; sourceTree = "<group>"; };
 		985724B61AD478630047C223 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		985724B81AD478630047C223 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		985724BB1AD478630047C223 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -410,7 +410,7 @@
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ConsoleWindow.xib; sourceTree = "<group>"; };
+		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosConsoleWindow.xib; sourceTree = "<group>"; };
 		98A5134D1B66B69E005A753D /* eidos_token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_token.cpp; sourceTree = "<group>"; };
 		98A5134E1B66B69E005A753D /* eidos_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_token.h; sourceTree = "<group>"; };
 		98A513521B66B6CA005A753D /* eidos_ast_node.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_ast_node.cpp; sourceTree = "<group>"; };
@@ -486,7 +486,7 @@
 		98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_rng.h; sourceTree = "<group>"; };
 		98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_symbol_table.cpp; sourceTree = "<group>"; };
 		98EFE62E1ADB611100CBEC78 /* eidos_symbol_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_symbol_table.h; sourceTree = "<group>"; };
-		98EFE6331ADD92BC00CBEC78 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/AboutWindow.xib; sourceTree = "<group>"; };
+		98EFE6331ADD92BC00CBEC78 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosAboutWindow.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -678,8 +678,8 @@
 		985724B01AD478630047C223 /* EidosScribe */ = {
 			isa = PBXGroup;
 			children = (
-				985724B31AD478630047C223 /* AppDelegate.h */,
-				985724B41AD478630047C223 /* AppDelegate.mm */,
+				985724B31AD478630047C223 /* EidosAppDelegate.h */,
+				985724B41AD478630047C223 /* EidosAppDelegate.mm */,
 				9825565D1BA32F030054CB3F /* EidosCocoaExtra.h */,
 				9825565A1BA32EE80054CB3F /* EidosCocoaExtra.mm */,
 				98D218C31B2E213200156FC3 /* EidosTextView.h */,
@@ -700,8 +700,8 @@
 				982556641BA450980054CB3F /* EidosHelpController.mm */,
 				985724B81AD478630047C223 /* Images.xcassets */,
 				985724BA1AD478630047C223 /* MainMenu.xib */,
-				98EFE6321ADD92BC00CBEC78 /* AboutWindow.xib */,
-				98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */,
+				98EFE6321ADD92BC00CBEC78 /* EidosAboutWindow.xib */,
+				98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */,
 				982556671BA451D00054CB3F /* EidosHelpWindow.xib */,
 				9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */,
 				9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */,
@@ -970,12 +970,12 @@
 				985724F71AD6DD470047C223 /* show_execution.pdf in Resources */,
 				985724BC1AD478630047C223 /* MainMenu.xib in Resources */,
 				985724DA1AD489AA0047C223 /* syntax_help_H.pdf in Resources */,
-				98EFE6341ADD92BC00CBEC78 /* AboutWindow.xib in Resources */,
+				98EFE6341ADD92BC00CBEC78 /* EidosAboutWindow.xib in Resources */,
 				985724D91AD489AA0047C223 /* delete.pdf in Resources */,
 				985724D81AD489AA0047C223 /* delete_H.pdf in Resources */,
 				985724DB1AD489AA0047C223 /* syntax_help.pdf in Resources */,
 				985724F31AD6D4060047C223 /* show_tokens.pdf in Resources */,
-				98A4EC941B67C1CD00CD92FD /* ConsoleWindow.xib in Resources */,
+				98A4EC941B67C1CD00CD92FD /* EidosConsoleWindow.xib in Resources */,
 				985724D71AD489AA0047C223 /* check.pdf in Resources */,
 				985724EB1AD6B9FE0047C223 /* execute_selection.pdf in Resources */,
 				985724F21AD6D4060047C223 /* show_tokens_H.pdf in Resources */,
@@ -1034,7 +1034,7 @@
 				98DE4C2D1B713F5D004FDF5F /* ScriptMod_AddMutationType.xib in Resources */,
 				987AD87C1B2CBE4B0035D6C8 /* show_parse_H.pdf in Resources */,
 				987AD8771B2CBE050035D6C8 /* show_browser.pdf in Resources */,
-				98A4EC951B67C1D900CD92FD /* ConsoleWindow.xib in Resources */,
+				98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */,
 				985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */,
 				985301F51B726817001520DF /* ScriptMod_AddSexConfiguration.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
@@ -1135,7 +1135,7 @@
 				987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
 				985724D31AD479010047C223 /* eidos_test.cpp in Sources */,
 				98DE4C151B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */,
-				985724B51AD478630047C223 /* AppDelegate.mm in Sources */,
+				985724B51AD478630047C223 /* EidosAppDelegate.mm in Sources */,
 				985724E71AD622880047C223 /* EidosConsoleTextView.mm in Sources */,
 				989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				985724D11AD479010047C223 /* eidos_interpreter.cpp in Sources */,
@@ -1385,12 +1385,12 @@
 			name = GraphWindow.xib;
 			sourceTree = "<group>";
 		};
-		98A4EC921B67C1CD00CD92FD /* ConsoleWindow.xib */ = {
+		98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
 				98A4EC931B67C1CD00CD92FD /* Base */,
 			);
-			name = ConsoleWindow.xib;
+			name = EidosConsoleWindow.xib;
 			sourceTree = "<group>";
 		};
 		98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */ = {
@@ -1425,12 +1425,12 @@
 			name = HelpWindow.xib;
 			sourceTree = "<group>";
 		};
-		98EFE6321ADD92BC00CBEC78 /* AboutWindow.xib */ = {
+		98EFE6321ADD92BC00CBEC78 /* EidosAboutWindow.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
 				98EFE6331ADD92BC00CBEC78 /* Base */,
 			);
-			name = AboutWindow.xib;
+			name = EidosAboutWindow.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

@@ -4,7 +4,7 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="7706"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="AppDelegate">
+        <customObject id="-2" userLabel="File's Owner" customClass="EidosAppDelegate">
             <connections>
                 <outlet property="consoleController" destination="Oju-rn-RJg" id="hsy-zU-QJf"/>
             </connections>

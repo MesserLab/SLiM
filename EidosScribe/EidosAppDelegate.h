@@ -1,5 +1,5 @@
 //
-//  AppDelegate.h
+//  EidosAppDelegate.h
 //  EidosScribe
 //
 //  Created by Ben Haller on 4/7/15.
@@ -25,18 +25,18 @@
 
 /*
  
- AppDelegate is an NSApplication delegate for EidosScribe that provides some behavior for menu items and such.
+ EidosAppDelegate is an NSApplication delegate for EidosScribe that provides some behavior for menu items and such.
  If you make your own Context app, you are unlikely to want to reuse this class, although it might illustrate
  how to set up an EidosConsoleWindowController.
  
  */
 
 
-@interface AppDelegate : NSObject
+@interface EidosAppDelegate : NSObject
 {
 }
 
-// An outlet for the console controller, associated with ConsoleWindow.xib
+// An outlet for the console controller, associated with EidosConsoleWindow.xib
 @property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
 
 // Actions for menu commands in MainMenu.xib

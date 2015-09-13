@@ -54,7 +54,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 @property (nonatomic) BOOL interfaceEnabled;
 
 
-// Outlets from ConsoleWindow.xib; it is unlikely that client code will need to access these
+// Outlets from EidosConsoleWindow.xib; it is unlikely that client code will need to access these
 @property (nonatomic, retain) IBOutlet EidosVariableBrowserController *browserController;
 
 @property (nonatomic, retain) IBOutlet NSWindow *scriptWindow;
@@ -65,7 +65,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 @property (nonatomic, assign) IBOutlet NSButton *browserToggleButton;
 
-// Normally EidosConsoleWindowController is instantiated in the ConsoleWindow.xib nib
+// Normally EidosConsoleWindowController is instantiated in the EidosConsoleWindow.xib nib
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 // Show the console window and make the console output first responder
@@ -85,7 +85,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 - (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon;
 
 
-// Actions used by ConsoleWindow.xib; may be called directly
+// Actions used by EidosConsoleWindow.xib; may be called directly
 
 // Check the syntax of the current script; will call eidosConsoleWindowController:checkScriptDidSucceed:
 // if implemented by the delegate

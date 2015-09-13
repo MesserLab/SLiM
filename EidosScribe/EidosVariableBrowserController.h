@@ -28,7 +28,7 @@
  EidosVariableBrowserController provides a prefab variable browser for Eidos.  It is integrated into
  EidosConsoleWindowController, so if you use that class, you get the variable browser for free.  If
  you build your own Eidos UI, you can use EidosVariableBrowserController directly.  In that case,
- you will need to extract it from ConsoleWindow.xib.
+ you will need to extract it from EidosConsoleWindow.xib.
  
  */
 
@@ -53,7 +53,7 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 @property (nonatomic, assign) IBOutlet NSTableColumn *sizeColumn;
 @property (nonatomic, assign) IBOutlet NSTableColumn *valueColumn;
 
-// Normally EidosConsoleWindowController is instantiated in the ConsoleWindow.xib nib
+// Normally EidosConsoleWindowController is instantiated in the EidosConsoleWindow.xib nib
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 // Trigger a reload of the variable browser when symbols have changed

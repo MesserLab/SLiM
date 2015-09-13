@@ -1,5 +1,5 @@
 //
-//  AppDelegate.m
+//  EidosAppDelegate.m
 //  EidosScribe
 //
 //  Created by Ben Haller on 4/7/15.
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#import "AppDelegate.h"
+#import "EidosAppDelegate.h"
 #import "EidosTextView.h"
 #import "EidosValueWrapper.h"
 #import "EidosConsoleWindowController.h"
@@ -30,16 +30,16 @@
 #include <stdexcept>
 
 
-@interface AppDelegate () <NSApplicationDelegate, EidosConsoleWindowControllerDelegate>
+@interface EidosAppDelegate () <NSApplicationDelegate, EidosConsoleWindowControllerDelegate>
 {
-	// About window outlets associated with AboutWindow.xib
+	// About window outlets associated with EidosAboutWindow.xib
 	IBOutlet NSWindow *aboutWindow;
 	IBOutlet NSTextField *aboutVersionTextField;
 }
 @end
 
 
-@implementation AppDelegate
+@implementation EidosAppDelegate
 
 - (void)dealloc
 {
@@ -57,7 +57,7 @@
 	Eidos_WarmUp();
 	
 	// Load our console window nib; we are set up as the delegate in the nib
-	[[NSBundle mainBundle] loadNibNamed:@"ConsoleWindow" owner:self topLevelObjects:NULL];
+	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
 	
 	// Make the console window visible
 	[_consoleController showWindow];
@@ -72,7 +72,7 @@
 
 - (IBAction)showAboutWindow:(id)sender
 {
-	[[NSBundle mainBundle] loadNibNamed:@"AboutWindow" owner:self topLevelObjects:NULL];
+	[[NSBundle mainBundle] loadNibNamed:@"EidosAboutWindow" owner:self topLevelObjects:NULL];
 	
 	// The window is the top-level object in this nib.  It will release itself when closed, so we will retain it on its behalf here.
 	// Note that the aboutWindow and aboutWebView outlets do not get zeroed out when the about window closes; but we only use them here.
