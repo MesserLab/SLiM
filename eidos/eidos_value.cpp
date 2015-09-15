@@ -1080,12 +1080,16 @@ EidosValue_Int_vector::EidosValue_Int_vector(void)
 
 EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int16_t> &p_intvec)
 {
+	values_.reserve(p_intvec.size());
+	
 	for (auto intval : p_intvec)
 		values_.push_back(intval);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int32_t> &p_intvec)
 {
+	values_.reserve(p_intvec.size());
+	
 	for (auto intval : p_intvec)
 		values_.push_back(intval);
 }
