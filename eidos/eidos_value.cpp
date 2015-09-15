@@ -458,44 +458,10 @@ EidosValue_Logical::EidosValue_Logical(bool p_bool1)	// protected
 	values_.push_back(p_bool1);
 }
 
-EidosValue_Logical::EidosValue_Logical(bool p_bool1, bool p_bool2)
+EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list)
 {
-	values_.push_back(p_bool1);
-	values_.push_back(p_bool2);
-}
-
-EidosValue_Logical::EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3)
-{
-	values_.push_back(p_bool1);
-	values_.push_back(p_bool2);
-	values_.push_back(p_bool3);
-}
-
-EidosValue_Logical::EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4)
-{
-	values_.push_back(p_bool1);
-	values_.push_back(p_bool2);
-	values_.push_back(p_bool3);
-	values_.push_back(p_bool4);
-}
-
-EidosValue_Logical::EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4, bool p_bool5)
-{
-	values_.push_back(p_bool1);
-	values_.push_back(p_bool2);
-	values_.push_back(p_bool3);
-	values_.push_back(p_bool4);
-	values_.push_back(p_bool5);
-}
-
-EidosValue_Logical::EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4, bool p_bool5, bool p_bool6)
-{
-	values_.push_back(p_bool1);
-	values_.push_back(p_bool2);
-	values_.push_back(p_bool3);
-	values_.push_back(p_bool4);
-	values_.push_back(p_bool5);
-	values_.push_back(p_bool6);
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.push_back(*init_item);
 }
 
 EidosValue_Logical::~EidosValue_Logical(void)
@@ -767,44 +733,10 @@ EidosValue_String_vector::EidosValue_String_vector(std::vector<std::string> &p_s
 	values_ = p_stringvec;
 }
 
-EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2)
+EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list)
 {
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-}
-
-EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-}
-
-EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-}
-
-EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-	values_.push_back(p_string5);
-}
-
-EidosValue_String_vector::EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6)
-{
-	values_.push_back(p_string1);
-	values_.push_back(p_string2);
-	values_.push_back(p_string3);
-	values_.push_back(p_string4);
-	values_.push_back(p_string5);
-	values_.push_back(p_string6);
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.push_back(*init_item);
 }
 
 EidosValue_String_vector::~EidosValue_String_vector(void)
@@ -1099,44 +1031,10 @@ EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int64_t> &p_intvec)
 	values_ = p_intvec;
 }
 
-EidosValue_Int_vector::EidosValue_Int_vector(int64_t p_int1, int64_t p_int2)
+EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list)
 {
-	values_.push_back(p_int1);
-	values_.push_back(p_int2);
-}
-
-EidosValue_Int_vector::EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3)
-{
-	values_.push_back(p_int1);
-	values_.push_back(p_int2);
-	values_.push_back(p_int3);
-}
-
-EidosValue_Int_vector::EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4)
-{
-	values_.push_back(p_int1);
-	values_.push_back(p_int2);
-	values_.push_back(p_int3);
-	values_.push_back(p_int4);
-}
-
-EidosValue_Int_vector::EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5)
-{
-	values_.push_back(p_int1);
-	values_.push_back(p_int2);
-	values_.push_back(p_int3);
-	values_.push_back(p_int4);
-	values_.push_back(p_int5);
-}
-
-EidosValue_Int_vector::EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5, int64_t p_int6)
-{
-	values_.push_back(p_int1);
-	values_.push_back(p_int2);
-	values_.push_back(p_int3);
-	values_.push_back(p_int4);
-	values_.push_back(p_int5);
-	values_.push_back(p_int6);
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.push_back(*init_item);
 }
 
 EidosValue_Int_vector::~EidosValue_Int_vector(void)
@@ -1394,44 +1292,10 @@ EidosValue_Float_vector::EidosValue_Float_vector(double *p_doublebuf, int p_buff
 		values_.push_back(p_doublebuf[index]);
 }
 
-EidosValue_Float_vector::EidosValue_Float_vector(double p_float1, double p_float2)
+EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p_init_list)
 {
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-}
-
-EidosValue_Float_vector::EidosValue_Float_vector(double p_float1, double p_float2, double p_float3)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-}
-
-EidosValue_Float_vector::EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-}
-
-EidosValue_Float_vector::EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-	values_.push_back(p_float5);
-}
-
-EidosValue_Float_vector::EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6)
-{
-	values_.push_back(p_float1);
-	values_.push_back(p_float2);
-	values_.push_back(p_float3);
-	values_.push_back(p_float4);
-	values_.push_back(p_float5);
-	values_.push_back(p_float6);
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.push_back(*init_item);
 }
 
 EidosValue_Float_vector::~EidosValue_Float_vector(void)
@@ -1768,6 +1632,12 @@ EidosValue_Object_vector::EidosValue_Object_vector(std::vector<EidosObjectElemen
 	
 	for (auto value : values_)
 		value->Retain();
+}
+
+EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list)
+{
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.push_back(*init_item);
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)

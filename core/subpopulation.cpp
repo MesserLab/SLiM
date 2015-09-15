@@ -993,7 +993,7 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return new EidosValue_Float_singleton_const(selfing_fraction_);
 		case gID_cloningRate:
 			if (sex_enabled_)
-				return new EidosValue_Float_vector(female_clone_fraction_, male_clone_fraction_);
+				return new EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_};
 			else
 				return new EidosValue_Float_singleton_const(female_clone_fraction_);
 		case gID_sexRatio:

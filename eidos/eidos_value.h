@@ -31,6 +31,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <initializer_list>
 
 #include "eidos_global.h"
 
@@ -288,11 +289,7 @@ public:
 	
 	EidosValue_Logical(void);
 	explicit EidosValue_Logical(std::vector<bool> &p_boolvec);
-	EidosValue_Logical(bool p_bool1, bool p_bool2);
-	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3);
-	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4);
-	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4, bool p_bool5);
-	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4, bool p_bool5, bool p_bool6);
+	explicit EidosValue_Logical(std::initializer_list<bool> p_init_list);
 	virtual ~EidosValue_Logical(void);
 	
 	virtual EidosValueType Type(void) const;
@@ -398,11 +395,7 @@ public:
 	explicit EidosValue_String_vector(std::vector<std::string> &p_stringvec);
 	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
 	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton_const for this case
-	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2);
-	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3);
-	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4);
-	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5);
-	EidosValue_String_vector(const std::string &p_string1, const std::string &p_string2, const std::string &p_string3, const std::string &p_string4, const std::string &p_string5, const std::string &p_string6);
+	explicit EidosValue_String_vector(std::initializer_list<const std::string> p_init_list);
 	virtual ~EidosValue_String_vector(void);
 	
 	virtual int Count(void) const;
@@ -508,11 +501,7 @@ public:
 	explicit EidosValue_Int_vector(std::vector<int32_t> &p_intvec);
 	explicit EidosValue_Int_vector(std::vector<int64_t> &p_intvec);
 	//explicit EidosValue_Int_vector(int64_t p_int1);		// disabled to encourage use of EidosValue_Int_singleton_const for this case
-	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2);
-	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3);
-	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4);
-	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5);
-	EidosValue_Int_vector(int64_t p_int1, int64_t p_int2, int64_t p_int3, int64_t p_int4, int64_t p_int5, int64_t p_int6);
+	explicit EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list);
 	virtual ~EidosValue_Int_vector(void);
 	
 	virtual int Count(void) const;
@@ -617,11 +606,7 @@ public:
 	explicit EidosValue_Float_vector(std::vector<double> &p_doublevec);
 	EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length);
 	//explicit EidosValue_Float_vector(double p_float1);		// disabled to encourage use of EidosValue_Float_singleton_const for this case
-	EidosValue_Float_vector(double p_float1, double p_float2);
-	EidosValue_Float_vector(double p_float1, double p_float2, double p_float3);
-	EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4);
-	EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5);
-	EidosValue_Float_vector(double p_float1, double p_float2, double p_float3, double p_float4, double p_float5, double p_float6);
+	explicit EidosValue_Float_vector(std::initializer_list<double> p_init_list);
 	virtual ~EidosValue_Float_vector(void);
 	
 	virtual int Count(void) const;
@@ -730,6 +715,7 @@ public:
 	EidosValue_Object_vector(void);
 	explicit EidosValue_Object_vector(std::vector<EidosObjectElement *> &p_elementvec);
 	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton_const for this case
+	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list);
 	virtual ~EidosValue_Object_vector(void);
 	
 	virtual const EidosObjectClass *Class(void) const;
