@@ -186,6 +186,77 @@ int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValu
 	return 0;
 }
 
+int CompareEidosValues_Object(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token)
+{
+	EidosObjectElement *element1 = p_value1->ObjectElementAtIndex(p_index1, p_blame_token);
+	EidosObjectElement *element2 = p_value2->ObjectElementAtIndex(p_index2, p_blame_token);
+	
+	return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
+}
+
+int CompareEidosValues_String(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token)
+{
+	string string1 = p_value1->StringAtIndex(p_index1, p_blame_token);
+	string string2 = p_value2->StringAtIndex(p_index2, p_blame_token);
+	int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
+	
+	return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
+}
+
+int CompareEidosValues_Float(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token)
+{
+	double float1 = p_value1->FloatAtIndex(p_index1, p_blame_token);
+	double float2 = p_value2->FloatAtIndex(p_index2, p_blame_token);
+	
+	return (float1 < float2) ? -1 : ((float1 > float2) ? 1 : 0);
+}
+
+int CompareEidosValues_Int(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token)
+{
+	int64_t int1 = p_value1->IntAtIndex(p_index1, p_blame_token);
+	int64_t int2 = p_value2->IntAtIndex(p_index2, p_blame_token);
+	
+	return (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
+}
+
+int CompareEidosValues_Logical(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token)
+{
+	bool logical1 = p_value1->LogicalAtIndex(p_index1, p_blame_token);
+	bool logical2 = p_value2->LogicalAtIndex(p_index2, p_blame_token);
+	
+	return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
+}
+
+EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, EidosToken *p_blame_token)
+{
+	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with NULL is illegal." << eidos_terminate(p_blame_token);
+	
+	// comparing one object to another is legal, but objects cannot be compared to other types
+	if ((p_type1 == EidosValueType::kValueObject) && (p_type2 == EidosValueType::kValueObject))
+		return CompareEidosValues_Object;
+	
+	// string is the highest type, so we promote to string if either operand is a string
+	if ((p_type1 == EidosValueType::kValueString) || (p_type2 == EidosValueType::kValueString))
+		return CompareEidosValues_String;
+	
+	// float is the next highest type, so we promote to float if either operand is a float
+	if ((p_type1 == EidosValueType::kValueFloat) || (p_type2 == EidosValueType::kValueFloat))
+		return CompareEidosValues_Float;
+	
+	// int is the next highest type, so we promote to int if either operand is a int
+	if ((p_type1 == EidosValueType::kValueInt) || (p_type2 == EidosValueType::kValueInt))
+		return CompareEidosValues_Int;
+	
+	// logical is the next highest type, so we promote to logical if either operand is a logical
+	if ((p_type1 == EidosValueType::kValueLogical) || (p_type2 == EidosValueType::kValueLogical))
+		return CompareEidosValues_Logical;
+	
+	// that's the end of the road; we should never reach this point
+	EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison involving type " << p_type1 << " and type " << p_type2 << " is undefined." << eidos_terminate(p_blame_token);
+	return 0;
+}
+
 
 //
 //	EidosValue
@@ -468,9 +539,14 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	}
 }
 
-const std::vector<bool> &EidosValue_Logical::LogicalVector(void) const
+std::vector<bool> &EidosValue_Logical::LogicalVector_Mutable(void)
 {
 	return values_;
+}
+
+void EidosValue_Logical::Reserve(int p_reserved_size)
+{
+	values_.reserve(p_reserved_size);
 }
 
 bool EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -608,6 +684,16 @@ bool EidosValue_Logical_const::IsMutable(void) const
 EidosValue *EidosValue_Logical_const::MutableCopy(void) const
 {
 	return new EidosValue_Logical(*this);	// same as EidosValue_Logical::, but let's not rely on that
+}
+
+std::vector<bool> &EidosValue_Logical_const::LogicalVector_Mutable(void)
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::LogicalVector_Mutable): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
+}
+
+void EidosValue_Logical_const::Reserve(int p_reserved_size)
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Reserve): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 void EidosValue_Logical_const::PushLogical(bool p_logical)

@@ -74,7 +74,23 @@ enum class EidosValueType
 std::string StringForEidosValueType(const EidosValueType p_type);
 std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type);
 
+
+// Comparing values is a bit complex, because we want it to be as fast as possible, but there are issues involved,
+// particularly type promotion; you can compare a string to integer, or less extremely, a float to an integer, and
+// the appropriate promotion of values needs to happen.  The first function here handles the general case; the
+// other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
+// methods.
 int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+
+int CompareEidosValues_Object(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues_String(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues_Float(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues_Int(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues_Logical(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+
+typedef int (*EidosCompareFunctionPtr)(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
+
+EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, EidosToken *p_blame_token);
 
 
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
@@ -282,7 +298,9 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	const std::vector<bool> &LogicalVector(void) const;
+	inline const std::vector<bool> &LogicalVector(void) const { return values_; }
+	virtual std::vector<bool> &LogicalVector_Mutable(void);
+	virtual void Reserve(int p_reserved_size);
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -319,6 +337,8 @@ public:
 	virtual EidosValue *MutableCopy(void) const;
 	
 	// prohibited actions
+	virtual std::vector<bool> &LogicalVector_Mutable(void);
+	virtual void Reserve(int p_reserved_size);
 	virtual void PushLogical(bool p_logical);
 	virtual void SetLogicalAtIndex(const int p_idx, bool p_logical, EidosToken *p_blame_token);
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
@@ -388,6 +408,7 @@ public:
 	
 	inline const std::vector<std::string> &StringVector(void) const { return values_; }
 	inline void PushString(const std::string &p_string) { values_.push_back(p_string); }
+	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -497,6 +518,7 @@ public:
 	
 	inline const std::vector<int64_t> &IntVector(void) const { return values_; }
 	inline void PushInt(int64_t p_int) { values_.push_back(p_int); }
+	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -605,6 +627,7 @@ public:
 	
 	inline const std::vector<double> &FloatVector(void) const { return values_; }
 	inline void PushFloat(double p_float) { values_.push_back(p_float); }
+	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -715,6 +738,7 @@ public:
 	
 	inline const std::vector<EidosObjectElement *> &ObjectElementVector(void) const { return values_; }
 	void PushObjectElement(EidosObjectElement *p_element);
+	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
