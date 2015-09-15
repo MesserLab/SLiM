@@ -184,7 +184,6 @@
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
 		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrs];
 		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
-		NSDictionary *paramAttrs = [NSDictionary eidosPromptAttrs];
 		
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:propertyNameString attributes:functionAttrs] autorelease]];
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
