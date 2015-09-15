@@ -279,13 +279,15 @@ class EidosValue_Logical : public EidosValue
 private:
 	std::vector<bool> values_;
 	
+protected:
+	explicit EidosValue_Logical(bool p_bool1);		// protected to encourage use of EidosValue_Logical_const for this
+	
 public:
 	EidosValue_Logical(const EidosValue_Logical &p_original) = default;		// can copy-construct
 	EidosValue_Logical& operator=(const EidosValue_Logical&) = delete;	// no copying
 	
 	EidosValue_Logical(void);
 	explicit EidosValue_Logical(std::vector<bool> &p_boolvec);
-	explicit EidosValue_Logical(bool p_bool1);
 	EidosValue_Logical(bool p_bool1, bool p_bool2);
 	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3);
 	EidosValue_Logical(bool p_bool1, bool p_bool2, bool p_bool3, bool p_bool4);
@@ -300,7 +302,7 @@ public:
 	
 	inline const std::vector<bool> &LogicalVector(void) const { return values_; }
 	virtual std::vector<bool> &LogicalVector_Mutable(void);
-	virtual void Reserve(int p_reserved_size);
+	virtual EidosValue_Logical *Reserve(int p_reserved_size);	// returns this, for chaining with new
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -338,7 +340,7 @@ public:
 	
 	// prohibited actions
 	virtual std::vector<bool> &LogicalVector_Mutable(void);
-	virtual void Reserve(int p_reserved_size);
+	virtual EidosValue_Logical *Reserve(int p_reserved_size);
 	virtual void PushLogical(bool p_logical);
 	virtual void SetLogicalAtIndex(const int p_idx, bool p_logical, EidosToken *p_blame_token);
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
@@ -408,7 +410,7 @@ public:
 	
 	inline const std::vector<std::string> &StringVector(void) const { return values_; }
 	inline void PushString(const std::string &p_string) { values_.push_back(p_string); }
-	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
+	inline EidosValue_String_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -518,7 +520,7 @@ public:
 	
 	inline const std::vector<int64_t> &IntVector(void) const { return values_; }
 	inline void PushInt(int64_t p_int) { values_.push_back(p_int); }
-	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
+	inline EidosValue_Int_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -627,7 +629,7 @@ public:
 	
 	inline const std::vector<double> &FloatVector(void) const { return values_; }
 	inline void PushFloat(double p_float) { values_.push_back(p_float); }
-	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
+	inline EidosValue_Float_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -738,7 +740,7 @@ public:
 	
 	inline const std::vector<EidosObjectElement *> &ObjectElementVector(void) const { return values_; }
 	void PushObjectElement(EidosObjectElement *p_element);
-	inline void Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); }
+	inline EidosValue_Object_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);

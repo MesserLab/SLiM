@@ -230,7 +230,7 @@ int CompareEidosValues_Logical(const EidosValue *p_value1, int p_index1, const E
 EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, EidosToken *p_blame_token)
 {
 	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with NULL is illegal." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosGetCompareFunctionForTypes): (internal error) comparison with NULL is illegal." << eidos_terminate(p_blame_token);
 	
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((p_type1 == EidosValueType::kValueObject) && (p_type2 == EidosValueType::kValueObject))
@@ -253,7 +253,7 @@ EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, 
 		return CompareEidosValues_Logical;
 	
 	// that's the end of the road; we should never reach this point
-	EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison involving type " << p_type1 << " and type " << p_type2 << " is undefined." << eidos_terminate(p_blame_token);
+	EIDOS_TERMINATION << "ERROR (EidosGetCompareFunctionForTypes): (internal error) comparison involving type " << p_type1 << " and type " << p_type2 << " is undefined." << eidos_terminate(p_blame_token);
 	return 0;
 }
 
@@ -453,7 +453,7 @@ EidosValue_Logical::EidosValue_Logical(std::vector<bool> &p_boolvec)
 	values_ = p_boolvec;
 }
 
-EidosValue_Logical::EidosValue_Logical(bool p_bool1)
+EidosValue_Logical::EidosValue_Logical(bool p_bool1)	// protected
 {
 	values_.push_back(p_bool1);
 }
@@ -544,9 +544,10 @@ std::vector<bool> &EidosValue_Logical::LogicalVector_Mutable(void)
 	return values_;
 }
 
-void EidosValue_Logical::Reserve(int p_reserved_size)
+EidosValue_Logical *EidosValue_Logical::Reserve(int p_reserved_size)
 {
 	values_.reserve(p_reserved_size);
+	return this;
 }
 
 bool EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
@@ -691,8 +692,9 @@ std::vector<bool> &EidosValue_Logical_const::LogicalVector_Mutable(void)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::LogicalVector_Mutable): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
-void EidosValue_Logical_const::Reserve(int p_reserved_size)
+EidosValue_Logical *EidosValue_Logical_const::Reserve(int p_reserved_size)
 {
+#pragma unused(p_reserved_size)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Reserve): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
@@ -749,7 +751,7 @@ const std::string &EidosValue_String::ElementType(void) const
 
 EidosValue *EidosValue_String::NewMatchingType(void) const
 {
-	return new EidosValue_String_vector;
+	return new EidosValue_String_vector();
 }
 
 
@@ -1065,7 +1067,7 @@ const std::string &EidosValue_Int::ElementType(void) const
 
 EidosValue *EidosValue_Int::NewMatchingType(void) const
 {
-	return new EidosValue_Int_vector;
+	return new EidosValue_Int_vector();
 }
 
 
@@ -1366,7 +1368,7 @@ const std::string &EidosValue_Float::ElementType(void) const
 
 EidosValue *EidosValue_Float::NewMatchingType(void) const
 {
-	return new EidosValue_Float_vector;
+	return new EidosValue_Float_vector();
 }
 
 
@@ -1733,7 +1735,7 @@ const std::string &EidosValue_Object::ElementType(void) const
 
 EidosValue *EidosValue_Object::NewMatchingType(void) const
 {
-	return new EidosValue_Object_vector;
+	return new EidosValue_Object_vector();
 }
 
 void EidosValue_Object::Sort(bool p_ascending)
