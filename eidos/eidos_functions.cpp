@@ -246,12 +246,16 @@ EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_a
 	EidosValueType highest_type = EidosValueType::kValueNULL;
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
 	const EidosObjectClass *element_class = nullptr;
+	int reserve_size = 0;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
 	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index];
 		EidosValueType arg_type = arg_value->Type();
+		int arg_value_count = arg_value->Count();
+		
+		reserve_size += arg_value_count;
 		
 		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
 			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << eidos_terminate(nullptr);
@@ -264,7 +268,7 @@ EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_a
 		
 		if (arg_type == EidosValueType::kValueObject)
 		{
-			if (arg_value->Count() > 0)		// object(0) parameters do not conflict with other object types
+			if (arg_value_count > 0)		// object(0) parameters do not conflict with other object types
 			{
 				const EidosObjectClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
 				
@@ -295,76 +299,78 @@ EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_a
 		return (all_invisible ? gStaticEidosValueNULLInvisible : gStaticEidosValueNULL);
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
-	// Note that NULLs here concatenate away silently; a bit dangerous!
+	// Note that NULLs here concatenate away silently because their Count()==0; a bit dangerous!
 	if (highest_type == EidosValueType::kValueLogical)
 	{
-		EidosValue_Logical *result = new EidosValue_Logical();
+		EidosValue_Logical *result = (new EidosValue_Logical())->Reserve(reserve_size);
+		std::vector<bool> &result_vec = result->LogicalVector_Mutable();
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index];
+			int arg_value_count = arg_value->Count();
 			
-			if (arg_value->Type() != EidosValueType::kValueNULL)
-				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushLogical(arg_value->LogicalAtIndex(value_index, nullptr));
+			for (int value_index = 0; value_index < arg_value_count; ++value_index)
+				result_vec.push_back(arg_value->LogicalAtIndex(value_index, nullptr));
 		}
 		
 		return result;
 	}
 	else if (highest_type == EidosValueType::kValueInt)
 	{
-		EidosValue_Int_vector *result = new EidosValue_Int_vector();
+		EidosValue_Int_vector *result = (new EidosValue_Int_vector())->Reserve(reserve_size);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index];
+			int arg_value_count = arg_value->Count();
 			
-			if (arg_value->Type() != EidosValueType::kValueNULL)
-				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushInt(arg_value->IntAtIndex(value_index, nullptr));
+			for (int value_index = 0; value_index < arg_value_count; ++value_index)
+				result->PushInt(arg_value->IntAtIndex(value_index, nullptr));
 		}
 		
 		return result;
 	}
 	else if (highest_type == EidosValueType::kValueFloat)
 	{
-		EidosValue_Float_vector *result = new EidosValue_Float_vector();
+		EidosValue_Float_vector *result = (new EidosValue_Float_vector())->Reserve(reserve_size);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index];
+			int arg_value_count = arg_value->Count();
 			
-			if (arg_value->Type() != EidosValueType::kValueNULL)
-				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushFloat(arg_value->FloatAtIndex(value_index, nullptr));
+			for (int value_index = 0; value_index < arg_value_count; ++value_index)
+				result->PushFloat(arg_value->FloatAtIndex(value_index, nullptr));
 		}
 		
 		return result;
 	}
 	else if (highest_type == EidosValueType::kValueString)
 	{
-		EidosValue_String_vector *result = new EidosValue_String_vector();
+		EidosValue_String_vector *result = (new EidosValue_String_vector())->Reserve(reserve_size);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index];
+			int arg_value_count = arg_value->Count();
 			
-			if (arg_value->Type() != EidosValueType::kValueNULL)
-				for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
-					result->PushString(arg_value->StringAtIndex(value_index, nullptr));
+			for (int value_index = 0; value_index < arg_value_count; ++value_index)
+				result->PushString(arg_value->StringAtIndex(value_index, nullptr));
 		}
 		
 		return result;
 	}
 	else if (has_object_type)
 	{
-		EidosValue_Object_vector *result = new EidosValue_Object_vector();
+		EidosValue_Object_vector *result = (new EidosValue_Object_vector())->Reserve(reserve_size);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index];
+			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value->Count(); ++value_index)
+			for (int value_index = 0; value_index < arg_value_count; ++value_index)
 				result->PushObjectElement(arg_value->ObjectElementAtIndex(value_index, nullptr));
 		}
 		
@@ -451,7 +457,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
 					const std::vector<int64_t> &int_vec = dynamic_cast<EidosValue_Int_vector *>(arg0_value)->IntVector();
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 					result = int_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -480,7 +486,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
 					const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 					result = float_result;
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -505,7 +511,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -529,7 +535,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -553,7 +559,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -582,7 +588,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -608,7 +614,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -632,7 +638,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -656,7 +662,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -682,7 +688,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -718,9 +724,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 					result = int_result;
-					int_result->Reserve(arg0_count);
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
@@ -737,9 +742,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
 					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg1_count);
 					result = int_result;
-					int_result->Reserve(arg1_count);
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
 					{
@@ -755,9 +759,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 					result = int_result;
-					int_result->Reserve(arg0_count);
 					
 					if (int2 == 0)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
@@ -801,9 +804,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 					result = int_result;
-					int_result->Reserve(arg0_count);
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
@@ -820,9 +822,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
 					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg1_count);
 					result = int_result;
-					int_result->Reserve(arg1_count);
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
 					{
@@ -838,9 +839,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				{
 					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
 					int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 					result = int_result;
-					int_result->Reserve(arg0_count);
 					
 					if (int2 == 0)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
@@ -874,11 +874,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Logical *logical_result = new EidosValue_Logical();
+				EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isfinite(float_vec[value_index]));
+					logical_result_vec.push_back(isfinite(float_vec[value_index]));
 			}
 			break;
 		}
@@ -900,11 +901,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Logical *logical_result = new EidosValue_Logical();
+				EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isinf(float_vec[value_index]));
+					logical_result_vec.push_back(isinf(float_vec[value_index]));
 			}
 			break;
 		}
@@ -926,11 +928,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Logical *logical_result = new EidosValue_Logical();
+				EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(isnan(float_vec[value_index]));
+					logical_result_vec.push_back(isnan(float_vec[value_index]));
 			}
 			break;
 		}
@@ -950,7 +953,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -974,7 +977,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -998,7 +1001,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1187,7 +1190,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1211,7 +1214,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1235,7 +1238,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1259,7 +1262,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1285,7 +1288,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1647,7 +1650,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (element_count < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
-			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)element_count);
 			result = float_result;
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
@@ -1667,7 +1670,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (element_count < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
-			EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)element_count);
 			result = int_result;
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
@@ -1687,11 +1690,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (element_count < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
-			EidosValue_Logical *logical_result = new EidosValue_Logical();
+			EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve((int)element_count);
+			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 			result = logical_result;
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
-				logical_result->PushLogical(false);
+				logical_result_vec.push_back(false);
 			break;
 		}
 			
@@ -1743,7 +1747,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)num_draws);
 					result = int_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1752,7 +1756,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)num_draws);
 				result = int_result;
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1874,7 +1878,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 					result = float_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1883,7 +1887,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 				result = float_result;
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1936,7 +1940,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 					result = float_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1945,7 +1949,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 				result = float_result;
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1997,7 +2001,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)num_draws);
 					result = int_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -2006,7 +2010,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)num_draws);
 				result = int_result;
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -2044,7 +2048,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (num_draws < 0)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
 					
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 					result = float_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -2082,7 +2086,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 					else
 					{
-						EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+						EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 						result = float_result;
 						
 						for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -2091,7 +2095,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)num_draws);
 					result = float_result;
 					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -2255,9 +2259,6 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if ((arg0_type == EidosValueType::kValueFloat) || (arg1_type == EidosValueType::kValueFloat) || (arg2_type == EidosValueType::kValueFloat))
 			{
 				// float return case
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
-				result = float_result;
-				
 				double first_value = arg0_value->FloatAtIndex(0, nullptr);
 				double second_value = arg1_value->FloatAtIndex(0, nullptr);
 				double default_by = ((first_value < second_value) ? 1 : -1);
@@ -2267,6 +2268,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires by != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+				
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(int(1 + ceil((second_value - first_value) / by_value)));	// take a stab at a reserve size; might not be quite right, but no harm
+				result = float_result;
 				
 				if (by_value > 0)
 					for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -2278,9 +2282,6 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			else
 			{
 				// int return case
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
-				result = int_result;
-				
 				int64_t first_value = arg0_value->IntAtIndex(0, nullptr);
 				int64_t second_value = arg1_value->IntAtIndex(0, nullptr);
 				int64_t default_by = ((first_value < second_value) ? 1 : -1);
@@ -2290,6 +2291,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() requires by != 0." << eidos_terminate(nullptr);
 				if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+				
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(1 + (second_value - first_value) / by_value));		// take a stab at a reserve size; might not be quite right, but no harm
+				result = int_result;
 				
 				if (by_value > 0)
 					for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
@@ -2310,7 +2314,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 			result = int_result;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -2330,7 +2334,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (element_count < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
-			EidosValue_String_vector *string_result = new EidosValue_String_vector();
+			EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve((int)element_count);
 			result = string_result;
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
@@ -2677,7 +2681,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else if (arg1_count == 1)	// && (arg0_count != 1)
 			{
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 				result = int_result;
 				
 				if (arg0_type == EidosValueType::kValueLogical)
@@ -2724,7 +2728,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			else						// ((arg0_count != 1) && (arg1_count != 1))
 			{
 				// We can use the fast vector API; we want match() to be very fast since it is a common bottleneck
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 				result = int_result;
 				
 				int table_index;
@@ -2820,7 +2824,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				const std::vector<std::string> &string_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
 				
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -2928,7 +2932,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			int arg0_count = arg0_value->Count();
-			EidosValue_Object_vector *object_result = new EidosValue_Object_vector();
+			EidosValue_Object_vector *object_result = (new EidosValue_Object_vector())->Reserve(arg0_count);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				object_result->PushObjectElement(arg0_value->ObjectElementAtIndex(value_index, nullptr));
@@ -3066,7 +3070,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (!first_singleton && (arg_first_count != arg0_count))
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
 				
-				EidosValue_String_vector *string_result = new EidosValue_String_vector();
+				EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(arg0_count);
 				result = string_result;
 				
 				int64_t first0 = arg_first->IntAtIndex(0, nullptr);
@@ -3483,7 +3487,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
 				result = float_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -3507,7 +3511,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -3531,11 +3535,12 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = new EidosValue_Logical();
+				EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result = logical_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result->PushLogical(arg0_value->LogicalAtIndex(value_index, nullptr));
+					logical_result_vec.push_back(arg0_value->LogicalAtIndex(value_index, nullptr));
 			}
 			break;
 		}
@@ -3555,7 +3560,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			}
 			else
 			{
-				EidosValue_String_vector *string_result = new EidosValue_String_vector();
+				EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(arg0_count);
 				result = string_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
