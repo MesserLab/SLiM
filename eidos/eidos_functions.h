@@ -51,6 +51,8 @@ enum class EidosFunctionIdentifier {
 	cosFunction,
 	expFunction,
 	floorFunction,
+	integerDivFunction,
+	integerModFunction,
 	isFiniteFunction,
 	isInfiniteFunction,
 	isNaNFunction,

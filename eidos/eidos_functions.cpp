@@ -73,6 +73,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("cos",				EidosFunctionIdentifier::cosFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("exp",				EidosFunctionIdentifier::expFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kEidosValueMaskFloat))->AddFloat("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("integerDiv",		EidosFunctionIdentifier::integerDivFunction,	kEidosValueMaskInt))->AddInt("x")->AddInt("y"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("integerMod",		EidosFunctionIdentifier::integerModFunction,	kEidosValueMaskInt))->AddInt("x")->AddInt("y"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isFinite",			EidosFunctionIdentifier::isFiniteFunction,		kEidosValueMaskLogical))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isInfinite",		EidosFunctionIdentifier::isInfiniteFunction,	kEidosValueMaskLogical))->AddFloat("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("isNAN",			EidosFunctionIdentifier::isNaNFunction,			kEidosValueMaskLogical))->AddFloat("x"));
@@ -686,6 +688,172 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					float_result->PushFloat(floor(float_vec[value_index]));
 			}
+			break;
+		}
+			
+			
+			//	(integer)integerDiv(integer x, integer y)
+#pragma mark integerDiv
+			
+		case EidosFunctionIdentifier::integerDivFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			if ((arg0_count == 1) && (arg1_count == 1))
+			{
+				int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
+				int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
+				
+				if (int2 == 0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+				
+				result = new EidosValue_Int_singleton_const(int1 / int2);
+			}
+			else
+			{
+				if (arg0_count == arg1_count)
+				{
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg0_count);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						int64_t int1 = int1_vec[value_index];
+						int64_t int2 = int2_vec[value_index];
+						
+						if (int2 == 0)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(int1 / int2);
+					}
+				}
+				else if (arg0_count == 1)
+				{
+					int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg1_count);
+					
+					for (int value_index = 0; value_index < arg1_count; ++value_index)
+					{
+						int64_t int2 = int2_vec[value_index];
+						
+						if (int2 == 0)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(int1 / int2);
+					}
+				}
+				else if (arg1_count == 1)
+				{
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg0_count);
+					
+					if (int2 == 0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(int1_vec[value_index] / int2);
+				}
+				else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
+				{
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(nullptr);
+				}
+			}
+			
+			break;
+		}
+			
+			
+			//	(integer)integerMod(integer x, integer y)
+#pragma mark integerMod
+			
+		case EidosFunctionIdentifier::integerModFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			int arg1_count = arg1_value->Count();
+			
+			if ((arg0_count == 1) && (arg1_count == 1))
+			{
+				int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
+				int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
+				
+				if (int2 == 0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+				
+				result = new EidosValue_Int_singleton_const(int1 % int2);
+			}
+			else
+			{
+				if (arg0_count == arg1_count)
+				{
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg0_count);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						int64_t int1 = int1_vec[value_index];
+						int64_t int2 = int2_vec[value_index];
+						
+						if (int2 == 0)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(int1 % int2);
+					}
+				}
+				else if (arg0_count == 1)
+				{
+					int64_t int1 = arg0_value->IntAtIndex(0, nullptr);
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg1_count);
+					
+					for (int value_index = 0; value_index < arg1_count; ++value_index)
+					{
+						int64_t int2 = int2_vec[value_index];
+						
+						if (int2 == 0)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(int1 % int2);
+					}
+				}
+				else if (arg1_count == 1)
+				{
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)arg0_value)->IntVector();
+					int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
+					EidosValue_Int_vector *int_result = new EidosValue_Int_vector();
+					result = int_result;
+					int_result->Reserve(arg0_count);
+					
+					if (int2 == 0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(int1_vec[value_index] % int2);
+				}
+				else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
+				{
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(nullptr);
+				}
+			}
+			
 			break;
 		}
 			

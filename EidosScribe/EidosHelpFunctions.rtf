@@ -176,6 +176,68 @@
 \f1\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
+\f2\fs18 \cf0 (integer)integerDiv(integer\'a0x, integer\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the result of 
+\b integer division
+\b0  of 
+\f2\fs18 x
+\f0\fs20  by 
+\f2\fs18 y
+\f0\fs20 .  The 
+\f2\fs18 /
+\f0\fs20  operator in Eidos always produces a 
+\f2\fs18 float
+\f0\fs20  result; if you want an 
+\f2\fs18 integer
+\f0\fs20  result you may use this function instead.  If any value of 
+\f2\fs18 y
+\f0\fs20  is 
+\f2\fs18 0
+\f0\fs20 , an error will result.  The parameters 
+\f2\fs18 x
+\f0\fs20  and 
+\f2\fs18 y
+\f0\fs20  must either be of equal length, or one of the two must be a singleton.  The precise behavior of 
+\f2\fs18 integer
+\f0\fs20  division, in terms of how rounding and negative values are handled, may be platform dependent; it will be whatever the C++ behavior of 
+\f2\fs18 integer
+\f0\fs20  division is on the given platform.  Eidos does not guarantee any particular behavior, so use this function with caution.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 (integer)integerMod(integer\'a0x, integer\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns the result of 
+\b integer modulo
+\b0  of 
+\f2\fs18 x
+\f0\fs20  by 
+\f2\fs18 y
+\f0\fs20 .  The 
+\f2\fs18 %
+\f0\fs20  operator in Eidos always produces a 
+\f2\fs18 float
+\f0\fs20  result; if you want an 
+\f2\fs18 integer
+\f0\fs20  result you may use this function instead.  If any value of 
+\f2\fs18 y
+\f0\fs20  is 
+\f2\fs18 0
+\f0\fs20 , an error will result.  The parameters 
+\f2\fs18 x
+\f0\fs20  and 
+\f2\fs18 y
+\f0\fs20  must either be of equal length, or one of the two must be a singleton.  The precise behavior of 
+\f2\fs18 integer
+\f0\fs20  modulo, in terms of how rounding and negative values are handled, may be platform dependent; it will be whatever the C++ behavior of 
+\f2\fs18 integer
+\f0\fs20  modulo is on the given platform.  Eidos does not guarantee any particular behavior, so use this function with caution.
+\f1 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
 \f2\fs18 \cf0 (logical)isFinite(float
 \f1 \'a0
 \f2 x)\

@@ -1532,6 +1532,48 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("floor(float(0));", new EidosValue_Float_vector());
 	EidosAssertScriptRaise("floor(string(0));", 0, "cannot be type");
 	
+	// integerDiv()
+	EidosAssertScriptSuccess("integerDiv(6, 3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(7, 3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(8, 3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(9, 3);", new EidosValue_Int_singleton_const(3));
+	EidosAssertScriptSuccess("integerDiv(6:9, 3);", new EidosValue_Int_vector(2, 2, 2, 3));
+	EidosAssertScriptSuccess("integerDiv(6, 2:6);", new EidosValue_Int_vector(3, 2, 1, 1, 1));
+	EidosAssertScriptSuccess("integerDiv(8:12, 2:6);", new EidosValue_Int_vector(4, 3, 2, 2, 2));
+	EidosAssertScriptSuccess("integerDiv(-6, 3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(-7, 3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(-8, 3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(-9, 3);", new EidosValue_Int_singleton_const(-3));
+	EidosAssertScriptSuccess("integerDiv(6, -3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(7, -3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(8, -3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerDiv(9, -3);", new EidosValue_Int_singleton_const(-3));
+	EidosAssertScriptSuccess("integerDiv(-6, -3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(-7, -3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(-8, -3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerDiv(-9, -3);", new EidosValue_Int_singleton_const(3));
+	
+	// integerMod()
+	EidosAssertScriptSuccess("integerMod(6, 3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(7, 3);", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("integerMod(8, 3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerMod(9, 3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(6:9, 3);", new EidosValue_Int_vector(0, 1, 2, 0));
+	EidosAssertScriptSuccess("integerMod(6, 2:6);", new EidosValue_Int_vector(0, 0, 2, 1, 0));
+	EidosAssertScriptSuccess("integerMod(8:12, 2:6);", new EidosValue_Int_vector(0, 0, 2, 1, 0));
+	EidosAssertScriptSuccess("integerMod(-6, 3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(-7, 3);", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("integerMod(-8, 3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerMod(-9, 3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(6, -3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(7, -3);", new EidosValue_Int_singleton_const(1));
+	EidosAssertScriptSuccess("integerMod(8, -3);", new EidosValue_Int_singleton_const(2));
+	EidosAssertScriptSuccess("integerMod(9, -3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(-6, -3);", new EidosValue_Int_singleton_const(0));
+	EidosAssertScriptSuccess("integerMod(-7, -3);", new EidosValue_Int_singleton_const(-1));
+	EidosAssertScriptSuccess("integerMod(-8, -3);", new EidosValue_Int_singleton_const(-2));
+	EidosAssertScriptSuccess("integerMod(-9, -3);", new EidosValue_Int_singleton_const(0));
+	
 	// isFinite()
 	EidosAssertScriptSuccess("isFinite(0.0);", new EidosValue_Logical(true));
 	EidosAssertScriptSuccess("isFinite(0.05);", new EidosValue_Logical(true));
