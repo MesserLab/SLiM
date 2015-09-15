@@ -1232,7 +1232,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			}
 			else
 			{
-				EidosValue_Float_vector *float_return = new EidosValue_Float_vector();
+				EidosValue_Float_vector *float_return = (new EidosValue_Float_vector())->Reserve(index_count);
 				
 				for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 				{

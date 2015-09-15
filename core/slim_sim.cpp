@@ -1449,9 +1449,9 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutations:
 		{
-			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
 			Genome &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
+			EidosValue_Object_vector *vec = (new EidosValue_Object_vector())->Reserve(mutation_count);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
 				vec->PushObjectElement(mutation_registry[mut_index]);

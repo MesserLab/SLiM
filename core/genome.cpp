@@ -265,7 +265,7 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 			return ((mutations_ == nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
-			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = (new EidosValue_Object_vector())->Reserve(mutation_count_);
 			
 			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
 				vec->PushObjectElement(mutations_[mut_index]);
