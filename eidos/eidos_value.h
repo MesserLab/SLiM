@@ -433,7 +433,8 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	void SetValue(const std::string &p_string) { value_ = p_string; }
+	inline std::string &StringValue_Mutable(void) { return value_; }
+	inline void SetValue(const std::string &p_string) { value_ = p_string; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -542,7 +543,8 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	void SetValue(int64_t p_int) { value_ = p_int; }
+	inline int64_t &IntValue_Mutable(void) { return value_; }
+	inline void SetValue(int64_t p_int) { value_ = p_int; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -650,7 +652,8 @@ public:
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	void SetValue(double p_float) { value_ = p_float; }
+	inline double &FloatValue_Mutable(void) { return value_; }
+	inline void SetValue(double p_float) { value_ = p_float; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -769,6 +772,7 @@ public:
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	
+	inline EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }
 	void SetValue(EidosObjectElement *p_element);
 	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;

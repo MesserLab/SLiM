@@ -355,26 +355,28 @@ void EidosASTNode::_OptimizeAssignments(void) const
 			EidosASTNode *child1 = children_[1];
 			EidosTokenType child1_token_type = child1->token_->token_type_;
 			
-			if (((child1_token_type == EidosTokenType::kTokenPlus) || (child1_token_type == EidosTokenType::kTokenMinus)) && (child1->children_.size() == 2))
+			if ((child1_token_type == EidosTokenType::kTokenPlus) || (child1_token_type == EidosTokenType::kTokenMinus) || (child1_token_type == EidosTokenType::kTokenDiv) || (child1_token_type == EidosTokenType::kTokenMod) || (child1_token_type == EidosTokenType::kTokenMult) || (child1_token_type == EidosTokenType::kTokenExp))
 			{
-				// ... the rvalue is a + or - operator with two children...
-				EidosASTNode *left_operand = child1->children_[0];
-				
-				if (left_operand->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+				// ... the rvalue uses an eligible operator...
+				if (child1->children_.size() == 2)
 				{
-					// ... the left operand is an identifier...
-					if (left_operand->token_->token_string_.compare(child0->token_->token_string_) == 0)
+					// ... the rvalue has two children...
+					EidosASTNode *left_operand = child1->children_[0];
+					
+					if (left_operand->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 					{
-						// ... the two identifiers are the same...
-						EidosASTNode *right_operand = child1->children_[1];
-						
-						if (right_operand->token_->token_type_ == EidosTokenType::kTokenNumber)
+						// ... the left operand is an identifier...
+						if (left_operand->token_->token_string_.compare(child0->token_->token_string_) == 0)
 						{
-							// ... the right operand is a number...
-							if (right_operand->token_->token_string_.compare("1") == 0)
+							// ... the left and right identifiers are the same...
+							EidosASTNode *right_operand = child1->children_[1];
+							
+							if ((right_operand->token_->token_type_ == EidosTokenType::kTokenNumber) && (right_operand->cached_value_))
 							{
+								// ... and the right operand is a constant number with a cached value...
+								
 								// we have a simple increment/decrement by one, so we mark that in the tree for Evaluate_Assign() to handle super fast
-								cached_incdec_ = true;
+								cached_compound_assignment_ = true;
 							}
 						}
 					}

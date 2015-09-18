@@ -54,7 +54,7 @@ public:
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	mutable bool cached_for_references_index = true;					// pre-cached as true if the index variable is referenced at all in the loop
 	mutable bool cached_for_assigns_index = true;						// pre-cached as true if the index variable is assigned to in the loop
-	mutable bool cached_incdec_ = false;								// pre-cached on assignment nodes if they are of the form "x=x+1" or "x=x-1" only
+	mutable bool cached_compound_assignment_ = false;					// pre-cached on assignment nodes if they are of the form "x=x+1" or "x=x-1" only
 	
 	EidosASTNode(const EidosASTNode&) = delete;							// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;				// no copying

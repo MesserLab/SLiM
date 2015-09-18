@@ -2806,16 +2806,12 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Assign()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Assign", 2);
 	
-	if (p_node->cached_incdec_)
+	if (p_node->cached_compound_assignment_)
 	{
-		// if _OptimizeAssignments() set this flag, this assignment is of the form "x=x+1" or "x=x-1", where x is a
-		// simple identifier and the constant must be exactly 1 (just to keep things simple); we optimize that case
+		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
+		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosASTNode *rvalue_node = p_node->children_[1];
-		bool isIncrement = (rvalue_node->token_->token_type_ == EidosTokenType::kTokenPlus);
-		
 		EidosValue *lvalue = global_symbols_.GetNonConstantValueOrRaiseForToken(lvalue_node->token_);	// raises if undefined or const
-		EidosValueType lvalue_type = lvalue->Type();
 		int lvalue_count = lvalue->Count();
 		
 		// somewhat unusually, we will now modify the lvalue in place, for speed; this is legal since we just got
@@ -2824,72 +2820,213 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// different value subclasses, singletons, etc.
 		if (lvalue_count > 0)
 		{
+			EidosValueType lvalue_type = lvalue->Type();
+			
 			if (lvalue_type == EidosValueType::kValueInt)
 			{
-				EidosValue_Int_singleton *int_singleton = ((lvalue_count == 1) ? dynamic_cast<EidosValue_Int_singleton *>(lvalue) : nullptr);
+				EidosASTNode *rvalue_node = p_node->children_[1];							// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_;		// the numeric constant
 				
-				if (int_singleton)
+				// if the lvalue is an integer, we require the rvalue to be an integer also; we don't handle mixed types here
+				if (cached_operand2->Type() == EidosValueType::kValueInt)
 				{
-					int_singleton->SetValue(int_singleton->IntAtIndex(0, nullptr) + (isIncrement ? 1 : -1));
-				}
-				else
-				{
-					std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)lvalue)->IntVector_Mutable();
+					EidosTokenType compound_operator = rvalue_node->token_->token_type_;
+					int64_t operand2_value = cached_operand2->IntAtIndex(0, nullptr);
+					EidosValue_Int_singleton *int_singleton = ((lvalue_count == 1) ? dynamic_cast<EidosValue_Int_singleton *>(lvalue) : nullptr);
 					
-					if (isIncrement)
+					if (int_singleton)
 					{
-						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+						switch (compound_operator)
 						{
-							int64_t &int_vec_value = int_vec[value_index];
-							bool overflow = __builtin_saddll_overflow(int_vec_value, 1, &int_vec_value);
-							
-							if (overflow)
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+							case EidosTokenType::kTokenPlus:
+							{
+								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								bool overflow = __builtin_saddll_overflow(operand1_value, operand2_value, &operand1_value);
+								
+								if (overflow)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+								goto compoundAssignmentSuccess;
+							}
+							case EidosTokenType::kTokenMinus:
+							{
+								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								bool overflow = __builtin_ssubll_overflow(operand1_value, operand2_value, &operand1_value);
+								
+								if (overflow)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+								goto compoundAssignmentSuccess;
+							}
+							case EidosTokenType::kTokenMult:
+							{
+								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								bool overflow = __builtin_smulll_overflow(operand1_value, operand2_value, &operand1_value);
+								
+								if (overflow)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);
+								goto compoundAssignmentSuccess;
+							}
+							default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
+								break;
 						}
 					}
 					else
 					{
-						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+						std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)lvalue)->IntVector_Mutable();
+						
+						switch (compound_operator)
 						{
-							int64_t &int_vec_value = int_vec[value_index];
-							bool overflow = __builtin_ssubll_overflow(int_vec_value, 1, &int_vec_value);
-							
-							if (overflow)
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+							case EidosTokenType::kTokenPlus:
+							{
+								for (int value_index = 0; value_index < lvalue_count; ++value_index)
+								{
+									int64_t &int_vec_value = int_vec[value_index];
+									bool overflow = __builtin_saddll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									
+									if (overflow)
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+								}
+								goto compoundAssignmentSuccess;
+							}
+							case EidosTokenType::kTokenMinus:
+							{
+								for (int value_index = 0; value_index < lvalue_count; ++value_index)
+								{
+									int64_t &int_vec_value = int_vec[value_index];
+									bool overflow = __builtin_ssubll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									
+									if (overflow)
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+								}
+								goto compoundAssignmentSuccess;
+							}
+							case EidosTokenType::kTokenMult:
+							{
+								for (int value_index = 0; value_index < lvalue_count; ++value_index)
+								{
+									int64_t &int_vec_value = int_vec[value_index];
+									bool overflow = __builtin_smulll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									
+									if (overflow)
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);
+								}
+								goto compoundAssignmentSuccess;
+							}
+							default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
+								break;
 						}
 					}
 				}
-				
-				goto cachedIncDecExit;
 			}
 			else if (lvalue_type == EidosValueType::kValueFloat)
 			{
+				// if the lvalue is a float, we do not require the rvalue to be a float also; the integer will promote to float seamlessly
+				EidosASTNode *rvalue_node = p_node->children_[1];							// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_;		// the numeric constant
+				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
+				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);			// might be an int64_t and get converted
 				EidosValue_Float_singleton *float_singleton = ((lvalue_count == 1) ? dynamic_cast<EidosValue_Float_singleton *>(lvalue) : nullptr);
 				
 				if (float_singleton)
 				{
-					float_singleton->SetValue(float_singleton->FloatAtIndex(0, nullptr) + (isIncrement ? 1.0 : -1.0));
+					switch (compound_operator)
+					{
+						case EidosTokenType::kTokenPlus:
+							float_singleton->FloatValue_Mutable() += operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMinus:
+							float_singleton->FloatValue_Mutable() -= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMult:
+							float_singleton->FloatValue_Mutable() *= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenDiv:
+							float_singleton->FloatValue_Mutable() /= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMod:
+						{
+							double &operand1_value = float_singleton->FloatValue_Mutable();
+							
+							operand1_value = fmod(operand1_value, operand2_value);
+							goto compoundAssignmentSuccess;
+						}
+							
+						case EidosTokenType::kTokenExp:
+						{
+							double &operand1_value = float_singleton->FloatValue_Mutable();
+							
+							operand1_value = pow(operand1_value, operand2_value);
+							goto compoundAssignmentSuccess;
+						}
+							
+						default:
+							break;
+					}
+					
 				}
 				else
 				{
 					std::vector<double> &float_vec = ((EidosValue_Float_vector *)lvalue)->FloatVector_Mutable();
 					
-					if (isIncrement)
-						for (int value_index = 0; value_index < lvalue_count; ++value_index)
-							float_vec[value_index]++;
-					else
-						for (int value_index = 0; value_index < lvalue_count; --value_index)
-							float_vec[value_index]--;
+					switch (compound_operator)
+					{
+						case EidosTokenType::kTokenPlus:
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
+								float_vec[value_index] += operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMinus:
+							for (int value_index = 0; value_index < lvalue_count; --value_index)
+								float_vec[value_index] -= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMult:
+							for (int value_index = 0; value_index < lvalue_count; --value_index)
+								float_vec[value_index] *= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenDiv:
+							for (int value_index = 0; value_index < lvalue_count; --value_index)
+								float_vec[value_index] /= operand2_value;
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenMod:
+							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							{
+								double &float_vec_value = float_vec[value_index];
+								
+								float_vec_value = fmod(float_vec_value, operand2_value);
+							}
+							goto compoundAssignmentSuccess;
+							
+						case EidosTokenType::kTokenExp:
+							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							{
+								double &float_vec_value = float_vec[value_index];
+								
+								float_vec_value = pow(float_vec_value, operand2_value);
+							}
+							goto compoundAssignmentSuccess;
+							
+						default:
+							break;
+					}
 				}
 				
-				goto cachedIncDecExit;
+				goto compoundAssignmentSuccess;
 			}
 		}
 		
-		// other cases drop through to be handled normally
+		// maybe we should flip our flag so we don't waste time trying this again for this node
+		p_node->cached_compound_assignment_ = false;
+		
+		// and then we drop through to be handled normally by the standard assign operator code
 	}
 	
-	// we can drop through to here even if cached_incdec_ is set, if the code above bailed for some reason
+	// we can drop through to here even if cached_compound_assignment_ is set, if the code above bailed for some reason
 	{
 		EidosToken *operator_token = p_node->token_;
 		EidosASTNode *lvalue_node = p_node->children_[0];
@@ -2905,7 +3042,7 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		if (rvalue->IsTemporary()) delete rvalue;
 	}
 	
-cachedIncDecExit:
+compoundAssignmentSuccess:
 	
 	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
 	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
