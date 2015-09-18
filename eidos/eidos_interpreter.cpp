@@ -2837,11 +2837,27 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 					std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)lvalue)->IntVector_Mutable();
 					
 					if (isIncrement)
+					{
 						for (int value_index = 0; value_index < lvalue_count; ++value_index)
-							int_vec[value_index]++;
+						{
+							int64_t &int_vec_value = int_vec[value_index];
+							bool overflow = __builtin_saddll_overflow(int_vec_value, 1, &int_vec_value);
+							
+							if (overflow)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+						}
+					}
 					else
-						for (int value_index = 0; value_index < lvalue_count; --value_index)
-							int_vec[value_index]--;
+					{
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+						{
+							int64_t &int_vec_value = int_vec[value_index];
+							bool overflow = __builtin_ssubll_overflow(int_vec_value, 1, &int_vec_value);
+							
+							if (overflow)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+						}
+					}
 				}
 				
 				goto cachedIncDecExit;
@@ -2852,7 +2868,7 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				
 				if (float_singleton)
 				{
-					float_singleton->SetValue(float_singleton->FloatAtIndex(0, nullptr) + (isIncrement ? 1 : -1));
+					float_singleton->SetValue(float_singleton->FloatAtIndex(0, nullptr) + (isIncrement ? 1.0 : -1.0));
 				}
 				else
 				{
