@@ -1321,10 +1321,18 @@ void RunEidosTests(void)
 	
 	// for and in
 	#pragma mark for / in
+	EidosAssertScriptSuccess("x=0; for (y in integer(0)) x=x+1; x;", new EidosValue_Int_singleton(0));
+	EidosAssertScriptSuccess("x=0; for (y in float(0)) x=x+1; x;", new EidosValue_Int_singleton(0));
 	EidosAssertScriptSuccess("x=0; for (y in 33) x=x+y; x;", new EidosValue_Int_singleton(33));
+	EidosAssertScriptSuccess("x=0; for (y in 33) x=x+1; x;", new EidosValue_Int_singleton(1));
 	EidosAssertScriptSuccess("x=0; for (y in 1:10) x=x+y; x;", new EidosValue_Int_singleton(55));
+	EidosAssertScriptSuccess("x=0; for (y in 1:10) x=x+1; x;", new EidosValue_Int_singleton(10));
+	EidosAssertScriptSuccess("x=0; for (y in 1:10) { x=x+y; y = 7; } x;", new EidosValue_Int_singleton(55));
+	EidosAssertScriptSuccess("x=0; for (y in 1:10) { x=x+1; y = 7; } x;", new EidosValue_Int_singleton(10));
 	EidosAssertScriptSuccess("x=0; for (y in 10:1) x=x+y; x;", new EidosValue_Int_singleton(55));
+	EidosAssertScriptSuccess("x=0; for (y in 10:1) x=x+1; x;", new EidosValue_Int_singleton(10));
 	EidosAssertScriptSuccess("x=0; for (y in 1.0:10) x=x+y; x;", new EidosValue_Float_singleton(55.0));
+	EidosAssertScriptSuccess("x=0; for (y in 1.0:10) x=x+1; x;", new EidosValue_Int_singleton(10));
 	EidosAssertScriptSuccess("x=0; for (y in c('foo', 'bar')) x=x+y; x;", new EidosValue_String_singleton("0foobar"));
 	EidosAssertScriptSuccess("x=0; for (y in c(T,T,F,F,T,F)) x=x+asInteger(y); x;", new EidosValue_Int_singleton(3));
 	EidosAssertScriptSuccess("x=0; for (y in _Test(7)) x=x+y._yolk; x;", new EidosValue_Int_singleton(7));
