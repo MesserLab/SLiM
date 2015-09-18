@@ -22,7 +22,11 @@ void PrintUsageAndDie()
 	exit(0);
 }
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char * argv[])
+{
+	// command-line Eidos generally terminates rather than throwing
+	gEidosTerminateThrows = false;
+	
 	// parse command-line arguments
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false;
