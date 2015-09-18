@@ -1,6 +1,7 @@
 SLiM:
 	setSubpopulationSize(0) is kind of weird, does not free the subpop
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
+	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
 
 Eidos:
 	add pmax(), pmin()
