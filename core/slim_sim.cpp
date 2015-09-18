@@ -728,7 +728,7 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, (new EidosValue_Object_singleton(this))->SetExternalPermanent());
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
@@ -1428,14 +1428,14 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_chromosome:
-			return new EidosValue_Object_singleton_const(&chromosome_);
+			return new EidosValue_Object_singleton(&chromosome_);
 		case gID_chromosomeType:
 		{
 			switch (modeled_chromosome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String_singleton_const(gStr_A);
-				case GenomeType::kXChromosome:	return new EidosValue_String_singleton_const(gStr_X);
-				case GenomeType::kYChromosome:	return new EidosValue_String_singleton_const(gStr_Y);
+				case GenomeType::kAutosome:		return new EidosValue_String_singleton(gStr_A);
+				case GenomeType::kXChromosome:	return new EidosValue_String_singleton(gStr_X);
+				case GenomeType::kYChromosome:	return new EidosValue_String_singleton(gStr_Y);
 			}
 		}
 		case gID_genomicElementTypes:
@@ -1499,18 +1499,18 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_dominanceCoeffX:
-			return new EidosValue_Float_singleton_const(x_chromosome_dominance_coeff_);
+			return new EidosValue_Float_singleton(x_chromosome_dominance_coeff_);
 		case gID_generation:
 		{
 			// We use external-temporary here because the value of generation_ can change, but it is permanent enough that
 			// we can cache it – it can't change within the execution of a single statement, and if the value lives longer
 			// than the context of a single statement that means it has been placed into a symbol table, and thus copied.
 			if (!cached_value_generation_)
-				cached_value_generation_ = (new EidosValue_Int_singleton_const(generation_))->SetExternalTemporary();
+				cached_value_generation_ = (new EidosValue_Int_singleton(generation_))->SetExternalTemporary();
 			return cached_value_generation_;
 		}
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:

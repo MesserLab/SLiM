@@ -336,7 +336,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						}
 						
 						// We really want to use EidosValue_Float_vector's FloatVector() method to get the values; if the dynamic_cast
-						// fails, we presumably have an EidosValue_Float_singleton_const and must get its value with FloatAtIndex.
+						// fails, we presumably have an EidosValue_Float_singleton and must get its value with FloatAtIndex.
 						EidosValue_Float_vector *result_vector_type = dynamic_cast<EidosValue_Float_vector *>(result);
 						
 						if (result_vector_type)

@@ -52,6 +52,9 @@ public:
 	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
+	mutable bool cached_for_references_index = true;					// pre-cached as true if the index variable is referenced at all in the loop
+	mutable bool cached_for_assigns_index = true;						// pre-cached as true if the index variable is assigned to in the loop
+	mutable bool cached_incdec_ = false;								// pre-cached on assignment nodes if they are of the form "x=x+1" or "x=x-1" only
 	
 	EidosASTNode(const EidosASTNode&) = delete;							// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;				// no copying
@@ -68,6 +71,9 @@ public:
 	void _OptimizeConstants(void) const;								// cache EidosValues for constants and propagate constants upward
 	void _OptimizeIdentifiers(void) const;								// cache function signatures, global strings for methods and properties, etc.
 	void _OptimizeEvaluators(void) const;								// cache pointers to method for evaluation
+	void _OptimizeFor(void) const;										// determine whether/how for-loop index variables need to be set up
+	void _OptimizeForScan(const std::string &p_for_index_identifier, bool *p_references, bool *p_assigns) const;	// internal method
+	void _OptimizeAssignments(void) const;									// detect and mark simple increment/decrement assignments on a variable
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;

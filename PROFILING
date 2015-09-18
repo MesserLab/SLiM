@@ -30,9 +30,9 @@ Eidos optimization:
 		0:23.0 after switching callbacks to use InitializeConstantSymbolEntry()
 		0:22.1 after inlining SetExternallyOwned()
 		0:21.9 after inlining AllocateNewSlot()
-		0:18.5 after introducing EidosValue_Float_singleton_const
-		0:18.0 after introducing EidosValue_Int_singleton_const
-		0:18.4 after introducing EidosValue_Object_singleton_const
+		0:18.5 after introducing EidosValue_Float_singleton
+		0:18.0 after introducing EidosValue_Int_singleton
+		0:18.4 after introducing EidosValue_Object_singleton
 		0:17.6 after using stack-allocated EidosValues in callbacks
 		0:17.3 (opt = 7.16, 7.34, 7.37, 7.23, 7.52 = 7.324) after optimizing Evaluate_FunctionCall()
 		0:14.2 (opt = 6.57, 6.52, 6.68, 6.48, 6.68 = 6.586) after switching argument lists off of std::vector

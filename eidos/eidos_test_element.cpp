@@ -54,9 +54,9 @@ const EidosObjectClass *Eidos_TestElement::Class(void) const
 EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)
-		return new EidosValue_Int_singleton_const(yolk_);
+		return new EidosValue_Int_singleton(yolk_);
 	else if (p_property_id == gEidosID__increment)
-		return new EidosValue_Object_singleton_const(new Eidos_TestElement(yolk_ + 1));
+		return new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1));
 	
 	// all others, including gID_none
 	else
@@ -83,11 +83,11 @@ EidosValue *Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 	{
 		case gEidosID__cubicYolk:
 		{
-			return new EidosValue_Int_singleton_const(yolk_ * yolk_ * yolk_);
+			return new EidosValue_Int_singleton(yolk_ * yolk_ * yolk_);
 		}
 		case gEidosID__squareTest:
 		{
-			return new EidosValue_Object_singleton_const(new Eidos_TestElement(yolk_ * yolk_));
+			return new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_));
 		}
 			
 			// all others, including gID_none

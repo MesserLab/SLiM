@@ -47,6 +47,7 @@ typedef std::pair<const std::string, EidosValue*> EidosSymbolTableEntry;
 typedef struct {
 	const std::string *symbol_name_;	// ownership is defined by symbol_name_externally_owned_, below
 	int symbol_name_length_;			// used to make scanning of the symbol table faster
+	const char *symbol_name_data_;		// used to make scanning of the symbol table faster
 	EidosValue *symbol_value_;			// ownership is defined by the flags in EidosValue
 	bool symbol_is_const_;				// T if const, F is variable
 	bool symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
@@ -87,9 +88,10 @@ public:
 	// symbol access; these are variables defined in the global namespace
 	std::vector<std::string> ReadOnlySymbols(void) const;
 	std::vector<std::string> ReadWriteSymbols(void) const;
-	EidosValue *GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const;		// raise will use the token
-	EidosValue *GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;		// raise will just call eidos_terminate()
-	EidosValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;		// safe to call with any string
+	EidosValue *GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const;				// raise will use the token
+	EidosValue *GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const;		// same but raises if the value is constant
+	EidosValue *GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;				// raise will just call eidos_terminate()
+	EidosValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;				// safe to call with any string
 	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
 	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
 	void RemoveValueForSymbol(const std::string &p_symbol_name, bool p_remove_constant);
@@ -106,7 +108,7 @@ public:
 	void ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value);
 	
 	// internal
-	int _SlotIndexForSymbol(const std::string &p_symbol_name, int p_key_length);
+	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data);
 	inline int AllocateNewSlot(void)	{ if (symbol_count_ == symbol_capacity_) _CapacityIncrease(); return symbol_count_++; };
 	void _CapacityIncrease(void);
 };

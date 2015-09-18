@@ -213,8 +213,8 @@ public:
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	
 	// methods to allow type-agnostic manipulation of EidosValues
-	virtual bool IsMutable(void) const;							// returns true by default, but we have some immutable subclasses that return false
-	virtual EidosValue *MutableCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
+	virtual bool IsVectorBased(void) const;							// returns true by default, but we have some immutable subclasses that return false
+	virtual EidosValue *VectorBasedCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
 	virtual EidosValue *CopyValues(void) const = 0;			// a deep copy of the receiver with external_temporary_ == invisible_ == false
 	virtual EidosValue *NewMatchingType(void) const = 0;		// a new EidosValue instance of the same type as the receiver
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token) = 0;	// copy a value
@@ -332,10 +332,10 @@ public:
 	static EidosValue_Logical *Static_EidosValue_Logical_T(void);
 	static EidosValue_Logical *Static_EidosValue_Logical_F(void);
 	
-	virtual bool IsMutable(void) const;
-	virtual EidosValue *MutableCopy(void) const;
+	virtual bool IsVectorBased(void) const;
+	virtual EidosValue *VectorBasedCopy(void) const;
 	
-	// prohibited actions
+	// prohibited actions because this subclass represents only truly immutable objects
 	virtual std::vector<bool> &LogicalVector_Mutable(void);
 	virtual EidosValue_Logical *Reserve(int p_reserved_size);
 	virtual void PushLogical(bool p_logical);
@@ -350,7 +350,7 @@ public:
 //
 //	EidosValue_String represents string (C++ std::string) values in Eidos.  The subclass
 //	EidosValue_String_vector is the standard instance class, used to hold vectors of strings.
-//	EidosValue_String_singleton_const is used for speed, to represent single constant values.
+//	EidosValue_String_singleton is used for speed, to represent single values.
 //
 
 class EidosValue_String : public EidosValue
@@ -394,7 +394,7 @@ public:
 	EidosValue_String_vector(void);
 	explicit EidosValue_String_vector(std::vector<std::string> &p_stringvec);
 	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
-	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton_const for this case
+	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton for this case
 	explicit EidosValue_String_vector(std::initializer_list<const std::string> p_init_list);
 	virtual ~EidosValue_String_vector(void);
 	
@@ -418,20 +418,22 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
-class EidosValue_String_singleton_const : public EidosValue_String
+class EidosValue_String_singleton : public EidosValue_String
 {
 private:
 	std::string value_;
 	
 public:
-	EidosValue_String_singleton_const(const EidosValue_String_singleton_const &p_original) = delete;	// no copy-construct
-	EidosValue_String_singleton_const& operator=(const EidosValue_String_singleton_const&) = delete;	// no copying
-	EidosValue_String_singleton_const(void) = delete;
-	explicit EidosValue_String_singleton_const(const std::string &p_string1);
-	virtual ~EidosValue_String_singleton_const(void);
+	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct
+	EidosValue_String_singleton& operator=(const EidosValue_String_singleton&) = delete;	// no copying
+	EidosValue_String_singleton(void) = delete;
+	explicit EidosValue_String_singleton(const std::string &p_string1);
+	virtual ~EidosValue_String_singleton(void);
 	
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
+	
+	void SetValue(const std::string &p_string) { value_ = p_string; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -441,10 +443,10 @@ public:
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual EidosValue *CopyValues(void) const;
 	
-	virtual bool IsMutable(void) const;
-	virtual EidosValue *MutableCopy(void) const;
+	virtual bool IsVectorBased(void) const;
+	virtual EidosValue *VectorBasedCopy(void) const;
 	
-	// prohibited actions
+	// prohibited actions because there is no backing vector
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
@@ -455,7 +457,7 @@ public:
 //
 //	EidosValue_Int represents integer (C++ int64_t) values in Eidos.  The subclass
 //	EidosValue_Int_vector is the standard instance class, used to hold vectors of floats.
-//	EidosValue_Int_singleton_const is used for speed, to represent single constant values.
+//	EidosValue_Int_singleton is used for speed, to represent single values.
 //
 
 class EidosValue_Int : public EidosValue
@@ -500,7 +502,7 @@ public:
 	explicit EidosValue_Int_vector(std::vector<int16_t> &p_intvec);
 	explicit EidosValue_Int_vector(std::vector<int32_t> &p_intvec);
 	explicit EidosValue_Int_vector(std::vector<int64_t> &p_intvec);
-	//explicit EidosValue_Int_vector(int64_t p_int1);		// disabled to encourage use of EidosValue_Int_singleton_const for this case
+	//explicit EidosValue_Int_vector(int64_t p_int1);		// disabled to encourage use of EidosValue_Int_singleton for this case
 	explicit EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list);
 	virtual ~EidosValue_Int_vector(void);
 	
@@ -508,6 +510,7 @@ public:
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline const std::vector<int64_t> &IntVector(void) const { return values_; }
+	inline std::vector<int64_t> &IntVector_Mutable(void) { return values_; }
 	inline void PushInt(int64_t p_int) { values_.push_back(p_int); }
 	inline EidosValue_Int_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
@@ -524,20 +527,22 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
-class EidosValue_Int_singleton_const : public EidosValue_Int
+class EidosValue_Int_singleton : public EidosValue_Int
 {
 private:
 	int64_t value_;
 	
 public:
-	EidosValue_Int_singleton_const(const EidosValue_Int_singleton_const &p_original) = delete;	// no copy-construct
-	EidosValue_Int_singleton_const& operator=(const EidosValue_Int_singleton_const&) = delete;	// no copying
-	EidosValue_Int_singleton_const(void) = delete;
-	explicit EidosValue_Int_singleton_const(int64_t p_int1);
-	virtual ~EidosValue_Int_singleton_const(void);
+	EidosValue_Int_singleton(const EidosValue_Int_singleton &p_original) = delete;	// no copy-construct
+	EidosValue_Int_singleton& operator=(const EidosValue_Int_singleton&) = delete;	// no copying
+	EidosValue_Int_singleton(void) = delete;
+	explicit EidosValue_Int_singleton(int64_t p_int1);
+	virtual ~EidosValue_Int_singleton(void);
 	
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
+	
+	void SetValue(int64_t p_int) { value_ = p_int; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -547,10 +552,10 @@ public:
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual EidosValue *CopyValues(void) const;
 	
-	virtual bool IsMutable(void) const;
-	virtual EidosValue *MutableCopy(void) const;
+	virtual bool IsVectorBased(void) const;
+	virtual EidosValue *VectorBasedCopy(void) const;
 	
-	// prohibited actions
+	// prohibited actions because there is no backing vector
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
@@ -561,7 +566,7 @@ public:
 //
 //	EidosValue_Float represents floating-point (C++ double) values in Eidos.  The subclass
 //	EidosValue_Float_vector is the standard instance class, used to hold vectors of floats.
-//	EidosValue_Float_singleton_const is used for speed, to represent single constant values.
+//	EidosValue_Float_singleton is used for speed, to represent single values.
 //
 
 class EidosValue_Float : public EidosValue
@@ -605,7 +610,7 @@ public:
 	EidosValue_Float_vector(void);
 	explicit EidosValue_Float_vector(std::vector<double> &p_doublevec);
 	EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length);
-	//explicit EidosValue_Float_vector(double p_float1);		// disabled to encourage use of EidosValue_Float_singleton_const for this case
+	//explicit EidosValue_Float_vector(double p_float1);		// disabled to encourage use of EidosValue_Float_singleton for this case
 	explicit EidosValue_Float_vector(std::initializer_list<double> p_init_list);
 	virtual ~EidosValue_Float_vector(void);
 	
@@ -613,6 +618,7 @@ public:
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline const std::vector<double> &FloatVector(void) const { return values_; }
+	inline std::vector<double> &FloatVector_Mutable(void) { return values_; }
 	inline void PushFloat(double p_float) { values_.push_back(p_float); }
 	inline EidosValue_Float_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
@@ -629,20 +635,22 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
-class EidosValue_Float_singleton_const : public EidosValue_Float
+class EidosValue_Float_singleton : public EidosValue_Float
 {
 private:
 	double value_;
 	
 public:
-	EidosValue_Float_singleton_const(const EidosValue_Float_singleton_const &p_original) = delete;	// no copy-construct
-	EidosValue_Float_singleton_const& operator=(const EidosValue_Float_singleton_const&) = delete;	// no copying
-	EidosValue_Float_singleton_const(void) = delete;
-	explicit EidosValue_Float_singleton_const(double p_float1);
-	virtual ~EidosValue_Float_singleton_const(void);
+	EidosValue_Float_singleton(const EidosValue_Float_singleton &p_original) = delete;	// no copy-construct
+	EidosValue_Float_singleton& operator=(const EidosValue_Float_singleton&) = delete;	// no copying
+	EidosValue_Float_singleton(void) = delete;
+	explicit EidosValue_Float_singleton(double p_float1);
+	virtual ~EidosValue_Float_singleton(void);
 	
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
+	
+	void SetValue(double p_float) { value_ = p_float; }
 	
 	virtual bool LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -652,10 +660,10 @@ public:
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual EidosValue *CopyValues(void) const;
 	
-	virtual bool IsMutable(void) const;
-	virtual EidosValue *MutableCopy(void) const;
+	virtual bool IsVectorBased(void) const;
+	virtual EidosValue *VectorBasedCopy(void) const;
 	
-	// prohibited actions
+	// prohibited actions because there is no backing vector
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
@@ -666,7 +674,7 @@ public:
 //
 //	EidosValue_Object represents objects in Eidos: entities that have properties and can respond to
 //	methods.  The subclass EidosValue_Object_vector is the standard instance class, used to hold vectors
-//	of floats.  EidosValue_Object_singleton_const is used for speed, to represent single constant values.
+//	of floats.  EidosValue_Object_singleton is used for speed, to represent single values.
 //
 
 class EidosValue_Object : public EidosValue
@@ -714,7 +722,7 @@ public:
 	
 	EidosValue_Object_vector(void);
 	explicit EidosValue_Object_vector(std::vector<EidosObjectElement *> &p_elementvec);
-	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton_const for this case
+	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
 	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list);
 	virtual ~EidosValue_Object_vector(void);
 	
@@ -743,17 +751,17 @@ public:
 	virtual EidosValue *ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
-class EidosValue_Object_singleton_const : public EidosValue_Object
+class EidosValue_Object_singleton : public EidosValue_Object
 {
 private:
 	EidosObjectElement *value_;		// these use a retain/release system of ownership; see below
 	
 public:
-	EidosValue_Object_singleton_const(const EidosValue_Object_singleton_const &p_original) = delete;		// no copy-construct
-	EidosValue_Object_singleton_const& operator=(const EidosValue_Object_singleton_const&) = delete;		// no copying
-	EidosValue_Object_singleton_const(void) = delete;
-	explicit EidosValue_Object_singleton_const(EidosObjectElement *p_element1);
-	virtual ~EidosValue_Object_singleton_const(void);
+	EidosValue_Object_singleton(const EidosValue_Object_singleton &p_original) = delete;		// no copy-construct
+	EidosValue_Object_singleton& operator=(const EidosValue_Object_singleton&) = delete;		// no copying
+	EidosValue_Object_singleton(void) = delete;
+	explicit EidosValue_Object_singleton(EidosObjectElement *p_element1);
+	virtual ~EidosValue_Object_singleton(void);
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual int Count(void) const;
@@ -761,13 +769,15 @@ public:
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	
+	void SetValue(EidosObjectElement *p_element);
+	
 	virtual EidosValue *GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
 	virtual EidosValue *CopyValues(void) const;
 	
-	virtual bool IsMutable(void) const;
-	virtual EidosValue *MutableCopy(void) const;
+	virtual bool IsVectorBased(void) const;
+	virtual EidosValue *VectorBasedCopy(void) const;
 	
-	// prohibited actions
+	// prohibited actions because there is no backing vector
 	virtual void SetValueAtIndex(const int p_idx, EidosValue *p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue *p_source_script_value, EidosToken *p_blame_token);
 	

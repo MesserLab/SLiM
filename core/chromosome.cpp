@@ -234,11 +234,11 @@ EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = (new EidosValue_Int_singleton_const(last_position_))->SetExternalPermanent();
+				cached_value_lastpos_ = (new EidosValue_Int_singleton(last_position_))->SetExternalPermanent();
 			return cached_value_lastpos_;
 		}
 		case gID_overallRecombinationRate:
-			return new EidosValue_Float_singleton_const(overall_recombination_rate_);
+			return new EidosValue_Float_singleton(overall_recombination_rate_);
 		case gID_recombinationEndPositions:
 			return new EidosValue_Int_vector(recombination_end_positions_);
 		case gID_recombinationRates:
@@ -246,13 +246,13 @@ EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_geneConversionFraction:
-			return new EidosValue_Float_singleton_const(gene_conversion_fraction_);
+			return new EidosValue_Float_singleton(gene_conversion_fraction_);
 		case gID_geneConversionMeanLength:
-			return new EidosValue_Float_singleton_const(gene_conversion_avg_length_);
+			return new EidosValue_Float_singleton(gene_conversion_avg_length_);
 		case gID_overallMutationRate:
-			return new EidosValue_Float_singleton_const(overall_mutation_rate_);
+			return new EidosValue_Float_singleton(overall_mutation_rate_);
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:

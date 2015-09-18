@@ -221,7 +221,7 @@ void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_value_ = (new EidosValue_Object_singleton_const(this))->SetExternalPermanent();
+	self_value_ = (new EidosValue_Object_singleton(this))->SetExternalPermanent();
 }
 
 const EidosObjectClass *Genome::Class(void) const
@@ -256,9 +256,9 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String_singleton_const(gStr_A);
-				case GenomeType::kXChromosome:	return new EidosValue_String_singleton_const(gStr_X);
-				case GenomeType::kYChromosome:	return new EidosValue_String_singleton_const(gStr_Y);
+				case GenomeType::kAutosome:		return new EidosValue_String_singleton(gStr_A);
+				case GenomeType::kXChromosome:	return new EidosValue_String_singleton(gStr_X);
+				case GenomeType::kYChromosome:	return new EidosValue_String_singleton(gStr_Y);
 			}
 		}
 		case gID_isNullGenome:
@@ -275,7 +275,7 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -396,7 +396,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new EidosValue_Object_singleton_const(mutation);
+			return new EidosValue_Object_singleton(mutation);
 		}
 			
 			
@@ -455,7 +455,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new EidosValue_Object_singleton_const(mutation);
+			return new EidosValue_Object_singleton(mutation);
 		}
 			
 			

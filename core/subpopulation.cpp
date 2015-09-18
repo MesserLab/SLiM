@@ -326,8 +326,8 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object_singleton_const local_mut(p_mutation);
-					EidosValue_Float_singleton_const local_relFitness(p_computed_fitness);
+					EidosValue_Object_singleton local_mut(p_mutation);
+					EidosValue_Float_singleton local_relFitness(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
@@ -929,7 +929,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), (new EidosValue_Object_singleton(this))->SetExternalPermanent());
 }
 
 const EidosObjectClass *Subpopulation::Class(void) const
@@ -953,11 +953,11 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = (new EidosValue_Int_singleton_const(subpopulation_id_))->SetExternalPermanent();
+				cached_value_subpop_id_ = (new EidosValue_Int_singleton(subpopulation_id_))->SetExternalPermanent();
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:
-			return new EidosValue_Int_singleton_const(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_);
+			return new EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_);
 		case gID_genomes:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
@@ -990,20 +990,20 @@ EidosValue *Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return vec;
 		}
 		case gID_selfingRate:
-			return new EidosValue_Float_singleton_const(selfing_fraction_);
+			return new EidosValue_Float_singleton(selfing_fraction_);
 		case gID_cloningRate:
 			if (sex_enabled_)
 				return new EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_};
 			else
-				return new EidosValue_Float_singleton_const(female_clone_fraction_);
+				return new EidosValue_Float_singleton(female_clone_fraction_);
 		case gID_sexRatio:
-			return new EidosValue_Float_singleton_const(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_);
+			return new EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_);
 		case gID_individualCount:
-			return new EidosValue_Int_singleton_const(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
+			return new EidosValue_Int_singleton(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
 			
 			// variables
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:
@@ -1228,7 +1228,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 				
 				double fitness = cached_parental_fitness_[index];
 				
-				return new EidosValue_Float_singleton_const(fitness);
+				return new EidosValue_Float_singleton(fitness);
 			}
 			else
 			{

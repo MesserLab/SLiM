@@ -82,6 +82,8 @@ void EidosASTNode::OptimizeTree(void) const
 	_OptimizeConstants();
 	_OptimizeIdentifiers();
 	_OptimizeEvaluators();
+	_OptimizeFor();
+	_OptimizeAssignments();
 }
 
 void EidosASTNode::_OptimizeConstants(void) const
@@ -114,7 +116,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		EidosValue *result = new EidosValue_String_singleton_const(token_->token_string_);
+		EidosValue *result = new EidosValue_String_singleton(token_->token_string_);
 		
 		// See the above comment that begins "OK, so this is a weird thing".  It is still a weird thing down here, too.
 		result->SetExternalTemporary();
@@ -245,6 +247,140 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		default:
 			// Node types with no known evaluator method just don't get an cached evaluator
 			break;
+	}
+}
+
+void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, bool *p_references, bool *p_assigns) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : children_)
+		child->_OptimizeForScan(p_for_index_identifier, p_references, p_assigns);
+	
+	EidosTokenType token_type = token_->token_type_;
+	
+	if (token_type == EidosTokenType::kTokenIdentifier)
+	{
+		// if the identifier occurs anywhere in the subtree, that is a reference
+		if (token_->token_string_.compare(p_for_index_identifier) == 0)
+			*p_references = true;
+	}
+	else if (token_type == EidosTokenType::kTokenAssign)
+	{
+		// if the identifier occurs anywhere on the left-hand side of an assignment, that is an assignment (overbroad, but whatever)
+		EidosASTNode *lvalue_node = children_[0];
+		bool references = false, assigns = false;
+		
+		lvalue_node->_OptimizeForScan(p_for_index_identifier, &references, &assigns);
+		
+		if (references)
+			*p_assigns = true;
+	}
+	else if (token_type == EidosTokenType::kTokenFor)
+	{
+		// for loops assign into their index variable, so they are like an assignment statement
+		EidosASTNode *identifier_child = children_[0];
+		
+		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			if (identifier_child->token_->token_string_.compare(p_for_index_identifier) == 0)
+				*p_assigns = true;
+		}
+	}
+	else if (token_type == EidosTokenType::kTokenLParen)
+	{
+		// certain functions are unpredictable and must be assumed to reference and/or assign
+		EidosASTNode *function_name_node = children_[0];
+		EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
+		
+		if (function_name_token_type == EidosTokenType::kTokenIdentifier)	// is it a function call, not a method call?
+		{
+			const string &function_name = function_name_node->token_->token_string_;
+			
+			if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr_rm) == 0))
+			{
+				*p_references = true;
+				*p_assigns = true;
+			}
+			else if (function_name.compare(gEidosStr_ls) == 0)
+			{
+				*p_references = true;
+			}
+		}
+	}
+}
+
+void EidosASTNode::_OptimizeFor(void) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : children_)
+		child->_OptimizeFor();
+	
+	EidosTokenType token_type = token_->token_type_;
+	
+	if ((token_type == EidosTokenType::kTokenFor) && (children_.size() == 3))
+	{
+		// This node is a for loop node.  We want to determine whether any node under this node:
+		//	1. is unpredictable (executeLambda, apply, rm, ls)
+		//	2. references our index variable
+		//	3. assigns to our index variable
+		EidosASTNode *identifier_child = children_[0];
+		EidosASTNode *statement_child = children_[2];
+		
+		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			cached_for_references_index = false;
+			cached_for_assigns_index = false;
+			
+			statement_child->_OptimizeForScan(identifier_child->token_->token_string_, &cached_for_references_index, &cached_for_assigns_index);
+		}
+	}
+}
+
+void EidosASTNode::_OptimizeAssignments(void) const
+{
+	// recurse down the tree; determine our children, then ourselves
+	for (auto child : children_)
+		child->_OptimizeAssignments();
+	
+	EidosTokenType token_type = token_->token_type_;
+	
+	if ((token_type == EidosTokenType::kTokenAssign) && (children_.size() == 2))
+	{
+		// We have an assignment node with two children...
+		EidosASTNode *child0 = children_[0];
+		
+		if (child0->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			// ...the lvalue is a simple identifier...
+			EidosASTNode *child1 = children_[1];
+			EidosTokenType child1_token_type = child1->token_->token_type_;
+			
+			if (((child1_token_type == EidosTokenType::kTokenPlus) || (child1_token_type == EidosTokenType::kTokenMinus)) && (child1->children_.size() == 2))
+			{
+				// ... the rvalue is a + or - operator with two children...
+				EidosASTNode *left_operand = child1->children_[0];
+				
+				if (left_operand->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+				{
+					// ... the left operand is an identifier...
+					if (left_operand->token_->token_string_.compare(child0->token_->token_string_) == 0)
+					{
+						// ... the two identifiers are the same...
+						EidosASTNode *right_operand = child1->children_[1];
+						
+						if (right_operand->token_->token_type_ == EidosTokenType::kTokenNumber)
+						{
+							// ... the right operand is a number...
+							if (right_operand->token_->token_string_.compare("1") == 0)
+							{
+								// we have a simple increment/decrement by one, so we mark that in the tree for Evaluate_Assign() to handle super fast
+								cached_incdec_ = true;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

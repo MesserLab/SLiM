@@ -126,7 +126,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), (new EidosValue_Object_singleton(this))->SetExternalPermanent());
 }
 
 const EidosObjectClass *MutationType::Class(void) const
@@ -150,20 +150,20 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_muttype_id_)
-				cached_value_muttype_id_ = (new EidosValue_Int_singleton_const(mutation_type_id_))->SetExternalPermanent();
+				cached_value_muttype_id_ = (new EidosValue_Int_singleton(mutation_type_id_))->SetExternalPermanent();
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
 		{
-			static EidosValue_String_singleton_const *static_dfe_string_f = nullptr;
-			static EidosValue_String_singleton_const *static_dfe_string_g = nullptr;
-			static EidosValue_String_singleton_const *static_dfe_string_e = nullptr;
+			static EidosValue_String_singleton *static_dfe_string_f = nullptr;
+			static EidosValue_String_singleton *static_dfe_string_g = nullptr;
+			static EidosValue_String_singleton *static_dfe_string_e = nullptr;
 			
 			if (!static_dfe_string_f)
 			{
-				static_dfe_string_f = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_f))->SetExternalPermanent();
-				static_dfe_string_g = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_g))->SetExternalPermanent();
-				static_dfe_string_e = (EidosValue_String_singleton_const *)(new EidosValue_String_singleton_const(gStr_e))->SetExternalPermanent();
+				static_dfe_string_f = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_f))->SetExternalPermanent();
+				static_dfe_string_g = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_g))->SetExternalPermanent();
+				static_dfe_string_e = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_e))->SetExternalPermanent();
 			}
 			
 			switch (dfe_type_)
@@ -178,9 +178,9 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_dominanceCoeff:
-			return new EidosValue_Float_singleton_const(dominance_coeff_);
+			return new EidosValue_Float_singleton(dominance_coeff_);
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:

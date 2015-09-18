@@ -56,7 +56,7 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	if (has_ellipsis_)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArg): cannot add an argument after an ellipsis." << eidos_terminate(nullptr);
 	
-	if (p_argument_name.length() == 0)
+	if (p_argument_name.size() == 0)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArg): an argument name is required." << eidos_terminate(nullptr);
 	
 	if (p_argument_class && !(p_arg_mask & kEidosValueMaskObject))
@@ -385,7 +385,7 @@ std::string EidosFunctionSignature::CallPrefix(void) const
 
 std::string EidosFunctionSignature::CallDelegate(void) const
 {
-	if (delegate_name_.length())
+	if (delegate_name_.size())
 	{
 		std::string delegate_tag;
 		

@@ -501,7 +501,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gEidosStr_NAN) == 0)				eidos_contains_.contains_NAN_ = true;
 		
 		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
-		if (token_string.length() >= 2)
+		if (token_string.size() >= 2)
 		{
 			char char2 = token_string[1];
 			
@@ -591,7 +591,7 @@ void SLiMEidosBlock::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_self, (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(gStr_self, (new EidosValue_Object_singleton(this))->SetExternalPermanent());
 }
 
 void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -605,7 +605,7 @@ void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), (new EidosValue_Object_singleton_const(this))->SetExternalPermanent());
+	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), (new EidosValue_Object_singleton(this))->SetExternalPermanent());
 }
 
 const EidosObjectClass *SLiMEidosBlock::Class(void) const
@@ -650,32 +650,32 @@ EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = (new EidosValue_Int_singleton_const(block_id_))->SetExternalPermanent();
+				cached_value_block_id_ = (new EidosValue_Int_singleton(block_id_))->SetExternalPermanent();
 			return cached_value_block_id_;
 		}
 		case gID_start:
-			return new EidosValue_Int_singleton_const(start_generation_);
+			return new EidosValue_Int_singleton(start_generation_);
 		case gID_end:
-			return new EidosValue_Int_singleton_const(end_generation_);
+			return new EidosValue_Int_singleton(end_generation_);
 		case gID_type:
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String_singleton_const(gStr_event);
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String_singleton_const(gStr_initialize);
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String_singleton_const(gStr_fitness);
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String_singleton_const(gStr_mateChoice);
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String_singleton_const(gStr_modifyChild);
+				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String_singleton(gStr_event);
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String_singleton(gStr_initialize);
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String_singleton(gStr_fitness);
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String_singleton(gStr_mateChoice);
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String_singleton(gStr_modifyChild);
 			}
 		}
 		case gID_source:
-			return new EidosValue_String_singleton_const(compound_statement_node_->token_->token_string_);
+			return new EidosValue_String_singleton(compound_statement_node_->token_->token_string_);
 			
 			// variables
 		case gID_active:
-			return new EidosValue_Int_singleton_const(active_);
+			return new EidosValue_Int_singleton(active_);
 		case gID_tag:
-			return new EidosValue_Int_singleton_const(tag_value_);
+			return new EidosValue_Int_singleton(tag_value_);
 			
 			// all others, including gID_none
 		default:

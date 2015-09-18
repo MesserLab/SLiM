@@ -353,7 +353,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 		{
 			// construct the token string from the range, if it has not already been set; the exception is
 			// string tokens, which may be zero length at this point, and are already set up
-			if ((token_type != EidosTokenType::kTokenString) && !token_string.length())
+			if ((token_type != EidosTokenType::kTokenString) && !token_string.size())
 				token_string = script_string_.substr(token_start, token_end - token_start + 1);
 			
 			// figure out identifier-like tokens, which all get tokenized as kTokenIdentifier above

@@ -442,7 +442,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (arg0_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new EidosValue_Int_singleton_const(llabs(arg0_value->IntAtIndex(0, nullptr)));
+					//result = new EidosValue_Int_singleton(llabs(arg0_value->IntAtIndex(0, nullptr)));
 					
 					int64_t operand = arg0_value->IntAtIndex(0, nullptr);
 					int64_t abs_result = llabs(operand);
@@ -451,7 +451,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (abs_result < 0)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
 					
-					result = new EidosValue_Int_singleton_const(abs_result);
+					result = new EidosValue_Int_singleton(abs_result);
 				}
 				else
 				{
@@ -480,7 +480,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(fabs(arg0_value->FloatAtIndex(0, nullptr)));
+					result = new EidosValue_Float_singleton(fabs(arg0_value->FloatAtIndex(0, nullptr)));
 				}
 				else
 				{
@@ -507,7 +507,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(acos(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(acos(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -531,7 +531,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(asin(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(asin(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -555,7 +555,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(atan(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(atan(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -584,7 +584,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(atan2(arg0_value->FloatAtIndex(0, nullptr), arg1_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(atan2(arg0_value->FloatAtIndex(0, nullptr), arg1_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -608,7 +608,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(ceil(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(ceil(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -634,7 +634,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(cos(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(cos(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -658,7 +658,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(exp(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(exp(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -682,7 +682,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(floor(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(floor(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -716,7 +716,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (int2 == 0)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
 				
-				result = new EidosValue_Int_singleton_const(int1 / int2);
+				result = new EidosValue_Int_singleton(int1 / int2);
 			}
 			else
 			{
@@ -796,7 +796,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				if (int2 == 0)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
 				
-				result = new EidosValue_Int_singleton_const(int1 % int2);
+				result = new EidosValue_Int_singleton(int1 % int2);
 			}
 			else
 			{
@@ -949,7 +949,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(log(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -973,7 +973,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log10(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(log10(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -997,7 +997,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(log2(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(log2(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1024,7 +1024,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
+					result = new EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -1060,16 +1060,16 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					product_d *= product;		// multiply in whatever integer accumulation has not overflowed
 					
 					if (fits_in_integer)
-						result = new EidosValue_Int_singleton_const(product);
+						result = new EidosValue_Int_singleton(product);
 					else
-						result = new EidosValue_Float_singleton_const(product_d);
+						result = new EidosValue_Float_singleton(product_d);
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
+					result = new EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -1080,7 +1080,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 						product *= float_vec[value_index];
 					
-					result = new EidosValue_Float_singleton_const(product);
+					result = new EidosValue_Float_singleton(product);
 				}
 			}
 			break;
@@ -1100,7 +1100,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
+					result = new EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -1136,16 +1136,16 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					sum_d += sum;			// add in whatever integer accumulation has not overflowed
 					
 					if (fits_in_integer)
-						result = new EidosValue_Int_singleton_const(sum);
+						result = new EidosValue_Int_singleton(sum);
 					else
-						result = new EidosValue_Float_singleton_const(sum_d);
+						result = new EidosValue_Float_singleton(sum_d);
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
 				if (arg0_count == 1)
 				{
-					result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
+					result = new EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr));
 				}
 				else
 				{
@@ -1156,7 +1156,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 						sum += float_vec[value_index];
 					
-					result = new EidosValue_Float_singleton_const(sum);
+					result = new EidosValue_Float_singleton(sum);
 				}
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
@@ -1168,7 +1168,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					sum += logical_vec[value_index];
 				
-				result = new EidosValue_Int_singleton_const(sum);
+				result = new EidosValue_Int_singleton(sum);
 			}
 			break;
 		}
@@ -1184,7 +1184,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(round(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(round(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1210,7 +1210,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(sin(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(sin(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1234,7 +1234,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(sqrt(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(sqrt(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1258,7 +1258,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(tan(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(tan(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1282,7 +1282,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(trunc(arg0_value->FloatAtIndex(0, nullptr)));
+				result = new EidosValue_Float_singleton(trunc(arg0_value->FloatAtIndex(0, nullptr)));
 			}
 			else
 			{
@@ -1356,7 +1356,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Int_singleton_const(max);
+				result = new EidosValue_Int_singleton(max);
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
@@ -1375,7 +1375,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Float_singleton_const(max);
+				result = new EidosValue_Float_singleton(max);
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
@@ -1394,7 +1394,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_String_singleton_const(max);
+				result = new EidosValue_String_singleton(max);
 			}
 			break;
 		}
@@ -1418,7 +1418,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					sum += arg0_value->FloatAtIndex(value_index, nullptr);
 				
-				result = new EidosValue_Float_singleton_const(sum / arg0_count);
+				result = new EidosValue_Float_singleton(sum / arg0_count);
 			}
 			break;
 		}
@@ -1473,7 +1473,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Int_singleton_const(min);
+				result = new EidosValue_Int_singleton(min);
 			}
 			else if (arg0_type == EidosValueType::kValueFloat)
 			{
@@ -1492,7 +1492,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Float_singleton_const(min);
+				result = new EidosValue_Float_singleton(min);
 			}
 			else if (arg0_type == EidosValueType::kValueString)
 			{
@@ -1511,7 +1511,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_String_singleton_const(min);
+				result = new EidosValue_String_singleton(min);
 			}
 			break;
 		}
@@ -1611,7 +1611,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				
 				sd = sqrt(sd / (arg0_count - 1));
-				result = new EidosValue_Float_singleton_const(sd);
+				result = new EidosValue_Float_singleton(sd);
 			}
 			else
 			{
@@ -1743,7 +1743,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (num_draws == 1)
 				{
-					result = new EidosValue_Int_singleton_const(gsl_ran_binomial(gEidos_rng, probability0, size0));
+					result = new EidosValue_Int_singleton(gsl_ran_binomial(gEidos_rng, probability0, size0));
 				}
 				else
 				{
@@ -1874,7 +1874,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (num_draws == 1)
 				{
-					result = new EidosValue_Float_singleton_const(gsl_ran_exponential(gEidos_rng, mu0));
+					result = new EidosValue_Float_singleton(gsl_ran_exponential(gEidos_rng, mu0));
 				}
 				else
 				{
@@ -1936,7 +1936,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (num_draws == 1)
 				{
-					result = new EidosValue_Float_singleton_const(gsl_ran_gaussian(gEidos_rng, sigma0) + mu0);
+					result = new EidosValue_Float_singleton(gsl_ran_gaussian(gEidos_rng, sigma0) + mu0);
 				}
 				else
 				{
@@ -1997,7 +1997,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				
 				if (num_draws == 1)
 				{
-					result = new EidosValue_Int_singleton_const(gsl_ran_poisson(gEidos_rng, lambda0));
+					result = new EidosValue_Int_singleton(gsl_ran_poisson(gEidos_rng, lambda0));
 				}
 				else
 				{
@@ -2041,7 +2041,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				// With no min or max, we can streamline quite a bit
 				if (num_draws == 1)
 				{
-					result = new EidosValue_Float_singleton_const(gsl_rng_uniform(gEidos_rng));
+					result = new EidosValue_Float_singleton(gsl_rng_uniform(gEidos_rng));
 				}
 				else
 				{
@@ -2082,7 +2082,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					if (num_draws == 1)
 					{
-						result = new EidosValue_Float_singleton_const(gsl_rng_uniform(gEidos_rng) * range0 + min_value0);
+						result = new EidosValue_Float_singleton(gsl_rng_uniform(gEidos_rng) * range0 + min_value0);
 					}
 					else
 					{
@@ -2601,15 +2601,15 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			{
 				// Handle singleton matching separately, to allow the use of the fast vector API below
 				if (arg0_type == EidosValueType::kValueLogical)
-					result = new EidosValue_Int_singleton_const(arg0_value->LogicalAtIndex(0, nullptr) == arg1_value->LogicalAtIndex(0, nullptr) ? 0 : -1);
+					result = new EidosValue_Int_singleton(arg0_value->LogicalAtIndex(0, nullptr) == arg1_value->LogicalAtIndex(0, nullptr) ? 0 : -1);
 				else if (arg0_type == EidosValueType::kValueInt)
-					result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr) == arg1_value->IntAtIndex(0, nullptr) ? 0 : -1);
+					result = new EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr) == arg1_value->IntAtIndex(0, nullptr) ? 0 : -1);
 				else if (arg0_type == EidosValueType::kValueFloat)
-					result = new EidosValue_Int_singleton_const(arg0_value->FloatAtIndex(0, nullptr) == arg1_value->FloatAtIndex(0, nullptr) ? 0 : -1);
+					result = new EidosValue_Int_singleton(arg0_value->FloatAtIndex(0, nullptr) == arg1_value->FloatAtIndex(0, nullptr) ? 0 : -1);
 				else if (arg0_type == EidosValueType::kValueString)
-					result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr) == arg1_value->StringAtIndex(0, nullptr) ? 0 : -1);
+					result = new EidosValue_Int_singleton(arg0_value->StringAtIndex(0, nullptr) == arg1_value->StringAtIndex(0, nullptr) ? 0 : -1);
 				else if (arg0_type == EidosValueType::kValueObject)
-					result = new EidosValue_Int_singleton_const(arg0_value->ObjectElementAtIndex(0, nullptr) == arg1_value->ObjectElementAtIndex(0, nullptr) ? 0 : -1);
+					result = new EidosValue_Int_singleton(arg0_value->ObjectElementAtIndex(0, nullptr) == arg1_value->ObjectElementAtIndex(0, nullptr) ? 0 : -1);
 			}
 			else if (arg0_count == 1)	// && (arg1_count != 1)
 			{
@@ -2623,7 +2623,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (table_index = 0; table_index < arg1_count; ++table_index)
 						if (value0 == bool_vec1[table_index])
 						{
-							result = new EidosValue_Int_singleton_const(table_index);
+							result = new EidosValue_Int_singleton(table_index);
 							break;
 						}
 				}
@@ -2635,7 +2635,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (table_index = 0; table_index < arg1_count; ++table_index)
 						if (value0 == int_vec1[table_index])
 						{
-							result = new EidosValue_Int_singleton_const(table_index);
+							result = new EidosValue_Int_singleton(table_index);
 							break;
 						}
 				}
@@ -2647,7 +2647,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (table_index = 0; table_index < arg1_count; ++table_index)
 						if (value0 == float_vec1[table_index])
 						{
-							result = new EidosValue_Int_singleton_const(table_index);
+							result = new EidosValue_Int_singleton(table_index);
 							break;
 						}
 				}
@@ -2659,7 +2659,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (table_index = 0; table_index < arg1_count; ++table_index)
 						if (value0 == string_vec1[table_index])
 						{
-							result = new EidosValue_Int_singleton_const(table_index);
+							result = new EidosValue_Int_singleton(table_index);
 							break;
 						}
 				}
@@ -2671,13 +2671,13 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (table_index = 0; table_index < arg1_count; ++table_index)
 						if (value0 == objelement_vec1[table_index])
 						{
-							result = new EidosValue_Int_singleton_const(table_index);
+							result = new EidosValue_Int_singleton(table_index);
 							break;
 						}
 				}
 				
 				if (table_index == arg1_count)
-					result = new EidosValue_Int_singleton_const(-1);
+					result = new EidosValue_Int_singleton(-1);
 			}
 			else if (arg1_count == 1)	// && (arg0_count != 1)
 			{
@@ -2818,7 +2818,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(arg0_value->StringAtIndex(0, nullptr).length());
+				result = new EidosValue_Int_singleton(arg0_value->StringAtIndex(0, nullptr).size());
 			}
 			else
 			{
@@ -2828,7 +2828,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				result = int_result;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(string_vec[value_index].length());
+					int_result->PushInt(string_vec[value_index].size());
 			}
 			break;
 		}
@@ -2862,7 +2862,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
-			result = new EidosValue_String_singleton_const(result_string);
+			result = new EidosValue_String_singleton(result_string);
 			break;
 		}
 			
@@ -2902,7 +2902,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			result = new EidosValue_Int_singleton_const(arg0_value->Count());
+			result = new EidosValue_Int_singleton(arg0_value->Count());
 			break;
 		}
 			
@@ -2997,7 +2997,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				else
 				{
 					string_result->PushString(joined_string.substr(start_idx, sep_idx - start_idx));
-					start_idx = sep_idx + separator.length();
+					start_idx = sep_idx + separator.size();
 				}
 			}
 			
@@ -3016,7 +3016,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (arg0_count == 1)
 			{
 				const std::string &string_value = arg0_value->StringAtIndex(0, nullptr);
-				string::size_type len = string_value.length();
+				string::size_type len = string_value.size();
 				EidosValue *arg_first = p_arguments[1];
 				int arg_first_count = arg_first->Count();
 				
@@ -3043,9 +3043,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (clamped_last >= len) clamped_last = (int)len - 1;
 					
 					if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
-						result = new EidosValue_String_singleton_const(gEidosStr_empty_string);
+						result = new EidosValue_String_singleton(gEidosStr_empty_string);
 					else
-						result = new EidosValue_String_singleton_const(string_value.substr(clamped_first, clamped_last - clamped_first + 1));
+						result = new EidosValue_String_singleton(string_value.substr(clamped_first, clamped_last - clamped_first + 1));
 				}
 				else
 				{
@@ -3055,9 +3055,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					if (clamped_first < 0) clamped_first = 0;
 					
 					if (clamped_first >= len)						
-						result = new EidosValue_String_singleton_const(gEidosStr_empty_string);
+						result = new EidosValue_String_singleton(gEidosStr_empty_string);
 					else
-						result = new EidosValue_String_singleton_const(string_value.substr(clamped_first, len));
+						result = new EidosValue_String_singleton(string_value.substr(clamped_first, len));
 				}
 			}
 			else
@@ -3090,7 +3090,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						std::string str = string_vec[value_index];
-						string::size_type len = str.length();
+						string::size_type len = str.size();
 						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 						int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
 						
@@ -3109,7 +3109,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						std::string str = string_vec[value_index];
-						string::size_type len = str.length();
+						string::size_type len = str.size();
 						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 						
 						if (clamped_first < 0) clamped_first = 0;
@@ -3370,7 +3370,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Int_singleton_const(first_index);
+				result = new EidosValue_Int_singleton(first_index);
 			}
 			break;
 		}
@@ -3458,7 +3458,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					}
 				}
 				
-				result = new EidosValue_Int_singleton_const(first_index);
+				result = new EidosValue_Int_singleton(first_index);
 			}
 			break;
 		}
@@ -3483,7 +3483,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Float_singleton_const(arg0_value->FloatAtIndex(0, nullptr));
+				result = new EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr));
 			}
 			else
 			{
@@ -3507,7 +3507,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_Int_singleton_const(arg0_value->IntAtIndex(0, nullptr));
+				result = new EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr));
 			}
 			else
 			{
@@ -3556,7 +3556,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 			if (arg0_count == 1)
 			{
-				result = new EidosValue_String_singleton_const(arg0_value->StringAtIndex(0, nullptr));
+				result = new EidosValue_String_singleton(arg0_value->StringAtIndex(0, nullptr));
 			}
 			else
 			{
@@ -3577,7 +3577,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			result = new EidosValue_String_singleton_const(arg0_value->ElementType());
+			result = new EidosValue_String_singleton(arg0_value->ElementType());
 			break;
 		}
 			
@@ -3667,7 +3667,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			
-			result = new EidosValue_String_singleton_const(StringForEidosValueType(arg0_value->Type()));
+			result = new EidosValue_String_singleton(StringForEidosValueType(arg0_value->Type()));
 			break;
 		}
 			
@@ -3942,7 +3942,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			timeinfo = localtime(&rawtime);
 			strftime(buffer, 25, "%d-%m-%Y", timeinfo);
 			
-			result = new EidosValue_String_singleton_const(string(buffer));
+			result = new EidosValue_String_singleton(string(buffer));
 			break;
 		}
 			
@@ -4142,7 +4142,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			
 		case EidosFunctionIdentifier::getSeedFunction:
 		{
-			result = new EidosValue_Int_singleton_const(gEidos_rng_last_seed);
+			result = new EidosValue_Int_singleton(gEidos_rng_last_seed);
 			break;
 		}
 			
@@ -4173,7 +4173,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			timeinfo = localtime(&rawtime);
 			strftime(buffer, 20, "%H:%M:%S", timeinfo);
 			
-			result = new EidosValue_String_singleton_const(string(buffer));
+			result = new EidosValue_String_singleton(string(buffer));
 			break;
 		}
 			
@@ -4206,7 +4206,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 		{
 			EidosValue *arg0_value = p_arguments[0];
 			Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0, nullptr));
-			result = new EidosValue_Object_singleton_const(testElement);
+			result = new EidosValue_Object_singleton(testElement);
 			testElement->Release();
 			break;
 		}

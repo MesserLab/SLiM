@@ -82,13 +82,13 @@ EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_originGeneration:
-			return new EidosValue_Int_singleton_const(generation_);
+			return new EidosValue_Int_singleton(generation_);
 		case gID_position:
-			return new EidosValue_Int_singleton_const(position_);
+			return new EidosValue_Int_singleton(position_);
 		case gID_selectionCoeff:
-			return new EidosValue_Float_singleton_const(selection_coeff_);
+			return new EidosValue_Float_singleton(selection_coeff_);
 		case gID_subpopID:
-			return new EidosValue_Int_singleton_const(subpop_index_);
+			return new EidosValue_Int_singleton(subpop_index_);
 			
 			// all others, including gID_none
 		default:
