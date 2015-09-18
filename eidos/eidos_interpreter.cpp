@@ -4163,209 +4163,284 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate(p_node->token_);
 	
 	const string &identifier_name = identifier_child->token_->token_string_;
-	EidosValue *range_value = FastEvaluateNode(p_node->children_[1]);
-	int range_count = range_value->Count();
-	EidosValueType range_type = range_value->Type();
+	const EidosASTNode *range_node = p_node->children_[1];
 	EidosValue *result = nullptr;
 	
-	if (range_count > 0)
+	// true if the for-loop statement references the index variable; if so, it needs to be set up
+	// each iteration, but that can be done very cheaply by replacing its internal value
+	bool references_index = p_node->cached_for_references_index;
+	
+	// true if the for-loop statement assigns to the index variable; if so, it needs to be set up
+	// each iteration, and that has to be done without any assumptions regarding its current value
+	bool assigns_index = p_node->cached_for_assigns_index;
+	
+	// In some cases we do not need to actually construct the range that we are going to iterate over; we check for that case here
+	// and handle it immediately, otherwise we drop through to the (!can_skip_range_evaluation) case below
+	bool can_skip_range_evaluation = ((range_node->token_->token_type_ == EidosTokenType::kTokenColon) && !assigns_index && (range_node->children_.size() == 2));
+	
+	if (can_skip_range_evaluation)
 	{
-		// true if the for-loop statement references the index variable; if so, it needs to be set up
-		// each iteration, but that can be done very cheaply by replacing its internal value
-		bool references_index = p_node->cached_for_references_index;
+		EidosValue *range_start_value = FastEvaluateNode(range_node->children_[0]);
 		
-		// true if the for-loop statement assigns to the index variable; if so, it needs to be set up
-		// each iteration, and that has to be done without any assumptions regarding its current value
-		bool assigns_index = p_node->cached_for_assigns_index;
-		
-		// try to handle the loop with fast special-case code; if !loop_handled, we will drop into the general case
-		// at the bottom, which is more readable and commented
-		bool loop_handled = false;
-		
-		if (!assigns_index && !references_index)
+		if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1))
 		{
-			// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
-			// we do need to set up the index variable on exit, though, since code below us might use the final value
-			int range_index;
+			EidosValue *range_end_value = FastEvaluateNode(range_node->children_[1]);
 			
-			for (range_index = 0; range_index < range_count; ++range_index)
+			if ((range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1))
 			{
-				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+				// OK, we have a simple integer:integer range, so this should be very straightforward
+				int64_t start_int = range_start_value->IntAtIndex(0, nullptr);
+				int64_t end_int = range_end_value->IntAtIndex(0, nullptr);
+				bool counting_up = (start_int < end_int);
+				int64_t range_count = (counting_up ? (end_int - start_int + 1) : (start_int - end_int + 1));
 				
-				if (return_statement_hit_)				{ result = statement_value; break; }
-				if (statement_value->IsTemporary())		delete statement_value;
-				if (next_statement_hit_)				next_statement_hit_ = false;
-				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+				if (!assigns_index && !references_index)
+				{
+					// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
+					// we do need to set up the index variable on exit, though, since code below us might use the final value
+					int range_index;
+					
+					for (range_index = 0; range_index < range_count; ++range_index)
+					{
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					// set up the final value on exit; if we completed the loop, we need to go back one step
+					if (range_index == range_count)
+						range_index--;
+					
+					global_symbols_.SetValueForSymbol(identifier_name, new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index));
+				}
+				else	// !assigns_index, guaranteed by the original can_skip_range_evaluation expression
+				{
+					// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
+					// EidosValue that we stick new values into – much, much faster.
+					EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+				}
 			}
-			
-			// set up the final value on exit; if we completed the loop, we need to go back one step
-			if (range_index == range_count)
-				range_index--;
-			
-			global_symbols_.SetValueForSymbol(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
-			
-			loop_handled = true;
+			else
+				can_skip_range_evaluation = false;
 		}
-		else if (!assigns_index && (range_count > 1))
-		{
-			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
-			// EidosValue that we stick new values into – much, much faster.
-			if (range_type == EidosValueType::kValueInt)
-			{
-				const std::vector<int64_t> &range_vec = ((EidosValue_Int_vector *)range_value)->IntVector();
-				EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
-				
-				global_symbols_.SetValueForSymbol(identifier_name, index_value);
-				
-				for (int range_index = 0; range_index < range_count; ++range_index)
-				{
-					index_value->SetValue(range_vec[range_index]);
-					
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				loop_handled = true;
-			}
-			else if (range_type == EidosValueType::kValueFloat)
-			{
-				const std::vector<double> &range_vec = ((EidosValue_Float_vector *)range_value)->FloatVector();
-				EidosValue_Float_singleton *index_value = new EidosValue_Float_singleton(0);
-				
-				global_symbols_.SetValueForSymbol(identifier_name, index_value);
-				
-				for (int range_index = 0; range_index < range_count; ++range_index)
-				{
-					index_value->SetValue(range_vec[range_index]);
-					
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				loop_handled = true;
-			}
-			else if (range_type == EidosValueType::kValueString)
-			{
-				const std::vector<std::string> &range_vec = ((EidosValue_String_vector *)range_value)->StringVector();
-				EidosValue_String_singleton *index_value = new EidosValue_String_singleton(gEidosStr_empty_string);
-				
-				global_symbols_.SetValueForSymbol(identifier_name, index_value);
-				
-				for (int range_index = 0; range_index < range_count; ++range_index)
-				{
-					index_value->SetValue(range_vec[range_index]);
-					
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				loop_handled = true;
-			}
-			else if (range_type == EidosValueType::kValueObject)
-			{
-				const std::vector<EidosObjectElement *> &range_vec = ((EidosValue_Object_vector *)range_value)->ObjectElementVector();
-				EidosValue_Object_singleton *index_value = new EidosValue_Object_singleton(nullptr);
-				
-				global_symbols_.SetValueForSymbol(identifier_name, index_value);
-				
-				for (int range_index = 0; range_index < range_count; ++range_index)
-				{
-					index_value->SetValue(range_vec[range_index]);
-					
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				loop_handled = true;
-			}
-			else if (range_type == EidosValueType::kValueLogical)
-			{
-				const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value)->LogicalVector();
-				EidosValue_Logical *index_value = new EidosValue_Logical();
-				std::vector<bool> &index_vec = index_value->LogicalVector_Mutable();
-				
-				index_value->PushLogical(false);	// initial placeholder
-				
-				global_symbols_.SetValueForSymbol(identifier_name, index_value);
-				
-				for (int range_index = 0; range_index < range_count; ++range_index)
-				{
-					index_vec[0] = range_vec[range_index];
-					
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				loop_handled = true;
-			}
-		}
-		
-		if (!loop_handled)
-		{
-			// general case
-			for (int range_index = 0; range_index < range_count; ++range_index)
-			{
-				// set the index variable to the range value and then throw the range value away
-				EidosValue *range_value_at_index = range_value->GetValueAtIndex(range_index, operator_token);
-				
-				global_symbols_.SetValueForSymbol(identifier_name, range_value_at_index);
-				
-				// execute the for loop's statement by evaluating its node; evaluation values get thrown away
-				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-				
-				// if a return statement has occurred, we pass the return value outward
-				if (return_statement_hit_)
-				{
-					result = statement_value;
-					break;
-				}
-				
-				// otherwise, discard the return value
-				if (statement_value->IsTemporary()) delete statement_value;
-				
-				// handle next and break statements
-				if (next_statement_hit_)
-					next_statement_hit_ = false;		// this is all we need to do; the rest of the function of "next" was done by Evaluate_CompoundStatement()
-				
-				if (break_statement_hit_)
-				{
-					break_statement_hit_ = false;
-					break;							// break statements, on the other hand, get handled additionally by a break from our loop here
-				}
-			}
-		}
+		else
+			can_skip_range_evaluation = false;
 	}
-	else
+	
+	if (!can_skip_range_evaluation)
 	{
-		if (range_type == EidosValueType::kValueNULL)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
+		EidosValue *range_value = FastEvaluateNode(range_node);
+		int range_count = range_value->Count();
+		EidosValueType range_type = range_value->Type();
+		
+		if (range_count > 0)
+		{
+			// try to handle the loop with fast special-case code; if !loop_handled, we will drop into the general case
+			// at the bottom, which is more readable and commented
+			bool loop_handled = false;
+			
+			if (!assigns_index && !references_index)
+			{
+				// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
+				// we do need to set up the index variable on exit, though, since code below us might use the final value
+				int range_index;
+				
+				for (range_index = 0; range_index < range_count; ++range_index)
+				{
+					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+					
+					if (return_statement_hit_)				{ result = statement_value; break; }
+					if (statement_value->IsTemporary())		delete statement_value;
+					if (next_statement_hit_)				next_statement_hit_ = false;
+					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+				}
+				
+				// set up the final value on exit; if we completed the loop, we need to go back one step
+				if (range_index == range_count)
+					range_index--;
+				
+				global_symbols_.SetValueForSymbol(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
+				
+				loop_handled = true;
+			}
+			else if (!assigns_index && (range_count > 1))
+			{
+				// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
+				// EidosValue that we stick new values into – much, much faster.
+				if (range_type == EidosValueType::kValueInt)
+				{
+					const std::vector<int64_t> &range_vec = ((EidosValue_Int_vector *)range_value)->IntVector();
+					EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_value->SetValue(range_vec[range_index]);
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					loop_handled = true;
+				}
+				else if (range_type == EidosValueType::kValueFloat)
+				{
+					const std::vector<double> &range_vec = ((EidosValue_Float_vector *)range_value)->FloatVector();
+					EidosValue_Float_singleton *index_value = new EidosValue_Float_singleton(0);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_value->SetValue(range_vec[range_index]);
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					loop_handled = true;
+				}
+				else if (range_type == EidosValueType::kValueString)
+				{
+					const std::vector<std::string> &range_vec = ((EidosValue_String_vector *)range_value)->StringVector();
+					EidosValue_String_singleton *index_value = new EidosValue_String_singleton(gEidosStr_empty_string);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_value->SetValue(range_vec[range_index]);
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					loop_handled = true;
+				}
+				else if (range_type == EidosValueType::kValueObject)
+				{
+					const std::vector<EidosObjectElement *> &range_vec = ((EidosValue_Object_vector *)range_value)->ObjectElementVector();
+					EidosValue_Object_singleton *index_value = new EidosValue_Object_singleton(nullptr);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_value->SetValue(range_vec[range_index]);
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					loop_handled = true;
+				}
+				else if (range_type == EidosValueType::kValueLogical)
+				{
+					const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value)->LogicalVector();
+					EidosValue_Logical *index_value = new EidosValue_Logical();
+					std::vector<bool> &index_vec = index_value->LogicalVector_Mutable();
+					
+					index_value->PushLogical(false);	// initial placeholder
+					
+					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					
+					for (int range_index = 0; range_index < range_count; ++range_index)
+					{
+						index_vec[0] = range_vec[range_index];
+						
+						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						
+						if (return_statement_hit_)				{ result = statement_value; break; }
+						if (statement_value->IsTemporary())		delete statement_value;
+						if (next_statement_hit_)				next_statement_hit_ = false;
+						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+					}
+					
+					loop_handled = true;
+				}
+			}
+			
+			if (!loop_handled)
+			{
+				// general case
+				for (int range_index = 0; range_index < range_count; ++range_index)
+				{
+					// set the index variable to the range value and then throw the range value away
+					EidosValue *range_value_at_index = range_value->GetValueAtIndex(range_index, operator_token);
+					
+					global_symbols_.SetValueForSymbol(identifier_name, range_value_at_index);
+					
+					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
+					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+					
+					// if a return statement has occurred, we pass the return value outward
+					if (return_statement_hit_)
+					{
+						result = statement_value;
+						break;
+					}
+					
+					// otherwise, discard the return value
+					if (statement_value->IsTemporary()) delete statement_value;
+					
+					// handle next and break statements
+					if (next_statement_hit_)
+						next_statement_hit_ = false;		// this is all we need to do; the rest of the function of "next" was done by Evaluate_CompoundStatement()
+					
+					if (break_statement_hit_)
+					{
+						break_statement_hit_ = false;
+						break;							// break statements, on the other hand, get handled additionally by a break from our loop here
+					}
+				}
+			}
+		}
+		else
+		{
+			if (range_type == EidosValueType::kValueNULL)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
+		}
+		
+		// free our range operand
+		if (range_value->IsTemporary()) delete range_value;
 	}
 	
 	if (!result)
 		result = gStaticEidosValueNULLInvisible;
-	
-	// free our range operand
-	if (range_value->IsTemporary()) delete range_value;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_For()");
 	return result;
