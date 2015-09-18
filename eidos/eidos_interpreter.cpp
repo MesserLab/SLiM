@@ -2832,10 +2832,11 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				{
 					EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 					int64_t operand2_value = cached_operand2->IntAtIndex(0, nullptr);
-					EidosValue_Int_singleton *int_singleton = ((lvalue_count == 1) ? dynamic_cast<EidosValue_Int_singleton *>(lvalue) : nullptr);
 					
-					if (int_singleton)
+					if ((lvalue_count == 1) && !lvalue->IsVectorBased())
 					{
+						EidosValue_Int_singleton *int_singleton = static_cast<EidosValue_Int_singleton *>(lvalue);
+						
 						switch (compound_operator)
 						{
 							case EidosTokenType::kTokenPlus:
@@ -2924,10 +2925,11 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_;		// the numeric constant
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);			// might be an int64_t and get converted
-				EidosValue_Float_singleton *float_singleton = ((lvalue_count == 1) ? dynamic_cast<EidosValue_Float_singleton *>(lvalue) : nullptr);
 				
-				if (float_singleton)
+				if ((lvalue_count == 1) && !lvalue->IsVectorBased())
 				{
+					EidosValue_Float_singleton *float_singleton = static_cast<EidosValue_Float_singleton *>(lvalue);
+					
 					switch (compound_operator)
 					{
 						case EidosTokenType::kTokenPlus:
