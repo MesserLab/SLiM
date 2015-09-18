@@ -27,6 +27,20 @@
 		982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
 		982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
 		982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */; };
+		982556AC1BA8E77C0054CB3F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982556AB1BA8E77C0054CB3F /* main.cpp */; };
+		982556B01BA8EF720054CB3F /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
+		982556B11BA8EF760054CB3F /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
+		982556B21BA8EF790054CB3F /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
+		982556B31BA8EF7C0054CB3F /* eidos_ast_node.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A513521B66B6CA005A753D /* eidos_ast_node.cpp */; };
+		982556B41BA8EF7F0054CB3F /* eidos_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981BAC681ACC6E8B0005BE94 /* eidos_script.cpp */; };
+		982556B51BA8EF830054CB3F /* eidos_symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */; };
+		982556B61BA8EF860054CB3F /* eidos_value.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A31AD435310047C223 /* eidos_value.cpp */; };
+		982556B71BA8EF8A0054CB3F /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
+		982556B81BA8EF8C0054CB3F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
+		982556B91BA8EF8F0054CB3F /* eidos_interpreter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9857249A1AD08A810047C223 /* eidos_interpreter.cpp */; };
+		982556BA1BA8EF930054CB3F /* eidos_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9857249F1AD34B740047C223 /* eidos_functions.cpp */; };
+		982556BB1BA8EF960054CB3F /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
+		982556BC1BA8EF990054CB3F /* eidos_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A71AD4551C0047C223 /* eidos_test.cpp */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		98321F911B406417007337A3 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98321F941B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
@@ -239,6 +253,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		982556A71BA8E77B0054CB3F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		9826634E1A3BABD300A0CBBF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -317,6 +340,8 @@
 		9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpFunctions.rtf; sourceTree = "<group>"; };
 		9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpMethods.rtf; sourceTree = "<group>"; };
 		982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpClasses.rtf; sourceTree = "<group>"; };
+		982556A91BA8E77B0054CB3F /* eidos */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eidos; sourceTree = BUILT_PRODUCTS_DIR; };
+		982556AB1BA8E77C0054CB3F /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_global.cpp; sourceTree = "<group>"; };
@@ -490,6 +515,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		982556A61BA8E77B0054CB3F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9826634D1A3BABD300A0CBBF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -578,6 +610,15 @@
 			name = ScriptMod;
 			sourceTree = "<group>";
 		};
+		982556AA1BA8E77C0054CB3F /* eidos tool */ = {
+			isa = PBXGroup;
+			children = (
+				982556AB1BA8E77C0054CB3F /* main.cpp */,
+			);
+			name = "eidos tool";
+			path = eidos;
+			sourceTree = "<group>";
+		};
 		982663471A3BABD300A0CBBF = {
 			isa = PBXGroup;
 			children = (
@@ -590,6 +631,7 @@
 				982663521A3BABD300A0CBBF /* core */,
 				9857249E1AD34B120047C223 /* eidos */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
+				982556AA1BA8E77C0054CB3F /* eidos tool */,
 				985724B01AD478630047C223 /* EidosScribe */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				982663511A3BABD300A0CBBF /* Products */,
@@ -602,6 +644,7 @@
 				982663501A3BABD300A0CBBF /* slim */,
 				98D4C1B31A6F537B00FFB083 /* SLiMgui.app */,
 				985724AF1AD478630047C223 /* EidosScribe.app */,
+				982556A91BA8E77B0054CB3F /* eidos */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -861,6 +904,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		982556A81BA8E77B0054CB3F /* eidos */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 982556AD1BA8E77C0054CB3F /* Build configuration list for PBXNativeTarget "eidos" */;
+			buildPhases = (
+				982556A51BA8E77B0054CB3F /* Sources */,
+				982556A61BA8E77B0054CB3F /* Frameworks */,
+				982556A71BA8E77B0054CB3F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = eidos;
+			productName = eidos;
+			productReference = 982556A91BA8E77B0054CB3F /* eidos */;
+			productType = "com.apple.product-type.tool";
+		};
 		9826634F1A3BABD300A0CBBF /* SLiM */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 982663571A3BABD300A0CBBF /* Build configuration list for PBXNativeTarget "SLiM" */;
@@ -921,6 +981,9 @@
 				LastUpgradeCheck = 0610;
 				ORGANIZATIONNAME = "Messer Lab, http://messerlab.org/software/";
 				TargetAttributes = {
+					982556A81BA8E77B0054CB3F = {
+						CreatedOnToolsVersion = 6.4;
+					};
 					9826634F1A3BABD300A0CBBF = {
 						CreatedOnToolsVersion = 6.1.1;
 					};
@@ -948,6 +1011,7 @@
 				9826634F1A3BABD300A0CBBF /* SLiM */,
 				98D4C1B21A6F537B00FFB083 /* SLiMgui */,
 				985724AE1AD478630047C223 /* EidosScribe */,
+				982556A81BA8E77B0054CB3F /* eidos */,
 			);
 		};
 /* End PBXProject section */
@@ -1079,6 +1143,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		982556A51BA8E77B0054CB3F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				982556B61BA8EF860054CB3F /* eidos_value.cpp in Sources */,
+				982556B21BA8EF790054CB3F /* eidos_token.cpp in Sources */,
+				982556BC1BA8EF990054CB3F /* eidos_test.cpp in Sources */,
+				982556B01BA8EF720054CB3F /* eidos_rng.cpp in Sources */,
+				982556B31BA8EF7C0054CB3F /* eidos_ast_node.cpp in Sources */,
+				982556BA1BA8EF930054CB3F /* eidos_functions.cpp in Sources */,
+				982556B91BA8EF8F0054CB3F /* eidos_interpreter.cpp in Sources */,
+				982556B81BA8EF8C0054CB3F /* eidos_property_signature.cpp in Sources */,
+				982556B41BA8EF7F0054CB3F /* eidos_script.cpp in Sources */,
+				982556B51BA8EF830054CB3F /* eidos_symbol_table.cpp in Sources */,
+				982556B71BA8EF8A0054CB3F /* eidos_call_signature.cpp in Sources */,
+				982556AC1BA8E77C0054CB3F /* main.cpp in Sources */,
+				982556BB1BA8EF960054CB3F /* eidos_test_element.cpp in Sources */,
+				982556B11BA8EF760054CB3F /* eidos_global.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9826634C1A3BABD300A0CBBF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1436,6 +1521,34 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		982556AE1BA8E77C0054CB3F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		982556AF1BA8E77C0054CB3F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		982663551A3BABD300A0CBBF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1626,6 +1739,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		982556AD1BA8E77C0054CB3F /* Build configuration list for PBXNativeTarget "eidos" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				982556AE1BA8E77C0054CB3F /* Debug */,
+				982556AF1BA8E77C0054CB3F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		9826634B1A3BABD300A0CBBF /* Build configuration list for PBXProject "SLiM" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

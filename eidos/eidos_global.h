@@ -63,6 +63,16 @@ extern bool gEidosExecutingRuntimeScript;
 extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_terminate()
 
 
+// *******************************************************************************************************************
+//
+//	Memory usage monitoring
+//
+
+// Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
+size_t EidosGetPeakRSS(void);
+size_t EidosGetCurrentRSS(void);
+
+
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
 void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 

@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	// parse command-line arguments
 	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
-	char *input_file = nullptr;
+	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false;
 	
 	// command-line SLiM generally terminates rather than throwing
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
-		char *arg = argv[arg_index];
+		const char *arg = argv[arg_index];
 		
 		// -seed <x> or -s <x>: override the default seed with the supplied seed value
 		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
@@ -159,14 +159,14 @@ int main(int argc, char *argv[])
 	if (keep_mem)
 	{
 		// note we subtract the size of our memory-tracking buffer, here and below
-		initial_mem_usage = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+		initial_mem_usage = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	}
 	
 	// run the simulation
 	SLiMSim *sim = new SLiMSim(input_file, override_seed_ptr);
 	
 	if (keep_mem_hist)
-		mem_record[mem_record_index++] = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+		mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	
 	if (sim)
 	{
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));
 				}
 				
-				mem_record[mem_record_index++] = getCurrentRSS() - mem_record_capacity * sizeof(size_t);
+				mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 			}
 		}
 		
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 	// print memory usage stats
 	if (keep_mem)
 	{
-		peak_mem_usage = getPeakRSS();
+		peak_mem_usage = EidosGetPeakRSS();
 		
 		SLIM_ERRSTREAM << "// ********** Initial memory usage: " << initial_mem_usage << " bytes (" << initial_mem_usage / 1024.0 << "K, " << initial_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;
 		SLIM_ERRSTREAM << "// ********** Peak memory usage: " << peak_mem_usage << " bytes (" << peak_mem_usage / 1024.0 << "K, " << peak_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;

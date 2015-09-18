@@ -216,16 +216,6 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 
 // *******************************************************************************************************************
 //
-//	Memory usage monitoring
-//
-
-// Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
-size_t getPeakRSS(void);
-size_t getCurrentRSS(void);
-
-
-// *******************************************************************************************************************
-//
 //	Global strings and IDs
 //
 
