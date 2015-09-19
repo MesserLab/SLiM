@@ -42,6 +42,14 @@ using std::string;
 @end
 
 
+@interface EidosTextView ()
+{
+	// these are used in selectionRangeForProposedRange:granularity: to balance delimiters properly
+	BOOL inEligibleDoubleClick;
+	NSTimeInterval doubleDownTime;
+}
+@end
+
 @implementation EidosTextView
 
 - (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)aTextContainer
@@ -584,7 +592,163 @@ using std::string;
 		return;
 	}
 	
+	// Start out willing to work with a double-click for purposes of delimiter-balancing;
+	// see selectionRangeForProposedRange:proposedCharRange granularity: below
+	inEligibleDoubleClick = YES;
+	
 	[super mouseDown:theEvent];
+}
+
+- (NSRange)selectionRangeForProposedRange:(NSRange)proposedCharRange granularity:(NSSelectionGranularity)granularity
+{
+	if ((granularity == NSSelectByWord) && inEligibleDoubleClick)
+	{
+		// The proposed range has to be zero-length, otherwise this click sequence is ineligible
+		if (proposedCharRange.length == 0)
+		{
+			NSEvent *event = [NSApp currentEvent];
+			NSEventType eventType = [event type];
+			NSTimeInterval eventTime = [event timestamp];
+			
+			if (eventType == NSLeftMouseDown)
+			{
+				// This is the mouseDown of the double-click; we do not want to modify the selection here, just log the time
+				doubleDownTime = eventTime;
+			}
+			else if (eventType == NSLeftMouseUp)
+			{
+				// After the double-click interval since the second mouseDown, the mouseUp is no longer eligible
+				if (eventTime - doubleDownTime <= [NSEvent doubleClickInterval])
+				{
+					NSString *scriptString = [[self textStorage] string];
+					NSUInteger stringLength = [scriptString length];
+					NSUInteger proposedCharacterIndex = proposedCharRange.location;
+					unichar uch = [scriptString characterAtIndex:proposedCharacterIndex];
+					BOOL forward = false;
+					unichar incrementChar = ' ';
+					unichar decrementChar = ' ';
+					EidosTokenType token1 = EidosTokenType::kTokenNone;
+					EidosTokenType token2 = EidosTokenType::kTokenNone;
+					
+					// Check for any of the delimiter types we support, and set up to do a scan
+					if (uch == '{')		{ forward = true; incrementChar = '{'; decrementChar = '}'; token1 = EidosTokenType::kTokenLBrace; token2 = EidosTokenType::kTokenRBrace; }
+					if (uch == '}')		{ forward = false; incrementChar = '}'; decrementChar = '{'; token1 = EidosTokenType::kTokenLBrace; token2 = EidosTokenType::kTokenRBrace; }
+					if (uch == '(')		{ forward = true; incrementChar = '('; decrementChar = ')'; token1 = EidosTokenType::kTokenLParen; token2 = EidosTokenType::kTokenRParen; }
+					if (uch == ')')		{ forward = false; incrementChar = ')'; decrementChar = '('; token1 = EidosTokenType::kTokenLParen; token2 = EidosTokenType::kTokenRParen; }
+					if (uch == '[')		{ forward = true; incrementChar = '['; decrementChar = ']'; token1 = EidosTokenType::kTokenLBracket; token2 = EidosTokenType::kTokenRBracket; }
+					if (uch == ']')		{ forward = false; incrementChar = ']'; decrementChar = '['; token1 = EidosTokenType::kTokenLBracket; token2 = EidosTokenType::kTokenRBracket; }
+					
+					if (token1 != EidosTokenType::kTokenNone)
+					{
+						// We've got a double-click on a character that we want to balance-select.  This is complicated mostly
+						// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
+						// in the token stream parallel to searching in the text.
+						std::string script_string([scriptString UTF8String]);
+						EidosScript script(script_string);
+						
+						// Tokenize
+						script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
+						
+						// Find the token containing the double-click point
+						const std::vector<EidosToken *> &tokens = script.Tokens();
+						int token_count = (int)tokens.size();
+						EidosToken *click_token = nullptr;
+						int click_token_index;
+						
+						for (click_token_index = 0; click_token_index < token_count; ++click_token_index)
+						{
+							click_token = tokens[click_token_index];
+							
+							if ((click_token->token_start_ <= proposedCharacterIndex) && (click_token->token_end_ >= proposedCharacterIndex))
+								break;
+						}
+						
+						// OK, this token contains the character that was double-clicked.  We could have the actual token
+						// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
+						// that we start in; if in a string, for example, only delimiters within strings affect our scan.
+						EidosTokenType click_token_type = click_token->token_type_;
+						EidosToken *scan_token = click_token;
+						int scan_token_index = click_token_index;
+						NSInteger scanPosition = proposedCharacterIndex;
+						int balanceCount = 0;
+						
+						while (YES)
+						{
+							EidosTokenType scan_token_type = scan_token->token_type_;
+							BOOL isCandidate;
+							
+							if (click_token_type == EidosTokenType::kTokenComment)
+								isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
+							else if (click_token_type == EidosTokenType::kTokenString)
+								isCandidate = (scan_token_type == EidosTokenType::kTokenString);
+							else
+								isCandidate = ((scan_token_type == token1) || (scan_token_type == token2));
+							
+							if (isCandidate)
+							{
+								uch = [scriptString characterAtIndex:scanPosition];
+								
+								if (uch == incrementChar)
+									balanceCount++;
+								else if (uch == decrementChar)
+									balanceCount--;
+								
+								// If balanceCount is now zero, all opens have been balanced by closes, and we have found our matching delimiter
+								if (balanceCount == 0)
+								{
+									inEligibleDoubleClick = false;	// clear this to avoid potential confusion if we get called again later
+									
+									if (forward)
+										return NSMakeRange(proposedCharacterIndex, scanPosition - proposedCharacterIndex + 1);
+									else
+										return NSMakeRange(scanPosition, proposedCharacterIndex - scanPosition + 1);
+								}
+							}
+							
+							// Advance, forward or backward, to the next character; if we reached the end without balancing, beep
+							scanPosition += (forward ? 1 : -1);
+							if ((scanPosition == stringLength) || (scanPosition == -1))
+							{
+								NSBeep();
+								inEligibleDoubleClick = false;
+								return NSMakeRange(proposedCharacterIndex, 1);
+							}
+							
+							// Make sure we're in the right token
+							while ((scan_token->token_start_ > scanPosition) || (scan_token->token_end_ < scanPosition))
+							{
+								scan_token_index += (forward ? 1 : -1);
+								
+								if ((scan_token_index < 0) || (scan_token_index == token_count))
+								{
+									NSLog(@"ran out of tokens!");
+									NSBeep();
+									inEligibleDoubleClick = false;
+									return NSMakeRange(proposedCharacterIndex, 1);
+								}
+								
+								scan_token = tokens[scan_token_index];
+							}
+						}
+					}
+				}
+				else
+				{
+					inEligibleDoubleClick = false;
+				}
+			}
+			else
+			{
+				inEligibleDoubleClick = false;
+			}
+		}
+		else
+		{
+			inEligibleDoubleClick = false;
+		}
+	}
+	
+	return [super selectionRangeForProposedRange:proposedCharRange granularity:granularity];
 }
 
 
