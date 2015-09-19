@@ -35,6 +35,13 @@ using std::vector;
 using std::string;
 
 
+//	EidosTextStorage – a little subclass to make word selection in EidosTextView work the way it should, defined below
+@interface EidosTextStorage : NSTextStorage
+- (id)init;
+- (id)initWithAttributedString:(NSAttributedString *)attrStr;
+@end
+
+
 @implementation EidosTextView
 
 - (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)aTextContainer
@@ -59,6 +66,9 @@ using std::string;
 
 - (void)awakeFromNib
 {
+	// Replace the text storage of the description textview with our custom subclass
+	[[self layoutManager] replaceTextStorage:[[[EidosTextStorage alloc] init] autorelease]];
+	
 	// Turn off all of Cocoa's fancy text editing stuff
 	[self setAutomaticDashSubstitutionEnabled:NO];
 	[self setAutomaticDataDetectionEnabled:NO];
@@ -1585,6 +1595,104 @@ using std::string;
 
 @end
 
+
+//
+//	EidosTextStorage
+//
+#pragma mark -
+#pragma mark EidosTextStorage
+
+@interface EidosTextStorage ()
+{
+	NSMutableAttributedString *contents;
+}
+@end
+
+@implementation EidosTextStorage
+
+- (id)initWithAttributedString:(NSAttributedString *)attrStr
+{
+	if (self = [super init])
+	{
+		contents = attrStr ? [attrStr mutableCopy] : [[NSMutableAttributedString alloc] init];
+	}
+	return self;
+}
+
+- init
+{
+	return [self initWithAttributedString:nil];
+}
+
+- (void)dealloc
+{
+	[contents release];
+	[super dealloc];
+}
+
+// The next set of methods are the primitives for attributed and mutable attributed string...
+
+- (NSString *)string
+{
+	return [contents string];
+}
+
+- (NSDictionary *)attributesAtIndex:(NSUInteger)location effectiveRange:(NSRange *)range
+{
+	return [contents attributesAtIndex:location effectiveRange:range];
+}
+
+- (void)replaceCharactersInRange:(NSRange)range withString:(NSString *)str
+{
+	NSUInteger origLen = [self length];
+	[contents replaceCharactersInRange:range withString:str];
+	[self edited:NSTextStorageEditedCharacters range:range changeInLength:[self length] - origLen];
+}
+
+- (void)setAttributes:(NSDictionary *)attrs range:(NSRange)range
+{
+	[contents setAttributes:attrs range:range];
+	[self edited:NSTextStorageEditedCharacters range:range changeInLength:0];
+}
+
+// And now the actual reason for this subclass: to provide code-aware word selection behavior
+
+- (NSRange)doubleClickAtIndex:(NSUInteger)location
+{
+	// Start by calling super to get a proposed range.  This is documented to raise if location >= [self length]
+	// or location < 0, so in the code below we can assume that location indicates a valid character position.
+	NSRange superRange = [super doubleClickAtIndex:location];
+	NSString *string = [self string];
+	
+	// If the user has actually double-clicked a period, we want to just return the range of the period.
+	if ([string characterAtIndex:location] == '.')
+		return NSMakeRange(location, 1);
+	
+	// The case where super's behavior is wrong involves the dot operator; x.y should not be considered a word.
+	// So we check for a period before or after the anchor position, and trim away the periods and everything
+	// past them on both sides.  This will correctly handle longer sequences like foo.bar.baz.is.a.test.
+	NSRange candidateRangeBeforeLocation = NSMakeRange(superRange.location, location - superRange.location);
+	NSRange candidateRangeAfterLocation = NSMakeRange(location + 1, NSMaxRange(superRange) - (location + 1));
+	NSRange periodBeforeRange = [string rangeOfString:@"." options:NSBackwardsSearch range:candidateRangeBeforeLocation];
+	NSRange periodAfterRange = [string rangeOfString:@"." options:(NSStringCompareOptions)0 range:candidateRangeAfterLocation];
+	
+	if (periodBeforeRange.location != NSNotFound)
+	{
+		// Change superRange to start after the preceding period; fix its length so its end remains unchanged.
+		superRange.length -= (periodBeforeRange.location + 1 - superRange.location);
+		superRange.location = periodBeforeRange.location + 1;
+	}
+	
+	if (periodAfterRange.location != NSNotFound)
+	{
+		// Change superRange to end before the following period
+		superRange.length -= (NSMaxRange(superRange) - periodAfterRange.location);
+	}
+	
+	return superRange;
+}
+
+@end
 
 
 
