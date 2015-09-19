@@ -1,7 +1,7 @@
 SLiM:
 	setSubpopulationSize(0) is kind of weird, does not free the subpop
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
-	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
+	write the SLiM Cookbook
 
 Eidos:
 	add pmax(), pmin()
@@ -9,7 +9,6 @@ Eidos:
 	option-click could open doc window with a search on the clicked token
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
-	an Objective-C port of Eidos would be nice
 
 SLiMgui work:
 	update the SLiMgui Help file, which is presently the version 1.8 PDF
@@ -60,6 +59,8 @@ look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere 
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
 future plans:
+	an Objective-C port of Eidos would be nice
+	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
 	spatially and temporally varying selection pressures: for mutation-types
 		in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
 		what happens for new mutations of that type?
