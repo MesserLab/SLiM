@@ -22,6 +22,7 @@
 #import "EidosTextViewDelegate.h"
 #import "EidosConsoleTextView.h"
 #import "EidosCocoaExtra.h"
+#import "EidosHelpController.h"
 
 #include "eidos_script.h"
 #include "eidos_call_signature.h"
@@ -532,6 +533,48 @@ using std::string;
 	[self setSelectedTextAttributes:@{NSBackgroundColorAttributeName:[NSColor selectedTextBackgroundColor]}];
 	
 	[super setSelectedRanges:ranges affinity:affinity stillSelecting:stillSelectingFlag];
+}
+
+- (void)mouseDown:(NSEvent *)theEvent
+{
+	NSEventModifierFlags modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+	
+	// If the control key is down, the click will be interpreted by super as a context-menu click even with option down, so we can let that through.
+	// Otherwise, option-clicks produce discontiguous selections that we want to prevent since we are not prepared to deal with them.  Instead, we
+	// use option-clicks to indicate that the word clicked on should be looked up in EidosHelpController.
+	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+	{
+		NSPoint windowPoint = [theEvent locationInWindow];
+		NSRect windowRect = NSMakeRect(windowPoint.x, windowPoint.y, 0, 0);
+		NSRect screenRect = [[self window] convertRectToScreen:windowRect];	// why is convertBaseToScreen: deprecated??
+		NSPoint screenPoint = screenRect.origin;
+		NSUInteger charIndex = [self characterIndexForPoint:screenPoint];	// takes a point in screen coordinates, for some weird reason
+		
+		if (charIndex < [[self textStorage] length])
+		{
+			NSRange wordRange = [self selectionRangeForProposedRange:NSMakeRange(charIndex, 1) granularity:NSSelectByWord];
+			NSString *word = [[self string] substringWithRange:wordRange];
+			NSMutableCharacterSet *unhelpfulCharacterSet = [[[NSCharacterSet whitespaceAndNewlineCharacterSet] mutableCopy] autorelease];
+			
+			[unhelpfulCharacterSet addCharactersInString:@"()+-[]{}!%^*/='\";:<>,.&|"];	// presently no help on operators and such
+			
+			NSString *trimmedWord = [word stringByTrimmingCharactersInSet:unhelpfulCharacterSet];
+			
+			if ([trimmedWord length] != 0)
+			{
+				[self setSelectedRange:wordRange];
+				
+				EidosHelpController *helpController = [EidosHelpController sharedController];
+				
+				[helpController enterSearchForString:trimmedWord titlesOnly:YES];
+				[[helpController window] orderFront:self];
+			}
+		}
+		
+		return;
+	}
+	
+	[super mouseDown:theEvent];
 }
 
 

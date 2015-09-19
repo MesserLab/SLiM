@@ -34,6 +34,9 @@ class EidosPropertySignature;
 
 + (EidosHelpController *)sharedController;
 
+- (void)enterSearchForString:(NSString *)searchString titlesOnly:(BOOL)titlesOnly;
+
+- (NSWindow *)window;
 - (void)showWindow;
 
 // Add topics and items drawn from a specially formatted RTF file, under a designated top-level heading.

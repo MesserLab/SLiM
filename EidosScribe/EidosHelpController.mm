@@ -456,7 +456,7 @@
 	}
 }
 
-- (void)showWindow
+- (NSWindow *)window
 {
 	if (!_helpWindow)
 	{
@@ -473,7 +473,12 @@
 		[_topicOutlineView setAction:@selector(outlineViewClicked:)];
 	}
 	
-	[_helpWindow makeKeyAndOrderFront:nil];
+	return _helpWindow;
+}
+
+- (void)showWindow
+{
+	[[self window] makeKeyAndOrderFront:nil];
 }
 
 - (void)outlineViewClicked:(id)sender
@@ -501,11 +506,7 @@
 	
 	if (newSearchType != searchType)
 	{
-		NSMenu *searchMenu = [senderMenuItem menu];
-		
-		[[searchMenu itemWithTag:searchType] setState:NSOffState];
 		searchType = newSearchType;
-		[[searchMenu itemWithTag:searchType] setState:NSOnState];
 		
 		[self searchFieldChanged:_searchField];
 	}
@@ -589,6 +590,36 @@
 	{
 		NSBeep();
 	}
+}
+
+- (void)enterSearchForString:(NSString *)searchString titlesOnly:(BOOL)titlesOnly
+{
+	// Load our nib if it is not already loaded
+	[self window];
+	
+	// Set the search string per the request
+	[_searchField setStringValue:searchString];
+	
+	// Set the search type per the request
+	searchType = titlesOnly ? 0 : 1;
+	
+	// Then execute the search by firing the search field's action
+	[self searchFieldChanged:_searchField];
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL selector = [menuItem action];
+	
+	if (selector == @selector(searchTypeChanged:))
+	{
+		NSInteger tag = [menuItem tag];
+		
+		[menuItem setState:(searchType == tag) ? NSOnState : NSOffState];
+		return YES;
+	}
+	
+	return YES;	// no super
 }
 
 - (id)findObjectForKey:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
