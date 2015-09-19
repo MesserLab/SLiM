@@ -108,6 +108,7 @@ public:
 	
 	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue *p_rvalue, const EidosASTNode *p_lvalue_node);
+	EidosValue *_Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, EidosValue *p_first_child_value, EidosValue *p_second_child_value);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue *EvaluateNode(const EidosASTNode *p_node);

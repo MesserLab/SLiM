@@ -22,6 +22,7 @@
 #include "eidos_functions.h"
 #include "eidos_ast_node.h"
 #include "eidos_rng.h"
+#include "eidos_call_signature.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -711,6 +712,148 @@ EidosValue *EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p_n
 	return result;
 }
 
+EidosValue *EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, EidosValue *p_first_child_value, EidosValue *p_second_child_value)
+{
+	EidosToken *operator_token = p_node->token_;
+	EidosValueType first_child_type = p_first_child_value->Type();
+	EidosValueType second_child_type = p_second_child_value->Type();
+	EidosValue *result;
+	
+	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
+	{
+		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
+		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << first_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
+	}
+	
+	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
+	{
+		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
+		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << second_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
+	}
+	
+	int first_child_count = p_first_child_value->Count();
+	int second_child_count = p_second_child_value->Count();
+	
+	if ((first_child_count != 1) || (second_child_count != 1))
+	{
+		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
+		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must have size() == 1." << eidos_terminate(operator_token);
+	}
+	
+	// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
+	bool underflow = false;
+	
+	if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
+	{
+		int64_t first_int = p_first_child_value->IntAtIndex(0, operator_token);
+		int64_t second_int = p_second_child_value->IntAtIndex(0, operator_token);
+		
+		if (first_int <= second_int)
+		{
+			if (second_int - first_int + 1 >= 1000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			
+			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(second_int - first_int + 1));
+			result = int_result;
+			
+			for (int64_t range_index = first_int; range_index <= second_int; ++range_index)
+				int_result->PushInt(range_index);
+		}
+		else
+		{
+			if (first_int - second_int + 1 >= 1000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			
+			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(first_int - second_int + 1));
+			result = int_result;
+			
+			for (int64_t range_index = first_int; range_index >= second_int; --range_index)
+				int_result->PushInt(range_index);
+		}
+	}
+	else
+	{
+		double first_float = p_first_child_value->FloatAtIndex(0, operator_token);
+		double second_float = p_second_child_value->FloatAtIndex(0, operator_token);
+		
+		if (isnan(first_float) || isnan(second_float))
+		{
+			if (p_first_child_value->IsTemporary()) delete p_first_child_value;
+			if (p_second_child_value->IsTemporary()) delete p_second_child_value;
+			
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
+		}
+		
+		if (first_float <= second_float)
+		{
+			if (second_float - first_float + 1 >= 1000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			
+			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(second_float - first_float + 1));
+			result = float_result;
+			
+			for (double range_index = first_float; range_index <= second_float; )
+			{
+				float_result->PushFloat(range_index);
+				
+				// be careful not to hang due to underflow
+				double next_index = range_index + 1.0;
+				
+				if (next_index == range_index)
+				{
+					underflow = true;
+					break;
+				}
+				
+				range_index = next_index;
+			}
+		}
+		else
+		{
+			if (first_float - second_float + 1 >= 1000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			
+			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(first_float - second_float + 1));
+			result = float_result;
+			
+			for (double range_index = first_float; range_index >= second_float; )
+			{
+				float_result->PushFloat(range_index);
+				
+				// be careful not to hang due to underflow
+				double next_index = range_index - 1.0;
+				
+				if (next_index == range_index)
+				{
+					underflow = true;
+					break;
+				}
+				
+				range_index = next_index;
+			}
+		}
+	}
+	
+	// free our operands
+	if (p_first_child_value->IsTemporary()) delete p_first_child_value;
+	if (p_second_child_value->IsTemporary()) delete p_second_child_value;
+	
+	if (underflow)
+	{
+		if (result->IsTemporary()) delete result;
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);
+	}
+	
+	return result;
+}
+
 EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_RangeExpr()");
@@ -722,8 +865,6 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	
 	if (!result)
 	{
-		EidosToken *operator_token = p_node->token_;
-		
 		const EidosASTNode *child0 = p_node->children_[0];
 		const EidosASTNode *child1 = p_node->children_[1];
 		bool cacheable = ((child0->token_->token_type_ == EidosTokenType::kTokenNumber) && (child1->token_->token_type_ == EidosTokenType::kTokenNumber));
@@ -731,140 +872,7 @@ EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		EidosValue *first_child_value = FastEvaluateNode(child0);
 		EidosValue *second_child_value = FastEvaluateNode(child1);
 		
-		EidosValueType first_child_type = first_child_value->Type();
-		EidosValueType second_child_type = second_child_value->Type();
-		
-		if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): operand type " << first_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
-		}
-		
-		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): operand type " << second_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
-		}
-		
-		int first_child_count = first_child_value->Count();
-		int second_child_count = second_child_value->Count();
-		
-		if ((first_child_count != 1) || (second_child_count != 1))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): operands of the ':' operator must have size() == 1." << eidos_terminate(operator_token);
-		}
-		
-		// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
-		bool underflow = false;
-		
-		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
-		{
-			int64_t first_int = first_child_value->IntAtIndex(0, operator_token);
-			int64_t second_int = second_child_value->IntAtIndex(0, operator_token);
-			
-			if (first_int <= second_int)
-			{
-				if (second_int - first_int + 1 >= 1000000)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
-				
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(second_int - first_int + 1));
-				result = int_result;
-				
-				for (int64_t range_index = first_int; range_index <= second_int; ++range_index)
-					int_result->PushInt(range_index);
-			}
-			else
-			{
-				if (first_int - second_int + 1 >= 1000000)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
-				
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(first_int - second_int + 1));
-				result = int_result;
-				
-				for (int64_t range_index = first_int; range_index >= second_int; --range_index)
-					int_result->PushInt(range_index);
-			}
-		}
-		else
-		{
-			double first_float = first_child_value->FloatAtIndex(0, operator_token);
-			double second_float = second_child_value->FloatAtIndex(0, operator_token);
-			
-			if (isnan(first_float) || isnan(second_float))
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
-			}
-			
-			if (first_float <= second_float)
-			{
-				if (second_float - first_float + 1 >= 1000000)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
-				
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(second_float - first_float + 1));
-				result = float_result;
-				
-				for (double range_index = first_float; range_index <= second_float; )
-				{
-					float_result->PushFloat(range_index);
-					
-					// be careful not to hang due to underflow
-					double next_index = range_index + 1.0;
-					
-					if (next_index == range_index)
-					{
-						underflow = true;
-						break;
-					}
-					
-					range_index = next_index;
-				}
-			}
-			else
-			{
-				if (first_float - second_float + 1 >= 1000000)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
-				
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(first_float - second_float + 1));
-				result = float_result;
-				
-				for (double range_index = first_float; range_index >= second_float; )
-				{
-					float_result->PushFloat(range_index);
-					
-					// be careful not to hang due to underflow
-					double next_index = range_index - 1.0;
-					
-					if (next_index == range_index)
-					{
-						underflow = true;
-						break;
-					}
-					
-					range_index = next_index;
-				}
-			}
-		}
-		
-		// free our operands
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
-		if (underflow)
-		{
-			if (result->IsTemporary()) delete result;
-			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_RangeExpr): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);
-		}
+		result = _Evaluate_RangeExpr_Internal(p_node, first_child_value, second_child_value);		// gives ownership of the child values
 		
 		// cache our range as a constant in the tree if we can
 		if (cacheable)
@@ -4176,77 +4184,131 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 	// In some cases we do not need to actually construct the range that we are going to iterate over; we check for that case here
 	// and handle it immediately, otherwise we drop through to the (!can_skip_range_evaluation) case below
-	bool can_skip_range_evaluation = ((range_node->token_->token_type_ == EidosTokenType::kTokenColon) && !assigns_index && (range_node->children_.size() == 2));
+	bool simpleIntegerRange = false;
+	int64_t start_int = 0, end_int = 0;
+	EidosValue *range_value = nullptr;
 	
-	if (can_skip_range_evaluation)
+	if (!assigns_index)
 	{
-		EidosValue *range_start_value = FastEvaluateNode(range_node->children_[0]);
-		
-		if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1))
+		if ((range_node->token_->token_type_ == EidosTokenType::kTokenColon) && (range_node->children_.size() == 2))
 		{
-			EidosValue *range_end_value = FastEvaluateNode(range_node->children_[1]);
-			
-			if ((range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1))
+			// Maybe we can streamline a colon-operator range expression; let's check
+			if (!range_node->cached_value_)
 			{
-				// OK, we have a simple integer:integer range, so this should be very straightforward
-				int64_t start_int = range_start_value->IntAtIndex(0, nullptr);
-				int64_t end_int = range_end_value->IntAtIndex(0, nullptr);
-				bool counting_up = (start_int < end_int);
-				int64_t range_count = (counting_up ? (end_int - start_int + 1) : (start_int - end_int + 1));
+				EidosValue *range_start_value = FastEvaluateNode(range_node->children_[0]);
+				EidosValue *range_end_value = FastEvaluateNode(range_node->children_[1]);
 				
-				if (!assigns_index && !references_index)
+				if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1) && (range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1))
 				{
-					// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
-					// we do need to set up the index variable on exit, though, since code below us might use the final value
-					int range_index;
+					// OK, we have a simple integer:integer range, so this should be very straightforward
+					simpleIntegerRange = true;
 					
-					for (range_index = 0; range_index < range_count; ++range_index)
-					{
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
-						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
+					start_int = range_start_value->IntAtIndex(0, nullptr);
+					end_int = range_end_value->IntAtIndex(0, nullptr);
 					
-					// set up the final value on exit; if we completed the loop, we need to go back one step
-					if (range_index == range_count)
-						range_index--;
-					
-					global_symbols_.SetValueForSymbol(identifier_name, new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index));
+					if (range_start_value->IsTemporary())
+						delete range_start_value;
+					if (range_end_value->IsTemporary())
+						delete range_end_value;
 				}
-				else	// !assigns_index, guaranteed by the original can_skip_range_evaluation expression
+				else
 				{
-					// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
-					// EidosValue that we stick new values into – much, much faster.
-					EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+					// If we are not using the general case, we have a bit of a problem now, because we have evaluated the child nodes
+					// of the range expression.  Because that might have side effects, we can't let the code below do it again.
+					// We therefore have to construct the range here that will be used below.  No good deed goes unpunished.
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					// Note that this call to Evaluate_RangeExpr_Internal() gives ownership of the child values; it deletes them for us
+					range_value = _Evaluate_RangeExpr_Internal(range_node, range_start_value, range_end_value);
+				}
+			}
+		}
+		else if ((range_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (range_node->children_.size() == 2))
+		{
+			// Maybe we can streamline a seqAlong() call; let's check
+			const EidosASTNode *call_name_node = range_node->children_[0];
+			
+			if (call_name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+			{
+				const EidosFunctionSignature *signature = call_name_node->cached_signature_;
+				
+				if (signature && (signature->function_id_ == EidosFunctionIdentifier::seqAlongFunction))
+				{
+					const EidosASTNode *argument_node = range_node->children_[1];
 					
-					for (int range_index = 0; range_index < range_count; ++range_index)
+					if (argument_node->token_->token_type_ != EidosTokenType::kTokenComma)
 					{
-						index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
+						// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
+						simpleIntegerRange = true;
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue *argument_value = FastEvaluateNode(argument_node);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+						start_int = 0;
+						end_int = argument_value->Count() - 1;
+						
+						if (argument_value->IsTemporary())
+							delete argument_value;
 					}
 				}
 			}
-			else
-				can_skip_range_evaluation = false;
 		}
-		else
-			can_skip_range_evaluation = false;
 	}
 	
-	if (!can_skip_range_evaluation)
+	if (simpleIntegerRange)
 	{
-		EidosValue *range_value = FastEvaluateNode(range_node);
+		// OK, we have a simple integer:integer range, so this should be very straightforward
+		bool counting_up = (start_int < end_int);
+		int64_t range_count = (counting_up ? (end_int - start_int + 1) : (start_int - end_int + 1));
+		
+		if (!assigns_index && !references_index)
+		{
+			// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
+			// we do need to set up the index variable on exit, though, since code below us might use the final value
+			int range_index;
+			
+			for (range_index = 0; range_index < range_count; ++range_index)
+			{
+				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+				
+				if (return_statement_hit_)				{ result = statement_value; break; }
+				if (statement_value->IsTemporary())		delete statement_value;
+				if (next_statement_hit_)				next_statement_hit_ = false;
+				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+			}
+			
+			// set up the final value on exit; if we completed the loop, we need to go back one step
+			if (range_index == range_count)
+				range_index--;
+			
+			global_symbols_.SetValueForSymbol(identifier_name, new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index));
+		}
+		else	// !assigns_index, guaranteed above
+		{
+			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
+			// EidosValue that we stick new values into – much, much faster.
+			EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+			
+			global_symbols_.SetValueForSymbol(identifier_name, index_value);
+			
+			for (int range_index = 0; range_index < range_count; ++range_index)
+			{
+				index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
+				
+				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+				
+				if (return_statement_hit_)				{ result = statement_value; break; }
+				if (statement_value->IsTemporary())		delete statement_value;
+				if (next_statement_hit_)				next_statement_hit_ = false;
+				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
+			}
+		}
+	}
+	else
+	{
+		// We have something other than a simple integer range, so we have to do more work to figure out what type of
+		// range we are iterating over; we have optimizations for several cases if assigns_index is false
+		if (!range_value)
+			range_value = FastEvaluateNode(range_node);
+		
 		int range_count = range_value->Count();
 		EidosValueType range_type = range_value->Type();
 		

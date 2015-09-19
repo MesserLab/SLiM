@@ -1333,12 +1333,20 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=0; for (y in 10:1) x=x+1; x;", new EidosValue_Int_singleton(10));
 	EidosAssertScriptSuccess("x=0; for (y in 1.0:10) x=x+y; x;", new EidosValue_Float_singleton(55.0));
 	EidosAssertScriptSuccess("x=0; for (y in 1.0:10) x=x+1; x;", new EidosValue_Int_singleton(10));
+	EidosAssertScriptSuccess("x=0; for (y in 1:10.0) x=x+y; x;", new EidosValue_Float_singleton(55.0));
+	EidosAssertScriptSuccess("x=0; for (y in 1:10.0) x=x+1; x;", new EidosValue_Int_singleton(10));
 	EidosAssertScriptSuccess("x=0; for (y in c('foo', 'bar')) x=x+y; x;", new EidosValue_String_singleton("0foobar"));
 	EidosAssertScriptSuccess("x=0; for (y in c(T,T,F,F,T,F)) x=x+asInteger(y); x;", new EidosValue_Int_singleton(3));
 	EidosAssertScriptSuccess("x=0; for (y in _Test(7)) x=x+y._yolk; x;", new EidosValue_Int_singleton(7));
 	EidosAssertScriptSuccess("x=0; for (y in rep(_Test(7),3)) x=x+y._yolk; x;", new EidosValue_Int_singleton(21));
 	EidosAssertScriptRaise("x=0; y=0:2; for (y[0] in 2:4) x=x+sum(y); x;", 18, "unexpected token");	// lvalue must be an identifier, at present
 	EidosAssertScriptRaise("x=0; for (y in NULL) x;", 5, "does not allow NULL");
+	EidosAssertScriptSuccess("x=0; q=11:20; for (y in seqAlong(q)) x=x+y; x;", new EidosValue_Int_singleton(45));
+	EidosAssertScriptSuccess("x=0; q=11:20; for (y in seqAlong(q)) x=x+1; x;", new EidosValue_Int_singleton(10));
+	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong(q, 5)) x=x+y; x;", 24, "requires at most");
+	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong()) x=x+y; x;", 24, "missing required");
+	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+y; x;", new EidosValue_Int_singleton(55));
+	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+1; x;", new EidosValue_Int_singleton(10));
 	
 	// next
 	#pragma mark next
@@ -1931,8 +1939,8 @@ void RunEidosTests(void)
 	
 	// object()
 	EidosAssertScriptSuccess("object();", new EidosValue_Object_vector());
-	EidosAssertScriptRaise("object(NULL);", 0, "requires at most 0");
-	EidosAssertScriptRaise("object(integer(0));", 0, "requires at most 0");
+	EidosAssertScriptRaise("object(NULL);", 0, "requires at most");
+	EidosAssertScriptRaise("object(integer(0));", 0, "requires at most");
 	
 	// rbinom()
 	EidosAssertScriptSuccess("rbinom(0, 10, 0.5);", new EidosValue_Int_vector());
