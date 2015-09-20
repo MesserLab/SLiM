@@ -1,0 +1,469 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
+\f3\froman\fcharset0 TimesNewRomanPSMT;}
+{\colortbl;\red255\green255\blue255;\red170\green13\blue145;\red28\green10\blue207;\red255\green0\blue0;
+}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i\fs22 \cf0 2.5.1  ITEM: 1. 
+\f1\fs18 if
+\f0\fs22  and 
+\f1\fs18 if\'96else
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 As in many languages, conditional execution is provided by the 
+\f2\fs18 if
+\f0\fs22  statement.  This statement is supplied with a 
+\f2\fs18 logical
+\f0\fs22  condition; if the condition is 
+\f2\fs18 T
+\f0\fs22 , the rest of the 
+\f2\fs18 if
+\f0\fs22  statement is executed, whereas if the condition is 
+\f2\fs18 F
+\f0\fs22 , the rest of the 
+\f2\fs18 if
+\f0\fs22  statement is ignored.  An example:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 if (2^2^2^2^2 > 10000) "exponentiation is da bomb!"
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 "exponentiation is da bomb!"\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The only twist here, really, is that the condition must evaluate to a single value, i.e. a vector of 
+\f2\fs18 size() == 1
+\f0\fs22 .  The 
+\f2\fs18 if
+\f0\fs22  statement, in other words, is essentially a scalar operator, not a vector operator.  If you have a multivalued 
+\f2\fs18 logical
+\f0\fs22  vector, you can use the 
+\f2\fs18 any()
+\f0\fs22  or 
+\f2\fs18 all()
+\f0\fs22  functions to simplify it to a single 
+\f2\fs18 logical
+\f0\fs22  value.  Alternatively, the 
+\f2\fs18 ifelse()
+\f0\fs22  function provides a vector conditional operation, similar to that in R.\
+It is worth exploring this twist with an example.  Suppose you have a variable 
+\f2\fs18 x
+\f0\fs22  which ought to be equal to 
+\f2\fs18 3
+\f0\fs22 , and a variable 
+\f2\fs18 y
+\f0\fs22  which ought to contain two values, 
+\f2\fs18 7
+\f0\fs22  and 
+\f2\fs18 8
+\f0\fs22 .  You might expect to be able to write:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 if (x == 3 & y == c(7,8)) "yes!"
+\f3 \cf0 \
+
+\fs4 \
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f2\fs18 \cf4 ERROR (EidosInterpreter::Evaluate_If): condition has size() != 1
+\f3 .\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The error informs you that the size of condition is not equal to 
+\f2\fs18 1
+\f0\fs22  (and that that is a problem).  The expression 
+\f2\fs18 y\'a0==\'a0c(7,8)
+\f0\fs22  produces a 
+\f2\fs18 logical
+\f0\fs22  vector with two values, the result of testing the first and second values respectively.  The 
+\f2\fs18 &
+\f3\fs22 \'a0
+\f0 operator thus produces a two-valued 
+\f2\fs18 logical
+\f0\fs22  vector as its result, and 
+\f2\fs18 if
+\f0\fs22  is not happy about that.  To resolve this, you could use the 
+\f2\fs18 all()
+\f0\fs22  function, or in many cases more appropriately, the 
+\f2\fs18 identical()
+\f0\fs22  function.  See the Eidos manual for further discussion of this issue.\
+It is also worth noting that the condition for 
+\f2\fs18 if
+\f0\fs22  does not need to be a 
+\f2\fs18 logical
+\f0\fs22  value; a value of a different type will be converted to 
+\f2\fs18 logical
+\f0\fs22  by coercion if possible.\
+Often you want to perform an alternative action when the condition of an 
+\f2\fs18 if
+\f0\fs22  statement is 
+\f2\fs18 F
+\f0\fs22 ; the 
+\f2\fs18 if\'96else
+\f0\fs22  statement allows this.  It is simplest to just show this with an example:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 if (2/2/2/2/2 > 10000) "division is da bomb!"; else "not so much."
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 "not so much."\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Super simple, right?
+\f3 \
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i \cf0 2.5.3  ITEM: 3. semicolons and "null statements", 
+\f1\fs18 ;
+\f3\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 Every statement in Eidos must end with a semicolon (except compound statements, which end with a closing brace).  However, when you\'92re working interactively in EidosScribe, EidosScribe will add a trailing semicolon to your statements if necessary, just to make your life simpler.  So when you type:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf2 >\cf0  \cf3 1+1==2
+\f3 \cf0 \
+\pard\pardeftab720\ri720\sb40\sa40
+
+\f0\fs22 \cf0 what is really being evaluated behind the scenes is:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf2 >\cf0  \cf3 1+1==2;
+\f3 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 When you\'92re not working interactively, semicolons are required, and if you forget, you will get an error, like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 1+1==2
+\f3 \cf0 \
+
+\fs4 \
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f2\fs18 \cf4 ERROR (Parse): unexpected token 'EOF' in statement; expected ';'\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 EOF stands for End Of File; it\'92s a standard way of referring to the end of an input buffer, in this case the line of input provided by the user for execution.\
+The simplest and shortest possible statement in Eidos is the "null statement", which consists of nothing but a semicolon:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 ;\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 This is not terribly useful, since it does nothing.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.5.4  ITEM: 4. compound statements with 
+\f1\fs18 \{ \}
+\f3\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 The other thing you might wonder about, regarding 
+\f2\fs18 if
+\f0\fs22  statements, is: what if I want to perform more than one action in response to the condition being 
+\f2\fs18 T
+\f0\fs22  or 
+\f2\fs18 F
+\f0\fs22 ?  This, then, is an opportune moment to introduce the concept of compound statements.  A compound statement is a series of statements (zero or more) enclosed by braces.  An example is worth a thousand words:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 if (1+1==2)\
+\{\
+   x = 1;\
+   x = x + 1;\
+   x;\
+\}\
+else\
+\{\
+   "whoah, I'm confused";\
+\}
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 2\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Note that the input here is spread across multiple lines for clarity; all of this could be typed on a single line instead.  If entered as multiple lines, it cannot presently be entered in EidosScribe\'92s interactive mode because the 
+\f2\fs18 if
+\f0\fs22  statement would stand on its own and be evaluated as soon as it was completed; instead, the full text would need to be entered in the script area on the left, selected, and executed.  All of the blue lines are user input, whereas the final line in black, 
+\f2\fs18 2
+\f0\fs22 , shows the output of the execution of the whole 
+\f2\fs18 if\'96else
+\f0\fs22  statement; the 
+\f2\fs18 if
+\f0\fs22  clause is executed, the calculations involving 
+\f2\fs18 x
+\f0\fs22  are performed, and the final statement 
+\f2\fs18 x;
+\f0\fs22  produces a result which is printed to the console as usual.\
+The way that 
+\f2\fs18 x;
+\f0\fs22  results in output here might seem a bit surprising at first, but it is really the same thing as what happened in section 2.5.1, where it presumably seemed more natural.  The only strange thing here is the fact that 
+\i the value of a compound statement is the value of the last statement executed within the compound statement
+\i0 ; the values of the previous statements are discarded.\
+You can use a compound statement in any context in which a single statement would be allowed.  For example, compound statements are very commonly used with looping constructs.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.1  ITEM: 5. 
+\f1\fs18 while
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 A 
+\f2\fs18 while
+\f0\fs22  loop repeats a statement as long as a given condition is true.  The condition is tested before the first time that the statement is executed, so the statement will be executed zero or more times.  Here is a code snippet to compute the first twenty numbers of the Fibonacci sequence:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 fib = c(1, 1);\
+while (size(fib) < 20)\
+\{\
+   next_fib = fib[size(fib) - 1] + fib[size(fib) - 2];\
+   fib = c(fib, next_fib);\
+\}\
+fib;
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Its use of a 
+\f2\fs18 while
+\f0\fs22  loop is optimal, because it ensures that if the 
+\f2\fs18 fib
+\f0\fs22  vector is already long enough to satisfy the length condition 
+\f2\fs18 size(fib) < 20
+\f0\fs22 , no further values of 
+\f2\fs18 fib
+\f0\fs22  will be computed.  You could use this 
+\f2\fs18 while
+\f0\fs22  loop to lengthen the 
+\f2\fs18 fib
+\f0\fs22  vector on demand within a larger block of code that used the 
+\f2\fs18 fib
+\f0\fs22  vector repeatedly.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.2  ITEM: 6. 
+\f1\fs18 do\'96while
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 A 
+\f2\fs18 do\'96while
+\f0\fs22  loop repeats a statement as long as a given condition is true.  Unlike 
+\f2\fs18 while
+\f0\fs22  loops, in this case the condition is tested at the end of the loop, and thus the loop statement is always executed at least once.  Here is a code snippet to compute a factorial:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 counter = 5;\
+factorial = 1;\
+do\
+\{\
+   factorial = factorial * counter;\
+   counter = counter - 1;\
+\}\
+while (counter > 0);\
+"The factorial of 5 is " + factorial;
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 "The factorial of 5 is 120"\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Note that this example could be rewritten using a 
+\f2\fs18 while
+\f0\fs22  loop instead, but it might be a bit less intuitive in its operation since it would no longer embody the formal definition of the factorial as explicitly.  Note also that computing a factorial could be done much more trivially (and efficiently) using the sequence operator 
+\f2\fs18 :
+\f0\fs22  and the 
+\f2\fs18 product()
+\f0\fs22  function, but the code here is useful for the purpose of illustration.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.3  ITEM: 7. 
+\f1\fs18 for
+\f0\fs22  statements (with 
+\f1\fs18 in
+\f0\fs22 )\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 The 
+\f2\fs18 for
+\f0\fs22  loop is used to loop through all of the elements in a vector.  For each value in the given vector, a given variable is set to the value, and a given statement is then executed.  For example, the following code computes squares by setting 
+\f2\fs18 element
+\f0\fs22  to each value of 
+\f2\fs18 my_sequence
+\f0\fs22 , one by one, and then executing the 
+\f2\fs18 print()
+\f0\fs22  function for each value:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 \cf2 >\cf0  \cf3 my_sequence = 1:4;\
+for (element in my_sequence)\
+   print("The square of " + element + " is " + element^2);
+\f3 \cf0 \
+
+\fs4 \
+
+\f2\fs18 "The square of 1 is 1"\
+"The square of 2 is 4"\
+"The square of 3 is 9"\
+"The square of 4 is 16"\
+
+\f3\fs4 \
+\pard\tx2340\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 This looping construct is called by various names in other languages, such as the \'93for each\'94 statement (PHP), the \'93range-based for\'94 (C++), \'93fast enumeration\'94 (Objective-C), and so forth.  It is different from the traditional 
+\f2\fs18 for
+\f0\fs22  loop of C and related languages, which entails an initializer expression, a condition expression, and an increment/decrement expression.  That type of 
+\f2\fs18 for
+\f0\fs22  loop does not exist in Eidos (following R); the iterator 
+\f2\fs18 for
+\f0\fs22  of R and Eidos is a more natural and efficient choice for vector-based languages.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.4  ITEM: 8. 
+\f1\fs18 next
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Sometimes you might wish to cut short the execution of a given iteration of a loop, skipping the rest of the work that would normally be done and proceeding directly to the next iteration.  This is the function of the 
+\f2\fs18 next
+\f0\fs22  statement.  The 
+\f2\fs18 next
+\f0\fs22  statement can be used within 
+\f2\fs18 for
+\f0\fs22 , 
+\f2\fs18 while
+\f0\fs22 , and 
+\f2\fs18 do\'96while
+\f0\fs22  loops.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.5  ITEM: 9. 
+\f1\fs18 break
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Often it is necessary to stop the execution of a loop altogether, not just to cut short the current iteration of the loop as 
+\f2\fs18 next
+\f0\fs22  does.  To achieve this \'96 to break out of a loop completely \'96 use the 
+\f2\fs18 break
+\f0\fs22  statement.  The 
+\f2\fs18 break
+\f0\fs22  statement can be used within 
+\f2\fs18 for
+\f0\fs22 , 
+\f2\fs18 while
+\f0\fs22 , and 
+\f2\fs18 do\'96while
+\f0\fs22  loops.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.6  ITEM: 10. 
+\f1\fs18 return
+\f0\fs22  statements\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 The 
+\f2\fs18 return
+\f0\fs22  statement is much more specialized, and less useful, than it is in most languages; it is a very special case in Eidos.  The reason is that the 
+\f2\fs18 return
+\f0\fs22  statement returns a value from a block of code, as in other languages such as C and R \'96 but in most circumstances, returned values are unimportant in Eidos since it is not possible to define your own Eidos functions.  A 
+\f2\fs18 return
+\f0\fs22  is useful, then, mostly when the Context within which you\'92re using Eidos uses the returned value.  When using Eidos in SLiM, for example, SLiM uses the value returned by Eidos scripts such as 
+\f2\fs18 fitness()
+\f0\fs22  callbacks and 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks, making 
+\f2\fs18 return
+\f0\fs22  very useful in that Context (see SLiM\'92s manual for details).  Apart from such Context-dependent uses, 
+\f2\fs18 return
+\f0\fs22  is mainly useful as a way to break out of nested loops regardless of the depth of nesting.\
+The 
+\f2\fs18 return
+\f0\fs22  statement is very simple: the keyword 
+\f2\fs18 return
+\f0\fs22 , and then, optionally, an expression.  When the 
+\f2\fs18 return
+\f0\fs22  statement is executed, the expression is evaluated and its value is immediately returned as the value of the largest enclosing statement.  The 
+\f2\fs18 return
+\f0\fs22  statement therefore breaks out of all conditionals, loops, and compound statements, regardless of the depth of nesting.\
+In some circumstances a 
+\f2\fs18 return
+\f0\fs22  statement is not necessary, because compound statements evaluate to the value of the last statement evaluated within them, and 
+\f2\fs18 if
+\f0\fs22  statements behave similarly; as in R, therefore, a 
+\f2\fs18 return
+\f0\fs22  statement can often be omitted.  However, using 
+\f2\fs18 return
+\f0\fs22  makes the intentions of the programmer more explicit, and so its use is encouraged.\
+If the expression for the 
+\f2\fs18 return
+\f0\fs22  statement is omitted, the return value used is 
+\f2\fs18 NULL
+\f0\fs22 .  In situations where the return value will not be used, such as Eidos events in SLiM, the return value should be omitted to make the intent of the code clear.\
+and 
+\f2\fs18 do\'96while
+\f0\fs22  loops.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.6.7  ITEM: 11. comments with 
+\f1\fs18 //
+\f0\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Comments are not a statement type, really.  Technically, they are actually a type of whitespace; comments in Eidos code are completely ignored and have no effect whatsoever on the results of the execution of code, just like other kinds of whitespace in most respects.  Comments begin with 
+\f2\fs18 //
+\f0\fs22  and then may consist of any text whatsoever, up to the end of the current line of code.  A comment may occur by itself on a line, or it may follow other Eidos code.  So for example, you could write:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f2\fs18 \cf0 1 + 1 == 2;    // this is true\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Comments are never required in Eidos, but using them to annotate your code is nevertheless a very good idea, both so that you remember what your intentions were when you come back to the code weeks or months later, and so that others who might need to understand or maintain your code have a helping hand.\
+}

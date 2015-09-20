@@ -89,7 +89,8 @@
 		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:@"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"4. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpStatements" underHeading:@"4. Eidos Statements" functions:nullptr methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"5. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
 		
 		//NSLog(@"topicRoot == %@", topicRoot);
 	}

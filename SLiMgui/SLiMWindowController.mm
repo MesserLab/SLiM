@@ -1659,8 +1659,8 @@
 		
 		SLiMSim signature_sim(infile);
 		
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"3. SLiM Functions" functions:signature_sim.InjectedFunctionSignatures() methods:nullptr properties:nullptr];
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"4. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
+		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.InjectedFunctionSignatures() methods:nullptr properties:nullptr];
+		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
 		
 		// Run startup tests, if enabled
 		RunSLiMTests();

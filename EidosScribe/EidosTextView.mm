@@ -581,6 +581,8 @@ using std::string;
 			else if ([trimmedWord isEqualToString:@","])	trimmedWord = @"calls: operator ()";
 			else if ([trimmedWord isEqualToString:@"["])	trimmedWord = @"operator []";
 			else if ([trimmedWord isEqualToString:@"]"])	trimmedWord = @"operator []";
+			else if ([trimmedWord isEqualToString:@"{"])	trimmedWord = @"compound statements";
+			else if ([trimmedWord isEqualToString:@"}"])	trimmedWord = @"compound statements";
 			else if ([trimmedWord isEqualToString:@"."])	trimmedWord = @"operator .";
 			else if ([trimmedWord isEqualToString:@"="])	trimmedWord = @"operator =";
 			else if ([trimmedWord isEqualToString:@"+"])	trimmedWord = @"Arithmetic operators";
@@ -600,6 +602,12 @@ using std::string;
 			else if ([trimmedWord isEqualToString:@">"])	trimmedWord = @"Comparative operators";
 			else if ([trimmedWord isEqualToString:@"'"])	trimmedWord = @"type string";
 			else if ([trimmedWord isEqualToString:@"\""])	trimmedWord = @"type string";
+			else if ([trimmedWord isEqualToString:@";"])	trimmedWord = @"null statements";
+			else if ([trimmedWord isEqualToString:@"//"])	trimmedWord = @"comments";
+			else if ([trimmedWord isEqualToString:@"if"])	trimmedWord = @"if and if–else statements";
+			else if ([trimmedWord isEqualToString:@"else"])	trimmedWord = @"if and if–else statements";
+			else if ([trimmedWord isEqualToString:@"for"])	trimmedWord = @"for statements";
+			else if ([trimmedWord isEqualToString:@"in"])	trimmedWord = @"for statements";
 			
 			// And then look up the hit using EidosHelpController
 			if ([trimmedWord length] != 0)
