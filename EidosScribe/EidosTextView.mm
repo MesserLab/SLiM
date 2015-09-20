@@ -572,12 +572,36 @@ using std::string;
 		{
 			NSRange wordRange = [self selectionRangeForProposedRange:NSMakeRange(charIndex, 1) granularity:NSSelectByWord];
 			NSString *word = [[self string] substringWithRange:wordRange];
-			NSMutableCharacterSet *unhelpfulCharacterSet = [[[NSCharacterSet whitespaceAndNewlineCharacterSet] mutableCopy] autorelease];
+			NSString *trimmedWord = [word stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 			
-			[unhelpfulCharacterSet addCharactersInString:@"()+-[]{}!%^*/='\";:<>,.&|"];	// presently no help on operators and such
+			// A few substitutions to improve the search
+			if ([trimmedWord isEqualToString:@":"])			trimmedWord = @"operator :";
+			else if ([trimmedWord isEqualToString:@"("])	trimmedWord = @"operator ()";
+			else if ([trimmedWord isEqualToString:@")"])	trimmedWord = @"operator ()";
+			else if ([trimmedWord isEqualToString:@","])	trimmedWord = @"calls: operator ()";
+			else if ([trimmedWord isEqualToString:@"["])	trimmedWord = @"operator []";
+			else if ([trimmedWord isEqualToString:@"]"])	trimmedWord = @"operator []";
+			else if ([trimmedWord isEqualToString:@"."])	trimmedWord = @"operator .";
+			else if ([trimmedWord isEqualToString:@"="])	trimmedWord = @"operator =";
+			else if ([trimmedWord isEqualToString:@"+"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"-"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"*"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"/"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"%"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"^"])	trimmedWord = @"Arithmetic operators";
+			else if ([trimmedWord isEqualToString:@"|"])	trimmedWord = @"Logical operators";
+			else if ([trimmedWord isEqualToString:@"&"])	trimmedWord = @"Logical operators";
+			else if ([trimmedWord isEqualToString:@"!"])	trimmedWord = @"Logical operators";
+			else if ([trimmedWord isEqualToString:@"=="])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@"!="])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@"<="])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@">="])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@"<"])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@">"])	trimmedWord = @"Comparative operators";
+			else if ([trimmedWord isEqualToString:@"'"])	trimmedWord = @"type string";
+			else if ([trimmedWord isEqualToString:@"\""])	trimmedWord = @"type string";
 			
-			NSString *trimmedWord = [word stringByTrimmingCharactersInSet:unhelpfulCharacterSet];
-			
+			// And then look up the hit using EidosHelpController
 			if ([trimmedWord length] != 0)
 			{
 				[self setSelectedRange:wordRange];
@@ -1827,12 +1851,41 @@ using std::string;
 	// or location < 0, so in the code below we can assume that location indicates a valid character position.
 	NSRange superRange = [super doubleClickAtIndex:location];
 	NSString *string = [self string];
+	NSUInteger stringLength = [string length];
+	unichar uch = [string characterAtIndex:location];
 	
 	// If the user has actually double-clicked a period, we want to just return the range of the period.
-	if ([string characterAtIndex:location] == '.')
+	if (uch == '.')
 		return NSMakeRange(location, 1);
 	
-	// The case where super's behavior is wrong involves the dot operator; x.y should not be considered a word.
+	// Two-character tokens should be considered words, so look for those and fix as needed
+	if (location < stringLength - 1)
+	{
+		// we have another character following us, so let's get it and check for cases
+		unichar uch_after = [string characterAtIndex:location + 1];
+		
+		if (((uch == '/') && (uch_after == '/')) ||
+			((uch == '=') && (uch_after == '=')) ||
+			((uch == '<') && (uch_after == '=')) ||
+			((uch == '>') && (uch_after == '=')) ||
+			((uch == '!') && (uch_after == '=')))
+			return NSMakeRange(location, 2);
+	}
+	
+	if (location > 0)
+	{
+		// we have another character preceding us, so let's get it and check for cases
+		unichar uch_before = [string characterAtIndex:location - 1];
+		
+		if (((uch_before == '/') && (uch == '/')) ||
+			((uch_before == '=') && (uch == '=')) ||
+			((uch_before == '<') && (uch == '=')) ||
+			((uch_before == '>') && (uch == '=')) ||
+			((uch_before == '!') && (uch == '=')))
+			return NSMakeRange(location - 1, 2);
+	}
+	
+	// Another case where super's behavior is wrong involves the dot operator; x.y should not be considered a word.
 	// So we check for a period before or after the anchor position, and trim away the periods and everything
 	// past them on both sides.  This will correctly handle longer sequences like foo.bar.baz.is.a.test.
 	NSRange candidateRangeBeforeLocation = NSMakeRange(superRange.location, location - superRange.location);
