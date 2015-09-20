@@ -1,0 +1,682 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\froman\fcharset0 TimesNewRomanPSMT;
+\f3\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i\fs22 \cf0 2.2.2  ITEM: 1. Sequences: operator 
+\f1\fs18 :
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 The 
+\f3\fs18 :
+\f0\fs22  operator is used to construct vectors with (usually) more than one value.  In particular, it is used to construct 
+\i sequences
+\i0 , and so it is called the sequence operator.  Given operands 
+\f3\fs18 x
+\f0\fs22  and 
+\f3\fs18 y
+\f0\fs22  (standing for any two numbers), the sequence operator starts at 
+\f3\fs18 x
+\f0\fs22  and counts, by 
+\f3\fs18 1
+\f0\fs22  (or 
+\f3\fs18 -1
+\f0\fs22 , as appropriate) toward 
+\f3\fs18 y
+\f0\fs22  without passing it.  It yields a vector containing all of the numbers it encounters along the way.\
+Note that the sequence operator can count down as well as up, that it can handle 
+\f3\fs18 float
+\f0\fs22  as well as 
+\f3\fs18 integer
+\f0\fs22  operands, and that negative numbers are allowed.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.2.4  ITEM: 2. Subsets: operator 
+\f1\fs18 []
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 The 
+\f3\fs18 []
+\f0\fs22  operator selects a subset of the vector upon which it operates; it is thus often called the subset operator.  It can work in one of two different ways, depending upon whether it is given an 
+\f3\fs18 integer
+\f0\fs22  vector of indices, or is given a 
+\f3\fs18 logical
+\f0\fs22  vector of selectors.\
+First of all, a subset can be selected with an 
+\f3\fs18 integer
+\f0\fs22  vector of indices.  These indices are zero-based, like C but unlike R; the first value in a vector is thus at index 
+\f3\fs18 0
+\f0\fs22 , not index 
+\f3\fs18 1
+\f0\fs22 .  Note that a given index can be used multiple times.\
+Second, a subset can be selected with a 
+\f3\fs18 logical
+\f0\fs22  vector of selectors.  In this case, the 
+\f3\fs18 logical
+\f0\fs22  vector must be the same length as the vector being selected; each 
+\f3\fs18 logical
+\f0\fs22  value indicates whether the corresponding vector value should be selected (
+\f3\fs18 T
+\f0\fs22 ) or not (
+\f3\fs18 F
+\f0\fs22 ).\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.3.1  ITEM: 3. Arithmetic operators: 
+\f1\fs18 +
+\f0\fs22 , 
+\f1\fs18 -
+\f0\fs22 , 
+\f1\fs18 *
+\f0\fs22 , 
+\f1\fs18 /
+\f0\fs22 , 
+\f1\fs18 %
+\f0\fs22 , 
+\f1\fs18 ^
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 These are the standard operators of arithmetic; 
+\f3\fs18 +
+\f0\fs22  performs addition, 
+\f3\fs18 -
+\f0\fs22  performs subtraction, 
+\f3\fs18 *
+\f0\fs22  performs multiplication, 
+\f3\fs18 /
+\f0\fs22  performs division, 
+\f3\fs18 %
+\f0\fs22  performs a modulo operation (more on that below), and 
+\f3\fs18 ^
+\f0\fs22  performs exponentiation.  Not a great deal needs to be said about these operators, which behave according to the standard rules of mathematics.  They also follow the standard rules of \'93precedence\'94; exponentiation is the highest precedence, addition and subtraction are the lowest precedence, and the other three are in the middle, so 
+\f3\fs18 4^2+5*6^7
+\f0\fs22  is grouped as (
+\f3\fs18 4^3)+(5*(6^7))
+\f0\fs22 , as expected if you remember your grade-school math.\
+There are only a few minor twists to be discussed.  One is the meaning of the 
+\f3\fs18 %
+\f0\fs22  operator, which many people have not previously encountered.  This computes the \'93modulo\'94 from a division, which is the remainder left behind after division.  For example, 
+\f3\fs18 13%6
+\f0\fs22  is 
+\f3\fs18 1
+\f0\fs22 , because after 
+\f3\fs18 13
+\f0\fs22  is divided evenly by 
+\f3\fs18 6
+\f0\fs22  (taking care of 
+\f3\fs18 12
+\f0\fs22  of the 
+\f3\fs18 13
+\f0\fs22 ), 
+\f3\fs18 1
+\f0\fs22  is left as a remainder.  Probably the most common use of 
+\f3\fs18 %
+\f0\fs22  is in determining whether a number is even or odd by looking at the result of a 
+\f3\fs18 %2
+\f0\fs22  operation; 
+\f3\fs18 5%2
+\f0\fs22  is 
+\f3\fs18 1
+\f0\fs22 , indicating that 
+\f3\fs18 5
+\f0\fs22  is odd, whereas 
+\f3\fs18 6%2
+\f0\fs22  is 
+\f3\fs18 0
+\f0\fs22 , indicating that 
+\f3\fs18 6
+\f0\fs22  is even.\
+Another twist is that both the division and modulo operators in Eidos operate on 
+\f3\fs18 float
+\f0\fs22  values \'96 even if 
+\f3\fs18 integer
+\f0\fs22  values are passed \'96 and return 
+\f3\fs18 float
+\f0\fs22  results.  (For those who care, division is performed internally using the C++ division operator 
+\f3\fs18 /
+\f0\fs22 , and modulo is performed using the C++ 
+\f3\fs18 fmod()
+\f0\fs22  function).  This policy was chosen because the definitions of integer division and modulo vary widely among programming languages and are contested and unclear (see Bantchev 2006, http://www.math.bas.bg/bantchev/articles/divmod.pdf).  If you are sure that you want 
+\f3\fs18 integer
+\f0\fs22  division or modulo, and understand the issues involved, Eidos provides the functions 
+\f3\fs18 integerDiv()
+\f0\fs22  and 
+\f3\fs18 integerMod()
+\f0\fs22  for this purpose.  Besides side-stepping the vague definitions of the 
+\f3\fs18 integer
+\f0\fs22  operator, this policy also avoids rather common bugs involving the accidental use of 
+\f3\fs18 integer
+\f0\fs22  division when 
+\f3\fs18 float
+\f0\fs22  division was desired \'96 a much more common occurrence than 
+\i vice versa
+\f2\i0 .\
+
+\f0 A third twist is that 
+\f3\fs18 +
+\f0\fs22  and 
+\f3\fs18 -
+\f0\fs22  can both act as \'93unary\'94 operators, meaning that they are happy to take just a single operand.  This is standard math notation, as in the expressions 
+\f3\fs18 -6+3
+\f0\fs22  or 
+\f3\fs18 7*-5
+\f0\fs22 ; but it can sometimes look a bit strange, as in the expression 
+\f3\fs18 5--6
+\f0\fs22  (more easily read as 
+\f3\fs18 5 - -6
+\f0\fs22 ).\
+A fourth twist is that the 
+\f3\fs18 ^
+\f0\fs22  operator is right-associative, whereas all other binary Eidos operators are left-associative.  For example, 
+\f3\fs18 2-3-4
+\f0\fs22  is evaluated as 
+\f3\fs18 (2-3)-4
+\f0\fs22 , not as 
+\f3\fs18 2-(3-4)
+\f0\fs22 ; this is left-associativity.  However, 
+\f3\fs18 2^3^4
+\f0\fs22  is evaluated as 
+\f3\fs18 2^(3^4)
+\f0\fs22 , not 
+\f3\fs18 (2^3)^4
+\f0\fs22 ; this is right-associativity.  Since this follows the standard associativity for these operators, in both mathematics and most other programming languages, the result should generally be intuitive, but if you have never explicitly thought about associativity before you might be taken by surprise.\
+A fifth twist is that the arithmetic operators and functions in Eidos are guaranteed to handle overflows safely.  The 
+\f3\fs18 float
+\f0\fs22  type is safe because it uses IEEE-standard arithmetic, including the use of 
+\f3\fs18 INF
+\f0\fs22  to indicate infinities and the use of 
+\f3\fs18 NAN
+\f0\fs22  to represent not-a-number results; this is the same as in most languages.  In Eidos, however, the 
+\f3\fs18 integer
+\f0\fs22  type is also safe, unlike in C, C++, and many other languages.  All operations on 
+\f3\fs18 integer
+\f0\fs22  values in Eidos either (1) will always produce 
+\f3\fs18 float
+\f0\fs22  results, as the 
+\f3\fs18 /
+\f0\fs22  and 
+\f3\fs18 %
+\f0\fs22  operators do; (2) will produce 
+\f3\fs18 float
+\f0\fs22  results when needed to avoid overflow, as the 
+\f3\fs18 product()
+\f0\fs22  and 
+\f3\fs18 sum()
+\f0\fs22  functions do; or (3) will raise an error condition on an overflow, as the Eidos operators 
+\f3\fs18 +
+\f0\fs22 , 
+\f3\fs18 -
+\f0\fs22 , and 
+\f3\fs18 *
+\f0\fs22  do, as well as the 
+\f3\fs18 abs()
+\f0\fs22  and 
+\f3\fs18 asInteger()
+\f0\fs22  functions.  This means that the 
+\f3\fs18 integer
+\f0\fs22  type in Eidos can be used without fear that overflows might cause results to be incorrect.\
+The final twist is really a reminder: 
+\i everything is a vector
+\i0 .  These operators are designed to do something smart, when possible, with vectors of any length, not just with single-valued vectors as shown above.  In general, the operands of these arithmetic operators must either be the same length (in which case the elements in the operand vectors are paired off and the operation is performed between each pair), or one or the other vector must be of length 
+\f3\fs18 1
+\f0\fs22  (in which case the operation is performed using that single value, paired with each value in the other operand vector).\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.3.2  ITEM: 4. Logical operators: 
+\f1\fs18 |
+\f0\fs22 , 
+\f1\fs18 &
+\f0\fs22 , 
+\f1\fs18 !
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 The 
+\f3\fs18 |
+\f0\fs22 , 
+\f3\fs18 &
+\f0\fs22 , and 
+\f3\fs18 !
+\f0\fs22  operators act upon 
+\f3\fs18 logical
+\f0\fs22  values.  If they are given operands of other types, those operands will be \'93coerced\'94 to 
+\f3\fs18 logical
+\f0\fs22  values following the rule mentioned above: zero is 
+\f3\fs18 F
+\f0\fs22 , non-zero is 
+\f3\fs18 T
+\f0\fs22  (and for 
+\f3\fs18 string
+\f0\fs22  operands, a 
+\f3\fs18 string
+\f0\fs22  that is zero characters long \'96 the empty string, 
+\f3\fs18 ""
+\f0\fs22  \'96 is considered 
+\f3\fs18 F
+\f0\fs22 , while all other 
+\f3\fs18 string
+\f0\fs22  values are considered 
+\f3\fs18 T
+\f0\fs22 ).\
+As to what they do: 
+\f3\fs18 |
+\f0\fs22  is the \'93or\'94 operation, 
+\f3\fs18 &
+\f0\fs22  is the \'93and\'94 operation, and 
+\f3\fs18 !
+\f0\fs22  is the \'93not\'94 operation.  As in common parlance, \'93or\'94 is 
+\f3\fs18 T
+\f0\fs22  if either of its operands is 
+\f3\fs18 T
+\f0\fs22 , whereas \'93and\'94 is 
+\f3\fs18 T
+\f0\fs22  only if both of its operands are 
+\f3\fs18 T
+\f0\fs22 .  The \'93not\'94 operator is unary (it takes only one operand), and it negates its operand; 
+\f3\fs18 T
+\f0\fs22  becomes 
+\f3\fs18 F
+\f0\fs22 , 
+\f3\fs18 F
+\f0\fs22  becomes 
+\f3\fs18 T
+\f0\fs22 .  As with the arithmetic operators, these operators work with vector operands, too \'96 either matching up values pairwise between the two operands, or applying a single value across a multivalued operand.\
+Those familiar with programming might wish to know that the 
+\f3\fs18 |
+\f0\fs22  and 
+\f3\fs18 &
+\f0\fs22  operators do not \'93short-circuit\'94 \'96 they can\'92t, because they are vector operators. If the 
+\f3\fs18 &
+\f0\fs22  operator first sees an operand that evaluates to 
+\f3\fs18 F
+\f0\fs22 , for example, it knows that it will produce 
+\f3\fs18 F
+\f0\fs22  value(s) as a result; but it does not know what size result vector to make. If a later operand is a multivalued vector, the 
+\f3\fs18 &
+\f0\fs22  operator will produce a result vector of matching length; if all later operands are also length 
+\f3\fs18 1
+\f0\fs22 , however, 
+\f3\fs18 &
+\f0\fs22  will produce a result vector of length 
+\f3\fs18 1
+\f0\fs22 .  To know this for sure (and to make sure that there are no illegal length mismatches between later operands), it must evaluate all of its operands; it cannot short-circuit.  Similarly for the 
+\f3\fs18 |
+\f0\fs22  operator.\
+These semantics match those in R, for its 
+\f3\fs18 |
+\f0\fs22  and 
+\f3\fs18 &
+\f0\fs22  operators, but they might seem a little strange to those used to C and other scalar-based languages.  For those used to R, on the other hand, it should be noted here that Eidos does not support the 
+\f3\fs18 &&
+\f0\fs22  and 
+\f3\fs18 ||
+\f0\fs22  operators of R, for reasons of simplicity; it is safer to use the 
+\f3\fs18 any()
+\f0\fs22  or 
+\f3\fs18 all()
+\f0\fs22  functions described in section 3 to simplify multivalued 
+\f3\fs18 logical
+\f0\fs22  vectors before using 
+\f3\fs18 &
+\f0\fs22  or 
+\f3\fs18 |
+\f2\fs22 .
+\f0   If this is gibberish to you, it is not important; the point here is only to prevent confusion among users accustomed to R.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.3.3  ITEM: 5. Comparative operators: 
+\f1\fs18 ==
+\f0\fs22 , 
+\f1\fs18 !=
+\f0\fs22 , 
+\f1\fs18 <
+\f0\fs22 , 
+\f1\fs18 <=
+\f0\fs22 , 
+\f1\fs18 >
+\f0\fs22 , 
+\f1\fs18 >=
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 These operators compare their left and right operand.  The operators test for equality (
+\f3\fs18 ==
+\f0\fs22 ), inequality (
+\f3\fs18 !=
+\f0\fs22 ), less-than (
+\f3\fs18 <
+\f0\fs22 ), less-than-or-equality (
+\f3\fs18 <=
+\f0\fs22 ), greater-than (
+\f3\fs18 >
+\f0\fs22 ), and greater-than-or-equality (
+\f3\fs18 >=
+\f0\fs22 ) relationships.  As seen above with the arithmetic and logical operators, this can work in two different ways: if the operands are the same length, their elements are paired up and the comparison is done between each pair, whereas if the operands are not the same length then one operand must be of length one, and its value is compared against all of the values of the other operand.\
+Regardless of the types of the operands, these operators all produce a 
+\f3\fs18 logical
+\f0\fs22  result vector.  If the operands are of different types, promotion will be used to coerce them to be the same type (i.e. 
+\f3\fs18 logical
+\f0\fs22  will be coerced to 
+\f3\fs18 integer
+\f0\fs22 , 
+\f3\fs18 integer
+\f0\fs22  to 
+\f3\fs18 float
+\f0\fs22 , and 
+\f3\fs18 float
+\f0\fs22  to 
+\f3\fs18 string
+\f0\fs22 ).  Note that this is often not what you want!  You might not want the automatic type promotion that makes 
+\f3\fs18 5=="5"
+\f0\fs22  evaluate as 
+\f3\fs18 T
+\f0\fs22 , or the vectorized comparison that makes 
+\f3\fs18 1:5==4
+\f0\fs22  evaluate as something other than simply 
+\f3\fs18 F
+\f0\fs22 .  You might really want to ask: are two values 
+\i identical?
+\i0   For such purposes, the 
+\f3\fs18 identical()
+\f0\fs22  function is a better choice.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.3.4  ITEM: 6. String concatenation: operator 
+\f1\fs18 +
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 The 
+\f3\fs18 +
+\f0\fs22  operator is often used as an arithmetic operator, but it can also act as a concatenation operator for string operands. Concatenation is pasting together; the 
+\f3\fs18 +
+\f0\fs22  operator simply pastes its string operands together, end to end.\
+In fact, this works with non-
+\f3\fs18 string
+\f0\fs22  operands too, as long as a 
+\f3\fs18 string
+\f0\fs22  operand is nearby; the interpretation of 
+\f3\fs18 +
+\f0\fs22  as a concatenation operator is preferred by Eidos, and wins out over its arithmetic interpretation, as long as a 
+\f3\fs18 string
+\f0\fs22  operand is present to suggest doing so. The other non-
+\f3\fs18 string
+\f0\fs22  operands will be coerced to 
+\f3\fs18 string
+\f0\fs22 .  However, this does not work retroactively; if Eidos has already done arithmetic addition on some operands, it will not go back and perform concatenation instead.  To force concatenation in such situations, you can simply begin the expression with an empty string, 
+\f3\fs18 ""
+\f0\fs22 .\
+The concatenation operator also works with vectors, as usual.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.4.1  ITEM: 7. Assignment: operator 
+\f1\fs18 =\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0\fs22 \cf0 The results of expressions can be saved in variables.  As in many languages, this is done with the 
+\f3\fs18 =
+\f0\fs22  operator, often called the assignment operator.\
+The assignment operator, 
+\f3\fs18 =
+\f0\fs22 , is different from the equality comparison operator, 
+\f3\fs18 ==
+\f0\fs22 .  In many languages, confusing the two can cause bugs that are hard to find; in C, for example, it is legal to write:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f3\fs18 \cf0 if (x=y) ...\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 In C, this would assign the value of 
+\f3\fs18 y
+\f0\fs22  to 
+\f3\fs18 x
+\f0\fs22 , and then the expression 
+\f3\fs18 x=y
+\f0\fs22  would evaluate to the value that was assigned, and that value would be tested by the 
+\f3\fs18 if
+\f0\fs22  statement.  This can be useful as a way of writing extremely compact code; but it is also a very common source of bugs, especially for inexperienced programmers.  In Eidos using assignment in this way is simply illegal; assignment is allowed only in the context of a statement like 
+\f3\fs18 x=y;
+\f0\fs22  to prevent these issues.  (This point is mostly of interest to experienced programmers, so if it is unclear, don\'92t worry.)\
+Variable names are fairly unrestricted.  They may begin with a letter (uppercase or lowercase) or an underscore, and subsequently may contain all of those characters, and numerical digits as well.  So 
+\f3\fs18 x_23
+\f0\fs22 , 
+\f3\fs18 fooBar
+\f0\fs22 , and 
+\f3\fs18 MyVariable23
+\f0\fs22  are all legal variable names (although not good ones \'96 good variable names explain what the variable represents, such as 
+\f3\fs18 selection_coeff
+\f0\fs22 ).  However, 
+\f3\fs18 4by4
+\f0\fs22  would not be a legal variable name, since it begins with a digit.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.3.5  ITEM: 8. Grouping: operator 
+\f1\fs18 ()
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 All of the discussion above involved simple expressions that allowed the standard precedence rules of mathematics to determine the order of operations; 
+\f3\fs18 1+2*3
+\f0\fs22  is evaluated as 
+\f3\fs18 1+(2*3)
+\f0\fs22  rather than 
+\f3\fs18 (1+2)*3
+\f0\fs22  because the 
+\f3\fs18 *
+\f0\fs22  operator is higher precedence than the 
+\f3\fs18 +
+\f0\fs22  operator.  For the record, here is the full precedence hierarchy for operators in Eidos, from highest to lowest precedence:\
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb40\sa40
+
+\f3\fs18 \cf0 []
+\f0\fs22 , 
+\f3\fs18 ()
+\f0\fs22 , 
+\f3\fs18 .
+\f2\fs22 	
+\f0 subscript, function call, and member access\
+
+\f3\fs18 +
+\f0\fs22 , 
+\f3\fs18 -
+\f0\fs22 , 
+\f3\fs18 !
+\f2\fs22 	
+\f0 unary plus, unary minus, logical (Boolean) negation 
+\i (right-associative)
+\f2\i0 \
+
+\f3\fs18 ^
+\f2\fs22 	
+\f0 exponentiation 
+\i (right-associative)
+\f2\i0 \
+
+\f3\fs18 :
+\f2\fs22 	
+\f0 sequence construction\
+
+\f3\fs18 *
+\f0\fs22 , 
+\f3\fs18 /
+\f0\fs22 , 
+\f3\fs18 %
+\f2\fs22 	
+\f0 multiplication, division, and modulo\
+
+\f3\fs18 +
+\f0\fs22 , 
+\f3\fs18 -
+\f2\fs22 	
+\f0 addition and subtraction\
+
+\f3\fs18 <
+\f0\fs22 , 
+\f3\fs18 >
+\f0\fs22 , 
+\f3\fs18 <=
+\f0\fs22 , 
+\f3\fs18 >=
+\f2\fs22 	
+\f0 less-than, greater-than, less-than-or-equality, greater-than-or-equality\
+
+\f3\fs18 ==
+\f0\fs22 , 
+\f3\fs18 !=
+\f2\fs22 	
+\f0 equality and inequality\
+
+\f3\fs18 &
+\f2\fs22 	
+\f0 logical (Boolean) and\
+
+\f3\fs18 |
+\f2\fs22 	
+\f0 logical (Boolean) or\
+
+\f3\fs18 =
+\f2\fs22 	
+\f0 assignment\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+\cf0 Operators at the same precedence level are generally evaluated in the order in which they are encountered.  Put more technically, Eidos operators are generally left-associative; 
+\f3\fs18 3*5%2
+\f0\fs22  evaluates as 
+\f3\fs18 (3*5)%2
+\f0\fs22 , which is 
+\f3\fs18 1
+\f2\fs22 ,
+\f0  not as 
+\f3\fs18 3*(5%2)
+\f0\fs22 , which is 
+\f3\fs18 3
+\f0\fs22 .  The only binary operator in Eidos that is an exception to this rule is the 
+\f3\fs18 ^
+\f0\fs22  operator, which (following standard mathematical convention) is right-associative; 
+\f3\fs18 2^3^4
+\f0\fs22  is evaluated as 
+\f3\fs18 2^(3^4)
+\f0\fs22 , not 
+\f3\fs18 (2^3)^4
+\f0\fs22 .  The unary 
+\f3\fs18 +
+\f0\fs22 , unary 
+\f3\fs18 -
+\f0\fs22 , and 
+\f3\fs18 !
+\f0\fs22  operators are also technically right-associative; for unary operators this is of little practical import, however (it basically just implies that the unary operators must occur to the left of their operand; you write 
+\f3\fs18 -x
+\f0\fs22 , not 
+\f3\fs18 x-
+\f0\fs22 , to express the negation of 
+\f3\fs18 x
+\f0\fs22 ).\
+In any case, parentheses can be used to modify the order of operations, just as in math.  This works just as you would expect.\
+Note that this use of parentheses is distinct from the 
+\f3\fs18 ()
+\f0\fs22  operator as used in making function calls.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.7.1  ITEM: 9. Function calls: operator 
+\f1\fs18 ()
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 A function is simply a block of code which has been given a name.  Using that name, you can then cause the execution of that block of code whenever you wish.  That is the first major purpose of functions: the 
+\i reuseability
+\i0  of a useful chunk of code.  A function can be supplied with the particular variables upon which it should act, called the function\'92s \'93parameters\'94 or \'93arguments\'94; you can execute a function with the sequence 
+\f3\fs18 5:15
+\f0\fs22  as an argument in one place, and with the string 
+\f3\fs18 "foo"
+\f0\fs22  as an argument in another.  That is the second major purpose of functions: the 
+\i generalization
+\i0  of a useful chunk of code to easily act on different inputs.\
+In Eidos, it is not possible for you to define your own functions (but see 
+\f3\fs18 executeLambda()
+\f0\fs22 ).  This limitation is a major design simplification that made Eidos substantially easier to implement (and to document).  Since the tasks to which Eidos will be put are expected to be fairly simple, it is not expected to be an important limitation for most users.  A fairly large set of built-in functions are supplied for your use, and the hope is that they will suffice for most purposes.\
+Functions are called using the 
+\f3\fs18 ()
+\f0\fs22  operator.  Function arguments go between the parentheses of the 
+\f3\fs18 ()
+\f0\fs22  operator, separated by commas.  Most functions expect an exact number of arguments; many functions, in fact, are even fussier than that, requiring each parameter to be of a particular type, a particular size, or both.  But some, such as 
+\f3\fs18 c()
+\f0\fs22 , are more flexible.\
+Many functions provide a return value.  In other words, a function call like 
+\f3\fs18 c(5,6)
+\f0\fs22  can evaluate to a particular value, just as an expression like 
+\f3\fs18 5+6
+\f0\fs22  evaluates to a particular value.  The result from a function call can be used in an expression or assigned to a variable, as you might expect.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.8.3  ITEM: 10. Properties: operator 
+\f1\fs18 .
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\i0 \cf0 Objects encapsulate behaviors as well as elements.  One type of behavior is called a 
+\i property
+\i0 .  A property is a simple attribute of each element in an 
+\f3\fs18 object
+\f0\fs22 .  Properties can be read using the member-access operator, written as 
+\f3\fs18 .
+\f0\fs22  (a period).  The name of a particular property can be used with 
+\f3\fs18 .
+\f0\fs22  to get that property\'92s value.  Operations on 
+\f3\fs18 object
+\f0\fs22  are vectorized just as they are for all other types in Eidos; the result of the 
+\f3\fs18 .
+\f0\fs22  operator is a vector containing the value of the property for all of the elements of the 
+\f3\fs18 object
+\f0\fs22  operand.\
+You can also use the member-access operator to write new values to properties that are not read-only, using the 
+\f3\fs18 =
+\f0\fs22  operator to do the assignment into the property selected by the 
+\f3\fs18 .
+\f0\fs22  operator.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 2.8.6  ITEM: 11. Method calls: operator 
+\f1\fs18 ()
+\f0\fs22  and operator 
+\f1\fs18 .
+\f0\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Objects encapsulate behaviors as well as elements.  In addition to properties, another type of behavior is called a 
+\i method
+\i0 .  Methods are very much like functions; they are chunks of code that you can call to perform tasks.  However, each type of 
+\f3\fs18 object
+\f0\fs22  has its own particular methods \'96 unlike functions, which are defined globally.  Methods are more heavyweight than properties; they might involve quite a lot of computation, they might create a completely new 
+\f3\fs18 object
+\f0\fs22  as their result, and they might even modify the 
+\f3\fs18 object
+\f0\fs22  upon which they are called.  Not all methods are heavyweight in this sort of way, however; anything that one might want an 
+\f3\fs18 object
+\f0\fs22  to do, but that does not feel like a simple property of the 
+\f3\fs18 object
+\f0\fs22 , can be a method.  Methods can also take arguments, just like functions, and they can return whole vectors as their result, unlike (read-write) properties, which must refer to singleton values so that multiplexed assignment can work.  Methods are therefore much more powerful than properties.\
+Methods are called using the member-access operator, 
+\f3\fs18 .
+\f0\fs22 , with a syntax that looks a lot like accessing a property, but combined with the function call operator, 
+\f3\fs18 ()
+\f0\fs22 .  That might look like:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f3\fs18 \cf0 object.method()\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Naturally, method calls are also vector operations.  For a multi-element 
+\f3\fs18 object
+\f0\fs22 , a single method call will result in the method call being multiplexed out to all of the elements of the 
+\f3\fs18 object
+\f0\fs22 , and the results from all of those method calls will be concatenated together in the same way that the 
+\f3\fs18 c()
+\f0\fs22  function performs concatenation (including dropping of 
+\f3\fs18 NULL
+\f0\fs22 s and type promotion, potentially).\
+}

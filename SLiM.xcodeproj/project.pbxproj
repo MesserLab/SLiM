@@ -136,6 +136,10 @@
 		987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		98800DC41B7EDCB50046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
 		98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
+		9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
+		9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
+		9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
+		9892282F1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
 		989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
@@ -427,6 +431,8 @@
 		987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosConsoleWindowController.mm; sourceTree = "<group>"; };
 		98800DC21B7EDCB50046F5F9 /* slim_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_test.cpp; sourceTree = "<group>"; };
 		98800DC31B7EDCB50046F5F9 /* slim_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_test.h; sourceTree = "<group>"; };
+		9892282A1BAE279700429674 /* EidosHelpOperators.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpOperators.rtf; sourceTree = "<group>"; };
+		9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpTypes.rtf; sourceTree = "<group>"; };
 		989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_element.cpp; sourceTree = "<group>"; };
 		989790D91AF3D0E100C6B14C /* eidos_test_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test_element.h; sourceTree = "<group>"; };
 		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
@@ -748,6 +754,8 @@
 				982556671BA451D00054CB3F /* EidosHelpWindow.xib */,
 				9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */,
 				9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */,
+				9892282A1BAE279700429674 /* EidosHelpOperators.rtf */,
+				9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */,
 				98A4EC911B67C02000CD92FD /* buttons */,
 				985724B11AD478630047C223 /* Supporting Files */,
 			);
@@ -1025,8 +1033,10 @@
 				985724F11AD6D4060047C223 /* show_parse.pdf in Resources */,
 				985724E11AD4C3310047C223 /* execute_script.pdf in Resources */,
 				985724D61AD489AA0047C223 /* check_H.pdf in Resources */,
+				9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */,
 				985724E01AD4C3310047C223 /* execute_script_H.pdf in Resources */,
 				9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */,
+				9892282F1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */,
 				982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
 				98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */,
 				9825566A1BA451D00054CB3F /* EidosHelpWindow.xib in Resources */,
@@ -1085,7 +1095,9 @@
 				986926DC1AA1429D0000E138 /* GraphWindow.xib in Resources */,
 				98DE4C2B1B713F56004FDF5F /* ScriptMod_OutputFixedMutations.xib in Resources */,
 				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
+				9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
+				9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				987AD8801B2CBE580035D6C8 /* show_execution_H.pdf in Resources */,
 				982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */,
@@ -1746,6 +1758,7 @@
 				982556AF1BA8E77C0054CB3F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		9826634B1A3BABD300A0CBBF /* Build configuration list for PBXProject "SLiM" */ = {
 			isa = XCConfigurationList;

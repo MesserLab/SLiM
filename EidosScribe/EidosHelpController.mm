@@ -88,6 +88,8 @@
 		// Add Eidos topics; the only methods defined by Eidos come from EidosObjectClass
 		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:@"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"4. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
 		
 		//NSLog(@"topicRoot == %@", topicRoot);
 	}
@@ -144,26 +146,22 @@
 	//NSLog(@"attributed string for key %@ == %@", topicItemKey, topicItemAttrString);
 }
 
-// This is a helper method for addTopicsFromRTFFile:... that creates a new "topic dictionary" under which items will be placed, and finds the right parent
-// dictionary to insert it under.  This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
-- (NSMutableDictionary *)topicDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
+// This is a helper method for addTopicsFromRTFFile:... that finds the right parent dictionary to insert a given section index under.
+// This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
+- (NSMutableDictionary *)parentDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
 {
 	NSArray *sectionComponents = [sectionString componentsSeparatedByString:@"."];
 	NSUInteger sectionCount = [sectionComponents count];
-	NSMutableDictionary *newTopicDict = [NSMutableDictionary dictionary];
 	
 	if ([title hasSuffix:@" functions"])
 		title = [title substringToIndex:[title length] - [@" functions" length]];
 	
-	NSString *numberedTitle = [NSString stringWithFormat:@"%@. %@", [sectionComponents lastObject], title];
-	
 	if (sectionCount <= 1)
 	{
-		// With an empty section string, or a whole-number section like "3", we always make a new topic dict at the top level; we have no parent
-		[topLevelDict setObject:newTopicDict forKey:numberedTitle];
-		[topics setObject:newTopicDict forKey:sectionString];
+		// With an empty section string, or a whole-number section like "3", the parent is always the top level dict
+		return topLevelDict;
 	}
-	else if (sectionCount > 1)
+	else
 	{
 		// We have a section string like "3.1" or "3.1.2"; we want to look for a parent to add it to – like "3" or "3.1", respectively
 		NSArray *parentSectionComponents = [sectionComponents subarrayWithRange:NSMakeRange(0, [sectionComponents count] - 1)];
@@ -172,17 +170,32 @@
 		
 		if (parentTopicDict)
 		{
-			// Found a parent to add to, so add there
-			[parentTopicDict setObject:newTopicDict forKey:numberedTitle];
-			[topics setObject:newTopicDict forKey:sectionString];
+			// Found a parent to add to
+			return parentTopicDict;
 		}
 		else
 		{
-			// Couldn't find a parent to add to, so we add to the top level; this is not an error, because the doc RTF files are just inner subsections of the manual
-			[topLevelDict setObject:newTopicDict forKey:numberedTitle];
-			[topics setObject:newTopicDict forKey:sectionString];
+			// Couldn't find a parent to add to, so the parent is the top level
+			return topLevelDict;
 		}
 	}
+}
+
+// This is a helper method for addTopicsFromRTFFile:... that creates a new "topic dictionary" under which items will be placed, and finds the right parent
+// dictionary to insert it under.  This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
+- (NSMutableDictionary *)topicDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
+{
+	NSArray *sectionComponents = [sectionString componentsSeparatedByString:@"."];
+	NSMutableDictionary *newTopicDict = [NSMutableDictionary dictionary];
+	
+	if ([title hasSuffix:@" functions"])
+		title = [title substringToIndex:[title length] - [@" functions" length]];
+	
+	NSString *numberedTitle = [NSString stringWithFormat:@"%@. %@", [sectionComponents lastObject], title];
+	NSMutableDictionary *parentTopicDict = [self parentDictForSection:sectionString title:title currentTopicDicts:topics topDict:topLevelDict];
+	
+	[parentTopicDict setObject:newTopicDict forKey:numberedTitle];
+	[topics setObject:newTopicDict forKey:sectionString];
 	
 	return newTopicDict;
 }
@@ -226,9 +239,10 @@
 	
 	// Make regular expressions that we will use below
 	NSRegularExpression *topicHeaderRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  (.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];									// 2 captures
+	NSRegularExpression *topicGenericItemRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  ITEM: ((?:[0-9]+\\.? )?)(.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 3 captures
 	NSRegularExpression *topicFunctionRegex = [NSRegularExpression regularExpressionWithPattern:@"^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];						// 1 capture
 	NSRegularExpression *topicMethodRegex = [NSRegularExpression regularExpressionWithPattern:@"^([-–+])[  ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];			// 2 captures
-	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[  ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];		// 2 captures
+	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[  ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 2 captures
 	
 	// Scan through the file one line at a time, parsing out topic headers
 	NSString *topicFileString = [topicFileAttrString string];
@@ -256,10 +270,11 @@
 		lineStartIndex += (lineLength + 1);		// +1 to jump over the newline
 		
 		NSUInteger isTopicHeaderLine = ([topicHeaderRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
+		NSUInteger isTopicGenericItemLine = ([topicGenericItemRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
 		NSUInteger isTopicFunctionLine = ([topicFunctionRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
 		NSUInteger isTopicMethodLine = ([topicMethodRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
 		NSUInteger isTopicPropertyLine = ([topicPropertyRegex numberOfMatchesInString:line options:(NSMatchingOptions)0 range:lineRange] > 0);
-		NSUInteger matchCount = isTopicHeaderLine + isTopicFunctionLine + isTopicMethodLine + isTopicPropertyLine;
+		NSUInteger matchCount = isTopicHeaderLine + isTopicFunctionLine + isTopicMethodLine + isTopicPropertyLine;	// excludes isTopicGenericItemLine, which is a subtype of isTopicHeaderLine
 		
 		if (matchCount > 1)
 		{
@@ -271,9 +286,16 @@
 		{
 			if ([line length])
 			{
-				// This is a content line, to be appended to the current topic item's content
-				[topicItemAttrString replaceCharactersInRange:NSMakeRange([topicItemAttrString length], 0) withString:@"\n"];
-				[topicItemAttrString replaceCharactersInRange:NSMakeRange([topicItemAttrString length], 0) withAttributedString:lineAttrString];
+				if (topicItemAttrString)
+				{
+					// We have a topic, so this is a content line, to be appended to the current topic item's content
+					[topicItemAttrString replaceCharactersInRange:NSMakeRange([topicItemAttrString length], 0) withString:@"\n"];
+					[topicItemAttrString replaceCharactersInRange:NSMakeRange([topicItemAttrString length], 0) withAttributedString:lineAttrString];
+				}
+				else
+				{
+					NSLog(@"orphan line while reading for top level heading %@", topLevelHeading);
+				}
 			}
 		}
 		
@@ -300,7 +322,30 @@
 			
 			//NSLog(@"topic header section %@, title %@, line: %@", sectionString, titleString, line);
 			
-			currentTopicDict = [self topicDictForSection:sectionString title:titleString currentTopicDicts:topics topDict:topLevelDict];
+			if (isTopicGenericItemLine)
+			{
+				// This line plays two roles: it is both a header (with a period-separated section index at the beginning) and a
+				// topic item starter like function/method/property lines, with item content following it immediately.  First we
+				// use the header-line section string to find the right parent section to place it.
+				currentTopicDict = [self parentDictForSection:sectionString title:titleString currentTopicDicts:topics topDict:topLevelDict];
+				
+				// Then we extract the item name and create a new item under the parent dict.
+				NSTextCheckingResult *itemMatch = [topicGenericItemRegex firstMatchInString:line options:(NSMatchingOptions)0 range:lineRange];
+				NSRange itemOrderRange = [itemMatch rangeAtIndex:2];
+				NSString *itemOrder = [line substringWithRange:itemOrderRange];
+				NSRange itemNameRange = [itemMatch rangeAtIndex:3];
+				NSString *itemName = [line substringWithRange:itemNameRange];
+				
+				topicItemKey = [itemOrder stringByAppendingString:itemName];
+				topicItemAttrString = [[[lineAttrString attributedSubstringFromRange:itemNameRange] mutableCopy] autorelease];
+				
+				//NSLog(@"   parsed topic header item with currentTopicDict %p, itemName %@, itemNameRange %@", currentTopicDict, itemName, NSStringFromRange(itemNameRange));
+			}
+			else
+			{
+				// This header line is not also an item line, so we want to create a new expandable category and await items
+				currentTopicDict = [self topicDictForSection:sectionString title:titleString currentTopicDicts:topics topDict:topLevelDict];
+			}
 		}
 		else if (isTopicFunctionLine)
 		{
