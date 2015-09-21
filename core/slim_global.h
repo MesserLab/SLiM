@@ -318,7 +318,7 @@ extern const std::string gStr_setCloningRate;
 extern const std::string gStr_setSelfingRate;
 extern const std::string gStr_setSexRatio;
 extern const std::string gStr_setSubpopulationSize;
-extern const std::string gStr_fitness;
+extern const std::string gStr_cachedFitness;
 extern const std::string gStr_outputMSSample;
 extern const std::string gStr_outputSample;
 
@@ -361,6 +361,7 @@ extern const std::string gStr_g;
 extern const std::string gStr_e;
 extern const std::string gStr_event;
 extern const std::string gStr_initialize;
+extern const std::string gStr_fitness;
 extern const std::string gStr_mateChoice;
 extern const std::string gStr_modifyChild;
 
@@ -449,7 +450,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setSelfingRate,
 	gID_setSexRatio,
 	gID_setSubpopulationSize,
-	gID_fitness,
+	gID_cachedFitness,
 	gID_outputMSSample,
 	gID_outputSample,
 };

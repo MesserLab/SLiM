@@ -796,18 +796,18 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.individualCount = 10; stop(); }", 1, 286, "read-only property");
 	
 	// Test Subpopulation - (float)fitness(Ni indices)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after subpop construction)
-	SLiMAssertScriptStop(gen1_setup_p1 + "2 { if (identical(p1.fitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after child generation)
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0), 1.0)) stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.fitness(0:3), rep(1.0, 4))) stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.fitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.cachedFitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after subpop construction)
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 { if (identical(p1.cachedFitness(NULL), rep(1.0, 10))) stop(); }");				// legal (after child generation)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.cachedFitness(0), 1.0)) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.cachedFitness(0:3), rep(1.0, 4))) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.cachedFitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.cachedFitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.cachedFitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { identical(p1.cachedFitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(-1), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(10), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
 	
 	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1); stop(); }");

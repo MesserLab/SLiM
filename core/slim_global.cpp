@@ -179,7 +179,7 @@ const std::string gStr_setCloningRate = "setCloningRate";
 const std::string gStr_setSelfingRate = "setSelfingRate";
 const std::string gStr_setSexRatio = "setSexRatio";
 const std::string gStr_setSubpopulationSize = "setSubpopulationSize";
-const std::string gStr_fitness = "fitness";
+const std::string gStr_cachedFitness = "cachedFitness";
 const std::string gStr_outputMSSample = "outputMSSample";
 const std::string gStr_outputSample = "outputSample";
 
@@ -225,6 +225,7 @@ const std::string gStr_g = "g";
 const std::string gStr_e = "e";
 const std::string gStr_event = "event";
 const std::string gStr_initialize = "initialize";
+const std::string gStr_fitness = "fitness";
 const std::string gStr_mateChoice = "mateChoice";
 const std::string gStr_modifyChild = "modifyChild";
 
@@ -323,7 +324,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setSelfingRate, gID_setSelfingRate);
 		Eidos_RegisterStringForGlobalID(gStr_setSexRatio, gID_setSexRatio);
 		Eidos_RegisterStringForGlobalID(gStr_setSubpopulationSize, gID_setSubpopulationSize);
-		Eidos_RegisterStringForGlobalID(gStr_fitness, gID_fitness);
+		Eidos_RegisterStringForGlobalID(gStr_cachedFitness, gID_cachedFitness);
 		Eidos_RegisterStringForGlobalID(gStr_outputMSSample, gID_outputMSSample);
 		Eidos_RegisterStringForGlobalID(gStr_outputSample, gID_outputSample);
 	}

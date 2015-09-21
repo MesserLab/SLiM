@@ -1200,16 +1200,16 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			
 			//
-			//	*********************	- (float)fitness(Ni indices)
+			//	*********************	- (float)cachedFitness(Ni indices)
 			//
-#pragma mark -fitness()
+#pragma mark -cachedFitness()
 			
-		case gID_fitness:
+		case gID_cachedFitness:
 		{
 			if (child_generation_valid_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
 			if (cached_fitness_size_ == 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
 			
 			bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
 			slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(arg0_value->Count()));
@@ -1223,7 +1223,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 					index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 					
 					if (index >= cached_fitness_size_)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index " << index << " out of range." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): cachedFitness() index " << index << " out of range." << eidos_terminate();
 				}
 				
 				double fitness = cached_parental_fitness_[index];
@@ -1243,7 +1243,7 @@ EidosValue *Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 						index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
 						
 						if (index >= cached_fitness_size_)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): fitness() index " << index << " out of range." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): cachedFitness() index " << index << " out of range." << eidos_terminate();
 					}
 					
 					double fitness = cached_parental_fitness_[index];
@@ -1428,7 +1428,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->push_back(SignatureForMethodOrRaise(gID_setSelfingRate));
 		methods->push_back(SignatureForMethodOrRaise(gID_setSexRatio));
 		methods->push_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
-		methods->push_back(SignatureForMethodOrRaise(gID_fitness));
+		methods->push_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->push_back(SignatureForMethodOrRaise(gID_outputMSSample));
 		methods->push_back(SignatureForMethodOrRaise(gID_outputSample));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -1445,7 +1445,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
 	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
 	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
-	static EidosInstanceMethodSignature *fitnessSig = nullptr;
+	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
 	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
 	
@@ -1456,7 +1456,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
-		fitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_fitness, kEidosValueMaskFloat))->AddInt_N("indices");
+		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
 	}
@@ -1469,7 +1469,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_setSelfingRate:		return setSelfingRateSig;
 		case gID_setSexRatio:			return setSexRatioSig;
 		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
-		case gID_fitness:				return fitnessSig;
+		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_outputMSSample:		return outputMSSampleSig;
 		case gID_outputSample:			return outputSampleSig;
 			
