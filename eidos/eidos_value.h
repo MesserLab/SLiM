@@ -80,7 +80,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 // particularly type promotion; you can compare a string to integer, or less extremely, a float to an integer, and
 // the appropriate promotion of values needs to happen.  The first function here handles the general case; the
 // other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
-// methods.
+// methods.  Returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if value1[index1] > value2[index2].
 int CompareEidosValues(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);
 
 int CompareEidosValues_Object(const EidosValue *p_value1, int p_index1, const EidosValue *p_value2, int p_index2, EidosToken *p_blame_token);

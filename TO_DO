@@ -4,8 +4,6 @@ SLiM:
 	write the SLiM Cookbook
 
 Eidos:
-	add pmax(), pmin()
-	add help items for other topics – operators, keywords, callbacks – by making new reference sections in the doc
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
 

@@ -229,6 +229,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("F;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("NULL;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("INF;", new EidosValue_Float_singleton(std::numeric_limits<double>::infinity()));
+	EidosAssertScriptSuccess("-INF;", new EidosValue_Float_singleton(-std::numeric_limits<double>::infinity()));
 	EidosAssertScriptSuccess("NAN;", new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
 	EidosAssertScriptSuccess("E - exp(1) < 0.0000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("PI - asin(1)*2 < 0.0000001;", gStaticEidosValue_LogicalT);
@@ -1836,6 +1837,64 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("min(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("min(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
+	
+	// pmax()
+	EidosAssertScriptRaise("pmax(T, logical(0));", 0, "of equal length");
+	EidosAssertScriptRaise("pmax(logical(0), F);", 0, "of equal length");
+	EidosAssertScriptRaise("pmax(T, 1);", 0, "to be the same type");
+	EidosAssertScriptRaise("pmax(0, F);", 0, "to be the same type");
+	EidosAssertScriptSuccess("pmax(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("pmax(T, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("pmax(F, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("pmax(T, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("pmax(F, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("pmax(c(T,F,T,F), c(T,T,F,F));", new EidosValue_Logical{true, true, true, false});
+	EidosAssertScriptSuccess("pmax(1, 5);", new EidosValue_Int_singleton(5));
+	EidosAssertScriptSuccess("pmax(-8, 6);", new EidosValue_Int_singleton(6));
+	EidosAssertScriptSuccess("pmax(7, 1);", new EidosValue_Int_singleton(7));
+	EidosAssertScriptSuccess("pmax(8, -8);", new EidosValue_Int_singleton(8));
+	EidosAssertScriptSuccess("pmax(c(1,-8,7,8), c(5,6,1,-8));", new EidosValue_Int_vector{5, 6, 7, 8});
+	EidosAssertScriptSuccess("pmax(1., 5.);", new EidosValue_Float_singleton(5));
+	EidosAssertScriptSuccess("pmax(-INF, 6.);", new EidosValue_Float_singleton(6));
+	EidosAssertScriptSuccess("pmax(7., 1.);", new EidosValue_Float_singleton(7));
+	EidosAssertScriptSuccess("pmax(INF, -8.);", new EidosValue_Float_singleton(std::numeric_limits<double>::infinity()));
+	EidosAssertScriptSuccess("pmax(NAN, -8.);", new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
+	EidosAssertScriptSuccess("pmax(NAN, INF);", new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
+	EidosAssertScriptSuccess("pmax(c(1.,-INF,7.,INF, NAN, NAN), c(5.,6.,1.,-8.,-8.,INF));", new EidosValue_Float_vector{5, 6, 7, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess("pmax('foo', 'bar');", new EidosValue_String_singleton("foo"));
+	EidosAssertScriptSuccess("pmax('bar', 'baz');", new EidosValue_String_singleton("baz"));
+	EidosAssertScriptSuccess("pmax('xyzzy', 'xyzzy');", new EidosValue_String_singleton("xyzzy"));
+	EidosAssertScriptSuccess("pmax('', 'bar');", new EidosValue_String_singleton("bar"));
+	EidosAssertScriptSuccess("pmax(c('foo','bar','xyzzy',''), c('bar','baz','xyzzy','bar'));", new EidosValue_String_vector{"foo", "baz", "xyzzy", "bar"});
+	
+	// pmin()
+	EidosAssertScriptRaise("pmin(T, logical(0));", 0, "of equal length");
+	EidosAssertScriptRaise("pmin(logical(0), F);", 0, "of equal length");
+	EidosAssertScriptRaise("pmin(T, 1);", 0, "to be the same type");
+	EidosAssertScriptRaise("pmin(0, F);", 0, "to be the same type");
+	EidosAssertScriptSuccess("pmin(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("pmin(T, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("pmin(F, T);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("pmin(T, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("pmin(F, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("pmin(c(T,F,T,F), c(T,T,F,F));", new EidosValue_Logical{true, false, false, false});
+	EidosAssertScriptSuccess("pmin(1, 5);", new EidosValue_Int_singleton(1));
+	EidosAssertScriptSuccess("pmin(-8, 6);", new EidosValue_Int_singleton(-8));
+	EidosAssertScriptSuccess("pmin(7, 1);", new EidosValue_Int_singleton(1));
+	EidosAssertScriptSuccess("pmin(8, -8);", new EidosValue_Int_singleton(-8));
+	EidosAssertScriptSuccess("pmin(c(1,-8,7,8), c(5,6,1,-8));", new EidosValue_Int_vector{1, -8, 1, -8});
+	EidosAssertScriptSuccess("pmin(1., 5.);", new EidosValue_Float_singleton(1));
+	EidosAssertScriptSuccess("pmin(-INF, 6.);", new EidosValue_Float_singleton(-std::numeric_limits<double>::infinity()));
+	EidosAssertScriptSuccess("pmin(7., 1.);", new EidosValue_Float_singleton(1));
+	EidosAssertScriptSuccess("pmin(INF, -8.);", new EidosValue_Float_singleton(-8));
+	EidosAssertScriptSuccess("pmin(NAN, -8.);", new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
+	EidosAssertScriptSuccess("pmin(NAN, INF);", new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
+	EidosAssertScriptSuccess("pmin(c(1.,-INF,7.,INF, NAN, NAN), c(5.,6.,1.,-8.,-8.,INF));", new EidosValue_Float_vector{1, -std::numeric_limits<double>::infinity(), 1, -8, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess("pmin('foo', 'bar');", new EidosValue_String_singleton("bar"));
+	EidosAssertScriptSuccess("pmin('bar', 'baz');", new EidosValue_String_singleton("bar"));
+	EidosAssertScriptSuccess("pmin('xyzzy', 'xyzzy');", new EidosValue_String_singleton("xyzzy"));
+	EidosAssertScriptSuccess("pmin('', 'bar');", new EidosValue_String_singleton(""));
+	EidosAssertScriptSuccess("pmin(c('foo','bar','xyzzy',''), c('bar','baz','xyzzy','bar'));", new EidosValue_String_vector{"bar", "bar", "xyzzy", ""});
 	
 	// range()
 	EidosAssertScriptRaise("range(T);", 0, "cannot be type");

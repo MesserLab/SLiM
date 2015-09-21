@@ -71,6 +71,8 @@ enum class EidosFunctionIdentifier {
 	maxFunction,
 	meanFunction,
 	minFunction,
+	pmaxFunction,
+	pminFunction,
 	rangeFunction,
 	sdFunction,
 	

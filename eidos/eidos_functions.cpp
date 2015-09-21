@@ -98,6 +98,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				EidosFunctionIdentifier::maxFunction,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				EidosFunctionIdentifier::meanFunction,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				EidosFunctionIdentifier::minFunction,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmax",				EidosFunctionIdentifier::pmaxFunction,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
+		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				EidosFunctionIdentifier::pminFunction,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",			EidosFunctionIdentifier::rangeFunction,			kEidosValueMaskNumeric))->AddNumeric("x"));
 		signatures->push_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				EidosFunctionIdentifier::sdFunction,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		
@@ -1512,6 +1514,162 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 				}
 				
 				result = new EidosValue_String_singleton(min);
+			}
+			break;
+		}
+			
+			
+			//	(+)pmax(+ x, + y)
+			#pragma mark pmax
+			
+		case EidosFunctionIdentifier::pmaxFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			EidosValueType arg0_type = arg0_value->Type();
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			EidosValueType arg1_type = arg1_value->Type();
+			int arg1_count = arg1_value->Count();
+			
+			if (arg0_type != arg1_type)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function pmax() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
+			if (arg0_count != arg1_count)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function pmax() requires arguments x and y to be of equal length." << eidos_terminate(nullptr);
+			
+			if (arg0_type == EidosValueType::kValueNULL)
+			{
+				result = gStaticEidosValueNULL;
+			}
+			else if (arg0_count == 1)
+			{
+				// Handle the singleton case separately so we can handle the vector case quickly
+				if (CompareEidosValues(arg0_value, 0, arg1_value, 0, nullptr) == -1)
+					result = arg1_value->CopyValues();
+				else
+					result = arg0_value->CopyValues();
+			}
+			else
+			{
+				// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
+				if (arg0_type == EidosValueType::kValueLogical)
+				{
+					const std::vector<bool> &bool0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<bool> &bool1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+					result = logical_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						logical_result_vec.push_back(bool0_vec[value_index] || bool1_vec[value_index]); // || is logical max
+				}
+				else if (arg0_type == EidosValueType::kValueInt)
+				{
+					const std::vector<int64_t> &int0_vec = dynamic_cast<EidosValue_Int_vector *>(arg0_value)->IntVector();
+					const std::vector<int64_t> &int1_vec = dynamic_cast<EidosValue_Int_vector *>(arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
+					result = int_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(std::max(int0_vec[value_index], int1_vec[value_index]));
+				}
+				else if (arg0_type == EidosValueType::kValueFloat)
+				{
+					const std::vector<double> &float0_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
+					const std::vector<double> &float1_vec = dynamic_cast<EidosValue_Float_vector *>(arg1_value)->FloatVector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
+					result = float_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						float_result->PushFloat(std::max(float0_vec[value_index], float1_vec[value_index]));
+				}
+				else if (arg0_type == EidosValueType::kValueString)
+				{
+					const std::vector<std::string> &string0_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+					const std::vector<std::string> &string1_vec = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
+					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(arg0_count);
+					result = string_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						string_result->PushString(std::max(string0_vec[value_index], string1_vec[value_index]));
+				}
+			}
+			break;
+		}
+			
+			
+			//	(+)pmin(+ x, + y)
+			#pragma mark pmin
+			
+		case EidosFunctionIdentifier::pminFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0];
+			EidosValueType arg0_type = arg0_value->Type();
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1];
+			EidosValueType arg1_type = arg1_value->Type();
+			int arg1_count = arg1_value->Count();
+			
+			if (arg0_type != arg1_type)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function pmin() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
+			if (arg0_count != arg1_count)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function pmin() requires arguments x and y to be of equal length." << eidos_terminate(nullptr);
+			
+			if (arg0_type == EidosValueType::kValueNULL)
+			{
+				result = gStaticEidosValueNULL;
+			}
+			else if (arg0_count == 1)
+			{
+				// Handle the singleton case separately so we can handle the vector case quickly
+				if (CompareEidosValues(arg0_value, 0, arg1_value, 0, nullptr) == 1)
+					result = arg1_value->CopyValues();
+				else
+					result = arg0_value->CopyValues();
+			}
+			else
+			{
+				// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
+				if (arg0_type == EidosValueType::kValueLogical)
+				{
+					const std::vector<bool> &bool0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<bool> &bool1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					EidosValue_Logical *logical_result = (new EidosValue_Logical())->Reserve(arg0_count);
+					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+					result = logical_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						logical_result_vec.push_back(bool0_vec[value_index] && bool1_vec[value_index]); // && is logical min
+				}
+				else if (arg0_type == EidosValueType::kValueInt)
+				{
+					const std::vector<int64_t> &int0_vec = dynamic_cast<EidosValue_Int_vector *>(arg0_value)->IntVector();
+					const std::vector<int64_t> &int1_vec = dynamic_cast<EidosValue_Int_vector *>(arg1_value)->IntVector();
+					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(arg0_count);
+					result = int_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						int_result->PushInt(std::min(int0_vec[value_index], int1_vec[value_index]));
+				}
+				else if (arg0_type == EidosValueType::kValueFloat)
+				{
+					const std::vector<double> &float0_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
+					const std::vector<double> &float1_vec = dynamic_cast<EidosValue_Float_vector *>(arg1_value)->FloatVector();
+					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(arg0_count);
+					result = float_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						float_result->PushFloat(std::min(float0_vec[value_index], float1_vec[value_index]));
+				}
+				else if (arg0_type == EidosValueType::kValueString)
+				{
+					const std::vector<std::string> &string0_vec = dynamic_cast<EidosValue_String_vector *>(arg0_value)->StringVector();
+					const std::vector<std::string> &string1_vec = dynamic_cast<EidosValue_String_vector *>(arg1_value)->StringVector();
+					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(arg0_count);
+					result = string_result;
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+						string_result->PushString(std::min(string0_vec[value_index], string1_vec[value_index]));
+				}
 			}
 			break;
 		}
