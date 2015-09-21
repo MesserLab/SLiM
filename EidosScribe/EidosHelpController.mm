@@ -635,6 +635,10 @@
 		[matchKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
 			[_topicOutlineView selectRowIndexes:[NSIndexSet indexSetWithIndex:[_topicOutlineView rowForItem:obj]] byExtendingSelection:YES];
 		}];
+		
+		// The outline view occasionally seems to mis-update; I think it is an AppKit bug but it's hard to be sure.
+		// In any case, telling it to completely redraw here seems to fix the problem.
+		[_topicOutlineView setNeedsDisplay:YES];
 	}
 	else
 	{
