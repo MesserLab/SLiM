@@ -26,13 +26,17 @@
 #include "eidos_property_signature.h"
 
 
-//	EidosHelpTextStorage – a little subclass to make line wrapping in the help textview work the way it should, defined below
+// EidosHelpOutlineView – this lets us colorize rows in the outline
+@interface EidosHelpOutlineView : NSOutlineView
+@end
+
+// EidosHelpTextStorage – a little subclass to make line wrapping in the help textview work the way it should, defined below
 @interface EidosHelpTextStorage : NSTextStorage
 - (id)init;
 - (id)initWithAttributedString:(NSAttributedString *)attrStr;
 @end
 
-//	EidosDividerTextAttachmentCell – a little subclass to provide a divider between multiple help items, defined below
+// EidosDividerTextAttachmentCell – a little subclass to provide a divider between multiple help items, defined below
 @interface EidosDividerTextAttachmentCell : NSTextAttachmentCell
 @end
 
@@ -892,6 +896,41 @@
 			}];
 			
 			[self setDescription:conglomerate];
+		}
+	}
+}
+
+@end
+
+
+//
+//	EidosHelpOutlineView
+//
+#pragma mark -
+#pragma mark EidosHelpOutlineView
+
+@implementation EidosHelpOutlineView
+
+- (void)drawRow:(NSInteger)rowIndex clipRect:(NSRect)clipRect
+{
+	[super drawRow:rowIndex clipRect:clipRect];
+	
+	NSRect rowRect = [self rectOfRow:rowIndex];
+	id item = [self itemAtRow:rowIndex];
+	id delegate = [self delegate];
+	
+	// We want to colorize group rows green if they are from the Eidos doc, blue otherwise (Context doc)
+	if ([delegate outlineView:self isGroupItem:item])
+	{
+		if ([item containsString:@"Eidos"])
+		{
+			[[NSColor colorWithCalibratedRed:0 green:1.0 blue:0 alpha:0.04] set];
+			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
+		}
+		else
+		{
+			[[NSColor colorWithCalibratedRed:0 green:0 blue:1.0 alpha:0.04] set];
+			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
 		}
 	}
 }
