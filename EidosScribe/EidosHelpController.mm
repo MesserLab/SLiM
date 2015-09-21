@@ -129,6 +129,7 @@
 				[newPStyle setTailIndent:0];
 				
 				[topicItemAttrString addAttribute:NSParagraphStyleAttributeName value:newPStyle range:effectiveRange];
+				[newPStyle release];
 			}
 		}
 	}
