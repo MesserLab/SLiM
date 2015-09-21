@@ -612,6 +612,20 @@ using std::string;
 			else if ([trimmedWord isEqualToString:@"else"])	trimmedWord = @"if and if–else statements";
 			else if ([trimmedWord isEqualToString:@"for"])	trimmedWord = @"for statements";
 			else if ([trimmedWord isEqualToString:@"in"])	trimmedWord = @"for statements";
+			else
+			{
+				// Give the delegate a chance to supply additional help-text substitutions
+				id delegate = [self delegate];
+				
+				if ([delegate respondsToSelector:@selector(eidosTextView:helpTextForClickedText:)])
+				{
+					NSString *delegateResult = [delegate eidosTextView:self helpTextForClickedText:trimmedWord];
+					
+					// The delegate may return nil or @"" to indicate no substitution desired
+					if ([delegateResult length])
+						trimmedWord = delegateResult;
+				}
+			}
 			
 			// And then look up the hit using EidosHelpController
 			if ([trimmedWord length] != 0)

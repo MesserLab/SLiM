@@ -70,7 +70,12 @@ class EidosMethodSignature;
 // This allows the Context to define some special identifier tokens that should
 // receive different syntax coloring from standard identifiers because they are
 // in some way built in or provided by the Context automatically
-- (bool)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+- (BOOL)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+
+// This allows the Context to define substitutions for help searches when the user
+// option-clicks a token, to provide more targeted help results.  If no substitution
+// is desired, returning nil is recommended.
+- (NSString *)eidosTextView:(EidosTextView *)eidosTextView helpTextForClickedText:(NSString *)clickedText;
 
 @end
 

@@ -1695,7 +1695,7 @@
 	return SLiMSim::AllMethodSignatures();
 }
 
-- (bool)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
+- (BOOL)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if (token_string.compare("sim") == 0)
 		return YES;
@@ -1721,6 +1721,17 @@
 	}
 	
 	return NO;
+}
+
+- (NSString *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController helpTextForClickedText:(NSString *)clickedText
+{
+	// A few strings which, when option-clicked, should result in more targeted searches.
+	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
+	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
+	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
+	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
+	
+	return nil;
 }
 
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController checkScriptDidSucceed:(BOOL)succeeded
@@ -1799,9 +1810,14 @@
 	return [self eidosConsoleWindowControllerAllMethodSignatures:nullptr];
 }
 
-- (bool)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+- (BOOL)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 {
 	return [self eidosConsoleWindowController:nullptr tokenStringIsSpecialIdentifier:token_string];
+}
+
+- (NSString *)eidosTextView:(EidosTextView *)eidosTextView helpTextForClickedText:(NSString *)clickedText
+{
+	return [self eidosConsoleWindowController:nullptr helpTextForClickedText:clickedText];
 }
 
 
