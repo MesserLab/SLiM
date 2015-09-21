@@ -1107,6 +1107,7 @@
 		[playButton setState:NSOnState];
 		
 		// log information needed to track our play speed
+		[continuousPlayStartDate release];
 		continuousPlayStartDate = [[NSDate date] retain];
 		continuousPlayGenerationsCompleted = 0;
 		[self setContinuousPlayOn:YES];
@@ -1663,7 +1664,7 @@
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
-		// Run startup tests, if enabled
+		// Run startup tests, if enabled; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
 		RunSLiMTests();
 		
 		// Done executing scripts
