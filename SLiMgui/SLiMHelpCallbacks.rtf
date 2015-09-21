@@ -1,0 +1,643 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
+\f3\froman\fcharset0 TimesNewRomanPSMT;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i\fs22 \cf0 5.13.0  ITEM: 1. 
+\f1\fs18 initialize()
+\f0\fs22  callbacks\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Before a SLiM simulation can be run, it needs to be set up with an initial configuration.  In SLiM 1.8 and earlier, this was done by means of 
+\f2\fs18 #
+\f0\fs22  directives in the simulation\'92s input file.  In SLiM 2.0, simulation parameters are instead configured using Eidos.\
+Configuration in Eidos is done in 
+\f1\i\fs18 initialize()
+\f0\fs22  callbacks
+\i0  that run prior to the beginning of simulation execution.  In your input file, you can simply write something like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 initialize() \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The 
+\f2\fs18 initialize()
+\f0\fs22  specifies that the script block is to be executed as an 
+\f2\fs18 initialize()
+\f0\fs22  callback before the simulation starts.  The script between the braces 
+\f2\fs18 \{\}
+\f0\fs22  would set up various aspects of the simulation by calling 
+\i initialization functions
+\i0 .  These are SLiM functions that may be called only in an 
+\f2\fs18 initialize()
+\f0\fs22  callback, and their names begin with 
+\f2\fs18 initialize
+\f0\fs22  to mark them clearly as such.  You may also use other Eidos functionality, of course; for example, you might automate generating a large number of subpopulations with complex migration patterns by using a 
+\f2\fs18 for
+\f0\fs22  loop.\
+One thing worth mentioning is that in the context of an 
+\f2\fs18 initialize()
+\f0\fs22  callback, none of SLiM\'92s globals are defined \'96 not even the 
+\f2\fs18 sim
+\f0\fs22  global for the simulation itself.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  New subpopulations, new genomic element types, etc., that you define in your callback by calling initialization functions will also not be available through globals during your callback; those globals will become visible once simulation execution begins.\
+Once all 
+\f2\fs18 initialize()
+\f0\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The generation number at which it starts is determined by the Eidos events you have defined; the first generation in which an Eidos event is scheduled to execute is the generation at which the simulation starts.  Similarly, the simulation will terminate after the last generation for which a script block (either an event or a callback) is registered to execute, unless the 
+\f2\fs18 stop()
+\f0\fs22  function is called to end the simulation earlier.
+\f3 \
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i \cf0 5.13.1  ITEM: 2. Eidos events\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 An Eidos event is a block of Eidos code that is executed every generation, within a range of generations, to perform any desired task.  The syntax of a Eidos event declaration looks like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The 
+\f2\fs18 id
+\f0\fs22  is an optional identifier like 
+\f2\fs18 s1
+\f0\fs22  (or more generally, 
+\f2\fs18 sX
+\f0\fs22 , where 
+\f2\fs18 X
+\f0\fs22  is an integer greater than or equal to 
+\f2\fs18 0
+\f0\fs22 ) that defines an identifier that can be used to refer to the script block.  In most situations it can be omitted, in which case the id is implicitly defined as 
+\f2\fs18 -1
+\f0\fs22 , a placeholder value that essentially represents the lack of an identifier value.  Supplying an 
+\f2\fs18 id
+\f0\fs22  is only useful if you wish to manipulate your script blocks programmatically.\
+Then comes a generation or a range of generations, and then a block of Eidos code enclosed in braces to form a compound statement.  A trivial example might look like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 1000:5000 \{\
+	p1.size = 1000 * sin(sim.generation / 100.0);\
+\}\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 This would set the size of subpopulation 
+\f2\fs18 p1
+\f0\fs22  to the result of an expression based on the 
+\f2\fs18 sin()
+\f0\fs22  function; it would thus result in a sinusoidally fluctuating subpopulation size.  The Eidos code in the braces 
+\f2\fs18 \{\}
+\f0\fs22  is executed near the end of every generation in the specified range of generations.  In this case, the generation range is 
+\f2\fs18 1000
+\f0\fs22  to 
+\f2\fs18 5000
+\f0\fs22 , and so the Eidos event will be executed 4001 times.  A range of generations can be given, as in the example above, or a single generation can be given with a single integer:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 100 \{\
+	print("Finished generation 100!");\
+\}\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 In fact, you can omit specifying a generation altogether, in which case the Eidos event runs every generation.  However, since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of generations possible.\
+The generations specified for a Eidos event block can be any positive integer.  All scripts that apply to a given time point will be run in the order in which they are given; scripts specified higher in the input file will run before those specified lower.\
+Eidos events are executed first in each generation, before children have been generated from parents; they therefore operate on the parental generation.  More specifically, here is the sequence of events that occurs each generation in a SLiM simulation:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb40\sa40
+
+\f0\fs22 \cf0 1. Execute Eidos events\
+2. Choose mates and generate offspring\
+3. Swap generations: the children become the parents\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 When Eidos events are executed, several global variables are defined by SLiM for use by the Eidos code.  These have been mentioned in previous sections, but here they all are collected in one place:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb40\sa40
+
+\f2\fs18 \cf0 sim
+\f3\fs22 	
+\f0 A 
+\f2\fs18 SLiMSim
+\f0\fs22  object representing the current SLiM simulation\
+
+\f2\fs18 p1, ...
+\f3\fs22 	
+\f2\fs18 Subpopulation
+\f0\fs22  objects representing the subpopulations that exist\
+
+\f2\fs18 m1, ...
+\f3\fs22 	
+\f2\fs18 MutationType
+\f0\fs22  objects representing the mutation types defined\
+
+\f2\fs18 g1, ...
+\f3\fs22 	
+\f2\fs18 GenomicElementType
+\f0\fs22  objects representing the genomic element types defined\
+
+\f2\fs18 self
+\f3\fs22 	
+\f0 A 
+\f2\fs18 SLiMEidosBlock
+\f0\fs22  object representing the script block currently executing\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 Note that these globals (except 
+\f2\fs18 self
+\f0\fs22 ) are 
+\i not
+\i0  available in 
+\f2\fs18 initialize()
+\f0\fs22  callbacks, since the simulation has not yet been initialized.
+\f3 \
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i \cf0 5.13.2  ITEM: 3. 
+\f1\fs18 fitness()
+\f0\fs22  callbacks\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 A 
+\f2\fs18 fitness()
+\f0\fs22  callback is called by SLiM when it is determining the fitness effect of a mutation carried by an individual.  Normally, the fitness effect of a mutation is determined by the selection coefficient of the mutation and the dominance coefficient of the mutation (the latter used only if the individual is heterozygous for the mutation).  More specifically, the standard calculation for the fitness effect of a mutation takes one of two forms.  If the individual is homozygous, then\
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180
+\cf0 w = w * (1.0 + selectionCoefficient),\
+\pard\pardeftab720\ri720\sb40\sa40
+\cf0 where w is the relative fitness of the individual carrying the mutation.  This equation is also used if the chromosome being simulated has no homologue \'96 when the Y sex chromosome is being simulated.  If the individual is heterozygous, then the dominance coefficient enter the picture as
+\f3 \
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180
+
+\f0 \cf0 w = w * (1.0 + dominanceCoeff * selectionCoeff).\
+\pard\pardeftab720\ri720\sb40\sa40
+\cf0 For simulations of autosomes, the dominance coefficient is defined by the mutation type; for simulations of X sex chromosomes, the mutation type\'92s dominance coefficient is used for XX females that are heterozygous, whereas XY males that are \'93heterozygous\'94 for the mutation because they possess only one X chromosome use a global dominance coefficient (see 
+\f2\fs18 setSexEnabled0()
+\f0\fs22  and the 
+\f2\fs18 dominanceCoeffX
+\f0\fs22  property of SLiMSim).\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+\cf0 That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
+\f2\fs18 fitness()
+\f0\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes\
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180
+\cf0 w = w * 
+\f2\fs18 fitness()
+\f3\fs22 \
+\pard\pardeftab720\ri720\sb40\sa40
+
+\f0 \cf0 where 
+\f2\fs18 fitness()
+\f0\fs22  is the value returned by your callback.  Like Eidos events, 
+\f2\fs18 fitness()
+\f0\fs22  callbacks are defined as script blocks in the input file, but they use an extension of the syntax for defining a Eidos event:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] fitness(<mut-type-id> [, <subpop-id>]) \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 For example, if the callback were defined as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 1000:2000 fitness(m2, p3) \{ 1.0; \}\
+\pard\pardeftab720\ri720\sb40\sa40
+
+\f0\fs22 \cf0 then a relative fitness of 
+\f2\fs18 1.0
+\f0\fs22  (i.e. neutral) would be used for all mutations of mutation type 
+\f2\fs18 m2
+\f0\fs22  in subpopulation 
+\f2\fs18 p3
+\f0\fs22  from generation 
+\f2\fs18 1000
+\f0\fs22  to generation 
+\f2\fs18 2000
+\f0\fs22 .  The very same mutations, if also present in individuals in other subpopulations, would preserve their normal selection coefficient and dominance coefficient in those other subpopulations; this callback would therefore establish spatial heterogeneity in selection, in which mutation type 
+\f2\fs18 m2
+\f0\fs22  was neutral in subpopulation 
+\f2\fs18 p3
+\f0\fs22  but under selection in other subpopulations, for the range of generations given.\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+\cf0 In addition to the standard SLiM globals, a 
+\f2\fs18 fitness()
+\f0\fs22  callback is supplied with some additional information passed through global variables:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb40\sa40
+
+\f2\fs18 \cf0 mut
+\f3\fs22 	
+\f0 A Mutation object, the mutation whose relative fitness is being evaluated\
+
+\f2\fs18 homozygous
+\f3\fs22 	
+\f0 A value of 
+\f2\fs18 T
+\f0\fs22  (the mutation is homozygous), 
+\f2\fs18 F
+\f0\fs22  (heterozygous), or 
+\f2\fs18 NULL
+\f0\fs22  (it is\uc0\u8232 
+\f3 	
+\f0 paired with a null chromosome, which can occur with sex chromosomes)\
+
+\f2\fs18 relFitness
+\f3\fs22 	
+\f0 The default relative fitness value calculated by SLiM\
+
+\f2\fs18 genome1
+\f3\fs22 	
+\f0 One genome of the individual carrying this mutation
+\f3 \
+
+\f2\fs18 genome2
+\f3\fs22 	
+\f0 The other genome of that individual\
+
+\f2\fs18 subpop
+\f3\fs22 	
+\f0 The subpopulation in which that individual lives\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 These globals may be used in the 
+\f2\fs18 fitness()
+\f0\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation, for example, you could do something like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 fitness(m1) \{\
+   if (homozygous)\
+      return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\
+   else\
+      return 1.0 + mut.selectionCoeff;\
+\}\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 However, the 
+\f2\fs18 relFitness
+\f0\fs22  global mentioned above would already contain this value, precomputed by SLiM, so you could simply return 
+\f2\fs18 relFitness
+\f0\fs22  to get that behavior when you want it:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 fitness(m1) \{\
+   if (<conditions>)\
+      <custom fitness calculations...>;\
+   else\
+      return relFitness;\
+\}\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 This would return a modified fitness value in certain conditions, but would return the standard fitness value otherwise.\
+More than one 
+\f2\fs18 fitness()
+\f0\fs22  callback may be defined to operate in the same generation.  As with Eidos events, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
+\f2\fs18 relFitness
+\f0\fs22  value returned by the previous callback \'96 so the value of 
+\f2\fs18 relFitness
+\f0\fs22  is not necessarily the default value, in fact, but is the result of all previous 
+\f2\fs18 fitness()
+\f0\fs22  callbacks for that individual in that generation.  In this way, the effects of multiple callbacks can \'93stack\'94.\
+One caveat to be aware of is that 
+\f2\fs18 fitness()
+\f0\fs22  callbacks are actually called at the end of each generation, just before the next generation begins.  If you have a 
+\f2\fs18 fitness()
+\f0\fs22  callback defined for generation 10, for example, it will actually be called at the very end of generation 9, after child generation has finished and after the new children have been promoted to be the next parental generation.  The fitness values calculated will thus be used during generation 10, as expected; they are just computed a bit earlier than you might expect.  (This is primarily so that SLiMgui, which refreshes its display in between generations, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  There are two ways in which this quirk might matter to you, as an implementer of a 
+\f2\fs18 fitness()
+\f0\fs22  callback.  First, if you access the generation counter in your callback (to make the fitness of a mutation depend upon the generation, for example), you will find that its value is one less than you would expect.  Second, your callback will be executed 
+\i before
+\i0  Eidos events execute for the generation in which your callback is scheduled, which might be unexpected since mating and child generation happens 
+\i after
+\i0  Eidos events have executed.\
+Many other possibilities can be implemented with a 
+\f2\fs18 fitness()
+\f0\fs22  callback.  For example, one could implement epistatic interactions by checking the genomes provided to see whether they contain the other mutations involved in the epistasis; one could implement negative frequency-dependent selection (balancing selection) by checking the frequency of the mutation in the subpopulation; one could implement a polygenic fitness calculation by counting how many mutations of a given mutation type were present in the genome of the individual; or one could implement spatial variation in the fitness of heterozygotes by varying the dominance coefficient depending upon the subpopulation.\
+The 
+\f2\fs18 fitness()
+\f0\fs22  callback mechanism is thus extremely powerful and flexible.  However, since 
+\f2\fs18 fitness()
+\f0\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the generation range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.
+\f3 \
+\pard\pardeftab720\ri720\sb120\sa60
+
+\f0\i \cf0 5.13.3  ITEM: 4. 
+\f1\fs18 mateChoice()
+\f0\fs22  callbacks\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Normally, a SLiM simulation defines mate choice according to fitness; individuals of higher fitness are more likely to be chosen as mates.  However, one might wish to simulate more complex mate-choice dynamics such as assortative or disassortative mating, mate search algorithms, and so forth.  Such dynamics can be handled in SLiM with the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback mechanism.\
+A 
+\f2\fs18 mateChoice()
+\f0\fs22  callback is established in the input file with a syntax very similar to that of 
+\f2\fs18 fitness()
+\f0\fs22  callbacks:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] mateChoice([<subpop-id>]) \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The only difference between the two is that the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback does not allow you to specify a mutation type to which the callback applies, since that makes no sense.\
+Note that if a subpopulation is given to which the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback is to apply, the callback is used for all matings that will generate a 
+\i child
+\i0  in the stated subpopulation (as opposed to all matings of 
+\i parents
+\i0  in the stated subpopulation); this distinction is important when migration causes children in one subpopulation to be generated by matings of parents in a different subpopulation.\
+When a 
+\f2\fs18 mateChoice()
+\f0\fs22  callback is defined, the first parent in a mating is still chosen proportionally according to fitness (if you wish to influence that choice, you can use a 
+\f2\fs18 fitness()
+\f0\fs22  callback).  In a sexual (rather than hermaphroditic) simulation, this will be the female parent; SLiM does not currently support males as the choosy sex.  The second parent \'96 the male parent, in a sexual simulation \'96 will then be chosen based upon the results of the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback.\
+More specifically, the callback must return a vector of weights, one for each individual in the subpopulation; SLiM will then choose a parent with probability proportional to weight.  The 
+\f2\fs18 mateChoice()
+\f0\fs22  callback could therefore determine the choice of mate completely, by setting the weight for the chosen parent to 
+\f2\fs18 1
+\f0\fs22  and all other weights to 
+\f2\fs18 0
+\f0\fs22 , or it could modify or replace the standard fitness-based weights depending upon some other criterion such as assortativeness.  A zero-length return vector \'96 as generated by 
+\f2\fs18 float(0)
+\f0\fs22 , for example \'96 indicates that a suitable mate was not found; in that event, a new first parent will be drawn from the subpopulation.  If the callback returns 
+\f2\fs18 NULL
+\f0\fs22 , that signifies that SLiM should use the standard fitness-based weights to choose a mate; the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback did not wish to alter the standard behavior for the current mating (this is equivalent to returning the unmodified vector of weights, but returning 
+\f2\fs18 NULL
+\f0\fs22  is much faster since it allows SLiM to drop into an optimized case).  Apart from those two special cases, of 
+\f2\fs18 float(0)
+\f0\fs22  and 
+\f2\fs18 NULL
+\f0\fs22 , the vector of weights must contain the same number of values as the size of the subpopulation, all weights must be non-negative, and the sum of the weights must be greater than zero.  Note that the vector of weights is not required to sum to 
+\f2\fs18 1
+\f0\fs22 , however; SLiM will convert relative weights on any scale to probabilities for you.\
+In addition to the standard SLiM globals, a 
+\f2\fs18 mateChoice()
+\f0\fs22  callback is supplied with some additional information passed through global variables:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\tx2070\tx2880\pardeftab720\fi547\ri720\sb40\sa40
+
+\f2\fs18 \cf0 genome1
+\f3\fs22 	
+\f0 One genome of the parent already chosen (the female, in sexual simulations)\
+
+\f2\fs18 genome2
+\f3\fs22 	
+\f0 The other genome of the parent already chosen
+\f2\fs18 \
+subpop
+\f3\fs22 	
+\f0 The subpopulation into which the offspring will be placed
+\f2\fs18 \
+sourceSubpop
+\f3\fs22 	
+\f0 The subpopulation from which the parents are being chosen
+\f2\fs18 \
+weights
+\f3\fs22 	
+\f0 The standard fitness-based weights for all individuals\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 If sex is enabled, the 
+\f2\fs18 mateChoice()
+\f0\fs22  callback must ensure that the appropriate weights are zero and nonzero to guarantee that all eligible mates are male (since the first parent chosen is always female, as explained above).  In other words, weights for females must be 
+\f2\fs18 0
+\f0\fs22 .  The 
+\f2\fs18 weights
+\f0\fs22  vector given to the callback is guaranteed to satisfy this constraint.  If sex is not enabled \'96 in a hermaphroditic simulation, in other words \'96 this constraint does not apply.\
+For example, a simple 
+\f2\fs18 mateChoice()
+\f0\fs22  callback might look like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+
+\f2\fs18 1000:2000 mateChoice(p2) \{\
+   return weights ^ 2;\
+\}\
+
+\f3\fs4 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 This defines a 
+\f2\fs18 mateChoice()
+\f0\fs22  callback for generations 
+\f2\fs18 1000
+\f0\fs22  to 
+\f2\fs18 2000
+\f0\fs22  for subpopulation 
+\f2\fs18 p2
+\f0\fs22 .  The callback simply transforms the standard fitness-based probabilities by squaring them.  Code like this could represent a situation in which fitness and mate choice proceed normally in one subpopulation (
+\f2\fs18 p1
+\f0\fs22 , here, presumably), but are altered by the effects of a social dominance hierarchy or male-male competition in another subpopulation (
+\f2\fs18 p2
+\f0\fs22 , here), such that the highest-fitness individuals tend to be chosen as mates more often than their (perhaps survival-based) fitness values would otherwise suggest.  Note that by basing the returned weights on the 
+\f2\fs18 weights
+\f0\fs22  vector supplied by SLiM, the requirement that females be given weights of 
+\f2\fs18 0
+\f0\fs22  is finessed; in other situations, care would need to be taken to ensure that.\
+More than one 
+\f2\fs18 mateChoice()
+\f0\fs22  callback may be defined to operate in the same generation.  As with Eidos events, multiple callbacks will be called in the order in which they were defined.  Furthermore, each callback will be given the 
+\f2\fs18 weights
+\f0\fs22  vector returned by the previous callback \'96 so the value of 
+\f2\fs18 weights
+\f0\fs22  is not necessarily the default fitness-based weights, in fact, but is the result of all previous 
+\f2\fs18 weights()
+\f0\fs22  callbacks for the current mate-choice event.  In this way, the effects of multiple callbacks can \'93stack\'94.  If any 
+\f2\fs18 mateChoice()
+\f0\fs22  callback returns 
+\f2\fs18 float(0)
+\f0\fs22 , however \'96 indicating that no eligible mates exist, as described above \'96 then the remainder of the callback chain will be short-circuited and a new first parent will immediately be chosen.\
+Note that matings in SLiM do not proceed in random order.  Offspring are generated for each subpopulation in turn, and within each subpopulation the order of offspring generation is also non-random with respect to both the source subpopulation and the sex of the offspring.  It is important, therefore, that 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks are not in any way biased by the offspring generation order; they should not treat matings early in the process any differently than matings late in the process.  Any failure to guarantee such invariance could lead to large biases in the simulation outcome.  In particular, it is usually dangerous to activate or deactivate 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks while offspring generation is in progress.\
+A wide variety of mate choice algorithms can easily be implemented with 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks.  For example, mating could be assortative, based upon some type of genetic similarity, or a sequential mate search could be conducted with some probability of failing to find a mate at all if the female is too choosy.\
+\pard\pardeftab720\ri720\sb120\sa60
+
+\i \cf0 5.13.4  ITEM: 5. 
+\f1\fs18 modifyChild()
+\f0\fs22  callbacks\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\i0 \cf0 Normally, a SLiM simulation defines child generation with its rules regarding selfing versus crossing, recombination, mutation, and so forth.  However, one might wish to modify these rules in particular circumstances \'96 by preventing particular children from being generated, by modifying the generated children in particular ways, or by generating children oneself.  All of these dynamics can be handled in SLiM with the 
+\f2\fs18 modifyChild()
+\f0\fs22  callback mechanism.\
+A 
+\f2\fs18 modifyChild()
+\f0\fs22  callback is established in the input file with a syntax very similar to that of other callbacks:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] modifyChild([<subpop-id>]) \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 The 
+\f2\fs18 modifyChild()
+\f0\fs22  callback may optionally be restricted to the children generated to occupy a specified subpopulation.\
+When a 
+\f2\fs18 modifyChild()
+\f0\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The genomes of the parent or parents are provided to the callback, as is the genome of the generated child.  The callback may accept the generated child, modify it, substitute completely different genomic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
+In addition to the standard SLiM globals, a 
+\f2\fs18 modifyChild()
+\f0\fs22  callback is supplied with additional information passed through global variables:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\tx2520\pardeftab720\fi547\ri720\sb40\sa40
+
+\f2\fs18 \cf0 childGenome1
+\f3\fs22 	
+\f0 One genome of the generated child
+\f3 \
+
+\f2\fs18 childGenome2
+\f3\fs22 	
+\f0 The other genome of the generated child\
+
+\f2\fs18 childIsFemale
+\f3\fs22 	
+\f2\fs18 T
+\f0\fs22  if the child will be female, 
+\f2\fs18 F
+\f0\fs22  if male (defined only if sex is enabled)
+\f3 \
+
+\f2\fs18 parent1Genome1
+\f3\fs22 	
+\f0 One genome of the first parent
+\f3 \
+
+\f2\fs18 parent1Genome2
+\f3\fs22 	
+\f0 The other genome of the first parent\
+
+\f2\fs18 isCloning
+\f3\fs22 	
+\f2\fs18 T
+\f0\fs22  if the child is the result of cloning\
+
+\f2\fs18 isSelfing
+\f3\fs22 	
+\f2\fs18 T
+\f0\fs22  if the child is the result of selfing (but see note below)\
+
+\f2\fs18 parent2Genome1
+\f3\fs22 	
+\f0 One genome of the second parent\
+
+\f2\fs18 parent2Genome2
+\f3\fs22 	
+\f0 The other genome of the second parent\
+
+\f2\fs18 subpop
+\f3\fs22 	
+\f0 The subpopulation in which the child will live\
+
+\f2\fs18 sourceSubpop
+\f3\fs22 	
+\f0 The subpopulation of the parents (
+\f2\fs18 ==subpop
+\f0\fs22  if not a migration mating)\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+
+\f3\fs4 \cf0 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40
+
+\f0\fs22 \cf0 These globals may be used in the 
+\f2\fs18 modifyChild()
+\f0\fs22  callback to decide upon a course of action.  The 
+\f2\fs18 childGenome1
+\f0\fs22  and 
+\f2\fs18 childGenome2
+\f0\fs22  variables may be modified by the callback; whatever mutations they contain on exit will be used for the new child.  Alternatively, they may be left unmodified (to accept the generated child as is).\
+Importantly, a 
+\f2\fs18 logical
+\f0\fs22  singleton return value is required from 
+\f2\fs18 modifyChild()
+\f0\fs22  callbacks.  Normally this should be 
+\f2\fs18 T
+\f0\fs22 , indicating that generation of the child may proceed (with whatever modifications might have been made to the child\'92s genomes).  A return value of 
+\f2\fs18 F
+\f0\fs22  indicates that generation of this child should not continue; this will cause new parent(s) to be drawn, a new child to be generated, and a new call to the 
+\f2\fs18 modifyChild()
+\f0\fs22  callback.  A 
+\f2\fs18 modifyChild()
+\f0\fs22  callback that always returns 
+\f2\fs18 F
+\f0\fs22  can cause SLiM to hang, so be careful that it is guaranteed that your callback has a nonzero probability of returning 
+\f2\fs18 T
+\f0\fs22  for every state your simulation can reach.\
+Note that 
+\f2\fs18 isSelfing
+\f0\fs22  is 
+\f2\fs18 T
+\f0\fs22  only when a mating was explicitly set up to be a selfing event by SLiM; an individual may also mate with itself by chance (by drawing itself as a mate) even when SLiM did not explicitly set up a selfing event.  If you need to know whether the event was a 
+\i de facto
+\i0  selfing event, you can compare the parental genomes; self-fertilization will always entail 
+\f2\fs18 parent1Genome1==parent2Genome1
+\f0\fs22  and 
+\f2\fs18 parent1Genome2==parent2Genome2
+\f3\fs22 .
+\f0   Since selfing is enabled only in non-sexual simulations, 
+\f2\fs18 isSelfing
+\f0\fs22  will always be 
+\f2\fs18 F
+\f0\fs22  in sexual simulations (and 
+\i de facto
+\i0  selfing is also impossible in sexual simulations).\
+Note that matings in SLiM do not proceed in random order.  Offspring are generated for each subpopulation in turn, and within each subpopulation the order of offspring generation is also non-random with respect to the source subpopulation, the sex of the offspring, and the reproductive mode (selfing, cloning, or autogamy).  It is important, therefore, that 
+\f2\fs18 modifyChild()
+\f0\fs22  callbacks are not in any way biased by the offspring generation order; they should not treat offspring generated early in the process any differently than offspring generated late in the process.  Any failure to guarantee such invariance could lead to large biases in the simulation outcome.  In particular, it is usually dangerous to activate or deactivate 
+\f2\fs18 modifyChild()
+\f0\fs22  callbacks while offspring generation is in progress.\
+As with the other callback types, multiple 
+\f2\fs18 modifyChild()
+\f0\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will called for each child generated, in the order that the callbacks were registered.  If a 
+\f2\fs18 modifyChild()
+\f0\fs22  callback returns 
+\f2\fs18 F
+\f0\fs22 , however, indicating that the child should be generated, the remaining callbacks in the chain will not be called.\
+}
