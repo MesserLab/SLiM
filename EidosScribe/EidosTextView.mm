@@ -42,7 +42,7 @@ using std::string;
 @end
 
 
-@interface EidosTextView ()
+@interface EidosTextView () <NSTextStorageDelegate>
 {
 	// these are used in selectionRangeForProposedRange:granularity: to balance delimiters properly
 	BOOL inEligibleDoubleClick;
@@ -75,7 +75,11 @@ using std::string;
 - (void)awakeFromNib
 {
 	// Replace the text storage of the description textview with our custom subclass
-	[[self layoutManager] replaceTextStorage:[[[EidosTextStorage alloc] init] autorelease]];
+	EidosTextStorage *replacementTextStorage = [[EidosTextStorage alloc] init];
+	
+	[[self layoutManager] replaceTextStorage:replacementTextStorage];
+	[replacementTextStorage setDelegate:self];
+	[replacementTextStorage release];
 	
 	// Turn off all of Cocoa's fancy text editing stuff
 	[self setAutomaticDashSubstitutionEnabled:NO];
@@ -1032,12 +1036,12 @@ using std::string;
 		[self updateSyntaxColoring];
 }
 
-- (void)didChangeText
+- (void)textStorageDidProcessEditing:(NSNotification *)notification
 {
+	// I used to do this in an override of -didChangeText, but that did not work well; I think the text system
+	// did not expect attribute changes at that time.  This delegate method is specifically intended for this.
 	if (_shouldRecolorAfterChanges)
 		[self recolorAfterChanges];
-	
-	[super didChangeText];
 }
 
 
