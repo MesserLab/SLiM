@@ -368,7 +368,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 
 const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

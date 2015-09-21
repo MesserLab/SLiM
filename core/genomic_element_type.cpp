@@ -387,7 +387,7 @@ const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(Eid
 
 const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

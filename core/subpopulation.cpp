@@ -186,7 +186,7 @@ population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(t
 
 Subpopulation::~Subpopulation(void)
 {
-	//EIDOS_ERRSTREAM << "Subpopulation::~Subpopulation" << std::endl;
+	//std::cout << "Subpopulation::~Subpopulation" << std::endl;
 	
 	gsl_ran_discrete_free(lookup_parent_);
 	gsl_ran_discrete_free(lookup_female_parent_);
@@ -1418,7 +1418,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 
 const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

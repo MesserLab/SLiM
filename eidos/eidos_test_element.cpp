@@ -174,7 +174,7 @@ const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(Eidos
 
 const std::vector<const EidosMethodSignature *> *Eidos_TestElementClass::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

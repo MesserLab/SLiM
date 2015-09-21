@@ -203,7 +203,7 @@ const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlob
 
 const std::vector<const EidosMethodSignature *> *Substitution_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

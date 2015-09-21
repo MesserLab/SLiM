@@ -811,7 +811,7 @@ const EidosPropertySignature *SLiMEidosBlock_Class::SignatureForProperty(EidosGl
 
 const std::vector<const EidosMethodSignature *> *SLiMEidosBlock_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

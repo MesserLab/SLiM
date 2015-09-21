@@ -502,7 +502,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 
 const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

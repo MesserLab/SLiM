@@ -607,7 +607,7 @@ const EidosPropertySignature *Genome_Class::SignatureForProperty(EidosGlobalStri
 
 const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

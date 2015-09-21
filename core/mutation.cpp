@@ -232,7 +232,7 @@ const EidosPropertySignature *Mutation_Class::SignatureForProperty(EidosGlobalSt
 
 const std::vector<const EidosMethodSignature *> *Mutation_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{

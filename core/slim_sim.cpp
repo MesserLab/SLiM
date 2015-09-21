@@ -2240,7 +2240,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 
 const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) const
 {
-	std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
 	if (!methods)
 	{
