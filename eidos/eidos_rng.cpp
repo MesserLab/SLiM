@@ -33,7 +33,7 @@ unsigned long int gEidos_rng_last_seed = 0;				// unsigned long int is the type 
 unsigned long int EidosGenerateSeedFromPIDAndTime(void)
 {
 	static long int hereCounter = 0;
-	unsigned long int pid = getpid();
+	pid_t pid = getpid();
 	struct timeval te; 
 	
 	gettimeofday(&te, NULL); // get current time
