@@ -1781,9 +1781,7 @@
 
 - (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
 {
-	// This ugly cast is because EidosConsoleWindowController declares its conformance to EidosTextViewDelegate
-	// in its class continuation, which we don't want to change but which is not visible here.  Sigh.
-	return [(NSObject<EidosTextViewDelegate> *)_consoleController eidosTextViewGlobalSymbolTableForCompletion:eidosTextView];
+	return [_consoleController symbols];	// use the symbol table from the console window
 }
 
 - (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;

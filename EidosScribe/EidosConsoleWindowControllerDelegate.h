@@ -29,6 +29,7 @@ class EidosObjectElement;
 typedef EidosObjectElement EidosContext;
 class EidosMethodSignature;
 class EidosFunctionSignature;
+class EidosSymbolTable;
 
 
 /*
@@ -79,3 +80,46 @@ class EidosFunctionSignature;
 - (bool)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 
 @end
+
+
+// We also provide here a method on EidosConsoleWindowController that returns a C++ object and thus cannot be declared
+// in the main header.  If you need to call this method, you can simply include this header to get its interface.
+
+@interface EidosConsoleWindowController (CxxAdditions)
+
+// provides access to the symbol table of the console window, sometimes used by the Context for completion or other tasks
+- (EidosSymbolTable *)symbols;
+
+@end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -170,11 +170,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return outputTextView;
 }
 
-- (EidosSymbolTable *)symbols
-{
-	return global_symbols;
-}
-
 - (void)invalidateSymbolTable
 {
 	if (global_symbols)
@@ -783,6 +778,15 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 @end
 
+@implementation EidosConsoleWindowController (CxxAdditions)
+
+// provides access to the symbol table of the console window, sometimes used by the Context for completion or other tasks
+- (EidosSymbolTable *)symbols
+{
+	return global_symbols;
+}
+
+@end
 
 
 
