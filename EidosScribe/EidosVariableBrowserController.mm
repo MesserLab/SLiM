@@ -72,7 +72,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (void)setDelegate:(NSObject<EidosVariableBrowserControllerDelegate> *)newDelegate
 {
-	if (![newDelegate conformsToProtocol:@protocol(EidosVariableBrowserControllerDelegate)])
+	if (newDelegate && ![newDelegate conformsToProtocol:@protocol(EidosVariableBrowserControllerDelegate)])
 		NSLog(@"Delegate %@ assigned to EidosVariableBrowserController %p does not conform to the EidosVariableBrowserControllerDelegate protocol!", newDelegate, self);
 	
 	_delegate = newDelegate;	// nonatomic, assign

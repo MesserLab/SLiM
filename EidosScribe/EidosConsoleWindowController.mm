@@ -138,7 +138,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (void)setDelegate:(NSObject<EidosConsoleWindowControllerDelegate> *)newDelegate
 {
-	if (![newDelegate conformsToProtocol:@protocol(EidosConsoleWindowControllerDelegate)])
+	if (newDelegate && ![newDelegate conformsToProtocol:@protocol(EidosConsoleWindowControllerDelegate)])
 		NSLog(@"Delegate %@ assigned to EidosConsoleWindowController %p does not conform to the EidosConsoleWindowControllerDelegate protocol!", newDelegate, self);
 	
 	delegate = newDelegate;	// nonatomic, assign

@@ -36,7 +36,7 @@
 // The method signature is inherited from NSTextView, but we want to check that the delegate follows our delegate protocol
 - (void)setDelegate:(id<NSTextViewDelegate>)delegate
 {
-	if (![delegate conformsToProtocol:@protocol(EidosConsoleTextViewDelegate)])
+	if (delegate && ![delegate conformsToProtocol:@protocol(EidosConsoleTextViewDelegate)])
 		NSLog(@"Delegate %@ assigned to EidosConsoleTextView %p does not conform to the EidosConsoleTextViewDelegate protocol!", delegate, self);
 	
 	[super setDelegate:delegate];
