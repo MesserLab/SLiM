@@ -52,6 +52,7 @@
 	[super dealloc];
 }
 
+// FIXME the way that signed/unsigned and int sizes are handled for this buffer stuff seems pretty unsafe and careless
 - (double *)fixationTimeDataWithController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
@@ -69,7 +70,7 @@
 		rebin = (double *)realloc(rebin, rebinBins * sizeof(double));
 	}
 	
-	for (int i = 0; i < usedRebinBins; ++i)
+	for (unsigned int i = 0; i < usedRebinBins; ++i)
 		rebin[i] = 0.0;
 	
 	for (int i = 0; i < binCount * 10; ++i)
@@ -78,7 +79,7 @@
 		{
 			int histIndex = j + i * mutationTypeCount;
 			
-			if (histIndex < histogramBins)
+			if (histIndex < (int64_t)histogramBins)
 				rebin[j + (i / 10) * mutationTypeCount] += histogram[histIndex];
 		}
 	}

@@ -68,7 +68,7 @@ void Chromosome::InitializeDraws(void)
 	double A[size()];
 	int l = 0;
 	
-	for (int i = 0; i < size(); i++) 
+	for (unsigned int i = 0; i < size(); i++) 
 	{ 
 		if ((*this)[i].end_position_ > last_position_)
 			last_position_ = (*this)[i].end_position_;
@@ -104,7 +104,7 @@ void Chromosome::InitializeDraws(void)
 	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0] + 1);		// +1 here because position zero is included; fixed BCH 30 August 2015
 	overall_recombination_rate_ += B[0];
 	
-	for (int i = 1; i < recombination_rates_.size(); i++) 
+	for (unsigned int i = 1; i < recombination_rates_.size(); i++) 
 	{ 
 		B[i] = recombination_rates_[i] * static_cast<double>(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
 		overall_recombination_rate_+= B[i];

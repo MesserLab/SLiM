@@ -1359,7 +1359,7 @@
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (int i = 0; i < sim->population_.substitutions_.size(); i++)
+		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i;
 			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
@@ -2108,7 +2108,7 @@
 				{
 					NSMutableString *paramString = [[NSMutableString alloc] init];
 					
-					for (int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+					for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
 					{
 						NSString *paramSymbol = @"";
 						
@@ -2154,7 +2154,7 @@
 				{
 					NSMutableString *paramString = [[NSMutableString alloc] init];
 					
-					for (int mutTypeIndex = 0; mutTypeIndex < genomicElementType->mutation_fractions_.size(); ++mutTypeIndex)
+					for (unsigned int mutTypeIndex = 0; mutTypeIndex < genomicElementType->mutation_fractions_.size(); ++mutTypeIndex)
 					{
 						MutationType *mutType = genomicElementType->mutation_type_ptrs_[mutTypeIndex];
 						double mutTypeFraction = genomicElementType->mutation_fractions_[mutTypeIndex];

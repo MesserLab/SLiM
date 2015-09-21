@@ -180,7 +180,7 @@ using std::string;
 	{
 		NSTextStorage *ts = [self textStorage];
 		NSMutableString *scriptString = [[self string] mutableCopy];
-		int scriptLength = (int)[scriptString length];
+		NSUInteger scriptLength = [scriptString length];
 		NSRange selectedRange = [self selectedRange];
 		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
 		NSUInteger scanPosition;
@@ -274,7 +274,7 @@ using std::string;
 	{
 		NSTextStorage *ts = [self textStorage];
 		NSMutableString *scriptString = [[self string] mutableCopy];
-		int scriptLength = (int)[scriptString length];
+		NSUInteger scriptLength = [scriptString length];
 		NSRange selectedRange = [self selectedRange];
 		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
 		NSUInteger scanPosition;
@@ -364,7 +364,7 @@ using std::string;
 	{
 		NSTextStorage *ts = [self textStorage];
 		NSMutableString *scriptString = [[self string] mutableCopy];
-		int scriptLength = (int)[scriptString length];
+		NSUInteger scriptLength = [scriptString length];
 		NSRange selectedRange = [self selectedRange];
 		NSCharacterSet *newlineChars = [NSCharacterSet newlineCharacterSet];
 		NSUInteger scanPosition;
@@ -671,8 +671,8 @@ using std::string;
 				if (eventTime - doubleDownTime <= [NSEvent doubleClickInterval])
 				{
 					NSString *scriptString = [[self textStorage] string];
-					NSUInteger stringLength = [scriptString length];
-					NSUInteger proposedCharacterIndex = proposedCharRange.location;
+					int stringLength = (int)[scriptString length];
+					int proposedCharacterIndex = (int)proposedCharRange.location;
 					unichar uch = [scriptString characterAtIndex:proposedCharacterIndex];
 					BOOL forward = false;
 					unichar incrementChar = ' ';

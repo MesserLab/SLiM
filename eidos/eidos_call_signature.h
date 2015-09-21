@@ -156,7 +156,7 @@ public:
 	EidosCallSignature *AddLogicalEquiv_OSN(const std::string &p_argument_name);
 	
 	// check arguments and returns
-	void CheckArguments(EidosValue *const *const p_arguments, int p_argument_count) const;
+	void CheckArguments(EidosValue *const *const p_arguments, unsigned int p_argument_count) const;
 	void CheckReturn(EidosValue *p_result) const;
 	
 	// virtual functions defined by the subclasses below

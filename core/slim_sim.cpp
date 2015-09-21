@@ -1814,7 +1814,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
-			for (int i = 0; i < subs.size(); i++)
+			for (unsigned int i = 0; i < subs.size(); i++)
 			{
 				output_stream << i;
 				subs[i]->print(output_stream);

@@ -511,7 +511,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	NSArray *screens = [NSScreen screens];
 	NSUInteger nScreens = [screens count];
 	
-	for (int i = 0; i < nScreens; ++i)
+	for (NSUInteger i = 0; i < nScreens; ++i)
 	{
 		NSScreen *screen = [screens objectAtIndex:i];
 		NSRect screenFrame = [screen visibleFrame];

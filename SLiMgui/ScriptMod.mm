@@ -387,7 +387,7 @@
 	
 	// Search forward until we find the right place for this line
 	NSUInteger bestInsertionIndex;
-	int previousCommentLineCount = 0;	// we don't want to position after a comment; we use this to go just before a series of comment lines
+	NSUInteger previousCommentLineCount = 0;	// we don't want to position after a comment; we use this to go just before a series of comment lines
 	
 	for (bestInsertionIndex = 0; bestInsertionIndex < lineCount; ++bestInsertionIndex)
 	{

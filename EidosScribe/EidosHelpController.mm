@@ -255,7 +255,7 @@
 	NSUInteger lineCount = [topicFileLineArray count];
 	NSUInteger lineStartIndex = 0;		// the character index of the current line in topicFileAttrString
 	
-	for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
+	for (unsigned int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
 	{
 		NSString *line = [topicFileLineArray objectAtIndex:lineIndex];
 		NSUInteger lineLength = [line length];

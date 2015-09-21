@@ -86,7 +86,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	NSUInteger childCount = [_browserOutline numberOfChildrenOfItem:parentItem];
 	//NSLog(@"after reload, outline has %lu children (%ld rows), expandedSet has %lu items", (unsigned long)childCount, (long)[_browserOutline numberOfRows], (unsigned long)[expandedSet count]);
 	
-	for (int i = 0; i < childCount; ++i)
+	for (unsigned int i = 0; i < childCount; ++i)
 	{
 		id childItem = [_browserOutline child:i ofItem:parentItem];
 		
@@ -126,7 +126,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	if (rowCount > 0)
 	{
 		// The outline has items in it, so we will start a new set to save the expanded items
-		for (int i = 0; i < rowCount; ++i)
+		for (unsigned int i = 0; i < rowCount; ++i)
 		{
 			id rowItem = [_browserOutline itemAtRow:i];
 			

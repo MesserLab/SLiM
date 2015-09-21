@@ -41,7 +41,7 @@
 	NSRange lastPromptRange;
 	
 	NSMutableArray *history;
-	int historyIndex;
+	NSUInteger historyIndex;
 	BOOL lastHistoryItemIsProvisional;	// got added to the history by a moveUp: event but is not an executed command
 }
 

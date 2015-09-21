@@ -173,17 +173,19 @@ EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p
 EidosCallSignature *EidosCallSignature::AddIntObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class)		{ return AddArg(kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class); }
 EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class)		{ return AddArg(kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class); }
 
-void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, int p_argument_count) const
+void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, unsigned int p_argument_count) const
 {
+	size_t arg_masks_size = arg_masks_.size();
+	
 	// Check the number of arguments supplied
 	if (!has_ellipsis_)
 	{
-		if (p_argument_count > arg_masks_.size())
+		if (p_argument_count > arg_masks_size)
 			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied." << eidos_terminate(nullptr);
 	}
 	
 	// Check the types of all arguments specified in the signature
-	for (int arg_index = 0; arg_index < arg_masks_.size(); ++arg_index)
+	for (unsigned int arg_index = 0; arg_index < arg_masks_size; ++arg_index)
 	{
 		EidosValueMask type_mask = arg_masks_[arg_index];
 		bool is_optional = !!(type_mask & kEidosValueMaskOptional);

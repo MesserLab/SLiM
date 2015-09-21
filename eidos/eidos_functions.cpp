@@ -3174,7 +3174,7 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 			if (arg0_count == 1)
 			{
 				const std::string &string_value = arg0_value->StringAtIndex(0, nullptr);
-				string::size_type len = string_value.size();
+				int64_t len = (int64_t)string_value.size();
 				EidosValue *arg_first = p_arguments[1];
 				int arg_first_count = arg_first->Count();
 				
@@ -3194,8 +3194,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					
 					int64_t last0 = arg_last->IntAtIndex(0, nullptr);
 					
-					int clamped_first = (int)first0;
-					int clamped_last = (int)last0;
+					int64_t clamped_first = (int)first0;
+					int64_t clamped_last = (int)last0;
 					
 					if (clamped_first < 0) clamped_first = 0;
 					if (clamped_last >= len) clamped_last = (int)len - 1;
@@ -3248,9 +3248,9 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						std::string str = string_vec[value_index];
-						string::size_type len = str.size();
-						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
-						int clamped_last = (int)(last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
+						int64_t len = (int64_t)str.size();
+						int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+						int64_t clamped_last = (last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
 						
 						if (clamped_first < 0) clamped_first = 0;
 						if (clamped_last >= len) clamped_last = (int)len - 1;
@@ -3267,8 +3267,8 @@ EidosValue *EidosInterpreter::ExecuteFunctionCall(string const &p_function_name,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						std::string str = string_vec[value_index];
-						string::size_type len = str.size();
-						int clamped_first = (int)(first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+						int64_t len = (int64_t)str.size();
+						int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
 						
 						if (clamped_first < 0) clamped_first = 0;
 						

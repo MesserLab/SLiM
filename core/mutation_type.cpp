@@ -95,7 +95,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 	{
 		p_outstream << "<";
 		
-		for (int i = 0; i < p_mutation_type.dfe_parameters_.size(); ++i)
+		for (unsigned int i = 0; i < p_mutation_type.dfe_parameters_.size(); ++i)
 		{
 			p_outstream << p_mutation_type.dfe_parameters_[i];
 			

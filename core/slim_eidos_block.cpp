@@ -253,7 +253,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_i
 	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
 		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << eidos_terminate(p_blame_token);
 	
-	for (int str_index = 1; str_index < id_cstr_len; ++str_index)
+	for (unsigned int str_index = 1; str_index < id_cstr_len; ++str_index)
 		if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
 			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << eidos_terminate(p_blame_token);
 	

@@ -375,7 +375,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			if (second_child_type == EidosValueType::kValueLogical)
 			{
 				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
-				if (second_child_count != base_indices.size())
+				if (second_child_count != (int)base_indices.size())
 				{
 					if (second_child_value->IsTemporary()) delete second_child_value;
 					

@@ -1220,12 +1220,13 @@ void Population::SurveyPopulation(void)
 
 #ifdef SLIMGUI
 // This method is used to tally up histogram metrics that are kept per mutation type for SLiMgui
+// FIXME the way that signed/unsigned and int sizes are handled for this buffer stuff seems pretty unsafe and careless
 void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins)
 {
 	slim_generation_t *buffer = *p_buffer;
 	uint32_t bufferBins = *p_bufferBins;
 	
-	if (p_bin_number >= bufferBins)
+	if (p_bin_number >= (int64_t)bufferBins)
 	{
 		int oldEntryCount = bufferBins * p_mutation_type_count;
 		
@@ -1705,7 +1706,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	// print the sample's genomes
 	SLIM_OUTSTREAM << "Genomes:" << endl;
 	
-	for (int j = 0; j < sample.size(); j++)														// go through all individuals
+	for (unsigned int j = 0; j < sample.size(); j++)														// go through all individuals
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
@@ -1773,7 +1774,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 	}
 	
 	// print the sample's genotypes
-	for (int j = 0; j < sample.size(); j++)														// go through all individuals
+	for (unsigned int j = 0; j < sample.size(); j++)														// go through all individuals
 	{
 		string genotype(polymorphisms.size(), '0'); // fill with 0s
 		

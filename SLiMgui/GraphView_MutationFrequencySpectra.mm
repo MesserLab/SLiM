@@ -68,7 +68,7 @@
 	}
 	
 	// clear our bins
-	for (int i = 0; i < usedSpectrumBins; ++i)
+	for (unsigned int i = 0; i < usedSpectrumBins; ++i)
 		spectrum[i] = 0;
 	
 	// get the selected chromosome range

@@ -52,7 +52,7 @@ GenomicElementType::~GenomicElementType(void)
 
 void GenomicElementType::InitializeDraws(void)
 {
-	int mutation_type_count = (int)mutation_type_ptrs_.size();
+	size_t mutation_type_count = mutation_type_ptrs_.size();
 	
 	if (mutation_type_count != mutation_fractions_.size())
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes." << eidos_terminate();
@@ -71,7 +71,7 @@ void GenomicElementType::InitializeDraws(void)
 		double A[mutation_type_count];
 		bool nonzero_seen = false;
 		
-		for (int i = 0; i < mutation_type_count; i++)
+		for (unsigned int i = 0; i < mutation_type_count; i++)
 		{
 			double fraction = mutation_fractions_[i];
 			
@@ -108,7 +108,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	{
 		p_outstream << "<";
 		
-		for (int i = 0; i < p_genomic_element_type.mutation_type_ptrs_.size(); ++i)
+		for (unsigned int i = 0; i < p_genomic_element_type.mutation_type_ptrs_.size(); ++i)
 		{
 			p_outstream << p_genomic_element_type.mutation_type_ptrs_[i]->mutation_type_id_;
 			
@@ -129,7 +129,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 	{
 		p_outstream << "<";
 		
-		for (int i = 0; i < p_genomic_element_type.mutation_fractions_.size(); ++i)
+		for (unsigned int i = 0; i < p_genomic_element_type.mutation_fractions_.size(); ++i)
 		{
 			p_outstream << p_genomic_element_type.mutation_fractions_[i];
 			
