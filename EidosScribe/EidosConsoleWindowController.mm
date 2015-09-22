@@ -116,17 +116,15 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (void)dealloc
 {
+	//NSLog(@"EidosConsoleWindowController dealloc");
+	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
 	delete global_symbols;
 	global_symbols = nil;
 	
-	[scriptWindow setDelegate:nil];
-	[browserController setDelegate:nil];
+	[self finalize];
 	
-	[self setDelegate:nil];
-	[self setBrowserController:nil];
-	[self setScriptWindow:nil];
 	[self setMainSplitView:nil];
 	[self setScriptTextView:nil];
 	[self setOutputTextView:nil];
@@ -151,18 +149,36 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (void)browserWillShow:(NSNotification *)note
 {
-	[_browserToggleButton setState:NSOnState];
+	if ([note object] == browserController)
+		[_browserToggleButton setState:NSOnState];
 }
 
 - (void)browserWillHide:(NSNotification *)note
 {
-	[_browserToggleButton setState:NSOffState];
+	if ([note object] == browserController)
+		[_browserToggleButton setState:NSOffState];
 }
 
 - (void)showWindow
 {
 	[scriptWindow makeKeyAndOrderFront:nil];
 	[scriptWindow makeFirstResponder:outputTextView];
+}
+
+- (void)hideWindow
+{
+	[scriptWindow performClose:nil];
+}
+
+- (void)finalize
+{
+	[scriptWindow setDelegate:nil];
+	[self setScriptWindow:nil];
+	
+	[browserController finalize];
+	[self setBrowserController:nil];
+	
+	[self setDelegate:nil];
 }
 
 - (EidosConsoleTextView *)textView;

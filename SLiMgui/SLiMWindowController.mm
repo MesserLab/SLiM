@@ -179,12 +179,14 @@
 
 - (void)browserWillShow:(NSNotification *)note
 {
-	[browserButton setState:NSOnState];
+	if ([note object] == [_consoleController browserController])
+		[browserButton setState:NSOnState];
 }
 
 - (void)browserWillHide:(NSNotification *)note
 {
-	[browserButton setState:NSOffState];
+	if ([note object] == [_consoleController browserController])
+		[browserButton setState:NSOffState];
 }
 
 - (void)showTerminationMessage:(NSString *)terminationMessage
@@ -385,7 +387,14 @@
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
 	[self sendAllGraphWindowsSelector:@selector(close)];
-
+	
+	// We also need to close and release our console window and its associated variable browser window.
+	// We don't track the console or var browser in windowWillClose: since we want those windows to
+	// continue to exist even when they are hidden, unlike graph windows.
+	[[_consoleController browserController] hideWindow];
+	[_consoleController hideWindow];
+	[self setConsoleController:nil];
+	
 	[super dealloc];
 }
 
@@ -1664,8 +1673,9 @@
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
-		// Run startup tests, if enabled; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
-		RunSLiMTests();
+		// Run startup tests, iff the option key is down; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
+		if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+			RunSLiMTests();
 		
 		// Done executing scripts
 		[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
@@ -1836,6 +1846,10 @@
 	if (closingWindow == [self window])
 	{
 		[closingWindow setDelegate:nil];
+		
+		[_consoleController finalize];
+		[self setConsoleController:nil];
+		
 		//[self setWindow:nil];
 		[self autorelease];
 	}

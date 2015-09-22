@@ -60,12 +60,14 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (void)dealloc
 {
+	//NSLog(@"EidosVariableBrowserController dealloc");
+	
 	[self invalidateRootWrappers];
 	
 	[expandedSet release];
 	expandedSet = nil;
 	
-	[self setBrowserWindow:nil];
+	[self finalize];
 	
 	[super dealloc];
 }
@@ -79,6 +81,31 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	
 	// Since our delegate defines what appears in our outline view, we need to reload when the delegate changes
 	[self reloadBrowser];
+}
+
+- (void)showWindow
+{
+	if (![_browserWindow isVisible])
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillShowNotification object:self];
+		[_browserWindow makeKeyAndOrderFront:nil];
+	}
+}
+
+- (void)hideWindow
+{
+	if ([_browserWindow isVisible])
+	{
+		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
+		[_browserWindow performClose:nil];
+	}
+}
+
+- (void)finalize
+{
+	[self setBrowserWindow:nil];
+	
+	[self setDelegate:nil];
 }
 
 - (void)expandItemsInSet:(NSSet *)set belowItem:(id)parentItem
@@ -201,15 +228,9 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 - (IBAction)toggleBrowserVisibility:(id)sender
 {
 	if ([_browserWindow isVisible])
-	{
-		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillHideNotification object:self];
-		[_browserWindow performClose:nil];
-	}
+		[self hideWindow];
 	else
-	{
-		[[NSNotificationCenter defaultCenter] postNotificationName:EidosVariableBrowserWillShowNotification object:self];
-		[_browserWindow makeKeyAndOrderFront:nil];
-	}
+		[self showWindow];
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem

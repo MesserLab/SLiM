@@ -118,9 +118,10 @@
 
 - (void)eidosConsoleWindowControllerAppendWelcomeMessageAddendum:(EidosConsoleWindowController *)eidosConsoleController
 {
-	// EidosScribe runs the standard Eidos test suite on launch.
+	// EidosScribe runs the standard Eidos test suite on launch if the option key is down.
 	// You would probably not want to do this in your own Context.
-	RunEidosTests();
+	if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+		RunEidosTests();
 }
 
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController

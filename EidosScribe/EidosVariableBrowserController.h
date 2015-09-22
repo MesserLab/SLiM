@@ -56,6 +56,13 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 // Normally EidosConsoleWindowController is instantiated in the EidosConsoleWindow.xib nib
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 
+// Show/hide the browser window
+- (void)showWindow;
+- (void)hideWindow;
+
+// Tell the controller that the browser window should be disposed of, not just closed; breaks retain loops
+- (void)finalize;
+
 // Trigger a reload of the variable browser when symbols have changed
 - (void)reloadBrowser;
 
