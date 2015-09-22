@@ -33,6 +33,11 @@ class EidosToken;
 void Eidos_WarmUp(void);
 
 
+// *******************************************************************************************************************
+//
+//	Context customization
+//
+
 // Information on the Context within which Eidos is running (if any).  This is basically a way to let the Context
 // customize the version and license information printed by Eidos.
 
@@ -40,15 +45,10 @@ extern std::string gEidosContextVersion;
 extern std::string gEidosContextLicense;
 
 
-// If gEidosTerminateThrows == 0, << eidos_terminate causes a call to exit().  In that mode, output
-// related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
-// we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
-// the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
-extern bool gEidosTerminateThrows;
-extern std::ostringstream gEidosTermination;
-
-#define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
-
+// *******************************************************************************************************************
+//
+//	Error tracking
+//
 
 // The part of the input file that caused an error; used to highlight the token or text that caused the error.
 // Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.  The
@@ -80,6 +80,27 @@ void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63
 void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script);
 void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
 
+// This is a hack scheme to track EidosValue allocations and deallocations, as a way to help debug leaks
+#define EIDOS_TRACK_VALUE_ALLOCATION
+
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+extern int gEidosValueTrackingCount;
+#endif
+
+
+// *******************************************************************************************************************
+//
+//	Termination handling
+//
+
+// If gEidosTerminateThrows == 0, << eidos_terminate causes a call to exit().  In that mode, output
+// related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
+// we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
+// the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
+extern bool gEidosTerminateThrows;
+extern std::ostringstream gEidosTermination;
+
+#define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
 
 // This little class is used as a stream manipulator that causes termination with EXIT_FAILURE, optionally
 // with a backtrace.  This is nice since it lets us log and terminate in a single line of code.  It also allows
@@ -104,9 +125,19 @@ std::string EidosGetTrimmedRaiseMessage(void);
 std::string EidosGetUntrimmedRaiseMessage(void);
 
 
+// *******************************************************************************************************************
+//
+//	Utility functions
+//
+
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string EidosResolvedPath(const std::string p_path);
 
+
+// *******************************************************************************************************************
+//
+//	Global strings & IDs
+//
 
 //
 //	Global std::string objects.  This is kind of gross, but there are several rationales for it.  First of all, it makes

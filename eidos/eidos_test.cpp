@@ -101,6 +101,10 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
+		
+		if (p_correct_result->IsTemporary())
+			delete p_correct_result;
+		
 		return;
 	}
 	
@@ -124,6 +128,12 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 			if (CompareEidosValues(result, value_index, p_correct_result, value_index, nullptr) != 0)
 			{
 				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << endl;
+				
+				if (result->IsTemporary())
+					delete result;
+				if (p_correct_result->IsTemporary())
+					delete p_correct_result;
+				
 				return;
 			}
 		}
@@ -136,6 +146,11 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue *p_corre
 	
 	gEidosCurrentScript = nullptr;
 	gEidosExecutingRuntimeScript = false;
+	
+	if (result->IsTemporary())
+		delete result;
+	if (p_correct_result->IsTemporary())
+		delete p_correct_result;
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
@@ -154,11 +169,14 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 		
 		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
 		
-		interpreter.EvaluateInterpreterBlock(true);
+		EidosValue *result = interpreter.EvaluateInterpreterBlock(true);
 		
 		gEidosTestFailureCount++;
 		
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateInterpreterBlock()." << endl;
+		
+		if (result->IsTemporary())
+			delete result;
 	}
 	catch (std::runtime_error err)
 	{
@@ -2909,6 +2927,11 @@ void RunEidosTests(void)
     if (gEidosTestFailureCount)
         std::cerr << "\e[31mFAILURE\e[0m count: " << gEidosTestFailureCount << endl;
     std::cerr << "\e[32mSUCCESS\e[0m count: " << gEidosTestSuccessCount << endl;
+	
+	// If we are tracking allocations, print a count
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+	std::cerr << "EidosValue allocation count: " << gEidosValueTrackingCount << endl;
+#endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());

@@ -264,17 +264,31 @@ EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, 
 #pragma mark -
 #pragma mark EidosValue
 
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+int gEidosValueTrackingCount = 0;
+#endif
+
 EidosValue::EidosValue(const EidosValue &p_original) : external_temporary_(false), external_permanent_(false), invisible_(false)	// doesn't use original for these flags
 {
 #pragma unused(p_original)
+	
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+	gEidosValueTrackingCount++;
+#endif
 }
 
 EidosValue::EidosValue(void)
 {
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+	gEidosValueTrackingCount++;
+#endif
 }
 
 EidosValue::~EidosValue(void)
 {
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+	gEidosValueTrackingCount--;
+#endif
 }
 
 bool EidosValue::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
