@@ -1,11 +1,11 @@
 SLiM:
-	setSubpopulationSize(0) is kind of weird, does not free the subpop
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
 	write the SLiM Cookbook
 
 Eidos:
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
+	look at other shootout tests for further optimization targets
 
 SLiMgui work:
 	update the SLiMgui Help file, which is presently the version 1.8 PDF
