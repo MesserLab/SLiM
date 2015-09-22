@@ -302,6 +302,8 @@
 			if (value_index > 50)
 			{
 				outstream << ", ...";
+				
+				if (element_value->IsTemporary()) delete element_value;
 				break;
 			}
 		}
