@@ -42,6 +42,12 @@ Population::Population(SLiMSim &p_sim) : sim_(p_sim)
 Population::~Population(void)
 {
 	RemoveAllSubpopulationInfo();
+	
+	// dispose of any freed subpops
+	for (auto removed_subpop : removed_subpops_)
+		delete removed_subpop;
+	
+	removed_subpops_.clear();
 }
 
 void Population::RemoveAllSubpopulationInfo(void)
@@ -206,13 +212,16 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
-		// Note that we don't free the subpopulation here, because there may be live references to it.  In fact, I'm not sure we ever free it!  FIXME
+		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 		
 		erase(subpop_id);
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 			subpop_pair.second->migrant_fractions_.erase(subpop_id);
+		
+		// remember the subpop for later disposal
+		removed_subpops_.push_back(&p_subpop);
 	}
 	else
 	{
@@ -1308,6 +1317,15 @@ void Population::SwapGenerations(void)
 #if DEBUG_MUTATION_ZOMBIES
 	CheckMutationRegistry();
 #endif
+	
+	// dispose of any freed subpops
+	if (removed_subpops_.size())
+	{
+		for (auto removed_subpop : removed_subpops_)
+			delete removed_subpop;
+		
+		removed_subpops_.clear();
+	}
 	
 	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
