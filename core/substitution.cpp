@@ -59,7 +59,7 @@ void Substitution::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
 }
 
-EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -68,15 +68,15 @@ EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_position:
-			return new EidosValue_Int_singleton(position_);
+			return EidosValue_SP(new EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:
-			return new EidosValue_Float_singleton(selection_coeff_);
+			return EidosValue_SP(new EidosValue_Float_singleton(selection_coeff_));
 		case gID_subpopID:
-			return new EidosValue_Int_singleton(subpop_index_);
+			return EidosValue_SP(new EidosValue_Int_singleton(subpop_index_));
 		case gID_originGeneration:
-			return new EidosValue_Int_singleton(generation_);
+			return EidosValue_SP(new EidosValue_Int_singleton(generation_));
 		case gID_fixationTime:
-			return new EidosValue_Int_singleton(fixation_time_);
+			return EidosValue_SP(new EidosValue_Int_singleton(fixation_time_));
 			
 			// all others, including gID_none
 		default:
@@ -84,14 +84,14 @@ EidosValue *Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void Substitution::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_subpopID:
 		{
-			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			subpop_index_ = value;
 			return;
@@ -104,7 +104,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	}
 }
 
-EidosValue *Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
@@ -131,7 +131,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
@@ -219,7 +219,7 @@ const EidosMethodSignature *Substitution_Class::SignatureForMethod(EidosGlobalSt
 	return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *Substitution_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP Substitution_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

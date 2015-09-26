@@ -20,11 +20,17 @@
 /*
  
  A symbol table is basically just a map of identifiers to EidosValue objects.  However, there are some additional smarts,
- particularly where memory management is concerned.  EidosValue objects can have one of three memory management statuses:
- (1) temporary, such that the current scope owns the value and should delete it before exiting, (2) externally owned, such that
- the EidosSymbolTable machinery just handles the pointer but does not delete it, or (3) in a symbol table, such that temporary users
- of the object do not delete it, but the EidosSymbolTable will delete it if it is removed from the table.  It used to be implemented
- with C++'s std::map, but that was very slow to construct and destruct, so I've shifted to a pure C implementation for speed.
+ particularly where speed is concerned.  The goal is to be able to both add symbols and look up symbols as fast as
+ possible.  EidosValue objects are tracked with smart pointers for refcounting.  There are also optimizations for
+ setting up a symbol table with standard constants and variables using globally allocated strings for speed.
+ 
+ As per the recommendations at http://herbsutter.com/2013/06/05/gotw-91-solution-smart-pointer-parameters/ I have
+ designed the API to take EidosValue_SP parameters when setting the value of a symbol.  This creates a new smart pointer,
+ which takes shared ownership of the object at the point of the call.  These functions then use std::move internally
+ to move the smart pointer into the symbol table's internal data structures.  If a caller wishes to surrender a temporary
+ object to the symbol table, they should use std::move in their call, and if I understand C++11 correctly, move semantics
+ will be used the whole way along and a refcount increment/decrement will not happen at all.  EidosValue_SP values are
+ returned, too, rather than references, since the caller will be taking their shared ownership of the object.
  
  */
 
@@ -39,18 +45,18 @@
 #include "eidos_value.h"
 
 
-// This is used by ReplaceConstantSymbolEntry for fast setup / teardown
-typedef std::pair<const std::string, EidosValue*> EidosSymbolTableEntry;
+// This is used by InitializeConstantSymbolEntry / ReinitializeConstantSymbolEntry for fast setup / teardown
+typedef std::pair<const std::string, EidosValue_SP> EidosSymbolTableEntry;
 
 
 // This is what EidosSymbolTable now uses internally
 typedef struct {
+	EidosValue_SP symbol_value_SP_;		// our shared pointer to the EidosValue for the symbol
 	const std::string *symbol_name_;	// ownership is defined by symbol_name_externally_owned_, below
-	int symbol_name_length_;			// used to make scanning of the symbol table faster
 	const char *symbol_name_data_;		// used to make scanning of the symbol table faster
-	EidosValue *symbol_value_;			// ownership is defined by the flags in EidosValue
-	bool symbol_is_const_;				// T if const, F is variable
+	int symbol_name_length_;			// used to make scanning of the symbol table faster
 	bool symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
+	bool symbol_is_const_;				// T if const, F is variable
 } EidosSymbolTableSlot;
 
 typedef struct {
@@ -63,54 +69,50 @@ typedef struct {
 	bool contains_NAN_ = false;					// "NAN"
 } EidosSymbolUsageParamBlock;
 
-// As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free
-// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room
-#define EIDOS_SYMBOL_TABLE_BASE_SIZE		30
 
 class EidosSymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	EidosSymbolTableSlot *symbols_;					// all our symbols
-	int symbol_count_;							// the number of symbol table slots actually used
-	int symbol_capacity_;						// the number of symbol table slots currently allocated
-	
-	EidosSymbolTableSlot non_malloc_symbols[EIDOS_SYMBOL_TABLE_BASE_SIZE];	// a base buffer, used to avoid malloc/free for simple scripts
+	std::vector<EidosSymbolTableSlot> symbol_vec;
 	
 public:
 	
-	EidosSymbolTable(const EidosSymbolTable&) = delete;							// no copying
-	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;				// no copying
-	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage = nullptr);		// standard constructor
-	~EidosSymbolTable(void);													// destructor
+	EidosSymbolTable(const EidosSymbolTable&) = delete;											// no copying
+	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;								// no copying
+	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage = nullptr);			// standard constructor
+	~EidosSymbolTable(void);																	// destructor
 	
 	// symbol access; these are variables defined in the global namespace
 	std::vector<std::string> ReadOnlySymbols(void) const;
 	std::vector<std::string> ReadWriteSymbols(void) const;
-	EidosValue *GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const;				// raise will use the token
-	EidosValue *GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const;		// same but raises if the value is constant
-	EidosValue *GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;				// raise will just call eidos_terminate()
-	EidosValue *GetValueOrNullForSymbol(const std::string &p_symbol_name) const;				// safe to call with any string
-	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
-	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue *p_value);
+	
+	EidosValue_SP GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const;				// raise will use the token
+	EidosValue_SP GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const;	// same but raises if the value is constant
+	EidosValue_SP GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;				// raise will just call eidos_terminate()
+	EidosValue_SP GetValueOrNullForSymbol(const std::string &p_symbol_name) const;				// safe to call with any string
+	
+	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value);
+	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value);
+	
 	void RemoveValueForSymbol(const std::string &p_symbol_name, bool p_remove_constant);
 	
-	// Special-purpose methods used for fast setup of new symbol tables; these methods require an externally-owned, non-invisible
-	// EidosValue that is guaranteed by the caller to live longer than we will live; no copy is made of the value!
-	// The name string in the EidosSymbolTableEntry is assumed to be statically defined, or long-lived enough that we can take a pointer to it
-	// for our entire lifetime; so these are not general-purpose methods, they are specifically for a very specialized init case!
+	// Special-purpose methods used for fast setup of new symbol tables with constants.
+	//
+	// These methods assume (1) that the name string is a global constant that does not need to be copied and
+	// has infinite lifespan, and (2) that the EidosValue passed in is not invisible and is thus suitable for
+	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
+	// they are specifically for the very specialized init case of setting up a table with standard entries.
 	void InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
-	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value);
+	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
 	
 	// Slightly slower versions of the above that check for the pre-existence of the symbol to avoid reinserting it
 	void ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
-	void ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value);
+	void ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
 	
-	// internal
-	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data);
-	inline int AllocateNewSlot(void)	{ if (symbol_count_ == symbol_capacity_) _CapacityIncrease(); return symbol_count_++; };
-	void _CapacityIncrease(void);
+	// internal methods
+	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

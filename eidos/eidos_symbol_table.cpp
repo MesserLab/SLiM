@@ -41,11 +41,6 @@ using std::ostream;
 
 EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 {
-	// Set up the symbol table itself
-	symbol_count_ = 0;
-	symbol_capacity_ = EIDOS_SYMBOL_TABLE_BASE_SIZE;
-	symbols_ = non_malloc_symbols;
-	
 	// We statically allocate our base symbols for fast setup / teardown
 	static EidosSymbolTableEntry *trueConstant = nullptr;
 	static EidosSymbolTableEntry *falseConstant = nullptr;
@@ -60,20 +55,19 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 		trueConstant = new EidosSymbolTableEntry(gEidosStr_T, gStaticEidosValue_LogicalT);
 		falseConstant = new EidosSymbolTableEntry(gEidosStr_F, gStaticEidosValue_LogicalF);
 		nullConstant = new EidosSymbolTableEntry(gEidosStr_NULL, gStaticEidosValueNULL);
-		piConstant = new EidosSymbolTableEntry(gEidosStr_PI, (new EidosValue_Float_singleton(M_PI))->SetExternalPermanent());
-		eConstant = new EidosSymbolTableEntry(gEidosStr_E, (new EidosValue_Float_singleton(M_E))->SetExternalPermanent());
-		infConstant = new EidosSymbolTableEntry(gEidosStr_INF, (new EidosValue_Float_singleton(std::numeric_limits<double>::infinity()))->SetExternalPermanent());
-		nanConstant = new EidosSymbolTableEntry(gEidosStr_NAN, (new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()))->SetExternalPermanent());
+		piConstant = new EidosSymbolTableEntry(gEidosStr_PI, EidosValue_SP(new EidosValue_Float_singleton(M_PI)));
+		eConstant = new EidosSymbolTableEntry(gEidosStr_E, EidosValue_SP(new EidosValue_Float_singleton(M_E)));
+		infConstant = new EidosSymbolTableEntry(gEidosStr_INF, EidosValue_SP(new EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
+		nanConstant = new EidosSymbolTableEntry(gEidosStr_NAN, EidosValue_SP(new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
 	}
 	
-	// We can use InitializeConstantSymbolEntry() here because we know the objects will live longer than the symbol table, and
-	// we know that their values will not change, so we meet the requirements for that method.  Be careful changing this code!
+	// We can use InitializeConstantSymbolEntry() here since we obey its requirements (see header)
 	if (p_symbol_usage)
 	{
 		// Include symbols only if they are used by the script we are being created to interpret.
 		// Eidos Contexts can check for symbol usage if they wish, for maximal construct/destruct speed.
 		// Symbols are defined here from least likely to most likely to be used (from guessing, not metrics),
-		// to optimize the symbol table search time.
+		// to optimize the symbol table search time; the table is search from last added to first added.
 		if (p_symbol_usage->contains_NAN_)
 			InitializeConstantSymbolEntry(nanConstant);
 		if (p_symbol_usage->contains_INF_)
@@ -103,35 +97,29 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 
 EidosSymbolTable::~EidosSymbolTable(void)
 {
-	// We delete all values that are not marked as externally owned permanent; those are someone else's problem.
-	// Note that we assume that objects marked externally owned temporary are owned BY US; we must make sure that
-	// is true, otherwise we will end up deleting somebody else's pointer.
-	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
+	for (size_t symbol_index = 0; symbol_index < symbol_count; ++symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
-		EidosValue *value = symbol_slot->symbol_value_;
+		EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
-		if (!value->IsExternalPermanent())
-			delete value;
-		
+		// free symbol names that we own
 		if (!symbol_slot->symbol_name_externally_owned_)
 			delete symbol_slot->symbol_name_;
-	}
-	
-	if (symbols_ && (symbols_ != non_malloc_symbols))
-	{
-		free(symbols_);
-		symbols_ = nullptr;
 	}
 }
 
 std::vector<std::string> EidosSymbolTable::ReadOnlySymbols(void) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	std::vector<std::string> symbol_names;
 	
-	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	for (size_t symbol_index = 0; symbol_index < symbol_count; ++symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		if (symbol_slot->symbol_is_const_)
 			symbol_names.push_back(*symbol_slot->symbol_name_);
@@ -142,11 +130,14 @@ std::vector<std::string> EidosSymbolTable::ReadOnlySymbols(void) const
 
 std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	std::vector<std::string> symbol_names;
 	
-	for (int symbol_index = 0; symbol_index < symbol_count_; ++symbol_index)
+	for (size_t symbol_index = 0; symbol_index < symbol_count; ++symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		if (!symbol_slot->symbol_is_const_)
 			symbol_names.push_back(*symbol_slot->symbol_name_);
@@ -155,16 +146,19 @@ std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 	return symbol_names;
 }
 
-EidosValue *EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const
+EidosValue_SP EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	const std::string &symbol_name = p_symbol_token->token_string_;
 	int key_length = (int)symbol_name.size();
 	const char *symbol_name_data = symbol_name.data();
 	
 	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
-	for (int symbol_index = symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		// use the length of the string to make the scan fast; only compare for equal-length strings
 		if (symbol_slot->symbol_name_length_ == key_length)
@@ -178,7 +172,7 @@ EidosValue *EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol
 					break;
 			
 			if (char_index == key_length)
-				return symbol_slot->symbol_value_;
+				return symbol_slot->symbol_value_SP_;
 		}
 	}
 	
@@ -186,19 +180,21 @@ EidosValue *EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForToken): undefined identifier " << symbol_name << "." << eidos_terminate(p_symbol_token);
-	return nullptr;
 }
 
-EidosValue *EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const
+EidosValue_SP EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	const std::string &symbol_name = p_symbol_token->token_string_;
 	int key_length = (int)symbol_name.size();
 	const char *symbol_name_data = symbol_name.data();
 	
 	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
-	for (int symbol_index = symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		// use the length of the string to make the scan fast; only compare for equal-length strings
 		if (symbol_slot->symbol_name_length_ == key_length)
@@ -216,7 +212,7 @@ EidosValue *EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosToke
 				if (symbol_slot->symbol_is_const_)
 					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetNonConstantValueOrRaiseForToken): identifier " << symbol_name << " is a constant." << eidos_terminate(p_symbol_token);
 				
-				return symbol_slot->symbol_value_;
+				return symbol_slot->symbol_value_SP_;
 			}
 		}
 	}
@@ -225,18 +221,20 @@ EidosValue *EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosToke
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForToken): undefined identifier " << symbol_name << "." << eidos_terminate(p_symbol_token);
-	return nullptr;
 }
 
-EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const
+EidosValue_SP EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
 	
 	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
-	for (int symbol_index = symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		// use the length of the string to make the scan fast; only call compare() for equal-length strings
 		if (symbol_slot->symbol_name_length_ == key_length)
@@ -250,7 +248,7 @@ EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symb
 					break;
 			
 			if (char_index == key_length)
-				return symbol_slot->symbol_value_;
+				return symbol_slot->symbol_value_SP_;
 		}
 	}
 	
@@ -258,18 +256,20 @@ EidosValue *EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symb
 	//std::cerr << "Symbol returned for identifier " << p_identifier << " == (" << result->Type() << ") " << *result << endl;
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::GetValueOrRaiseForSymbol): undefined identifier " << p_symbol_name << "." << eidos_terminate(nullptr);
-	return nullptr;
 }
 
-EidosValue *EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_symbol_name) const
+EidosValue_SP EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_symbol_name) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
 	
 	// This is the same logic as _SlotIndexForSymbol, but it is repeated here for speed; getting values should be super fast
-	for (int symbol_index = symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		// use the length of the string to make the scan fast; only call compare() for equal-length strings
 		if (symbol_slot->symbol_name_length_ == key_length)
@@ -283,25 +283,29 @@ EidosValue *EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_symbo
 					break;
 			
 			if (char_index == key_length)
-				return symbol_slot->symbol_value_;
+				return symbol_slot->symbol_value_SP_;
 		}
 	}
 	
-	return nullptr;
+	return EidosValue_SP(nullptr);
 }
 
 // does a fast search for the slot matching the search key; returns -1 if no match is found
-int EidosSymbolTable::_SlotIndexForSymbol(int p_symbol_name_length, const char *p_symbol_name_data)
+int EidosSymbolTable::_SlotIndexForSymbol(int p_symbol_name_length, const char *p_symbol_name_data) const
 {
+	const EidosSymbolTableSlot *symbols = symbol_vec.data();
+	size_t symbol_count = symbol_vec.size();
+	
 	// search through the symbol table in reverse order, most-recently-defined symbols first
-	for (int symbol_index = symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
 	{
-		EidosSymbolTableSlot *symbol_slot = symbols_ + symbol_index;
+		const EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
 		
 		// use the length of the string to make the scan fast; only call compare() for equal-length strings
 		if (symbol_slot->symbol_name_length_ == p_symbol_name_length)
 		{
 			// The logic here is equivalent to symbol_slot->symbol_name_->compare(p_symbol_name), but runs much faster
+			// since most symbols will fail the comparison on the first character, avoiding the function call and setup
 			const char *slot_name_data = symbol_slot->symbol_name_data_;
 			int char_index;
 			
@@ -317,91 +321,47 @@ int EidosSymbolTable::_SlotIndexForSymbol(int p_symbol_name_length, const char *
 	return -1;
 }
 
-// increases capacity (by a factor of two) to accommodate the addition of new symbols
-void EidosSymbolTable::_CapacityIncrease(void)
-{
-	int new_symbol_capacity = symbol_capacity_ << 1;
-	
-	if (symbols_ == non_malloc_symbols)
-	{
-		// We have been living off our base buffer, so we need to malloc for the first time
-		symbols_ = (EidosSymbolTableSlot *)malloc(sizeof(EidosSymbolTableSlot) * new_symbol_capacity);
-		
-		memcpy(symbols_, non_malloc_symbols, sizeof(EidosSymbolTableSlot) * symbol_capacity_);
-	}
-	else
-	{
-		// We already have a malloced buffer, so we just need to realloc
-		symbols_ = (EidosSymbolTableSlot *)realloc(symbols_, sizeof(EidosSymbolTableSlot) * new_symbol_capacity);
-	}
-	
-	symbol_capacity_ = new_symbol_capacity;
-}
-
-void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, EidosValue *p_value)
+void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value)
 {
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
 	int symbol_slot = _SlotIndexForSymbol(key_length, symbol_name_data);
 	
-	if ((symbol_slot >= 0) && symbols_[symbol_slot].symbol_is_const_)
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
-	
-	// get a version of the value that is suitable for insertion into the symbol table
-	if (p_value->IsExternalTemporary() || p_value->Invisible())
-	{
-		// If it is marked as external-temporary, somebody else owns it, but it might go away at any time.  In that case,
-		// we need to copy it.  This is not a concern for external-permanent EidosValues, since they are guaranteed to
-		// live longer than us.  Probably these two flags should never be set at the same time, but who knows.  Similarly,
-		// if it's invisible then we need to copy it, since the original needs to stay invisible to display correctly.
+	// if it's invisible then we set it to visible, since the symbol table never stores invisible values
+	// this is safe since the result of assignments in Eidos is NULL, not the value set
+	if (p_value->Invisible())
 		p_value = p_value->CopyValues();
-		
-		// We set the external temporary flag on our copy so the pointer won't be deleted or reused by anybody else.
-		p_value->SetExternalTemporary();
-	}
-	else if (!p_value->IsExternalPermanent())
-	{
-		// TAKING OWNERSHIP!  The object was a temporary; now it is ours!  The fact that we are allowed to do this to
-		// temporary objects is part of our contract with our caller.  This means that anybody who creates a temporary
-		// object, or gets handed a pointer to one, cannot assume that it will remain temporary; if there is any chance
-		// that a symbol table has gotten its sticky hands on the object, then the caller must check IsTemporary() before
-		// deleting their pointer.
-		p_value->SetExternalTemporary();
-	}
-	// else p_value->ExternalPermanent(), which means we can just use the pointer.  Note we do not set ExternalTemporary() on
-	// the object in this case; it is not ours, we are just keeping a pointer to it, and we don't want both flags set at once.
 	
 	// and now set the value in the symbol table
 	if (symbol_slot == -1)
 	{
-		symbol_slot = AllocateNewSlot();
+		EidosSymbolTableSlot new_symbol_slot;
 		
-		EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+		new_symbol_slot.symbol_value_SP_ = std::move(p_value);
+		new_symbol_slot.symbol_name_ = new std::string(p_symbol_name);
+		new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+		new_symbol_slot.symbol_name_length_ = key_length;
+		new_symbol_slot.symbol_name_externally_owned_ = false;
+		new_symbol_slot.symbol_is_const_ = false;
 		
-		new_symbol_slot_ptr->symbol_name_ = new std::string(p_symbol_name);
-		new_symbol_slot_ptr->symbol_name_length_ = key_length;
-		new_symbol_slot_ptr->symbol_name_data_ = new_symbol_slot_ptr->symbol_name_->data();
-		new_symbol_slot_ptr->symbol_value_ = p_value;
-		new_symbol_slot_ptr->symbol_is_const_ = false;
-		new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
+		symbol_vec.push_back(std::move(new_symbol_slot));
 	}
 	else
 	{
-		EidosSymbolTableSlot *existing_symbol_slot_ptr = symbols_ + symbol_slot;
-		EidosValue *existing_value = existing_symbol_slot_ptr->symbol_value_;
+		EidosSymbolTableSlot *existing_symbol_slot_ptr = &(symbol_vec[symbol_slot]);
+		
+		if ((symbol_slot >= 0) && existing_symbol_slot_ptr->symbol_is_const_)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
 		
 		// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
 		// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
-		if (!existing_value->IsExternalPermanent())
-			delete existing_value;
-		
-		existing_symbol_slot_ptr->symbol_value_ = p_value;
+		existing_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
 	}
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
 
-void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, EidosValue *p_value)
+void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value)
 {
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
@@ -410,47 +370,28 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	if (symbol_slot >= 0)
 	{
 		// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
-		if (symbols_[symbol_slot].symbol_is_const_)
+		if (symbol_vec[symbol_slot].symbol_is_const_)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate(nullptr);
 		else
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate(nullptr);
 	}
 	
-	// get a version of the value that is suitable for insertion into the symbol table
-	if (p_value->IsExternalTemporary() || p_value->Invisible())
-	{
-		// If it is marked as external-temporary, somebody else owns it, but it might go away at any time.  In that case,
-		// we need to copy it.  This is not a concern for external-permanent EidosValues, since they are guaranteed to
-		// live longer than us.  Probably these two flags should never be set at the same time, but who knows.  Similarly,
-		// if it's invisible then we need to copy it, since the original needs to stay invisible to display correctly.
+	// if it's invisible then we set it to visible, since the symbol table never stores invisible values
+	// this is safe since the result of assignments in Eidos is NULL, not the value set
+	if (p_value->Invisible())
 		p_value = p_value->CopyValues();
-		
-		// We set the external temporary flag on our copy so the pointer won't be deleted or reused by anybody else.
-		p_value->SetExternalTemporary();
-	}
-	else if (!p_value->IsExternalPermanent())
-	{
-		// TAKING OWNERSHIP!  The object was a temporary; now it is ours!  The fact that we are allowed to do this to
-		// temporary objects is part of our contract with our caller.  This means that anybody who creates a temporary
-		// object, or gets handed a pointer to one, cannot assume that it will remain temporary; if there is any chance
-		// that a symbol table has gotten its sticky hands on the object, then the caller must check IsTemporary() before
-		// deleting their pointer.
-		p_value->SetExternalTemporary();
-	}
-	// else p_value->ExternalPermanent(), which means we can just use the pointer.  Note we do not set ExternalTemporary() on
-	// the object in this case; it is not ours, we are just keeping a pointer to it, and we don't want both flags set at once.
 	
 	// and now set the value in the symbol table; we know, from the check above, that we're in a new slot
-	symbol_slot = AllocateNewSlot();
+	EidosSymbolTableSlot new_symbol_slot;
 	
-	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
+	new_symbol_slot.symbol_name_ = new std::string(p_symbol_name);
+	new_symbol_slot.symbol_name_length_ = key_length;
+	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_externally_owned_ = false;
+	new_symbol_slot.symbol_is_const_ = true;
 	
-	new_symbol_slot_ptr->symbol_name_ = new std::string(p_symbol_name);
-	new_symbol_slot_ptr->symbol_name_length_ = key_length;
-	new_symbol_slot_ptr->symbol_name_data_ = new_symbol_slot_ptr->symbol_name_->data();
-	new_symbol_slot_ptr->symbol_value_ = p_value;
-	new_symbol_slot_ptr->symbol_is_const_ = true;
-	new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
+	symbol_vec.push_back(std::move(new_symbol_slot));
 	
 	//std::cerr << "SetValueForIdentifier: Symbol table: " << *this << endl;
 }
@@ -463,103 +404,79 @@ void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bo
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *symbol_slot_ptr = symbols_ + symbol_slot;
-		EidosValue *value = symbol_slot_ptr->symbol_value_;
+		EidosSymbolTableSlot *existing_symbol_slot_ptr = &(symbol_vec[symbol_slot]);
 		
-		if (symbol_slot_ptr->symbol_is_const_ && !p_remove_constant)
+		if (existing_symbol_slot_ptr->symbol_is_const_ && !p_remove_constant)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
 		
-		// see comment on our destructor, above
-		if (!value->IsExternalPermanent())
-			delete value;
+		// free the name string
+		if (!existing_symbol_slot_ptr->symbol_name_externally_owned_)
+			delete existing_symbol_slot_ptr->symbol_name_;
 		
-		// delete the slot and free the name string; if we're removing the last slot, that's all we have to do
-		if (!symbol_slot_ptr->symbol_name_externally_owned_)
-			delete symbol_slot_ptr->symbol_name_;
-		
-		--symbol_count_;
-		
-		// if we're removing an interior value, we can just replace this slot with the last slot, since we don't sort our entries
-		if (symbol_slot != symbol_count_)
-			*symbol_slot_ptr = symbols_[symbol_count_];
+		// remove the slot from the vector
+		symbol_vec.erase(symbol_vec.begin() + symbol_slot);
 	}
 }
 
 void EidosSymbolTable::InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry)
 {
-	const std::string &entry_name = p_new_entry->first;
-	EidosValue *entry_value = p_new_entry->second;
-	
 #ifdef DEBUG
-	if (!entry_value->IsExternalPermanent() || entry_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
+	if (p_new_entry->second->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
-	int symbol_slot = AllocateNewSlot();
+	const std::string &entry_name = p_new_entry->first;
+	EidosSymbolTableSlot new_symbol_slot;
 	
-	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
+	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
+	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_externally_owned_ = true;
+	new_symbol_slot.symbol_is_const_ = true;
 	
-	new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
-	new_symbol_slot_ptr->symbol_name_data_ = new_symbol_slot_ptr->symbol_name_->data();
-	new_symbol_slot_ptr->symbol_value_ = entry_value;
-	new_symbol_slot_ptr->symbol_is_const_ = true;
-	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
-	
-	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
-	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
-	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
-	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
-	// in script_value.h, and the comments above.
+	symbol_vec.push_back(std::move(new_symbol_slot));
 }
 
-void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value)
+void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value)
 {
 #ifdef DEBUG
-	if (!p_value->IsExternalPermanent() || p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
+	if (p_value->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
-	int symbol_slot = AllocateNewSlot();
+	EidosSymbolTableSlot new_symbol_slot;
 	
-	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
+	new_symbol_slot.symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot.symbol_name_length_ = (int)p_symbol_name.size();
+	new_symbol_slot.symbol_name_data_ = p_symbol_name.data();
+	new_symbol_slot.symbol_name_externally_owned_ = true;
+	new_symbol_slot.symbol_is_const_ = true;
 	
-	new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
-	new_symbol_slot_ptr->symbol_name_data_ = new_symbol_slot_ptr->symbol_name_->data();
-	new_symbol_slot_ptr->symbol_value_ = p_value;
-	new_symbol_slot_ptr->symbol_is_const_ = true;
-	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
-	
-	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
-	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
-	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
-	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
-	// in script_value.h, and the comments above.
+	symbol_vec.push_back(std::move(new_symbol_slot));
 }
 
 void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry)
 {
-	const std::string &entry_name = p_new_entry->first;
-	EidosValue *entry_value = p_new_entry->second;
-	
 #ifdef DEBUG
-	if (!entry_value->IsExternalPermanent() || entry_value->Invisible())
+	if (p_new_entry->second->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// check whether the symbol is already defined; if so, it should be identical or we raise
+	const std::string &entry_name = p_new_entry->first;
 	int key_length = (int)entry_name.size();
 	const char *symbol_name_data = entry_name.data();
 	int symbol_slot = _SlotIndexForSymbol(key_length, symbol_name_data);
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
+		EidosSymbolTableSlot *old_slot = &(symbol_vec[symbol_slot]);
 		
-		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != entry_value))
+		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_SP_.get() != p_new_entry->second.get()))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
@@ -567,28 +484,22 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 	}
 	
 	// ok, it is not defined so we need to define it
-	symbol_slot = AllocateNewSlot();
+	EidosSymbolTableSlot new_symbol_slot;
 	
-	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
+	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
+	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_externally_owned_ = true;
+	new_symbol_slot.symbol_is_const_ = true;
 	
-	new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
-	new_symbol_slot_ptr->symbol_name_data_ = symbol_name_data;
-	new_symbol_slot_ptr->symbol_value_ = entry_value;
-	new_symbol_slot_ptr->symbol_is_const_ = true;
-	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
-	
-	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
-	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
-	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
-	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
-	// in script_value.h, and the comments above.
+	symbol_vec.push_back(std::move(new_symbol_slot));
 }
 
-void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue *p_value)
+void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value)
 {
 #ifdef DEBUG
-	if (!p_value->IsExternalPermanent() || p_value->Invisible())
+	if (p_value->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
@@ -599,9 +510,9 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *old_slot = symbols_ + symbol_slot;
+		EidosSymbolTableSlot *old_slot = &(symbol_vec[symbol_slot]);
 		
-		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_ != p_value))
+		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_SP_.get() != p_value.get()))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
 		
 		// a matching slot already exists, so we can just return
@@ -609,22 +520,16 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 	}
 	
 	// ok, it is not defined so we need to define it
-	symbol_slot = AllocateNewSlot();
+	EidosSymbolTableSlot new_symbol_slot;
 	
-	EidosSymbolTableSlot *new_symbol_slot_ptr = symbols_ + symbol_slot;
+	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
+	new_symbol_slot.symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+	new_symbol_slot.symbol_name_length_ = (int)p_symbol_name.size();
+	new_symbol_slot.symbol_name_data_ = p_symbol_name.data();
+	new_symbol_slot.symbol_name_externally_owned_ = true;
+	new_symbol_slot.symbol_is_const_ = true;
 	
-	new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
-	new_symbol_slot_ptr->symbol_name_data_ = symbol_name_data;
-	new_symbol_slot_ptr->symbol_value_ = p_value;
-	new_symbol_slot_ptr->symbol_is_const_ = true;
-	new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
-	
-	// Note that we are left with a symbol for which external_temporary_ is false, but external_permanent_
-	// is true.  This represents a symbol that we do not own, but that has been guaranteed by the external
-	// owner to live longer than us, so we can take a pointer to it safely.  We do the same thing if an
-	// external-permanent object is set on us using SetValueForSymbol().  See the memory management notes
-	// in script_value.h, and the comments above.
+	symbol_vec.push_back(std::move(new_symbol_slot));
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols)
@@ -640,7 +545,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
 		const std::string &symbol_name = *symbol_name_iter;
-		EidosValue *symbol_value = p_symbols.GetValueOrRaiseForSymbol(symbol_name);
+		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(symbol_name);
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		
@@ -648,14 +553,11 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << endl;
 		else
 		{
-			EidosValue *first_value = symbol_value->GetValueAtIndex(0, nullptr);
-			EidosValue *second_value = symbol_value->GetValueAtIndex(1, nullptr);
+			EidosValue_SP first_value = symbol_value->GetValueAtIndex(0, nullptr);
+			EidosValue_SP second_value = symbol_value->GetValueAtIndex(1, nullptr);
 			
 			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
-			if (first_value->IsTemporary()) delete first_value;
 		}
-		
-		if (symbol_value->IsTemporary()) delete symbol_value;
 	}
 	
 	return p_outstream;

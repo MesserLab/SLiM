@@ -403,6 +403,7 @@
 		985724EF1AD6D4060047C223 /* show_tokens.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_tokens.pdf; sourceTree = "<group>"; };
 		985724F41AD6DD470047C223 /* show_execution_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_execution_H.pdf; sourceTree = "<group>"; };
 		985724F51AD6DD470047C223 /* show_execution.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_execution.pdf; sourceTree = "<group>"; };
+		9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_intrusive_ptr.h; sourceTree = "<group>"; };
 		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -725,6 +726,7 @@
 				989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */,
 				985724A81AD4551C0047C223 /* eidos_test.h */,
 				985724A71AD4551C0047C223 /* eidos_test.cpp */,
+				9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */,
 			);
 			path = eidos;
 			sourceTree = "<group>";
@@ -1592,6 +1594,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;

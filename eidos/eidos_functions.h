@@ -33,7 +33,7 @@
 
 
 // Utility functions usable by everybody
-EidosValue *ConcatenateEidosValues(EidosValue *const *const p_arguments, int p_argument_count, bool p_allow_null);
+EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null);
 
 
 // A numeric identifier for a function once its name has been looked up; just for efficiency, to allow switch()
@@ -157,7 +157,7 @@ enum class EidosFunctionIdentifier {
 // functions with Eidos; this is how the Context can get its functions into Eidos.  This registration is done with a delegate object and
 // a delegate function pointer (NOT a pointer to method).  This is the prototype for a function implementation delegate.  The function
 // pointed to will be called, and passed the delegate object along with other parameters for the function call.
-typedef EidosValue *(*EidosDelegateFunctionPtr)(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+typedef EidosValue_SP (*EidosDelegateFunctionPtr)(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 
 #endif /* defined(__Eidos__eidos_functions__) */

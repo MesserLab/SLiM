@@ -113,14 +113,7 @@ SLiMSim::~SLiMSim(void)
 	for (const EidosFunctionSignature *signature : sim_0_signatures_)
 		delete signature;
 	
-	if (self_symbol_)
-	{
-		delete self_symbol_->second;
-		delete self_symbol_;
-	}
-	
-	if (cached_value_generation_)
-		delete cached_value_generation_;
+	delete self_symbol_;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &p_infile)
@@ -664,11 +657,7 @@ bool SLiMSim::_RunOneGeneration(void)
 		population_.SwapGenerations();
 		
 		// advance the generation counter as soon as the generation is done
-		if (cached_value_generation_)
-		{
-			delete cached_value_generation_;
-			cached_value_generation_ = nullptr;
-		}
+		cached_value_generation_.reset();
 		generation_++;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
@@ -728,11 +717,11 @@ void SLiMSim::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, (new EidosValue_Object_singleton(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, EidosValue_SP(new EidosValue_Object_singleton(this)));
 }
 
 // a static member function is used as a funnel, so that we can get a pointer to function for it
-EidosValue *SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	SLiMSim *sim = static_cast<SLiMSim *>(p_delegate);
 	
@@ -740,13 +729,13 @@ EidosValue *SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std:
 }
 
 // the static member function calls this member function; now we're completely in context and can execute the function
-EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_interpreter)
 	
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	// we only define initialize...() functions; so we must be in an initialize() callback
@@ -858,7 +847,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 		EidosSymbolTableEntry *symbol_entry = new_genomic_element_type->CachedSymbolTableEntry();
 		const string &symbol_name = symbol_entry->first;
-		EidosValue *symbol_value = symbol_entry->second;
+		EidosValue_SP symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
@@ -919,7 +908,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 		{
-			EidosValue *dfe_param_value = p_arguments[3 + dfe_param_index];
+			EidosValue *dfe_param_value = p_arguments[3 + dfe_param_index].get();
 			EidosValueType dfe_param_type = dfe_param_value->Type();
 			
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
@@ -943,7 +932,7 @@ EidosValue *SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name
 		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 		EidosSymbolTableEntry *symbol_entry = new_mutation_type->CachedSymbolTableEntry();
 		const string &symbol_name = symbol_entry->first;
-		EidosValue *symbol_value = symbol_entry->second;
+		EidosValue_SP symbol_value = symbol_entry->second;
 		
 		if (symbols.GetValueOrNullForSymbol(symbol_name))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
@@ -1421,96 +1410,99 @@ const EidosObjectClass *SLiMSim::Class(void) const
 	return gSLiM_SLiMSim_Class;
 }
 
-EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 			// constants
 		case gID_chromosome:
-			return new EidosValue_Object_singleton(&chromosome_);
+			return EidosValue_SP(new EidosValue_Object_singleton(&chromosome_));
 		case gID_chromosomeType:
 		{
 			switch (modeled_chromosome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String_singleton(gStr_A);
-				case GenomeType::kXChromosome:	return new EidosValue_String_singleton(gStr_X);
-				case GenomeType::kYChromosome:	return new EidosValue_String_singleton(gStr_Y);
+				case GenomeType::kAutosome:		return EidosValue_SP(new EidosValue_String_singleton(gStr_A));
+				case GenomeType::kXChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_X));
+				case GenomeType::kYChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_Y));
 			}
 		}
 		case gID_genomicElementTypes:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
 				vec->PushObjectElement(ge_type->second);
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_mutations:
 		{
 			Genome &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			EidosValue_Object_vector *vec = (new EidosValue_Object_vector())->Reserve(mutation_count);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
 				vec->PushObjectElement(mutation_registry[mut_index]);
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_mutationTypes:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
 				vec->PushObjectElement(mutation_type->second);
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_scriptBlocks:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
 				vec->PushObjectElement(*script_block);
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_sexEnabled:
 			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_subpopulations:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
 				vec->PushObjectElement(pop->second);
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_substitutions:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
 				vec->PushObjectElement(*sub_iter);
 			
-			return vec;
+			return result_SP;
 		}
 			
 			// variables
 		case gID_dominanceCoeffX:
-			return new EidosValue_Float_singleton(x_chromosome_dominance_coeff_);
+			return EidosValue_SP(new EidosValue_Float_singleton(x_chromosome_dominance_coeff_));
 		case gID_generation:
 		{
-			// We use external-temporary here because the value of generation_ can change, but it is permanent enough that
-			// we can cache it – it can't change within the execution of a single statement, and if the value lives longer
-			// than the context of a single statement that means it has been placed into a symbol table, and thus copied.
 			if (!cached_value_generation_)
-				cached_value_generation_ = (new EidosValue_Int_singleton(generation_))->SetExternalTemporary();
+				cached_value_generation_ = EidosValue_SP (new EidosValue_Int_singleton(generation_));
 			return cached_value_generation_;
 		}
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -1518,22 +1510,17 @@ EidosValue *SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_generation:
 		{
-			int64_t value = p_value->IntAtIndex(0, nullptr);
+			int64_t value = p_value.IntAtIndex(0, nullptr);
 			
 			generation_ = SLiMCastToGenerationTypeOrRaise(value);
-			
-			if (cached_value_generation_)
-			{
-				delete cached_value_generation_;
-				cached_value_generation_ = nullptr;
-			}
+			cached_value_generation_.reset();
 			
 			// FIXME need to handle mutationLossTimes, mutationFixationTimes, fitnessHistory for SLiMgui here
 			// FIXME also need to do something with population_.substitutions_, perhaps; remove all subs that occurred on/after the new generation?
@@ -1546,7 +1533,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
 			
-			double value = p_value->FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			x_chromosome_dominance_coeff_ = value;		// intentionally no bounds check
 			return;
@@ -1554,7 +1541,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1566,14 +1553,14 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value
 	}
 }
 
-EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
-	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
-	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
-	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
+	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5].get() : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1601,7 +1588,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
 			const string &symbol_name = symbol_entry->first;
-			EidosValue *symbol_value = symbol_entry->second;
+			EidosValue_SP symbol_value = symbol_entry->second;
 			
 			if (symbols.GetValueOrNullForSymbol(symbol_name))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
@@ -1655,7 +1642,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
 			const string &symbol_name = symbol_entry->first;
-			EidosValue *symbol_value = symbol_entry->second;
+			EidosValue_SP symbol_value = symbol_entry->second;
 			
 			if (symbols.GetValueOrNullForSymbol(symbol_name))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
@@ -1776,6 +1763,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			// OK, now construct our result vector from the tallies for just the requested mutations
 			EidosValue_Float_vector *float_result = new EidosValue_Float_vector();
+			EidosValue_SP result_SP = EidosValue_SP(float_result);
 			double denominator = 1.0 / total_genome_count;
 			
 			if (arg1_value)
@@ -1796,7 +1784,7 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 					float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
 			}
 			
-			return float_result;
+			return result_SP;
 		}
 			
 			
@@ -1937,11 +1925,11 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			for (string symbol_name : all_symbols)
 			{
-				EidosValue *symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_name);
+				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_name);
 				
 				if (symbol_value->Type() == EidosValueType::kValueObject)
 				{
-					const EidosObjectClass *symbol_class = ((EidosValue_Object *)(symbol_value))->Class();
+					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 					
 					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
 						symbols_to_remove.push_back(symbol_name);
@@ -1999,20 +1987,22 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			
-			script_blocks_.push_back(script_block);		// takes ownership form us
+			script_blocks_.push_back(script_block);		// takes ownership from us
 			scripts_changed_ = true;
+			
+			script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
-				// define a new Eidos variable to refer to the new subpopulation
+				// define a new Eidos variable to refer to the new script
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
-				EidosValue *symbol_value = symbol_entry->second;
+				EidosValue_SP symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, symbol_value);
+				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
@@ -2047,20 +2037,22 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			script_block->mutation_type_id_ = mut_type_id;
 			script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(script_block);		// takes ownership form us
+			script_blocks_.push_back(script_block);		// takes ownership from us
 			scripts_changed_ = true;
+			
+			script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
-				// define a new Eidos variable to refer to the new subpopulation
+				// define a new Eidos variable to refer to the new script
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
-				EidosValue *symbol_value = symbol_entry->second;
+				EidosValue_SP symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, symbol_value);
+				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
@@ -2097,20 +2089,22 @@ EidosValue *SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eido
 			
 			script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(script_block);		// takes ownership form us
+			script_blocks_.push_back(script_block);		// takes ownership from us
 			scripts_changed_ = true;
+			
+			script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
-				// define a new Eidos variable to refer to the new subpopulation
+				// define a new Eidos variable to refer to the new script
 				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
 				const string &symbol_name = symbol_entry->first;
-				EidosValue *symbol_value = symbol_entry->second;
+				EidosValue_SP symbol_value = symbol_entry->second;
 				
 				if (symbols.GetValueOrNullForSymbol(symbol_name))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, symbol_value);
+				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
@@ -2144,7 +2138,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
@@ -2321,7 +2315,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	}
 }
 
-EidosValue *SLiMSim_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP SLiMSim_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

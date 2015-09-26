@@ -33,7 +33,7 @@ class EidosInterpreter;
 
 
 // A typedef for a pointer to an EidosInterpreter evaluation method, cached for speed
-typedef EidosValue *(EidosInterpreter::*EidosEvaluationMethod)(const EidosASTNode *p_node);
+typedef EidosValue_SP (EidosInterpreter::*EidosEvaluationMethod)(const EidosASTNode *p_node);
 
 
 // A class representing a node in a parse tree for a script
@@ -47,8 +47,7 @@ public:
 	bool token_is_owned_ = false;										// if T, we own token_ because it is a virtual token that replaced a real token
 	std::vector<EidosASTNode *> children_;								// OWNED POINTERS
 	
-	mutable EidosValue *cached_value_ = nullptr;						// an optional pre-cached EidosValue representing the node
-	mutable bool cached_value_is_owned_ = false;						// if T, this node owns its own cached_value_; if F, a descendant node owns it
+	mutable EidosValue_SP cached_value_;								// an optional pre-cached EidosValue representing the node
 	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()

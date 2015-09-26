@@ -51,7 +51,7 @@ typedef std::pair<std::string, const EidosFunctionSignature*> EidosFunctionMapPa
 typedef std::map<std::string, const EidosFunctionSignature*> EidosFunctionMap;
 
 // utility functions
-bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, EidosValue *destination_value);	// codifies what promotions can occur in assignment
+bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value, const EidosValue &destination_value);	// codifies what promotions can occur in assignment
 
 
 // A class representing a script interpretation context with all associated symbol table state
@@ -99,52 +99,52 @@ public:
 	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	EidosSymbolTable &GetSymbolTable(void);						// the returned reference is to the symbol table that the interpreter has borrowed
+	EidosSymbolTable &GetSymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
 	inline EidosContext *GetEidosContext(void) const { return eidos_context_; };
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
-	EidosValue *EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output
-	EidosValue *EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in Eidos, which do not require braces
+	EidosValue_SP EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output
+	EidosValue_SP EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in Eidos, which do not require braces
 	
-	void _ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
-	void _AssignRValueToLValue(EidosValue *p_rvalue, const EidosASTNode *p_lvalue_node);
-	EidosValue *_Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, EidosValue *p_first_child_value, EidosValue *p_second_child_value);
+	void _ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
+	void _AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node);
+	EidosValue_SP _Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
-	EidosValue *EvaluateNode(const EidosASTNode *p_node);
+	EidosValue_SP EvaluateNode(const EidosASTNode *p_node);
 	
-	EidosValue *Evaluate_NullStatement(const EidosASTNode *p_node);
-	EidosValue *Evaluate_CompoundStatement(const EidosASTNode *p_node);
-	EidosValue *Evaluate_RangeExpr(const EidosASTNode *p_node);
-	EidosValue *Evaluate_FunctionCall(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Subset(const EidosASTNode *p_node);
-	EidosValue *Evaluate_MemberRef(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Plus(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Minus(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Mod(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Mult(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Div(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Exp(const EidosASTNode *p_node);
-	EidosValue *Evaluate_And(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Or(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Assign(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Eq(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Lt(const EidosASTNode *p_node);
-	EidosValue *Evaluate_LtEq(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Gt(const EidosASTNode *p_node);
-	EidosValue *Evaluate_GtEq(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Not(const EidosASTNode *p_node);
-	EidosValue *Evaluate_NotEq(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Number(const EidosASTNode *p_node);
-	EidosValue *Evaluate_String(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Identifier(const EidosASTNode *p_node);
-	EidosValue *Evaluate_If(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Do(const EidosASTNode *p_node);
-	EidosValue *Evaluate_While(const EidosASTNode *p_node);
-	EidosValue *Evaluate_For(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Next(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Break(const EidosASTNode *p_node);
-	EidosValue *Evaluate_Return(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_NullStatement(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_CompoundStatement(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_RangeExpr(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_FunctionCall(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Subset(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_MemberRef(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Plus(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Minus(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Mod(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Mult(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Div(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Exp(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_And(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Or(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Assign(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Eq(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Lt(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_LtEq(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Gt(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_GtEq(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Not(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_NotEq(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Number(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_String(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Identifier(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_If(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Do(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_While(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_For(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Next(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Break(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Return(const EidosASTNode *p_node);
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
@@ -152,31 +152,22 @@ public:
 	
 	inline void RegisterFunctionMap(EidosFunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
-	EidosValue *ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, EidosValue *const *const p_arguments, int p_argument_count);
-	EidosValue *ExecuteMethodCall(EidosValue_Object *p_method_object, EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count);
+	EidosValue_SP ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
+	EidosValue_SP ExecuteMethodCall(EidosValue_Object &p_method_object, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count);
 	
 	// Utility static methods for numeric conversions
 	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	static double FloatForString(const std::string &p_number_string, const EidosToken *p_blame_token);
-	static EidosValue *NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token);
+	static EidosValue_SP NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	
 	// An inline function for super-fast node evaluation, skipping EvaluateNode()
-	inline EidosValue *FastEvaluateNode(const EidosASTNode *p_node)
+	inline __attribute__((always_inline)) EidosValue_SP FastEvaluateNode(const EidosASTNode *p_node)
 	{
 		// We should have cached p_node->cached_evaluator.  If not, the call below will simply crash with a zero deref, which
 		// is sufficiently diagnostic given that it should never happen.  The if() slows us down quite a bit!
 		
 		//if (p_node->cached_evaluator)
-		//{
-			EidosValue *retval = (this->*(p_node->cached_evaluator_))(p_node);
-			
-#ifdef DEBUG
-		if (!retval)
-				NullReturnRaiseForNode(p_node);
-#endif
-		
-			return retval;
-		//}
+			return (this->*(p_node->cached_evaluator_))(p_node);
 		//else
 		//	return EvaluateNode(p_node);
 	}

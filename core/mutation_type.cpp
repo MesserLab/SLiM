@@ -63,14 +63,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 
 MutationType::~MutationType(void)
 {
-	if (self_symbol_)
-	{
-		delete self_symbol_->second;
-		delete self_symbol_;
-	}
-	
-	if (cached_value_muttype_id_)
-		delete cached_value_muttype_id_;
+	delete self_symbol_;
 }
 
 double MutationType::DrawSelectionCoefficient(void) const
@@ -126,7 +119,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), (new EidosValue_Object_singleton(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *MutationType::Class(void) const
@@ -139,7 +132,7 @@ void MutationType::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType() << "<m" << mutation_type_id_ << ">";
 }
 
-EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -147,23 +140,21 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_id:
 		{
-			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_muttype_id_)
-				cached_value_muttype_id_ = (new EidosValue_Int_singleton(mutation_type_id_))->SetExternalPermanent();
+				cached_value_muttype_id_ = EidosValue_SP(new EidosValue_Int_singleton(mutation_type_id_));
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
 		{
-			static EidosValue_String_singleton *static_dfe_string_f = nullptr;
-			static EidosValue_String_singleton *static_dfe_string_g = nullptr;
-			static EidosValue_String_singleton *static_dfe_string_e = nullptr;
+			static EidosValue_SP static_dfe_string_f;
+			static EidosValue_SP static_dfe_string_g;
+			static EidosValue_SP static_dfe_string_e;
 			
 			if (!static_dfe_string_f)
 			{
-				static_dfe_string_f = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_f))->SetExternalPermanent();
-				static_dfe_string_g = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_g))->SetExternalPermanent();
-				static_dfe_string_e = (EidosValue_String_singleton *)(new EidosValue_String_singleton(gStr_e))->SetExternalPermanent();
+				static_dfe_string_f = EidosValue_SP(new EidosValue_String_singleton(gStr_f));
+				static_dfe_string_g = EidosValue_SP(new EidosValue_String_singleton(gStr_g));
+				static_dfe_string_e = EidosValue_SP(new EidosValue_String_singleton(gStr_e));
 			}
 			
 			switch (dfe_type_)
@@ -174,13 +165,13 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		}
 		case gID_distributionParams:
-			return new EidosValue_Float_vector(dfe_parameters_);
+			return EidosValue_SP(new EidosValue_Float_vector(dfe_parameters_));
 			
 			// variables
 		case gID_dominanceCoeff:
-			return new EidosValue_Float_singleton(dominance_coeff_);
+			return EidosValue_SP(new EidosValue_Float_singleton(dominance_coeff_));
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -188,14 +179,14 @@ EidosValue *MutationType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_dominanceCoeff:
 		{
-			double value = p_value->FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			return;
@@ -203,7 +194,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -216,9 +207,9 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_
 	}
 }
 
-EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	
 	//
 	//	*********************	- (void)setDistribution(string$ distributionType, ...)
@@ -255,7 +246,7 @@ EidosValue *MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 		{
-			EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index];
+			EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index].get();
 			EidosValueType dfe_param_type = dfe_param_value->Type();
 			
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
@@ -300,7 +291,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_MutationType_Class = new MutationType_Class();
@@ -395,7 +386,7 @@ const EidosMethodSignature *MutationType_Class::SignatureForMethod(EidosGlobalSt
 		return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *MutationType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP MutationType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

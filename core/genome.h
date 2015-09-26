@@ -48,7 +48,7 @@ class Genome : public EidosObjectElement
 {
 	// This class has a restricted copying policy; see below
 	
-	EidosValue *self_value_ = nullptr;							// OWNED POINTER: cached EidosValue object for speed
+	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
 #ifdef SLIMGUI
 public:
@@ -360,14 +360,14 @@ public:
 	// Eidos support
 	//
 	void GenerateCachedEidosValue(void);
-	inline EidosValue *CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
+	inline EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

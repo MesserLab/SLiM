@@ -51,23 +51,23 @@ const EidosObjectClass *Eidos_TestElement::Class(void) const
 	return gEidos_TestElementClass;
 }
 
-EidosValue *Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)
-		return new EidosValue_Int_singleton(yolk_);
+		return EidosValue_SP(new EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
-		return new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1));
+		return EidosValue_SP(new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1)));
 	
 	// all others, including gID_none
 	else
 		return EidosObjectElement::GetProperty(p_property_id);
 }
 
-void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	if (p_property_id == gEidosID__yolk)
 	{
-		yolk_ = p_value->IntAtIndex(0, nullptr);
+		yolk_ = p_value.IntAtIndex(0, nullptr);
 		return;
 	}
 	
@@ -76,18 +76,18 @@ void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, EidosValu
 		return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-EidosValue *Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
 		case gEidosID__cubicYolk:
 		{
-			return new EidosValue_Int_singleton(yolk_ * yolk_ * yolk_);
+			return EidosValue_SP(new EidosValue_Int_singleton(yolk_ * yolk_ * yolk_));
 		}
 		case gEidosID__squareTest:
 		{
-			return new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_));
+			return EidosValue_SP(new EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_)));
 		}
 			
 			// all others, including gID_none
@@ -118,7 +118,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gEidos_TestElementClass = new Eidos_TestElementClass();
@@ -211,7 +211,7 @@ const EidosMethodSignature *Eidos_TestElementClass::SignatureForMethod(EidosGlob
 	}
 }
 
-EidosValue *Eidos_TestElementClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP Eidos_TestElementClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

@@ -75,9 +75,11 @@ using std::string;
 - (void)awakeFromNib
 {
 	// Replace the text storage of the description textview with our custom subclass
-	EidosTextStorage *replacementTextStorage = [[EidosTextStorage alloc] init];
+	NSLayoutManager *lm = [self layoutManager];
+	NSTextStorage *ts = [self textStorage];
+	EidosTextStorage *replacementTextStorage = [[EidosTextStorage alloc] initWithAttributedString:ts];	// copy any existing text
 	
-	[[self layoutManager] replaceTextStorage:replacementTextStorage];
+	[lm replaceTextStorage:replacementTextStorage];
 	[replacementTextStorage setDelegate:self];
 	[replacementTextStorage release];
 	
@@ -1478,19 +1480,14 @@ using std::string;
 		if ([delegate respondsToSelector:@selector(eidosTextViewGlobalSymbolTableForCompletion:)])
 			globalSymbolTable = [delegate eidosTextViewGlobalSymbolTableForCompletion:self];
 		
-		EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name) : nullptr);
+		EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name).get() : nullptr);
 		
 		if (!key_path_root)
 			return nil;			// unknown symbol at the root, so we have no idea what's going on
 		if (key_path_root->Type() != EidosValueType::kValueObject)
-		{
-			if (key_path_root->IsTemporary()) delete key_path_root;
 			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
-		}
 		
 		key_path_class = ((EidosValue_Object *)key_path_root)->Class();
-		
-		if (key_path_root->IsTemporary()) delete key_path_root;
 	}
 	
 	if (!key_path_class)

@@ -103,6 +103,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (void)finalize
 {
+	[[self browserWindow] setDelegate:nil];
 	[self setBrowserWindow:nil];
 	
 	[self setDelegate:nil];
@@ -198,7 +199,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 			for (int index = 0; index < readOnlySymbolCount;++ index)
 			{
 				const std::string &symbolName = readOnlySymbols[index];
-				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+				EidosValue_SP symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
 				
@@ -213,7 +214,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 			for (int index = 0; index < readWriteSymbolCount;++ index)
 			{
 				const std::string &symbolName = readWriteSymbols[index];
-				EidosValue *symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
+				EidosValue_SP symbolValue = symbols->GetValueOrRaiseForSymbol(symbolName);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
 				EidosValueWrapper *wrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:nil value:symbolValue];
 				

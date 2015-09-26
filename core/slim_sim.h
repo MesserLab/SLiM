@@ -63,7 +63,7 @@ private:
 	
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
-	EidosValue *cached_value_generation_ = nullptr;									// OWNED POINTER: a cached value for generation_; delete and nil if changed
+	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
@@ -139,8 +139,8 @@ public:
 	void GenerateCachedSymbolTableEntry(void);
 	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
 	
-	static EidosValue *StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	EidosValue *FunctionDelegationFunnel(const std::string &p_function_name, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	static EidosValue_SP StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance
 	const std::vector<const EidosFunctionSignature*> *InjectedFunctionSignatures(void);		// depends on the simulation state
@@ -149,9 +149,9 @@ public:
 	
 	virtual const EidosObjectClass *Class(void) const;
 	
-	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

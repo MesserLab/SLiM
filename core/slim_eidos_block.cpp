@@ -38,16 +38,20 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0);
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
-	while (current_token_type_ != EidosTokenType::kTokenEOF)
+	try
 	{
 		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 		// Parsing of the optional generation range is done in Parse_SLiMEidosBlock() since it ends up as children of that node.
-		EidosASTNode *script_block = Parse_SLiMEidosBlock();
+		while (current_token_type_ != EidosTokenType::kTokenEOF)
+			node->AddChild(Parse_SLiMEidosBlock());
 		
-		node->AddChild(script_block);
+		Match(EidosTokenType::kTokenEOF, "SLiM file");
 	}
-	
-	Match(EidosTokenType::kTokenEOF, "SLiM file");
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
@@ -59,149 +63,136 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 	// We parse the slim_script_info section here, as part of the script block.
-	
-	// The first element is an optional script identifier like s1; we check here that an identifier matches the
-	// pattern sX before eating it, since an identifier here could also be a callback tag like "fitness".
-	if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
+	try
 	{
-		// a script identifier like s1 is present; add it
-		EidosASTNode *script_id_node = new EidosASTNode(current_token_);
-		
-		Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
-		slim_script_block_node->AddChild(script_id_node);
-	}
-	
-	// Next comes an optional generation X or generation range X:Y
-	if (current_token_type_ == EidosTokenType::kTokenNumber)
-	{
-		// A start generation is present; add it
-		EidosASTNode *start_generation_node = Parse_Constant();
-		
-		slim_script_block_node->AddChild(start_generation_node);
-		
-		if (current_token_type_ == EidosTokenType::kTokenColon)
+		// The first element is an optional script identifier like s1; we check here that an identifier matches the
+		// pattern sX before eating it, since an identifier here could also be a callback tag like "fitness".
+		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
 		{
-			// An end generation is present; add it
-			Match(EidosTokenType::kTokenColon, "SLiM script block");
+			// a script identifier like s1 is present; add it
+			slim_script_block_node->AddChild(new EidosASTNode(current_token_));
 			
-			if (current_token_type_ == EidosTokenType::kTokenNumber)
+			Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
+		}
+		
+		// Next comes an optional generation X or generation range X:Y
+		if (current_token_type_ == EidosTokenType::kTokenNumber)
+		{
+			// A start generation is present; add it
+			slim_script_block_node->AddChild(Parse_Constant());
+			
+			if (current_token_type_ == EidosTokenType::kTokenColon)
 			{
-				EidosASTNode *end_generation_node = Parse_Constant();
+				// An end generation is present; add it
+				Match(EidosTokenType::kTokenColon, "SLiM script block");
 				
-				slim_script_block_node->AddChild(end_generation_node);
-			}
-			else
-			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
+				if (current_token_type_ == EidosTokenType::kTokenNumber)
+					slim_script_block_node->AddChild(Parse_Constant());
+				else
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
 			}
 		}
-	}
-	
-	// Now we are to the point of parsing the actual slim_script_block
-	if (current_token_type_ == EidosTokenType::kTokenIdentifier)
-	{
-		if (current_token_->token_string_.compare(gStr_initialize) == 0)
+		
+		// Now we are to the point of parsing the actual slim_script_block
+		if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 		{
-			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
-			
-			Match(EidosTokenType::kTokenIdentifier, "SLiM initialize() callback");
-			Match(EidosTokenType::kTokenLParen, "SLiM initialize() callback");
-			Match(EidosTokenType::kTokenRParen, "SLiM initialize() callback");
-			
-			slim_script_block_node->AddChild(callback_info_node);
-		}
-		else if (current_token_->token_string_.compare(gStr_fitness) == 0)
-		{
-			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
-			
-			Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
-			Match(EidosTokenType::kTokenLParen, "SLiM fitness() callback");
-			
-			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+			if (current_token_->token_string_.compare(gStr_initialize) == 0)
 			{
-				// A (required) mutation type id is present; add it
-				EidosASTNode *mutation_type_id_node = new EidosASTNode(current_token_);
+				slim_script_block_node->AddChild(new EidosASTNode(current_token_));
+				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM initialize() callback");
+				Match(EidosTokenType::kTokenLParen, "SLiM initialize() callback");
+				Match(EidosTokenType::kTokenRParen, "SLiM initialize() callback");
+			}
+			else if (current_token_->token_string_.compare(gStr_fitness) == 0)
+			{
+				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
-				callback_info_node->AddChild(mutation_type_id_node);
-			}
-			else
-			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << eidos_terminate(current_token_);
-			}
-			
-			if (current_token_type_ == EidosTokenType::kTokenComma)
-			{
-				// A (optional) subpopulation id is present; add it
-				Match(EidosTokenType::kTokenComma, "SLiM fitness() callback");
+				Match(EidosTokenType::kTokenLParen, "SLiM fitness() callback");
 				
 				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
-					EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
+					// A (required) mutation type id is present; add it
+					callback_info_node->AddChild(new EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
-					callback_info_node->AddChild(subpopulation_id_node);
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << eidos_terminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << eidos_terminate(current_token_);
 				}
+				
+				if (current_token_type_ == EidosTokenType::kTokenComma)
+				{
+					// A (optional) subpopulation id is present; add it
+					Match(EidosTokenType::kTokenComma, "SLiM fitness() callback");
+					
+					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+					{
+						callback_info_node->AddChild(new EidosASTNode(current_token_));
+						
+						Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
+					}
+					else
+					{
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << eidos_terminate(current_token_);
+					}
+				}
+				
+				Match(EidosTokenType::kTokenRParen, "SLiM fitness() callback");
 			}
-			
-			Match(EidosTokenType::kTokenRParen, "SLiM fitness() callback");
-			
-			slim_script_block_node->AddChild(callback_info_node);
-		}
-		else if (current_token_->token_string_.compare(gStr_mateChoice) == 0)
-		{
-			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
-			
-			Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
-			Match(EidosTokenType::kTokenLParen, "SLiM mateChoice() callback");
-			
-			// A (optional) subpopulation id is present; add it
-			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+			else if (current_token_->token_string_.compare(gStr_mateChoice) == 0)
 			{
-				EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
+				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
-				callback_info_node->AddChild(subpopulation_id_node);
+				Match(EidosTokenType::kTokenLParen, "SLiM mateChoice() callback");
+				
+				// A (optional) subpopulation id is present; add it
+				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+				{
+					callback_info_node->AddChild(new EidosASTNode(current_token_));
+					
+					Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
+				}
+				
+				Match(EidosTokenType::kTokenRParen, "SLiM mateChoice() callback");
 			}
-			
-			Match(EidosTokenType::kTokenRParen, "SLiM mateChoice() callback");
-			
-			slim_script_block_node->AddChild(callback_info_node);
-		}
-		else if (current_token_->token_string_.compare(gStr_modifyChild) == 0)
-		{
-			EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
-			
-			Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
-			Match(EidosTokenType::kTokenLParen, "SLiM modifyChild() callback");
-			
-			// A (optional) subpopulation id is present; add it
-			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+			else if (current_token_->token_string_.compare(gStr_modifyChild) == 0)
 			{
-				EidosASTNode *subpopulation_id_node = new EidosASTNode(current_token_);
+				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
-				callback_info_node->AddChild(subpopulation_id_node);
+				Match(EidosTokenType::kTokenLParen, "SLiM modifyChild() callback");
+				
+				// A (optional) subpopulation id is present; add it
+				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+				{
+					callback_info_node->AddChild(new EidosASTNode(current_token_));
+					
+					Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
+				}
+				
+				Match(EidosTokenType::kTokenRParen, "SLiM modifyChild() callback");
 			}
-			
-			Match(EidosTokenType::kTokenRParen, "SLiM modifyChild() callback");
-			
-			slim_script_block_node->AddChild(callback_info_node);
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
+			}
 		}
-		else
-		{
-			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
-		}
+		
+		// Regardless of what happened above, all Eidos blocks end with a compound statement, which is the last child of the node
+		slim_script_block_node->AddChild(Parse_CompoundStatement());
 	}
-	
-	// Regardless of what happened above, all Eidos blocks end with a compound statement, which is the last child of the node
-	EidosASTNode *compound_statement_node = Parse_CompoundStatement();
-	
-	slim_script_block_node->AddChild(compound_statement_node);
+	catch (...)
+	{
+		delete slim_script_block_node;
+		throw;
+	}
 	
 	return slim_script_block_node;
 }
@@ -218,11 +209,9 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 	current_token_type_ = current_token_->token_type_;
 	
 	// parse a new AST from our start token
-	EidosASTNode *tree = Parse_SLiMFile();
+	parse_root_ = Parse_SLiMFile();
 	
-	tree->OptimizeTree();
-	
-	parse_root_ = tree;
+	parse_root_->OptimizeTree();
 	
 	// if logging of the AST is requested, do that
 	if (gEidosLogAST)
@@ -440,39 +429,36 @@ SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script
 	: block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end)
 {
 	script_ = new EidosScript(p_script_string);
-
-	script_->Tokenize();
-	script_->ParseInterpreterBlockToAST();
-	
-	root_node_ = script_->AST();
-	
-	if (root_node_->children_.size() != 1)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << eidos_terminate();
-	if (root_node_->children_[0]->token_->token_type_ != EidosTokenType::kTokenLBrace)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << eidos_terminate();
-	
-	compound_statement_node_ = root_node_->children_[0];
-	
-	ScanTreeForIdentifiersUsed();
+	// the caller should now call TokenizeAndParse() to complete initialization
 }
 
 SLiMEidosBlock::~SLiMEidosBlock(void)
 {
 	delete script_;
-	
-	if (self_symbol_)
+	delete self_symbol_;
+	delete script_block_symbol_;
+}
+
+void SLiMEidosBlock::TokenizeAndParse(void)
+{
+	// This should be called on script-based SLiMEidosBlocks immediately after construction;
+	// it is separated out from the constructor for simplicity because it may raise.
+	if (script_)
 	{
-		delete self_symbol_->second;
-		delete self_symbol_;
+		script_->Tokenize();
+		script_->ParseInterpreterBlockToAST();
+		
+		root_node_ = script_->AST();
+		
+		if (root_node_->children_.size() != 1)
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << eidos_terminate();
+		if (root_node_->children_[0]->token_->token_type_ != EidosTokenType::kTokenLBrace)
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << eidos_terminate();
+		
+		compound_statement_node_ = root_node_->children_[0];
+		
+		ScanTreeForIdentifiersUsed();
 	}
-	if (script_block_symbol_)
-	{
-		delete script_block_symbol_->second;
-		delete script_block_symbol_;
-	}
-	
-	if (cached_value_block_id_)
-		delete cached_value_block_id_;
 }
 
 void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node)
@@ -591,7 +577,7 @@ void SLiMEidosBlock::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_self, (new EidosValue_Object_singleton(this))->SetExternalPermanent());
+	self_symbol_ = new EidosSymbolTableEntry(gStr_self, EidosValue_SP(new EidosValue_Object_singleton(this)));
 }
 
 void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -605,7 +591,7 @@ void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), (new EidosValue_Object_singleton(this))->SetExternalPermanent());
+	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *SLiMEidosBlock::Class(void) const
@@ -639,7 +625,7 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 	p_ostream << ">";
 }
 
-EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -647,35 +633,33 @@ EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_id:
 		{
-			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = (new EidosValue_Int_singleton(block_id_))->SetExternalPermanent();
+				cached_value_block_id_ = EidosValue_SP(new EidosValue_Int_singleton(block_id_));
 			return cached_value_block_id_;
 		}
 		case gID_start:
-			return new EidosValue_Int_singleton(start_generation_);
+			return EidosValue_SP(new EidosValue_Int_singleton(start_generation_));
 		case gID_end:
-			return new EidosValue_Int_singleton(end_generation_);
+			return EidosValue_SP(new EidosValue_Int_singleton(end_generation_));
 		case gID_type:
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEvent:				return new EidosValue_String_singleton(gStr_event);
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return new EidosValue_String_singleton(gStr_initialize);
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return new EidosValue_String_singleton(gStr_fitness);
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return new EidosValue_String_singleton(gStr_mateChoice);
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return new EidosValue_String_singleton(gStr_modifyChild);
+				case SLiMEidosBlockType::SLiMEidosEvent:				return EidosValue_SP(new EidosValue_String_singleton(gStr_event));
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_initialize));
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return EidosValue_SP(new EidosValue_String_singleton(gStr_fitness));
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_mateChoice));
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_modifyChild));
 			}
 		}
 		case gID_source:
-			return new EidosValue_String_singleton(compound_statement_node_->token_->token_string_);
+			return EidosValue_SP(new EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
 			
 			// variables
 		case gID_active:
-			return new EidosValue_Int_singleton(active_);
+			return EidosValue_SP(new EidosValue_Int_singleton(active_));
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -683,20 +667,20 @@ EidosValue *SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	switch (p_property_id)
 	{
 		case gID_active:
 		{
-			active_ = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			active_ = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			return;
 		}
 	
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -708,7 +692,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	}
 }
 
-EidosValue *SLiMEidosBlock::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMEidosBlock::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
@@ -735,7 +719,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
@@ -827,7 +811,7 @@ const EidosMethodSignature *SLiMEidosBlock_Class::SignatureForMethod(EidosGlobal
 	return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *SLiMEidosBlock_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP SLiMEidosBlock_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

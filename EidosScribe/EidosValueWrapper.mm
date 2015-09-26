@@ -33,8 +33,7 @@
 	int wrappedIndex;			// the index of wrappedValue upon which the row is based; -1 if the row represents the whole value
 	int wrappedSiblingCount;	// the number of siblings of this item; used for -hash and -isEqual:
 	
-	EidosValue *wrappedValue;	// the value upon which the row is based; this may be invalid after the state of the Eidos interpreter changes
-	BOOL valueIsOurs;			// if YES, we dispose of the wrapped value ourselves, if NO, the Context owns it
+	EidosValue_SP wrappedValue;	// the value upon which the row is based
 	BOOL isExpandable;			// a cached value; YES if wrappedValue is of type object, NO otherwise
 	BOOL isConstant;			// is this value a built-in Eidos constant?
 	
@@ -45,17 +44,17 @@
 
 @implementation EidosValueWrapper
 
-+ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue
++ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue
 {
-	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:-1 of:0] autorelease];
+	return [[[self alloc] initWithWrappedName:aName parent:parent value:std::move(aValue) index:-1 of:0] autorelease];
 }
 
-+ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount
++ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount
 {
-	return [[[self alloc] initWithWrappedName:aName parent:parent value:aValue index:anIndex of:siblingCount] autorelease];
+	return [[[self alloc] initWithWrappedName:aName parent:parent value:std::move(aValue) index:anIndex of:siblingCount] autorelease];
 }
 
-- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount
+- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount
 {
 	if (self = [super init])
 	{
@@ -65,8 +64,7 @@
 		wrappedIndex = anIndex;
 		wrappedSiblingCount = siblingCount;
 		
-		wrappedValue = aValue;
-		valueIsOurs = wrappedValue->IsTemporary();
+		wrappedValue = std::move(aValue);
 		
 		// We cache this so that we know whether we are expandable without needing to dereference wrappedValue;
 		// we therefore know whether or not we are expandable even after wrappedValue is invalidated
@@ -87,16 +85,7 @@
 
 - (void)dealloc
 {
-	// At the point that dealloc gets called, the value object that we wrap may already be gone.  This happens if
-	// the Context is responsible for the object and something happened to make the object go away.  We therefore
-	// can't touch the value pointer at all here unless we own it.  This is why we mark the ones that we own ahead
-	// of time, instead of just checking the IsTemporary() flag here.
-	
-	if (valueIsOurs && (wrappedIndex == -1))
-		delete wrappedValue;
-	
-	wrappedValue = nullptr;
-	valueIsOurs = false;
+	wrappedValue.reset();
 	
 	[wrappedName release];
 	wrappedName = nil;
@@ -112,11 +101,7 @@
 
 - (void)invalidateWrappedValues
 {
-	if (valueIsOurs && (wrappedIndex == -1))
-		delete wrappedValue;
-	
-	wrappedValue = nullptr;
-	valueIsOurs = false;
+	wrappedValue.reset();
 	
 	[childWrappers makeObjectsPerformSelector:@selector(invalidateWrappedValues)];
 }
@@ -144,15 +129,15 @@
 			for (int index = 0; index < elementCount;++ index)
 			{
 				NSString *childName = [NSString stringWithFormat:@"%@[%ld]", wrappedName, (long)index];
-				EidosValue *childValue = wrappedValue->GetValueAtIndex(index, nullptr);
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:childValue index:index of:elementCount];
+				EidosValue_SP childValue = wrappedValue->GetValueAtIndex(index, nullptr);
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:childName parent:self value:std::move(childValue) index:index of:elementCount];
 				
 				[childWrappers addObject:childWrapper];
 			}
 		}
 		else if (wrappedValue->Type() == EidosValueType::kValueObject)
 		{
-			EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue);
+			EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue.get());
 			const EidosObjectClass *object_class = wrapped_object->Class();
 			const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
 			int propertyCount = (int)properties->size();
@@ -162,9 +147,9 @@
 				const EidosPropertySignature *propertySig = (*properties)[index];
 				const std::string &symbolName = propertySig->property_name_;
 				EidosGlobalStringID symbolID = propertySig->property_id_;
-				EidosValue *symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
+				EidosValue_SP symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
-				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:symbolValue];
+				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:std::move(symbolValue)];
 				
 				[childWrappers addObject:childWrapper];
 			}
@@ -252,7 +237,7 @@
 	
 	if (type == EidosValueType::kValueObject)
 	{
-		EidosValue_Object *object_value = (EidosValue_Object *)wrappedValue;
+		EidosValue_Object *object_value = (EidosValue_Object *)wrappedValue.get();
 		const std::string &element_string = object_value->ElementType();
 		const char *element_cstr = element_string.c_str();
 		NSString *elementString = [NSString stringWithUTF8String:element_cstr];
@@ -292,7 +277,7 @@
 	// print values as a comma-separated list with strings quoted; halfway between print() and cat()
 	for (int value_index = 0; value_index < value_count; ++value_index)
 	{
-		EidosValue *element_value = wrappedValue->GetValueAtIndex(value_index, nullptr);
+		EidosValue_SP element_value = wrappedValue->GetValueAtIndex(value_index, nullptr);
 		
 		if (value_index > 0)
 		{
@@ -303,14 +288,11 @@
 			{
 				outstream << ", ...";
 				
-				if (element_value->IsTemporary()) delete element_value;
 				break;
 			}
 		}
 		
 		outstream << *element_value;
-		
-		if (element_value->IsTemporary()) delete element_value;
 	}
 	
 	NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];

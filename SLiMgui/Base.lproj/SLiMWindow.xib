@@ -24,6 +24,7 @@
                 <outlet property="genomicElementTypeTableView" destination="YFd-nW-pee" id="xaz-sG-Q9p"/>
                 <outlet property="graphCommandsButton" destination="jBY-mF-gPl" id="dAJ-ZH-555"/>
                 <outlet property="graphCommandsMenu" destination="QoY-ma-dgb" id="Dpv-Lw-uS6"/>
+                <outlet property="mainSplitView" destination="SJd-UQ-477" id="VA6-SG-kDA"/>
                 <outlet property="mutTypeDFEParamsColumn" destination="QI1-51-Ixv" id="JJE-du-qEX"/>
                 <outlet property="mutTypeDFETypeColumn" destination="yb0-yM-lTy" id="ULb-9G-ITm"/>
                 <outlet property="mutTypeDominanceColumn" destination="YfC-9j-8Mz" id="ZWT-nB-hCV"/>

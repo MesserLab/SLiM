@@ -43,12 +43,12 @@ EidosPropertySignature::~EidosPropertySignature(void)
 {
 }
 
-void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
+void EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 {
 	uint32_t retmask = value_mask_;
 	bool value_type_ok = true;
 	
-	switch (p_value->Type())
+	switch (p_value.Type())
 	{
 		case EidosValueType::kValueNULL:
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
@@ -66,25 +66,25 @@ void EidosPropertySignature::CheckAssignedValue(EidosValue *p_value) const
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
-			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
+			if (value_type_ok && value_class_ && (((EidosValue_Object *)&p_value)->Class() != value_class_) && (p_value.Count() > 0))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!value_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): value cannot be type " << p_value.Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
 	
 	// No check for size, because we're checking a whole vector being assigned into an object; EidosValue_Object will check the sizes
 }
 
-void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
+void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const
 {
 	uint32_t retmask = value_mask_;
 	bool value_type_ok = true;
 	
-	switch (p_value->Type())
+	switch (p_value.Type())
 	{
 		case EidosValueType::kValueNULL:
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
@@ -102,20 +102,20 @@ void EidosPropertySignature::CheckResultValue(EidosValue *p_value) const
 			// If the value is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the value.  Note this uses pointer equality!
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
-			if (value_type_ok && value_class_ && (((EidosValue_Object *)p_value)->Class() != value_class_) && (p_value->Count() > 0))
+			if (value_type_ok && value_class_ && (((EidosValue_Object *)&p_value)->Class() != value_class_) && (p_value.Count() > 0))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value->ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!value_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value cannot be type " << p_value->Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value cannot be type " << p_value.Type() << " for " << PropertyType() << " property " << property_name_ << "." << eidos_terminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
-	if (return_is_singleton && (p_value->Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value must be a singleton (size() == 1) for " << PropertyType() << " property " << property_name_ << ", but size() == " << p_value->Count() << "." << eidos_terminate(nullptr);
+	if (return_is_singleton && (p_value.Count() != 1))
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) value must be a singleton (size() == 1) for " << PropertyType() << " property " << property_name_ << ", but size() == " << p_value.Count() << "." << eidos_terminate(nullptr);
 }
 
 std::string EidosPropertySignature::PropertyType(void) const

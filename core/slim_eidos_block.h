@@ -85,7 +85,7 @@ public:
 	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosEvent;
 	
 	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
-	EidosValue *cached_value_block_id_ = nullptr;				// OWNED POINTER: a cached value for block_id_; delete and nil if that changes
+	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
 	slim_generation_t start_generation_ = -1, end_generation_ = SLIM_MAX_GENERATION;		// the generation range to which the block is limited
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
@@ -134,6 +134,9 @@ public:
 	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
+	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.
+	void TokenizeAndParse(void);
+	
 	// Scan the tree for optimization purposes, called by the constructors
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
 	void ScanTreeForIdentifiersUsed(void);
@@ -150,9 +153,9 @@ public:
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

@@ -360,8 +360,19 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
+	// Disconnect delegate relationships
+	[mainSplitView setDelegate:nil];
+	mainSplitView = nil;
+	
+	[scriptTextView setDelegate:nil];
+	scriptTextView = nil;
+	
+	[outputTextView setDelegate:nil];
+	outputTextView = nil;
+	
 	[_consoleController setDelegate:nil];
 	
+	// Remove observers
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
 	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
@@ -369,6 +380,7 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
+	// Free resources
 	[scriptString release];
 	scriptString = nil;
 	
@@ -783,6 +795,20 @@
 {
 	if (sim)
 	{
+		// First we tokenize and parse the script, which may raise a C++ exception
+		try
+		{
+			scriptBlock->TokenizeAndParse();
+		}
+		catch (...)
+		{
+			delete scriptBlock;
+			
+			NSBeep();
+			NSLog(@"raise in addScriptBlockToSimulation: within script_block->TokenizeAndParse()");
+			return;
+		}
+		
 		sim->script_blocks_.push_back(scriptBlock);		// takes ownership from us
 		
 		[scriptBlocksTableView reloadData];

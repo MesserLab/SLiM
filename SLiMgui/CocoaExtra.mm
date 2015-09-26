@@ -290,6 +290,13 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @implementation SLiMMenuButton
 
+- (void)dealloc
+{
+	[self setSlimMenu:nil];
+	
+	[super dealloc];
+}
+
 - (void)fixMenu
 {
 	NSMenu *menu = [self slimMenu];

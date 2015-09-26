@@ -20,6 +20,7 @@
 
 #include "eidos_global.h"
 #include "eidos_script.h"
+#include "eidos_value.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -39,6 +40,12 @@ void Eidos_WarmUp(void)
 	if (!been_here)
 	{
 		been_here = true;
+		
+		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();
+		gStaticEidosValueNULLInvisible = EidosValue_NULL::Static_EidosValue_NULL_Invisible();
+		
+		gStaticEidosValue_LogicalT = EidosValue_Logical_const::Static_EidosValue_Logical_T();
+		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
 		
 		Eidos_RegisterGlobalStringsAndIDs();
 	}

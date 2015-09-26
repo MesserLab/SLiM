@@ -44,8 +44,8 @@ public:
 	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class);
 	
 	// check arguments and returns
-	void CheckAssignedValue(EidosValue *p_value) const;	// checks a vector being assigned into a whole object
-	void CheckResultValue(EidosValue *p_value) const;	// checks the result from a single element
+	void CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object
+	void CheckResultValue(const EidosValue &p_value) const;	// checks the result from a single element
 	
 	// informational strings about the property
 	std::string PropertyType(void) const;				// "read-only" or "read-write"

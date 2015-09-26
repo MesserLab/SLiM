@@ -205,9 +205,6 @@ Genome::~Genome(void)
 	// mutations_buffer_ is not malloced and cannot be freed; free only if we have an external buffer
 	if (mutations_ != mutations_buffer_)
 		free(mutations_);
-	
-	if (self_value_)
-		delete self_value_;
 }
 
 
@@ -221,7 +218,7 @@ void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_value_ = (new EidosValue_Object_singleton(this))->SetExternalPermanent();
+	self_value_ = EidosValue_SP(new EidosValue_Object_singleton(this));
 }
 
 const EidosObjectClass *Genome::Class(void) const
@@ -246,7 +243,7 @@ void Genome::Print(std::ostream &p_ostream) const
 		p_ostream << ":" << mutation_count_ << ">";
 }
 
-EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -256,9 +253,9 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return new EidosValue_String_singleton(gStr_A);
-				case GenomeType::kXChromosome:	return new EidosValue_String_singleton(gStr_X);
-				case GenomeType::kYChromosome:	return new EidosValue_String_singleton(gStr_Y);
+				case GenomeType::kAutosome:		return EidosValue_SP(new EidosValue_String_singleton(gStr_A));
+				case GenomeType::kXChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_X));
+				case GenomeType::kYChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_Y));
 			}
 		}
 		case gID_isNullGenome:
@@ -266,16 +263,17 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutations:
 		{
 			EidosValue_Object_vector *vec = (new EidosValue_Object_vector())->Reserve(mutation_count_);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
 				vec->PushObjectElement(mutations_[mut_index]);
 			
-			return vec;
+			return result_SP;
 		}
 			
 			// variables
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -283,13 +281,13 @@ EidosValue *Genome::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	switch (p_property_id)
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -302,13 +300,13 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
 	}
 }
 
-EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2] : nullptr);
-	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3] : nullptr);
-	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
 	
 
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -396,7 +394,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new EidosValue_Object_singleton(mutation);
+			return EidosValue_SP(new EidosValue_Object_singleton(mutation));
 		}
 			
 			
@@ -455,7 +453,7 @@ EidosValue *Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, Eidos
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return new EidosValue_Object_singleton(mutation);
+			return EidosValue_SP(new EidosValue_Object_singleton(mutation));
 		}
 			
 			
@@ -543,7 +541,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Genome_Class = new Genome_Class();
@@ -651,7 +649,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	}
 }
 
-EidosValue *Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

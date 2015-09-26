@@ -66,7 +66,7 @@ public:
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair
 	
 	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
-	EidosValue *cached_value_lastpos_ = nullptr;			// OWNED POINTER: a cached value for last_position_; delete and nil if that changes
+	EidosValue_SP cached_value_lastpos_;					// a cached value for last_position_; reset() if that changes
 	
 	double overall_mutation_rate_;							// overall mutation rate, as specified by initializeMutationRate()
 	double element_mutation_rate_;							// overall rate * number of nucleotides in elements; the practical mutation rate for SLiM
@@ -93,9 +93,9 @@ public:
 	//
 	virtual const EidosObjectClass *Class(void) const;
 	
-	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // draw the number of mutations that occur, based on the overall mutation rate

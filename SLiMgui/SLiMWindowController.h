@@ -94,6 +94,7 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
+	IBOutlet NSSplitView *mainSplitView;
 	IBOutlet EidosTextView *scriptTextView;
 	IBOutlet NSTextField *scriptStatusTextField;
 	IBOutlet EidosTextView *outputTextView;

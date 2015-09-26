@@ -73,7 +73,7 @@ void Mutation::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
 }
 
-EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -82,13 +82,13 @@ EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_originGeneration:
-			return new EidosValue_Int_singleton(generation_);
+			return EidosValue_SP(new EidosValue_Int_singleton(generation_));
 		case gID_position:
-			return new EidosValue_Int_singleton(position_);
+			return EidosValue_SP(new EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:
-			return new EidosValue_Float_singleton(selection_coeff_);
+			return EidosValue_SP(new EidosValue_Float_singleton(selection_coeff_));
 		case gID_subpopID:
-			return new EidosValue_Int_singleton(subpop_index_);
+			return EidosValue_SP(new EidosValue_Int_singleton(subpop_index_));
 			
 			// all others, including gID_none
 		default:
@@ -96,14 +96,14 @@ EidosValue *Mutation::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void Mutation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_subpopID:
 		{
-			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			subpop_index_ = value;
 			return;
@@ -116,9 +116,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_valu
 	}
 }
 
-EidosValue *Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	
 	//
 	//	*********************	- (void)setSelectionCoeff(float$ selectionCoeff)
@@ -164,7 +164,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Mutation_Class = new Mutation_Class();
@@ -259,7 +259,7 @@ const EidosMethodSignature *Mutation_Class::SignatureForMethod(EidosGlobalString
 		return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

@@ -38,22 +38,13 @@ using std::istream;
 using std::ostream;
 
 
-// It is worth noting that the memory management in EidosInterpreter leaks like a sieve.  I think it only leaks when exceptions are raised;
-// but of course exceptions are raised a lot, especially in the interactive EidosScribe environment.  The leaks are generally caused by a
-// raise inside a call to EvaluateNode() that blows through the caller's context and fails to free EidosValue pointers owned by the caller.
-// It would be possible to fix this, of course; but since this is primarily a problem for EidosScribe, I am not overly concerned about it
-// at the moment.  It also not completely clear what the best way is to fix the leaks.  Perhaps I ought to be using std::unique_ptr instead
-// of naked pointers; but that's a C++11 feature, and I'm concerned about both portability and speed.  My inclination is to hold off for
-// now, let it leak, and perhaps migrate to std::unique_ptr later, rather than trying to protect every EvaluateNode() call.
-
-
 // We have a bunch of behaviors that we want to do only when compiled DEBUG or EIDOS_GUI; #if tests everywhere are very ugly, so we make
 // some #defines here that help structure this.
 
 #if defined(DEBUG) || defined(EIDOS_GUI)
 
 #define EIDOS_ENTRY_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(execution_log_indent_++) << method_name << " entered\n";
-#define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << method_name << " : return == " << *result << "\n";
+#define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << method_name << " : return == " << *result_SP << "\n";
 #define EIDOS_BEGIN_EXECUTION_LOG()									if (logging_execution_) execution_log_indent_ = 0;
 #define EIDOS_END_EXECUTION_LOG()									if (gEidosLogEvaluation) std::cout << ExecutionLog();
 #define EIDOS_ASSERT_CHILD_COUNT(method_name, count)				if (p_node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren)." << eidos_terminate(p_node->token_);
@@ -75,18 +66,18 @@ using std::ostream;
 #endif
 
 
-bool TypeCheckAssignmentOfEidosValueIntoEidosValue(EidosValue *base_value, EidosValue *dest_value)
+bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value, const EidosValue &dest_value)
 {
-	EidosValueType base_type = base_value->Type();
-	EidosValueType dest_type = dest_value->Type();
+	EidosValueType base_type = base_value.Type();
+	EidosValueType dest_type = dest_value.Type();
 	bool base_is_object = (base_type == EidosValueType::kValueObject);
 	bool dest_is_object = (dest_type == EidosValueType::kValueObject);
 	
 	if (base_is_object && dest_is_object)
 	{
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
-		const EidosObjectClass *base_element_class = ((EidosValue_Object *)base_value)->Class();
-		const EidosObjectClass *dest_element_class = ((EidosValue_Object *)dest_value)->Class();
+		const EidosObjectClass *base_element_class = ((const EidosValue_Object &)base_value).Class();
+		const EidosObjectClass *dest_element_class = ((const EidosValue_Object &)dest_value).Class();
 		bool base_is_typeless = (base_element_class == gEidos_UndefinedClassObject);
 		bool dest_is_typeless = (dest_element_class == gEidos_UndefinedClassObject);
 		
@@ -199,13 +190,8 @@ std::ostringstream &EidosInterpreter::ExecutionOutputStream(void)
 	return *execution_output_;
 }
 
-EidosSymbolTable &EidosInterpreter::GetSymbolTable(void)
-{
-	return global_symbols_;
-}
-
 // the starting point for internally executed blocks, which require braces and suppress output
-EidosValue *EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_block)
+EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_block)
 {
 	// EvaluateInternalBlock() does not log execution, since it is not user-initiated
 	
@@ -234,15 +220,11 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_bl
 		saved_error_tracking = true;
 	}
 	
-	EidosValue *result = FastEvaluateNode(root_node_);
+	EidosValue_SP result_SP = FastEvaluateNode(root_node_);
 	
 	// if a next or break statement was hit and was not handled by a loop, throw an error
 	if (next_statement_hit_ || break_statement_hit_)
-	{
-		if (result->IsTemporary()) delete result;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
-	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
 	if (return_statement_hit_)
@@ -276,33 +258,30 @@ EidosValue *EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_bl
 	
 	// EvaluateInternalBlock() does not log execution, since it is not user-initiated
 	
-	return result;
+	return result_SP;
 }
 
-// the starting point for script blocks in Eidos, which does not require braces
-EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
+// the starting point for script blocks in Eidos, which do not require braces; this is not really a "block" but a series of
+// independent statements grouped only by virtue of having been executed together as a unit in the interpreter
+EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 {
 	EIDOS_BEGIN_EXECUTION_LOG();
 	EIDOS_ENTRY_EXECUTION_LOG("EvaluateInterpreterBlock()");
 	
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	for (EidosASTNode *child_node : root_node_->children_)
 	{
-		if (result->IsTemporary()) delete result;
-		
-		result = FastEvaluateNode(child_node);
+		result_SP = FastEvaluateNode(child_node);
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
-		{
-			if (result->IsTemporary()) delete result;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
-		}
 		
-		// send the result of the block to our output stream
-		if (p_print_output && !result->Invisible())
+		// send the result of each statement to our output stream; result==nullptr indicates invisible NULL, so we don't print
+		EidosValue *result = result_SP.get();
+		
+		if (p_print_output && result && !result->Invisible())
 		{
 			std::ostringstream &execution_output = ExecutionOutputStream();
 			
@@ -324,7 +303,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 	
 	EIDOS_EXIT_EXECUTION_LOG("EvaluateInterpreterBlock()");
 	EIDOS_END_EXECUTION_LOG();
-	return result;
+	return result_SP;
 }
 
 // A subscript has been encountered as the top-level operation on the left-hand side of an assignment – x[5] = y, x.foo[5] = y, or more
@@ -338,7 +317,7 @@ EidosValue *EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 // representations kept by external classes in the Context).  In other words, assignment relies upon the fact that a temporary object
 // constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
 // assigning into the temporary also assigns into the original.
-void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
+void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
 	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
@@ -360,15 +339,11 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			_ProcessSubscriptAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
 			
 			// Find out which indices we're supposed to use within our base vector
-			EidosValue *second_child_value = FastEvaluateNode(right_operand);
+			EidosValue_SP second_child_value = FastEvaluateNode(right_operand);
 			EidosValueType second_child_type = second_child_value->Type();
 			
 			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-			{
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << eidos_terminate(parent_token);
-			}
 			
 			int second_child_count = second_child_value->Count();
 			
@@ -376,11 +351,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			{
 				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
 				if (second_child_count != (int)base_indices.size())
-				{
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << eidos_terminate(parent_token);
-				}
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 				{
@@ -400,11 +371,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 					int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
 					
 					if ((index_value < 0) || (index_value >= base_indices_count))
-					{
-						if (second_child_value->IsTemporary()) delete second_child_value;
-						
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
-					}
 					else
 						p_indices_ptr->push_back(base_indices[index_value]);
 				}
@@ -419,22 +386,14 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			EidosASTNode *left_operand = p_parent_node->children_[0];
 			EidosASTNode *right_operand = p_parent_node->children_[1];
 			
-			EidosValue *first_child_value = FastEvaluateNode(left_operand);
+			EidosValue_SP first_child_value = FastEvaluateNode(left_operand);
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(parent_token);
-			}
 			
 			if (right_operand->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(parent_token);
-			}
 			
 			*p_base_value_ptr = first_child_value;
 			*p_property_string_id_ptr = EidosGlobalStringIDForString(right_operand->token_->token_string_);
@@ -450,7 +409,8 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubscriptAssignment", 0, parent_token);
 			
-			EidosValue *identifier_value = global_symbols_.GetValueOrRaiseForToken(p_parent_node->token_);
+			EidosValue_SP identifier_value_SP = global_symbols_.GetValueOrRaiseForToken(p_parent_node->token_);
+			EidosValue *identifier_value = identifier_value_SP.get();
 			
 			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
 			// could be one of our singleton subclasses, for speed.  We almost never change EidosValue instances once
@@ -462,11 +422,13 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 			{
 				const std::string &symbol_name = p_parent_node->token_->token_string_;
 				
-				identifier_value = identifier_value->VectorBasedCopy();
-				global_symbols_.SetValueForSymbol(symbol_name, identifier_value);	// takes ownership from us
+				identifier_value_SP = identifier_value->VectorBasedCopy();
+				identifier_value = identifier_value_SP.get();
+				
+				global_symbols_.SetValueForSymbol(symbol_name, identifier_value_SP);
 			}
 			
-			*p_base_value_ptr = identifier_value;
+			*p_base_value_ptr = std::move(identifier_value_SP);
 			
 			int number_of_elements = identifier_value->Count();	// this value is already defined, so this is fast
 			
@@ -481,7 +443,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue **p_base_value_ptr
 	}
 }
 
-void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosASTNode *p_lvalue_node)
+void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node)
 {
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
@@ -503,7 +465,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "'['", "EidosInterpreter::_AssignRValueToLValue", 2, nullptr);
 			
-			EidosValue *base_value;
+			EidosValue_SP base_value;
 			EidosGlobalStringID property_string_id = gEidosID_none;
 			vector<int> indices;
 			
@@ -516,12 +478,12 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 			{
 				if (property_string_id == gEidosID_none)
 				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(p_rvalue, base_value))
+					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
-						base_value->SetValueAtIndex(indices[value_idx], p_rvalue, nullptr);
+						base_value->SetValueAtIndex(indices[value_idx], *p_rvalue, nullptr);
 				}
 				else
 				{
@@ -530,14 +492,12 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 					// to rearrange this assignment from host.property[indices] = rvalue to host[indices].property = rvalue; this must be equivalent!
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
-						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
+						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
 						
-						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, p_rvalue);
-						
-						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
+						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *p_rvalue);
 					}
 				}
 			}
@@ -545,17 +505,15 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 			{
 				if (property_string_id == gEidosID_none)
 				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(p_rvalue, base_value))
+					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
 					
 					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
-						EidosValue *temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
+						EidosValue_SP temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
 						
-						base_value->SetValueAtIndex(indices[value_idx], temp_rvalue, nullptr);
-						
-						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
+						base_value->SetValueAtIndex(indices[value_idx], *temp_rvalue, nullptr);
 					}
 				}
 				else
@@ -564,16 +522,13 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 					// as above, we rearrange this assignment from host.property[indices1] = rvalue[indices2] to host[indices1].property = rvalue[indices2]
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
-						EidosValue *temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
-						EidosValue *temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
+						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
+						EidosValue_SP temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
 						
-						static_cast<EidosValue_Object *>(temp_lvalue)->SetPropertyOfElements(property_string_id, temp_rvalue);
-						
-						if (temp_lvalue->IsTemporary()) delete temp_lvalue;
-						if (temp_rvalue->IsTemporary()) delete temp_rvalue;
+						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *temp_rvalue);
 					}
 				}
 			}
@@ -588,27 +543,19 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "'.'", "EidosInterpreter::_AssignRValueToLValue", 2, nullptr);
 			
-			EidosValue *first_child_value = FastEvaluateNode(p_lvalue_node->children_[0]);
+			EidosValue_SP first_child_value = FastEvaluateNode(p_lvalue_node->children_[0]);
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(nullptr);
-			}
 			
 			EidosASTNode *second_child_node = p_lvalue_node->children_[1];
 			
 			if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(nullptr);
-			}
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<EidosValue_Object *>(first_child_value)->SetPropertyOfElements(second_child_node->cached_stringID_, p_rvalue);
+			static_cast<EidosValue_Object *>(first_child_value.get())->SetPropertyOfElements(second_child_node->cached_stringID_, *p_rvalue);
 			break;
 		}
 		case EidosTokenType::kTokenIdentifier:
@@ -616,7 +563,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "identifier", "EidosInterpreter::_AssignRValueToLValue", 0, nullptr);
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, p_rvalue);
+			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, std::move(p_rvalue));
 			break;
 		}
 		default:
@@ -625,83 +572,69 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue *p_rvalue, const EidosAS
 	}
 }
 
-void EidosInterpreter::NullReturnRaiseForNode(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 {
-	EIDOS_TERMINATION << "ERROR (EidosInterpreter::NullReturnRaiseForNode): nullptr returned from evaluation of token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
-}
-
-EidosValue *EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
-{
-	EidosValue *result;
-	
 	// The structure here avoids doing a break in the non-error case; a bit faster.
 	switch (p_node->token_->token_type_)
 	{
-		case EidosTokenType::kTokenSemicolon:	result = Evaluate_NullStatement(p_node);		if (result) return result;	break;
-		case EidosTokenType::kTokenColon:		result = Evaluate_RangeExpr(p_node);			if (result) return result;	break;
-		case EidosTokenType::kTokenLBrace:		result = Evaluate_CompoundStatement(p_node);	if (result) return result;	break;
-		case EidosTokenType::kTokenLParen:		result = Evaluate_FunctionCall(p_node);			if (result) return result;	break;
-		case EidosTokenType::kTokenLBracket:	result = Evaluate_Subset(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenDot:			result = Evaluate_MemberRef(p_node);			if (result) return result;	break;
-		case EidosTokenType::kTokenPlus:		result = Evaluate_Plus(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenMinus:		result = Evaluate_Minus(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenMod:			result = Evaluate_Mod(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenMult:		result = Evaluate_Mult(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenExp:			result = Evaluate_Exp(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenAnd:			result = Evaluate_And(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenOr:			result = Evaluate_Or(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenDiv:			result = Evaluate_Div(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenAssign:		result = Evaluate_Assign(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenEq:			result = Evaluate_Eq(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenLt:			result = Evaluate_Lt(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenLtEq:		result = Evaluate_LtEq(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenGt:			result = Evaluate_Gt(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenGtEq:		result = Evaluate_GtEq(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenNot:			result = Evaluate_Not(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenNotEq:		result = Evaluate_NotEq(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenNumber:		result = Evaluate_Number(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenString:		result = Evaluate_String(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenIdentifier:	result = Evaluate_Identifier(p_node);			if (result) return result;	break;
-		case EidosTokenType::kTokenIf:			result = Evaluate_If(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenDo:			result = Evaluate_Do(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenWhile:		result = Evaluate_While(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenFor:			result = Evaluate_For(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenNext:		result = Evaluate_Next(p_node);					if (result) return result;	break;
-		case EidosTokenType::kTokenBreak:		result = Evaluate_Break(p_node);				if (result) return result;	break;
-		case EidosTokenType::kTokenReturn:		result = Evaluate_Return(p_node);				if (result) return result;	break;
+		case EidosTokenType::kTokenSemicolon:	return Evaluate_NullStatement(p_node);
+		case EidosTokenType::kTokenColon:		return Evaluate_RangeExpr(p_node);
+		case EidosTokenType::kTokenLBrace:		return Evaluate_CompoundStatement(p_node);
+		case EidosTokenType::kTokenLParen:		return Evaluate_FunctionCall(p_node);
+		case EidosTokenType::kTokenLBracket:	return Evaluate_Subset(p_node);
+		case EidosTokenType::kTokenDot:			return Evaluate_MemberRef(p_node);
+		case EidosTokenType::kTokenPlus:		return Evaluate_Plus(p_node);
+		case EidosTokenType::kTokenMinus:		return Evaluate_Minus(p_node);
+		case EidosTokenType::kTokenMod:			return Evaluate_Mod(p_node);
+		case EidosTokenType::kTokenMult:		return Evaluate_Mult(p_node);
+		case EidosTokenType::kTokenExp:			return Evaluate_Exp(p_node);
+		case EidosTokenType::kTokenAnd:			return Evaluate_And(p_node);
+		case EidosTokenType::kTokenOr:			return Evaluate_Or(p_node);
+		case EidosTokenType::kTokenDiv:			return Evaluate_Div(p_node);
+		case EidosTokenType::kTokenAssign:		return Evaluate_Assign(p_node);
+		case EidosTokenType::kTokenEq:			return Evaluate_Eq(p_node);
+		case EidosTokenType::kTokenLt:			return Evaluate_Lt(p_node);
+		case EidosTokenType::kTokenLtEq:		return Evaluate_LtEq(p_node);
+		case EidosTokenType::kTokenGt:			return Evaluate_Gt(p_node);
+		case EidosTokenType::kTokenGtEq:		return Evaluate_GtEq(p_node);
+		case EidosTokenType::kTokenNot:			return Evaluate_Not(p_node);
+		case EidosTokenType::kTokenNotEq:		return Evaluate_NotEq(p_node);
+		case EidosTokenType::kTokenNumber:		return Evaluate_Number(p_node);
+		case EidosTokenType::kTokenString:		return Evaluate_String(p_node);
+		case EidosTokenType::kTokenIdentifier:	return Evaluate_Identifier(p_node);
+		case EidosTokenType::kTokenIf:			return Evaluate_If(p_node);
+		case EidosTokenType::kTokenDo:			return Evaluate_Do(p_node);
+		case EidosTokenType::kTokenWhile:		return Evaluate_While(p_node);
+		case EidosTokenType::kTokenFor:			return Evaluate_For(p_node);
+		case EidosTokenType::kTokenNext:		return Evaluate_Next(p_node);
+		case EidosTokenType::kTokenBreak:		return Evaluate_Break(p_node);
+		case EidosTokenType::kTokenReturn:		return Evaluate_Return(p_node);
 		default:
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
-			break;
 	}
-	
-	NullReturnRaiseForNode(p_node);
-	
-	return result;
 }
 
-EidosValue *EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_node)
 {
 #pragma unused(p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_NullStatement()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_CompoundStatement()");
 	
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-		if (result->IsTemporary()) delete result;
-		
-		result = FastEvaluateNode(child_node);
+		result_SP = FastEvaluateNode(child_node);
 		
 		// a next, break, or return makes us exit immediately, out to the (presumably enclosing) loop evaluator
 		if (next_statement_hit_ || break_statement_hit_ || return_statement_hit_)
@@ -709,94 +642,78 @@ EidosValue *EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p_n
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_CompoundStatement()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, EidosValue *p_first_child_value, EidosValue *p_second_child_value)
+EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value)
 {
 	EidosToken *operator_token = p_node->token_;
-	EidosValueType first_child_type = p_first_child_value->Type();
-	EidosValueType second_child_type = p_second_child_value->Type();
-	EidosValue *result;
+	EidosValueType first_child_type = p_first_child_value.Type();
+	EidosValueType second_child_type = p_second_child_value.Type();
+	EidosValue_SP result_SP;
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
-		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << first_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
-	}
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-	{
-		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
-		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << second_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
-	}
 	
-	int first_child_count = p_first_child_value->Count();
-	int second_child_count = p_second_child_value->Count();
+	int first_child_count = p_first_child_value.Count();
+	int second_child_count = p_second_child_value.Count();
 	
 	if ((first_child_count != 1) || (second_child_count != 1))
-	{
-		if (p_first_child_value->IsTemporary()) delete p_first_child_value;
-		if (p_second_child_value->IsTemporary()) delete p_second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must have size() == 1." << eidos_terminate(operator_token);
-	}
 	
 	// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 	bool underflow = false;
 	
 	if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 	{
-		int64_t first_int = p_first_child_value->IntAtIndex(0, operator_token);
-		int64_t second_int = p_second_child_value->IntAtIndex(0, operator_token);
+		int64_t first_int = p_first_child_value.IntAtIndex(0, operator_token);
+		int64_t second_int = p_second_child_value.IntAtIndex(0, operator_token);
 		
 		if (first_int <= second_int)
 		{
 			if (second_int - first_int + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(second_int - first_int + 1));
-			result = int_result;
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(second_int - first_int + 1));
 			
 			for (int64_t range_index = first_int; range_index <= second_int; ++range_index)
 				int_result->PushInt(range_index);
+			
+			result_SP = std::move(int_result_SP);
 		}
 		else
 		{
 			if (first_int - second_int + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve((int)(first_int - second_int + 1));
-			result = int_result;
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(first_int - second_int + 1));
 			
 			for (int64_t range_index = first_int; range_index >= second_int; --range_index)
 				int_result->PushInt(range_index);
+			
+			result_SP = std::move(int_result_SP);
 		}
 	}
 	else
 	{
-		double first_float = p_first_child_value->FloatAtIndex(0, operator_token);
-		double second_float = p_second_child_value->FloatAtIndex(0, operator_token);
+		double first_float = p_first_child_value.FloatAtIndex(0, operator_token);
+		double second_float = p_second_child_value.FloatAtIndex(0, operator_token);
 		
 		if (isnan(first_float) || isnan(second_float))
-		{
-			if (p_first_child_value->IsTemporary()) delete p_first_child_value;
-			if (p_second_child_value->IsTemporary()) delete p_second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
-		}
 		
 		if (first_float <= second_float)
 		{
 			if (second_float - first_float + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(second_float - first_float + 1));
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(second_float - first_float + 1));
 			
 			for (double range_index = first_float; range_index <= second_float; )
 			{
@@ -813,14 +730,16 @@ EidosValue *EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode *p
 				
 				range_index = next_index;
 			}
+			
+			result_SP = std::move(float_result_SP);
 		}
 		else
 		{
 			if (first_float - second_float + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve((int)(first_float - second_float + 1));
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(first_float - second_float + 1));
 			
 			for (double range_index = first_float; range_index >= second_float; )
 			{
@@ -837,63 +756,51 @@ EidosValue *EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode *p
 				
 				range_index = next_index;
 			}
+			
+			result_SP = std::move(float_result_SP);
 		}
 	}
 	
-	// free our operands
-	if (p_first_child_value->IsTemporary()) delete p_first_child_value;
-	if (p_second_child_value->IsTemporary()) delete p_second_child_value;
-	
 	if (underflow)
-	{
-		if (result->IsTemporary()) delete result;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);
-	}
 	
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_RangeExpr()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_RangeExpr", 2);
 
 	// Constant expressions involving the range operator are particularly common, so we cache them for reuse
 	// here, as an optimization.  If we have a cached value, we can simply return it.
-	EidosValue *result = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_value_;
 	
-	if (!result)
+	if (!result_SP)
 	{
 		const EidosASTNode *child0 = p_node->children_[0];
 		const EidosASTNode *child1 = p_node->children_[1];
 		bool cacheable = ((child0->token_->token_type_ == EidosTokenType::kTokenNumber) && (child1->token_->token_type_ == EidosTokenType::kTokenNumber));
 		
-		EidosValue *first_child_value = FastEvaluateNode(child0);
-		EidosValue *second_child_value = FastEvaluateNode(child1);
+		EidosValue_SP first_child_value = FastEvaluateNode(child0);
+		EidosValue_SP second_child_value = FastEvaluateNode(child1);
 		
-		result = _Evaluate_RangeExpr_Internal(p_node, first_child_value, second_child_value);		// gives ownership of the child values
+		result_SP = _Evaluate_RangeExpr_Internal(p_node, *first_child_value, *second_child_value);		// gives ownership of the child values
 		
 		// cache our range as a constant in the tree if we can
 		if (cacheable)
-		{
-			// Claim semi-permanent ownership.  See the comment in _OptimizeConstants() that begins "OK, so this is a weird thing".
-			result->SetExternalTemporary();
-			
-			p_node->cached_value_ = result;
-			p_node->cached_value_is_owned_ = true;
-		}
+			p_node->cached_value_ = result_SP;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_RangeExpr()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_FunctionCall()");
 	
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	// We do not evaluate the function name node (our first child) to get a function object; there is no such type in
 	// Eidos for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
@@ -905,7 +812,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	const string *function_name = nullptr;
 	const EidosFunctionSignature *function_signature = nullptr;
 	EidosGlobalStringID method_id = gEidosID_none;
-	EidosValue_Object *method_object = nullptr;
+	EidosValue_Object_SP method_object;
 	EidosToken *call_identifier_token = nullptr;
 	
 	if (function_name_token_type == EidosTokenType::kTokenIdentifier)
@@ -919,29 +826,21 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	{
 		EIDOS_ASSERT_CHILD_COUNT_X(function_name_node, "'.'", "EidosInterpreter::Evaluate_FunctionCall", 2, function_name_node->token_);
 		
-		EidosValue *first_child_value = FastEvaluateNode(function_name_node->children_[0]);
+		EidosValue_SP first_child_value = FastEvaluateNode(function_name_node->children_[0]);
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(function_name_node->token_);
-		}
 		
 		EidosASTNode *second_child_node = function_name_node->children_[1];
 		
 		if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(function_name_node->token_);
-		}
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 		call_identifier_token = second_child_node->token_;
 		method_id = second_child_node->cached_stringID_;
-		method_object = static_cast<EidosValue_Object *>(first_child_value);	// guaranteed by the Type() call above
+		method_object = static_pointer_cast<EidosValue_Object>(std::move(first_child_value));	// guaranteed by the Type() call above
 	}
 	else
 	{
@@ -966,7 +865,7 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 	if (arguments_count <= 5)
 	{
 		// We have 5 or fewer arguments, so use a stack-local array of arguments to avoid the malloc/free
-		EidosValue *(arguments_array[5]);
+		EidosValue_SP (arguments_array[5]);
 		int argument_index = 0;
 		
 		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
@@ -994,25 +893,17 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 		if (method_object)
-			result = ExecuteMethodCall(method_object, method_id, arguments_array, arguments_count);
+			result_SP = ExecuteMethodCall(*method_object, method_id, arguments_array, arguments_count);
 		else
-			result = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
+			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
 		
 		// Forget the function token, since it is not responsible for any future errors
 		EidosScript::RestoreErrorPosition(error_pos_save);
-		
-		// And now we can free the arguments
-		for (argument_index = 0; argument_index < arguments_count; ++argument_index)
-		{
-			EidosValue *arg = arguments_array[argument_index];
-			
-			if (arg->IsTemporary()) delete arg;
-		}
 	}
 	else
 	{
 		// We have a lot of arguments, so we need to use a vector
-		vector<EidosValue*> arguments;
+		vector<EidosValue_SP> arguments;
 		
 		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 		{
@@ -1038,62 +929,44 @@ EidosValue *EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-		EidosValue **arguments_ptr = arguments.data();
+		EidosValue_SP *arguments_ptr = arguments.data();
 		
 		if (method_object)
-			result = ExecuteMethodCall(method_object, method_id, arguments_ptr, arguments_count);
+			result_SP = ExecuteMethodCall(*method_object, method_id, arguments_ptr, arguments_count);
 		else
-			result = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
+			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
 		
 		// Forget the function token, since it is not responsible for any future errors
 		EidosScript::RestoreErrorPosition(error_pos_save);
-		
-		// And now we can free the arguments
-		for (auto arg_iter = arguments.begin(); arg_iter != arguments.end(); ++arg_iter)
-		{
-			EidosValue *arg = *arg_iter;
-			
-			if (arg->IsTemporary()) delete arg;
-		}
 	}
 	
-	// And if it was a method call, we can free the method object now, too
-	if (method_object && method_object->IsTemporary()) delete method_object;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_FunctionCall()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Subset()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Subset", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type == EidosValueType::kValueNULL)
 	{
 		// Any subscript of NULL returns NULL
-		result = gStaticEidosValueNULL;
-		
-		if (first_child_value->IsTemporary()) delete first_child_value;
+		result_SP = gStaticEidosValueNULL;
 	}
 	else
 	{
-		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+		EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << eidos_terminate(operator_token);
-		}
 		
 		// OK, we can definitely do this subset
 		int first_child_count = first_child_value->Count();
@@ -1103,78 +976,85 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		{
 			// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
 			if (first_child_count != second_child_count)
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << eidos_terminate(operator_token);
-			}
 			
 			// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
-			const std::vector<bool> &logical_index_vec = ((EidosValue_Logical *)second_child_value)->LogicalVector();
+			const std::vector<bool> &logical_index_vec = ((EidosValue_Logical *)second_child_value.get())->LogicalVector();
 			
 			if (first_child_count == 1)
 			{
 				// This is the simple logic using NewMatchingType() / PushValueFromIndexOfEidosValue()
-				result = first_child_value->NewMatchingType();
+				result_SP = first_child_value->NewMatchingType();
+				
+				EidosValue *result = result_SP.get();
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 					if (logical_index_vec[value_idx])
-						result->PushValueFromIndexOfEidosValue(value_idx, first_child_value, operator_token);
+						result->PushValueFromIndexOfEidosValue(value_idx, *first_child_value, operator_token);
 			}
 			else
 			{
 				// Here we can special-case each type for speed since we know we're not dealing with singletons
 				if (first_child_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value)->LogicalVector();
-					EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(second_child_count);
+					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
+					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-					result = logical_result;
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
 							logical_result_vec.push_back(first_child_vec[value_idx]);
+					
+					result_SP = std::move(logical_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueInt)
 				{
-					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
-					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(second_child_count);
-					result = int_result;
+					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
 							int_result->PushInt(first_child_vec[value_idx]);
+					
+					result_SP = std::move(int_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueFloat)
 				{
-					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
-					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-					result = float_result;
+					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
 							float_result->PushFloat(first_child_vec[value_idx]);
+					
+					result_SP = std::move(float_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueString)
 				{
-					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value)->StringVector();
-					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(second_child_count);
-					result = string_result;
+					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value.get())->StringVector();
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
 							string_result->PushString(first_child_vec[value_idx]);
+					
+					result_SP = std::move(string_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
-					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
-					EidosValue_Object_vector *obj_result = (new EidosValue_Object_vector())->Reserve(second_child_count);
-					result = obj_result;
+					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new EidosValue_Object_vector());
+					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
 							obj_result->PushObjectElement(first_child_vec[value_idx]);
+					
+					result_SP = std::move(obj_result_SP);
 				}
 			}
 		}
@@ -1184,7 +1064,7 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			{
 				// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
 				// This is guaranteed to return a singleton value (when available), and bounds-checks for us
-				result = first_child_value->GetValueAtIndex((int)second_child_value->IntAtIndex(0, operator_token), operator_token);
+				result_SP = first_child_value->GetValueAtIndex((int)second_child_value->IntAtIndex(0, operator_token), operator_token);
 			}
 			else
 			{
@@ -1192,27 +1072,21 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				if (first_child_type == EidosValueType::kValueFloat)
 				{
 					// result type is float; optimize for that
-					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
-					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-					result = float_result;
+					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
 						// integer indices; we can use fast access since we know second_child_count != 1
-						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								float_result->PushFloat(first_child_vec[index_value]);
 						}
@@ -1225,42 +1099,32 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								float_result->PushFloat(first_child_vec[index_value]);
 						}
 					}
+					
+					result_SP = std::move(float_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueInt)
 				{
 					// result type is integer; optimize for that
-					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
-					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(second_child_count);
-					result = int_result;
+					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
 						// integer indices; we can use fast access since we know second_child_count != 1
-						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								int_result->PushInt(first_child_vec[index_value]);
 						}
@@ -1273,42 +1137,32 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								int_result->PushInt(first_child_vec[index_value]);
 						}
 					}
+					
+					result_SP = std::move(int_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
 					// result type is object; optimize for that
-					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
-					EidosValue_Object_vector *obj_result = (new EidosValue_Object_vector())->Reserve(second_child_count);
-					result = obj_result;
+					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new EidosValue_Object_vector());
+					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
 						// integer indices; we can use fast access since we know second_child_count != 1
-						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								obj_result->PushObjectElement(first_child_vec[index_value]);
 						}
@@ -1321,43 +1175,33 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								obj_result->PushObjectElement(first_child_vec[index_value]);
 						}
 					}
+					
+					result_SP = std::move(obj_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueLogical)
 				{
 					// result type is logical; optimize for that
-					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value)->LogicalVector();
-					EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(second_child_count);
+					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
+					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
-					result = logical_result;
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
 						// integer indices; we can use fast access since we know second_child_count != 1
-						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								logical_result_vec.push_back(first_child_vec[index_value]);
 						}
@@ -1370,42 +1214,32 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								logical_result_vec.push_back(first_child_vec[index_value]);
 						}
 					}
+					
+					result_SP = std::move(logical_result_SP);
 				}
 				else if (first_child_type == EidosValueType::kValueString)
 				{
 					// result type is string; optimize for that
-					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value)->StringVector();
-					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(second_child_count);
-					result = string_result;
+					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value.get())->StringVector();
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
 						// integer indices; we can use fast access since we know second_child_count != 1
-						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+						const std::vector<int64_t> &int_index_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								string_result->PushString(first_child_vec[index_value]);
 						}
@@ -1418,129 +1252,103 @@ EidosValue *EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-							{
-								if (first_child_value->IsTemporary()) delete first_child_value;
-								if (second_child_value->IsTemporary()) delete second_child_value;
-								if (result->IsTemporary()) delete result;
-								
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-							}
 							else
 								string_result->PushString(first_child_vec[index_value]);
 						}
 					}
+					
+					result_SP = std::move(string_result_SP);
 				}
 				else
 				{
 					// This is the general case; it should never be hit
-					result = first_child_value->NewMatchingType();
+					result_SP = first_child_value->NewMatchingType();
+					
+					EidosValue *result = result_SP.get();
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 					{
 						int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 						
 						if ((index_value < 0) || (index_value >= first_child_count))
-						{
-							if (first_child_value->IsTemporary()) delete first_child_value;
-							if (second_child_value->IsTemporary()) delete second_child_value;
-							if (result->IsTemporary()) delete result;
-							
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
-						}
 						else
-							result->PushValueFromIndexOfEidosValue((int)index_value, first_child_value, operator_token);
+							result->PushValueFromIndexOfEidosValue((int)index_value, *first_child_value, operator_token);
 					}
 				}
 			}
 		}
-		
-		// Free our operands
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_MemberRef()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_MemberRef", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type != EidosValueType::kValueObject)
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(operator_token);
-	}
 	
 	EidosASTNode *second_child_node = p_node->children_[1];
 	EidosToken *second_child_token = second_child_node->token_;
 	
 	if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(operator_token);
-	}
 	
 	// If an error occurs inside a function or method call, we want to highlight the call
 	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
 	
-	// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
+	// We offload the actual work to GetPropertyOfElements() to keep things simple here
 	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID_;
-	result = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(property_string_ID);
+	result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(property_string_ID);
 	
 	// Forget the function token, since it is not responsible for any future errors
 	EidosScript::RestoreErrorPosition(error_pos_save);
 	
-	// free our operand
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	
 	// check result; this should never happen, since GetProperty should check
-	if (!result)
+	if (!result_SP)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << StringForEidosGlobalStringID(property_string_ID) << "." << eidos_terminate(operator_token);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Plus()");
 	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_Plus", 1, 2);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
-	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValueType first_child_type = first_child_value->Type();
+	EidosValue_SP result_SP;
 	
 	if (p_node->children_.size() == 1)
 	{
 		// unary plus is a no-op, but legal only for numeric types
+		EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+		EidosValueType first_child_type = first_child_value->Type();
+		
 		if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << eidos_terminate(operator_token);
-		}
 		
-		result = first_child_value;
-		
-		// don't free our operand, because result points to it
+		result_SP = std::move(first_child_value);
 	}
 	else
 	{
 		// binary plus is legal either between two numeric types, or between a string and any other non-NULL operand
-		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+		EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+		EidosValueType first_child_type = first_child_value->Type();
+		
+		EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		int first_child_count = first_child_value->Count();
@@ -1550,50 +1358,48 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
 			if (((first_child_type == EidosValueType::kValueNULL) || (second_child_type == EidosValueType::kValueNULL)))
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << eidos_terminate(operator_token);
-			}
 			
 			if ((first_child_count == 1) && (second_child_count == 1))
 			{
-				result = new EidosValue_String_singleton(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token));
+				result_SP = EidosValue_SP(new EidosValue_String_singleton(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token)));
 			}
 			else
 			{
 				if (first_child_count == second_child_count)
 				{
-					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(first_child_count);
-					result = string_result;
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + second_child_value->StringAtIndex(value_index, operator_token));
+					
+					result_SP = std::move(string_result_SP);
 				}
 				else if (first_child_count == 1)
 				{
 					string singleton_int = first_child_value->StringAtIndex(0, operator_token);
-					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(second_child_count);
-					result = string_result;
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						string_result->PushString(singleton_int + second_child_value->StringAtIndex(value_index, operator_token));
+					
+					result_SP = std::move(string_result_SP);
 				}
 				else if (second_child_count == 1)
 				{
 					string singleton_int = second_child_value->StringAtIndex(0, operator_token);
-					EidosValue_String_vector *string_result = (new EidosValue_String_vector())->Reserve(first_child_count);
-					result = string_result;
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_int);
+					
+					result_SP = std::move(string_result_SP);
 				}
 				else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 				{
-					if (first_child_value->IsTemporary()) delete first_child_value;
-					if (second_child_value->IsTemporary()) delete second_child_value;
-					
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 				}
 			}
@@ -1615,12 +1421,12 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
 					
-					result = new EidosValue_Int_singleton(add_result);
+					result_SP = EidosValue_SP(new EidosValue_Int_singleton(add_result));
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-					result = int_result;
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
@@ -1637,13 +1443,15 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						
 						int_result->PushInt(add_result);
 					}
+					
+					result_SP = std::move(int_result_SP);
 				}
 			}
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(second_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
@@ -1659,12 +1467,14 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int_result->PushInt(add_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -1680,93 +1490,82 @@ EidosValue *EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int_result->PushInt(add_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
 		else
 		{
 			if (((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat)) || ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat)))
-			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << eidos_terminate(operator_token);
-			}
 			
 			if (first_child_count == second_child_count)
 			{
 				if (first_child_count == 1)
 				{
-					result = new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) + second_child_value->FloatAtIndex(0, operator_token));
+					result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) + second_child_value->FloatAtIndex(0, operator_token)));
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-					result = float_result;
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) + second_child_value->FloatAtIndex(value_index, operator_token));
+					
+					result_SP = std::move(float_result_SP);
 				}
 			}
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					float_result->PushFloat(singleton_float + second_child_value->FloatAtIndex(value_index, operator_token));
+				
+				result_SP = std::move(float_result_SP);
 			}
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) + singleton_float);
+				
+				result_SP = std::move(float_result_SP);
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
-		
-		// free our operands
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Plus()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Minus()");
 	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_Minus", 1, 2);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << eidos_terminate(operator_token);
-	}
 	
 	int first_child_count = first_child_value->Count();
 	
@@ -1787,12 +1586,12 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
 				
-				result = new EidosValue_Int_singleton(subtract_result);
+				result_SP = EidosValue_SP(new EidosValue_Int_singleton(subtract_result));
 			}
 			else
 			{
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -1808,40 +1607,36 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int_result->PushInt(subtract_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 		}
 		else
 		{
 			if (first_child_count == 1)
 			{
-				result = new EidosValue_Float_singleton(-first_child_value->FloatAtIndex(0, operator_token));
+				result_SP = EidosValue_SP(new EidosValue_Float_singleton(-first_child_value->FloatAtIndex(0, operator_token)));
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(-first_child_value->FloatAtIndex(value_index, operator_token));
+				
+				result_SP = std::move(float_result_SP);
 			}
 		}
-		
-		// free our operands
-		if (first_child_value->IsTemporary()) delete first_child_value;
 	}
 	else
 	{
 		// binary minus
-		EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+		EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << eidos_terminate(operator_token);
-		}
 		
 		int second_child_count = second_child_value->Count();
 		
@@ -1862,12 +1657,12 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
 					
-					result = new EidosValue_Int_singleton(subtract_result);
+					result_SP = EidosValue_SP(new EidosValue_Int_singleton(subtract_result));
 				}
 				else
 				{
-					EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-					result = int_result;
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
@@ -1884,13 +1679,15 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						
 						int_result->PushInt(subtract_result);
 					}
+					
+					result_SP = std::move(int_result_SP);
 				}
 			}
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(second_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
@@ -1906,12 +1703,14 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int_result->PushInt(subtract_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -1927,12 +1726,11 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int_result->PushInt(subtract_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
@@ -1942,82 +1740,71 @@ EidosValue *EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result = new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) - second_child_value->FloatAtIndex(0, operator_token));
+					result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) - second_child_value->FloatAtIndex(0, operator_token)));
 				}
 				else
 				{
-					EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-					result = float_result;
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) - second_child_value->FloatAtIndex(value_index, operator_token));
+					
+					result_SP = std::move(float_result_SP);
 				}
 			}
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					float_result->PushFloat(singleton_float - second_child_value->FloatAtIndex(value_index, operator_token));
+				
+				result_SP = std::move(float_result_SP);
 			}
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) - singleton_float);
+				
+				result_SP = std::move(float_result_SP);
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				if (first_child_value->IsTemporary()) delete first_child_value;
-				if (second_child_value->IsTemporary()) delete second_child_value;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 			}
 		}
-		
-		// free our operands
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Minus()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Mod()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Mod", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << eidos_terminate(operator_token);
-	}
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << eidos_terminate(operator_token);
-	}
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2032,80 +1819,69 @@ EidosValue *EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result = new EidosValue_Float_singleton(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token)));
+			result_SP = EidosValue_SP(new EidosValue_Float_singleton(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), second_child_value->FloatAtIndex(value_index, operator_token)));
+			
+			result_SP = std::move(float_result_SP);
 		}
 	}
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
 			float_result->PushFloat(fmod(singleton_float, second_child_value->FloatAtIndex(value_index, operator_token)));
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
 			float_result->PushFloat(fmod(first_child_value->FloatAtIndex(value_index, operator_token), singleton_float));
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mod()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Mult()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Mult", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << eidos_terminate(operator_token);
-	}
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << eidos_terminate(operator_token);
-	}
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2128,12 +1904,12 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
 				
-				result = new EidosValue_Int_singleton(multiply_result);
+				result_SP = EidosValue_SP(new EidosValue_Int_singleton(multiply_result));
 			}
 			else
 			{
-				EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(first_child_count);
-				result = int_result;
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -2150,36 +1926,53 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 					
 					int_result->PushInt(multiply_result);
 				}
+				
+				result_SP = std::move(int_result_SP);
 			}
 		}
 		else
 		{
 			if (first_child_count == 1)
 			{
-				result = new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) * second_child_value->FloatAtIndex(0, operator_token));
+				result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) * second_child_value->FloatAtIndex(0, operator_token)));
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-				result = float_result;
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) * second_child_value->FloatAtIndex(value_index, operator_token));
+				
+				result_SP = std::move(float_result_SP);
 			}
 		}
 	}
 	else if ((first_child_count == 1) || (second_child_count == 1))
 	{
-		EidosValue *one_count_child = ((first_child_count == 1) ? first_child_value : second_child_value);
-		EidosValue *any_count_child = ((first_child_count == 1) ? second_child_value : first_child_value);
-		int any_count = ((first_child_count == 1) ? second_child_count : first_child_count);
+		EidosValue_SP one_count_child;
+		EidosValue_SP any_count_child;
+		int any_count;
+		
+		if (first_child_count == 1)
+		{
+			one_count_child = std::move(first_child_value);
+			any_count_child = std::move(second_child_value);
+			any_count = second_child_count;
+		}
+		else
+		{
+			one_count_child = std::move(second_child_value);
+			any_count_child = std::move(first_child_value);
+			any_count = first_child_count;
+		}
 		
 		// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
 			int64_t singleton_int = one_count_child->IntAtIndex(0, operator_token);
-			EidosValue_Int_vector *int_result = (new EidosValue_Int_vector())->Reserve(any_count);
-			result = int_result;
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector *int_result = int_result_SP->Reserve(any_count);
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
 			{
@@ -2195,62 +1988,49 @@ EidosValue *EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				
 				int_result->PushInt(multiply_result);
 			}
+			
+			result_SP = std::move(int_result_SP);
 		}
 		else
 		{
 			double singleton_float = one_count_child->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(any_count);
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve(any_count);
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
 				float_result->PushFloat(any_count_child->FloatAtIndex(value_index, operator_token) * singleton_float);
+			
+			result_SP = std::move(float_result_SP);
 		}
 	}
 	else
 	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mult()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Div()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Div", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << eidos_terminate(operator_token);
-	}
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << eidos_terminate(operator_token);
-	}
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2264,134 +2044,123 @@ EidosValue *EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result = new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token));
+			result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token)));
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / second_child_value->FloatAtIndex(value_index, operator_token));
+			
+			result_SP = std::move(float_result_SP);
 		}
 	}
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
 			float_result->PushFloat(singleton_float / second_child_value->FloatAtIndex(value_index, operator_token));
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
 			float_result->PushFloat(first_child_value->FloatAtIndex(value_index, operator_token) / singleton_float);
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Div()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Exp()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Exp", 2);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << eidos_terminate(operator_token);
-	}
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << eidos_terminate(operator_token);
-	}
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
 	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
-	EidosValue *result;
+	EidosValue_SP result_SP;
 	
 	if (first_child_count == second_child_count)
 	{
 		if (first_child_count == 1)
 		{
-			result = new EidosValue_Float_singleton(pow(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token)));
+			result_SP = EidosValue_SP(new EidosValue_Float_singleton(pow(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-			result = float_result;
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->PushFloat(pow(first_child_value->FloatAtIndex(value_index, operator_token), second_child_value->FloatAtIndex(value_index, operator_token)));
+			
+			result_SP = std::move(float_result_SP);
 		}
 	}
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(second_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
 			float_result->PushFloat(pow(singleton_float, second_child_value->FloatAtIndex(value_index, operator_token)));
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector *float_result = (new EidosValue_Float_vector())->Reserve(first_child_count);
-		result = float_result;
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
 			float_result->PushFloat(pow(first_child_value->FloatAtIndex(value_index, operator_token), singleton_float));
+		
+		result_SP = std::move(float_result_SP);
 	}
 	else
 	{
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Exp()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_And()");
 	EIDOS_ASSERT_CHILD_COUNT_GTEQ("EidosInterpreter::Evaluate_And", 2);
@@ -2399,14 +2168,14 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	
 	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	bool bool_result = false;
 	int result_count = 0;
 	bool first_child = true;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-		EidosValue *child_result = FastEvaluateNode(child_node);
+		EidosValue_SP child_result = FastEvaluateNode(child_node);
 		
 		if (child_result == gStaticEidosValue_LogicalT)
 		{
@@ -2430,9 +2199,11 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			}
 			else
 			{
-				if (result)
+				if (result_SP)
 				{
 					// we have a result allocated, so alter the values in it
+					EidosValue_Logical *result = result_SP.get();
+					
 					for (int value_index = 0; value_index < result_count; ++value_index)
 						result->SetLogicalAtIndex(value_index, false, operator_token);
 				}
@@ -2449,12 +2220,7 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			EidosValueType child_type = child_result->Type();
 			
 			if ((child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueString) && (child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat))
-			{
-				if (child_result->IsTemporary()) delete child_result;
-				if (result && result->IsTemporary()) delete result;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << eidos_terminate(operator_token);
-			}
 			
 			int child_count = child_result->Count();
 			
@@ -2469,21 +2235,19 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					bool_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && child_result->IsTemporary())
+				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
 				{
-					// child_result is a temporary logical EidosValue, so we can just take it over as our initial result
-					result = (EidosValue_Logical *)child_result;
+					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
+					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
 					result_count = child_count;
-					
-					continue;	// do not free child_result
 				}
 				else
 				{
 					// for other cases, we just clone child_result – but note that it may not be of type logical
-					result = (new EidosValue_Logical())->Reserve(child_count);
+					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result->LogicalVector_Mutable();
+					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					for (int value_index = 0; value_index < child_count; ++value_index)
 						logical_result_vec.push_back(child_result->LogicalAtIndex(value_index, operator_token));
@@ -2493,12 +2257,7 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			{
 				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
-				{
-					if (child_result->IsTemporary()) delete child_result;
-					if (result && result->IsTemporary()) delete result;
-					
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operands to the '&' operator are not compatible in size()." << eidos_terminate(operator_token);
-				}
 				
 				if (child_count == 1)
 				{
@@ -2507,9 +2266,11 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					
 					if (!child_bool)
 					{
-						if (result)
+						if (result_SP)
 						{
 							// we have a result allocated, so alter the values in it
+							EidosValue_Logical *result = result_SP.get();
+							
 							for (int value_index = 0; value_index < result_count; ++value_index)
 								result->SetLogicalAtIndex(value_index, false, operator_token);
 						}
@@ -2525,12 +2286,10 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					// we had a one-length result vector, but now we need to upscale it to match child_result
 					bool result_bool;
 					
-					if (result)
+					if (result_SP)
 					{
 						// we have a result allocated; work with that
-						result_bool = result->LogicalAtIndex(0, operator_token);
-						
-						if (result->IsTemporary()) delete result;
+						result_bool = result_SP->LogicalAtIndex(0, operator_token);
 					}
 					else
 					{
@@ -2538,10 +2297,10 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 						result_bool = bool_result;
 					}
 					
-					result = (new EidosValue_Logical())->Reserve(child_count);
+					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result->LogicalVector_Mutable();
+					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					if (result_bool)
 						for (int value_index = 0; value_index < child_count; ++value_index)
@@ -2553,26 +2312,25 @@ EidosValue *EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				else
 				{
 					// result and child_result are both != 1 length, so we match them one to one, and if child_result is F we turn result to F
+					EidosValue_Logical *result = result_SP.get();
+					
 					for (int value_index = 0; value_index < result_count; ++value_index)
 						if (!child_result->LogicalAtIndex(value_index, operator_token))
 							result->SetLogicalAtIndex(value_index, false, operator_token);
 				}
 			}
-			
-			// free our operand
-			if (child_result->IsTemporary()) delete child_result;
 		}
 	}
 	
 	// if we avoided allocating a result, use a static logical value
-	if (!result)
-		result = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if (!result_SP)
+		result_SP = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_And()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Or()");
 	EIDOS_ASSERT_CHILD_COUNT_GTEQ("EidosInterpreter::Evaluate_Or", 2);
@@ -2580,14 +2338,14 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	
 	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	bool bool_result = false;
 	int result_count = 0;
 	bool first_child = true;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-		EidosValue *child_result = FastEvaluateNode(child_node);
+		EidosValue_SP child_result = FastEvaluateNode(child_node);
 		
 		if (child_result == gStaticEidosValue_LogicalT)
 		{
@@ -2600,9 +2358,11 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			}
 			else
 			{
-				if (result)
+				if (result_SP)
 				{
 					// we have a result allocated, so alter the values in it
+					EidosValue_Logical *result = result_SP.get();
+					
 					for (int value_index = 0; value_index < result_count; ++value_index)
 						result->SetLogicalAtIndex(value_index, true, operator_token);
 				}
@@ -2630,12 +2390,7 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			EidosValueType child_type = child_result->Type();
 			
 			if ((child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueString) && (child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat))
-			{
-				if (child_result->IsTemporary()) delete child_result;
-				if (result && result->IsTemporary()) delete result;
-				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << eidos_terminate(operator_token);
-			}
 			
 			int child_count = child_result->Count();
 			
@@ -2650,10 +2405,10 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					bool_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && child_result->IsTemporary())
+				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
 				{
-					// child_result is a temporary logical EidosValue, so we can just take it over as our initial result
-					result = (EidosValue_Logical *)child_result;
+					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
+					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
 					result_count = child_count;
 					
 					continue;	// do not free child_result
@@ -2661,10 +2416,10 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				else
 				{
 					// for other cases, we just clone child_result – but note that it may not be of type logical
-					result = (new EidosValue_Logical())->Reserve(child_count);
+					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result->LogicalVector_Mutable();
+					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					for (int value_index = 0; value_index < child_count; ++value_index)
 						logical_result_vec.push_back(child_result->LogicalAtIndex(value_index, operator_token));
@@ -2674,12 +2429,7 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			{
 				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
-				{
-					if (child_result->IsTemporary()) delete child_result;
-					if (result && result->IsTemporary()) delete result;
-					
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operands to the '|' operator are not compatible in size()." << eidos_terminate(operator_token);
-				}
 				
 				if (child_count == 1)
 				{
@@ -2688,9 +2438,11 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					
 					if (child_bool)
 					{
-						if (result)
+						if (result_SP)
 						{
 							// we have a result allocated, so alter the values in it
+							EidosValue_Logical *result = result_SP.get();
+							
 							for (int value_index = 0; value_index < result_count; ++value_index)
 								result->SetLogicalAtIndex(value_index, true, operator_token);
 						}
@@ -2706,12 +2458,10 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					// we had a one-length result vector, but now we need to upscale it to match child_result
 					bool result_bool;
 					
-					if (result)
+					if (result_SP)
 					{
 						// we have a result allocated; work with that
-						result_bool = result->LogicalAtIndex(0, operator_token);
-						
-						if (result->IsTemporary()) delete result;
+						result_bool = result_SP->LogicalAtIndex(0, operator_token);
 					}
 					else
 					{
@@ -2719,10 +2469,10 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 						result_bool = bool_result;
 					}
 					
-					result = (new EidosValue_Logical())->Reserve(child_count);
+					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result->LogicalVector_Mutable();
+					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					if (result_bool)
 						for (int value_index = 0; value_index < child_count; ++value_index)
@@ -2734,82 +2484,74 @@ EidosValue *EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				else
 				{
 					// result and child_result are both != 1 length, so we match them one to one, and if child_result is T we turn result to T
+					EidosValue_Logical *result = result_SP.get();
+					
 					for (int value_index = 0; value_index < result_count; ++value_index)
 						if (child_result->LogicalAtIndex(value_index, operator_token))
 							result->SetLogicalAtIndex(value_index, true, operator_token);
 				}
 			}
-			
-			// free our operand
-			if (child_result->IsTemporary()) delete child_result;
 		}
 	}
 	
 	// if we avoided allocating a result, use a static logical value
-	if (!result)
-		result = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if (!result_SP)
+		result_SP = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Or()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Not()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Not", 1);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue_Logical *result;
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_Logical_SP result_SP;
 	
 	if (first_child_value == gStaticEidosValue_LogicalT)
 	{
 		// Handle a static singleton logical true super fast; no need for type check, count, etc
-		result = gStaticEidosValue_LogicalF;
+		result_SP = gStaticEidosValue_LogicalF;
 	}
 	else if (first_child_value == gStaticEidosValue_LogicalF)
 	{
 		// Handle a static singleton logical false super fast; no need for type check, count, etc
-		result = gStaticEidosValue_LogicalT;
+		result_SP = gStaticEidosValue_LogicalT;
 	}
 	else
 	{
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if ((first_child_type != EidosValueType::kValueLogical) && (first_child_type != EidosValueType::kValueString) && (first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << eidos_terminate(operator_token);
-		}
 		
 		int first_child_count = first_child_value->Count();
 		
 		if (first_child_count == 1)
 		{
 			// If we're generating a singleton result, use cached static logical values
-			result = (first_child_value->LogicalAtIndex(0, operator_token) ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT);
+			result_SP = (first_child_value->LogicalAtIndex(0, operator_token) ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT);
 		}
 		else
 		{
 			// for other cases, we just clone the negation of child_result – but note that it may not be of type logical
-			result = (new EidosValue_Logical())->Reserve(first_child_count);
+			result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(first_child_count));
 			
-			std::vector<bool> &logical_result_vec = result->LogicalVector_Mutable();
+			std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				logical_result_vec.push_back(!first_child_value->LogicalAtIndex(value_index, operator_token));
 		}
-		
-		// free our operand
-		if (first_child_value->IsTemporary()) delete first_child_value;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Not()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Assign()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Assign", 2);
@@ -2819,7 +2561,8 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue *lvalue = global_symbols_.GetNonConstantValueOrRaiseForToken(lvalue_node->token_);	// raises if undefined or const
+		EidosValue_SP lvalue_SP = global_symbols_.GetNonConstantValueOrRaiseForToken(lvalue_node->token_);	// raises if undefined or const
+		EidosValue *lvalue = lvalue_SP.get();
 		int lvalue_count = lvalue->Count();
 		
 		// somewhat unusually, we will now modify the lvalue in place, for speed; this is legal since we just got
@@ -2832,8 +2575,8 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			
 			if (lvalue_type == EidosValueType::kValueInt)
 			{
-				EidosASTNode *rvalue_node = p_node->children_[1];							// the operator node
-				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_;		// the numeric constant
+				EidosASTNode *rvalue_node = p_node->children_[1];								// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_.get();	// the numeric constant
 				
 				// if the lvalue is an integer, we require the rvalue to be an integer also; we don't handle mixed types here
 				if (cached_operand2->Type() == EidosValueType::kValueInt)
@@ -2929,10 +2672,10 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			else if (lvalue_type == EidosValueType::kValueFloat)
 			{
 				// if the lvalue is a float, we do not require the rvalue to be a float also; the integer will promote to float seamlessly
-				EidosASTNode *rvalue_node = p_node->children_[1];							// the operator node
-				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_;		// the numeric constant
+				EidosASTNode *rvalue_node = p_node->children_[1];								// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_.get();	// the numeric constant
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
-				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);			// might be an int64_t and get converted
+				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);				// might be an int64_t and get converted
 				
 				if ((lvalue_count == 1) && !lvalue->IsVectorBased())
 				{
@@ -3040,38 +2783,35 @@ EidosValue *EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	{
 		EidosToken *operator_token = p_node->token_;
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue *rvalue = FastEvaluateNode(p_node->children_[1]);
+		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(operator_token);
 		
-		_AssignRValueToLValue(rvalue, lvalue_node);		// disposes of rvalue somehow
+		_AssignRValueToLValue(std::move(rvalue), lvalue_node);
 		
 		EidosScript::RestoreErrorPosition(error_pos_save);
-		
-		// free our operand
-		if (rvalue->IsTemporary()) delete rvalue;
 	}
 	
 compoundAssignmentSuccess:
 	
 	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
 	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Assign()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Eq()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Eq", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3088,21 +2828,21 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
 					// Direct float-to-float compare can be optimized through vector access
-					const std::vector<double> &float1_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
-					const std::vector<double> &float2_vec = ((EidosValue_Float_vector *)second_child_value)->FloatVector();
+					const std::vector<double> &float1_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
+					const std::vector<double> &float2_vec = ((EidosValue_Float_vector *)second_child_value.get())->FloatVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(float1_vec[value_index] == float2_vec[value_index]);
@@ -3110,8 +2850,8 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 				{
 					// Direct int-to-int compare can be optimized through vector access
-					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
-					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(int1_vec[value_index] == int2_vec[value_index]);
@@ -3119,8 +2859,8 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					const std::vector<EidosObjectElement *> &obj1_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
-					const std::vector<EidosObjectElement *> &obj2_vec = ((EidosValue_Object_vector *)second_child_value)->ObjectElementVector();
+					const std::vector<EidosObjectElement *> &obj1_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
+					const std::vector<EidosObjectElement *> &obj2_vec = ((EidosValue_Object_vector *)second_child_value.get())->ObjectElementVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(obj1_vec[value_index] == obj2_vec[value_index]);
@@ -3129,21 +2869,23 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				{
 					// General case
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						logical_result_vec.push_back(compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token) == 0);
+						logical_result_vec.push_back(compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token) == 0);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(second_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			if ((compareFunc == CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
-				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)second_child_value)->FloatVector();
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)second_child_value.get())->FloatVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(float1 == float_vec[value_index]);
@@ -3152,7 +2894,7 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
-				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(int1 == int_vec[value_index]);
@@ -3161,7 +2903,7 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)second_child_value)->ObjectElementVector();
+				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)second_child_value.get())->ObjectElementVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(obj1 == obj_vec[value_index]);
@@ -3170,20 +2912,22 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					logical_result_vec.push_back(compareFunc(first_child_value, 0, second_child_value, value_index, operator_token) == 0);
+					logical_result_vec.push_back(compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token) == 0);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			if ((compareFunc == CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
-				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(float_vec[value_index] == float2);
@@ -3192,7 +2936,7 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
-				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
+				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(int_vec[value_index] == int2);
@@ -3201,7 +2945,7 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
+				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(obj_vec[value_index] == obj2);
@@ -3210,44 +2954,35 @@ EidosValue *EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					logical_result_vec.push_back(compareFunc(first_child_value, value_index, second_child_value, 0, operator_token) == 0);
+					logical_result_vec.push_back(compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token) == 0);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
-		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): testing NULL with the '==' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Eq()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Lt()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Lt", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3267,85 +3002,81 @@ EidosValue *EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result == -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result == -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token);
+					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
 					
 					logical_result_vec.push_back(compare_result == -1);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, value_index, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
 				
 				logical_result_vec.push_back(compare_result == -1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, value_index, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
 				
 				logical_result_vec.push_back(compare_result == -1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): testing NULL with the '<' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Lt()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_LtEq()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_LtEq", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3365,85 +3096,81 @@ EidosValue *EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result != 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result != 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token);
+					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
 					
 					logical_result_vec.push_back(compare_result != 1);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, value_index, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
 				
 				logical_result_vec.push_back(compare_result != 1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, value_index, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
 				
 				logical_result_vec.push_back(compare_result != 1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): testing NULL with the '<=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_LtEq()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Gt()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Gt", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3463,85 +3190,81 @@ EidosValue *EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result == 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result == 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token);
+					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
 					
 					logical_result_vec.push_back(compare_result == 1);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, value_index, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
 				
 				logical_result_vec.push_back(compare_result == 1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, value_index, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
 				
 				logical_result_vec.push_back(compare_result == 1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): testing NULL with the '>' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Gt()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_GtEq()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_GtEq", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3561,85 +3284,81 @@ EidosValue *EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result != -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result != -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token);
+					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
 					
 					logical_result_vec.push_back(compare_result != -1);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, value_index, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
 				
 				logical_result_vec.push_back(compare_result != -1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(first_child_value, value_index, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
 				
 				logical_result_vec.push_back(compare_result != -1);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): testing NULL with the '>=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_GtEq()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NotEq()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NotEq", 2);
 
 	EidosToken *operator_token = p_node->token_;
-	EidosValue_Logical *result = nullptr;
+	EidosValue_Logical_SP result_SP;
 	
-	EidosValue *first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValue *second_child_value = FastEvaluateNode(p_node->children_[1]);
+	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
+	EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
@@ -3656,21 +3375,21 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(first_child_value, 0, second_child_value, 0, operator_token);
+				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result = (compare_result != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				result_SP = (compare_result != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-				result = logical_result;
 				
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
 					// Direct float-to-float compare can be optimized through vector access
-					const std::vector<double> &float1_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
-					const std::vector<double> &float2_vec = ((EidosValue_Float_vector *)second_child_value)->FloatVector();
+					const std::vector<double> &float1_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
+					const std::vector<double> &float2_vec = ((EidosValue_Float_vector *)second_child_value.get())->FloatVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(float1_vec[value_index] != float2_vec[value_index]);
@@ -3678,8 +3397,8 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 				{
 					// Direct int-to-int compare can be optimized through vector access
-					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
-					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+					const std::vector<int64_t> &int1_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
+					const std::vector<int64_t> &int2_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(int1_vec[value_index] != int2_vec[value_index]);
@@ -3687,8 +3406,8 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					const std::vector<EidosObjectElement *> &obj1_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
-					const std::vector<EidosObjectElement *> &obj2_vec = ((EidosValue_Object_vector *)second_child_value)->ObjectElementVector();
+					const std::vector<EidosObjectElement *> &obj1_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
+					const std::vector<EidosObjectElement *> &obj2_vec = ((EidosValue_Object_vector *)second_child_value.get())->ObjectElementVector();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result_vec.push_back(obj1_vec[value_index] != obj2_vec[value_index]);
@@ -3697,21 +3416,23 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				{
 					// General case
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						logical_result_vec.push_back(compareFunc(first_child_value, value_index, second_child_value, value_index, operator_token) != 0);
+						logical_result_vec.push_back(compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token) != 0);
 				}
+				
+				result_SP = std::move(logical_result_SP);
 			}
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(second_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			if ((compareFunc == CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
-				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)second_child_value)->FloatVector();
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)second_child_value.get())->FloatVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(float1 != float_vec[value_index]);
@@ -3720,7 +3441,7 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
-				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)second_child_value)->IntVector();
+				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)second_child_value.get())->IntVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(int1 != int_vec[value_index]);
@@ -3729,7 +3450,7 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)second_child_value)->ObjectElementVector();
+				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)second_child_value.get())->ObjectElementVector();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result_vec.push_back(obj1 != obj_vec[value_index]);
@@ -3738,20 +3459,22 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					logical_result_vec.push_back(compareFunc(first_child_value, 0, second_child_value, value_index, operator_token) != 0);
+					logical_result_vec.push_back(compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token) != 0);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical *logical_result = (new EidosValue_Logical)->Reserve(first_child_count);
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
-			result = logical_result;
 			
 			if ((compareFunc == CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
-				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)first_child_value)->FloatVector();
+				const std::vector<double> &float_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(float_vec[value_index] != float2);
@@ -3760,7 +3483,7 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
-				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)first_child_value)->IntVector();
+				const std::vector<int64_t> &int_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(int_vec[value_index] != int2);
@@ -3769,7 +3492,7 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)first_child_value)->ObjectElementVector();
+				const std::vector<EidosObjectElement *> &obj_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result_vec.push_back(obj_vec[value_index] != obj2);
@@ -3778,32 +3501,24 @@ EidosValue *EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					logical_result_vec.push_back(compareFunc(first_child_value, value_index, second_child_value, 0, operator_token) != 0);
+					logical_result_vec.push_back(compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token) != 0);
 			}
+			
+			result_SP = std::move(logical_result_SP);
 		}
 		else
 		{
-			if (first_child_value->IsTemporary()) delete first_child_value;
-			if (second_child_value->IsTemporary()) delete second_child_value;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		if (first_child_value->IsTemporary()) delete first_child_value;
-		if (second_child_value->IsTemporary()) delete second_child_value;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): testing NULL with the '!=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
 	}
 	
-	// free our operands
-	if (first_child_value->IsTemporary()) delete first_child_value;
-	if (second_child_value->IsTemporary()) delete second_child_value;
-	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_NotEq()");
-	return result;
+	return result_SP;
 }
 
 // A utility static method for getting an int for a string outside of a EidosInterpreter session
@@ -3862,7 +3577,7 @@ double EidosInterpreter::FloatForString(const std::string &p_number_string, cons
 }
 
 // A utility static method for getting a numeric EidosValue* for a string outside of a EidosInterpreter session
-EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token)
+EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token)
 {
 	const char *c_str = p_number_string.c_str();
 	char *last_used_char = nullptr;
@@ -3881,7 +3596,7 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
 		
-		return new EidosValue_Float_singleton(converted_value);
+		return EidosValue_SP(new EidosValue_Float_singleton(converted_value));
 	}
 	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))		// has an exponent
 	{
@@ -3894,7 +3609,7 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
-		return new EidosValue_Int_singleton(static_cast<int64_t>(converted_value));
+		return EidosValue_SP(new EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
 	}
 	else																										// plain integer
 	{
@@ -3903,56 +3618,56 @@ EidosValue *EidosInterpreter::NumericValueForString(const std::string &p_number_
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
 		
-		return new EidosValue_Int_singleton(converted_value);
+		return EidosValue_SP(new EidosValue_Int_singleton(converted_value));
 	}
 }
 
-EidosValue *EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Number()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Number", 0);
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
-	EidosValue *result = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_value_;
 	
-	if (!result)
+	if (!result_SP)
 	{
 		EidosToken *string_token = p_node->token_;
 		
-		result = EidosInterpreter::NumericValueForString(string_token->token_string_, string_token);
+		result_SP = EidosInterpreter::NumericValueForString(string_token->token_string_, string_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Number()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_String()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_String", 0);
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
-	EidosValue *result = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_value_;
 	
-	if (!result)
-		result = new EidosValue_String_singleton(p_node->token_->token_string_);
+	if (!result_SP)
+		result_SP = EidosValue_SP(new EidosValue_String_singleton(p_node->token_->token_string_));
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_String()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Identifier()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Identifier", 0);
 	
-	EidosValue *result = global_symbols_.GetValueOrRaiseForToken(p_node->token_);	// raises if undefined
+	EidosValue_SP result_SP = EidosValue_SP(global_symbols_.GetValueOrRaiseForToken(p_node->token_));	// raises if undefined
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_If()");
 	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_If", 2, 3);
@@ -3960,16 +3675,16 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	auto children_size = p_node->children_.size();
 	
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	EidosASTNode *condition_node = p_node->children_[0];
-	EidosValue *condition_result = FastEvaluateNode(condition_node);
+	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 	
 	if (condition_result == gStaticEidosValue_LogicalT)
 	{
 		// Handle a static singleton logical true super fast; no need for type check, count, etc
 		EidosASTNode *true_node = p_node->children_[1];
-		result = FastEvaluateNode(true_node);
+		result_SP = FastEvaluateNode(true_node);
 	}
 	else if (condition_result == gStaticEidosValue_LogicalF)
 	{
@@ -3977,11 +3692,11 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
-			result = FastEvaluateNode(false_node);
+			result_SP = FastEvaluateNode(false_node);
 		}
 		else										// no 'else' node, so the result is NULL
 		{
-			result = gStaticEidosValueNULLInvisible;
+			result_SP = gStaticEidosValueNULLInvisible;
 		}
 	}
 	else if (condition_result->Count() == 1)
@@ -3991,54 +3706,46 @@ EidosValue *EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (condition_bool)
 		{
 			EidosASTNode *true_node = p_node->children_[1];
-			result = FastEvaluateNode(true_node);
+			result_SP = FastEvaluateNode(true_node);
 		}
 		else if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
-			result = FastEvaluateNode(false_node);
+			result_SP = FastEvaluateNode(false_node);
 		}
 		else										// no 'else' node, so the result is NULL
 		{
-			result = gStaticEidosValueNULLInvisible;
+			result_SP = gStaticEidosValueNULLInvisible;
 		}
-		
-		// free our operands
-		if (condition_result->IsTemporary()) delete condition_result;
 	}
 	else
 	{
-		if (condition_result->IsTemporary()) delete condition_result;
-		
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): condition for if statement has size() != 1." << eidos_terminate(p_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_If()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Do()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Do", 2);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	do
 	{
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue *statement_value = FastEvaluateNode(p_node->children_[0]);
+		EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[0]);
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
 		{
-			result = statement_value;
+			result_SP = std::move(statement_value);
 			break;
 		}
-		
-		// otherwise, discard the return value
-		if (statement_value->IsTemporary()) delete statement_value;
 		
 		// handle next and break statements
 		if (next_statement_hit_)
@@ -4052,7 +3759,7 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[1];
-		EidosValue *condition_result = FastEvaluateNode(condition_node);
+		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
 		if (condition_result == gStaticEidosValue_LogicalT)
 		{
@@ -4067,40 +3774,36 @@ EidosValue *EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0, operator_token);
 			
-			if (condition_result->IsTemporary()) delete condition_result;
-			
 			if (!condition_bool)
 				break;
 		}
 		else
 		{
-			if (condition_result->IsTemporary()) delete condition_result;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): condition for do-while loop has size() != 1." << eidos_terminate(p_node->token_);
 		}
 	}
 	while (true);
 	
-	if (!result)
-		result = gStaticEidosValueNULLInvisible;
+	if (!result_SP)
+		result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Do()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_While()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_While", 2);
 	
 	EidosToken *operator_token = p_node->token_;
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	while (true)
 	{
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[0];
-		EidosValue *condition_result = FastEvaluateNode(condition_node);
+		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
 		if (condition_result == gStaticEidosValue_LogicalT)
 		{
@@ -4115,30 +3818,23 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		{
 			bool condition_bool = condition_result->LogicalAtIndex(0, operator_token);
 			
-			if (condition_result->IsTemporary()) delete condition_result;
-			
 			if (!condition_bool)
 				break;
 		}
 		else
 		{
-			if (condition_result->IsTemporary()) delete condition_result;
-			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): condition for while loop has size() != 1." << eidos_terminate(p_node->token_);
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue *statement_value = FastEvaluateNode(p_node->children_[1]);
+		EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[1]);
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
 		{
-			result = statement_value;
+			result_SP = std::move(statement_value);
 			break;
 		}
-		
-		// otherwise, discard the return value
-		if (statement_value->IsTemporary()) delete statement_value;
 		
 		// handle next and break statements
 		if (next_statement_hit_)
@@ -4151,14 +3847,14 @@ EidosValue *EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		}
 	}
 	
-	if (!result)
-		result = gStaticEidosValueNULLInvisible;
+	if (!result_SP)
+		result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_While()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_For()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_For", 3);
@@ -4172,7 +3868,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 	const string &identifier_name = identifier_child->token_->token_string_;
 	const EidosASTNode *range_node = p_node->children_[1];
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	// true if the for-loop statement references the index variable; if so, it needs to be set up
 	// each iteration, but that can be done very cheaply by replacing its internal value
@@ -4183,10 +3879,10 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	bool assigns_index = p_node->cached_for_assigns_index;
 	
 	// In some cases we do not need to actually construct the range that we are going to iterate over; we check for that case here
-	// and handle it immediately, otherwise we drop through to the (!can_skip_range_evaluation) case below
+	// and handle it immediately, otherwise we drop through to the (!simpleIntegerRange) case below
 	bool simpleIntegerRange = false;
 	int64_t start_int = 0, end_int = 0;
-	EidosValue *range_value = nullptr;
+	EidosValue_SP range_value(nullptr);
 	
 	if (!assigns_index)
 	{
@@ -4195,8 +3891,10 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			// Maybe we can streamline a colon-operator range expression; let's check
 			if (!range_node->cached_value_)
 			{
-				EidosValue *range_start_value = FastEvaluateNode(range_node->children_[0]);
-				EidosValue *range_end_value = FastEvaluateNode(range_node->children_[1]);
+				EidosValue_SP range_start_value_SP = FastEvaluateNode(range_node->children_[0]);
+				EidosValue *range_start_value = range_start_value_SP.get();
+				EidosValue_SP range_end_value_SP = FastEvaluateNode(range_node->children_[1]);
+				EidosValue *range_end_value = range_end_value_SP.get();
 				
 				if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1) && (range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1))
 				{
@@ -4205,11 +3903,6 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					start_int = range_start_value->IntAtIndex(0, nullptr);
 					end_int = range_end_value->IntAtIndex(0, nullptr);
-					
-					if (range_start_value->IsTemporary())
-						delete range_start_value;
-					if (range_end_value->IsTemporary())
-						delete range_end_value;
 				}
 				else
 				{
@@ -4218,7 +3911,7 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					// We therefore have to construct the range here that will be used below.  No good deed goes unpunished.
 					
 					// Note that this call to Evaluate_RangeExpr_Internal() gives ownership of the child values; it deletes them for us
-					range_value = _Evaluate_RangeExpr_Internal(range_node, range_start_value, range_end_value);
+					range_value = _Evaluate_RangeExpr_Internal(range_node, *range_start_value, *range_end_value);
 				}
 			}
 		}
@@ -4240,13 +3933,10 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
 						simpleIntegerRange = true;
 						
-						EidosValue *argument_value = FastEvaluateNode(argument_node);
+						EidosValue_SP argument_value = FastEvaluateNode(argument_node);
 						
 						start_int = 0;
 						end_int = argument_value->Count() - 1;
-						
-						if (argument_value->IsTemporary())
-							delete argument_value;
 					}
 				}
 			}
@@ -4267,10 +3957,9 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			
 			for (range_index = 0; range_index < range_count; ++range_index)
 			{
-				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+				EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 				
-				if (return_statement_hit_)				{ result = statement_value; break; }
-				if (statement_value->IsTemporary())		delete statement_value;
+				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 				if (next_statement_hit_)				next_statement_hit_ = false;
 				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 			}
@@ -4279,30 +3968,30 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_index == range_count)
 				range_index--;
 			
-			global_symbols_.SetValueForSymbol(identifier_name, new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index));
+			global_symbols_.SetValueForSymbol(identifier_name, EidosValue_SP(new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
 		}
 		else	// !assigns_index, guaranteed above
 		{
 			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
 			// EidosValue that we stick new values into – much, much faster.
-			EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new EidosValue_Int_singleton(0));
+			EidosValue_Int_singleton *index_value = index_value_SP.get();
 			
-			global_symbols_.SetValueForSymbol(identifier_name, index_value);
+			global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
 				index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
 				
-				EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+				EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 				
-				if (return_statement_hit_)				{ result = statement_value; break; }
-				if (statement_value->IsTemporary())		delete statement_value;
+				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 				if (next_statement_hit_)				next_statement_hit_ = false;
 				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 			}
 		}
 	}
-	else
+	else	// (!simpleIntegerRange)
 	{
 		// We have something other than a simple integer range, so we have to do more work to figure out what type of
 		// range we are iterating over; we have optimizations for several cases if assigns_index is false
@@ -4326,10 +4015,9 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				
 				for (range_index = 0; range_index < range_count; ++range_index)
 				{
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+					EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 					
-					if (return_statement_hit_)				{ result = statement_value; break; }
-					if (statement_value->IsTemporary())		delete statement_value;
+					if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 					if (next_statement_hit_)				next_statement_hit_ = false;
 					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 				}
@@ -4348,19 +4036,19 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				// EidosValue that we stick new values into – much, much faster.
 				if (range_type == EidosValueType::kValueInt)
 				{
-					const std::vector<int64_t> &range_vec = ((EidosValue_Int_vector *)range_value)->IntVector();
-					EidosValue_Int_singleton *index_value = new EidosValue_Int_singleton(0);
+					const std::vector<int64_t> &range_vec = ((EidosValue_Int_vector *)range_value.get())->IntVector();
+					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new EidosValue_Int_singleton(0));
+					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
+						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
 						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 					}
@@ -4369,19 +4057,19 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueFloat)
 				{
-					const std::vector<double> &range_vec = ((EidosValue_Float_vector *)range_value)->FloatVector();
-					EidosValue_Float_singleton *index_value = new EidosValue_Float_singleton(0);
+					const std::vector<double> &range_vec = ((EidosValue_Float_vector *)range_value.get())->FloatVector();
+					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new EidosValue_Float_singleton(0));
+					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
+						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
 						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 					}
@@ -4390,19 +4078,19 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueString)
 				{
-					const std::vector<std::string> &range_vec = ((EidosValue_String_vector *)range_value)->StringVector();
-					EidosValue_String_singleton *index_value = new EidosValue_String_singleton(gEidosStr_empty_string);
+					const std::vector<std::string> &range_vec = ((EidosValue_String_vector *)range_value.get())->StringVector();
+					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new EidosValue_String_singleton(gEidosStr_empty_string));
+					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
+						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
 						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 					}
@@ -4411,19 +4099,19 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueObject)
 				{
-					const std::vector<EidosObjectElement *> &range_vec = ((EidosValue_Object_vector *)range_value)->ObjectElementVector();
-					EidosValue_Object_singleton *index_value = new EidosValue_Object_singleton(nullptr);
+					const std::vector<EidosObjectElement *> &range_vec = ((EidosValue_Object_vector *)range_value.get())->ObjectElementVector();
+					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new EidosValue_Object_singleton(nullptr));
+					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
+						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
 						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 					}
@@ -4432,22 +4120,22 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value)->LogicalVector();
-					EidosValue_Logical *index_value = new EidosValue_Logical();
+					const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value.get())->LogicalVector();
+					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical *index_value = index_value_SP.get();
 					std::vector<bool> &index_vec = index_value->LogicalVector_Mutable();
 					
 					index_value->PushLogical(false);	// initial placeholder
 					
-					global_symbols_.SetValueForSymbol(identifier_name, index_value);
+					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
 						index_vec[0] = range_vec[range_index];
 						
-						EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 						
-						if (return_statement_hit_)				{ result = statement_value; break; }
-						if (statement_value->IsTemporary())		delete statement_value;
+						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
 						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
 					}
@@ -4462,22 +4150,19 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				for (int range_index = 0; range_index < range_count; ++range_index)
 				{
 					// set the index variable to the range value and then throw the range value away
-					EidosValue *range_value_at_index = range_value->GetValueAtIndex(range_index, operator_token);
+					EidosValue_SP range_value_at_index = range_value->GetValueAtIndex(range_index, operator_token);
 					
 					global_symbols_.SetValueForSymbol(identifier_name, range_value_at_index);
 					
 					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
-					EidosValue *statement_value = FastEvaluateNode(p_node->children_[2]);
+					EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
 					
 					// if a return statement has occurred, we pass the return value outward
 					if (return_statement_hit_)
 					{
-						result = statement_value;
+						result_SP = std::move(statement_value);
 						break;
 					}
-					
-					// otherwise, discard the return value
-					if (statement_value->IsTemporary()) delete statement_value;
 					
 					// handle next and break statements
 					if (next_statement_hit_)
@@ -4496,19 +4181,16 @@ EidosValue *EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_type == EidosValueType::kValueNULL)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
 		}
-		
-		// free our range operand
-		if (range_value->IsTemporary()) delete range_value;
 	}
 	
-	if (!result)
-		result = gStaticEidosValueNULLInvisible;
+	if (!result_SP)
+		result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_For()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 {
 #pragma unused(p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Next()");
@@ -4521,13 +4203,13 @@ EidosValue *EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
 	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Next()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 {
 #pragma unused(p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Break()");
@@ -4540,13 +4222,13 @@ EidosValue *EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
 	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
-	EidosValue *result = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Break()");
-	return result;
+	return result_SP;
 }
 
-EidosValue *EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
+EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 {
 #pragma unused(p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Return()");
@@ -4558,15 +4240,15 @@ EidosValue *EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
 	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
-	EidosValue *result = nullptr;
+	EidosValue_SP result_SP;
 	
 	if (p_node->children_.size() == 0)
-		result = gStaticEidosValueNULLInvisible;	// default return value
+		result_SP = gStaticEidosValueNULLInvisible;	// default return value
 	else
-		result = FastEvaluateNode(p_node->children_[0]);
+		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Return()");
-	return result;
+	return result_SP;
 }
 
 

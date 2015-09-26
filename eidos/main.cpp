@@ -131,12 +131,10 @@ int main(int argc, const char * argv[])
 	EidosSymbolTable *global_symbols = new EidosSymbolTable();
 	EidosInterpreter interpreter(script, *global_symbols, nullptr);		// give the interpreter the symbol table
 	
-	EidosValue *result = interpreter.EvaluateInterpreterBlock(true);
+	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
 	std::string output = interpreter.ExecutionOutput();
-
-	std::cout << output << std::endl;
 	
-	if (result->IsTemporary()) delete result;
+	std::cout << output << std::endl;
 	
 	// end timing and print elapsed time
 	clock_t end = clock();

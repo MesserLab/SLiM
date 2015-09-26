@@ -42,14 +42,6 @@ EidosASTNode::~EidosASTNode(void)
 	for (auto child : children_)
 		delete child;
 	
-	if (cached_value_)
-	{
-		if (cached_value_is_owned_)
-			delete cached_value_;
-		
-		cached_value_ = nullptr;
-	}
-	
 	if (token_is_owned_)
 	{
 		delete token_;
@@ -97,32 +89,12 @@ void EidosASTNode::_OptimizeConstants(void) const
 	
 	if (token_type == EidosTokenType::kTokenNumber)
 	{
-		EidosValue *numeric_value = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
-		
-		// OK, so this is a weird thing.  We don't call SetExternalPermanent(), because that guarantees that the object set will
-		// live longer than the symbol table it might end up in, and we cannot make that guarantee here; the tree we are setting
-		// this value in might be short-lived, whereas the symbol table might be long-lived (in an interactive interpreter
-		// context, for example).  Instead, we call SetExternalTemporary().  Basically, we are pretending that we ourselves
-		// (meaning the AST) are a symbol table, and that we "own" this object.  That will make the real symbol table make
-		// its own copy of the object, rather than using ours.  It will also prevent the object from being regarded as a
-		// temporary object and deleted by somebody, though.  So we get the best of both worlds; external ownership, but without
-		// having to make the usual guarantee about the lifetime of the object.  The downside of this is that the value will
-		// be copied if it is put into a symbol table, even though it is constant and could be shared in most circumstances.
-		numeric_value->SetExternalTemporary();
-		
-		cached_value_ = numeric_value;
-		cached_value_is_owned_ = true;
+		cached_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
 	}
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		EidosValue *result = new EidosValue_String_singleton(token_->token_string_);
-		
-		// See the above comment that begins "OK, so this is a weird thing".  It is still a weird thing down here, too.
-		result->SetExternalTemporary();
-		
-		cached_value_ = result;
-		cached_value_is_owned_ = true;
+		cached_value_ = EidosValue_SP(new EidosValue_String_singleton(token_->token_string_));
 	}
 	else if ((token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenLBrace))
 	{
@@ -135,13 +107,9 @@ void EidosASTNode::_OptimizeConstants(void) const
 		if (children_.size() == 1)
 		{
 			const EidosASTNode *child = children_[0];
-			EidosValue *cached_value = child->cached_value_;
 			
-			if (cached_value)
-			{
-				cached_value_ = cached_value;
-				cached_value_is_owned_ = false;	// somebody below us owns the value
-			}
+			if (child->cached_value_)
+				cached_value_ = child->cached_value_;
 		}
 	}
 }

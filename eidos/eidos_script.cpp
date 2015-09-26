@@ -470,24 +470,32 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0);
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
-	int token_start = current_token_->token_start_;
-	
-	while (current_token_type_ != EidosTokenType::kTokenEOF)
+	try
 	{
-		EidosASTNode *child = Parse_Statement();
+		int token_start = current_token_->token_start_;
 		
-		node->AddChild(child);
+		while (current_token_type_ != EidosTokenType::kTokenEOF)
+		{
+			EidosASTNode *child = Parse_Statement();
+			
+			node->AddChild(child);
+		}
+		
+		int token_end = current_token_->token_start_ - 1;
+		
+		Match(EidosTokenType::kTokenEOF, "interpreter block");
+		
+		// swap in a new virtual token that encompasses all our children
+		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
+		
+		virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end);
+		node->ReplaceTokenWithToken(virtual_token);
 	}
-	
-	int token_end = current_token_->token_start_ - 1;
-	
-	Match(EidosTokenType::kTokenEOF, "interpreter block");
-	
-	// swap in a new virtual token that encompasses all our children
-	std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
-	
-	virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end);
-	node->ReplaceTokenWithToken(virtual_token);
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
@@ -496,26 +504,34 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 {
 	EidosASTNode *node = new EidosASTNode(current_token_);
 	
-	int token_start = current_token_->token_start_;
-	
-	Match(EidosTokenType::kTokenLBrace, "compound statement");
-	
-	while (current_token_type_ != EidosTokenType::kTokenRBrace)
+	try
 	{
-		EidosASTNode *child = Parse_Statement();
+		int token_start = current_token_->token_start_;
 		
-		node->AddChild(child);
+		Match(EidosTokenType::kTokenLBrace, "compound statement");
+		
+		while (current_token_type_ != EidosTokenType::kTokenRBrace)
+		{
+			EidosASTNode *child = Parse_Statement();
+			
+			node->AddChild(child);
+		}
+		
+		int token_end = current_token_->token_start_;
+		
+		Match(EidosTokenType::kTokenRBrace, "compound statement");
+		
+		// swap in a new virtual token that encompasses all our children
+		std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
+		
+		EidosToken *virtual_token = new EidosToken(node->token_->token_type_, token_string, token_start, token_end);
+		node->ReplaceTokenWithToken(virtual_token);
 	}
-	
-	int token_end = current_token_->token_start_;
-	
-	Match(EidosTokenType::kTokenRBrace, "compound statement");
-	
-	// swap in a new virtual token that encompasses all our children
-	std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
-	
-	EidosToken *virtual_token = new EidosToken(node->token_->token_type_, token_string, token_start, token_end);
-	node->ReplaceTokenWithToken(virtual_token);
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
@@ -540,17 +556,25 @@ EidosASTNode *EidosScript::Parse_Statement(void)
 
 EidosASTNode *EidosScript::Parse_ExprStatement(void)
 {
-	EidosASTNode *node;
+	EidosASTNode *node = nullptr;
 	
-	if (current_token_type_ == EidosTokenType::kTokenSemicolon)
+	try
 	{
-		node = new EidosASTNode(current_token_);		// an empty statement is represented by a semicolon token
-		Consume();
+		if (current_token_type_ == EidosTokenType::kTokenSemicolon)
+		{
+			node = new EidosASTNode(current_token_);		// an empty statement is represented by a semicolon token
+			Consume();
+		}
+		else
+		{
+			node = Parse_AssignmentExpr();
+			Match(EidosTokenType::kTokenSemicolon, "expression statement");
+		}
 	}
-	else
+	catch (...)
 	{
-		node = Parse_AssignmentExpr();
-		Match(EidosTokenType::kTokenSemicolon, "expression statement");
+		delete node;
+		throw;
 	}
 	
 	return node;
@@ -558,24 +582,35 @@ EidosASTNode *EidosScript::Parse_ExprStatement(void)
 
 EidosASTNode *EidosScript::Parse_SelectionStatement(void)
 {
-	EidosASTNode *node, *test_expr, *true_statement, *false_statement;
+	EidosASTNode *node = nullptr, *test_expr, *true_statement, *false_statement;
 	
-	node = new EidosASTNode(current_token_);
-	Match(EidosTokenType::kTokenIf, "if statement");
-	Match(EidosTokenType::kTokenLParen, "if statement");
-	test_expr = Parse_Expr();
-	Match(EidosTokenType::kTokenRParen, "if statement");
-	true_statement = Parse_Statement();
-	
-	node->AddChild(test_expr);
-	node->AddChild(true_statement);
-	
-	if (current_token_type_ == EidosTokenType::kTokenElse)
+	try
 	{
-		Consume();
-		false_statement = Parse_Statement();
+		node = new EidosASTNode(current_token_);
 		
-		node->AddChild(false_statement);
+		Match(EidosTokenType::kTokenIf, "if statement");
+		Match(EidosTokenType::kTokenLParen, "if statement");
+		
+		test_expr = Parse_Expr();
+		node->AddChild(test_expr);
+		
+		Match(EidosTokenType::kTokenRParen, "if statement");
+		
+		true_statement = Parse_Statement();
+		node->AddChild(true_statement);
+		
+		if (current_token_type_ == EidosTokenType::kTokenElse)
+		{
+			Consume();
+			
+			false_statement = Parse_Statement();
+			node->AddChild(false_statement);
+		}
+	}
+	catch (...)
+	{
+		delete node;
+		throw;
 	}
 	
 	return node;
@@ -583,88 +618,132 @@ EidosASTNode *EidosScript::Parse_SelectionStatement(void)
 
 EidosASTNode *EidosScript::Parse_DoWhileStatement(void)
 {
-	EidosASTNode *node, *test_expr, *statement;
+	EidosASTNode *node = nullptr, *test_expr, *statement;
 	
-	node = new EidosASTNode(current_token_);
-	Match(EidosTokenType::kTokenDo, "do/while statement");
-	statement = Parse_Statement();
-	Match(EidosTokenType::kTokenWhile, "do/while statement");
-	Match(EidosTokenType::kTokenLParen, "do/while statement");
-	test_expr = Parse_Expr();
-	Match(EidosTokenType::kTokenRParen, "do/while statement");
-	Match(EidosTokenType::kTokenSemicolon, "do/while statement");
-	
-	node->AddChild(statement);
-	node->AddChild(test_expr);
+	try
+	{
+		node = new EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenDo, "do/while statement");
+		
+		statement = Parse_Statement();
+		node->AddChild(statement);
+		
+		Match(EidosTokenType::kTokenWhile, "do/while statement");
+		Match(EidosTokenType::kTokenLParen, "do/while statement");
+		
+		test_expr = Parse_Expr();
+		node->AddChild(test_expr);
+		
+		Match(EidosTokenType::kTokenRParen, "do/while statement");
+		Match(EidosTokenType::kTokenSemicolon, "do/while statement");
+	}
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
 
 EidosASTNode *EidosScript::Parse_WhileStatement(void)
 {
-	EidosASTNode *node, *test_expr, *statement;
+	EidosASTNode *node = nullptr, *test_expr, *statement;
 	
-	node = new EidosASTNode(current_token_);
-	Match(EidosTokenType::kTokenWhile, "while statement");
-	Match(EidosTokenType::kTokenLParen, "while statement");
-	test_expr = Parse_Expr();
-	Match(EidosTokenType::kTokenRParen, "while statement");
-	statement = Parse_Statement();
-	
-	node->AddChild(test_expr);
-	node->AddChild(statement);
+	try
+	{
+		node = new EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenWhile, "while statement");
+		Match(EidosTokenType::kTokenLParen, "while statement");
+		
+		test_expr = Parse_Expr();
+		node->AddChild(test_expr);
+		
+		Match(EidosTokenType::kTokenRParen, "while statement");
+		
+		statement = Parse_Statement();
+		node->AddChild(statement);
+	}
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
 
 EidosASTNode *EidosScript::Parse_ForStatement(void)
 {
-	EidosASTNode *node, *identifier, *range_expr, *statement;
+	EidosASTNode *node = nullptr, *identifier, *range_expr, *statement;
 	
-	node = new EidosASTNode(current_token_);
-	Match(EidosTokenType::kTokenFor, "for statement");
-	Match(EidosTokenType::kTokenLParen, "for statement");
-	identifier = new EidosASTNode(current_token_);
-	Match(EidosTokenType::kTokenIdentifier, "for statement");
-	Match(EidosTokenType::kTokenIn, "for statement");
-	range_expr = Parse_Expr();
-	Match(EidosTokenType::kTokenRParen, "for statement");
-	statement = Parse_Statement();
-	
-	node->AddChild(identifier);
-	node->AddChild(range_expr);
-	node->AddChild(statement);
+	try
+	{
+		node = new EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenFor, "for statement");
+		Match(EidosTokenType::kTokenLParen, "for statement");
+		
+		identifier = new EidosASTNode(current_token_);
+		node->AddChild(identifier);
+		
+		Match(EidosTokenType::kTokenIdentifier, "for statement");
+		Match(EidosTokenType::kTokenIn, "for statement");
+		
+		range_expr = Parse_Expr();
+		node->AddChild(range_expr);
+		
+		Match(EidosTokenType::kTokenRParen, "for statement");
+		
+		statement = Parse_Statement();
+		node->AddChild(statement);
+	}
+	catch (...)
+	{
+		delete node;
+		throw;
+	}
 	
 	return node;
 }
 
 EidosASTNode *EidosScript::Parse_JumpStatement(void)
 {
-	EidosASTNode *node;
+	EidosASTNode *node = nullptr;
 	
-	if ((current_token_type_ == EidosTokenType::kTokenNext) || (current_token_type_ == EidosTokenType::kTokenBreak))
+	try
 	{
-		node = new EidosASTNode(current_token_);
-		Consume();
-		
-		Match(EidosTokenType::kTokenSemicolon, "next/break statement");
-	}
-	else if (current_token_type_ == EidosTokenType::kTokenReturn)
-	{
-		node = new EidosASTNode(current_token_);
-		Consume();
-		
-		if (current_token_type_ == EidosTokenType::kTokenSemicolon)
+		if ((current_token_type_ == EidosTokenType::kTokenNext) || (current_token_type_ == EidosTokenType::kTokenBreak))
 		{
-			Match(EidosTokenType::kTokenSemicolon, "return statement");
-		}
-		else
-		{
-			EidosASTNode *value_expr = Parse_Expr();
-			Match(EidosTokenType::kTokenSemicolon, "return statement");
+			node = new EidosASTNode(current_token_);
+			Consume();
 			
-			node->AddChild(value_expr);
+			Match(EidosTokenType::kTokenSemicolon, "next/break statement");
 		}
+		else if (current_token_type_ == EidosTokenType::kTokenReturn)
+		{
+			node = new EidosASTNode(current_token_);
+			Consume();
+			
+			if (current_token_type_ == EidosTokenType::kTokenSemicolon)
+			{
+				Match(EidosTokenType::kTokenSemicolon, "return statement");
+			}
+			else
+			{
+				EidosASTNode *value_expr = Parse_Expr();
+				node->AddChild(value_expr);
+				
+				Match(EidosTokenType::kTokenSemicolon, "return statement");
+			}
+		}
+	}
+	catch (...)
+	{
+		delete node;
+		throw;
 	}
 	
 	return node;
@@ -677,17 +756,26 @@ EidosASTNode *EidosScript::Parse_Expr(void)
 
 EidosASTNode *EidosScript::Parse_AssignmentExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_LogicalOrExpr();
-	
-	if (current_token_type_ == EidosTokenType::kTokenAssign)
+	try
 	{
-		if (!node)
-			node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_LogicalOrExpr();
 		
-		node->AddChild(Parse_LogicalOrExpr());
+		if (current_token_type_ == EidosTokenType::kTokenAssign)
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			Consume();
+			
+			node->AddChild(Parse_LogicalOrExpr());
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -695,17 +783,29 @@ EidosASTNode *EidosScript::Parse_AssignmentExpr(void)
 
 EidosASTNode *EidosScript::Parse_LogicalOrExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_LogicalAndExpr();
-	
-	while (current_token_type_ == EidosTokenType::kTokenOr)
+	try
 	{
-		if (!node)
-			node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_LogicalAndExpr();
 		
-		node->AddChild(Parse_LogicalAndExpr());
+		while (current_token_type_ == EidosTokenType::kTokenOr)
+		{
+			if (!node)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+			}
+			Consume();
+			
+			node->AddChild(Parse_LogicalAndExpr());
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -713,17 +813,29 @@ EidosASTNode *EidosScript::Parse_LogicalOrExpr(void)
 
 EidosASTNode *EidosScript::Parse_LogicalAndExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_EqualityExpr();
-	
-	while (current_token_type_ == EidosTokenType::kTokenAnd)
+	try
 	{
-		if (!node)
-			node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_EqualityExpr();
 		
-		node->AddChild(Parse_EqualityExpr());
+		while (current_token_type_ == EidosTokenType::kTokenAnd)
+		{
+			if (!node)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+			}
+			Consume();
+			
+			node->AddChild(Parse_EqualityExpr());
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -731,19 +843,30 @@ EidosASTNode *EidosScript::Parse_LogicalAndExpr(void)
 
 EidosASTNode *EidosScript::Parse_EqualityExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_RelationalExpr();
-	
-	while ((current_token_type_ == EidosTokenType::kTokenEq) || (current_token_type_ == EidosTokenType::kTokenNotEq))
+	try
 	{
-		node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_RelationalExpr();
 		
-		EidosASTNode *right_expr = Parse_RelationalExpr();
-		
-		node->AddChild(right_expr);
-		left_expr = node;
+		while ((current_token_type_ == EidosTokenType::kTokenEq) || (current_token_type_ == EidosTokenType::kTokenNotEq))
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			
+			Consume();
+			
+			node->AddChild(Parse_RelationalExpr());
+			
+			left_expr = node;
+			node = nullptr;
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -751,19 +874,30 @@ EidosASTNode *EidosScript::Parse_EqualityExpr(void)
 
 EidosASTNode *EidosScript::Parse_RelationalExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_AddExpr();
-	
-	while ((current_token_type_ == EidosTokenType::kTokenLt) || (current_token_type_ == EidosTokenType::kTokenGt) || (current_token_type_ == EidosTokenType::kTokenLtEq) || (current_token_type_ == EidosTokenType::kTokenGtEq))
+	try
 	{
-		node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_AddExpr();
 		
-		EidosASTNode *right_expr = Parse_AddExpr();
-		
-		node->AddChild(right_expr);
-		left_expr = node;
+		while ((current_token_type_ == EidosTokenType::kTokenLt) || (current_token_type_ == EidosTokenType::kTokenGt) || (current_token_type_ == EidosTokenType::kTokenLtEq) || (current_token_type_ == EidosTokenType::kTokenGtEq))
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			
+			Consume();
+			
+			node->AddChild(Parse_AddExpr());
+			
+			left_expr = node;
+			node = nullptr;
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -771,19 +905,30 @@ EidosASTNode *EidosScript::Parse_RelationalExpr(void)
 
 EidosASTNode *EidosScript::Parse_AddExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_MultExpr();
-	
-	while ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus))
+	try
 	{
-		node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_MultExpr();
 		
-		EidosASTNode *right_expr = Parse_MultExpr();
-		
-		node->AddChild(right_expr);
-		left_expr = node;
+		while ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus))
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			
+			Consume();
+			
+			node->AddChild(Parse_MultExpr());
+			
+			left_expr = node;
+			node = nullptr;
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -791,19 +936,30 @@ EidosASTNode *EidosScript::Parse_AddExpr(void)
 
 EidosASTNode *EidosScript::Parse_MultExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_SeqExpr();
-	
-	while ((current_token_type_ == EidosTokenType::kTokenMult) || (current_token_type_ == EidosTokenType::kTokenDiv) || (current_token_type_ == EidosTokenType::kTokenMod))
+	try
 	{
-		node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_SeqExpr();
 		
-		EidosASTNode *right_expr = Parse_SeqExpr();
-		
-		node->AddChild(right_expr);
-		left_expr = node;
+		while ((current_token_type_ == EidosTokenType::kTokenMult) || (current_token_type_ == EidosTokenType::kTokenDiv) || (current_token_type_ == EidosTokenType::kTokenMod))
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			
+			Consume();
+			
+			node->AddChild(Parse_SeqExpr());
+			
+			left_expr = node;
+			node = nullptr;
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -811,17 +967,29 @@ EidosASTNode *EidosScript::Parse_MultExpr(void)
 
 EidosASTNode *EidosScript::Parse_SeqExpr(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_ExpExpr();
-	
-	if (current_token_type_ == EidosTokenType::kTokenColon)
+	try
 	{
-		if (!node)
-			node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_ExpExpr();
 		
-		node->AddChild(Parse_ExpExpr());
+		if (current_token_type_ == EidosTokenType::kTokenColon)
+		{
+			if (!node)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+			}
+			Consume();
+			
+			node->AddChild(Parse_ExpExpr());
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -829,19 +997,28 @@ EidosASTNode *EidosScript::Parse_SeqExpr(void)
 
 EidosASTNode *EidosScript::Parse_ExpExpr(void)
 {
-	EidosASTNode *left_expr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_UnaryExpr();
-	
-	if (current_token_type_ == EidosTokenType::kTokenExp)
+	try
 	{
-		EidosASTNode *node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_UnaryExpr();
 		
-		EidosASTNode *right_expr = Parse_ExpExpr();		// note right-associativity
-		
-		node->AddChild(right_expr);
-		return node;
+		if (current_token_type_ == EidosTokenType::kTokenExp)
+		{
+			node = new EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			
+			Consume();
+			
+			node->AddChild(Parse_ExpExpr());		// note right-associativity
+			return node;
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return left_expr;
@@ -849,18 +1026,26 @@ EidosASTNode *EidosScript::Parse_ExpExpr(void)
 
 EidosASTNode *EidosScript::Parse_UnaryExpr(void)
 {
-	EidosASTNode *node;
+	EidosASTNode *node = nullptr;
 	
-	if ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus) || (current_token_type_ == EidosTokenType::kTokenNot))
+	try
 	{
-		node = new EidosASTNode(current_token_);
-		Consume();
-		
-		node->AddChild(Parse_UnaryExpr());
+		if ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus) || (current_token_type_ == EidosTokenType::kTokenNot))
+		{
+			node = new EidosASTNode(current_token_);
+			Consume();
+			
+			node->AddChild(Parse_UnaryExpr());
+		}
+		else
+		{
+			node = Parse_PostfixExpr();
+		}
 	}
-	else
+	catch (...)
 	{
-		node = Parse_PostfixExpr();
+		delete node;
+		throw;
 	}
 	
 	return node;
@@ -870,52 +1055,70 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 {
 	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_PrimaryExpr();
-	
-	while (true)
+	try
 	{
-		if (current_token_type_ == EidosTokenType::kTokenLBracket)
+		left_expr = Parse_PrimaryExpr();
+		
+		while (true)
 		{
-			node = new EidosASTNode(current_token_, left_expr);
-			Consume();
-			
-			EidosASTNode *right_expr = Parse_Expr();
-			node->AddChild(right_expr);
-			
-			Match(EidosTokenType::kTokenRBracket, "postfix subset expression");
-			left_expr = node;
-		}
-		else if (current_token_type_ == EidosTokenType::kTokenLParen)
-		{
-			node = new EidosASTNode(current_token_, left_expr);
-			Consume();
-			
-			if (current_token_type_ == EidosTokenType::kTokenRParen)
+			if (current_token_type_ == EidosTokenType::kTokenLBracket)
 			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+				
 				Consume();
+				
+				node->AddChild(Parse_Expr());
+				
+				Match(EidosTokenType::kTokenRBracket, "postfix subset expression");
+				
+				left_expr = node;
+				node = nullptr;
+			}
+			else if (current_token_type_ == EidosTokenType::kTokenLParen)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+				
+				Consume();
+				
+				if (current_token_type_ == EidosTokenType::kTokenRParen)
+				{
+					Consume();
+				}
+				else
+				{
+					node->AddChild(Parse_ArgumentExprList());
+					
+					Match(EidosTokenType::kTokenRParen, "postfix function call expression");
+				}
+				
+				left_expr = node;
+				node = nullptr;
+			}
+			else if (current_token_type_ == EidosTokenType::kTokenDot)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+				
+				Consume();
+				
+				EidosASTNode *identifier = new EidosASTNode(current_token_);
+				node->AddChild(identifier);
+				Match(EidosTokenType::kTokenIdentifier, "postfix member expression");
+				
+				left_expr = node;
+				node = nullptr;
 			}
 			else
-			{
-				EidosASTNode *right_expr = Parse_ArgumentExprList();
-				node->AddChild(right_expr);
-				
-				Match(EidosTokenType::kTokenRParen, "postfix function call expression");
-			}
-			left_expr = node;
+				break;
 		}
-		else if (current_token_type_ == EidosTokenType::kTokenDot)
-		{
-			node = new EidosASTNode(current_token_, left_expr);
-			Consume();
-			
-			EidosASTNode *identifier = new EidosASTNode(current_token_);
-			node->AddChild(identifier);
-			
-			Match(EidosTokenType::kTokenIdentifier, "postfix member expression");
-			left_expr = node;
-		}
-		else
-			break;
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -923,45 +1126,68 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 
 EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 {
-	if ((current_token_type_ == EidosTokenType::kTokenNumber) || (current_token_type_ == EidosTokenType::kTokenString))
+	EidosASTNode *node = nullptr;
+	
+	try
 	{
-		return Parse_Constant();
+		if ((current_token_type_ == EidosTokenType::kTokenNumber) || (current_token_type_ == EidosTokenType::kTokenString))
+		{
+			node = Parse_Constant();
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenLParen)
+		{
+			Consume();
+			
+			node = Parse_Expr();
+			
+			Match(EidosTokenType::kTokenRParen, "primary parenthesized expression");
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			node = new EidosASTNode(current_token_);
+			
+			Match(EidosTokenType::kTokenIdentifier, "primary identifier expression");
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
+		}
 	}
-	else if (current_token_type_ == EidosTokenType::kTokenLParen)
+	catch (...)
 	{
-		Consume();
-		EidosASTNode *node = Parse_Expr();
-		Match(EidosTokenType::kTokenRParen, "primary parenthesized expression");
-		
-		return node;
+		delete node;
+		throw;
 	}
-	else if (current_token_type_ == EidosTokenType::kTokenIdentifier)
-	{
-		EidosASTNode *identifier = new EidosASTNode(current_token_);
-		Match(EidosTokenType::kTokenIdentifier, "primary identifier expression");
-		
-		return identifier;
-	}
-	else
-	{
-		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
-		return nullptr;
-	}
+	
+	return node;
 }
 
 EidosASTNode *EidosScript::Parse_ArgumentExprList(void)
 {
-	EidosASTNode *left_expr, *node = nullptr;
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
-	left_expr = Parse_AssignmentExpr();
-	
-	while (current_token_type_ == EidosTokenType::kTokenComma)
+	try
 	{
-		if (!node)
-			node = new EidosASTNode(current_token_, left_expr);
-		Consume();
+		left_expr = Parse_AssignmentExpr();
 		
-		node->AddChild(Parse_AssignmentExpr());
+		while (current_token_type_ == EidosTokenType::kTokenComma)
+		{
+			if (!node)
+			{
+				node = new EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+			}
+			
+			Consume();
+			
+			node->AddChild(Parse_AssignmentExpr());
+		}
+	}
+	catch (...)
+	{
+		delete left_expr;
+		delete node;
+		throw;
 	}
 	
 	return (node ? node : left_expr);
@@ -971,20 +1197,27 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 {
 	EidosASTNode *node = nullptr;
 	
-	if (current_token_type_ == EidosTokenType::kTokenNumber)
+	try
 	{
-		node = new EidosASTNode(current_token_);
-		Match(EidosTokenType::kTokenNumber, "number literal expression");
+		if (current_token_type_ == EidosTokenType::kTokenNumber)
+		{
+			node = new EidosASTNode(current_token_);
+			Match(EidosTokenType::kTokenNumber, "number literal expression");
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenString)
+		{
+			node = new EidosASTNode(current_token_);
+			Match(EidosTokenType::kTokenString, "string literal expression");
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
+		}
 	}
-	else if (current_token_type_ == EidosTokenType::kTokenString)
+	catch (...)
 	{
-		node = new EidosASTNode(current_token_);
-		Match(EidosTokenType::kTokenString, "string literal expression");
-	}
-	else
-	{
-		EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
-		return nullptr;
+		delete node;
+		throw;
 	}
 	
 	return node;
@@ -1006,11 +1239,9 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	gEidosCurrentScript = this;
 	
 	// parse a new AST from our start token
-	EidosASTNode *tree = Parse_InterpreterBlock();
-
-	tree->OptimizeTree();
+	parse_root_ = Parse_InterpreterBlock();
 	
-	parse_root_ = tree;
+	parse_root_->OptimizeTree();
 	
 	// if logging of the AST is requested, do that
 	if (gEidosLogAST)

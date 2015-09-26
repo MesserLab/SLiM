@@ -73,25 +73,17 @@ size_t EidosGetPeakRSS(void);
 size_t EidosGetCurrentRSS(void);
 
 
+// *******************************************************************************************************************
+//
+//	Termination handling
+//
+
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
 void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
 void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script);
 void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
-
-// This is a hack scheme to track EidosValue allocations and deallocations, as a way to help debug leaks
-#define EIDOS_TRACK_VALUE_ALLOCATION
-
-#ifdef EIDOS_TRACK_VALUE_ALLOCATION
-extern int gEidosValueTrackingCount;
-#endif
-
-
-// *******************************************************************************************************************
-//
-//	Termination handling
-//
 
 // If gEidosTerminateThrows == 0, << eidos_terminate causes a call to exit().  In that mode, output
 // related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,

@@ -42,9 +42,6 @@ Chromosome::~Chromosome(void)
 	
 	if (lookup_recombination_)
 		gsl_ran_discrete_free(lookup_recombination_);
-	
-	if (cached_value_lastpos_)
-		delete cached_value_lastpos_;
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -58,11 +55,7 @@ void Chromosome::InitializeDraws(void)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): invalid mutation rate " << overall_mutation_rate_ << "." << eidos_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
-	if (cached_value_lastpos_)
-	{
-		delete cached_value_lastpos_;
-		cached_value_lastpos_ = nullptr;
-	}
+	cached_value_lastpos_.reset();
 	last_position_ = 0;
 	
 	double A[size()];
@@ -214,7 +207,7 @@ const EidosObjectClass *Chromosome::Class(void) const
 	return gSLiM_Chromosome_Class;
 }
 
-EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -223,36 +216,35 @@ EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_genomicElements:
 		{
 			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
 				vec->PushObjectElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
 			
-			return vec;
+			return result_SP;
 		}
 		case gID_lastPosition:
 		{
-			// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-			// live for at least as long as the symbol table it may be placed into!
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = (new EidosValue_Int_singleton(last_position_))->SetExternalPermanent();
+				cached_value_lastpos_ = EidosValue_SP(new EidosValue_Int_singleton(last_position_));
 			return cached_value_lastpos_;
 		}
 		case gID_overallRecombinationRate:
-			return new EidosValue_Float_singleton(overall_recombination_rate_);
+			return EidosValue_SP(new EidosValue_Float_singleton(overall_recombination_rate_));
 		case gID_recombinationEndPositions:
-			return new EidosValue_Int_vector(recombination_end_positions_);
+			return EidosValue_SP(new EidosValue_Int_vector(recombination_end_positions_));
 		case gID_recombinationRates:
-			return new EidosValue_Float_vector(recombination_rates_);
+			return EidosValue_SP(new EidosValue_Float_vector(recombination_rates_));
 			
 			// variables
 		case gID_geneConversionFraction:
-			return new EidosValue_Float_singleton(gene_conversion_fraction_);
+			return EidosValue_SP(new EidosValue_Float_singleton(gene_conversion_fraction_));
 		case gID_geneConversionMeanLength:
-			return new EidosValue_Float_singleton(gene_conversion_avg_length_);
+			return EidosValue_SP(new EidosValue_Float_singleton(gene_conversion_avg_length_));
 		case gID_overallMutationRate:
-			return new EidosValue_Float_singleton(overall_mutation_rate_);
+			return EidosValue_SP(new EidosValue_Float_singleton(overall_mutation_rate_));
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -260,14 +252,14 @@ EidosValue *Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_geneConversionFraction:
 		{
-			double value = p_value->FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			if ((value < 0.0) || (value > 1.0))
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -277,7 +269,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_geneConversionMeanLength:
 		{
-			double value = p_value->FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			if (value <= 0.0)		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -287,7 +279,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_overallMutationRate:
 		{
-			double value = p_value->FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			if (value < 0.0)	// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
@@ -298,7 +290,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -310,10 +302,10 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_va
 	}
 }
 
-EidosValue *Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
 	
 	//
 	//	*********************	- (void)setRecombinationRate(numeric rates, [integer ends])
@@ -418,7 +410,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();
@@ -529,7 +521,7 @@ const EidosMethodSignature *Chromosome_Class::SignatureForMethod(EidosGlobalStri
 		return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *Chromosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP Chromosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

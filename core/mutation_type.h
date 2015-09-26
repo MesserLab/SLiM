@@ -66,8 +66,8 @@ public:
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
-	slim_objectid_t mutation_type_id_;				// the id by which this mutation type is indexed in the chromosome
-	EidosValue *cached_value_muttype_id_ = nullptr;	// OWNED POINTER: a cached value for mutation_type_id_; delete and nil if that changes
+	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
+	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
 	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
@@ -100,9 +100,9 @@ public:
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosValue *GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value);
-	virtual EidosValue *ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 // support stream output of MutationType, for debugging

@@ -173,7 +173,7 @@ EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p
 EidosCallSignature *EidosCallSignature::AddIntObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class)		{ return AddArg(kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class); }
 EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class)		{ return AddArg(kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class); }
 
-void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, unsigned int p_argument_count) const
+void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, unsigned int p_argument_count) const
 {
 	size_t arg_masks_size = arg_masks_.size();
 	
@@ -203,7 +203,7 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, un
 		}
 		
 		// an argument was passed, so check its type
-		EidosValue *argument = p_arguments[arg_index];
+		EidosValue *argument = p_arguments[arg_index].get();
 		EidosValueType arg_type = argument->Type();
 		
 		if (type_mask != kEidosValueMaskAny)
@@ -250,12 +250,12 @@ void EidosCallSignature::CheckArguments(EidosValue *const *const p_arguments, un
 	}
 }
 
-void EidosCallSignature::CheckReturn(EidosValue *p_result) const
+void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 {
 	uint32_t retmask = return_mask_;
 	bool return_type_ok = true;
 	
-	switch (p_result->Type())
+	switch (p_result.Type())
 	{
 		case EidosValueType::kValueNULL:
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
@@ -272,20 +272,20 @@ void EidosCallSignature::CheckReturn(EidosValue *p_result) const
 			
 			// If the return is object type, and is allowed to be object type, and an object element type was specified
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
-			if (return_type_ok && return_class_ && (((EidosValue_Object *)p_result)->Class() != return_class_))
+			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result->Type() << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
-	if (return_is_singleton && (p_result->Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << p_result->Count() << "." << eidos_terminate(nullptr);
+	if (return_is_singleton && (p_result.Count() != 1))
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << p_result.Count() << "." << eidos_terminate(nullptr);
 }
 
 std::string EidosCallSignature::CallDelegate(void) const

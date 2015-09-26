@@ -120,9 +120,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
-	delete global_symbols;
-	global_symbols = nil;
-	
 	[self finalize];
 	
 	[self setMainSplitView:nil];
@@ -172,6 +169,12 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (void)finalize
 {
+	delete global_symbols;
+	global_symbols = nil;
+	
+	[mainSplitView setDelegate:nil];
+	[self setMainSplitView:nil];
+	
 	[scriptWindow setDelegate:nil];
 	[self setScriptWindow:nil];
 	
@@ -216,7 +219,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 {
 	string script_string([scriptString UTF8String]);
 	EidosScript script(script_string);
-	EidosValue *result;
 	string output;
 	
 	// Tokenize
@@ -287,10 +289,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		if (executionString)
 			interpreter.SetShouldLogExecution(true);
 		
-		result = interpreter.EvaluateInterpreterBlock(true);
+		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);	// result not used
 		output = interpreter.ExecutionOutput();
-		
-		if (result->IsTemporary()) delete result;
 		
 		// reload outline view to show new global symbols, in case they have changed
 		[browserController reloadBrowser];

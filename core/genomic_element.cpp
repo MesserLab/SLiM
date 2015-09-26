@@ -96,7 +96,7 @@ const EidosObjectClass *GenomicElement::Class(void) const
 	return gSLiM_GenomicElement_Class;
 }
 
-EidosValue *GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
@@ -105,13 +105,13 @@ EidosValue *GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_genomicElementType:
 			return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_startPosition:
-			return new EidosValue_Int_singleton(start_position_);
+			return EidosValue_SP(new EidosValue_Int_singleton(start_position_));
 		case gID_endPosition:
-			return new EidosValue_Int_singleton(end_position_);
+			return EidosValue_SP(new EidosValue_Int_singleton(end_position_));
 			
 			// variables
 		case gID_tag:
-			return new EidosValue_Int_singleton(tag_value_);
+			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -119,13 +119,13 @@ EidosValue *GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *p_value)
+void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	switch (p_property_id)
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value->IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -138,9 +138,9 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, EidosValue *
 	}
 }
 
-EidosValue *GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0] : nullptr);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	
 	//
 	//	*********************	- (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
@@ -205,7 +205,7 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue *ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
@@ -296,7 +296,7 @@ const EidosMethodSignature *GenomicElement_Class::SignatureForMethod(EidosGlobal
 		return EidosObjectClass::SignatureForMethod(p_method_id);
 }
 
-EidosValue *GenomicElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue *const *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP GenomicElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }

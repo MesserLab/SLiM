@@ -20,7 +20,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-class EidosValue;
+#include "eidos_value.h"
 
 
 /*
@@ -37,10 +37,9 @@ class EidosValue;
  as well; foo.bar[5].baz.foobar[2] is a line that might be displayed in the variable browser, with a corresponding EidosValue.
  
  The first bit of complication comes from the fact that it isn't really kosher to keep EidosValues around unless you own them,
- and we often don't own the values that we wrap here (although sometimes we do).  We can get away with this only be being
- very careful not to dereference pointers that might be invalid.  Whenever the state of the Eidos interpreter changes, we
- throw out all of our old wrappers, thereby getting rid of the EidosValue pointers they contain, which might already be
- invalid by the time the EidosValueWrapper gets dealloced.  If we are careful in this way, we can get away with it.
+ so we participate in the smart pointer scheme used with EidosValue in eidos.  Whenever the state of the Eidos interpreter changes,
+ we throw out all of our old wrappers, thereby getting rid of the EidosValue pointers they contain; we have a retain on them,
+ but they are no longer part of the interpreter state and so should not be used.
  
  The second bit of complication, however, is that we want NSOutlineView to keep its expansion state identical across such
  reloads, even though it is displaying a whole new batch of EidosValueWrapper objects.  We therefore need EidosValueWrapper
@@ -57,10 +56,10 @@ class EidosValue;
 {
 }
 
-+ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue;
-+ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount;
++ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue;
++ (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount;
 
-- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue *)aValue index:(int)anIndex of:(int)siblingCount NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount NS_DESIGNATED_INITIALIZER;
 
 - (void)invalidateWrappedValues;
 - (void)releaseChildWrappers;
