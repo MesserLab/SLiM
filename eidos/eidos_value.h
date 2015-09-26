@@ -165,6 +165,7 @@ class EidosValue
 protected:
 	
 	mutable unsigned int intrusive_ref_count;				// used by Eidos_intrusive_ptr
+	const EidosValueType cached_type_;						// allows Type() to be an inline function; needs to be cached by all subclasses!
 	bool invisible_ = false;								// as in R; if true, the value will not normally be printed to the console
 	
 public:
@@ -172,11 +173,12 @@ public:
 	EidosValue(const EidosValue &p_original);				// can copy-construct (but see the definition; NOT default)
 	EidosValue& operator=(const EidosValue&) = delete;		// no copying
 	
-	EidosValue(void);										// null constructor for base class
+	EidosValue(void) = delete;								// no null constructor
+	EidosValue(EidosValueType p_value_type);				// must construct with a type identifier, which will be cached
 	virtual ~EidosValue(void) = 0;							// virtual destructor
 	
 	// basic methods
-	virtual EidosValueType Type(void) const = 0;			// the type of the vector
+	inline EidosValueType Type(void) const { return cached_type_; }	// the type of the vector, cached at construction
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	virtual int Count(void) const = 0;						// the number of values in the vector
 	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
@@ -198,7 +200,7 @@ public:
 	// methods to allow type-agnostic manipulation of EidosValues
 	virtual bool IsVectorBased(void) const;							// returns true by default, but we have some immutable subclasses that return false
 	virtual EidosValue_SP VectorBasedCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
-	virtual EidosValue_SP CopyValues(void) const = 0;				// a deep copy of the receiver with external_temporary_ == invisible_ == false
+	virtual EidosValue_SP CopyValues(void) const = 0;				// a deep copy of the receiver with invisible_ == false
 	virtual EidosValue_SP NewMatchingType(void) const = 0;			// a new EidosValue instance of the same type as the receiver
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;	// copy a value
 	virtual void Sort(bool p_ascending) = 0;
@@ -248,13 +250,12 @@ public:
 	EidosValue_NULL(const EidosValue_NULL &p_original) = default;	// can copy-construct
 	EidosValue_NULL& operator=(const EidosValue_NULL&) = delete;	// no copying
 	
-	EidosValue_NULL(void);
+	EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL) { }
 	virtual ~EidosValue_NULL(void);
 	
 	static EidosValue_NULL_SP Static_EidosValue_NULL(void);
 	static EidosValue_NULL_SP Static_EidosValue_NULL_Invisible(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
@@ -293,7 +294,6 @@ public:
 	explicit EidosValue_Logical(std::initializer_list<bool> p_init_list);
 	virtual ~EidosValue_Logical(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
@@ -357,14 +357,13 @@ public:
 class EidosValue_String : public EidosValue
 {
 protected:
-	EidosValue_String(const EidosValue_String &p_original) = default;	// can copy-construct
-	EidosValue_String(void) = default;										// default constructor
+	EidosValue_String(const EidosValue_String &p_original) = default;		// can copy-construct
+	EidosValue_String(void) : EidosValue(EidosValueType::kValueString) {}	// default constructor
 	
 public:
-	EidosValue_String& operator=(const EidosValue_String&) = delete;	// no copying
+	EidosValue_String& operator=(const EidosValue_String&) = delete;		// no copying
 	virtual ~EidosValue_String(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
@@ -466,13 +465,12 @@ class EidosValue_Int : public EidosValue
 {
 protected:
 	EidosValue_Int(const EidosValue_Int &p_original) = default;		// can copy-construct
-	EidosValue_Int(void) = default;									// default constructor
+	EidosValue_Int(void) : EidosValue(EidosValueType::kValueInt) {}	// default constructor
 	
 public:
 	EidosValue_Int& operator=(const EidosValue_Int&) = delete;		// no copying
 	virtual ~EidosValue_Int(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
@@ -576,13 +574,12 @@ class EidosValue_Float : public EidosValue
 {
 protected:
 	EidosValue_Float(const EidosValue_Float &p_original) = default;		// can copy-construct
-	EidosValue_Float(void) = default;										// default constructor
+	EidosValue_Float(void) : EidosValue(EidosValueType::kValueFloat) {}	// default constructor
 	
 public:
 	EidosValue_Float& operator=(const EidosValue_Float&) = delete;		// no copying
 	virtual ~EidosValue_Float(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual int Count(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
@@ -685,13 +682,12 @@ class EidosValue_Object : public EidosValue
 {
 protected:
 	EidosValue_Object(const EidosValue_Object &p_original) = default;				// can copy-construct
-	EidosValue_Object(void) = default;												// default constructor
+	EidosValue_Object(void) : EidosValue(EidosValueType::kValueObject) {}			// default constructor
 	
 public:
 	EidosValue_Object& operator=(const EidosValue_Object&) = delete;				// no copying
 	virtual ~EidosValue_Object(void);
 	
-	virtual EidosValueType Type(void) const;
 	virtual const std::string &ElementType(void) const;
 	virtual const EidosObjectClass *Class(void) const = 0;
 	virtual int Count(void) const = 0;

@@ -269,7 +269,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(const EidosValue &p_original) : intrusive_ref_count(0), invisible_(false)	// doesn't use original for these flags
+EidosValue::EidosValue(const EidosValue &p_original) : intrusive_ref_count(0), invisible_(false), cached_type_(p_original.Type())
 {
 #pragma unused(p_original)
 	
@@ -279,7 +279,7 @@ EidosValue::EidosValue(const EidosValue &p_original) : intrusive_ref_count(0), i
 #endif
 }
 
-EidosValue::EidosValue(void) : intrusive_ref_count(0)
+EidosValue::EidosValue(EidosValueType p_value_type) : intrusive_ref_count(0), invisible_(false), cached_type_(p_value_type)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -354,10 +354,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 #pragma mark -
 #pragma mark EidosValue_NULL
 
-EidosValue_NULL::EidosValue_NULL(void)
-{
-}
-
 EidosValue_NULL::~EidosValue_NULL(void)
 {
 }
@@ -378,11 +374,6 @@ EidosValue_NULL::~EidosValue_NULL(void)
 	static_null->invisible_ = true;		// set every time, since we don't have a constructor to set invisibility
 	
 	return static_null;
-}
-
-EidosValueType EidosValue_NULL::Type(void) const
-{
-	return EidosValueType::kValueNULL;
 }
 
 const std::string &EidosValue_NULL::ElementType(void) const
@@ -444,21 +435,21 @@ void EidosValue_NULL::Sort(bool p_ascending)
 #pragma mark -
 #pragma mark EidosValue_Logical
 
-EidosValue_Logical::EidosValue_Logical(void)
+EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical)
 {
 }
 
-EidosValue_Logical::EidosValue_Logical(std::vector<bool> &p_boolvec)
+EidosValue_Logical::EidosValue_Logical(std::vector<bool> &p_boolvec) : EidosValue(EidosValueType::kValueLogical)
 {
 	values_ = p_boolvec;
 }
 
-EidosValue_Logical::EidosValue_Logical(bool p_bool1)	// protected
+EidosValue_Logical::EidosValue_Logical(bool p_bool1) : EidosValue(EidosValueType::kValueLogical)	// protected
 {
 	values_.push_back(p_bool1);
 }
 
-EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list)
+EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list) : EidosValue(EidosValueType::kValueLogical)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -466,11 +457,6 @@ EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list)
 
 EidosValue_Logical::~EidosValue_Logical(void)
 {
-}
-
-EidosValueType EidosValue_Logical::Type(void) const
-{
-	return EidosValueType::kValueLogical;
 }
 
 const std::string &EidosValue_Logical::ElementType(void) const
@@ -691,11 +677,6 @@ void EidosValue_Logical_const::Sort(bool p_ascending)
 
 EidosValue_String::~EidosValue_String(void)
 {
-}
-
-EidosValueType EidosValue_String::Type(void) const
-{
-	return EidosValueType::kValueString;
 }
 
 const std::string &EidosValue_String::ElementType(void) const
@@ -975,11 +956,6 @@ EidosValue_Int::~EidosValue_Int(void)
 {
 }
 
-EidosValueType EidosValue_Int::Type(void) const
-{
-	return EidosValueType::kValueInt;
-}
-
 const std::string &EidosValue_Int::ElementType(void) const
 {
 	return gEidosStr_integer;
@@ -1244,11 +1220,6 @@ void EidosValue_Int_singleton::Sort(bool p_ascending)
 
 EidosValue_Float::~EidosValue_Float(void)
 {
-}
-
-EidosValueType EidosValue_Float::Type(void) const
-{
-	return EidosValueType::kValueFloat;
 }
 
 const std::string &EidosValue_Float::ElementType(void) const
@@ -1577,11 +1548,6 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 
 EidosValue_Object::~EidosValue_Object(void)
 {
-}
-
-EidosValueType EidosValue_Object::Type(void) const
-{
-	return EidosValueType::kValueObject;
 }
 
 const std::string &EidosValue_Object::ElementType(void) const
