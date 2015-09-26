@@ -48,6 +48,8 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
 		
 		Eidos_RegisterGlobalStringsAndIDs();
+		
+		//std::cout << "sizeof(bool) == " << sizeof(bool) << std::endl;
 	}
 }
 

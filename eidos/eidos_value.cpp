@@ -269,17 +269,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(const EidosValue &p_original) : intrusive_ref_count(0), invisible_(false), cached_type_(p_original.Type())
-{
-#pragma unused(p_original)
-	
-#ifdef EIDOS_TRACK_VALUE_ALLOCATION
-	valueTrackingCount++;
-	valueTrackingVector.push_back(this);
-#endif
-}
-
-EidosValue::EidosValue(EidosValueType p_value_type) : intrusive_ref_count(0), invisible_(false), cached_type_(p_value_type)
+EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -330,11 +320,6 @@ EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, EidosToken *p_bl
 	return nullptr;
 }
 
-bool EidosValue::IsVectorBased(void) const
-{
-	return true;
-}
-
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
 {
 	return CopyValues();
@@ -381,7 +366,7 @@ const std::string &EidosValue_NULL::ElementType(void) const
 	return gEidosStr_NULL;
 }
 
-int EidosValue_NULL::Count(void) const
+int EidosValue_NULL::Count_Virtual(void) const
 {
 	return 0;
 }
@@ -435,21 +420,21 @@ void EidosValue_NULL::Sort(bool p_ascending)
 #pragma mark -
 #pragma mark EidosValue_Logical
 
-EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical)
+EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical, false)
 {
 }
 
-EidosValue_Logical::EidosValue_Logical(std::vector<bool> &p_boolvec) : EidosValue(EidosValueType::kValueLogical)
+EidosValue_Logical::EidosValue_Logical(const std::vector<bool> &p_boolvec) : EidosValue(EidosValueType::kValueLogical, false)
 {
 	values_ = p_boolvec;
 }
 
-EidosValue_Logical::EidosValue_Logical(bool p_bool1) : EidosValue(EidosValueType::kValueLogical)	// protected
+EidosValue_Logical::EidosValue_Logical(bool p_bool1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
 {
 	values_.push_back(p_bool1);
 }
 
-EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list) : EidosValue(EidosValueType::kValueLogical)
+EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -464,7 +449,7 @@ const std::string &EidosValue_Logical::ElementType(void) const
 	return gEidosStr_logical;
 }
 
-int EidosValue_Logical::Count(void) const
+int EidosValue_Logical::Count_Virtual(void) const
 {
 	return (int)values_.size();
 }
@@ -565,7 +550,7 @@ void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_va
 
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Logical(*this));
+	return EidosValue_SP(new EidosValue_Logical(values_));
 }
 
 EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
@@ -594,6 +579,7 @@ void EidosValue_Logical::Sort(bool p_ascending)
 
 EidosValue_Logical_const::EidosValue_Logical_const(bool p_bool1) : EidosValue_Logical(p_bool1)
 {
+	is_singleton_ = true;	// because EidosValue_Logical has a different class structure from the other types, this has to be patched after construction; no harm done...
 }
 
 EidosValue_Logical_const::~EidosValue_Logical_const(void)
@@ -617,14 +603,9 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 	return static_F;
 }
 
-bool EidosValue_Logical_const::IsVectorBased(void) const
-{
-	return false;
-}
-
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
-	return EidosValue_SP(new EidosValue_Logical(*this));	// same as EidosValue_Logical::, but let's not rely on that
+	return EidosValue_SP(new EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
 }
 
 std::vector<bool> &EidosValue_Logical_const::LogicalVector_Mutable(void)
@@ -693,16 +674,16 @@ EidosValue_SP EidosValue_String::NewMatchingType(void) const
 // EidosValue_String_vector
 #pragma mark EidosValue_String_vector
 
-EidosValue_String_vector::EidosValue_String_vector(void)
+EidosValue_String_vector::EidosValue_String_vector(void) : EidosValue_String(false)
 {
 }
 
-EidosValue_String_vector::EidosValue_String_vector(std::vector<std::string> &p_stringvec)
+EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string> &p_stringvec) : EidosValue_String(false)
 {
 	values_ = p_stringvec;
 }
 
-EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list)
+EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list) : EidosValue_String(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -712,7 +693,7 @@ EidosValue_String_vector::~EidosValue_String_vector(void)
 {
 }
 
-int EidosValue_String_vector::Count(void) const
+int EidosValue_String_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
 }
@@ -808,7 +789,7 @@ void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue
 
 EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_String_vector(*this));
+	return EidosValue_SP(new EidosValue_String_vector(values_));
 }
 
 void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -831,7 +812,7 @@ void EidosValue_String_vector::Sort(bool p_ascending)
 // EidosValue_String_singleton
 #pragma mark EidosValue_String_singleton
 
-EidosValue_String_singleton::EidosValue_String_singleton(const std::string &p_string1) : value_(p_string1)
+EidosValue_String_singleton::EidosValue_String_singleton(const std::string &p_string1) : value_(p_string1), EidosValue_String(true)
 {
 }
 
@@ -839,7 +820,7 @@ EidosValue_String_singleton::~EidosValue_String_singleton(void)
 {
 }
 
-int EidosValue_String_singleton::Count(void) const
+int EidosValue_String_singleton::Count_Virtual(void) const
 {
 	return 1;
 }
@@ -913,11 +894,6 @@ EidosValue_SP EidosValue_String_singleton::CopyValues(void) const
 	return EidosValue_SP(new EidosValue_String_singleton(value_));
 }
 
-bool EidosValue_String_singleton::IsVectorBased(void) const
-{
-	return false;
-}
-
 EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 {
 	EidosValue_String_vector_SP new_vec = EidosValue_String_vector_SP(new EidosValue_String_vector());
@@ -970,19 +946,11 @@ EidosValue_SP EidosValue_Int::NewMatchingType(void) const
 // EidosValue_Int_vector
 #pragma mark EidosValue_Int_vector
 
-EidosValue_Int_vector::EidosValue_Int_vector(void)
+EidosValue_Int_vector::EidosValue_Int_vector(void) : EidosValue_Int(false)
 {
 }
 
-EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int16_t> &p_intvec)
-{
-	values_.reserve(p_intvec.size());
-	
-	for (auto intval : p_intvec)
-		values_.push_back(intval);
-}
-
-EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int32_t> &p_intvec)
+EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int16_t> &p_intvec) : EidosValue_Int(false)
 {
 	values_.reserve(p_intvec.size());
 	
@@ -990,12 +958,20 @@ EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int32_t> &p_intvec)
 		values_.push_back(intval);
 }
 
-EidosValue_Int_vector::EidosValue_Int_vector(std::vector<int64_t> &p_intvec)
+EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int32_t> &p_intvec) : EidosValue_Int(false)
+{
+	values_.reserve(p_intvec.size());
+	
+	for (auto intval : p_intvec)
+		values_.push_back(intval);
+}
+
+EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int64_t> &p_intvec) : EidosValue_Int(false)
 {
 	values_ = p_intvec;
 }
 
-EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list)
+EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list) : EidosValue_Int(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -1005,7 +981,7 @@ EidosValue_Int_vector::~EidosValue_Int_vector(void)
 {
 }
 
-int EidosValue_Int_vector::Count(void) const
+int EidosValue_Int_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
 }
@@ -1087,7 +1063,7 @@ void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p
 
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Int_vector(*this));
+	return EidosValue_SP(new EidosValue_Int_vector(values_));
 }
 
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -1111,7 +1087,7 @@ void EidosValue_Int_vector::Sort(bool p_ascending)
 // EidosValue_Int_singleton
 #pragma mark EidosValue_Int_singleton
 
-EidosValue_Int_singleton::EidosValue_Int_singleton(int64_t p_int1) : value_(p_int1)
+EidosValue_Int_singleton::EidosValue_Int_singleton(int64_t p_int1) : value_(p_int1), EidosValue_Int(true)
 {
 }
 
@@ -1119,7 +1095,7 @@ EidosValue_Int_singleton::~EidosValue_Int_singleton(void)
 {
 }
 
-int EidosValue_Int_singleton::Count(void) const
+int EidosValue_Int_singleton::Count_Virtual(void) const
 {
 	return 1;
 }
@@ -1179,11 +1155,6 @@ EidosValue_SP EidosValue_Int_singleton::CopyValues(void) const
 	return EidosValue_SP(new EidosValue_Int_singleton(value_));
 }
 
-bool EidosValue_Int_singleton::IsVectorBased(void) const
-{
-	return false;
-}
-
 EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 {
 	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
@@ -1236,22 +1207,22 @@ EidosValue_SP EidosValue_Float::NewMatchingType(void) const
 // EidosValue_Float_vector
 #pragma mark EidosValue_Float_vector
 
-EidosValue_Float_vector::EidosValue_Float_vector(void)
+EidosValue_Float_vector::EidosValue_Float_vector(void) : EidosValue_Float(false)
 {
 }
 
-EidosValue_Float_vector::EidosValue_Float_vector(std::vector<double> &p_doublevec)
+EidosValue_Float_vector::EidosValue_Float_vector(const std::vector<double> &p_doublevec) : EidosValue_Float(false)
 {
 	values_ = p_doublevec;
 }
 
-EidosValue_Float_vector::EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length)
+EidosValue_Float_vector::EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length) : EidosValue_Float(false)
 {
 	for (int index = 0; index < p_buffer_length; index++)
 		values_.push_back(p_doublebuf[index]);
 }
 
-EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p_init_list)
+EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p_init_list) : EidosValue_Float(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -1261,7 +1232,7 @@ EidosValue_Float_vector::~EidosValue_Float_vector(void)
 {
 }
 
-int EidosValue_Float_vector::Count(void) const
+int EidosValue_Float_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
 }
@@ -1382,7 +1353,7 @@ void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue 
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Float_vector(*this));
+	return EidosValue_SP(new EidosValue_Float_vector(values_));
 }
 
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -1405,7 +1376,7 @@ void EidosValue_Float_vector::Sort(bool p_ascending)
 // EidosValue_Float_singleton
 #pragma mark EidosValue_Float_singleton
 
-EidosValue_Float_singleton::EidosValue_Float_singleton(double p_float1) : value_(p_float1)
+EidosValue_Float_singleton::EidosValue_Float_singleton(double p_float1) : value_(p_float1), EidosValue_Float(true)
 {
 }
 
@@ -1413,7 +1384,7 @@ EidosValue_Float_singleton::~EidosValue_Float_singleton(void)
 {
 }
 
-int EidosValue_Float_singleton::Count(void) const
+int EidosValue_Float_singleton::Count_Virtual(void) const
 {
 	return 1;
 }
@@ -1507,11 +1478,6 @@ EidosValue_SP EidosValue_Float_singleton::CopyValues(void) const
 	return EidosValue_SP(new EidosValue_Float_singleton(value_));
 }
 
-bool EidosValue_Float_singleton::IsVectorBased(void) const
-{
-	return false;
-}
-
 EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 {
 	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
@@ -1570,17 +1536,17 @@ void EidosValue_Object::Sort(bool p_ascending)
 // EidosValue_Object_vector
 #pragma mark EidosValue_Object_vector
 
-EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original)
+EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false)
 {
 	for (auto value : p_original.values_)
 		values_.push_back(value->Retain());
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(void)
+EidosValue_Object_vector::EidosValue_Object_vector(void) : EidosValue_Object(false)
 {
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(std::vector<EidosObjectElement *> &p_elementvec)
+EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec) : EidosValue_Object(false)
 {
 	values_ = p_elementvec;
 	
@@ -1588,7 +1554,7 @@ EidosValue_Object_vector::EidosValue_Object_vector(std::vector<EidosObjectElemen
 		value->Retain();
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list)
+EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list) : EidosValue_Object(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back((*init_item)->Retain());
@@ -1611,7 +1577,7 @@ const EidosObjectClass *EidosValue_Object_vector::Class(void) const
 		return values_[0]->Class();
 }
 
-int EidosValue_Object_vector::Count(void) const
+int EidosValue_Object_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
 }
@@ -2000,7 +1966,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlo
 // EidosValue_Object_singleton
 #pragma mark EidosValue_Object_singleton
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1) : value_(p_element1)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1) : value_(p_element1), EidosValue_Object(true)
 {
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
@@ -2017,7 +1983,7 @@ const EidosObjectClass *EidosValue_Object_singleton::Class(void) const
 	return value_->Class();
 }
 
-int EidosValue_Object_singleton::Count(void) const
+int EidosValue_Object_singleton::Count_Virtual(void) const
 {
 	return 1;
 }
@@ -2053,11 +2019,6 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 {
 	return EidosValue_SP(new EidosValue_Object_singleton(value_));
-}
-
-bool EidosValue_Object_singleton::IsVectorBased(void) const
-{
-	return false;
 }
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const

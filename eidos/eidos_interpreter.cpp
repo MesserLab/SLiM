@@ -418,7 +418,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			// the only place, in fact, I think – where that can bite us, because we do in fact need to modify the original
 			// EidosValue.  The fix is to detect that we have a singleton value, and actually replace it in the symbol table
 			// with a vector-based copy that we can manipulate.  A little gross, but this is the price we pay for speed...
-			if (!identifier_value->IsVectorBased())
+			if (identifier_value->IsSingleton())
 			{
 				const std::string &symbol_name = p_parent_node->token_->token_string_;
 				
@@ -2584,7 +2584,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 					EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 					int64_t operand2_value = cached_operand2->IntAtIndex(0, nullptr);
 					
-					if ((lvalue_count == 1) && !lvalue->IsVectorBased())
+					if ((lvalue_count == 1) && lvalue->IsSingleton())
 					{
 						EidosValue_Int_singleton *int_singleton = static_cast<EidosValue_Int_singleton *>(lvalue);
 						
@@ -2677,7 +2677,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);				// might be an int64_t and get converted
 				
-				if ((lvalue_count == 1) && !lvalue->IsVectorBased())
+				if ((lvalue_count == 1) && lvalue->IsSingleton())
 				{
 					EidosValue_Float_singleton *float_singleton = static_cast<EidosValue_Float_singleton *>(lvalue);
 					
