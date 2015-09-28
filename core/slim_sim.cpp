@@ -1885,7 +1885,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					{
 						for (int k = 0; k < subpop_pair.second->parent_genomes_[i].size(); k++)			// go through all mutations
 						{
-							Mutation *scan_mutation = subpop_pair.second->child_genomes_[i][k];
+							Mutation *scan_mutation = subpop_pair.second->parent_genomes_[i][k];
 							
 							// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
 							if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
