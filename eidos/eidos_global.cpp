@@ -21,6 +21,7 @@
 #include "eidos_global.h"
 #include "eidos_script.h"
 #include "eidos_value.h"
+#include "eidos_interpreter.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -48,6 +49,8 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
 		
 		Eidos_RegisterGlobalStringsAndIDs();
+		
+		EidosInterpreter::CacheBuiltInFunctionMap();
 		
 		//std::cout << "sizeof(bool) == " << sizeof(bool) << std::endl;
 	}

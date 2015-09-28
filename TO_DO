@@ -11,7 +11,6 @@ SLiMgui work:
 	update the SLiMgui Help file, which is presently the version 1.8 PDF
 	do a better job saving window positions, splitter positions, etc.
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
-	run valgrind (http://valgrind.org) on SLiM once it runs on 10.10; Philipp says he will try this on 10.9
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 
 scriptability:
@@ -54,6 +53,18 @@ building on the command line for me:
 
 look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
+
+some valgrind commands:
+	valgrind --leak-check=yes ./slim -testEidos		(with Debug version)
+	valgrind --leak-check=yes ./slim -testSLiM		(with Debug version)
+	valgrind --tool=cachegrind ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt		(with Release version)
+		cg_annotate --sort=DLmr:1,DLmw:1 cachegrind.out.71431
+	valgrind --tool=callgrind ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt		(with Release version)
+		callgrind_annotate --tree=both callgrind.out.72015
+	valgrind --tool=massif ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt			(with Release version)
+		ms_print massif.out.73964
+	valgrind --tool=exp-sgcheck ./slim -testEidos	(with Debug version; not on Darwin yet)
+	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 future plans:
 	evaluate code coverage of tests

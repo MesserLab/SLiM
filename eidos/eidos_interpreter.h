@@ -79,6 +79,9 @@ private:
 	// an output stream for output from executed nodes and functions; this goes into the user's console
 	std::ostringstream *execution_output_ = nullptr;	// allocated lazily
 	
+	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
+	static EidosFunctionMap *built_in_function_map_;
+	
 public:
 	
 	EidosInterpreter(const EidosInterpreter&) = delete;					// no copying
@@ -148,7 +151,8 @@ public:
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
-	static EidosFunctionMap *BuiltInFunctionMap(void);
+	static EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
+	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
 	
 	inline void RegisterFunctionMap(EidosFunctionMap *p_function_map) { function_map_ = p_function_map; };
 	

@@ -217,22 +217,21 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 	return *signatures;
 }
 
-EidosFunctionMap *EidosInterpreter::BuiltInFunctionMap(void)
+EidosFunctionMap *EidosInterpreter::built_in_function_map_ = nullptr;
+
+void EidosInterpreter::CacheBuiltInFunctionMap(void)
 {
 	// The built-in function map is statically allocated for faster EidosInterpreter startup
-	static EidosFunctionMap *built_in_function_map = nullptr;
 	
-	if (!built_in_function_map)
+	if (!built_in_function_map_)
 	{
 		vector<const EidosFunctionSignature *> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
-		built_in_function_map = new EidosFunctionMap;
+		built_in_function_map_ = new EidosFunctionMap;
 		
 		for (auto sig : built_in_functions)
-			built_in_function_map->insert(EidosFunctionMapPair(sig->function_name_, sig));
+			built_in_function_map_->insert(EidosFunctionMapPair(sig->function_name_, sig));
 	}
-	
-	return built_in_function_map;
 }
 
 
