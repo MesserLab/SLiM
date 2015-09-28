@@ -41,6 +41,10 @@ using std::ostream;
 
 EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 {
+	// Set up the symbol table itself
+	using_internal_symbols_ = true;
+	internal_symbol_count_ = 0;
+	
 	// We statically allocate our base symbols for fast setup / teardown
 	static EidosSymbolTableEntry *trueConstant = nullptr;
 	static EidosSymbolTableEntry *falseConstant = nullptr;
@@ -97,8 +101,8 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 
 EidosSymbolTable::~EidosSymbolTable(void)
 {
-	EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	for (size_t symbol_index = 0; symbol_index < symbol_count; ++symbol_index)
 	{
@@ -112,8 +116,8 @@ EidosSymbolTable::~EidosSymbolTable(void)
 
 std::vector<std::string> EidosSymbolTable::ReadOnlySymbols(void) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	std::vector<std::string> symbol_names;
 	
@@ -130,8 +134,8 @@ std::vector<std::string> EidosSymbolTable::ReadOnlySymbols(void) const
 
 std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	std::vector<std::string> symbol_names;
 	
@@ -148,8 +152,8 @@ std::vector<std::string> EidosSymbolTable::ReadWriteSymbols(void) const
 
 EidosValue_SP EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	const std::string &symbol_name = p_symbol_token->token_string_;
 	int key_length = (int)symbol_name.size();
@@ -184,8 +188,8 @@ EidosValue_SP EidosSymbolTable::GetValueOrRaiseForToken(const EidosToken *p_symb
 
 EidosValue_SP EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	const std::string &symbol_name = p_symbol_token->token_string_;
 	int key_length = (int)symbol_name.size();
@@ -225,8 +229,8 @@ EidosValue_SP EidosSymbolTable::GetNonConstantValueOrRaiseForToken(const EidosTo
 
 EidosValue_SP EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
@@ -260,8 +264,8 @@ EidosValue_SP EidosSymbolTable::GetValueOrRaiseForSymbol(const std::string &p_sy
 
 EidosValue_SP EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_symbol_name) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	int key_length = (int)p_symbol_name.size();
 	const char *symbol_name_data = p_symbol_name.data();
@@ -293,8 +297,8 @@ EidosValue_SP EidosSymbolTable::GetValueOrNullForSymbol(const std::string &p_sym
 // does a fast search for the slot matching the search key; returns -1 if no match is found
 int EidosSymbolTable::_SlotIndexForSymbol(int p_symbol_name_length, const char *p_symbol_name_data) const
 {
-	const EidosSymbolTableSlot *symbols = symbol_vec.data();
-	size_t symbol_count = symbol_vec.size();
+	const EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+	size_t symbol_count = (using_internal_symbols_ ? internal_symbol_count_ : symbol_vec.size());
 	
 	// search through the symbol table in reverse order, most-recently-defined symbols first
 	for (int symbol_index = (int)symbol_count - 1; symbol_index >= 0; --symbol_index)
@@ -321,6 +325,29 @@ int EidosSymbolTable::_SlotIndexForSymbol(int p_symbol_name_length, const char *
 	return -1;
 }
 
+void EidosSymbolTable::_SwitchToVector(void)
+{
+	if (using_internal_symbols_)
+	{
+		EidosSymbolTableSlot *symbols = non_malloc_symbols_;
+		size_t symbol_count = internal_symbol_count_;
+		
+		for (size_t symbol_index = 0; symbol_index < symbol_count; ++symbol_index)
+		{
+			EidosSymbolTableSlot *symbol_slot = symbols + symbol_index;
+			
+			symbol_vec.push_back(std::move(*symbol_slot));
+			
+			// clean up the built-in slot; probably unnecessary, but prevents hard-to-find bugs
+			symbol_slot->symbol_value_SP_.reset();
+			symbol_slot->symbol_name_ = nullptr;
+			symbol_slot->symbol_name_data_ = nullptr;
+		}
+		
+		using_internal_symbols_ = false;
+	}
+}
+
 void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value)
 {
 	int key_length = (int)p_symbol_name.size();
@@ -335,11 +362,34 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 	// and now set the value in the symbol table
 	if (symbol_slot == -1)
 	{
+		std::string *string_copy = new std::string(p_symbol_name);
+		const char *string_copy_data_ = string_copy->data();
+		
+		if (using_internal_symbols_)
+		{
+			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+			{
+				EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+				
+				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
+				new_symbol_slot_ptr->symbol_name_ = string_copy;
+				new_symbol_slot_ptr->symbol_name_data_ = string_copy_data_;
+				new_symbol_slot_ptr->symbol_name_length_ = key_length;
+				new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
+				new_symbol_slot_ptr->symbol_is_const_ = false;
+				
+				++internal_symbol_count_;
+				return;
+			}
+			
+			_SwitchToVector();
+		}
+		
 		EidosSymbolTableSlot new_symbol_slot;
 		
 		new_symbol_slot.symbol_value_SP_ = std::move(p_value);
-		new_symbol_slot.symbol_name_ = new std::string(p_symbol_name);
-		new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+		new_symbol_slot.symbol_name_ = string_copy;
+		new_symbol_slot.symbol_name_data_ = string_copy_data_;
 		new_symbol_slot.symbol_name_length_ = key_length;
 		new_symbol_slot.symbol_name_externally_owned_ = false;
 		new_symbol_slot.symbol_is_const_ = false;
@@ -348,10 +398,10 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 	}
 	else
 	{
-		EidosSymbolTableSlot *existing_symbol_slot_ptr = &(symbol_vec[symbol_slot]);
+		EidosSymbolTableSlot *existing_symbol_slot_ptr = (using_internal_symbols_ ? (non_malloc_symbols_ + symbol_slot) : &(symbol_vec[symbol_slot]));
 		
-		if ((symbol_slot >= 0) && existing_symbol_slot_ptr->symbol_is_const_)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << p_symbol_name << "' is a constant." << eidos_terminate(nullptr);
+		if (existing_symbol_slot_ptr->symbol_is_const_)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << p_symbol_name << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
 		
 		// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
 		// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
@@ -367,14 +417,9 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	const char *symbol_name_data = p_symbol_name.data();
 	int symbol_slot = _SlotIndexForSymbol(key_length, symbol_name_data);
 	
+	// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
 	if (symbol_slot >= 0)
-	{
-		// can't already be defined as either a constant or a variable; if you want to define a constant, you have to get there first
-		if (symbol_vec[symbol_slot].symbol_is_const_)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a constant." << eidos_terminate(nullptr);
-		else
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already a variable." << eidos_terminate(nullptr);
-	}
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetConstantForSymbol): (internal error) identifier '" << p_symbol_name << "' is already defined." << eidos_terminate(nullptr);
 	
 	// if it's invisible then we set it to visible, since the symbol table never stores invisible values
 	// this is safe since the result of assignments in Eidos is NULL, not the value set
@@ -382,12 +427,35 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 		p_value = p_value->CopyValues();
 	
 	// and now set the value in the symbol table; we know, from the check above, that we're in a new slot
+	std::string *string_copy = new std::string(p_symbol_name);
+	const char *string_copy_data_ = string_copy->data();
+	
+	if (using_internal_symbols_)
+	{
+		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+		{
+			EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+			
+			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
+			new_symbol_slot_ptr->symbol_name_ = string_copy;
+			new_symbol_slot_ptr->symbol_name_length_ = key_length;
+			new_symbol_slot_ptr->symbol_name_data_ = string_copy_data_;
+			new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
+			new_symbol_slot_ptr->symbol_is_const_ = true;
+			
+			++internal_symbol_count_;
+			return;
+		}
+		
+		_SwitchToVector();
+	}
+	
 	EidosSymbolTableSlot new_symbol_slot;
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
-	new_symbol_slot.symbol_name_ = new std::string(p_symbol_name);
+	new_symbol_slot.symbol_name_ = string_copy;
 	new_symbol_slot.symbol_name_length_ = key_length;
-	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_data_ = string_copy_data_;
 	new_symbol_slot.symbol_name_externally_owned_ = false;
 	new_symbol_slot.symbol_is_const_ = true;
 	
@@ -404,17 +472,39 @@ void EidosSymbolTable::RemoveValueForSymbol(const std::string &p_symbol_name, bo
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *existing_symbol_slot_ptr = &(symbol_vec[symbol_slot]);
+		EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+		EidosSymbolTableSlot *existing_symbol_slot_ptr = symbols + symbol_slot;
 		
 		if (existing_symbol_slot_ptr->symbol_is_const_ && !p_remove_constant)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::RemoveValueForSymbol): identifier '" << p_symbol_name << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
 		
-		// free the name string
+		// clean up the slot being removed
+		existing_symbol_slot_ptr->symbol_value_SP_.reset();
+		
 		if (!existing_symbol_slot_ptr->symbol_name_externally_owned_)
 			delete existing_symbol_slot_ptr->symbol_name_;
+		existing_symbol_slot_ptr->symbol_name_ = nullptr;
+		existing_symbol_slot_ptr->symbol_name_data_ = nullptr;
 		
 		// remove the slot from the vector
-		symbol_vec.erase(symbol_vec.begin() + symbol_slot);
+		if (using_internal_symbols_)
+		{
+			EidosSymbolTableSlot *backfill_symbol_slot_ptr = non_malloc_symbols_ + (--internal_symbol_count_);
+			
+			if (existing_symbol_slot_ptr != backfill_symbol_slot_ptr)
+			{
+				*existing_symbol_slot_ptr = std::move(*backfill_symbol_slot_ptr);
+				
+				// clean up the backfill slot; probably unnecessary, but prevents hard-to-find bugs
+				backfill_symbol_slot_ptr->symbol_value_SP_.reset();
+				backfill_symbol_slot_ptr->symbol_name_ = nullptr;
+				backfill_symbol_slot_ptr->symbol_name_data_ = nullptr;
+			}
+		}
+		else
+		{
+			symbol_vec.erase(symbol_vec.begin() + symbol_slot);
+		}
 	}
 }
 
@@ -427,12 +517,33 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_ne
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
 	const std::string &entry_name = p_new_entry->first;
+	
+	if (using_internal_symbols_)
+	{
+		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+		{
+			EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+			
+			new_symbol_slot_ptr->symbol_value_SP_ = p_new_entry->second;
+			new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
+			new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
+			new_symbol_slot_ptr->symbol_name_data_ = entry_name.data();
+			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+			new_symbol_slot_ptr->symbol_is_const_ = true;
+			
+			++internal_symbol_count_;
+			return;
+		}
+		
+		_SwitchToVector();
+	}
+	
 	EidosSymbolTableSlot new_symbol_slot;
 	
 	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
 	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
 	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
-	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_data_ = entry_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;
 	
@@ -447,6 +558,26 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
+	if (using_internal_symbols_)
+	{
+		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+		{
+			EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+			
+			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
+			new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+			new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
+			new_symbol_slot_ptr->symbol_name_data_ = p_symbol_name.data();
+			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+			new_symbol_slot_ptr->symbol_is_const_ = true;
+			
+			++internal_symbol_count_;
+			return;
+		}
+		
+		_SwitchToVector();
+	}
+	
 	EidosSymbolTableSlot new_symbol_slot;
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
@@ -463,7 +594,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 {
 #ifdef DEBUG
 	if (p_new_entry->second->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// check whether the symbol is already defined; if so, it should be identical or we raise
@@ -474,7 +605,8 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *old_slot = &(symbol_vec[symbol_slot]);
+		EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+		EidosSymbolTableSlot *old_slot = symbols + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_SP_.get() != p_new_entry->second.get()))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << entry_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
@@ -484,12 +616,32 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 	}
 	
 	// ok, it is not defined so we need to define it
+	if (using_internal_symbols_)
+	{
+		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+		{
+			EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+			
+			new_symbol_slot_ptr->symbol_value_SP_ = p_new_entry->second;
+			new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
+			new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
+			new_symbol_slot_ptr->symbol_name_data_ = entry_name.data();
+			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+			new_symbol_slot_ptr->symbol_is_const_ = true;
+			
+			++internal_symbol_count_;
+			return;
+		}
+		
+		_SwitchToVector();
+	}
+	
 	EidosSymbolTableSlot new_symbol_slot;
 	
 	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
 	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
 	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
-	new_symbol_slot.symbol_name_data_ = new_symbol_slot.symbol_name_->data();
+	new_symbol_slot.symbol_name_data_ = entry_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;
 	
@@ -500,7 +652,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 {
 #ifdef DEBUG
 	if (p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for external-permanent, non-invisible objects." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << eidos_terminate(nullptr);
 #endif
 	
 	// check whether the symbol is already defined; if so, it should be identical or we raise
@@ -510,7 +662,8 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 	
 	if (symbol_slot >= 0)
 	{
-		EidosSymbolTableSlot *old_slot = &(symbol_vec[symbol_slot]);
+		EidosSymbolTableSlot *symbols = (using_internal_symbols_ ? non_malloc_symbols_ : symbol_vec.data());
+		EidosSymbolTableSlot *old_slot = symbols + symbol_slot;
 		
 		if ((!old_slot->symbol_is_const_) || (!old_slot->symbol_name_externally_owned_) || (old_slot->symbol_value_SP_.get() != p_value.get()))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::ReinitializeConstantSymbolEntry): (internal error) identifier '" << p_symbol_name << "' is already defined, but the existing entry does not match." << eidos_terminate(nullptr);
@@ -520,6 +673,26 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 	}
 	
 	// ok, it is not defined so we need to define it
+	if (using_internal_symbols_)
+	{
+		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+		{
+			EidosSymbolTableSlot *new_symbol_slot_ptr = non_malloc_symbols_ + internal_symbol_count_;
+			
+			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
+			new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
+			new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
+			new_symbol_slot_ptr->symbol_name_data_ = p_symbol_name.data();
+			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
+			new_symbol_slot_ptr->symbol_is_const_ = true;
+			
+			++internal_symbol_count_;
+			return;
+		}
+		
+		_SwitchToVector();
+	}
+	
 	EidosSymbolTableSlot new_symbol_slot;
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);

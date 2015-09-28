@@ -70,11 +70,22 @@ typedef struct {
 } EidosSymbolUsageParamBlock;
 
 
+// As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free
+// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room
+#define EIDOS_SYMBOL_TABLE_BASE_SIZE		30
+
+
 class EidosSymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
+	// We try to use an internal buffer when possible, to avoid the overhead of std::vector for small scripts
+	bool using_internal_symbols_;
+	EidosSymbolTableSlot non_malloc_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE];
+	int internal_symbol_count_;
+	
+	// If !using_internal_symbols_, we have switched over to std::vector since we outgrew our internal buffer
 	std::vector<EidosSymbolTableSlot> symbol_vec;
 	
 public:
@@ -113,6 +124,7 @@ public:
 	
 	// internal methods
 	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
+	void _SwitchToVector(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);
