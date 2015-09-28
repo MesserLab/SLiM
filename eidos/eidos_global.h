@@ -110,7 +110,11 @@ public:
 	eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace);
 };
 
-void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator) __attribute__((__noreturn__));
+// Send an eidos_terminate object to an output stream, causing a raise or an exit() call depending on
+// gEidosTerminateThrows.  Either way, this call does not return, so it is marked as noreturn as a hint
+// to the compiler.  Also, since this is always an error case, it is marked as cold as a hint to branch
+// prediction and optimization; all code paths that lead to this will be considered cold.
+void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator) __attribute__((__noreturn__)) __attribute__((cold));
 
 // Get the message from the last raise out of gEidosTermination, optionally with newlines trimmed from the ends
 std::string EidosGetTrimmedRaiseMessage(void);
