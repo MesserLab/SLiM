@@ -529,6 +529,15 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f2\fs18 \cf0 \'96\'a0(void)simulationFinished(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Declare the current simulation finished.  Normally SLiM ends a simulation when, at the end of a generation, there are no script events or callbacks registered for any future generation (excluding scripts with no declared end generation).  If you wish to end a simulation before this condition is met, a call to 
+\f2\fs18 simulationFinished()
+\f0\fs20  will cause the current simulation to end at the end of the current generation.  For example, a simulation might self-terminate if a test for a dynamic equilibrium condition is satisfied.
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60
 
 \f0\b\fs22 \cf0 5.4  Class MutationType\

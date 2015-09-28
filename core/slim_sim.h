@@ -63,6 +63,7 @@ private:
 	
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
+	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements

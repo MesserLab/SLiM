@@ -313,6 +313,7 @@ extern const std::string gStr_registerEvent;
 extern const std::string gStr_registerFitnessCallback;
 extern const std::string gStr_registerMateChoiceCallback;
 extern const std::string gStr_registerModifyChildCallback;
+extern const std::string gStr_simulationFinished;
 extern const std::string gStr_setMigrationRates;
 extern const std::string gStr_setCloningRate;
 extern const std::string gStr_setSelfingRate;
@@ -445,6 +446,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerFitnessCallback,
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
+	gID_simulationFinished,
 	gID_setMigrationRates,
 	gID_setCloningRate,
 	gID_setSelfingRate,

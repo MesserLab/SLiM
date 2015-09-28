@@ -537,6 +537,10 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token");
 	
+	// Test sim - (void)simulationFinished(void)
+	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }");
+	
 	
 	// ************************************************************************************
 	//

@@ -56,6 +56,7 @@ look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere 
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
 future plans:
+	evaluate code coverage of tests
 	an Objective-C port of Eidos would be nice
 	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
 	spatially and temporally varying selection pressures: for mutation-types

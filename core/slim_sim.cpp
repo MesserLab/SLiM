@@ -666,6 +666,9 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.
+		if (sim_declared_finished_)
+			return false;
+		
 		return (generation_ <= EstimatedLastGeneration());
 	}
 }
@@ -2110,6 +2113,19 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			return script_block->CachedSymbolTableEntry()->second;
 		}
 			
+			
+			//
+			//	*********************	- (void)simulationFinished(void)
+			//
+#pragma mark -simulationFinished()
+			
+		case gID_simulationFinished:
+		{
+			sim_declared_finished_ = true;
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -2252,6 +2268,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->push_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
 		methods->push_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->push_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
+		methods->push_back(SignatureForMethodOrRaise(gID_simulationFinished));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
@@ -2274,6 +2291,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *registerFitnessCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *simulationFinishedSig = nullptr;
 	
 	if (!addSubpopSig)
 	{
@@ -2290,6 +2308,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
+		simulationFinishedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2308,6 +2327,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_registerFitnessCallback:				return registerFitnessCallbackSig;
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
+		case gID_simulationFinished:					return simulationFinishedSig;
 			
 			// all others, including gID_none
 		default:

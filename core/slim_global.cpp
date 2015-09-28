@@ -174,6 +174,7 @@ const std::string gStr_registerEvent = "registerEvent";
 const std::string gStr_registerFitnessCallback = "registerFitnessCallback";
 const std::string gStr_registerMateChoiceCallback = "registerMateChoiceCallback";
 const std::string gStr_registerModifyChildCallback = "registerModifyChildCallback";
+const std::string gStr_simulationFinished = "simulationFinished";
 const std::string gStr_setMigrationRates = "setMigrationRates";
 const std::string gStr_setCloningRate = "setCloningRate";
 const std::string gStr_setSelfingRate = "setSelfingRate";
@@ -319,6 +320,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerFitnessCallback, gID_registerFitnessCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerMateChoiceCallback, gID_registerMateChoiceCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerModifyChildCallback, gID_registerModifyChildCallback);
+		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
 		Eidos_RegisterStringForGlobalID(gStr_setMigrationRates, gID_setMigrationRates);
 		Eidos_RegisterStringForGlobalID(gStr_setCloningRate, gID_setCloningRate);
 		Eidos_RegisterStringForGlobalID(gStr_setSelfingRate, gID_setSelfingRate);
