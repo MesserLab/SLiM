@@ -374,7 +374,7 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
 				new_symbol_slot_ptr->symbol_name_ = string_copy;
 				new_symbol_slot_ptr->symbol_name_data_ = string_copy_data_;
-				new_symbol_slot_ptr->symbol_name_length_ = key_length;
+				new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)key_length;
 				new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
 				new_symbol_slot_ptr->symbol_is_const_ = false;
 				
@@ -390,7 +390,7 @@ void EidosSymbolTable::SetValueForSymbol(const std::string &p_symbol_name, Eidos
 		new_symbol_slot.symbol_value_SP_ = std::move(p_value);
 		new_symbol_slot.symbol_name_ = string_copy;
 		new_symbol_slot.symbol_name_data_ = string_copy_data_;
-		new_symbol_slot.symbol_name_length_ = key_length;
+		new_symbol_slot.symbol_name_length_ = (uint16_t)key_length;
 		new_symbol_slot.symbol_name_externally_owned_ = false;
 		new_symbol_slot.symbol_is_const_ = false;
 		
@@ -438,7 +438,7 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
 			new_symbol_slot_ptr->symbol_name_ = string_copy;
-			new_symbol_slot_ptr->symbol_name_length_ = key_length;
+			new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)key_length;
 			new_symbol_slot_ptr->symbol_name_data_ = string_copy_data_;
 			new_symbol_slot_ptr->symbol_name_externally_owned_ = false;
 			new_symbol_slot_ptr->symbol_is_const_ = true;
@@ -454,7 +454,7 @@ void EidosSymbolTable::SetConstantForSymbol(const std::string &p_symbol_name, Ei
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
 	new_symbol_slot.symbol_name_ = string_copy;
-	new_symbol_slot.symbol_name_length_ = key_length;
+	new_symbol_slot.symbol_name_length_ = (uint16_t)key_length;
 	new_symbol_slot.symbol_name_data_ = string_copy_data_;
 	new_symbol_slot.symbol_name_externally_owned_ = false;
 	new_symbol_slot.symbol_is_const_ = true;
@@ -526,7 +526,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_ne
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = p_new_entry->second;
 			new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-			new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
+			new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)entry_name.size();
 			new_symbol_slot_ptr->symbol_name_data_ = entry_name.data();
 			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 			new_symbol_slot_ptr->symbol_is_const_ = true;
@@ -542,7 +542,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_ne
 	
 	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
 	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
+	new_symbol_slot.symbol_name_length_ = (uint16_t)entry_name.size();
 	new_symbol_slot.symbol_name_data_ = entry_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;
@@ -566,7 +566,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
 			new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-			new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
+			new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)p_symbol_name.size();
 			new_symbol_slot_ptr->symbol_name_data_ = p_symbol_name.data();
 			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 			new_symbol_slot_ptr->symbol_is_const_ = true;
@@ -582,7 +582,7 @@ void EidosSymbolTable::InitializeConstantSymbolEntry(const std::string &p_symbol
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
 	new_symbol_slot.symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot.symbol_name_length_ = (int)p_symbol_name.size();
+	new_symbol_slot.symbol_name_length_ = (uint16_t)p_symbol_name.size();
 	new_symbol_slot.symbol_name_data_ = p_symbol_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;
@@ -624,7 +624,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = p_new_entry->second;
 			new_symbol_slot_ptr->symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-			new_symbol_slot_ptr->symbol_name_length_ = (int)entry_name.size();
+			new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)entry_name.size();
 			new_symbol_slot_ptr->symbol_name_data_ = entry_name.data();
 			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 			new_symbol_slot_ptr->symbol_is_const_ = true;
@@ -640,7 +640,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_
 	
 	new_symbol_slot.symbol_value_SP_ = p_new_entry->second;
 	new_symbol_slot.symbol_name_ = &entry_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot.symbol_name_length_ = (int)entry_name.size();
+	new_symbol_slot.symbol_name_length_ = (uint16_t)entry_name.size();
 	new_symbol_slot.symbol_name_data_ = entry_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;
@@ -681,7 +681,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
 			new_symbol_slot_ptr->symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-			new_symbol_slot_ptr->symbol_name_length_ = (int)p_symbol_name.size();
+			new_symbol_slot_ptr->symbol_name_length_ = (uint16_t)p_symbol_name.size();
 			new_symbol_slot_ptr->symbol_name_data_ = p_symbol_name.data();
 			new_symbol_slot_ptr->symbol_name_externally_owned_ = true;
 			new_symbol_slot_ptr->symbol_is_const_ = true;
@@ -697,7 +697,7 @@ void EidosSymbolTable::ReinitializeConstantSymbolEntry(const std::string &p_symb
 	
 	new_symbol_slot.symbol_value_SP_ = std::move(p_value);
 	new_symbol_slot.symbol_name_ = &p_symbol_name;		// take a pointer to the external object, which must live longer than us!
-	new_symbol_slot.symbol_name_length_ = (int)p_symbol_name.size();
+	new_symbol_slot.symbol_name_length_ = (uint16_t)p_symbol_name.size();
 	new_symbol_slot.symbol_name_data_ = p_symbol_name.data();
 	new_symbol_slot.symbol_name_externally_owned_ = true;
 	new_symbol_slot.symbol_is_const_ = true;

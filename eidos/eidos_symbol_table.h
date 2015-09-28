@@ -51,12 +51,12 @@ typedef std::pair<const std::string, EidosValue_SP> EidosSymbolTableEntry;
 
 // This is what EidosSymbolTable now uses internally
 typedef struct {
-	EidosValue_SP symbol_value_SP_;		// our shared pointer to the EidosValue for the symbol
-	const std::string *symbol_name_;	// ownership is defined by symbol_name_externally_owned_, below
-	const char *symbol_name_data_;		// used to make scanning of the symbol table faster
-	int symbol_name_length_;			// used to make scanning of the symbol table faster
-	bool symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
-	bool symbol_is_const_;				// T if const, F is variable
+	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
+	const std::string *symbol_name_;		// ownership is defined by symbol_name_externally_owned_, below
+	const char *symbol_name_data_;			// used to make scanning of the symbol table faster
+	uint16_t symbol_name_length_;			// used to make scanning of the symbol table faster
+	uint8_t symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
+	uint8_t symbol_is_const_;				// T if const, F is variable
 } EidosSymbolTableSlot;
 
 typedef struct {
