@@ -37,6 +37,8 @@
 
 extern EidosObjectClass *gSLiM_Mutation_Class;
 
+// All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()
+extern EidosObjectPool *gSLiM_Mutation_Pool;
 
 class Mutation : public EidosObjectElement
 {

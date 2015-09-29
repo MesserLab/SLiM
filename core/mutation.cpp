@@ -23,6 +23,10 @@
 #include "eidos_property_signature.h"
 
 
+// All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()
+EidosObjectPool *gSLiM_Mutation_Pool = nullptr;
+
+
 #ifdef SLIMGUI
 // A global counter used to assign all Mutation objects a unique ID in SLiMgui
 uint64_t g_next_mutation_id = 0;

@@ -154,7 +154,7 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
-	return new Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
+	return new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability

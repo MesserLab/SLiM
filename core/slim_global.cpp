@@ -19,6 +19,7 @@
 
 
 #include "slim_global.h"
+#include "mutation.h"
 
 
 void SLiM_WarmUp(void)
@@ -29,6 +30,10 @@ void SLiM_WarmUp(void)
 	{
 		been_here = true;
 		
+		// Set up our shared pool for Mutation objects
+		gSLiM_Mutation_Pool = new EidosObjectPool(sizeof(Mutation));
+		
+		// Register global strings and IDs for SLiM; this is in addition to the globals set up by Eidos
 		SLiM_RegisterGlobalStringsAndIDs();
 	}
 }

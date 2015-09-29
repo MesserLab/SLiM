@@ -1531,7 +1531,10 @@ void Population::RemoveFixedMutations(void)
 			const_cast<Mutation *>(mutation)->mutation_type_ptr_ = nullptr;		// render lethal
 			mutation->reference_count_ = -1;									// zombie
 #else
-			delete mutation;
+			// We no longer delete mutation objects; instead, we remove them from our shared pool
+			//delete mutation;
+			mutation->~Mutation();
+			gSLiM_Mutation_Pool->DisposeChunk(const_cast<Mutation *>(mutation));
 #endif
 		}
 	}

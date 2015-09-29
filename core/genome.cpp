@@ -389,7 +389,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				origin_subpop_id = dynamic_cast<Subpopulation *>(arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-			Mutation *mutation = new Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
@@ -448,7 +448,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			else
 				origin_subpop_id = dynamic_cast<Subpopulation *>(arg4_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
-			Mutation *mutation = new Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
