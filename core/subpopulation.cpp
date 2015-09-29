@@ -931,7 +931,7 @@ void Subpopulation::GenerateCachedSymbolTableEntry(void)
 	
 	subpop_stream << "p" << subpopulation_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
+	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *Subpopulation::Class(void) const
@@ -953,14 +953,14 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = EidosValue_SP(new EidosValue_Int_singleton(subpopulation_id_));
+				cached_value_subpop_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpopulation_id_));
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:
-			return EidosValue_SP(new EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_));
 		case gID_genomes:
 		{
-			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			if (child_generation_valid_)
@@ -974,7 +974,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_immigrantSubpopIDs:
 		{
-			EidosValue_Int_vector *vec = new EidosValue_Int_vector();
+			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
@@ -984,7 +984,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_immigrantSubpopFractions:
 		{
-			EidosValue_Float_vector *vec = new EidosValue_Float_vector();
+			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
@@ -993,20 +993,20 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return result_SP;
 		}
 		case gID_selfingRate:
-			return EidosValue_SP(new EidosValue_Float_singleton(selfing_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selfing_fraction_));
 		case gID_cloningRate:
 			if (sex_enabled_)
-				return EidosValue_SP(new EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_});
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_});
 			else
-				return EidosValue_SP(new EidosValue_Float_singleton(female_clone_fraction_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(female_clone_fraction_));
 		case gID_sexRatio:
-			return EidosValue_SP(new EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		case gID_individualCount:
-			return EidosValue_SP(new EidosValue_Int_singleton(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_));
 			
 			// variables
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -1231,11 +1231,11 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 				
 				double fitness = cached_parental_fitness_[index];
 				
-				return EidosValue_SP(new EidosValue_Float_singleton(fitness));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
 			}
 			else
 			{
-				EidosValue_Float_vector *float_return = (new EidosValue_Float_vector())->Reserve(index_count);
+				EidosValue_Float_vector *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(index_count);
 				EidosValue_SP result_SP = EidosValue_SP(float_return);
 				
 				for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)

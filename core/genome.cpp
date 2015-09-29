@@ -218,7 +218,7 @@ void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_value_ = EidosValue_SP(new EidosValue_Object_singleton(this));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this));
 }
 
 const EidosObjectClass *Genome::Class(void) const
@@ -253,16 +253,16 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (genome_type_)
 			{
-				case GenomeType::kAutosome:		return EidosValue_SP(new EidosValue_String_singleton(gStr_A));
-				case GenomeType::kXChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_X));
-				case GenomeType::kYChromosome:	return EidosValue_SP(new EidosValue_String_singleton(gStr_Y));
+				case GenomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_A));
+				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_X));
+				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
 		}
 		case gID_isNullGenome:
 			return ((mutations_ == nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
-			EidosValue_Object_vector *vec = (new EidosValue_Object_vector())->Reserve(mutation_count_);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(mutation_count_);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count_; ++mut_index)
@@ -273,7 +273,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -394,7 +394,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return EidosValue_SP(new EidosValue_Object_singleton(mutation));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation));
 		}
 			
 			
@@ -453,7 +453,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			insert_sorted_mutation(mutation);
 			sim->Population().mutation_registry_.push_back(mutation);
 			
-			return EidosValue_SP(new EidosValue_Object_singleton(mutation));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation));
 		}
 			
 			

@@ -215,7 +215,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomicElements:
 		{
-			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
@@ -226,25 +226,25 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_lastPosition:
 		{
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = EidosValue_SP(new EidosValue_Int_singleton(last_position_));
+				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_position_));
 			return cached_value_lastpos_;
 		}
 		case gID_overallRecombinationRate:
-			return EidosValue_SP(new EidosValue_Float_singleton(overall_recombination_rate_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_));
 		case gID_recombinationEndPositions:
-			return EidosValue_SP(new EidosValue_Int_vector(recombination_end_positions_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_));
 		case gID_recombinationRates:
-			return EidosValue_SP(new EidosValue_Float_vector(recombination_rates_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_));
 			
 			// variables
 		case gID_geneConversionFraction:
-			return EidosValue_SP(new EidosValue_Float_singleton(gene_conversion_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_fraction_));
 		case gID_geneConversionMeanLength:
-			return EidosValue_SP(new EidosValue_Float_singleton(gene_conversion_avg_length_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_avg_length_));
 		case gID_overallMutationRate:
-			return EidosValue_SP(new EidosValue_Float_singleton(overall_mutation_rate_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_));
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:

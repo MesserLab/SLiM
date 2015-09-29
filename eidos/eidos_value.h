@@ -36,6 +36,7 @@
 
 #include "eidos_global.h"
 #include "eidos_intrusive_ptr.h"
+#include "eidos_object_pool.h"
 
 
 class EidosValue;
@@ -55,6 +56,7 @@ class EidosValue_Object;
 class EidosValue_Object_singleton;
 class EidosValue_Object_vector;
 
+class EidosObjectPool;
 class EidosPropertySignature;
 class EidosFunctionSignature;
 class EidosMethodSignature;
@@ -85,6 +87,12 @@ typedef Eidos_intrusive_ptr<EidosValue_Object_singleton>	EidosValue_Object_singl
 typedef Eidos_intrusive_ptr<EidosValue_Object_vector>		EidosValue_Object_vector_SP;
 
 
+// EidosValues must be allocated out of the global pool, for speed.  See eidos_object_pool.h.  When Eidos disposes of an object,
+// it will assume that it was allocated from this pool, so its use is mandatory except for stack-allocated objects.
+extern EidosObjectPool *gEidosValuePool;
+
+
+// Global EidosValues that are defined at EidosWarmup() time and are never deallocated.
 extern EidosValue_NULL_SP gStaticEidosValueNULL;
 extern EidosValue_NULL_SP gStaticEidosValueNULLInvisible;
 
@@ -237,7 +245,11 @@ inline void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value)
 inline void Eidos_intrusive_ptr_release(const EidosValue *p_value)
 {
 	if ((--(p_value->intrusive_ref_count)) == 0)
-		delete p_value;		// EidosValue has a virtual destructor, so this suffices
+	{
+		// We no longer delete; all objects under Eidos_intrusive_ptr should have been allocated out of gEidosValuePool, so it handles the free
+		//delete p_value;
+		gEidosValuePool->DisposeChunk(const_cast<EidosValue*>(p_value));
+	}
 }
 
 

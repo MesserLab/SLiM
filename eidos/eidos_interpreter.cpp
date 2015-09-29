@@ -677,7 +677,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (second_int - first_int + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(second_int - first_int + 1));
 			
 			for (int64_t range_index = first_int; range_index <= second_int; ++range_index)
@@ -690,7 +690,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (first_int - second_int + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(first_int - second_int + 1));
 			
 			for (int64_t range_index = first_int; range_index >= second_int; --range_index)
@@ -712,7 +712,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (second_float - first_float + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(second_float - first_float + 1));
 			
 			for (double range_index = first_float; range_index <= second_float; )
@@ -738,7 +738,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (first_float - second_float + 1 >= 1000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(first_float - second_float + 1));
 			
 			for (double range_index = first_float; range_index >= second_float; )
@@ -998,7 +998,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				if (first_child_type == EidosValueType::kValueLogical)
 				{
 					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
-					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 					
@@ -1011,7 +1011,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueInt)
 				{
 					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -1023,7 +1023,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueFloat)
 				{
 					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
-					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 					EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -1035,7 +1035,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueString)
 				{
 					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value.get())->StringVector();
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -1047,7 +1047,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
 					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
-					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new EidosValue_Object_vector());
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
 					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -1073,7 +1073,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is float; optimize for that
 					const std::vector<double> &first_child_vec = ((EidosValue_Float_vector *)first_child_value.get())->FloatVector();
-					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 					EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
@@ -1111,7 +1111,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is integer; optimize for that
 					const std::vector<int64_t> &first_child_vec = ((EidosValue_Int_vector *)first_child_value.get())->IntVector();
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
@@ -1149,7 +1149,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is object; optimize for that
 					const std::vector<EidosObjectElement *> &first_child_vec = ((EidosValue_Object_vector *)first_child_value.get())->ObjectElementVector();
-					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new EidosValue_Object_vector());
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
 					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
@@ -1187,7 +1187,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is logical; optimize for that
 					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
-					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
 					
@@ -1226,7 +1226,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is string; optimize for that
 					const std::vector<std::string> &first_child_vec = ((EidosValue_String_vector *)first_child_value.get())->StringVector();
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
@@ -1362,13 +1362,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			
 			if ((first_child_count == 1) && (second_child_count == 1))
 			{
-				result_SP = EidosValue_SP(new EidosValue_String_singleton(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token)));
 			}
 			else
 			{
 				if (first_child_count == second_child_count)
 				{
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1379,7 +1379,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				else if (first_child_count == 1)
 				{
 					string singleton_int = first_child_value->StringAtIndex(0, operator_token);
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1390,7 +1390,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				else if (second_child_count == 1)
 				{
 					string singleton_int = second_child_value->StringAtIndex(0, operator_token);
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new EidosValue_String_vector());
+					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1411,7 +1411,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) + second_child_value->IntAtIndex(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) + second_child_value->IntAtIndex(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
@@ -1421,11 +1421,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
 					
-					result_SP = EidosValue_SP(new EidosValue_Int_singleton(add_result));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(add_result));
 				}
 				else
 				{
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1450,7 +1450,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1473,7 +1473,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1507,11 +1507,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) + second_child_value->FloatAtIndex(0, operator_token)));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) + second_child_value->FloatAtIndex(0, operator_token)));
 				}
 				else
 				{
-					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 					EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1523,7 +1523,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1534,7 +1534,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1577,7 +1577,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new EidosValue_Int_singleton(-first_child_value->IntAtIndex(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-first_child_value->IntAtIndex(0, operator_token));
 				
 				int64_t operand = first_child_value->IntAtIndex(0, operator_token);
 				int64_t subtract_result;
@@ -1586,11 +1586,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
 				
-				result_SP = EidosValue_SP(new EidosValue_Int_singleton(subtract_result));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
 			}
 			else
 			{
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1615,11 +1615,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 		{
 			if (first_child_count == 1)
 			{
-				result_SP = EidosValue_SP(new EidosValue_Float_singleton(-first_child_value->FloatAtIndex(0, operator_token)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-first_child_value->FloatAtIndex(0, operator_token)));
 			}
 			else
 			{
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1647,7 +1647,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) - second_child_value->IntAtIndex(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) - second_child_value->IntAtIndex(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
@@ -1657,11 +1657,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
 					
-					result_SP = EidosValue_SP(new EidosValue_Int_singleton(subtract_result));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
 				}
 				else
 				{
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1686,7 +1686,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1709,7 +1709,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1740,11 +1740,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) - second_child_value->FloatAtIndex(0, operator_token)));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) - second_child_value->FloatAtIndex(0, operator_token)));
 				}
 				else
 				{
-					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+					EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 					EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1756,7 +1756,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1767,7 +1767,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			else if (second_child_count == 1)
 			{
 				double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1819,11 +1819,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new EidosValue_Float_singleton(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fmod(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
 		}
 		else
 		{
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1835,7 +1835,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -1846,7 +1846,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1894,7 +1894,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) * second_child_value->IntAtIndex(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) * second_child_value->IntAtIndex(0, operator_token));
 				
 				int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 				int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
@@ -1904,11 +1904,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
 				
-				result_SP = EidosValue_SP(new EidosValue_Int_singleton(multiply_result));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(multiply_result));
 			}
 			else
 			{
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1934,11 +1934,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		{
 			if (first_child_count == 1)
 			{
-				result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) * second_child_value->FloatAtIndex(0, operator_token)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) * second_child_value->FloatAtIndex(0, operator_token)));
 			}
 			else
 			{
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -1971,7 +1971,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
 			int64_t singleton_int = one_count_child->IntAtIndex(0, operator_token);
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve(any_count);
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
@@ -1994,7 +1994,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		else
 		{
 			double singleton_float = one_count_child->FloatAtIndex(0, operator_token);
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve(any_count);
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
@@ -2044,11 +2044,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex(0, operator_token) / second_child_value->FloatAtIndex(0, operator_token)));
 		}
 		else
 		{
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -2060,7 +2060,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -2071,7 +2071,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -2116,11 +2116,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new EidosValue_Float_singleton(pow(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pow(first_child_value->FloatAtIndex(0, operator_token), second_child_value->FloatAtIndex(0, operator_token))));
 		}
 		else
 		{
-			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -2132,7 +2132,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	else if (first_child_count == 1)
 	{
 		double singleton_float = first_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(second_child_count);
 		
 		for (int value_index = 0; value_index < second_child_count; ++value_index)
@@ -2143,7 +2143,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	else if (second_child_count == 1)
 	{
 		double singleton_float = second_child_value->FloatAtIndex(0, operator_token);
-		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->Reserve(first_child_count);
 		
 		for (int value_index = 0; value_index < first_child_count; ++value_index)
@@ -2244,7 +2244,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				else
 				{
 					// for other cases, we just clone child_result – but note that it may not be of type logical
-					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
+					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
 					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
@@ -2297,7 +2297,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 						result_bool = bool_result;
 					}
 					
-					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
+					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
 					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
@@ -2416,7 +2416,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				else
 				{
 					// for other cases, we just clone child_result – but note that it may not be of type logical
-					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
+					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
 					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
@@ -2469,7 +2469,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 						result_bool = bool_result;
 					}
 					
-					result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(child_count));
+					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
 					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
@@ -2538,7 +2538,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 		else
 		{
 			// for other cases, we just clone the negation of child_result – but note that it may not be of type logical
-			result_SP = EidosValue_Logical_SP((new EidosValue_Logical())->Reserve(first_child_count));
+			result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(first_child_count));
 			
 			std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
 			
@@ -2834,7 +2834,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -2877,7 +2877,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -2919,7 +2919,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3008,7 +3008,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -3024,7 +3024,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3039,7 +3039,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3102,7 +3102,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -3118,7 +3118,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3133,7 +3133,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3196,7 +3196,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -3212,7 +3212,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3227,7 +3227,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3290,7 +3290,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -3306,7 +3306,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3321,7 +3321,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3381,7 +3381,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			}
 			else
 			{
-				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
@@ -3424,7 +3424,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		}
 		else if (first_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3466,7 +3466,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		}
 		else if (second_child_count == 1)
 		{
-			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
 			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
@@ -3596,7 +3596,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
 		
-		return EidosValue_SP(new EidosValue_Float_singleton(converted_value));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(converted_value));
 	}
 	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))		// has an exponent
 	{
@@ -3609,7 +3609,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
 		
-		return EidosValue_SP(new EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
 	}
 	else																										// plain integer
 	{
@@ -3618,7 +3618,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
 		
-		return EidosValue_SP(new EidosValue_Int_singleton(converted_value));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(converted_value));
 	}
 }
 
@@ -3650,7 +3650,7 @@ EidosValue_SP EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	EidosValue_SP result_SP = p_node->cached_value_;
 	
 	if (!result_SP)
-		result_SP = EidosValue_SP(new EidosValue_String_singleton(p_node->token_->token_string_));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_node->token_->token_string_));
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_String()");
 	return result_SP;
@@ -3968,13 +3968,13 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_index == range_count)
 				range_index--;
 			
-			global_symbols_.SetValueForSymbol(identifier_name, EidosValue_SP(new EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
+			global_symbols_.SetValueForSymbol(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
 		}
 		else	// !assigns_index, guaranteed above
 		{
 			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
 			// EidosValue that we stick new values into – much, much faster.
-			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new EidosValue_Int_singleton(0));
+			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 			EidosValue_Int_singleton *index_value = index_value_SP.get();
 			
 			global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
@@ -4037,7 +4037,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				if (range_type == EidosValueType::kValueInt)
 				{
 					const std::vector<int64_t> &range_vec = ((EidosValue_Int_vector *)range_value.get())->IntVector();
-					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new EidosValue_Int_singleton(0));
+					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
 					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
@@ -4058,7 +4058,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueFloat)
 				{
 					const std::vector<double> &range_vec = ((EidosValue_Float_vector *)range_value.get())->FloatVector();
-					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new EidosValue_Float_singleton(0));
+					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0));
 					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
 					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
@@ -4079,7 +4079,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueString)
 				{
 					const std::vector<std::string> &range_vec = ((EidosValue_String_vector *)range_value.get())->StringVector();
-					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new EidosValue_String_singleton(gEidosStr_empty_string));
+					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
 					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
 					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
@@ -4100,7 +4100,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueObject)
 				{
 					const std::vector<EidosObjectElement *> &range_vec = ((EidosValue_Object_vector *)range_value.get())->ObjectElementVector();
-					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new EidosValue_Object_singleton(nullptr));
+					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
 					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
@@ -4121,7 +4121,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueLogical)
 				{
 					const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value.get())->LogicalVector();
-					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new EidosValue_Logical());
+					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *index_value = index_value_SP.get();
 					std::vector<bool> &index_vec = index_value->LogicalVector_Mutable();
 					

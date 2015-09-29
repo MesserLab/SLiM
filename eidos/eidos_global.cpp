@@ -22,6 +22,7 @@
 #include "eidos_script.h"
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
+#include "eidos_object_pool.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -42,17 +43,38 @@ void Eidos_WarmUp(void)
 	{
 		been_here = true;
 		
+		// Make the shared object pool
+		size_t maxEidosValueSize = sizeof(EidosValue_NULL);
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical_const));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_vector));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_singleton));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_vector));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_singleton));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float_vector));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float_singleton));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_vector));
+		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_singleton));
+		
+		//std::cout << "maxEidosValueSize == " << maxEidosValueSize << std::endl;
+		gEidosValuePool = new EidosObjectPool(maxEidosValueSize);
+		
+		// Allocate global permanents
 		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();
 		gStaticEidosValueNULLInvisible = EidosValue_NULL::Static_EidosValue_NULL_Invisible();
 		
 		gStaticEidosValue_LogicalT = EidosValue_Logical_const::Static_EidosValue_Logical_T();
 		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
 		
+		// Register global strings and IDs
 		Eidos_RegisterGlobalStringsAndIDs();
 		
+		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
-		
-		//std::cout << "sizeof(bool) == " << sizeof(bool) << std::endl;
 	}
 }
 

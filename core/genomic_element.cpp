@@ -105,13 +105,13 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_genomicElementType:
 			return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_startPosition:
-			return EidosValue_SP(new EidosValue_Int_singleton(start_position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_position_));
 		case gID_endPosition:
-			return EidosValue_SP(new EidosValue_Int_singleton(end_position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_position_));
 			
 			// variables
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:

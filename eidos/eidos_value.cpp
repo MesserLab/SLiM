@@ -35,6 +35,10 @@ using std::istream;
 using std::ostream;
 
 
+// The global object pool for EidosValue, initialized in EidosWarmup()
+EidosObjectPool *gEidosValuePool = nullptr;
+
+
 //
 //	Global static EidosValue objects; these are effectively const, although EidosValues can't be declared as const.
 //	Internally, thse are implemented as subclasses that terminate if they are dealloced or modified.
@@ -346,7 +350,7 @@ EidosValue_NULL::~EidosValue_NULL(void)
 /* static */ EidosValue_NULL_SP EidosValue_NULL::Static_EidosValue_NULL(void)
 {
 	// this is a truly permanent constant object
-	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new EidosValue_NULL());
+	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
 	
 	return static_null;
 }
@@ -354,7 +358,7 @@ EidosValue_NULL::~EidosValue_NULL(void)
 /* static */ EidosValue_NULL_SP EidosValue_NULL::Static_EidosValue_NULL_Invisible(void)
 {
 	// this is a truly permanent constant object
-	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new EidosValue_NULL());
+	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
 	
 	static_null->invisible_ = true;		// set every time, since we don't have a constructor to set invisibility
 	
@@ -550,12 +554,12 @@ void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_va
 
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Logical(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));
 }
 
 EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
 {
-	return EidosValue_SP(new EidosValue_Logical());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 }
 
 void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -590,7 +594,7 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 /* static */ EidosValue_Logical_SP EidosValue_Logical_const::Static_EidosValue_Logical_T(void)
 {
 	// this is a truly permanent constant object
-	static EidosValue_Logical_const_SP static_T = EidosValue_Logical_const_SP(new EidosValue_Logical_const(true));
+	static EidosValue_Logical_const_SP static_T = EidosValue_Logical_const_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical_const(true));
 	
 	return static_T;
 }
@@ -598,14 +602,14 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 /* static */ EidosValue_Logical_SP EidosValue_Logical_const::Static_EidosValue_Logical_F(void)
 {
 	// this is a truly permanent constant object
-	static EidosValue_Logical_const_SP static_F = EidosValue_Logical_const_SP(new EidosValue_Logical_const(false));
+	static EidosValue_Logical_const_SP static_F = EidosValue_Logical_const_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical_const(false));
 	
 	return static_F;
 }
 
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
-	return EidosValue_SP(new EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
 }
 
 std::vector<bool> &EidosValue_Logical_const::LogicalVector_Mutable(void)
@@ -667,7 +671,7 @@ const std::string &EidosValue_String::ElementType(void) const
 
 EidosValue_SP EidosValue_String::NewMatchingType(void) const
 {
-	return EidosValue_SP(new EidosValue_String_vector());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 }
 
 
@@ -776,7 +780,7 @@ EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, EidosTo
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_String_singleton(values_[p_idx]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(values_[p_idx]));
 }
 
 void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
@@ -789,7 +793,7 @@ void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue
 
 EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_String_vector(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_));
 }
 
 void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -886,17 +890,17 @@ EidosValue_SP EidosValue_String_singleton::GetValueAtIndex(const int p_idx, Eido
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_String_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_));
 }
 
 EidosValue_SP EidosValue_String_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_String_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_));
 }
 
 EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 {
-	EidosValue_String_vector_SP new_vec = EidosValue_String_vector_SP(new EidosValue_String_vector());
+	EidosValue_String_vector_SP new_vec = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 	
 	new_vec->PushString(value_);
 	
@@ -939,7 +943,7 @@ const std::string &EidosValue_Int::ElementType(void) const
 
 EidosValue_SP EidosValue_Int::NewMatchingType(void) const
 {
-	return EidosValue_SP(new EidosValue_Int_vector());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 }
 
 
@@ -1050,7 +1054,7 @@ EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, EidosToken
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Int_singleton(values_[p_idx]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(values_[p_idx]));
 }
 
 void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
@@ -1063,7 +1067,7 @@ void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p
 
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Int_vector(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_));
 }
 
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -1147,17 +1151,17 @@ EidosValue_SP EidosValue_Int_singleton::GetValueAtIndex(const int p_idx, EidosTo
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Int_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(value_));
 }
 
 EidosValue_SP EidosValue_Int_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Int_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(value_));
 }
 
 EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 {
-	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new EidosValue_Int_vector());
+	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 	
 	new_vec->PushInt(value_);
 	
@@ -1200,7 +1204,7 @@ const std::string &EidosValue_Float::ElementType(void) const
 
 EidosValue_SP EidosValue_Float::NewMatchingType(void) const
 {
-	return EidosValue_SP(new EidosValue_Float_vector());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 }
 
 
@@ -1340,7 +1344,7 @@ EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, EidosTok
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Float_singleton(values_[p_idx]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(values_[p_idx]));
 }
 
 void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
@@ -1353,7 +1357,7 @@ void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue 
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Float_vector(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_));
 }
 
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -1470,17 +1474,17 @@ EidosValue_SP EidosValue_Float_singleton::GetValueAtIndex(const int p_idx, Eidos
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Float_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(value_));
 }
 
 EidosValue_SP EidosValue_Float_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Float_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(value_));
 }
 
 EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 {
-	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new EidosValue_Float_vector());
+	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 	
 	new_vec->PushFloat(value_);
 	
@@ -1523,7 +1527,7 @@ const std::string &EidosValue_Object::ElementType(void) const
 
 EidosValue_SP EidosValue_Object::NewMatchingType(void) const
 {
-	return EidosValue_SP(new EidosValue_Object_vector());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
 }
 
 void EidosValue_Object::Sort(bool p_ascending)
@@ -1625,7 +1629,7 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosTo
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Object_singleton(values_[p_idx]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx]));
 }
 
 void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
@@ -1646,7 +1650,7 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 
 EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Object_vector(*this));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(*this));
 }
 
 void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
@@ -2006,7 +2010,7 @@ EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, Eido
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new EidosValue_Object_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_));
 }
 
 void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
@@ -2018,12 +2022,12 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 
 EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new EidosValue_Object_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_));
 }
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 {
-	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new EidosValue_Object_vector());
+	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
 	
 	new_vec->PushObjectElement(value_);
 	

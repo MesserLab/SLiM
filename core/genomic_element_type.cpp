@@ -153,7 +153,7 @@ void GenomicElementType::GenerateCachedSymbolTableEntry(void)
 	
 	getype_stream << "g" << genomic_element_type_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(getype_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
+	self_symbol_ = new EidosSymbolTableEntry(getype_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *GenomicElementType::Class(void) const
@@ -175,12 +175,12 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_getype_id_)
-				cached_value_getype_id_ = EidosValue_SP(new EidosValue_Int_singleton(genomic_element_type_id_));
+				cached_value_getype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genomic_element_type_id_));
 			return cached_value_getype_id_;
 		}
 		case gID_mutationTypes:
 		{
-			EidosValue_Object_vector *vec = new EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
@@ -189,11 +189,11 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			return result_SP;
 		}
 		case gID_mutationFractions:
-			return EidosValue_SP(new EidosValue_Float_vector(mutation_fractions_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_fractions_));
 			
 			// variables
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:

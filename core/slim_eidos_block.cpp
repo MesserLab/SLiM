@@ -577,7 +577,7 @@ void SLiMEidosBlock::GenerateCachedSymbolTableEntry(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_self, EidosValue_SP(new EidosValue_Object_singleton(this)));
+	self_symbol_ = new EidosSymbolTableEntry(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
 }
 
 void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
@@ -591,7 +591,7 @@ void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
 	
 	script_stream << "s" << block_id_;
 	
-	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
+	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *SLiMEidosBlock::Class(void) const
@@ -634,32 +634,32 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = EidosValue_SP(new EidosValue_Int_singleton(block_id_));
+				cached_value_block_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_id_));
 			return cached_value_block_id_;
 		}
 		case gID_start:
-			return EidosValue_SP(new EidosValue_Int_singleton(start_generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_generation_));
 		case gID_end:
-			return EidosValue_SP(new EidosValue_Int_singleton(end_generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_generation_));
 		case gID_type:
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEvent:				return EidosValue_SP(new EidosValue_String_singleton(gStr_event));
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_initialize));
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return EidosValue_SP(new EidosValue_String_singleton(gStr_fitness));
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_mateChoice));
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return EidosValue_SP(new EidosValue_String_singleton(gStr_modifyChild));
+				case SLiMEidosBlockType::SLiMEidosEvent:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_event));
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
 			}
 		}
 		case gID_source:
-			return EidosValue_SP(new EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
 			
 			// variables
 		case gID_active:
-			return EidosValue_SP(new EidosValue_Int_singleton(active_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(active_));
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:

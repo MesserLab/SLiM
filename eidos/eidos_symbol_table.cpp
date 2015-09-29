@@ -59,10 +59,10 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage)
 		trueConstant = new EidosSymbolTableEntry(gEidosStr_T, gStaticEidosValue_LogicalT);
 		falseConstant = new EidosSymbolTableEntry(gEidosStr_F, gStaticEidosValue_LogicalF);
 		nullConstant = new EidosSymbolTableEntry(gEidosStr_NULL, gStaticEidosValueNULL);
-		piConstant = new EidosSymbolTableEntry(gEidosStr_PI, EidosValue_SP(new EidosValue_Float_singleton(M_PI)));
-		eConstant = new EidosSymbolTableEntry(gEidosStr_E, EidosValue_SP(new EidosValue_Float_singleton(M_E)));
-		infConstant = new EidosSymbolTableEntry(gEidosStr_INF, EidosValue_SP(new EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
-		nanConstant = new EidosSymbolTableEntry(gEidosStr_NAN, EidosValue_SP(new EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+		piConstant = new EidosSymbolTableEntry(gEidosStr_PI, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_PI)));
+		eConstant = new EidosSymbolTableEntry(gEidosStr_E, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_E)));
+		infConstant = new EidosSymbolTableEntry(gEidosStr_INF, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
+		nanConstant = new EidosSymbolTableEntry(gEidosStr_NAN, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
 	}
 	
 	// We can use InitializeConstantSymbolEntry() here since we obey its requirements (see header)

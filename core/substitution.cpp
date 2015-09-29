@@ -68,15 +68,15 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationType:
 			return mutation_type_ptr_->CachedSymbolTableEntry()->second;
 		case gID_position:
-			return EidosValue_SP(new EidosValue_Int_singleton(position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:
-			return EidosValue_SP(new EidosValue_Float_singleton(selection_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
 		case gID_subpopID:
-			return EidosValue_SP(new EidosValue_Int_singleton(subpop_index_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
 		case gID_originGeneration:
-			return EidosValue_SP(new EidosValue_Int_singleton(generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
 		case gID_fixationTime:
-			return EidosValue_SP(new EidosValue_Int_singleton(fixation_time_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_time_));
 			
 			// all others, including gID_none
 		default:

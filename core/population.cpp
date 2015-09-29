@@ -313,7 +313,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				
 				if (mate_choice_callback->contains_weights_)
 				{
-					local_weights_ptr = EidosValue_SP(new EidosValue_Float_vector(current_weights, weights_length));
+					local_weights_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(current_weights, weights_length));
 					global_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
 				}
 				

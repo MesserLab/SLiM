@@ -119,7 +119,7 @@ void MutationType::GenerateCachedSymbolTableEntry(void)
 	
 	mut_type_stream << "m" << mutation_type_id_;
 	
-	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), EidosValue_SP(new EidosValue_Object_singleton(this)));
+	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
 }
 
 const EidosObjectClass *MutationType::Class(void) const
@@ -141,7 +141,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_muttype_id_)
-				cached_value_muttype_id_ = EidosValue_SP(new EidosValue_Int_singleton(mutation_type_id_));
+				cached_value_muttype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_type_id_));
 			return cached_value_muttype_id_;
 		}
 		case gID_distributionType:
@@ -152,9 +152,9 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_dfe_string_f)
 			{
-				static_dfe_string_f = EidosValue_SP(new EidosValue_String_singleton(gStr_f));
-				static_dfe_string_g = EidosValue_SP(new EidosValue_String_singleton(gStr_g));
-				static_dfe_string_e = EidosValue_SP(new EidosValue_String_singleton(gStr_e));
+				static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
+				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
+				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
 			}
 			
 			switch (dfe_type_)
@@ -165,13 +165,13 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		}
 		case gID_distributionParams:
-			return EidosValue_SP(new EidosValue_Float_vector(dfe_parameters_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(dfe_parameters_));
 			
 			// variables
 		case gID_dominanceCoeff:
-			return EidosValue_SP(new EidosValue_Float_singleton(dominance_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(dominance_coeff_));
 		case gID_tag:
-			return EidosValue_SP(new EidosValue_Int_singleton(tag_value_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
