@@ -248,6 +248,7 @@ inline void Eidos_intrusive_ptr_release(const EidosValue *p_value)
 	{
 		// We no longer delete; all objects under Eidos_intrusive_ptr should have been allocated out of gEidosValuePool, so it handles the free
 		//delete p_value;
+		p_value->~EidosValue();
 		gEidosValuePool->DisposeChunk(const_cast<EidosValue*>(p_value));
 	}
 }
