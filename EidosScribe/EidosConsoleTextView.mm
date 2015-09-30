@@ -180,6 +180,11 @@
 	return lastPromptRange.location + lastPromptRange.length;
 }
 
+- (void)setPromptRangeEnd:(NSUInteger)promptEnd
+{
+	lastPromptRange.location = promptEnd - lastPromptRange.length;
+}
+
 - (NSUInteger)rangeOffsetForCompletionRange
 {
 	return [self promptRangeEnd];
@@ -211,14 +216,15 @@
 	[welcomeString5 release];
 }
 
-- (void)showPrompt
+- (void)showPrompt:(unichar)promptChar
 {
 	NSTextStorage *ts = [self textStorage];
 	NSDictionary *promptAttrs = [NSDictionary eidosPromptAttrs];
 	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
 	
 	// The prompt uses the inputAttrs for the second (space) character, to make sure typing attributes are always correct
-	NSAttributedString *promptString1 = [[NSAttributedString alloc] initWithString:@">" attributes:promptAttrs];
+	NSString *prompt = [NSString stringWithCharacters:&promptChar length:1];
+	NSAttributedString *promptString1 = [[NSAttributedString alloc] initWithString:prompt attributes:promptAttrs];
 	NSAttributedString *promptString2 = [[NSAttributedString alloc] initWithString:@" " attributes:inputAttrs];
 	
 	// We remember the prompt range for various purposes such as uneditability of old content
@@ -235,6 +241,11 @@
 	[self setSelectedRange:NSMakeRange(lastPromptRange.location + 2, 0)];
 	[self setTypingAttributes:inputAttrs];
 	[self scrollRangeToVisible:NSMakeRange([[self string] length], 0)];
+}
+
+- (void)showPrompt
+{
+	[self showPrompt:'>'];
 }
 
 - (void)appendSpacer

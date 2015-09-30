@@ -334,69 +334,88 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 									  errorString:&errorString
 							withOptionalSemicolon:semicolonOptional];
 	
-	// make the attributed strings we will append
-	NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
-	NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[NSDictionary eidosOutputAttrs]] : nil);
-	NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[NSDictionary eidosErrorAttrs]] : nil);
-	NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[NSDictionary eidosTokensAttrs]] : nil);
-	NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[NSDictionary eidosParseAttrs]] : nil);
-	NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[NSDictionary eidosExecutionAttrs]] : nil);;
-	
-	// do the editing
-	[ts beginEditing];
-	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];
-	[outputTextView appendSpacer];
-	
-	if (tokenAttrString)
+	if ([errorString containsString:@"unexpected token 'EOF'"])
 	{
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:tokenAttrString];
-		[outputTextView appendSpacer];
-	}
-	if (parseAttrString)
-	{
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:parseAttrString];
-		[outputTextView appendSpacer];
-	}
-	if (executionAttrString)
-	{
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:executionAttrString];
-		[outputTextView appendSpacer];
-	}
-	if ([outputString2 length])
-	{
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString2];
-		[outputTextView appendSpacer];
-	}
-	if (errorAttrString)
-	{
-		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorAttrString];
-		[outputTextView appendSpacer];
-	}
-	
-	if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError) && (scriptRange.location != NSNotFound))
-	{
-		// An error occurred, so let's try to highlight it in the input
-		int errorTokenStart = gEidosCharacterStartOfError + (int)scriptRange.location;
-		int errorTokenEnd = gEidosCharacterEndOfError + (int)scriptRange.location;
+		// The user has entered an incomplete script line, so we need to append a newline...
+		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
 		
-		NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
+		[ts beginEditing];
+		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];
+		[ts endEditing];
 		
-		[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
-		[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
+		[outputString1 release];
+		
+		// ...and issue a continuation prompt to await further input
+		[outputTextView showPrompt:'+'];
+		originalPromptEnd = promptEnd;
+		isContinuationPrompt = YES;
 	}
-	
-	[ts endEditing];
-	
-	// clean up
-	[outputString1 release];
-	[tokenAttrString release];
-	[parseAttrString release];
-	[executionAttrString release];
-	[outputString2 release];
-	[errorAttrString release];
-	
-	// and show a new prompt
-	[outputTextView showPrompt];
+	else
+	{
+		// make the attributed strings we will append
+		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
+		NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[NSDictionary eidosOutputAttrs]] : nil);
+		NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[NSDictionary eidosErrorAttrs]] : nil);
+		NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[NSDictionary eidosTokensAttrs]] : nil);
+		NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[NSDictionary eidosParseAttrs]] : nil);
+		NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[NSDictionary eidosExecutionAttrs]] : nil);;
+		
+		// do the editing
+		[ts beginEditing];
+		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];
+		[outputTextView appendSpacer];
+		
+		if (tokenAttrString)
+		{
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:tokenAttrString];
+			[outputTextView appendSpacer];
+		}
+		if (parseAttrString)
+		{
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:parseAttrString];
+			[outputTextView appendSpacer];
+		}
+		if (executionAttrString)
+		{
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:executionAttrString];
+			[outputTextView appendSpacer];
+		}
+		if ([outputString2 length])
+		{
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString2];
+			[outputTextView appendSpacer];
+		}
+		if (errorAttrString)
+		{
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:errorAttrString];
+			[outputTextView appendSpacer];
+		}
+		
+		if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError) && (scriptRange.location != NSNotFound))
+		{
+			// An error occurred, so let's try to highlight it in the input
+			int errorTokenStart = gEidosCharacterStartOfError + (int)scriptRange.location;
+			int errorTokenEnd = gEidosCharacterEndOfError + (int)scriptRange.location;
+			
+			NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
+			
+			[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
+			[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
+		}
+		
+		[ts endEditing];
+		
+		// clean up
+		[outputString1 release];
+		[tokenAttrString release];
+		[parseAttrString release];
+		[executionAttrString release];
+		[outputString2 release];
+		[errorAttrString release];
+		
+		// and show a new prompt
+		[outputTextView showPrompt];
+	}
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem
@@ -524,6 +543,37 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[browserController toggleBrowserVisibility:nil];
 }
 
+- (void)elideContinuationPrompt
+{
+	// This replaces the continuation prompt, if there is one, with a space, and switches the active prompt back to the original prompt;
+	// the net effect is as if the user entered a newline and two spaces at the original prompt, with no continuation.  Note that the
+	// two spaces at the beginning of continuation lines is mirrored in fullInputString, below.
+	if (isContinuationPrompt)
+	{
+		NSTextStorage *ts = [outputTextView textStorage];
+		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+		NSAttributedString *promptString1 = [[NSAttributedString alloc] initWithString:@" " attributes:inputAttrs];
+		NSUInteger promptEnd = [outputTextView promptRangeEnd];
+		
+		[ts beginEditing];
+		[ts replaceCharactersInRange:NSMakeRange(promptEnd - 2, 1) withAttributedString:promptString1];
+		[ts endEditing];
+		
+		[outputTextView setPromptRangeEnd:originalPromptEnd];
+		isContinuationPrompt = NO;
+	}
+}
+
+- (NSString *)fullInputString
+{
+	[self elideContinuationPrompt];
+	
+	NSString *fullInputString = [outputTextView string];
+	NSUInteger promptEnd = [outputTextView promptRangeEnd];
+	
+	return [fullInputString substringFromIndex:promptEnd];
+}
+
 - (IBAction)executeAll:(id)sender
 {
 	NSTextStorage *ts = [outputTextView textStorage];
@@ -532,12 +582,16 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:fullScriptString attributes:inputAttrs] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
 	
+	// The contents of the current prompt line get replaced by the execution block
 	[ts beginEditing];
 	[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
 	[ts endEditing];
 	
-	[outputTextView registerNewHistoryItem:fullScriptString];
-	[self executeScriptString:fullScriptString withOptionalSemicolon:NO];
+	// The current prompt might be a continuation prompt, so now we get the full input string from the original prompt
+	NSString *executionString = [self fullInputString];
+	
+	[outputTextView registerNewHistoryItem:executionString];
+	[self executeScriptString:executionString withOptionalSemicolon:NO];
 }
 
 - (IBAction)executeSelection:(id)sender
@@ -595,12 +649,16 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:scriptString attributes:inputAttrs] autorelease];
 		NSUInteger promptEnd = [outputTextView promptRangeEnd];
 		
+		// The contents of the current prompt line get replaced by the execution line
 		[ts beginEditing];
 		[ts replaceCharactersInRange:NSMakeRange(promptEnd, [ts length] - promptEnd) withAttributedString:scriptAttrString];
 		[ts endEditing];
 		
-		[outputTextView registerNewHistoryItem:scriptString];
-		[self executeScriptString:scriptString withOptionalSemicolon:YES];
+		// The current prompt might be a continuation prompt, so now we get the full input string from the original prompt
+		NSString *executionString = [self fullInputString];
+		
+		[outputTextView registerNewHistoryItem:executionString];
+		[self executeScriptString:executionString withOptionalSemicolon:YES];
 	}
 	else
 	{
@@ -662,11 +720,33 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 {
 	if (textView == outputTextView)
 	{
-		NSString *outputString = [outputTextView string];
-		NSString *scriptString = [outputString substringFromIndex:[outputTextView promptRangeEnd]];
-		
-		[outputTextView registerNewHistoryItem:scriptString];
-		[self executeScriptString:scriptString withOptionalSemicolon:YES];
+		if (isContinuationPrompt && ([[outputTextView string] length] == [outputTextView promptRangeEnd]))
+		{
+			// If the user has hit return at an empty continuation prompt, we take that as a sign that they want to get out of it
+			NSString *executionString = [self fullInputString];
+			
+			[outputTextView registerNewHistoryItem:executionString];
+			
+			NSTextStorage *ts = [outputTextView textStorage];
+			NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
+			
+			[ts beginEditing];
+			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];
+			[ts endEditing];
+			
+			[outputString1 release];
+			
+			// show a new prompt
+			[outputTextView showPrompt];
+		}
+		else
+		{
+			// The current prompt might be a non-empty continuation prompt, so now we get the full input string from the original prompt
+			NSString *executionString = [self fullInputString];
+			
+			[outputTextView registerNewHistoryItem:executionString];
+			[self executeScriptString:executionString withOptionalSemicolon:YES];
+		}
 	}
 }
 

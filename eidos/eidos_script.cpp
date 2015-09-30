@@ -1130,7 +1130,7 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
+			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
 		}
 	}
 	catch (...)
@@ -1191,7 +1191,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token " << *current_token_ << "." << eidos_terminate(current_token_);
+			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
 		}
 	}
 	catch (...)

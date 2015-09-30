@@ -43,6 +43,9 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 
 @interface EidosConsoleWindowController : NSObject
 {
+	// ivars for handling input continuation
+	BOOL isContinuationPrompt;
+	NSUInteger originalPromptEnd;
 }
 
 // A delegate may be provided to customize various aspects of this class; see EidosConsoleWindowControllerDelegate.h

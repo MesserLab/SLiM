@@ -58,14 +58,16 @@
 //- (instancetype)initWithFrame:(NSRect)frameRect textContainer:(NSTextContainer *)container NS_DESIGNATED_INITIALIZER;
 //- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
-// The last character position in the current Eidos prompt; user input starts at the next character position
+// The character position following the current Eidos prompt; user input starts at this character position
 - (NSUInteger)promptRangeEnd;
+- (void)setPromptRangeEnd:(NSUInteger)promptEnd;
 
 // Can be called to show the standard Eidos welcome message in the console
 - (void)showWelcomeMessage;
 
 // Adds a new Eidos prompt to the console, on the assumption that output is finished and the console is ready for input
 - (void)showPrompt;
+- (void)showPrompt:(unichar)promptChar;
 
 // Adds a thin spacer line to the console's output text; this provides nicer formatting for output
 - (void)appendSpacer;
