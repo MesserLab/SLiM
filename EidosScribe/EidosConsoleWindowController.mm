@@ -206,7 +206,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	{
 		NSString *errorString = nil;
 		
-		[self _executeScriptString:@";" tokenString:NULL parseString:NULL executionString:NULL errorString:&errorString addOptionalSemicolon:NO];
+		[self _executeScriptString:@";" tokenString:NULL parseString:NULL executionString:NULL errorString:&errorString withOptionalSemicolon:NO];
 		
 		if (errorString)
 			NSLog(@"Error in validateSymbolTable: %@", errorString);
@@ -215,20 +215,20 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[browserController reloadBrowser];
 }
 
-- (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString addOptionalSemicolon:(BOOL)addSemicolon
+- (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString withOptionalSemicolon:(BOOL)semicolonOptional
 {
 	string script_string([scriptString UTF8String]);
 	EidosScript script(script_string);
 	string output;
 	
+	// Make the final semicolon optional if requested; this allows input like "6+7" in the console
+	if (semicolonOptional)
+		script.SetFinalSemicolonOptional(true);
+	
 	// Tokenize
 	try
 	{
 		script.Tokenize();
-		
-		// Add a semicolon if needed; this allows input like "6+7" in the console
-		if (addSemicolon)
-			script.AddOptionalSemicolon();
 		
 		if (tokenString)
 		{
@@ -316,7 +316,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return [NSString stringWithUTF8String:output.c_str()];
 }
 
-- (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon
+- (void)executeScriptString:(NSString *)scriptString withOptionalSemicolon:(BOOL)semicolonOptional
 {
 	NSTextStorage *ts = [outputTextView textStorage];
 	NSString *tokenString = nil, *parseString = nil, *executionString = nil, *errorString = nil;
@@ -332,7 +332,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 									  parseString:(showParse ? &parseString : NULL)
 								  executionString:(showExecution ? &executionString : NULL)
 									  errorString:&errorString
-							 addOptionalSemicolon:addSemicolon];
+							withOptionalSemicolon:semicolonOptional];
 	
 	// make the attributed strings we will append
 	NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
@@ -537,7 +537,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[ts endEditing];
 	
 	[outputTextView registerNewHistoryItem:fullScriptString];
-	[self executeScriptString:fullScriptString addOptionalSemicolon:NO];
+	[self executeScriptString:fullScriptString withOptionalSemicolon:NO];
 }
 
 - (IBAction)executeSelection:(id)sender
@@ -600,7 +600,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[ts endEditing];
 		
 		[outputTextView registerNewHistoryItem:scriptString];
-		[self executeScriptString:scriptString addOptionalSemicolon:YES];
+		[self executeScriptString:scriptString withOptionalSemicolon:YES];
 	}
 	else
 	{
@@ -666,7 +666,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		NSString *scriptString = [outputString substringFromIndex:[outputTextView promptRangeEnd]];
 		
 		[outputTextView registerNewHistoryItem:scriptString];
-		[self executeScriptString:scriptString addOptionalSemicolon:YES];
+		[self executeScriptString:scriptString withOptionalSemicolon:YES];
 	}
 }
 

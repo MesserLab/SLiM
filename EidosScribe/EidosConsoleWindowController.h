@@ -85,8 +85,8 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 // to produce the symbol table as a side effect of setting up for the script's execution
 - (void)validateSymbolTable;
 
-// Execute the given script string, appending a semicolon if requested and necessary
-- (void)executeScriptString:(NSString *)scriptString addOptionalSemicolon:(BOOL)addSemicolon;
+// Execute the given script string, with the terminating semicolon being optional if requested
+- (void)executeScriptString:(NSString *)scriptString withOptionalSemicolon:(BOOL)semicolonOptional;
 
 
 // Actions used by EidosConsoleWindow.xib; may be called directly

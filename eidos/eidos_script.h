@@ -63,6 +63,8 @@ protected:
 	std::vector<EidosToken *> token_stream_;					// OWNED POINTERS
 	EidosASTNode *parse_root_ = nullptr;						// OWNED POINTER
 	
+	bool final_semicolon_optional_ = false;
+	
 	// parsing ivars, valid only during parsing
 	int parse_index_;						// index into token_stream_ of the current token
 	EidosToken *current_token_;				// token_stream_[parse_index_]; owned indirectly
@@ -77,11 +79,10 @@ public:
 	
 	virtual ~EidosScript(void);												// destructor
 	
+	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
+	
 	// generate token stream from script string; if p_make_bad_tokens == true this function will not raise or fail
 	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);
-	
-	// add a semicolon to unterminated input like "6+7" so it works in the console
-	void AddOptionalSemicolon(void);
 	
 	// generate AST from token stream for an interpreter block ( statement* EOF )
 	void ParseInterpreterBlockToAST(void);

@@ -401,40 +401,6 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	gEidosCurrentScript = current_script_save;
 }
 
-void EidosScript::AddOptionalSemicolon(void)
-{
-	auto eof_iter = token_stream_.end();
-	int eof_start = INT_MAX;
-	
-	for (auto token_iter = token_stream_.end() - 1; token_iter != token_stream_.begin(); --token_iter)
-	{
-		EidosToken *token = *token_iter;
-		
-		// if we see an EOF, we want to remember it so we can insert before it and use its position
-		if (token->token_type_ == EidosTokenType::kTokenEOF)
-		{
-			eof_iter = token_iter;
-			eof_start = token->token_start_;
-			continue;
-		}
-		
-		// if we see a '}' or ';' token, the token stream is correctly terminated (or at least we can't fix it)
-		if (token->token_type_ == EidosTokenType::kTokenRBrace)
-			return;
-		if (token->token_type_ == EidosTokenType::kTokenSemicolon)
-			return;
-		
-		break;
-	}
-	
-	if (eof_iter != token_stream_.end())
-	{
-		EidosToken *virtual_semicolon = new EidosToken(EidosTokenType::kTokenSemicolon, ";", eof_start, eof_start);
-		
-		token_stream_.insert(eof_iter, virtual_semicolon);
-	}
-}
-
 void EidosScript::Consume(void)
 {
 	// consume the token unless it is an EOF; we effectively have an infinite number of EOF tokens at the end
@@ -562,13 +528,18 @@ EidosASTNode *EidosScript::Parse_ExprStatement(void)
 	{
 		if (current_token_type_ == EidosTokenType::kTokenSemicolon)
 		{
-			node = new EidosASTNode(current_token_);		// an empty statement is represented by a semicolon token
+			// an empty statement is represented by a semicolon token; note that EOF cannot
+			// substitute for this semicolon even when final_semicolon_optional_ is true
+			node = new EidosASTNode(current_token_);
 			Consume();
 		}
 		else
 		{
 			node = Parse_AssignmentExpr();
-			Match(EidosTokenType::kTokenSemicolon, "expression statement");
+			
+			// match the terminating semicolon unless it is optional and we're at the EOF
+			if (!final_semicolon_optional_ || (current_token_type_ != EidosTokenType::kTokenEOF))
+				Match(EidosTokenType::kTokenSemicolon, "expression statement");
 		}
 	}
 	catch (...)
@@ -636,7 +607,10 @@ EidosASTNode *EidosScript::Parse_DoWhileStatement(void)
 		node->AddChild(test_expr);
 		
 		Match(EidosTokenType::kTokenRParen, "do/while statement");
-		Match(EidosTokenType::kTokenSemicolon, "do/while statement");
+		
+		// match the terminating semicolon unless it is optional and we're at the EOF
+		if (!final_semicolon_optional_ || (current_token_type_ != EidosTokenType::kTokenEOF))
+			Match(EidosTokenType::kTokenSemicolon, "do/while statement");
 	}
 	catch (...)
 	{
@@ -720,23 +694,29 @@ EidosASTNode *EidosScript::Parse_JumpStatement(void)
 			node = new EidosASTNode(current_token_);
 			Consume();
 			
-			Match(EidosTokenType::kTokenSemicolon, "next/break statement");
+			// match the terminating semicolon unless it is optional and we're at the EOF
+			if (!final_semicolon_optional_ || (current_token_type_ != EidosTokenType::kTokenEOF))
+				Match(EidosTokenType::kTokenSemicolon, "next/break statement");
 		}
 		else if (current_token_type_ == EidosTokenType::kTokenReturn)
 		{
 			node = new EidosASTNode(current_token_);
 			Consume();
 			
-			if (current_token_type_ == EidosTokenType::kTokenSemicolon)
+			if ((current_token_type_ == EidosTokenType::kTokenSemicolon) || (current_token_type_ == EidosTokenType::kTokenEOF))
 			{
-				Match(EidosTokenType::kTokenSemicolon, "return statement");
+				// match the terminating semicolon unless it is optional and we're at the EOF
+				if (!final_semicolon_optional_ || (current_token_type_ != EidosTokenType::kTokenEOF))
+					Match(EidosTokenType::kTokenSemicolon, "return statement");
 			}
 			else
 			{
 				EidosASTNode *value_expr = Parse_Expr();
 				node->AddChild(value_expr);
 				
-				Match(EidosTokenType::kTokenSemicolon, "return statement");
+				// match the terminating semicolon unless it is optional and we're at the EOF
+				if (!final_semicolon_optional_ || (current_token_type_ != EidosTokenType::kTokenEOF))
+					Match(EidosTokenType::kTokenSemicolon, "return statement");
 			}
 		}
 	}
