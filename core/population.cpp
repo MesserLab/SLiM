@@ -70,7 +70,14 @@ void Population::RemoveAllSubpopulationInfo(void)
 	Mutation **registry_iter_end = mutation_registry_.end_pointer();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		delete *registry_iter;
+	{
+		Mutation *mutation = *registry_iter;
+		
+		// We no longer delete mutation objects; instead, we remove them from our shared pool
+		//delete mutation;
+		mutation->~Mutation();
+		gSLiM_Mutation_Pool->DisposeChunk(const_cast<Mutation *>(mutation));
+	}
 	
 	mutation_registry_.clear();
 	
