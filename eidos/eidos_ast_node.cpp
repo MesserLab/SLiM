@@ -218,7 +218,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 	}
 }
 
-void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, bool *p_references, bool *p_assigns) const
+void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, uint8_t *p_references, uint8_t *p_assigns) const
 {
 	// recurse down the tree; determine our children, then ourselves
 	for (auto child : children_)
@@ -236,7 +236,7 @@ void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, b
 	{
 		// if the identifier occurs anywhere on the left-hand side of an assignment, that is an assignment (overbroad, but whatever)
 		EidosASTNode *lvalue_node = children_[0];
-		bool references = false, assigns = false;
+		uint8_t references = false, assigns = false;
 		
 		lvalue_node->_OptimizeForScan(p_for_index_identifier, &references, &assigns);
 		
@@ -296,10 +296,10 @@ void EidosASTNode::_OptimizeFor(void) const
 		
 		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 		{
-			cached_for_references_index = false;
-			cached_for_assigns_index = false;
+			cached_for_references_index_ = false;
+			cached_for_assigns_index_ = false;
 			
-			statement_child->_OptimizeForScan(identifier_child->token_->token_string_, &cached_for_references_index, &cached_for_assigns_index);
+			statement_child->_OptimizeForScan(identifier_child->token_->token_string_, &cached_for_references_index_, &cached_for_assigns_index_);
 		}
 	}
 }

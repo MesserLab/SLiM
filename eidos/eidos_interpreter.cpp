@@ -3872,11 +3872,11 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 	// true if the for-loop statement references the index variable; if so, it needs to be set up
 	// each iteration, but that can be done very cheaply by replacing its internal value
-	bool references_index = p_node->cached_for_references_index;
+	uint8_t references_index = p_node->cached_for_references_index_;
 	
 	// true if the for-loop statement assigns to the index variable; if so, it needs to be set up
 	// each iteration, and that has to be done without any assumptions regarding its current value
-	bool assigns_index = p_node->cached_for_assigns_index;
+	uint8_t assigns_index = p_node->cached_for_assigns_index_;
 	
 	// In some cases we do not need to actually construct the range that we are going to iterate over; we check for that case here
 	// and handle it immediately, otherwise we drop through to the (!simpleIntegerRange) case below
