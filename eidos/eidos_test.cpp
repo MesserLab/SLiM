@@ -224,6 +224,10 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("\"foo\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
 	EidosAssertScriptSuccess("\"foo\\tbar\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo\tbar")));
 	EidosAssertScriptSuccess("\"\\'foo'\\t\\\"bar\\\"\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\t\"bar\"")));
+	EidosAssertScriptSuccess("<<\n'foo'\n\"bar\"\n>>;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
+	EidosAssertScriptSuccess("<<---\n'foo'\n\"bar\"\n>>---;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
+	EidosAssertScriptSuccess("<<<<\n'foo'\n\"bar\"\n>><<;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
+	EidosAssertScriptSuccess("<<<<\n'foo'\n\"bar>><\"\n>><<;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar>><\"")));
 	EidosAssertScriptSuccess("T;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("F;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("NULL;", gStaticEidosValueNULL);

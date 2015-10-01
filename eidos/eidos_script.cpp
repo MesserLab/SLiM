@@ -114,9 +114,78 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				if (ch2 == '=') { token_type = EidosTokenType::kTokenEq; token_end++; }
 				else { token_type = EidosTokenType::kTokenAssign; }
 				break;
-			case '<':	// <= or <
-				if (ch2 == '=') { token_type = EidosTokenType::kTokenLtEq; token_end++; }
-				else { token_type = EidosTokenType::kTokenLt; }
+			case '<':	// <<DELIM "here document"-style string, or <= or <
+				if (ch2 == '<')
+				{
+					// A "here document" string literal; starts with <<DELIM and ends with >>DELIM, where DELIM is any
+					// character sequence (including no delim) followed by a newline that is not part of DELIM.
+					// This style of string literal has no escape sequences, and allows newlines.
+					token_type = EidosTokenType::kTokenString;
+					
+					// find the delimiter; it may be any characters at all, or none, followed by a newline or EOF
+					// there is always at least a zero-length delimiter, so this cannot fail
+					int delim_start_pos = pos + 2;
+					int delim_end_pos = pos + 1;
+					
+					while (delim_end_pos + 1 < len)
+					{
+						if ((script_string_[delim_end_pos + 1] == '\n') || (script_string_[delim_end_pos + 1] == '\r'))
+							break;
+						delim_end_pos++;
+					}
+					
+					// now move characters into the string literal until we find a newline followed by the end-delimiter
+					int delim_length = delim_end_pos - delim_start_pos + 1;
+					
+					token_end = delim_end_pos + 1;	// skip the initial newline, which is not part of the string literal
+					
+					while (true)
+					{
+						gEidosCharacterStartOfError = token_start;
+						gEidosCharacterEndOfError = token_end;
+						
+						if (token_end + 1 >= len)
+						{
+							if (p_make_bad_tokens)
+							{
+								token_type = EidosTokenType::kTokenBad;
+								break;
+							}
+							
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << eidos_terminate();
+						}
+						
+						int chn = script_string_[token_end + 1];
+						
+						if (((chn == '\n') || (chn == '\r')) && (token_end + 1 + delim_length + 2 < len))	// +1 for the newlines, +2 for ">>", plus the delimiter itself, must all fit before the EOF
+						{
+							if ((script_string_[token_end + 2] == '>') && (script_string_[token_end + 3] == '>'))
+							{
+								int delim_index;
+								
+								for (delim_index = 0; delim_index < delim_length; ++delim_index)
+									if (script_string_[token_end + 4 + delim_index] != script_string_[delim_start_pos + delim_index])
+										break;
+								
+								if (delim_index == delim_length)
+								{
+									// the full delimiter matched, so we are done
+									token_end = token_end + 4 + delim_index - 1;
+									break;
+								}
+							}
+						}
+						
+						// the current character is not the start of an end-delimiter, so it is part of the token's string
+						token_string += (char)chn;
+						token_end++;
+					}
+				}
+				else
+				{
+					if (ch2 == '=') { token_type = EidosTokenType::kTokenLtEq; token_end++; }
+					else { token_type = EidosTokenType::kTokenLt; }
+				}
 				break;
 			case '>':	// >= or >
 				if (ch2 == '=') { token_type = EidosTokenType::kTokenGtEq; token_end++; }
