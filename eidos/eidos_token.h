@@ -105,14 +105,20 @@ class EidosToken
 public:
 	
 	const EidosTokenType token_type_;			// the type of the token; one of the enumeration above
-	const std::string token_string_;		// extracted string object for the token
-	const int token_start_;					// character position within script_string_
-	const int token_end_;					// character position within script_string_
+	const std::string token_string_;			// extracted string object for the token
+	const int32_t token_start_;					// character position within script_string_
+	const int32_t token_end_;					// character position within script_string_
+	
+	// These are only used in the GUI environment, where we need token positions in terms of NSString's character indices.
+	// They are calculated in all compile environments, though, since the overhead is small.
+	const int32_t token_UTF16_start_;			// the same as token_start_ but in UTF-16 code units, as NSString uses
+	const int32_t token_UTF16_end_;				// the same as token_end_ but in UTF-16 code units, as NSString uses
 	
 	EidosToken(const EidosToken&) = delete;					// no copying
 	EidosToken& operator=(const EidosToken&) = delete;		// no copying
-	EidosToken(void) = delete;									// no null construction
-	EidosToken(EidosTokenType p_token_type, const std::string &p_token_string, int p_token_start, int p_token_end);
+	EidosToken(void) = delete;								// no null construction
+	
+	EidosToken(EidosTokenType p_token_type, const std::string &p_token_string, int32_t p_token_start, int32_t p_token_end, int32_t p_token_UTF16_start, int32_t p_token_UTF16_end);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosToken &p_token);

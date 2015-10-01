@@ -35,7 +35,8 @@ SLiMEidosScript::~SLiMEidosScript(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0, 0, 0);
+	
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
 	try
@@ -58,7 +59,8 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0, 0, 0);
+	
 	EidosASTNode *slim_script_block_node = new EidosASTNode(virtual_token, true);
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.

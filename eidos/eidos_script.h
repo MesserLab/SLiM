@@ -48,6 +48,8 @@ typedef struct
 {
 	int characterStartOfError;
 	int characterEndOfError;
+	int characterStartOfErrorUTF16;
+	int characterEndOfErrorUTF16;
 } EidosErrorPosition;
 
 
@@ -101,10 +103,12 @@ public:
 	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
 	static inline EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
 	{
-		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError};
+		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16};
 		
 		gEidosCharacterStartOfError = p_naughty_token_->token_start_;
 		gEidosCharacterEndOfError = p_naughty_token_->token_end_;
+		gEidosCharacterStartOfErrorUTF16 = p_naughty_token_->token_UTF16_start_;
+		gEidosCharacterEndOfErrorUTF16 = p_naughty_token_->token_UTF16_end_;
 		
 		return old_position;
 	}
@@ -113,12 +117,16 @@ public:
 	{
 		gEidosCharacterStartOfError = p_saved_position.characterStartOfError;
 		gEidosCharacterEndOfError = p_saved_position.characterEndOfError;
+		gEidosCharacterStartOfErrorUTF16 = p_saved_position.characterStartOfErrorUTF16;
+		gEidosCharacterEndOfErrorUTF16 = p_saved_position.characterEndOfErrorUTF16;
 	}
 	
 	static inline void ClearErrorPosition(void)
 	{
 		gEidosCharacterStartOfError = -1;
 		gEidosCharacterEndOfError = -1;
+		gEidosCharacterStartOfErrorUTF16 = -1;
+		gEidosCharacterEndOfErrorUTF16 = -1;
 	}
 	
 	// Top-level parse method for the Eidos interpreter and other contexts

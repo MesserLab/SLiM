@@ -57,6 +57,7 @@ extern std::string gEidosContextLicense;
 // is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
 // for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
 extern int gEidosCharacterStartOfError, gEidosCharacterEndOfError;
+extern int gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16;
 extern EidosScript *gEidosCurrentScript;
 extern bool gEidosExecutingRuntimeScript;
 

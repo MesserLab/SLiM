@@ -198,6 +198,8 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 	bool saved_error_tracking = false;
 	int error_start_save;
 	int error_end_save;
+	int error_start_save_UTF16;
+	int error_end_save_UTF16;
 	EidosScript *current_script_save;
 	bool executing_runtime_script_save;
 	
@@ -209,11 +211,15 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 		// This script block is constructed at runtime and has its own script, so we need to redirect error tracking
 		error_start_save = gEidosCharacterStartOfError;
 		error_end_save = gEidosCharacterEndOfError;
+		error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+		error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
 		current_script_save = gEidosCurrentScript;
 		executing_runtime_script_save = gEidosExecutingRuntimeScript;
 		
 		gEidosCharacterStartOfError = -1;
 		gEidosCharacterEndOfError = -1;
+		gEidosCharacterStartOfErrorUTF16 = -1;
+		gEidosCharacterEndOfErrorUTF16 = -1;
 		gEidosCurrentScript = p_script_for_block;
 		gEidosExecutingRuntimeScript = true;
 		
@@ -250,6 +256,8 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 		#pragma clang diagnostic ignored "-Wconditional-uninitialized"
 		gEidosCharacterStartOfError = error_start_save;
 		gEidosCharacterEndOfError = error_end_save;
+		gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+		gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 		gEidosCurrentScript = current_script_save;
 		gEidosExecutingRuntimeScript = executing_runtime_script_save;
 		#pragma clang diagnostic pop

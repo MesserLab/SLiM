@@ -42,6 +42,38 @@ bool gEidosLogAST = false;
 bool gEidosLogEvaluation = false;
 
 
+// From stack overflow http://stackoverflow.com/questions/15038616/how-to-convert-between-character-and-byte-position-in-objective-c-c-c
+// by Dietrich Epp.  This function converts a "character" position in, e.g., std::string, which uses UTF-8, to a "character"
+// position in, e.g., NSString, which uses UTF-16.  We don't actually use Eidos_utf8_utf16width(), but we use BYTE_WIDTHS,
+// so I've kept Eidos_utf8_utf16width() here as a sort of documentation for what BYTE_WIDTHS means.
+static const unsigned char BYTE_WIDTHS[256] = {
+	// 1-byte: 0xxxxxxx
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	// Trailing: 10xxxxxx
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	// 2-byte leading: 110xxxxx
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	// 3-byte leading: 1110xxxx
+	// 4-byte leading: 11110xxx
+	// invalid: 11111xxx
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,0
+};
+
+/*
+static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
+{
+	size_t i, utf16len = 0;
+	for (i = 0; i < len; i++)
+		utf16len += BYTE_WIDTHS[string[i]];
+	return utf16len;
+}
+*/
+
+
 //
 //	Script
 //
@@ -76,17 +108,20 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	parse_root_ = nullptr;
 	
 	// chew off one token at a time from script_string_, make a Token object, and add it
-	int pos = 0, len = (int)script_string_.length();
+	int32_t pos = 0, len = (int)script_string_.length();
+	int32_t pos_UTF16 = 0;
 	
 	while (pos < len)
 	{
-		int token_start = pos;										// the first character position in the current token
-		int token_end = pos;										// the last character position in the current token
-		int ch = script_string_[pos];								// the current character
-		int ch2 = ((pos >= len) ? 0 : script_string_[pos + 1]);		// look ahead one character
-		bool skip = false;											// set to true to skip creating/adding this token
+		int32_t token_start = pos;													// the first character position in the current token
+		int32_t token_end = pos;													// the last character position in the current token
+		int ch = (unsigned char)script_string_[pos];								// the current character
+		int ch2 = ((pos >= len) ? 0 : (unsigned char)script_string_[pos + 1]);		// look ahead one character (assuming ch is a single-byte character)
+		bool skip = false;															// set to true to skip creating/adding this token
 		EidosTokenType token_type = EidosTokenType::kTokenNone;
 		string token_string;
+		int32_t token_UTF16_start = pos_UTF16;
+		int32_t token_UTF16_end = pos_UTF16;
 		
 		switch (ch)
 		{
@@ -111,7 +146,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			
 			// cases that require lookahead due to ambiguity: =, <, >, !, /
 			case '=':
-				if (ch2 == '=') { token_type = EidosTokenType::kTokenEq; token_end++; }
+				if (ch2 == '=') { token_type = EidosTokenType::kTokenEq; token_end++; token_UTF16_end++; }
 				else { token_type = EidosTokenType::kTokenAssign; }
 				break;
 			case '<':	// <<DELIM "here document"-style string, or <= or <
@@ -124,25 +159,35 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					
 					// find the delimiter; it may be any characters at all, or none, followed by a newline or EOF
 					// there is always at least a zero-length delimiter, so this cannot fail
-					int delim_start_pos = pos + 2;
-					int delim_end_pos = pos + 1;
+					int32_t delim_start_pos = pos + 2;
+					int32_t delim_end_pos = pos + 1;
+					int32_t delim_end_pos_UTF16 = pos_UTF16 + 1;
+					int32_t delim_length_UTF16 = 0;
 					
 					while (delim_end_pos + 1 < len)
 					{
-						if ((script_string_[delim_end_pos + 1] == '\n') || (script_string_[delim_end_pos + 1] == '\r'))
+						unsigned char chn = (unsigned char)script_string_[delim_end_pos + 1];
+						
+						if ((chn == '\n') || (chn == '\r'))
 							break;
+						
 						delim_end_pos++;
+						delim_end_pos_UTF16 += BYTE_WIDTHS[chn];
+						delim_length_UTF16 += BYTE_WIDTHS[chn];
 					}
 					
 					// now move characters into the string literal until we find a newline followed by the end-delimiter
 					int delim_length = delim_end_pos - delim_start_pos + 1;
 					
 					token_end = delim_end_pos + 1;	// skip the initial newline, which is not part of the string literal
+					token_UTF16_end = delim_end_pos_UTF16 + 1;
 					
 					while (true)
 					{
 						gEidosCharacterStartOfError = token_start;
 						gEidosCharacterEndOfError = token_end;
+						gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+						gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 						
 						if (token_end + 1 >= len)
 						{
@@ -155,7 +200,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << eidos_terminate();
 						}
 						
-						int chn = script_string_[token_end + 1];
+						unsigned char chn = (unsigned char)script_string_[token_end + 1];
 						
 						if (((chn == '\n') || (chn == '\r')) && (token_end + 1 + delim_length + 2 < len))	// +1 for the newlines, +2 for ">>", plus the delimiter itself, must all fit before the EOF
 						{
@@ -169,41 +214,51 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								
 								if (delim_index == delim_length)
 								{
-									// the full delimiter matched, so we are done
-									token_end = token_end + 4 + delim_index - 1;
+									// the full delimiter matched, so we are done; advance by newline + '>' + '>' + delimiter
+									token_end = token_end + 3 + delim_length;
+									token_UTF16_end = token_UTF16_end + 3 + delim_length_UTF16;
 									break;
 								}
 							}
 						}
 						
 						// the current character is not the start of an end-delimiter, so it is part of the token's string
-						token_string += (char)chn;
+						token_string += chn;
 						token_end++;
+						token_UTF16_end += BYTE_WIDTHS[chn];
 					}
 				}
 				else
 				{
-					if (ch2 == '=') { token_type = EidosTokenType::kTokenLtEq; token_end++; }
+					if (ch2 == '=') { token_type = EidosTokenType::kTokenLtEq; token_end++; token_UTF16_end++; }
 					else { token_type = EidosTokenType::kTokenLt; }
 				}
 				break;
 			case '>':	// >= or >
-				if (ch2 == '=') { token_type = EidosTokenType::kTokenGtEq; token_end++; }
+				if (ch2 == '=') { token_type = EidosTokenType::kTokenGtEq; token_end++; token_UTF16_end++; }
 				else { token_type = EidosTokenType::kTokenGt; }
 				break;
 			case '!':	// != or !
-				if (ch2 == '=') { token_type = EidosTokenType::kTokenNotEq; token_end++; }
+				if (ch2 == '=') { token_type = EidosTokenType::kTokenNotEq; token_end++; token_UTF16_end++; }
 				else { token_type = EidosTokenType::kTokenNot; }
 				break;
 			case '/':	// // or /
 				if (ch2 == '/') {
 					token_type = EidosTokenType::kTokenComment;
-					auto newline_pos = script_string_.find_first_of("\n\r", token_start);
-					if (newline_pos == string::npos)
-						token_end = len - 1;
-					else
-						token_end = (int)newline_pos - 1;
 					skip = true;
+					
+					// stop at the end of the input string, unless we see a newline first
+					while (token_end + 1 < len)
+					{
+						unsigned char chn = (unsigned char)script_string_[token_end + 1];
+						
+						// stop short of eating the newline
+						if ((chn == '\n') || (chn == '\r'))
+							break;
+						
+						token_end++;
+						token_UTF16_end += BYTE_WIDTHS[chn];
+					}
 				}
 				else { token_type = EidosTokenType::kTokenDiv; }
 				break;
@@ -215,10 +270,13 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					// whitespace; any nonzero-length sequence of space, tab, \n, \r
 					while (token_end + 1 < len)
 					{
-						int chn = script_string_[token_end + 1];
+						int chn = (unsigned char)script_string_[token_end + 1];
 						
 						if ((chn == ' ') || (chn == '\t') || (chn == '\n') || (chn == '\r'))
+						{
 							token_end++;
+							token_UTF16_end++;
+						}
 						else
 							break;
 					}
@@ -231,10 +289,13 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					// number: regex something like this, off the top of my head: [0-9]+(\.[0-9]*)?([e|E][-|+]?[0-9]+)?
 					while (token_end + 1 < len)
 					{
-						int chn = script_string_[token_end + 1];
+						int chn = (unsigned char)script_string_[token_end + 1];
 						
 						if ((chn >= '0') && (chn <= '9'))
+						{
 							token_end++;
+							token_UTF16_end++;
+						}
 						else
 							break;
 					}
@@ -243,13 +304,17 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					if ((token_end + 1 < len) && (script_string_[token_end + 1] == '.'))
 					{
 						token_end++;
+						token_UTF16_end++;
 						
 						while (token_end + 1 < len)
 						{
-							int chn = script_string_[token_end + 1];
+							int chn = (unsigned char)script_string_[token_end + 1];
 							
 							if ((chn >= '0') && (chn <= '9'))
+							{
 								token_end++;
+								token_UTF16_end++;
+							}
 							else
 								break;
 						}
@@ -259,20 +324,27 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					if ((token_end + 1 < len) && ((script_string_[token_end + 1] == 'e') || (script_string_[token_end + 1] == 'E')))
 					{
 						token_end++;
+						token_UTF16_end++;
 						
 						// optional sign
 						if ((token_end + 1 < len) && ((script_string_[token_end + 1] == '+') || (script_string_[token_end + 1] == '-')))
+						{
 							token_end++;
+							token_UTF16_end++;
+						}
 						
 						// mandatory exponent value; if this is missing, we drop through and token_type == EidosTokenType::kTokenNone
 						if ((token_end + 1 < len) && ((script_string_[token_end + 1] >= '0') && (script_string_[token_end + 1] <= '9')))
 						{
 							while (token_end + 1 < len)
 							{
-								int chn = script_string_[token_end + 1];
+								int chn = (unsigned char)script_string_[token_end + 1];
 								
 								if ((chn >= '0') && (chn <= '9'))
+								{
 									token_end++;
+									token_UTF16_end++;
+								}
 								else
 									break;
 							}
@@ -290,10 +362,13 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					// identifier: regex something like this: [a-zA-Z_][a-zA-Z0-9_]*
 					while (token_end + 1 < len)
 					{
-						int chn = script_string_[token_end + 1];
+						int chn = (unsigned char)script_string_[token_end + 1];
 						
 						if (((chn >= 'a') && (chn <= 'z')) || ((chn >= 'A') && (chn <= 'Z')) || ((chn >= '0') && (chn <= '9')) || (chn == '_'))
+						{
 							token_end++;
+							token_UTF16_end++;
+						}
 						else
 							break;
 					}
@@ -308,10 +383,13 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					token_type = EidosTokenType::kTokenString;
 					
 					do 
+						
 					{
 						// during tokenization we don't treat the error position as a stack
 						gEidosCharacterStartOfError = token_start;
 						gEidosCharacterEndOfError = token_end;
+						gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+						gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
@@ -325,12 +403,13 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 						}
 						
-						int chn = script_string_[token_end + 1];
+						unsigned char chn = (unsigned char)script_string_[token_end + 1];
 						
 						if (chn == (double_quoted ? '"' : '\''))
 						{
 							// end of string
 							token_end++;
+							token_UTF16_end++;
 							break;
 						}
 						else if (chn == '\\')
@@ -347,7 +426,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 							}
 							
-							char ch_esq = script_string_[token_end + 2];
+							unsigned char ch_esq = (unsigned char)script_string_[token_end + 2];
 							
 							if ((ch_esq == 't') || (ch_esq == 'r') || (ch_esq == 'n') || (ch_esq == '"') || (ch_esq == '\'') || (ch_esq == '\\'))
 							{
@@ -358,7 +437,9 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								else if (ch_esq == '"')		token_string += '"';
 								else if (ch_esq == '\'')	token_string += '\'';
 								else if (ch_esq == '\\')	token_string += '\\';
+								
 								token_end += 2;
+								token_UTF16_end += 2;
 							}
 							else
 							{
@@ -367,11 +448,14 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								{
 									token_string += ch_esq;
 									token_end += 2;
+									token_UTF16_end += 1 + BYTE_WIDTHS[ch_esq];
 								}
 								else
 								{
 									gEidosCharacterStartOfError = token_end + 1;
 									gEidosCharacterEndOfError = token_end + 2;
+									gEidosCharacterStartOfErrorUTF16 = token_UTF16_end + 1;
+									gEidosCharacterEndOfErrorUTF16 = token_UTF16_end + 1 + BYTE_WIDTHS[ch_esq];
 									
 									EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 								}
@@ -391,12 +475,46 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						else
 						{
 							// all other characters get eaten up as part of the string literal
-							token_string += (char)chn;
+							token_string += chn;
 							token_end++;
+							token_UTF16_end += BYTE_WIDTHS[chn];
 						}
 					}
 					while (true);
 				}
+				else if (ch & 0x0080)
+				{
+					// The high bit is set, so this is some sort of Unicode special byte, initiating a multi-byte sequence comprising an
+					// illegal non-ASCII character; encompass the whole thing into the token so errors, bad tokens, etc. work correctly
+					token_end++;
+					token_UTF16_end += BYTE_WIDTHS[ch];
+					
+					while (token_end < len)
+					{
+						int chn = (unsigned char)script_string_[token_end];
+						
+						if ((chn & 0x00C0) == 0x00C0)
+						{
+							// the two high bits are both set, so this is the beginning of a successive Unicode multi-byte sequence, which we don't want to run into
+							break;
+						}
+						else if (chn & 0x0080)
+						{
+							// the high bit is set, so this is a trailing byte of the current Unicode multi-byte sequence, so eat it
+							token_end++;
+							token_UTF16_end += BYTE_WIDTHS[chn];
+						}
+						else
+						{
+							// the high bit is not set, so this is an ordinary character following the Unicode sequence, which we don't want to run into
+							break;
+						}
+					}
+					
+					token_end--;
+					token_UTF16_end--;
+				}
+				// else: ch is an ASCII-range single character that does not match any possible token, so it will be handled by the token_type == EidosTokenType::kTokenNone case directly below
 				break;
 		}
 		
@@ -412,8 +530,10 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				// during tokenization we don't treat the error position as a stack
 				gEidosCharacterStartOfError = token_start;
 				gEidosCharacterEndOfError = token_end;
+				gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+				gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 				
-				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at character '" << (char)ch << "'." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at '" << script_string_.substr(token_start, token_end - token_start + 1) << "'." << eidos_terminate();
 			}
 		}
 		
@@ -445,17 +565,18 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			}
 			
 			// make the token and push it
-			EidosToken *token = new EidosToken(token_type, token_string, token_start, token_end);
+			EidosToken *token = new EidosToken(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
 			
 			token_stream_.push_back(token);
 		}
 		
 		// advance to the character immediately past the end of this token
 		pos = token_end + 1;
+		pos_UTF16 = token_UTF16_end + 1;
 	}
 	
 	// add an EOF token at the end
-	EidosToken *eofToken = new EidosToken(EidosTokenType::kTokenEOF, "EOF", len, len);
+	EidosToken *eofToken = new EidosToken(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16);
 	
 	token_stream_.push_back(eofToken);
 	
@@ -502,12 +623,14 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0);
+	
 	EidosASTNode *node = new EidosASTNode(virtual_token, true);
 	
 	try
 	{
-		int token_start = current_token_->token_start_;
+		int32_t token_start = current_token_->token_start_;
+		int32_t token_UTF16_start = current_token_->token_UTF16_start_;
 		
 		while (current_token_type_ != EidosTokenType::kTokenEOF)
 		{
@@ -516,14 +639,16 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 			node->AddChild(child);
 		}
 		
-		int token_end = current_token_->token_start_ - 1;
+		int32_t token_end = current_token_->token_start_ - 1;
+		int32_t token_UTF16_end = current_token_->token_UTF16_start_ - 1;
 		
 		Match(EidosTokenType::kTokenEOF, "interpreter block");
 		
 		// swap in a new virtual token that encompasses all our children
 		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end);
+		virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
+		
 		node->ReplaceTokenWithToken(virtual_token);
 	}
 	catch (...)
@@ -541,7 +666,8 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 	
 	try
 	{
-		int token_start = current_token_->token_start_;
+		int32_t token_start = current_token_->token_start_;
+		int32_t token_UTF16_start = current_token_->token_UTF16_start_;
 		
 		Match(EidosTokenType::kTokenLBrace, "compound statement");
 		
@@ -553,13 +679,15 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 		}
 		
 		int token_end = current_token_->token_start_;
+		int32_t token_UTF16_end = current_token_->token_UTF16_start_;
 		
 		Match(EidosTokenType::kTokenRBrace, "compound statement");
 		
 		// swap in a new virtual token that encompasses all our children
 		std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		EidosToken *virtual_token = new EidosToken(node->token_->token_type_, token_string, token_start, token_end);
+		EidosToken *virtual_token = new EidosToken(node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
+		
 		node->ReplaceTokenWithToken(virtual_token);
 	}
 	catch (...)

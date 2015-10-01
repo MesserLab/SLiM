@@ -532,9 +532,9 @@ using std::string;
 {
 	// If there is error-tracking information set, and the error is not attributed to a runtime script
 	// such as a lambda or a callback, then we can highlight the error range
-	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError))
+	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
 	{
-		NSRange charRange = NSMakeRange(gEidosCharacterStartOfError, gEidosCharacterEndOfError - gEidosCharacterStartOfError + 1);
+		NSRange charRange = NSMakeRange(gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16 - gEidosCharacterStartOfErrorUTF16 + 1);
 		
 		[self setSelectedRange:charRange];
 		[self scrollRangeToVisible:charRange];
@@ -547,6 +547,8 @@ using std::string;
 	// the error state to avoid misattribution of future errors
 	gEidosCharacterStartOfError = -1;
 	gEidosCharacterEndOfError = -1;
+	gEidosCharacterStartOfErrorUTF16 = -1;
+	gEidosCharacterEndOfErrorUTF16 = -1;
 	gEidosCurrentScript = nullptr;
 	gEidosExecutingRuntimeScript = false;
 }
@@ -711,7 +713,7 @@ using std::string;
 						{
 							click_token = tokens[click_token_index];
 							
-							if ((click_token->token_start_ <= proposedCharacterIndex) && (click_token->token_end_ >= proposedCharacterIndex))
+							if ((click_token->token_UTF16_start_ <= proposedCharacterIndex) && (click_token->token_UTF16_end_ >= proposedCharacterIndex))
 								break;
 						}
 						
@@ -767,7 +769,7 @@ using std::string;
 							}
 							
 							// Make sure we're in the right token
-							while ((scan_token->token_start_ > scanPosition) || (scan_token->token_end_ < scanPosition))
+							while ((scan_token->token_UTF16_start_ > scanPosition) || (scan_token->token_UTF16_end_ < scanPosition))
 							{
 								scan_token_index += (forward ? 1 : -1);
 								
@@ -847,7 +849,7 @@ using std::string;
 	
 	for (EidosToken *token : script.Tokens())
 	{
-		NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
+		NSRange tokenRange = NSMakeRange(token->token_UTF16_start_, token->token_UTF16_end_ - token->token_UTF16_start_ + 1);
 		
 		if (token->token_type_ == EidosTokenType::kTokenNumber)
 			[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
@@ -1087,7 +1089,7 @@ using std::string;
 		int tokenIndex;
 		
 		for (tokenIndex = 0; tokenIndex < tokenCount; ++tokenIndex)
-			if (tokens[tokenIndex]->token_start_ >= selectionStart)
+			if (tokens[tokenIndex]->token_UTF16_start_ >= selectionStart)
 				break;
 		
 		//NSLog(@"token %d follows the selection (selectionStart == %d)", tokenIndex, selectionStart);
@@ -1781,7 +1783,7 @@ using std::string;
 			
 			// the last token was not interrupted, so we can offer completions of it if we want to.
 			EidosToken *token = tokens[lastTokenIndex];
-			NSRange tokenRange = NSMakeRange(token->token_start_, token->token_end_ - token->token_start_ + 1);
+			NSRange tokenRange = NSMakeRange(token->token_UTF16_start_, token->token_UTF16_end_ - token->token_UTF16_start_ + 1);
 			
 			if (token->token_type_ >= EidosTokenType::kTokenIdentifier)
 			{

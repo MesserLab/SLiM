@@ -86,6 +86,7 @@ std::string gEidosContextLicense;
 
 // the part of the input file that caused an error; used to highlight the token or text that caused the error
 int gEidosCharacterStartOfError = -1, gEidosCharacterEndOfError = -1;
+int gEidosCharacterStartOfErrorUTF16 = -1, gEidosCharacterEndOfErrorUTF16 = -1;
 EidosScript *gEidosCurrentScript = nullptr;
 bool gEidosExecutingRuntimeScript = false;
 
@@ -405,6 +406,7 @@ void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
 	{
 		// In this case, eidos_terminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
 		// In this case, we want to emit a diagnostic showing the line of script where the error occurred, if we can.
+		// This facility uses only the non-UTF16 positions, since it is based on std::string, so those positions can be ignored.
 		eidos_log_script_error(p_out, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 		
 		exit(EXIT_FAILURE);

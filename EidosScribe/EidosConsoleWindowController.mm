@@ -237,6 +237,32 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			script.PrintTokens(token_stream);
 			
 			*tokenString = [NSString stringWithUTF8String:token_stream.str().c_str()];
+			
+#if 0
+			// Do a checkback on UTF8 token ranges versus UTF16 token ranges by replicating the token string using the UTF16 ranges
+			const std::vector<EidosToken *> &tokens = script.Tokens();
+			NSMutableString *replicateTokenString = [NSMutableString string];
+			BOOL firstToken = YES;
+			
+			for (const EidosToken *token : tokens)
+			{
+				int32_t token_UTF16_start = token->token_UTF16_start_;
+				int32_t token_UTF16_end = token->token_UTF16_end_;
+				NSRange tokenRange = NSMakeRange(token_UTF16_start, token_UTF16_end - token_UTF16_start + 1);
+				
+				[replicateTokenString appendString:(firstToken ? @"" : @" ")];
+				
+				if (tokenRange.location == [scriptString length])
+					[replicateTokenString appendString:@"EOF"];
+				else
+					[replicateTokenString appendString:[scriptString substringWithRange:tokenRange]];
+				
+				firstToken = NO;
+			}
+			
+			[replicateTokenString appendString:@"\n"];
+			*tokenString = [*tokenString stringByAppendingString:replicateTokenString];
+#endif
 		}
 	}
 	catch (std::runtime_error err)
@@ -391,11 +417,11 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			[outputTextView appendSpacer];
 		}
 		
-		if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfError >= 0) && (gEidosCharacterEndOfError >= gEidosCharacterStartOfError) && (scriptRange.location != NSNotFound))
+		if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16) && (scriptRange.location != NSNotFound))
 		{
 			// An error occurred, so let's try to highlight it in the input
-			int errorTokenStart = gEidosCharacterStartOfError + (int)scriptRange.location;
-			int errorTokenEnd = gEidosCharacterEndOfError + (int)scriptRange.location;
+			int errorTokenStart = gEidosCharacterStartOfErrorUTF16 + (int)scriptRange.location;
+			int errorTokenEnd = gEidosCharacterEndOfErrorUTF16 + (int)scriptRange.location;
 			
 			NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
 			
@@ -591,7 +617,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	NSString *executionString = [self fullInputString];
 	
 	[outputTextView registerNewHistoryItem:executionString];
-	[self executeScriptString:executionString withOptionalSemicolon:NO];
+	[self executeScriptString:executionString withOptionalSemicolon:YES];
 }
 
 - (IBAction)executeSelection:(id)sender

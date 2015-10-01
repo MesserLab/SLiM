@@ -4015,11 +4015,15 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			// in case that is possible; see how exceptions are handled below.
 			int error_start_save = gEidosCharacterStartOfError;
 			int error_end_save = gEidosCharacterEndOfError;
+			int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+			int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
 			EidosScript *current_script_save = gEidosCurrentScript;
 			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
 			
 			gEidosCharacterStartOfError = -1;
 			gEidosCharacterEndOfError = -1;
+			gEidosCharacterStartOfErrorUTF16 = -1;
+			gEidosCharacterEndOfErrorUTF16 = -1;
 			gEidosCurrentScript = &script;
 			gEidosExecutingRuntimeScript = true;
 			
@@ -4060,6 +4064,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				{
 					gEidosCharacterStartOfError = error_start_save;
 					gEidosCharacterEndOfError = error_end_save;
+					gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+					gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 					gEidosCurrentScript = current_script_save;
 					gEidosExecutingRuntimeScript = executing_runtime_script_save;
 				}
@@ -4070,6 +4076,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			// Restore the normal error context in the event that no exception occurring within the lambda
 			gEidosCharacterStartOfError = error_start_save;
 			gEidosCharacterEndOfError = error_end_save;
+			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 			gEidosCurrentScript = current_script_save;
 			gEidosExecutingRuntimeScript = executing_runtime_script_save;
 			
@@ -4112,11 +4120,15 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			// in case that is possible; see how exceptions are handled below.
 			int error_start_save = gEidosCharacterStartOfError;
 			int error_end_save = gEidosCharacterEndOfError;
+			int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+			int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
 			EidosScript *current_script_save = gEidosCurrentScript;
 			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
 			
 			gEidosCharacterStartOfError = -1;
 			gEidosCharacterEndOfError = -1;
+			gEidosCharacterStartOfErrorUTF16 = -1;
+			gEidosCharacterEndOfErrorUTF16 = -1;
 			gEidosCurrentScript = &script;
 			gEidosExecutingRuntimeScript = true;
 			
@@ -4149,6 +4161,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				{
 					gEidosCharacterStartOfError = error_start_save;
 					gEidosCharacterEndOfError = error_end_save;
+					gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+					gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 					gEidosCurrentScript = current_script_save;
 					gEidosExecutingRuntimeScript = executing_runtime_script_save;
 				}
@@ -4159,6 +4173,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			// Restore the normal error context in the event that no exception occurring within the lambda
 			gEidosCharacterStartOfError = error_start_save;
 			gEidosCharacterEndOfError = error_end_save;
+			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 			gEidosCurrentScript = current_script_save;
 			gEidosExecutingRuntimeScript = executing_runtime_script_save;
 			
