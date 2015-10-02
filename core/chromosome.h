@@ -43,7 +43,7 @@
 extern EidosObjectClass *gSLiM_Chromosome_Class;
 
 
-class Chromosome : public std::vector<GenomicElement>, public EidosObjectElement
+class Chromosome : private std::vector<GenomicElement>, public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -61,6 +61,13 @@ private:
 	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_;
 	
 public:
+	
+	// We use private inheritance from std::vector<GenomicElement> to avoid issues with Chromosome being treated polymorphically
+	// as a std::vector, and forward only the minimal set of std::vector methods that users of Chromosome actually want.
+	// See http://stackoverflow.com/questions/4353203/thou-shalt-not-inherit-from-stdvector for discussion.
+	using std::vector<GenomicElement>::push_back;
+	using std::vector<GenomicElement>::begin;
+	using std::vector<GenomicElement>::end;
 	
 	vector<slim_position_t> recombination_end_positions_;	// end positions of each defined recombination region
 	vector<double> recombination_rates_;					// recombination rates, in events per base pair

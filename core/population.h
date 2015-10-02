@@ -44,11 +44,19 @@
 class SLiMSim;
 
 
-class Population : public std::map<slim_objectid_t,Subpopulation*>		// OWNED POINTERS
+class Population : private std::map<slim_objectid_t,Subpopulation*>		// OWNED POINTERS
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
 public:
+	
+	// We use private inheritance from std::map<slim_objectid_t,Subpopulation*> to avoid issues with Population being treated polymorphically
+	// as a std::map, and forward only the minimal set of std::map methods that users of Population actually want.
+	// See http://stackoverflow.com/questions/4353203/thou-shalt-not-inherit-from-stdvector for discussion.
+	using std::map<slim_objectid_t,Subpopulation*>::find;
+	using std::map<slim_objectid_t,Subpopulation*>::begin;
+	using std::map<slim_objectid_t,Subpopulation*>::end;
+	using std::map<slim_objectid_t,Subpopulation*>::size;
 	
 	SLiMSim &sim_;											// We have a reference back to our simulation
 	Genome mutation_registry_;								// OWNED POINTERS: a registry of all mutations that have been added to this population
