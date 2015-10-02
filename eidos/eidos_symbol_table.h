@@ -32,6 +32,13 @@
  will be used the whole way along and a refcount increment/decrement will not happen at all.  EidosValue_SP values are
  returned, too, rather than references, since the caller will be taking their shared ownership of the object.
  
+ EidosSymbolTable stores symbols internally and searches them linearly unless (1) it gets more than a threshold number of
+ symbols, or (2) it is told at construction not to.  If either of those conditions is met, it will switch to using a
+ std::unordered_map to store its symbols and search for them with a hash lookup.  The goal here is to allow small symbol
+ tables to be made and discarded very quickly, for applications such as callbacks where the cost of constructing a
+ std::unordered_map would be very large compared to the speedup of a few lookups, but to also offer hash table performance
+ for symbols tables that are larger or longer-lived.
+ 
  */
 
 #ifndef __Eidos__eidos_symbol_table__
@@ -40,7 +47,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 #include "eidos_value.h"
 
@@ -49,7 +56,7 @@
 typedef std::pair<const std::string, EidosValue_SP> EidosSymbolTableEntry;
 
 
-// This is what EidosSymbolTable now uses internally
+// Used by EidosSymbolTable for the slots in its internal fixed-size symbol array
 typedef struct {
 	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
 	const std::string *symbol_name_;		// ownership is defined by symbol_name_externally_owned_, below
@@ -57,7 +64,15 @@ typedef struct {
 	uint16_t symbol_name_length_;			// used to make scanning of the symbol table faster
 	uint8_t symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
 	uint8_t symbol_is_const_;				// T if const, F is variable
-} EidosSymbolTableSlot;
+} EidosSymbolTable_InternalSlot;
+
+
+// Used by EidosSymbolTable for the slots in its external std::unordered_map
+typedef struct {
+	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
+	uint8_t symbol_is_const_;				// T if const, F is variable
+} EidosSymbolTable_ExternalSlot;
+
 
 typedef struct {
 	bool contains_T_ = false;					// "T"
@@ -80,19 +95,22 @@ class EidosSymbolTable
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	// We try to use an internal buffer when possible, to avoid the overhead of std::vector for small scripts
+	// This flag indicates which storage strategy we are using
 	bool using_internal_symbols_;
-	EidosSymbolTableSlot non_malloc_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE];
-	int internal_symbol_count_;
 	
-	// If !using_internal_symbols_, we have switched over to std::vector since we outgrew our internal buffer
-	std::vector<EidosSymbolTableSlot> symbol_vec;
+	// If using_internal_symbols_==true, we are using this fixed-size symbol array
+	EidosSymbolTable_InternalSlot internal_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE];
+	size_t internal_symbol_count_;
+	
+	// If using_internal_symbols_==false, we have switched over to this external hash table using std::unordered_map.
+	// It is likely that a much faster hash table for our purposes could be implemented.  FIXME
+	std::unordered_map<std::string, EidosSymbolTable_ExternalSlot> hash_symbols_;
 	
 public:
 	
 	EidosSymbolTable(const EidosSymbolTable&) = delete;											// no copying
 	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;								// no copying
-	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage = nullptr);			// standard constructor
+	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage=nullptr, bool p_start_with_hash=false);			// standard constructor
 	~EidosSymbolTable(void);																	// destructor
 	
 	// symbol access; these are variables defined in the global namespace
@@ -124,7 +142,7 @@ public:
 	
 	// internal methods
 	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
-	void _SwitchToVector(void);
+	void _SwitchToHash(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);
