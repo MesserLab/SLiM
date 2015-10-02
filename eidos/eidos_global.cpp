@@ -30,7 +30,7 @@
 #include <ctype.h>
 #include <stdexcept>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <pwd.h>
 #include <unistd.h>
 
@@ -657,8 +657,8 @@ const std::string gEidosStr__cubicYolk = "_cubicYolk";
 const std::string gEidosStr__squareTest = "_squareTest";
 
 
-static std::map<const std::string, EidosGlobalStringID> gStringToID;
-static std::map<EidosGlobalStringID, const std::string *> gIDToString;
+static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
+static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
 
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
