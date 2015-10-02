@@ -68,8 +68,11 @@ private:
 	
 	Chromosome chromosome_;															// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
+	
+	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
+	
 	unsigned long int rng_seed_ = 0;												// random number generator seed; unsigned long int is the type used by gsl_rng_set()
 	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
 	

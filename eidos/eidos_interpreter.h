@@ -46,7 +46,8 @@
 // your object graph having a back pointer of some kind.  If you think this is gross, don't use it.  :->
 typedef EidosObjectElement EidosContext;
 
-// typedefs used to set up our map table of EidosFunctionSignature objects
+// typedefs used to set up our map table of EidosFunctionSignature objects; std::map is used instead of
+// std::unordered_map mostly for convenience, speed should not matter much since signatures get cached anyway
 typedef std::pair<std::string, const EidosFunctionSignature*> EidosFunctionMapPair;
 typedef std::map<std::string, const EidosFunctionSignature*> EidosFunctionMap;
 
