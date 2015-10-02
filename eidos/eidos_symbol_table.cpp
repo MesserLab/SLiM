@@ -393,7 +393,7 @@ void EidosSymbolTable::_SwitchToHash(void)
 			
 			// clean up the built-in slot; probably unnecessary, but prevents hard-to-find bugs
 			old_symbol_slot.symbol_value_SP_.reset();
-			if (old_symbol_slot.symbol_name_externally_owned_)
+			if (!old_symbol_slot.symbol_name_externally_owned_)
 				delete old_symbol_slot.symbol_name_;
 			old_symbol_slot.symbol_name_ = nullptr;
 			old_symbol_slot.symbol_name_data_ = nullptr;
