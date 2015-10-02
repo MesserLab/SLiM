@@ -31,8 +31,8 @@
  */
 
 
-#ifndef SLiM_eidos_object_pool_h
-#define SLiM_eidos_object_pool_h
+#ifndef __Eidos__eidos_object_pool_h
+#define __Eidos__eidos_object_pool_h
 
 
 class EidosObjectPool

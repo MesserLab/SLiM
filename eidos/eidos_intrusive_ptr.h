@@ -58,8 +58,8 @@
 // intrusive_ref_counter.hpp in accordance with this license.
 
 
-#ifndef SLiM_eidos_intrusive_ptr_h
-#define SLiM_eidos_intrusive_ptr_h
+#ifndef __Eidos__eidos_intrusive_ptr_h
+#define __Eidos__eidos_intrusive_ptr_h
 
 #include <ostream>
 
