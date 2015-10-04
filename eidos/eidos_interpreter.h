@@ -63,9 +63,8 @@ class EidosInterpreter
 private:
 	EidosContext *eidos_context_;				// not owned
 	const EidosASTNode *root_node_;				// not owned
-	EidosSymbolTable &global_symbols_;				// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
-	EidosFunctionMap *function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
-												// the function_map_ pointer itself is owned, and will be deleted unless it is the static built-in map
+	EidosSymbolTable &global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
+	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
 	
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
@@ -89,8 +88,8 @@ public:
 	EidosInterpreter& operator=(const EidosInterpreter&) = delete;		// no copying
 	EidosInterpreter(void) = delete;										// no null construction
 	
-	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context);				// we use the passed symbol table but do not own it
-	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context);		// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);			// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);		// we use the passed symbol table but do not own it
 	
 	~EidosInterpreter(void);												// destructor
 	
@@ -103,8 +102,9 @@ public:
 	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	EidosSymbolTable &GetSymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
-	inline EidosContext *GetEidosContext(void) const { return eidos_context_; };
+	EidosSymbolTable &SymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
+	EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
+	EidosContext *Context(void) const { return eidos_context_; };
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosValue_SP EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output
@@ -154,8 +154,6 @@ public:
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
 	static EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
-	
-	inline void RegisterFunctionMap(EidosFunctionMap *p_function_map) { function_map_ = p_function_map; };
 	
 	EidosValue_SP ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
 	EidosValue_SP ExecuteMethodCall(EidosValue_Object &p_method_object, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count);

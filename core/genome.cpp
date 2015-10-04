@@ -346,7 +346,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_addNewDrawnMutation:
 		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
@@ -405,7 +405,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_addNewMutation:
 		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();

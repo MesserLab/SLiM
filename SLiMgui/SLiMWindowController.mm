@@ -1695,7 +1695,7 @@
 		
 		SLiMSim signature_sim(infile);
 		
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.InjectedFunctionSignatures() methods:nullptr properties:nullptr];
+		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
@@ -1708,23 +1708,23 @@
 	}
 }
 
-- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController injectIntoInterpreter:(EidosInterpreter *)interpreter
+- (EidosSymbolTable *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
 	if (sim && !invalidSimulation)
-		sim->InjectIntoInterpreter(*interpreter, nullptr, false);
+		return sim->SymbolsFromBaseSymbols(baseSymbols);
+	return baseSymbols;
+}
+
+- (EidosFunctionMap *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+{
+	if (sim && !invalidSimulation)
+		return sim->FunctionMapFromBaseMap(baseFunctionMap);
+	return baseFunctionMap;
 }
 
 - (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return @[@"initialize", @"fitness", @"mateChoice", @"modifyChild"];
-}
-
-- (const std::vector<const EidosFunctionSignature*> *)eidosConsoleWindowControllerInjectedFunctionSignatures:(EidosConsoleWindowController *)eidosConsoleController
-{
-	if (sim && !invalidSimulation)
-		return sim->InjectedFunctionSignatures();
-	
-	return nullptr;
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
@@ -1827,19 +1827,21 @@
 // EidosConsoleWindowControllerDelegate (for the console window we own), and the delegate protocols are similar
 // but not identical.  This protocol just forwards on to the EidosConsoleWindowControllerDelegate methods.
 
-- (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
-{
-	return [_consoleController symbols];	// use the symbol table from the console window
-}
-
 - (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;
 {
 	return [self eidosConsoleWindowControllerLanguageKeywordsForCompletion:nullptr];
 }
 
-- (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView;
+- (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
-	return [self eidosConsoleWindowControllerInjectedFunctionSignatures:nullptr];
+	// Here we use the symbol table from the console window, rather than calling the console window controller delegate
+	// method, which would derive a new symbol table – not what we want here
+	return [_consoleController symbols];
+}
+
+- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+{
+	return [self eidosConsoleWindowController:nullptr functionMapFromBaseMap:baseFunctionMap];
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;

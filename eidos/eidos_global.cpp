@@ -35,6 +35,9 @@
 #include <unistd.h>
 
 
+EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
+
+
 void Eidos_WarmUp(void)
 {
 	static bool been_here = false;
@@ -75,6 +78,9 @@ void Eidos_WarmUp(void)
 		
 		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
+		
+		// Set up the symbol table for Eidos constants
+		gEidosConstantsSymbolTable = new EidosSymbolTable(true, nullptr);
 	}
 }
 

@@ -128,8 +128,9 @@ int main(int argc, const char * argv[])
 	// reset error position indicators used by SLiMgui
 	EidosScript::ClearErrorPosition();
 
-	EidosSymbolTable *global_symbols = new EidosSymbolTable();
-	EidosInterpreter interpreter(script, *global_symbols, nullptr);		// give the interpreter the symbol table
+	EidosSymbolTable *variable_symbols = new EidosSymbolTable(false, gEidosConstantsSymbolTable);
+	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+	EidosInterpreter interpreter(script, *variable_symbols, *function_map, nullptr);
 	
 	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
 	std::string output = interpreter.ExecutionOutput();

@@ -55,7 +55,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 {
 	EidosScript script(p_script_string);
 	EidosValue_SP result;
-	EidosSymbolTable symbol_table;
+	EidosSymbolTable symbol_table(false, gEidosConstantsSymbolTable);
 	
 	gEidosCurrentScript = &script;
 	
@@ -86,9 +86,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	
 	try {
-		EidosInterpreter interpreter(script, symbol_table, nullptr);
-		
-		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
+		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
 		
 		result = interpreter.EvaluateInterpreterBlock(true);
 	}
@@ -141,7 +139,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_position, const std::string &p_reason_snip)
 {
 	EidosScript script(p_script_string);
-	EidosSymbolTable symbol_table;
+	EidosSymbolTable symbol_table(false, gEidosConstantsSymbolTable);
 	
 	gEidosCurrentScript = &script;
 	
@@ -149,9 +147,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 		script.Tokenize();
 		script.ParseInterpreterBlockToAST();
 		
-		EidosInterpreter interpreter(script, symbol_table, nullptr);
-		
-		// note InjectIntoInterpreter() is not called here; we want a pristine environment to test the language itself
+		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
 		

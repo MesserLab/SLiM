@@ -309,7 +309,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
-				// This code is similar to Population::ExecuteScript, but we inject some additional values, and we use the return value
+				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_value_)
@@ -334,10 +334,13 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
-						EidosSymbolTable global_symbols(&fitness_callback->eidos_contains_);
-						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, global_symbols, &population_.sim_);
+						EidosSymbolTable callback_symbols(true, &population_.sim_.SymbolTable());
+						EidosSymbolTable client_symbols(false, &callback_symbols);
+						EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
 						
-						sim.InjectIntoInterpreter(interpreter, fitness_callback, true);
+						if (fitness_callback->contains_self_)
+							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->CachedSymbolTableEntry());		// define "self"
 						
 						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of
@@ -346,28 +349,28 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						if (fitness_callback->contains_mut_)
 						{
 							local_mut.stack_allocated();			// prevent Eidos_intrusive_ptr from trying to delete this
-							global_symbols.InitializeConstantSymbolEntry(gStr_mut, EidosValue_SP(&local_mut));
+							callback_symbols.InitializeConstantSymbolEntry(gStr_mut, EidosValue_SP(&local_mut));
 						}
 						if (fitness_callback->contains_relFitness_)
 						{
 							local_relFitness.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							global_symbols.InitializeConstantSymbolEntry(gStr_relFitness, EidosValue_SP(&local_relFitness));
+							callback_symbols.InitializeConstantSymbolEntry(gStr_relFitness, EidosValue_SP(&local_relFitness));
 						}
 						if (fitness_callback->contains_genome1_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome1, p_genome1->CachedEidosValue());
+							callback_symbols.InitializeConstantSymbolEntry(gStr_genome1, p_genome1->CachedEidosValue());
 						if (fitness_callback->contains_genome2_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_genome2, p_genome2->CachedEidosValue());
+							callback_symbols.InitializeConstantSymbolEntry(gStr_genome2, p_genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
-							global_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
+							callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
 						if (fitness_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)
-								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticEidosValueNULL);
+								callback_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticEidosValueNULL);
 							else
-								global_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+								callback_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 						}
 						
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value

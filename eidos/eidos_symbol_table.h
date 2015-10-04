@@ -50,6 +50,13 @@
 #include <unordered_map>
 
 #include "eidos_value.h"
+#include "eidos_token.h"
+
+class EidosSymbolTable;
+
+
+// This is a shared global symbol table containing the standard Eidos constants; it should be linked to as a parent symbol table
+extern EidosSymbolTable *gEidosConstantsSymbolTable;
 
 
 // This is used by InitializeConstantSymbolEntry / ReinitializeConstantSymbolEntry for fast setup / teardown
@@ -63,30 +70,15 @@ typedef struct {
 	const char *symbol_name_data_;			// used to make scanning of the symbol table faster
 	uint16_t symbol_name_length_;			// used to make scanning of the symbol table faster
 	uint8_t symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
-	uint8_t symbol_is_const_;				// T if const, F is variable
 } EidosSymbolTable_InternalSlot;
 
 
-// Used by EidosSymbolTable for the slots in its external std::unordered_map
-typedef struct {
-	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
-	uint8_t symbol_is_const_;				// T if const, F is variable
-} EidosSymbolTable_ExternalSlot;
-
-
-typedef struct {
-	bool contains_T_ = false;					// "T"
-	bool contains_F_ = false;					// "F"
-	bool contains_NULL_ = false;				// "NULL"
-	bool contains_PI_ = false;					// "PI"
-	bool contains_E_ = false;					// "E"
-	bool contains_INF_ = false;					// "INF"
-	bool contains_NAN_ = false;					// "NAN"
-} EidosSymbolUsageParamBlock;
-
-
-// As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free
-// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room
+// As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free.
+// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room.
+// Even when an EidosSymbolTable is constructed once and used a lot, this internal table is likely to be
+// faster up to some threshold size, because calculating hash values for strings is not particularly fast;
+// a linear search through the internal table is often faster than a single hash table lookup.  The critical
+// size threshold will be platform-dependent; the point is that the internal table is a good thing.
 #define EIDOS_SYMBOL_TABLE_BASE_SIZE		30
 
 
@@ -94,6 +86,9 @@ class EidosSymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
+	
+	// In this design, a whole symbol table either contains constants or variables; a mix is allowed using parent_symbol_table_ to hold constants
+	bool is_constant_table_;
 	
 	// This flag indicates which storage strategy we are using
 	bool using_internal_symbols_;
@@ -104,28 +99,53 @@ private:
 	
 	// If using_internal_symbols_==false, we have switched over to this external hash table using std::unordered_map.
 	// It is likely that a much faster hash table for our purposes could be implemented.  FIXME
-	std::unordered_map<std::string, EidosSymbolTable_ExternalSlot> hash_symbols_;
+	std::unordered_map<std::string, EidosValue_SP> hash_symbols_;
+	
+	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given
+	// interpreter, which responds to all requests.  Behind the scenes, however, requests get passed up the symbol table chain
+	// until a hit is found or the last symbol table declares a miss.  Adds go in the symbol table that receives the request.
+	EidosSymbolTable *parent_symbol_table_ = nullptr;	// NOT OWNED
+	
+	// A cached flag used by LastLookupWasConstant(); this design is a hack, but simpler / faster since only one spot in the code needs it
+	mutable bool last_get_was_const_ = false;
+	
+	// Utility methods called by the public methods to do the real work
+	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
+	EidosValue_SP _GetValue(const std::string &p_symbol_name, const EidosToken *p_symbol_token) const;
+	void _RemoveSymbol(const std::string &p_symbol_name, bool p_remove_constant);
+	void _InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
+	
+	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
+	void _SwitchToHash(void);
 	
 public:
 	
-	EidosSymbolTable(const EidosSymbolTable&) = delete;											// no copying
-	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;								// no copying
-	explicit EidosSymbolTable(EidosSymbolUsageParamBlock *p_symbol_usage=nullptr, bool p_start_with_hash=false);			// standard constructor
-	~EidosSymbolTable(void);																	// destructor
+	EidosSymbolTable(const EidosSymbolTable&) = delete;																	// no copying
+	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;														// no copying
+	explicit EidosSymbolTable(bool p_constants_table, EidosSymbolTable *p_parent_table, bool p_start_with_hash=false);	// standard constructor
+	~EidosSymbolTable(void);																							// destructor
 	
 	// symbol access; these are variables defined in the global namespace
-	std::vector<std::string> ReadOnlySymbols(void) const;
-	std::vector<std::string> ReadWriteSymbols(void) const;
+	std::vector<std::string> ReadOnlySymbols(void) const { return _SymbolNames(true, false); }
+	std::vector<std::string> ReadWriteSymbols(void) const { return _SymbolNames(false, true); }
+	std::vector<std::string> AllSymbols(void) const { return _SymbolNames(true, true); }
 	
-	EidosValue_SP GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const;				// raise will use the token
-	EidosValue_SP GetNonConstantValueOrRaiseForToken(const EidosToken *p_symbol_token) const;	// same but raises if the value is constant
-	EidosValue_SP GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const;				// raise will just call eidos_terminate()
-	EidosValue_SP GetValueOrNullForSymbol(const std::string &p_symbol_name) const;				// safe to call with any string
+	// Test for containing a value for a symbol
+	bool ContainsSymbol(const std::string &p_symbol_name) const;
 	
+	// Set as a variable (raises if already defined as a constant) or as a constant (raises if already defined at all)
 	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value);
-	void SetConstantForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value);
 	
-	void RemoveValueForSymbol(const std::string &p_symbol_name, bool p_remove_constant);
+	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
+	void RemoveValueForSymbol(const std::string &p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
+	void RemoveConstantForSymbol(const std::string &p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
+	
+	// Get a value, in various configurations regarding token vs. symbol, raise vs. nullptr, variables only...
+	EidosValue_SP GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const { return _GetValue(p_symbol_token->token_string_, p_symbol_token); }
+	EidosValue_SP GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
+	
+	// For the last Get...() call, returns whether the symbol fetched was a constant; apologies for the hack
+	bool LastLookupWasConstant(void) const { return last_get_was_const_; }
 	
 	// Special-purpose methods used for fast setup of new symbol tables with constants.
 	//
@@ -133,16 +153,8 @@ public:
 	// has infinite lifespan, and (2) that the EidosValue passed in is not invisible and is thus suitable for
 	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
-	void InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
-	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
-	
-	// Slightly slower versions of the above that check for the pre-existence of the symbol to avoid reinserting it
-	void ReinitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry);
-	void ReinitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
-	
-	// internal methods
-	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
-	void _SwitchToHash(void);
+	void InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry->first, p_new_entry->second); }
+	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

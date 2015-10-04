@@ -111,22 +111,18 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value,
 //
 #pragma mark EidosInterpreter
 
-EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context)
-	: root_node_(p_script.AST()), global_symbols_(p_symbols), eidos_context_(p_eidos_context)
+EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
+	: root_node_(p_script.AST()), global_symbols_(p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
 {
-	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
-	
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
 		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
-EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosContext *p_eidos_context)
-	: root_node_(p_root_node_), global_symbols_(p_symbols), eidos_context_(p_eidos_context)
+EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
+	: root_node_(p_root_node_), global_symbols_(p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
 {
-	RegisterFunctionMap(EidosInterpreter::BuiltInFunctionMap());
-	
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
@@ -135,12 +131,6 @@ EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbol
 
 EidosInterpreter::~EidosInterpreter(void)
 {
-	if (function_map_ != EidosInterpreter::BuiltInFunctionMap())
-	{
-		delete function_map_;
-		function_map_ = nullptr;
-	}
-	
 	if (execution_log_)
 		delete execution_log_;
 	
@@ -2569,7 +2559,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue_SP lvalue_SP = global_symbols_.GetNonConstantValueOrRaiseForToken(lvalue_node->token_);	// raises if undefined or const
+		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForToken(lvalue_node->token_);
+		
+		if (global_symbols_.LastLookupWasConstant())
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(lvalue_node->token_);
+		
 		EidosValue *lvalue = lvalue_SP.get();
 		int lvalue_count = lvalue->Count();
 		

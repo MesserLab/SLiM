@@ -61,6 +61,8 @@ public:
 private:
 #endif
 	
+	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
+	
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
 	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
@@ -77,14 +79,15 @@ private:
 	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
 	
 	// SEX ONLY: sex-related instance variables
-	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are considered hermaphroditic
-	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the type of the chromosome being modeled; other chromosome types might still be instantiated (Y, if X is modeled, e.g.)
+	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
+	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
 	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
 	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
 	std::vector<const EidosFunctionSignature*> sim_0_signatures_;					// OWNED POINTERS: Eidos function signatures
+	EidosFunctionMap *sim_0_function_map_ = nullptr;								// OWNED POINTER: the function map with sim_0_signatures_ added, used only in gen 0
 	
 	// private initialization methods
 	void InitializePopulationFromFile(const char *p_file);							// initialize the population from the information in the file given
@@ -122,11 +125,12 @@ public:
 	void DeregisterScheduledScriptBlocks(void);
 	
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
-	bool RunOneGeneration(void);													// run a single simulation generation and advance the generation counter; returns false if the simulation is over
+	bool RunOneGeneration(void);													// run one generation and advance the generation count; returns false if finished
 	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
 	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
 	
 	// accessors
+	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
 	inline slim_generation_t Generation(void) const									{ return generation_; }
 	inline Chromosome &Chromosome(void)												{ return chromosome_; }
 	inline Population &Population(void)												{ return population_; }
@@ -146,8 +150,9 @@ public:
 	static EidosValue_SP StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
-	void InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table);	// add SLiM constructs to an interpreter instance
-	const std::vector<const EidosFunctionSignature*> *InjectedFunctionSignatures(void);		// depends on the simulation state
+	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
+	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map);					// derive a function map, adding zero-gen functions if needed
+	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// depends on the simulation state
 	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	

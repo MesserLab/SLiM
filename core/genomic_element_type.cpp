@@ -252,7 +252,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			if (arg0_value->Type() == EidosValueType::kValueInt)
 			{
 				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
-				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 				
 				if (sim)
 				{

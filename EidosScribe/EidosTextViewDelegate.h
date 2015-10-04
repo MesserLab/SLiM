@@ -22,10 +22,9 @@
 #include <vector>
 #include <string>
 
+#include "eidos_interpreter.h"
+
 @class EidosTextView;
-class EidosSymbolTable;
-class EidosFunctionSignature;
-class EidosMethodSignature;
 
 
 /*
@@ -44,12 +43,6 @@ class EidosMethodSignature;
 @protocol EidosTextViewDelegate <NSTextViewDelegate>
 @required
 
-// Provide a global symbol table to use for completion; EidosConsoleWindowController
-// provides the symbol table for the ongoing interpreter context, for example.
-// This is required because without it code completion is completely disabled,
-// but if you really don't wish to implement it you can return nullptr.
-- (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView;
-
 // Supply all method signatures for all methods of all classes; used to show the
 // signature for the currently editing method call in the status bar (note that
 // multiple methods of the same name but with different signatures should be avoided).
@@ -63,9 +56,11 @@ class EidosMethodSignature;
 // extends the grammar of Eidos, otherwise can be unimplemented
 - (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;
 
-// Supply additional function signatures for functions added by the Context, if any;
-// otherwise can be unimplemented
-- (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView;
+// This allows the Context to define its own symbols beyond those in Eidos itself
+- (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols;
+
+// This allows the Context to define its own functions beyond those in Eidos itself
+- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap;
 
 // This allows the Context to define some special identifier tokens that should
 // receive different syntax coloring from standard identifiers because they are

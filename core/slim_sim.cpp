@@ -58,6 +58,9 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
+	// set up the symbol table we will use for all of our constants
+	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
+	
 	// read all configuration information from the input file
 	p_infile.clear();
 	p_infile.seekg(0, std::fstream::beg);
@@ -82,6 +85,9 @@ SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_pt
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
+	// set up the symbol table we will use for all of our constants
+	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
+	
 	// Open our file stream
 	std::ifstream infile(p_input_file);
 	
@@ -97,6 +103,9 @@ SLiMSim::~SLiMSim(void)
 {
 	//EIDOS_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
 	
+	delete simulation_constants_;
+	simulation_constants_ = nullptr;
+	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
 	
@@ -109,7 +118,9 @@ SLiMSim::~SLiMSim(void)
 	// All the script blocks that refer to the script are now gone
 	delete script_;
 	
-	// We should not have any interpreter instances that still refer to us
+	// We should not have any interpreter instances that still refer to our function map and signatures
+	delete sim_0_function_map_;
+	
 	for (const EidosFunctionSignature *signature : sim_0_signatures_)
 		delete signature;
 	
@@ -147,6 +158,18 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 		SLiMEidosBlock *script_block = new SLiMEidosBlock(script_block_node);
 		
 		script_blocks_.push_back(script_block);
+		
+		// Define the symbol for the script block, if any
+		if (script_block->block_id_ != -1)
+		{
+			EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
+			
+			if (simulation_constants_->ContainsSymbol(symbol_entry->first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate(script_block->root_node_->children_[0]->token_);
+			
+			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+		}
+
 	}
 	
 	// Reset error position indicators used by SLiMgui
@@ -449,6 +472,11 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 		
 		if (script_block_position != script_blocks_.end())
 		{
+			// Remove the symbol for it first
+			if (block_to_dereg->block_id_ != -1)
+				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->CachedScriptBlockSymbolTableEntry()->first);
+			
+			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
 			scripts_changed_ = true;
 			delete block_to_dereg;
@@ -513,6 +541,9 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// start at the beginning
 	generation_ = time_start_;
+	
+	// set up the "sim" symbol now that initialization is complete
+	simulation_constants_->InitializeConstantSymbolEntry(CachedSymbolTableEntry());
 	
 	// initialize chromosome
 	chromosome_.InitializeDraws();
@@ -847,14 +878,12 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		genomic_element_types_changed_ = true;
 		
 		// define a new Eidos variable to refer to the new genomic element type
-		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 		EidosSymbolTableEntry *symbol_entry = new_genomic_element_type->CachedSymbolTableEntry();
-		const string &symbol_name = symbol_entry->first;
-		EidosValue_SP symbol_value = symbol_entry->second;
 		
-		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-		symbols.SetValueForSymbol(symbol_name, symbol_value);
+		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
 		if (DEBUG_INPUT)
 		{
@@ -867,7 +896,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		num_genomic_element_types_++;
-		return symbol_value;
+		return symbol_entry->second;
 	}
 	
 	
@@ -932,14 +961,12 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		mutation_types_changed_ = true;
 		
 		// define a new Eidos variable to refer to the new mutation type
-		EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 		EidosSymbolTableEntry *symbol_entry = new_mutation_type->CachedSymbolTableEntry();
-		const string &symbol_name = symbol_entry->first;
-		EidosValue_SP symbol_value = symbol_entry->second;
 		
-		if (symbols.GetValueOrNullForSymbol(symbol_name))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-		symbols.SetValueForSymbol(symbol_name, symbol_value);
+		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
 		if (DEBUG_INPUT)
 		{
@@ -952,7 +979,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		num_mutation_types_++;
-		return symbol_value;
+		return symbol_entry->second;
 	}
 	
 	
@@ -1152,33 +1179,28 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	return gStaticEidosValueNULLInvisible;
 }
 
-const std::vector<const EidosFunctionSignature*> *SLiMSim::InjectedFunctionSignatures(void)
+const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
-	if (generation_ == 0)
+	// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
+	if (!sim_0_signatures_.size())
 	{
-		// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
-		if (!sim_0_signatures_.size())
-		{
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddNumeric("rates")->AddInt_O("ends"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddNumeric_S("rate"));
-			sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff"));
-		}
-		
-		return &sim_0_signatures_;
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddNumeric("rates")->AddInt_O("ends"));
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddNumeric_S("rate"));
+		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff"));
 	}
 	
-	return nullptr;
+	return &sim_0_signatures_;
 }
 
 const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(void)
@@ -1304,108 +1326,36 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 	return propertySignatures;
 }
 
-void SLiMSim::InjectIntoInterpreter(EidosInterpreter &p_interpreter, SLiMEidosBlock *p_script_block, bool p_fresh_symbol_table)
+EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols)
 {
-	EidosSymbolTable &global_symbols = p_interpreter.GetSymbolTable();
+	// Since we keep our own symbol table long-term, this function does not actually re-derive a new table, but just returns the cached table
+	if (p_base_symbols != gEidosConstantsSymbolTable)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::SymbolsFromBaseSymbols): (internal error) SLiM requires that its parent symbol table be the standard Eidos symbol table." << eidos_terminate();
 	
-	// Note that we can use InitializeConstantSymbolEntry() here only because the objects we are setting are guaranteed by
-	// SLiM's design to live longer than the symbol table we are injecting into!  Every new execution of a script block
-	// makes a new symbol table that receives a fresh injection.  Nothing that happens during the execution of a script
-	// block can invalidate existing entries during the execution of the block; subpopulations do not get deleted immediately,
-	// deregistered script blocks stick around until the end of the script execution, etc.  This is a very important stake!
-	// We also need to guarantee here that the values we are setting will not change for the lifetime of the symbol table;
-	// the objects referred to by the values may change, but the EidosValue objects themselves will not.  Be careful!
-	
-	// Also, we can use InitializeConstantSymbolEntry only when we have a fresh symbol table (which is always the case within
-	// SLiM events and callbacks); when we don't have a fresh symbol table (such as when working in the Eidos interpreter,
-	// which carries over the same symbol table from one interpreter to the next), we need to avoid making duplicates,
-	// so we have to use ReinitializeConstantSymbolEntry instead.
-	
-	// A constant for reference to the SLiMEidosBlock, self
-	if (p_script_block && p_script_block->contains_self_)
-	{
-		if (p_fresh_symbol_table)
-			global_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
-		else
-			global_symbols.ReinitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());
-	}
-	
+	return simulation_constants_;
+}
+
+EidosFunctionMap *SLiMSim::FunctionMapFromBaseMap(EidosFunctionMap *p_base_map)
+{
 	// Add signatures for functions we define – initialize...() functions only, right now
 	if (generation_ == 0)
 	{
-		const std::vector<const EidosFunctionSignature*> *signatures = InjectedFunctionSignatures();
-		
-		if (signatures)
+		if (!sim_0_function_map_)
 		{
-			// construct a new map based on the built-in map, add our functions, and register it, which gives the pointer to the interpreter
+			const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
+			
+			// construct a new map based on the base map, add our functions, and return it, which gives the pointer to the interpreter
 			// this is slow, but it doesn't matter; if we start adding functions outside of initialize time, this will need to be revisited
-			EidosFunctionMap *derived_function_map = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
+			sim_0_function_map_ = new EidosFunctionMap(*p_base_map);
 			
 			for (const EidosFunctionSignature *signature : *signatures)
-				derived_function_map->insert(EidosFunctionMapPair(signature->function_name_, signature));
-			
-			p_interpreter.RegisterFunctionMap(derived_function_map);
+				sim_0_function_map_->insert(EidosFunctionMapPair(signature->function_name_, signature));
 		}
+		
+		return sim_0_function_map_;
 	}
 	
-	// Inject for generations > 0 : no initialize...() functions, but global symbols
-	if (generation_ != 0)
-	{
-		if (p_fresh_symbol_table)
-		{
-			// A constant for reference to the simulation, sim
-			if (!p_script_block || p_script_block->contains_sim_)
-				global_symbols.InitializeConstantSymbolEntry(CachedSymbolTableEntry());
-			
-			// Add constants for our genomic element types, like g1, g2, ...
-			if (!p_script_block || p_script_block->contains_gX_)
-				for (auto getype_pair : genomic_element_types_)
-					global_symbols.InitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our mutation types, like m1, m2, ...
-			if (!p_script_block || p_script_block->contains_mX_)
-				for (auto mut_type_pair : mutation_types_)
-					global_symbols.InitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our subpopulations, like p1, p2, ...
-			if (!p_script_block || p_script_block->contains_pX_)
-				for (auto pop_pair : population_)
-					global_symbols.InitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our scripts, like s1, s2, ...
-			if (!p_script_block || p_script_block->contains_sX_)
-				for (SLiMEidosBlock *script_block : script_blocks_)
-					if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
-						global_symbols.InitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
-		}
-		else
-		{
-			// A constant for reference to the simulation, sim
-			if (!p_script_block || p_script_block->contains_sim_)
-				global_symbols.ReinitializeConstantSymbolEntry(CachedSymbolTableEntry());
-			
-			// Add constants for our genomic element types, like g1, g2, ...
-			if (!p_script_block || p_script_block->contains_gX_)
-				for (auto getype_pair : genomic_element_types_)
-					global_symbols.ReinitializeConstantSymbolEntry(getype_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our mutation types, like m1, m2, ...
-			if (!p_script_block || p_script_block->contains_mX_)
-				for (auto mut_type_pair : mutation_types_)
-					global_symbols.ReinitializeConstantSymbolEntry(mut_type_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our subpopulations, like p1, p2, ...
-			if (!p_script_block || p_script_block->contains_pX_)
-				for (auto pop_pair : population_)
-					global_symbols.ReinitializeConstantSymbolEntry(pop_pair.second->CachedSymbolTableEntry());
-			
-			// Add constants for our scripts, like s1, s2, ...
-			if (!p_script_block || p_script_block->contains_sX_)
-				for (SLiMEidosBlock *script_block : script_blocks_)
-					if (script_block->block_id_ != -1)					// add symbols only for non-anonymous blocks
-						global_symbols.ReinitializeConstantSymbolEntry(script_block->CachedScriptBlockSymbolTableEntry());
-		}
-	}
+	return p_base_map;
 }
 
 const EidosObjectClass *SLiMSim::Class(void) const
@@ -1588,16 +1538,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
 			
 			// define a new Eidos variable to refer to the new subpopulation
-			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
-			const string &symbol_name = symbol_entry->first;
-			EidosValue_SP symbol_value = symbol_entry->second;
 			
-			if (symbols.GetValueOrNullForSymbol(symbol_name))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-			symbols.SetValueForSymbol(symbol_name, symbol_value);
+			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
 			
-			return symbol_value;
+			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+			
+			return symbol_entry->second;
 		}
 			
 			
@@ -1615,7 +1563,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (arg2_value->Type() == EidosValueType::kValueInt)
 			{
 				slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
-				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 				
 				if (sim)
 				{
@@ -1642,16 +1590,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
 			
 			// define a new Eidos variable to refer to the new subpopulation
-			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
-			const string &symbol_name = symbol_entry->first;
-			EidosValue_SP symbol_value = symbol_entry->second;
 			
-			if (symbols.GetValueOrNullForSymbol(symbol_name))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-			symbols.SetValueForSymbol(symbol_name, symbol_value);
+			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
 			
-			return symbol_value;
+			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+			
+			return symbol_entry->second;
 		}
 			
 			
@@ -1916,15 +1862,10 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			string file_path = arg0_value->StringAtIndex(0, nullptr);
 			
 			// first we clear out all variables of type Subpopulation from the symbol table; they will all be invalid momentarily
-			EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
-			
-			std::vector<std::string> read_only_symbols = symbols.ReadOnlySymbols();
-			std::vector<std::string> read_write_symbols = symbols.ReadWriteSymbols();
-			std::vector<std::string> all_symbols;
+			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
+			EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+			std::vector<std::string> all_symbols = symbols.AllSymbols();
 			std::vector<std::string> symbols_to_remove;
-			
-			all_symbols.insert(all_symbols.end(), read_only_symbols.begin(), read_only_symbols.end());
-			all_symbols.insert(all_symbols.end(), read_write_symbols.begin(), read_write_symbols.end());
 			
 			for (string symbol_name : all_symbols)
 			{
@@ -1940,7 +1881,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			for (string symbol_name : symbols_to_remove)
-				symbols.RemoveValueForSymbol(symbol_name, true);
+				symbols.RemoveConstantForSymbol(symbol_name);
 			
 			// then we dispose of all existing subpopulations, mutations, etc.
 			population_.RemoveAllSubpopulationInfo();
@@ -1998,14 +1939,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
-				const string &symbol_name = symbol_entry->first;
-				EidosValue_SP symbol_value = symbol_entry->second;
 				
-				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				
+				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
@@ -2048,14 +1987,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
-				const string &symbol_name = symbol_entry->first;
-				EidosValue_SP symbol_value = symbol_entry->second;
 				
-				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				
+				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;
@@ -2100,14 +2037,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTable &symbols = p_interpreter.GetSymbolTable();
 				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
-				const string &symbol_name = symbol_entry->first;
-				EidosValue_SP symbol_value = symbol_entry->second;
 				
-				if (symbols.GetValueOrNullForSymbol(symbol_name))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_name << " was already defined prior to its definition here." << eidos_terminate();
-				symbols.SetValueForSymbol(symbol_name, std::move(symbol_value));
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				
+				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
 			return script_block->CachedSymbolTableEntry()->second;

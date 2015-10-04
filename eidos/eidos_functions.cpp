@@ -398,9 +398,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	if (!p_function_signature)
 	{
 		// Get the function signature and check our arguments against it
-		auto signature_iter = function_map_->find(p_function_name);
+		auto signature_iter = function_map_.find(p_function_name);
 		
-		if (signature_iter == function_map_->end())
+		if (signature_iter == function_map_.end())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): unrecognized function name " << p_function_name << "." << eidos_terminate(nullptr);
 		
 		p_function_signature = signature_iter->second;
@@ -4033,8 +4033,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				script.Tokenize();
 				script.ParseInterpreterBlockToAST();
 				
-				EidosSymbolTable &symbols = GetSymbolTable();								// get our own symbol table
-				EidosInterpreter interpreter(script, symbols, this->eidos_context_);		// give the interpreter the symbol table
+				EidosSymbolTable &symbols = SymbolTable();									// use our own symbol table
+				EidosFunctionMap &function_map = FunctionMap();								// use our own function map
+				EidosInterpreter interpreter(script, symbols, function_map, this->eidos_context_);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
@@ -4048,7 +4049,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				}
 				
 				// We do not want a leftover applyValue symbol in the symbol table, so we remove it now
-				symbols.RemoveValueForSymbol(gEidosStr_applyValue, false);
+				symbols.RemoveValueForSymbol(gEidosStr_applyValue);
 				
 				// Assemble all the individual results together, just as c() does
 				ExecutionOutputStream() << interpreter.ExecutionOutput();
@@ -4138,8 +4139,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				script.Tokenize();
 				script.ParseInterpreterBlockToAST();
 				
-				EidosSymbolTable &symbols = GetSymbolTable();								// get our own symbol table
-				EidosInterpreter interpreter(script, symbols, this->eidos_context_);		// give the interpreter the symbol table
+				EidosSymbolTable &symbols = SymbolTable();									// use our own symbol table
+				EidosFunctionMap &function_map = FunctionMap();								// use our own function map
+				EidosInterpreter interpreter(script, symbols, function_map, this->eidos_context_);
 				
 				if (timed)
 					begin = clock();
@@ -4200,7 +4202,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			bool signature_found = false;
 			
 			// function_map_ is already alphebetized since maps keep sorted order
-			for (auto functionPairIter = function_map_->begin(); functionPairIter != function_map_->end(); ++functionPairIter)
+			for (auto functionPairIter = function_map_.begin(); functionPairIter != function_map_.end(); ++functionPairIter)
 			{
 				const EidosFunctionSignature *iter_signature = functionPairIter->second;
 				
@@ -4287,7 +4289,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			
 			for (string &symbol : symbols_to_remove)
-				global_symbols_.RemoveValueForSymbol(symbol, false);
+				global_symbols_.RemoveValueForSymbol(symbol);
 			
 			result_SP = gStaticEidosValueNULLInvisible;
 			break;

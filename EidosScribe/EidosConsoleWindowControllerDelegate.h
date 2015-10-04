@@ -23,13 +23,9 @@
 #include <vector>
 #include <string>
 
+#include "eidos_interpreter.h"
+
 @class EidosConsoleWindowController;
-class EidosInterpreter;
-class EidosObjectElement;
-typedef EidosObjectElement EidosContext;
-class EidosMethodSignature;
-class EidosFunctionSignature;
-class EidosSymbolTable;
 
 
 /*
@@ -59,8 +55,11 @@ class EidosSymbolTable;
 // This allows the Context to append its own welcome message to the console window on startup
 - (void)eidosConsoleWindowControllerAppendWelcomeMessageAddendum:(EidosConsoleWindowController *)eidosConsoleController;
 
-// This allows Context-defined functions and symbols to be injected into new interpreters prior to execution
-- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController injectIntoInterpreter:(EidosInterpreter *)interpreter;
+// This allows the Context to define its own symbols beyond those in Eidos itself
+- (EidosSymbolTable *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols;
+
+// This allows the Context to define its own functions beyond those in Eidos itself
+- (EidosFunctionMap *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap;
 
 // This notifies the delegate that a script check operation did or did not succeed, allowing custom UI
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController checkScriptDidSucceed:(BOOL)succeeded;
@@ -76,7 +75,6 @@ class EidosSymbolTable;
 
 // messages from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
 - (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController;
-- (const std::vector<const EidosFunctionSignature*> *)eidosConsoleWindowControllerInjectedFunctionSignatures:(EidosConsoleWindowController *)eidosConsoleController;
 - (BOOL)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 - (NSString *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController helpTextForClickedText:(NSString *)clickedText;
 

@@ -1147,36 +1147,21 @@ using std::string;
 
 - (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall
 {
-	// We need to figure out what the signature is for the call name.  We check injected function names first,
-	// standard function names second, and then we check the global method registry to see if we've got a
-	// match there.  That is thus the priority, in case of duplicate names.
+	// We need to figure out what the signature is for the call name.
 	std::string call_name([callName UTF8String]);
 	id delegate = [self delegate];
 	
 	if (!isMethodCall)
 	{
-		// Look for a matching injected function signature first
-		const std::vector<const EidosFunctionSignature *> *injectedSignatures = nullptr;
+		// Look for a matching function signature, including those from the Context
+		EidosFunctionMap *functionMap = EidosInterpreter::BuiltInFunctionMap();
 		
-		if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
-			injectedSignatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
+		if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
+			functionMap = [delegate eidosTextView:self functionMapFromBaseMap:functionMap];
 		
-		if (injectedSignatures)
+		for (const auto& function_iter : *functionMap)
 		{
-			for (const EidosFunctionSignature *sig : *injectedSignatures)
-			{
-				const std::string &sig_call_name = sig->function_name_;
-				
-				if (sig_call_name.compare(call_name) == 0)
-					return [NSAttributedString eidosAttributedStringForCallSignature:sig];
-			}
-		}
-		
-		// Look for a matching built-in function second
-		const vector<const EidosFunctionSignature *> &builtinSignatures = EidosInterpreter::BuiltInFunctions();
-		
-		for (const EidosFunctionSignature *sig : builtinSignatures)
-		{
+			const EidosFunctionSignature *sig = function_iter.second;
 			const std::string &sig_call_name = sig->function_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
@@ -1247,41 +1232,25 @@ using std::string;
 	id delegate = [self delegate];
 	
 	// First, a sorted list of globals
-	EidosSymbolTable *globalSymbolTable = nullptr;
+	EidosSymbolTable *globalSymbolTable = gEidosConstantsSymbolTable;
 	
-	if ([delegate respondsToSelector:@selector(eidosTextViewGlobalSymbolTableForCompletion:)])
-		globalSymbolTable = [delegate eidosTextViewGlobalSymbolTableForCompletion:self];
+	if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
+		globalSymbolTable = [delegate eidosTextView:self symbolsFromBaseSymbols:globalSymbolTable];
 	
-	if (globalSymbolTable)
-	{
-		for (std::string &symbol_name : globalSymbolTable->ReadOnlySymbols())
-			[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
-		
-		for (std::string &symbol_name : globalSymbolTable->ReadWriteSymbols())
-			[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
-	}
+	for (std::string &symbol_name : globalSymbolTable->AllSymbols())
+		[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
 	
 	[globals sortUsingSelector:@selector(compare:)];
 	
-	// Next, a sorted list of injected functions, with () appended
-	const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
-	
-	if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
-		signatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
-	
-	if (signatures)
-	{
-		for (const EidosFunctionSignature *sig : *signatures)
-		{
-			NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
-			
-			[globals addObject:[functionName stringByAppendingString:@"()"]];
-		}
-	}
-	
 	// Next, a sorted list of functions, with () appended
-	for (const EidosFunctionSignature *sig : EidosInterpreter::BuiltInFunctions())
+	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+	
+	if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
+		function_map = [delegate eidosTextView:self functionMapFromBaseMap:function_map];
+	
+	for (const auto& function_iter : *function_map)
 	{
+		const EidosFunctionSignature *sig = function_iter.second;
 		NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
 		
 		[globals addObject:[functionName stringByAppendingString:@"()"]];
@@ -1447,42 +1416,35 @@ using std::string;
 		id delegate = [self delegate];
 		
 		// Look in the delegate's list of functions first
-		const std::vector<const EidosFunctionSignature*> *signatures = nullptr;
+		EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
 		
-		if ([delegate respondsToSelector:@selector(eidosTextViewInjectedFunctionSignatures:)])
-			signatures = [delegate eidosTextViewInjectedFunctionSignatures:self];
+		if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
+			function_map = [delegate eidosTextView:self functionMapFromBaseMap:function_map];
 		
-		if (signatures)
+		for (const auto& function_iter : *function_map)
 		{
-			for (const EidosFunctionSignature *sig : *signatures)
-				if (sig->function_name_.compare(identifier_name) == 0)
-				{
-					key_path_class = sig->return_class_;
-					break;
-				}
-		}
-		
-		// Next, a sorted list of functions, with () appended
-		if (!key_path_class)
-		{
-			for (const EidosFunctionSignature *sig : EidosInterpreter::BuiltInFunctions())
-				if (sig->function_name_.compare(identifier_name) == 0)
-				{
-					key_path_class = sig->return_class_;
-					break;
-				}
+			const EidosFunctionSignature *sig = function_iter.second;
+			
+			if (sig->function_name_.compare(identifier_name) == 0)
+			{
+				key_path_class = sig->return_class_;
+				break;
+			}
 		}
 	}
 	else
 	{
 		// The root identifier is not a call, so it should be a global symbol; try to look it up
-		EidosSymbolTable *globalSymbolTable = nullptr;
+		EidosSymbolTable *globalSymbolTable = gEidosConstantsSymbolTable;
 		id delegate = [self delegate];
 		
-		if ([delegate respondsToSelector:@selector(eidosTextViewGlobalSymbolTableForCompletion:)])
-			globalSymbolTable = [delegate eidosTextViewGlobalSymbolTableForCompletion:self];
+		if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
+			globalSymbolTable = [delegate eidosTextView:self symbolsFromBaseSymbols:globalSymbolTable];
 		
-		EidosValue *key_path_root = (globalSymbolTable ? globalSymbolTable->GetValueOrNullForSymbol(identifier_name).get() : nullptr);
+		if (!globalSymbolTable->ContainsSymbol(identifier_name))	// check first so we never get a raise
+			return nil;
+		
+		EidosValue *key_path_root = globalSymbolTable->GetValueOrRaiseForSymbol(identifier_name).get();
 		
 		if (!key_path_root)
 			return nil;			// unknown symbol at the root, so we have no idea what's going on

@@ -478,33 +478,6 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gEidosStr_ls) == 0)				contains_wildcard_ = true;
 		if (token_string.compare(gEidosStr_rm) == 0)				contains_wildcard_ = true;
 		
-		// ***** If a new flag is added here, it must also be added to the list in SLiMEidosBlock::ScanTree!
-		
-		if (token_string.compare(gEidosStr_T) == 0)					eidos_contains_.contains_T_ = true;
-		if (token_string.compare(gEidosStr_F) == 0)					eidos_contains_.contains_F_ = true;
-		if (token_string.compare(gEidosStr_NULL) == 0)				eidos_contains_.contains_NULL_ = true;
-		if (token_string.compare(gEidosStr_PI) == 0)					eidos_contains_.contains_PI_ = true;
-		if (token_string.compare(gEidosStr_E) == 0)					eidos_contains_.contains_E_ = true;
-		if (token_string.compare(gEidosStr_INF) == 0)				eidos_contains_.contains_INF_ = true;
-		if (token_string.compare(gEidosStr_NAN) == 0)				eidos_contains_.contains_NAN_ = true;
-		
-		// look for instance identifiers like p1, g1, m1, s1; the heuristic here is very dumb, but errs on the safe side
-		if (token_string.size() >= 2)
-		{
-			char char2 = token_string[1];
-			
-			if ((char2 >= '0') && (char2 <= '9'))
-			{
-				char char1 = token_string[0];
-				
-				if (char1 == 'p')								contains_pX_ = true;
-				if (char1 == 'g')								contains_gX_ = true;
-				if (char1 == 'm')								contains_mX_ = true;
-				if (char1 == 's')								contains_sX_ = true;
-			}
-		}
-		
-		if (token_string.compare(gStr_sim) == 0)				contains_sim_ = true;
 		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
@@ -535,18 +508,6 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 	// we just set all of our "contains_" flags to T.  Any new flag that is added must be added here too!
 	if (contains_wildcard_)
 	{
-		eidos_contains_.contains_T_ = true;
-		eidos_contains_.contains_F_ = true;
-		eidos_contains_.contains_NULL_ = true;
-		eidos_contains_.contains_PI_ = true;
-		eidos_contains_.contains_E_ = true;
-		eidos_contains_.contains_INF_ = true;
-		eidos_contains_.contains_NAN_ = true;
-		contains_pX_ = true;
-		contains_gX_ = true;
-		contains_mX_ = true;
-		contains_sX_ = true;
-		contains_sim_ = true;
 		contains_self_ = true;
 		contains_mut_ = true;
 		contains_relFitness_ = true;

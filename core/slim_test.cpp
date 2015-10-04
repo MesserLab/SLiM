@@ -263,6 +263,9 @@ void RunSLiMTests(void)
 	
 	SLiMAssertScriptStop(stop_test);
 	
+	// Test script registration
+	SLiMAssertScriptRaise("initialize() { stop(); } s1 {} s1 {}", 1, 31, "already defined");
+	
 	
 	// ************************************************************************************
 	//
@@ -481,6 +484,7 @@ void RunSLiMTests(void)
 	
 	// Test sim - (object<SLiMEidosBlock>)registerEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEvent(NULL, '{ stop(); }', 2, 2); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 2, 2); sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 294, "already defined");
@@ -497,6 +501,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }");
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }");
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }'); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); } s1 { }", 1, 251, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 314, "already defined");
@@ -513,6 +518,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 251, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 313, "already defined");
@@ -529,6 +535,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL); }", 1, 251, "missing required argument");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 251, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 314, "already defined");
@@ -924,7 +931,8 @@ void RunSLiMTests(void)
 	
 	// Test Subpopulation - (void)setSubpopulationSize(integer$ size)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }");					// does not take visible effect until child generation
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }", 1, 279, "undefined identifier");		// the symbol is undefined immediately
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { px=p1; p1.setSubpopulationSize(0); if (px.individualCount == 10) stop(); }");									// does not take visible effect until child generation
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(0); } 2 { if (p1.individualCount == 0) stop(); }", 1, 285, "undefined identifier");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }");					// does not take visible effect until child generation

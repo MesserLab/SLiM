@@ -154,7 +154,7 @@ EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method
 		if (arg0_value->Type() == EidosValueType::kValueInt)
 		{
 			slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.GetEidosContext());
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (sim)
 			{

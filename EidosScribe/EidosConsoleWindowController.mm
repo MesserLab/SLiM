@@ -291,24 +291,34 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		return nil;
 	}
 	
-	// Ensure that we have a symbol table; this used to be done by EidosInterpreter but now we're responsible.
+	// Get a symbol table and let our delegate add symbols to it
 	if (!global_symbols)
-		global_symbols = new EidosSymbolTable();
+	{
+		global_symbols = gEidosConstantsSymbolTable;
+		
+		if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:symbolsFromBaseSymbols:)])
+			global_symbols = [delegate eidosConsoleWindowController:self symbolsFromBaseSymbols:global_symbols];
+		
+		global_symbols = new EidosSymbolTable(false, global_symbols);	// add a table for script-defined variables on top
+	}
 	
-	// Interpret the parsed block
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerWillExecuteScript:)])
-		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
+	// Get a function map and let our delegate add functions to it
+	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
 	
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:functionMapFromBaseMap:)])
+		function_map = [delegate eidosConsoleWindowController:self functionMapFromBaseMap:function_map];
+	
+	// Get the EidosContext, if any, from the delegate
 	EidosContext *eidos_context = nullptr;
 	
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerEidosContext:)])
 		eidos_context = [delegate eidosConsoleWindowControllerEidosContext:self];
 	
-	EidosInterpreter interpreter(script, *global_symbols, eidos_context);		// give the interpreter the symbol table
+	// Interpret the parsed block
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerWillExecuteScript:)])
+		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
 	
-	// Give our delegate a chance to add variables and other context to the interpreter
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:injectIntoInterpreter:)])
-		[delegate eidosConsoleWindowController:self injectIntoInterpreter:&interpreter];
+	EidosInterpreter interpreter(script, *global_symbols, *function_map, eidos_context);
 	
 	try
 	{
@@ -783,11 +793,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 #pragma mark -
 #pragma mark EidosTextViewDelegate
 
-- (EidosSymbolTable *)eidosTextViewGlobalSymbolTableForCompletion:(EidosTextView *)eidosTextView
-{
-	return global_symbols;
-}
-
 - (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView
 {
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerLanguageKeywordsForCompletion:)])
@@ -796,12 +801,17 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		return nil;
 }
 
-- (const std::vector<const EidosFunctionSignature*> *)eidosTextViewInjectedFunctionSignatures:(EidosTextView *)eidosTextView
+- (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerInjectedFunctionSignatures:)])
-		return [delegate eidosConsoleWindowControllerInjectedFunctionSignatures:self];
+	return global_symbols;	// we keep our own symbol table, so we don't call our delegate here
+}
+
+- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+{
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:functionMapFromBaseMap:)])
+		return [delegate eidosConsoleWindowController:self functionMapFromBaseMap:baseFunctionMap];
 	else
-		return nullptr;
+		return baseFunctionMap;
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView
