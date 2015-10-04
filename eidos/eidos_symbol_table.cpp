@@ -29,7 +29,6 @@ using std::string;
 using std::vector;
 using std::endl;
 using std::istringstream;
-using std::ostringstream;
 using std::istream;
 using std::ostream;
 
@@ -75,13 +74,13 @@ EidosSymbolTable::EidosSymbolTable(bool p_constants_table, EidosSymbolTable *p_p
 		}
 		
 		// We can use InitializeConstantSymbolEntry() here since we obey its requirements (see header)
-		InitializeConstantSymbolEntry(nanConstant);
-		InitializeConstantSymbolEntry(infConstant);
-		InitializeConstantSymbolEntry(piConstant);
-		InitializeConstantSymbolEntry(eConstant);
-		InitializeConstantSymbolEntry(nullConstant);
-		InitializeConstantSymbolEntry(falseConstant);
-		InitializeConstantSymbolEntry(trueConstant);
+		InitializeConstantSymbolEntry(*nanConstant);
+		InitializeConstantSymbolEntry(*infConstant);
+		InitializeConstantSymbolEntry(*piConstant);
+		InitializeConstantSymbolEntry(*eConstant);
+		InitializeConstantSymbolEntry(*nullConstant);
+		InitializeConstantSymbolEntry(*falseConstant);
+		InitializeConstantSymbolEntry(*trueConstant);
 	}
 	else
 	{

@@ -48,9 +48,8 @@ class GenomicElementType : public EidosObjectElement
 
 private:
 	
-	gsl_ran_discrete_t *lookup_mutation_type_ = nullptr;					// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
-	
-	EidosSymbolTableEntry *self_symbol_ = nullptr;							// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
+	gsl_ran_discrete_t *lookup_mutation_type_ = nullptr;				// OWNED POINTER: a lookup table for getting a mutation type for this genomic element
+	EidosSymbolTableEntry self_symbol_;									// for fast setup of the symbol table
 	
 public:
 	
@@ -74,8 +73,7 @@ public:
 	//
 	// Eidos support
 	//
-	void GenerateCachedSymbolTableEntry(void);
-	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

@@ -60,7 +60,7 @@ extern EidosSymbolTable *gEidosConstantsSymbolTable;
 
 
 // This is used by InitializeConstantSymbolEntry / ReinitializeConstantSymbolEntry for fast setup / teardown
-typedef std::pair<const std::string, EidosValue_SP> EidosSymbolTableEntry;
+typedef std::pair<std::string, EidosValue_SP> EidosSymbolTableEntry;
 
 
 // Used by EidosSymbolTable for the slots in its internal fixed-size symbol array
@@ -153,7 +153,7 @@ public:
 	// has infinite lifespan, and (2) that the EidosValue passed in is not invisible and is thus suitable for
 	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
-	void InitializeConstantSymbolEntry(EidosSymbolTableEntry *p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry->first, p_new_entry->second); }
+	void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
 	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 };
 

@@ -271,7 +271,9 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_i
 #pragma mark -
 #pragma mark SLiMEidosBlock
 
-SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node)
+SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node),
+	self_symbol_(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
+	script_block_symbol_(SLiMEidosScript::IDStringWithPrefix('s', -1), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -287,6 +289,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		{
 			block_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(script_id_token->token_string_, 's', script_id_token);
 			child_index++;
+			
+			// fix ID string for our symbol
+			std::string new_symbol_string = SLiMEidosScript::IDStringWithPrefix('s', block_id_);
+			script_block_symbol_.first = new_symbol_string;
 		}
 	}
 	
@@ -427,8 +433,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end)
-	: block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end)
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
+	block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end),
+	self_symbol_(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
+	script_block_symbol_(SLiMEidosScript::IDStringWithPrefix('s', p_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	script_ = new EidosScript(p_script_string);
 	// the caller should now call TokenizeAndParse() to complete initialization
@@ -437,8 +445,6 @@ SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script
 SLiMEidosBlock::~SLiMEidosBlock(void)
 {
 	delete script_;
-	delete self_symbol_;
-	delete script_block_symbol_;
 }
 
 void SLiMEidosBlock::TokenizeAndParse(void)
@@ -535,27 +541,6 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 //
 #pragma mark -
 #pragma mark Eidos support
-
-void SLiMEidosBlock::GenerateCachedSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
-
-void SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	if (block_id_ == -1)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GenerateCachedScriptBlockSymbolTableEntry): (internal error) cached symbol table entries for anonymous script blocks are not supported." << eidos_terminate();
-	
-	std::ostringstream script_stream;
-	
-	script_stream << "s" << block_id_;
-	
-	script_block_symbol_ = new EidosSymbolTableEntry(script_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
 
 const EidosObjectClass *SLiMEidosBlock::Class(void) const
 {

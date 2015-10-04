@@ -65,6 +65,16 @@ public:
 	// thus inherits whatever error-tracking token information might have been previously set.
 	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
 	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token);
+	
+	// Returns a string of the form "p1", "g7", "m17", etc., from the type character and object identifier
+	static inline std::string IDStringWithPrefix(char p_type_char, slim_objectid_t p_object_id)
+	{
+		std::ostringstream idstring_stream;
+		
+		idstring_stream << p_type_char << p_object_id;
+		
+		return idstring_stream.str();
+	}
 };
 
 
@@ -77,8 +87,8 @@ class SLiMEidosBlock : public EidosObjectElement
 	
 private:
 
-	EidosSymbolTableEntry *self_symbol_ = nullptr;					// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
-	EidosSymbolTableEntry *script_block_symbol_ = nullptr;			// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
+	EidosSymbolTableEntry self_symbol_;					// "self" : for fast setup of the symbol table
+	EidosSymbolTableEntry script_block_symbol_;			// "sX" : for fast setup of the symbol table
 	
 public:
 	
@@ -138,11 +148,8 @@ public:
 	//
 	// Eidos support
 	//
-	void GenerateCachedSymbolTableEntry(void);
-	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
-	void GenerateCachedScriptBlockSymbolTableEntry(void);
-	inline EidosSymbolTableEntry *CachedScriptBlockSymbolTableEntry(void)
-		{ if (!script_block_symbol_) GenerateCachedScriptBlockSymbolTableEntry(); return script_block_symbol_; };
+	EidosSymbolTableEntry &SelfSymbolTableEntry(void) { return self_symbol_; };
+	EidosSymbolTableEntry &ScriptBlockSymbolTableEntry(void) { if (block_id_ != -1) return script_block_symbol_; else EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::ScriptBlockSymbolTableEntry): (internal error) no symbol table entry." << eidos_terminate(); };
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

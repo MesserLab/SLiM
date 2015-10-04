@@ -51,11 +51,14 @@
 	[super dealloc];
 }
 
+- (void)applicationWillFinishLaunching:(NSNotification *)aNotification
+{
+	// Warm up our back end before anything else happens
+	Eidos_WarmUp();
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	// Give Eidos a chance to warm up
-	Eidos_WarmUp();
-	
 	// Load our console window nib; we are set up as the delegate in the nib
 	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
 	

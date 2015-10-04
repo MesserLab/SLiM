@@ -132,7 +132,8 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 #endif
 }
 
-Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
+	self_symbol_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -151,7 +152,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
-population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
+population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
+	self_symbol_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -196,8 +198,6 @@ Subpopulation::~Subpopulation(void)
 	
 	if (lookup_male_parent_)
 		gsl_ran_discrete_free(lookup_male_parent_);
-	
-	delete self_symbol_;
 	
 	if (cached_parental_fitness_)
 		free(cached_parental_fitness_);
@@ -340,7 +340,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
 						
 						if (fitness_callback->contains_self_)
-							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->CachedSymbolTableEntry());		// define "self"
+							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
 						
 						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of
@@ -361,7 +361,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						if (fitness_callback->contains_genome2_)
 							callback_symbols.InitializeConstantSymbolEntry(gStr_genome2, p_genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
-							callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, CachedSymbolTableEntry()->second);
+							callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, SymbolTableEntry().second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
@@ -925,17 +925,6 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 //
 #pragma mark -
 #pragma mark Eidos support
-
-void Subpopulation::GenerateCachedSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	std::ostringstream subpop_stream;
-	
-	subpop_stream << "p" << subpopulation_id_;
-	
-	self_symbol_ = new EidosSymbolTableEntry(subpop_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
 
 const EidosObjectClass *Subpopulation::Class(void) const
 {

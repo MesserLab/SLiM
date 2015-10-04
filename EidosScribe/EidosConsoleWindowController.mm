@@ -42,7 +42,6 @@ using std::vector;
 using std::map;
 using std::endl;
 using std::istringstream;
-using std::ostringstream;
 using std::istream;
 using std::ostream;
 
@@ -232,7 +231,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		if (tokenString)
 		{
-			ostringstream token_stream;
+			std::ostringstream token_stream;
 			
 			script.PrintTokens(token_stream);
 			
@@ -278,7 +277,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		if (parseString)
 		{
-			ostringstream parse_stream;
+			std::ostringstream parse_stream;
 			
 			script.PrintAST(parse_stream);
 			

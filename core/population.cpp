@@ -221,7 +221,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	{
 		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 		// First we remove the symbol for the subpop
-		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.CachedSymbolTableEntry()->first);
+		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 		
 		// Then we immediately remove the subpop from our list of subpops
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
@@ -267,7 +267,7 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, *function_map, &sim_);
 	
 	if (p_script_block->contains_self_)
-		callback_symbols.InitializeConstantSymbolEntry(p_script_block->CachedSymbolTableEntry());		// define "self"
+		callback_symbols.InitializeConstantSymbolEntry(p_script_block->SelfSymbolTableEntry());		// define "self"
 	
 	// Interpret the script; the result from the interpretation is not used for anything
 	EidosValue_SP result = interpreter.EvaluateInternalBlock(p_script_block->script_);
@@ -304,7 +304,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
 				
 				if (mate_choice_callback->contains_self_)
-					callback_symbols.InitializeConstantSymbolEntry(mate_choice_callback->CachedSymbolTableEntry());		// define "self"
+					callback_symbols.InitializeConstantSymbolEntry(mate_choice_callback->SelfSymbolTableEntry());		// define "self"
 				
 				// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 				// We can use that method because we know the lifetime of the symbol table is shorter than that of
@@ -323,10 +323,10 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				}
 				
 				if (mate_choice_callback->contains_subpop_)
-					callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
+					callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->SymbolTableEntry().second);
 				
 				if (mate_choice_callback->contains_sourceSubpop_)
-					callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
+					callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
 				
 				if (mate_choice_callback->contains_weights_)
 				{
@@ -480,7 +480,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
 			
 			if (modify_child_callback->contains_self_)
-				callback_symbols.InitializeConstantSymbolEntry(modify_child_callback->CachedSymbolTableEntry());		// define "self"
+				callback_symbols.InitializeConstantSymbolEntry(modify_child_callback->SelfSymbolTableEntry());		// define "self"
 			
 			// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 			// We can use that method because we know the lifetime of the symbol table is shorter than that of
@@ -537,10 +537,10 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			}
 			
 			if (modify_child_callback->contains_subpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->CachedSymbolTableEntry()->second);
+				callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->SymbolTableEntry().second);
 			
 			if (modify_child_callback->contains_sourceSubpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->CachedSymbolTableEntry()->second);
+				callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
 			EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(modify_child_callback->script_);

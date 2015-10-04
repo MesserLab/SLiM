@@ -54,7 +54,7 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
-	// Warm up our back ends
+	// Warm up our back ends before anything else happens
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	

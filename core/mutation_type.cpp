@@ -27,6 +27,7 @@
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "slim_eidos_block.h"
 
 
 using std::endl;
@@ -48,12 +49,12 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 
 
 #ifdef SLIMGUI
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) :
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), mutation_type_index_(p_mutation_type_index)
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
 #else
 MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters)
 #endif
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), 
+	self_symbol_(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	if (dfe_parameters_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
@@ -63,7 +64,6 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 
 MutationType::~MutationType(void)
 {
-	delete self_symbol_;
 }
 
 double MutationType::DrawSelectionCoefficient(void) const
@@ -110,17 +110,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 //
 #pragma mark -
 #pragma mark Eidos support
-
-void MutationType::GenerateCachedSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	std::ostringstream mut_type_stream;
-	
-	mut_type_stream << "m" << mutation_type_id_;
-	
-	self_symbol_ = new EidosSymbolTableEntry(mut_type_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
 
 const EidosObjectClass *MutationType::Class(void) const
 {

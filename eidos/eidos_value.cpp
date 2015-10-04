@@ -30,7 +30,6 @@ using std::string;
 using std::vector;
 using std::endl;
 using std::istringstream;
-using std::ostringstream;
 using std::istream;
 using std::ostream;
 
@@ -1026,7 +1025,7 @@ std::string EidosValue_Int_vector::StringAtIndex(int p_idx, EidosToken *p_blame_
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(values_[p_idx])
-	ostringstream ss;
+	std::ostringstream ss;
 	
 	ss << values_[p_idx];
 	
@@ -1123,7 +1122,7 @@ std::string EidosValue_Int_singleton::StringAtIndex(int p_idx, EidosToken *p_bla
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(value_)
-	ostringstream ss;
+	std::ostringstream ss;
 	
 	ss << value_;
 	
@@ -1293,7 +1292,7 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blam
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(values_[p_idx])
-	ostringstream ss;
+	std::ostringstream ss;
 	double value = values_[p_idx];
 	
 	// Customize our output a bit to look like Eidos, not C++
@@ -1426,7 +1425,7 @@ std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, EidosToken *p_b
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(value_)
-	ostringstream ss;
+	std::ostringstream ss;
 	
 	// Customize our output a bit to look like Eidos, not C++
 	if (isinf(value_))

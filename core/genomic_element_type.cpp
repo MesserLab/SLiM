@@ -28,7 +28,8 @@
 
 
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
-	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions)
+	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
+	self_symbol_(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	InitializeDraws();
 }
@@ -39,8 +40,6 @@ GenomicElementType::~GenomicElementType(void)
 	
 	if (lookup_mutation_type_)
 		gsl_ran_discrete_free(lookup_mutation_type_);
-	
-	delete self_symbol_;
 }
 
 void GenomicElementType::InitializeDraws(void)
@@ -144,17 +143,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 //
 #pragma mark -
 #pragma mark Eidos support
-
-void GenomicElementType::GenerateCachedSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	std::ostringstream getype_stream;
-	
-	getype_stream << "g" << genomic_element_type_id_;
-	
-	self_symbol_ = new EidosSymbolTableEntry(getype_stream.str(), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
 
 const EidosObjectClass *GenomicElementType::Class(void) const
 {

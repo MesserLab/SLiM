@@ -40,23 +40,18 @@ using std::ifstream;
 using std::vector;
 
 
-SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this)
+SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gStr_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
-	if (p_override_seed_ptr)
-	{
-		rng_seed_ = *p_override_seed_ptr;
-		rng_seed_supplied_to_constructor_ = true;
-	}
-	else
-	{
-		rng_seed_ = 0;
-		rng_seed_supplied_to_constructor_ = false;
-	}
+	unsigned long int rng_seed;
 	
-	// set up SLiM registrations in Eidos
-	Eidos_WarmUp();
-	SLiM_WarmUp();
+	if (p_override_seed_ptr)
+		rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	
+	EidosInitializeRNGFromSeed(rng_seed);
+	
+	if (DEBUG_INPUT)
+		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
 	
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
@@ -67,23 +62,18 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 	InitializeFromFile(p_infile);
 }
 
-SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this)
+SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gStr_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
-	if (p_override_seed_ptr)
-	{
-		rng_seed_ = *p_override_seed_ptr;
-		rng_seed_supplied_to_constructor_ = true;
-	}
-	else
-	{
-		rng_seed_ = 0;
-		rng_seed_supplied_to_constructor_ = false;
-	}
+	unsigned long int rng_seed;
 	
-	// set up SLiM registrations in Eidos
-	Eidos_WarmUp();
-	SLiM_WarmUp();
+	if (p_override_seed_ptr)
+		rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	
+	EidosInitializeRNGFromSeed(rng_seed);
+	
+	if (DEBUG_INPUT)
+		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
 	
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
@@ -123,15 +113,10 @@ SLiMSim::~SLiMSim(void)
 	
 	for (const EidosFunctionSignature *signature : sim_0_signatures_)
 		delete signature;
-	
-	delete self_symbol_;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &p_infile)
 {
-	if (!rng_seed_supplied_to_constructor_)
-		rng_seed_ = EidosGenerateSeedFromPIDAndTime();
-	
 	// Reset error position indicators used by SLiMgui
 	EidosScript::ClearErrorPosition();
 	
@@ -155,17 +140,17 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	
 	for (EidosASTNode *script_block_node : root_node->children_)
 	{
-		SLiMEidosBlock *script_block = new SLiMEidosBlock(script_block_node);
+		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
 		
-		script_blocks_.push_back(script_block);
+		script_blocks_.push_back(new_script_block);
 		
 		// Define the symbol for the script block, if any
-		if (script_block->block_id_ != -1)
+		if (new_script_block->block_id_ != -1)
 		{
-			EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
+			EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 			
-			if (simulation_constants_->ContainsSymbol(symbol_entry->first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate(script_block->root_node_->children_[0]->token_);
+			if (simulation_constants_->ContainsSymbol(symbol_entry.first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate(new_script_block->root_node_->children_[0]->token_);
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		}
@@ -174,12 +159,6 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	
 	// Reset error position indicators used by SLiMgui
 	EidosScript::ClearErrorPosition();
-	
-	// initialize rng; this is either a value given at the command line, or the value generate above by EidosGenerateSeedFromPIDAndTime()
-	EidosInitializeRNGFromSeed(rng_seed_);
-	
-	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed_ << "\n" << endl;
 	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 	gEidosCurrentScript = nullptr;
@@ -474,7 +453,7 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 		{
 			// Remove the symbol for it first
 			if (block_to_dereg->block_id_ != -1)
-				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->CachedScriptBlockSymbolTableEntry()->first);
+				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->ScriptBlockSymbolTableEntry().first);
 			
 			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
@@ -543,7 +522,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	generation_ = time_start_;
 	
 	// set up the "sim" symbol now that initialization is complete
-	simulation_constants_->InitializeConstantSymbolEntry(CachedSymbolTableEntry());
+	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
 	
 	// initialize chromosome
 	chromosome_.InitializeDraws();
@@ -747,13 +726,6 @@ bool SLiMSim::RunOneGeneration(void)
 #pragma mark -
 #pragma mark Eidos support
 
-void SLiMSim::GenerateCachedSymbolTableEntry(void)
-{
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	self_symbol_ = new EidosSymbolTableEntry(gStr_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)));
-}
-
 // a static member function is used as a funnel, so that we can get a pointer to function for it
 EidosValue_SP SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -878,10 +850,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		genomic_element_types_changed_ = true;
 		
 		// define a new Eidos variable to refer to the new genomic element type
-		EidosSymbolTableEntry *symbol_entry = new_genomic_element_type->CachedSymbolTableEntry();
+		EidosSymbolTableEntry &symbol_entry = new_genomic_element_type->SymbolTableEntry();
 		
-		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -896,7 +868,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		num_genomic_element_types_++;
-		return symbol_entry->second;
+		return symbol_entry.second;
 	}
 	
 	
@@ -961,10 +933,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		mutation_types_changed_ = true;
 		
 		// define a new Eidos variable to refer to the new mutation type
-		EidosSymbolTableEntry *symbol_entry = new_mutation_type->CachedSymbolTableEntry();
+		EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 		
-		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -979,7 +951,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		num_mutation_types_++;
-		return symbol_entry->second;
+		return symbol_entry.second;
 	}
 	
 	
@@ -1538,14 +1510,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
 			
 			// define a new Eidos variable to refer to the new subpopulation
-			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
+			EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 			
-			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			
-			return symbol_entry->second;
+			return symbol_entry.second;
 		}
 			
 			
@@ -1590,14 +1562,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
 			
 			// define a new Eidos variable to refer to the new subpopulation
-			EidosSymbolTableEntry *symbol_entry = new_subpop->CachedSymbolTableEntry();
+			EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 			
-			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			
-			return symbol_entry->second;
+			return symbol_entry.second;
 		}
 			
 			
@@ -1929,25 +1901,25 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			
-			script_blocks_.push_back(script_block);		// takes ownership from us
+			script_blocks_.push_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
-			script_block->TokenizeAndParse();	// can raise
+			new_script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
+				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
-			return script_block->CachedSymbolTableEntry()->second;
+			return new_script_block->SelfSymbolTableEntry().second;
 		}
 			
 			
@@ -1974,28 +1946,28 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosFitnessCallback, start_generation, end_generation);
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosFitnessCallback, start_generation, end_generation);
 			
-			script_block->mutation_type_id_ = mut_type_id;
-			script_block->subpopulation_id_ = subpop_id;
+			new_script_block->mutation_type_id_ = mut_type_id;
+			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(script_block);		// takes ownership from us
+			script_blocks_.push_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
-			script_block->TokenizeAndParse();	// can raise
+			new_script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
+				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
-			return script_block->CachedSymbolTableEntry()->second;
+			return new_script_block->SelfSymbolTableEntry().second;
 		}
 			
 			
@@ -2025,27 +1997,27 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << eidos_terminate();
 			
 			SLiMEidosBlockType block_type = ((p_method_id == gID_registerMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
-			SLiMEidosBlock *script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 			
-			script_block->subpopulation_id_ = subpop_id;
+			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(script_block);		// takes ownership from us
+			script_blocks_.push_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
-			script_block->TokenizeAndParse();	// can raise
+			new_script_block->TokenizeAndParse();	// can raise
 			
 			if (script_id != -1)
 			{
 				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry *symbol_entry = script_block->CachedScriptBlockSymbolTableEntry();
+				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry->first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_entry->first << " was already defined prior to its definition here." << eidos_terminate();
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
 			
-			return script_block->CachedSymbolTableEntry()->second;
+			return new_script_block->SelfSymbolTableEntry().second;
 		}
 			
 			

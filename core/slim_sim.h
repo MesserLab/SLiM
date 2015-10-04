@@ -75,9 +75,6 @@ private:
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	
-	unsigned long int rng_seed_ = 0;												// random number generator seed; unsigned long int is the type used by gsl_rng_set()
-	bool rng_seed_supplied_to_constructor_ = false;									// true if the RNG seed was supplied, which means it overrides other RNG seed sources
-	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
@@ -108,7 +105,7 @@ private:
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
 	
-	EidosSymbolTableEntry *self_symbol_ = nullptr;									// OWNED POINTER: EidosSymbolTableEntry object for fast setup of the symbol table
+	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_;														// a user-defined tag value
 	
@@ -144,8 +141,7 @@ public:
 	//
 	// Eidos support
 	//
-	void GenerateCachedSymbolTableEntry(void);
-	inline EidosSymbolTableEntry *CachedSymbolTableEntry(void) { if (!self_symbol_) GenerateCachedSymbolTableEntry(); return self_symbol_; };
+	EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	static EidosValue_SP StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

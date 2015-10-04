@@ -103,7 +103,7 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_genomicElementType:
-			return genomic_element_type_ptr_->CachedSymbolTableEntry()->second;
+			return genomic_element_type_ptr_->SymbolTableEntry().second;
 		case gID_startPosition:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_position_));
 		case gID_endPosition:
