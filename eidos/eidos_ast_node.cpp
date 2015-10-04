@@ -132,40 +132,8 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 		if (signature_iter != function_map->end())
 			cached_signature_ = signature_iter->second;
 		
-		// if the identifier's name matches that of a property or method that we know about, cache an ID for it
+		// cache a uniqued ID for the identifier, allowing fast matching
 		cached_stringID_ = EidosGlobalStringIDForString(token_string);
-	}
-	else if (token_->token_type_ == EidosTokenType::kTokenLParen)
-	{
-		// If we are a function call node, check that our first child, if it is a simple identifier, has cached a signature.
-		// If we do not have children, or the first child is not an identifier, that is also problematic, but not our problem.
-		// If a function identifier does not have a cached signature, it must at least have a cached string ID; this allows
-		// initialize...() functions to pass our check, since they can't be set up before this check occurs.
-		int children_count = (int)children_.size();
-		
-		if (children_count >= 1)
-		{
-			const EidosASTNode *first_child = children_[0];
-			
-			if (first_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-				if ((first_child->cached_signature_ == nullptr) && (first_child->cached_stringID_ == gEidosID_none))
-					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized function name \"" << first_child->token_->token_string_ << "\"." << eidos_terminate(first_child->token_);
-		}
-	}
-	else if (token_->token_type_ == EidosTokenType::kTokenDot)
-	{
-		// If we are a dot-operator node, check that our second child has cached a string ID for the property or method being invoked.
-		// If we do not have children, or the second child is not an identifier, that is also problematic, but not our problem.
-		int children_count = (int)children_.size();
-		
-		if (children_count >= 2)
-		{
-			const EidosASTNode *second_child = children_[1];
-			
-			if (second_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-				if (second_child->cached_stringID_ == gEidosID_none)
-					EIDOS_TERMINATION << "ERROR (EidosASTNode::_OptimizeIdentifiers): unrecognized property or method name \"" << second_child->token_->token_string_ << "\"." << eidos_terminate(second_child->token_);
-		}
 	}
 }
 

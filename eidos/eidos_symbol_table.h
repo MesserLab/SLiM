@@ -39,6 +39,10 @@
  std::unordered_map would be very large compared to the speedup of a few lookups, but to also offer hash table performance
  for symbols tables that are larger or longer-lived.
  
+ EidosSymbolTable does not use strings to identify symbols in practice, although conceptually it does.  In practice, it
+ uses EidosGlobalStringID, which is an integer type that represents a uniqued string.  This allows greater speed, since
+ strings get uniqued only once, and an integer key can be used from then onward.
+ 
  */
 
 #ifndef __Eidos__eidos_symbol_table__
@@ -50,7 +54,7 @@
 #include <unordered_map>
 
 #include "eidos_value.h"
-#include "eidos_token.h"
+#include "eidos_ast_node.h"
 
 class EidosSymbolTable;
 
@@ -60,16 +64,13 @@ extern EidosSymbolTable *gEidosConstantsSymbolTable;
 
 
 // This is used by InitializeConstantSymbolEntry / ReinitializeConstantSymbolEntry for fast setup / teardown
-typedef std::pair<std::string, EidosValue_SP> EidosSymbolTableEntry;
+typedef std::pair<EidosGlobalStringID, EidosValue_SP> EidosSymbolTableEntry;
 
 
 // Used by EidosSymbolTable for the slots in its internal fixed-size symbol array
 typedef struct {
 	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
-	const std::string *symbol_name_;		// ownership is defined by symbol_name_externally_owned_, below
-	const char *symbol_name_data_;			// used to make scanning of the symbol table faster
-	uint16_t symbol_name_length_;			// used to make scanning of the symbol table faster
-	uint8_t symbol_name_externally_owned_;	// if F, we delete on dealloc; if T, we took a pointer to an external string
+	EidosGlobalStringID symbol_name_;		// the name of the symbol, but as a uniqued EidosGlobalStringID
 } EidosSymbolTable_InternalSlot;
 
 
@@ -99,7 +100,7 @@ private:
 	
 	// If using_internal_symbols_==false, we have switched over to this external hash table using std::unordered_map.
 	// It is likely that a much faster hash table for our purposes could be implemented.  FIXME
-	std::unordered_map<std::string, EidosValue_SP> hash_symbols_;
+	std::unordered_map<EidosGlobalStringID, EidosValue_SP> hash_symbols_;
 	
 	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given
 	// interpreter, which responds to all requests.  Behind the scenes, however, requests get passed up the symbol table chain
@@ -111,11 +112,9 @@ private:
 	
 	// Utility methods called by the public methods to do the real work
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
-	EidosValue_SP _GetValue(const std::string &p_symbol_name, const EidosToken *p_symbol_token) const;
-	void _RemoveSymbol(const std::string &p_symbol_name, bool p_remove_constant);
-	void _InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value);
-	
-	int _SlotIndexForSymbol(int p_key_length, const char *p_symbol_name_data) const;
+	EidosValue_SP _GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
+	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
+	void _InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	void _SwitchToHash(void);
 	
 public:
@@ -131,18 +130,18 @@ public:
 	std::vector<std::string> AllSymbols(void) const { return _SymbolNames(true, true); }
 	
 	// Test for containing a value for a symbol
-	bool ContainsSymbol(const std::string &p_symbol_name) const;
+	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
 	
 	// Set as a variable (raises if already defined as a constant) or as a constant (raises if already defined at all)
-	void SetValueForSymbol(const std::string &p_symbol_name, EidosValue_SP p_value);
+	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	
 	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
-	void RemoveValueForSymbol(const std::string &p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
-	void RemoveConstantForSymbol(const std::string &p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
+	void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
+	void RemoveConstantForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
 	
-	// Get a value, in various configurations regarding token vs. symbol, raise vs. nullptr, variables only...
-	EidosValue_SP GetValueOrRaiseForToken(const EidosToken *p_symbol_token) const { return _GetValue(p_symbol_token->token_string_, p_symbol_token); }
-	EidosValue_SP GetValueOrRaiseForSymbol(const std::string &p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
+	// Get a value, with an optional token used if the call raises due to an undefined symbol
+	EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
+	EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
 	
 	// For the last Get...() call, returns whether the symbol fetched was a constant; apologies for the hack
 	bool LastLookupWasConstant(void) const { return last_get_was_const_; }
@@ -154,7 +153,7 @@ public:
 	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
 	void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
-	void InitializeConstantSymbolEntry(const std::string &p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
+	void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

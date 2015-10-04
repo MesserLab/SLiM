@@ -313,25 +313,25 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (mate_choice_callback->contains_genome1_)
 				{
 					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-					callback_symbols.InitializeConstantSymbolEntry(gStr_genome1, parent1_genome1->CachedEidosValue());
+					callback_symbols.InitializeConstantSymbolEntry(gID_genome1, parent1_genome1->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_genome2_)
 				{
 					Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-					callback_symbols.InitializeConstantSymbolEntry(gStr_genome2, parent1_genome2->CachedEidosValue());
+					callback_symbols.InitializeConstantSymbolEntry(gID_genome2, parent1_genome2->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_subpop_)
-					callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->SymbolTableEntry().second);
+					callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_subpop->SymbolTableEntry().second);
 				
 				if (mate_choice_callback->contains_sourceSubpop_)
-					callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
+					callback_symbols.InitializeConstantSymbolEntry(gID_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
 				
 				if (mate_choice_callback->contains_weights_)
 				{
 					local_weights_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(current_weights, weights_length));
-					callback_symbols.InitializeConstantSymbolEntry(gStr_weights, local_weights_ptr);
+					callback_symbols.InitializeConstantSymbolEntry(gID_weights, local_weights_ptr);
 				}
 				
 				// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
@@ -489,58 +489,58 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			if (modify_child_callback->contains_childGenome1_)
 			{
 				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_childGenome1, child_genome1->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome1, child_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_childGenome2_)
 			{
 				Genome *child_genome2 = &(p_subpop->child_genomes_[p_child_index * 2 + 1]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_childGenome2, child_genome2->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome2, child_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_childIsFemale_)
 			{
 				if (p_child_sex == IndividualSex::kHermaphrodite)
-					callback_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, gStaticEidosValueNULL);
+					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, gStaticEidosValueNULL);
 				else
-					callback_symbols.InitializeConstantSymbolEntry(gStr_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			
 			if (modify_child_callback->contains_parent1Genome1_)
 			{
 				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome1, parent1_genome1->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, parent1_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent1Genome2_)
 			{
 				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_parent1Genome2, parent1_genome2->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, parent1_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_isSelfing_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				callback_symbols.InitializeConstantSymbolEntry(gID_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			
 			if (modify_child_callback->contains_isCloning_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_isCloning, p_is_cloning ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				callback_symbols.InitializeConstantSymbolEntry(gID_isCloning, p_is_cloning ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{
 				Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome1, parent2_genome1->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, parent2_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent2Genome2_)
 			{
 				Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
-				callback_symbols.InitializeConstantSymbolEntry(gStr_parent2Genome2, parent2_genome2->CachedEidosValue());
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, parent2_genome2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_subpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, p_subpop->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_subpop->SymbolTableEntry().second);
 			
 			if (modify_child_callback->contains_sourceSubpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gStr_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
 			
 			// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
 			EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(modify_child_callback->script_);

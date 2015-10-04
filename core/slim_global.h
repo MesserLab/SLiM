@@ -267,8 +267,6 @@ extern const std::string gStr_active;
 extern const std::string gStr_chromosome;
 extern const std::string gStr_chromosomeType;
 extern const std::string gStr_genomicElementTypes;
-extern const std::string gStr_mutations;
-extern const std::string gStr_mutationTypes;
 extern const std::string gStr_scriptBlocks;
 extern const std::string gStr_sexEnabled;
 extern const std::string gStr_subpopulations;
@@ -284,11 +282,6 @@ extern const std::string gStr_selfingRate;
 extern const std::string gStr_cloningRate;
 extern const std::string gStr_sexRatio;
 extern const std::string gStr_individualCount;
-extern const std::string gStr_mutationType;
-extern const std::string gStr_position;
-extern const std::string gStr_selectionCoeff;
-extern const std::string gStr_subpopID;
-extern const std::string gStr_originGeneration;
 extern const std::string gStr_fixationTime;
 
 extern const std::string gStr_setRecombinationRate;
@@ -375,6 +368,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeMutationRate,
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
+	
 	gID_genomicElements,
 	gID_lastPosition,
 	gID_overallRecombinationRate,
@@ -424,6 +418,7 @@ enum _SLiMGlobalStringID : int {
 	gID_sexRatio,
 	gID_individualCount,
 	gID_fixationTime,
+	
 	gID_setRecombinationRate,
 	gID_addMutations,
 	gID_addNewDrawnMutation,
@@ -455,7 +450,51 @@ enum _SLiMGlobalStringID : int {
 	gID_cachedFitness,
 	gID_outputMSSample,
 	gID_outputSample,
+	
+	gID_sim,
+	gID_self,
+	gID_genome1,
+	gID_genome2,
+	gID_subpop,
+	gID_sourceSubpop,
+	gID_weights,
+	gID_childGenome1,
+	gID_childGenome2,
+	gID_childIsFemale,
+	gID_parent1Genome1,
+	gID_parent1Genome2,
+	gID_isCloning,
+	gID_isSelfing,
+	gID_parent2Genome1,
+	gID_parent2Genome2,
+	gID_mut,
+	gID_relFitness,
+	gID_homozygous,
+	
+	gID_Chromosome,
+	gID_Genome,
+	gID_GenomicElement,
+	gID_GenomicElementType,
+	gID_Mutation,
+	gID_MutationType,
+	gID_SLiMEidosBlock,
+	gID_SLiMSim,
+	gID_Subpopulation,
+	gID_Substitution,
+	
+	gID_A,
+	gID_X,
+	gID_Y,
+	gID_f,
+	gID_g,
+	gID_e,
+	gID_event,
+	gID_initialize,
+	gID_fitness,
+	gID_mateChoice,
+	gID_modifyChild,
 };
+
 
 #endif /* defined(__SLiM__slim_global__) */
 

@@ -4041,14 +4041,14 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					EidosValue_SP apply_value = arg0_value->GetValueAtIndex(value_index, nullptr);
 					
 					// Set the iterator variable "applyValue" to the value
-					symbols.SetValueForSymbol(gEidosStr_applyValue, std::move(apply_value));
+					symbols.SetValueForSymbol(gEidosID_applyValue, std::move(apply_value));
 					
 					// Get the result
 					results.push_back(interpreter.EvaluateInterpreterBlock(false));
 				}
 				
 				// We do not want a leftover applyValue symbol in the symbol table, so we remove it now
-				symbols.RemoveValueForSymbol(gEidosStr_applyValue);
+				symbols.RemoveValueForSymbol(gEidosID_applyValue);
 				
 				// Assemble all the individual results together, just as c() does
 				ExecutionOutputStream() << interpreter.ExecutionOutput();
@@ -4288,7 +4288,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			
 			for (string &symbol : symbols_to_remove)
-				global_symbols_.RemoveValueForSymbol(symbol);
+				global_symbols_.RemoveValueForSymbol(EidosGlobalStringIDForString(symbol));
 			
 			result_SP = gStaticEidosValueNULLInvisible;
 			break;

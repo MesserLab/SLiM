@@ -665,6 +665,8 @@ const std::string gEidosStr__squareTest = "_squareTest";
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
+static EidosGlobalStringID gNextUnusedID = gEidosID_LastContextEntry;
+
 
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
@@ -673,6 +675,9 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 	
 	if (gIDToString.find(p_string_id) != gIDToString.end())
 		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << eidos_terminate(nullptr);
+	
+	if (p_string_id >= gEidosID_LastContextEntry)
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " it out of the legal range for preregistered strings." << eidos_terminate(nullptr);
 	
 	gStringToID[p_string] = p_string_id;
 	gIDToString[p_string_id] = &p_string;
@@ -690,6 +695,15 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr_size, gEidosID_size);
 		Eidos_RegisterStringForGlobalID(gEidosStr_property, gEidosID_property);
 		Eidos_RegisterStringForGlobalID(gEidosStr_str, gEidosID_str);
+		Eidos_RegisterStringForGlobalID(gEidosStr_applyValue, gEidosID_applyValue);
+		
+		Eidos_RegisterStringForGlobalID(gEidosStr_T, gEidosID_T);
+		Eidos_RegisterStringForGlobalID(gEidosStr_F, gEidosID_F);
+		Eidos_RegisterStringForGlobalID(gEidosStr_NULL, gEidosID_NULL);
+		Eidos_RegisterStringForGlobalID(gEidosStr_PI, gEidosID_PI);
+		Eidos_RegisterStringForGlobalID(gEidosStr_E, gEidosID_E);
+		Eidos_RegisterStringForGlobalID(gEidosStr_INF, gEidosID_INF);
+		Eidos_RegisterStringForGlobalID(gEidosStr_NAN, gEidosID_NAN);
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr__TestElement, gEidosID__TestElement);
 		Eidos_RegisterStringForGlobalID(gEidosStr__yolk, gEidosID__yolk);
@@ -705,7 +719,18 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 	auto found_iter = gStringToID.find(p_string);
 	
 	if (found_iter == gStringToID.end())
-		return gEidosID_none;
+	{
+		// If the hash table does not already contain this key, then we add it to the table as a side effect.
+		// We have to copy the string, because we have no idea what the caller might do with the string they passed us.
+		// Since the hash table makes its own copy of the key, this copy is used only for the value in the hash tables.
+		const std::string *copied_string = new const std::string(p_string);
+		uint32_t string_id = gNextUnusedID++;
+		
+		gStringToID[*copied_string] = string_id;
+		gIDToString[string_id] = copied_string;
+		
+		return string_id;
+	}
 	else
 		return found_iter->second;
 }

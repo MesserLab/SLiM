@@ -146,12 +146,23 @@ std::string EidosResolvedPath(const std::string p_path);
 //	conceptual string, and rely on those references being the same, then a shared constant should be used.  So... oh well.
 //
 
-typedef int EidosGlobalStringID;
+typedef uint32_t EidosGlobalStringID;
 
-EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string);		// takes any string
-const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id);		// returns the uniqued global string
+// EidosGlobalStringIDForString() takes any string and uniques through a hash table.  If the string does not already exist
+// in the hash table, it is copied, and the copy is registered and returned as the uniqed string.
+EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string);
 
+// StringForEidosGlobalStringID() returns the uniqued global string for the ID through a reverse lookup.  The reference
+// returned is to the uniqued string stored internally by the hash table, so it will be the same every time this is called,
+// and does not need to be copied if kept externally.
+const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id);
+
+// This registers a standard string with a given ID; called by Eidos_RegisterGlobalStringsAndIDs(), and can be used by
+// the Context to set up strings that need to have fixed IDs.  All IDs used by the Context should start at gEidosID_LastEntry.
+// This function does not make a copy of the string that it is passed, since it is intended for us with global strings.
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id);
+
+// This registers all of the standard Eidos strings, listed below, without copying; the string global is the uniqued string.
 void Eidos_RegisterGlobalStringsAndIDs(void);
 
 
@@ -181,7 +192,7 @@ extern const std::string gEidosStr_NULL;
 extern const std::string gEidosStr_PI;
 extern const std::string gEidosStr_E;
 extern const std::string gEidosStr_INF;
-extern const std::string gEidosStr_MINUS_INF;
+extern const std::string gEidosStr_MINUS_INF;	// "-INF"
 extern const std::string gEidosStr_NAN;
 
 extern const std::string gEidosStr_void;
@@ -210,12 +221,23 @@ extern const std::string gEidosStr__squareTest;
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
 // such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
-enum _EidosGlobalStringID : int {
+enum _EidosGlobalStringID : uint32_t
+{
 	gEidosID_none = 0,
+	
 	gEidosID_method,
 	gEidosID_size,
 	gEidosID_property,
 	gEidosID_str,
+	gEidosID_applyValue,
+	
+	gEidosID_T,
+	gEidosID_F,
+	gEidosID_NULL,
+	gEidosID_PI,
+	gEidosID_E,
+	gEidosID_INF,
+	gEidosID_NAN,
 	
 	gEidosID__TestElement,
 	gEidosID__yolk,
@@ -223,7 +245,8 @@ enum _EidosGlobalStringID : int {
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
 	
-	gEidosID_LastEntry		// IDs added by the Context should start here
+	gEidosID_LastEntry,					// IDs added by the Context should start here
+	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 

@@ -272,8 +272,8 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_i
 #pragma mark SLiMEidosBlock
 
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node),
-	self_symbol_(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
-	script_block_symbol_(SLiMEidosScript::IDStringWithPrefix('s', -1), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
+	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -292,7 +292,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			
 			// fix ID string for our symbol
 			std::string new_symbol_string = SLiMEidosScript::IDStringWithPrefix('s', block_id_);
-			script_block_symbol_.first = new_symbol_string;
+			script_block_symbol_.first = EidosGlobalStringIDForString(new_symbol_string);
 		}
 	}
 	
@@ -435,8 +435,8 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 
 SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
 	block_id_(p_id), type_(p_type), start_generation_(p_start), end_generation_(p_end),
-	self_symbol_(gStr_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
-	script_block_symbol_(SLiMEidosScript::IDStringWithPrefix('s', p_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this))),
+	script_block_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	script_ = new EidosScript(p_script_string);
 	// the caller should now call TokenizeAndParse() to complete initialization

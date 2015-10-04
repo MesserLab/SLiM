@@ -133,7 +133,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
-	self_symbol_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -153,7 +153,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
-	self_symbol_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -349,28 +349,28 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 						if (fitness_callback->contains_mut_)
 						{
 							local_mut.stack_allocated();			// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gStr_mut, EidosValue_SP(&local_mut));
+							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 						}
 						if (fitness_callback->contains_relFitness_)
 						{
 							local_relFitness.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gStr_relFitness, EidosValue_SP(&local_relFitness));
+							callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, EidosValue_SP(&local_relFitness));
 						}
 						if (fitness_callback->contains_genome1_)
-							callback_symbols.InitializeConstantSymbolEntry(gStr_genome1, p_genome1->CachedEidosValue());
+							callback_symbols.InitializeConstantSymbolEntry(gID_genome1, p_genome1->CachedEidosValue());
 						if (fitness_callback->contains_genome2_)
-							callback_symbols.InitializeConstantSymbolEntry(gStr_genome2, p_genome2->CachedEidosValue());
+							callback_symbols.InitializeConstantSymbolEntry(gID_genome2, p_genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
-							callback_symbols.InitializeConstantSymbolEntry(gStr_subpop, SymbolTableEntry().second);
+							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
 						if (fitness_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)
-								callback_symbols.InitializeConstantSymbolEntry(gStr_homozygous, gStaticEidosValueNULL);
+								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
 							else
-								callback_symbols.InitializeConstantSymbolEntry(gStr_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 						}
 						
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value

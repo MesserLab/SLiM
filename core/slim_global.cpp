@@ -254,6 +254,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationRate, gID_initializeMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
+		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
 		Eidos_RegisterStringForGlobalID(gStr_overallRecombinationRate, gID_overallRecombinationRate);
@@ -303,6 +304,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_sexRatio, gID_sexRatio);
 		Eidos_RegisterStringForGlobalID(gStr_individualCount, gID_individualCount);
 		Eidos_RegisterStringForGlobalID(gStr_fixationTime, gID_fixationTime);
+		
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);
@@ -334,6 +336,49 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_cachedFitness, gID_cachedFitness);
 		Eidos_RegisterStringForGlobalID(gStr_outputMSSample, gID_outputMSSample);
 		Eidos_RegisterStringForGlobalID(gStr_outputSample, gID_outputSample);
+		
+		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);
+		Eidos_RegisterStringForGlobalID(gStr_self, gID_self);
+		Eidos_RegisterStringForGlobalID(gStr_genome1, gID_genome1);
+		Eidos_RegisterStringForGlobalID(gStr_genome2, gID_genome2);
+		Eidos_RegisterStringForGlobalID(gStr_subpop, gID_subpop);
+		Eidos_RegisterStringForGlobalID(gStr_sourceSubpop, gID_sourceSubpop);
+		Eidos_RegisterStringForGlobalID(gStr_weights, gID_weights);
+		Eidos_RegisterStringForGlobalID(gStr_childGenome1, gID_childGenome1);
+		Eidos_RegisterStringForGlobalID(gStr_childGenome2, gID_childGenome2);
+		Eidos_RegisterStringForGlobalID(gStr_childIsFemale, gID_childIsFemale);
+		Eidos_RegisterStringForGlobalID(gStr_parent1Genome1, gID_parent1Genome1);
+		Eidos_RegisterStringForGlobalID(gStr_parent1Genome2, gID_parent1Genome2);
+		Eidos_RegisterStringForGlobalID(gStr_isCloning, gID_isCloning);
+		Eidos_RegisterStringForGlobalID(gStr_isSelfing, gID_isSelfing);
+		Eidos_RegisterStringForGlobalID(gStr_parent2Genome1, gID_parent2Genome1);
+		Eidos_RegisterStringForGlobalID(gStr_parent2Genome2, gID_parent2Genome2);
+		Eidos_RegisterStringForGlobalID(gStr_mut, gID_mut);
+		Eidos_RegisterStringForGlobalID(gStr_relFitness, gID_relFitness);
+		Eidos_RegisterStringForGlobalID(gStr_homozygous, gID_homozygous);
+		
+		Eidos_RegisterStringForGlobalID(gStr_Chromosome, gID_Chromosome);
+		Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);
+		Eidos_RegisterStringForGlobalID(gStr_GenomicElement, gID_GenomicElement);
+		Eidos_RegisterStringForGlobalID(gStr_GenomicElementType, gID_GenomicElementType);
+		Eidos_RegisterStringForGlobalID(gStr_Mutation, gID_Mutation);
+		Eidos_RegisterStringForGlobalID(gStr_MutationType, gID_MutationType);
+		Eidos_RegisterStringForGlobalID(gStr_SLiMEidosBlock, gID_SLiMEidosBlock);
+		Eidos_RegisterStringForGlobalID(gStr_SLiMSim, gID_SLiMSim);
+		Eidos_RegisterStringForGlobalID(gStr_Subpopulation, gID_Subpopulation);
+		Eidos_RegisterStringForGlobalID(gStr_Substitution, gID_Substitution);
+		
+		Eidos_RegisterStringForGlobalID(gStr_A, gID_A);
+		Eidos_RegisterStringForGlobalID(gStr_X, gID_X);
+		Eidos_RegisterStringForGlobalID(gStr_Y, gID_Y);
+		Eidos_RegisterStringForGlobalID(gStr_f, gID_f);
+		Eidos_RegisterStringForGlobalID(gStr_g, gID_g);
+		Eidos_RegisterStringForGlobalID(gStr_e, gID_e);
+		Eidos_RegisterStringForGlobalID(gStr_event, gID_event);
+		Eidos_RegisterStringForGlobalID(gStr_initialize, gID_initialize);
+		Eidos_RegisterStringForGlobalID(gStr_fitness, gID_fitness);
+		Eidos_RegisterStringForGlobalID(gStr_mateChoice, gID_mateChoice);
+		Eidos_RegisterStringForGlobalID(gStr_modifyChild, gID_modifyChild);
 	}
 }
 

@@ -406,7 +406,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubscriptAssignment", 0, parent_token);
 			
-			EidosValue_SP identifier_value_SP = global_symbols_.GetValueOrRaiseForToken(p_parent_node->token_);
+			EidosValue_SP identifier_value_SP = global_symbols_.GetValueOrRaiseForASTNode(p_parent_node);
 			EidosValue *identifier_value = identifier_value_SP.get();
 			
 			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
@@ -417,12 +417,10 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			// with a vector-based copy that we can manipulate.  A little gross, but this is the price we pay for speed...
 			if (identifier_value->IsSingleton())
 			{
-				const std::string &symbol_name = p_parent_node->token_->token_string_;
-				
 				identifier_value_SP = identifier_value->VectorBasedCopy();
 				identifier_value = identifier_value_SP.get();
 				
-				global_symbols_.SetValueForSymbol(symbol_name, identifier_value_SP);
+				global_symbols_.SetValueForSymbol(p_parent_node->cached_stringID_, identifier_value_SP);
 			}
 			
 			*p_base_value_ptr = std::move(identifier_value_SP);
@@ -560,7 +558,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "identifier", "EidosInterpreter::_AssignRValueToLValue", 0, nullptr);
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			global_symbols_.SetValueForSymbol(p_lvalue_node->token_->token_string_, std::move(p_rvalue));
+			global_symbols_.SetValueForSymbol(p_lvalue_node->cached_stringID_, std::move(p_rvalue));
 			break;
 		}
 		default:
@@ -2558,7 +2556,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForToken(lvalue_node->token_);
+		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForASTNode(lvalue_node);
 		
 		if (global_symbols_.LastLookupWasConstant())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(lvalue_node->token_);
@@ -3662,7 +3660,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Identifier()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Identifier", 0);
 	
-	EidosValue_SP result_SP = EidosValue_SP(global_symbols_.GetValueOrRaiseForToken(p_node->token_));	// raises if undefined
+	EidosValue_SP result_SP = EidosValue_SP(global_symbols_.GetValueOrRaiseForASTNode(p_node));	// raises if undefined
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
 	return result_SP;
@@ -3867,7 +3865,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate(p_node->token_);
 	
-	const string &identifier_name = identifier_child->token_->token_string_;
+	EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
 	const EidosASTNode *range_node = p_node->children_[1];
 	EidosValue_SP result_SP;
 	

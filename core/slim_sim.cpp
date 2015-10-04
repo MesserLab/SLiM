@@ -40,7 +40,7 @@ using std::ifstream;
 using std::vector;
 
 
-SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gStr_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
 	unsigned long int rng_seed;
@@ -62,7 +62,7 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 	InitializeFromFile(p_infile);
 }
 
-SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gStr_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
 	unsigned long int rng_seed;
@@ -1837,23 +1837,24 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
 			EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 			std::vector<std::string> all_symbols = symbols.AllSymbols();
-			std::vector<std::string> symbols_to_remove;
+			std::vector<EidosGlobalStringID> symbols_to_remove;
 			
 			for (string symbol_name : all_symbols)
 			{
-				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_name);
+				EidosGlobalStringID symbol_ID = EidosGlobalStringIDForString(symbol_name);
+				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
 				
 				if (symbol_value->Type() == EidosValueType::kValueObject)
 				{
 					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 					
 					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
-						symbols_to_remove.push_back(symbol_name);
+						symbols_to_remove.push_back(symbol_ID);
 				}
 			}
 			
-			for (string symbol_name : symbols_to_remove)
-				symbols.RemoveConstantForSymbol(symbol_name);
+			for (EidosGlobalStringID symbol_ID : symbols_to_remove)
+				symbols.RemoveConstantForSymbol(symbol_ID);
 			
 			// then we dispose of all existing subpopulations, mutations, etc.
 			population_.RemoveAllSubpopulationInfo();

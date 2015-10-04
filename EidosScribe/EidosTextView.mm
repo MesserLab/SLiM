@@ -1407,6 +1407,7 @@ using std::string;
 	// the beginning of the key path, and figure out what the class of the key path root is
 	int key_path_index = (int)identifiers.size() - 1;
 	string &identifier_name = identifiers[key_path_index];
+	EidosGlobalStringID identifier_ID = EidosGlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[key_path_index];
 	const EidosObjectClass *key_path_class = nullptr;
 	
@@ -1441,10 +1442,10 @@ using std::string;
 		if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
 			globalSymbolTable = [delegate eidosTextView:self symbolsFromBaseSymbols:globalSymbolTable];
 		
-		if (!globalSymbolTable->ContainsSymbol(identifier_name))	// check first so we never get a raise
+		if (!globalSymbolTable->ContainsSymbol(identifier_ID))	// check first so we never get a raise
 			return nil;
 		
-		EidosValue *key_path_root = globalSymbolTable->GetValueOrRaiseForSymbol(identifier_name).get();
+		EidosValue *key_path_root = globalSymbolTable->GetValueOrRaiseForSymbol(identifier_ID).get();
 		
 		if (!key_path_root)
 			return nil;			// unknown symbol at the root, so we have no idea what's going on

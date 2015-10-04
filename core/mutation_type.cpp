@@ -54,7 +54,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
 #endif
 	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), 
-	self_symbol_(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	if (dfe_parameters_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
