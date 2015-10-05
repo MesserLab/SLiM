@@ -352,9 +352,9 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 				{
-					bool bool_value = second_child_value->LogicalAtIndex(value_idx, parent_token);
+					eidos_logical_t logical_value = second_child_value->LogicalAtIndex(value_idx, parent_token);
 					
-					if (bool_value)
+					if (logical_value)
 						p_indices_ptr->push_back(base_indices[value_idx]);
 				}
 			}
@@ -974,7 +974,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << eidos_terminate(operator_token);
 			
 			// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
-			const std::vector<bool> &logical_index_vec = ((EidosValue_Logical *)second_child_value.get())->LogicalVector();
+			const std::vector<eidos_logical_t> &logical_index_vec = ((EidosValue_Logical *)second_child_value.get())->LogicalVector();
 			
 			if (first_child_count == 1)
 			{
@@ -992,10 +992,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				// Here we can special-case each type for speed since we know we're not dealing with singletons
 				if (first_child_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
+					const std::vector<eidos_logical_t> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
 					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
-					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+					std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_vec[value_idx])
@@ -1181,10 +1181,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueLogical)
 				{
 					// result type is logical; optimize for that
-					const std::vector<bool> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
+					const std::vector<eidos_logical_t> &first_child_vec = ((EidosValue_Logical *)first_child_value.get())->LogicalVector();
 					EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
-					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 					
 					if (second_child_type == EidosValueType::kValueInt)
 					{
@@ -2162,9 +2162,9 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	
 	EidosToken *operator_token = p_node->token_;
 	
-	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
+	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, logical_result contains the result so far.
 	EidosValue_Logical_SP result_SP;
-	bool bool_result = false;
+	eidos_logical_t logical_result = false;
 	int result_count = 0;
 	bool first_child = true;
 	
@@ -2178,7 +2178,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			if (first_child)
 			{
 				first_child = false;
-				bool_result = true;
+				logical_result = true;
 				result_count = 1;
 			}
 			// if we're not on the first child, doing an AND with T is a no-op; it does not even change the size of the result vector
@@ -2189,7 +2189,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			if (first_child)
 			{
 				first_child = false;
-				bool_result = false;
+				logical_result = false;
 				result_count = 1;
 			}
 			else
@@ -2204,8 +2204,8 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				}
 				else
 				{
-					// we have no result allocated, so we must be using bool_result
-					bool_result = false;
+					// we have no result allocated, so we must be using logical_result
+					logical_result = false;
 				}
 			}
 		}
@@ -2226,8 +2226,8 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				
 				if (child_count == 1)
 				{
-					// if we have a singleton, avoid allocating a result yet, by using bool_result instead
-					bool_result = child_result->LogicalAtIndex(0, operator_token);
+					// if we have a singleton, avoid allocating a result yet, by using logical_result instead
+					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
 				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
@@ -2242,7 +2242,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					for (int value_index = 0; value_index < child_count; ++value_index)
 						logical_result_vec.push_back(child_result->LogicalAtIndex(value_index, operator_token));
@@ -2256,10 +2256,10 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				
 				if (child_count == 1)
 				{
-					// if child_bool is T, it has no effect on result; if it is F, it turns result to all F
-					bool child_bool = child_result->LogicalAtIndex(0, operator_token);
+					// if child_logical is T, it has no effect on result; if it is F, it turns result to all F
+					eidos_logical_t child_logical = child_result->LogicalAtIndex(0, operator_token);
 					
-					if (!child_bool)
+					if (!child_logical)
 					{
 						if (result_SP)
 						{
@@ -2271,33 +2271,33 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 						}
 						else
 						{
-							// we have no result allocated, so we must be using bool_result
-							bool_result = false;
+							// we have no result allocated, so we must be using logical_result
+							logical_result = false;
 						}
 					}
 				}
 				else if (result_count == 1)
 				{
 					// we had a one-length result vector, but now we need to upscale it to match child_result
-					bool result_bool;
+					eidos_logical_t result_logical;
 					
 					if (result_SP)
 					{
 						// we have a result allocated; work with that
-						result_bool = result_SP->LogicalAtIndex(0, operator_token);
+						result_logical = result_SP->LogicalAtIndex(0, operator_token);
 					}
 					else
 					{
 						// no result allocated, so we now need to upgrade to an allocated result
-						result_bool = bool_result;
+						result_logical = logical_result;
 					}
 					
 					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
-					if (result_bool)
+					if (result_logical)
 						for (int value_index = 0; value_index < child_count; ++value_index)
 							logical_result_vec.push_back(child_result->LogicalAtIndex(value_index, operator_token));
 					else
@@ -2319,7 +2319,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	
 	// if we avoided allocating a result, use a static logical value
 	if (!result_SP)
-		result_SP = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_And()");
 	return result_SP;
@@ -2332,9 +2332,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	
 	EidosToken *operator_token = p_node->token_;
 	
-	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, bool_result contains the result so far.
+	// We try to avoid allocating a result object if we can.  If result==nullptr but result_count==1, logical_result contains the result so far.
 	EidosValue_Logical_SP result_SP;
-	bool bool_result = false;
+	eidos_logical_t logical_result = false;
 	int result_count = 0;
 	bool first_child = true;
 	
@@ -2348,7 +2348,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			if (first_child)
 			{
 				first_child = false;
-				bool_result = true;
+				logical_result = true;
 				result_count = 1;
 			}
 			else
@@ -2363,8 +2363,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				}
 				else
 				{
-					// we have no result allocated, so we must be using bool_result
-					bool_result = true;
+					// we have no result allocated, so we must be using logical_result
+					logical_result = true;
 				}
 			}
 		}
@@ -2374,7 +2374,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			if (first_child)
 			{
 				first_child = false;
-				bool_result = false;
+				logical_result = false;
 				result_count = 1;
 			}
 			// if we're not on the first child, doing an OR with F is a no-op; it does not even change the size of the result vector
@@ -2396,8 +2396,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				
 				if (child_count == 1)
 				{
-					// if we have a singleton, avoid allocating a result yet, by using bool_result instead
-					bool_result = child_result->LogicalAtIndex(0, operator_token);
+					// if we have a singleton, avoid allocating a result yet, by using logical_result instead
+					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
 				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
@@ -2414,7 +2414,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
 					for (int value_index = 0; value_index < child_count; ++value_index)
 						logical_result_vec.push_back(child_result->LogicalAtIndex(value_index, operator_token));
@@ -2428,10 +2428,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				
 				if (child_count == 1)
 				{
-					// if child_bool is F, it has no effect on result; if it is T, it turns result to all T
-					bool child_bool = child_result->LogicalAtIndex(0, operator_token);
+					// if child_logical is F, it has no effect on result; if it is T, it turns result to all T
+					eidos_logical_t child_logical = child_result->LogicalAtIndex(0, operator_token);
 					
-					if (child_bool)
+					if (child_logical)
 					{
 						if (result_SP)
 						{
@@ -2443,33 +2443,33 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 						}
 						else
 						{
-							// we have no result allocated, so we must be using bool_result
-							bool_result = true;
+							// we have no result allocated, so we must be using logical_result
+							logical_result = true;
 						}
 					}
 				}
 				else if (result_count == 1)
 				{
 					// we had a one-length result vector, but now we need to upscale it to match child_result
-					bool result_bool;
+					eidos_logical_t result_logical;
 					
 					if (result_SP)
 					{
 						// we have a result allocated; work with that
-						result_bool = result_SP->LogicalAtIndex(0, operator_token);
+						result_logical = result_SP->LogicalAtIndex(0, operator_token);
 					}
 					else
 					{
 						// no result allocated, so we now need to upgrade to an allocated result
-						result_bool = bool_result;
+						result_logical = logical_result;
 					}
 					
 					result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(child_count));
 					result_count = child_count;
 					
-					std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = result_SP->LogicalVector_Mutable();
 					
-					if (result_bool)
+					if (result_logical)
 						for (int value_index = 0; value_index < child_count; ++value_index)
 							logical_result_vec.push_back(true);
 					else
@@ -2491,7 +2491,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	
 	// if we avoided allocating a result, use a static logical value
 	if (!result_SP)
-		result_SP = (bool_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Or()");
 	return result_SP;
@@ -2535,7 +2535,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 			// for other cases, we just clone the negation of child_result – but note that it may not be of type logical
 			result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(first_child_count));
 			
-			std::vector<bool> &logical_result_vec = result_SP->LogicalVector_Mutable();
+			std::vector<eidos_logical_t> &logical_result_vec = result_SP->LogicalVector_Mutable();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				logical_result_vec.push_back(!first_child_value->LogicalAtIndex(value_index, operator_token));
@@ -2835,7 +2835,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
@@ -2878,7 +2878,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			if ((compareFunc == CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
 			{
@@ -2920,7 +2920,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			if ((compareFunc == CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
 			{
@@ -3009,7 +3009,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -3025,7 +3025,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
@@ -3040,7 +3040,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
@@ -3103,7 +3103,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -3119,7 +3119,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
@@ -3134,7 +3134,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
@@ -3197,7 +3197,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -3213,7 +3213,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
@@ -3228,7 +3228,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
@@ -3291,7 +3291,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -3307,7 +3307,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
@@ -3322,7 +3322,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
@@ -3382,7 +3382,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 				
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
@@ -3425,7 +3425,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(second_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			if ((compareFunc == CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
 			{
@@ -3467,7 +3467,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		{
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->Reserve(first_child_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();	// direct push_back() for speed
 			
 			if ((compareFunc == CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
 			{
@@ -3700,9 +3700,9 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	}
 	else if (condition_result->Count() == 1)
 	{
-		bool condition_bool = condition_result->LogicalAtIndex(0, operator_token);
+		eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 		
-		if (condition_bool)
+		if (condition_logical)
 		{
 			EidosASTNode *true_node = p_node->children_[1];
 			result_SP = FastEvaluateNode(true_node);
@@ -3771,9 +3771,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		}
 		else if (condition_result->Count() == 1)
 		{
-			bool condition_bool = condition_result->LogicalAtIndex(0, operator_token);
+			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 			
-			if (!condition_bool)
+			if (!condition_logical)
 				break;
 		}
 		else
@@ -3815,9 +3815,9 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		}
 		else if (condition_result->Count() == 1)
 		{
-			bool condition_bool = condition_result->LogicalAtIndex(0, operator_token);
+			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 			
-			if (!condition_bool)
+			if (!condition_logical)
 				break;
 		}
 		else
@@ -4119,10 +4119,10 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &range_vec = ((EidosValue_Logical *)range_value.get())->LogicalVector();
+					const std::vector<eidos_logical_t> &range_vec = ((EidosValue_Logical *)range_value.get())->LogicalVector();
 					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *index_value = index_value_SP.get();
-					std::vector<bool> &index_vec = index_value->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &index_vec = index_value->LogicalVector_Mutable();
 					
 					index_value->PushLogical(false);	// initial placeholder
 					

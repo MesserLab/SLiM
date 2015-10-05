@@ -304,7 +304,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	{
 		EidosValue_Logical *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(reserve_size);
 		EidosValue_Logical_SP result_SP = EidosValue_Logical_SP(result);
-		std::vector<bool> &result_vec = result->LogicalVector_Mutable();
+		std::vector<eidos_logical_t> &result_vec = result->LogicalVector_Mutable();
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
@@ -880,7 +880,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result_SP = EidosValue_SP(logical_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -907,7 +907,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result_SP = EidosValue_SP(logical_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -934,7 +934,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We have arg0_count != 1 and arg0_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 				const std::vector<double> &float_vec = dynamic_cast<EidosValue_Float_vector *>(arg0_value)->FloatVector();
 				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result_SP = EidosValue_SP(logical_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1167,7 +1167,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
 				// EidosValue_Logical does not have a singleton subclass, so we can always use the fast API
-				const std::vector<bool> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+				const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 				int64_t sum = 0;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -1327,16 +1327,16 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
-				bool max = arg0_value->LogicalAtIndex(0, nullptr);
+				eidos_logical_t max = arg0_value->LogicalAtIndex(0, nullptr);
 				
 				if (arg0_count > 1)
 				{
 					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-					const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = bool_vec[value_index];
+						eidos_logical_t temp = logical_vec[value_index];
 						if (max < temp)
 							max = temp;
 					}
@@ -1444,16 +1444,16 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
-				bool min = arg0_value->LogicalAtIndex(0, nullptr);
+				eidos_logical_t min = arg0_value->LogicalAtIndex(0, nullptr);
 				
 				if (arg0_count > 1)
 				{
 					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-					const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 					
 					for (int value_index = 1; value_index < arg0_count; ++value_index)
 					{
-						bool temp = bool_vec[value_index];
+						eidos_logical_t temp = logical_vec[value_index];
 						if (min > temp)
 							min = temp;
 					}
@@ -1556,14 +1556,14 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &bool0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
-					const std::vector<bool> &bool1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
 					EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 					result_SP = EidosValue_SP(logical_result);
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						logical_result_vec.push_back(bool0_vec[value_index] || bool1_vec[value_index]); // || is logical max
+						logical_result_vec.push_back(logical0_vec[value_index] || logical1_vec[value_index]); // || is logical max
 				}
 				else if (arg0_type == EidosValueType::kValueInt)
 				{
@@ -1634,14 +1634,14 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &bool0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
-					const std::vector<bool> &bool1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical0_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical1_vec = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
 					EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-					std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+					std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 					result_SP = EidosValue_SP(logical_result);
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						logical_result_vec.push_back(bool0_vec[value_index] && bool1_vec[value_index]); // && is logical min
+						logical_result_vec.push_back(logical0_vec[value_index] && logical1_vec[value_index]); // && is logical min
 				}
 				else if (arg0_type == EidosValueType::kValueInt)
 				{
@@ -1852,7 +1852,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
 			
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)element_count);
-			std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+			std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 			result_SP = EidosValue_SP(logical_result);
 			
 			for (int64_t value_index = element_count; value_index > 0; --value_index)
@@ -2523,12 +2523,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
-			const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+			const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 			
 			result_SP = gStaticEidosValue_LogicalT;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (!bool_vec[value_index])
+				if (!logical_vec[value_index])
 				{
 					result_SP = gStaticEidosValue_LogicalF;
 					break;
@@ -2545,12 +2545,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
-			const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+			const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 			
 			result_SP = gStaticEidosValue_LogicalF;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (bool_vec[value_index])
+				if (logical_vec[value_index])
 				{
 					result_SP = gStaticEidosValue_LogicalT;
 					break;
@@ -2644,11 +2644,11 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				// We have arg0_count != 1, so we can use the fast vector API; we want identical() to be very fast since it is a common bottleneck
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &bool_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
-					const std::vector<bool> &bool_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						if (bool_vec0[value_index] != bool_vec1[value_index])
+						if (logical_vec0[value_index] != logical_vec1[value_index])
 						{
 							result_SP = gStaticEidosValue_LogicalF;
 							break;
@@ -2714,7 +2714,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
-			const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+			const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 			
 			EidosValue *arg1_value = p_arguments[1].get();
 			EidosValueType arg1_type = arg1_value->Type();
@@ -2734,7 +2734,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (bool_vec[value_index])
+				if (logical_vec[value_index])
 					result->PushValueFromIndexOfEidosValue(value_index, *arg1_value, nullptr);
 				else
 					result->PushValueFromIndexOfEidosValue(value_index, *arg2_value, nullptr);
@@ -2784,11 +2784,11 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool value0 = arg0_value->LogicalAtIndex(0, nullptr);
-					const std::vector<bool> &bool_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					eidos_logical_t value0 = arg0_value->LogicalAtIndex(0, nullptr);
+					const std::vector<eidos_logical_t> &logical_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
 					
 					for (table_index = 0; table_index < arg1_count; ++table_index)
-						if (value0 == bool_vec1[table_index])
+						if (value0 == logical_vec1[table_index])
 						{
 							result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(table_index));
 							break;
@@ -2853,11 +2853,11 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool value1 = arg1_value->LogicalAtIndex(0, nullptr);
-					const std::vector<bool> &bool_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					eidos_logical_t value1 = arg1_value->LogicalAtIndex(0, nullptr);
+					const std::vector<eidos_logical_t> &logical_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						int_result->PushInt(bool_vec0[value_index] == value1 ? 0 : -1);
+						int_result->PushInt(logical_vec0[value_index] == value1 ? 0 : -1);
 				}
 				else if (arg0_type == EidosValueType::kValueInt)
 				{
@@ -2902,13 +2902,13 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					const std::vector<bool> &bool_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
-					const std::vector<bool> &bool_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec0 = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+					const std::vector<eidos_logical_t> &logical_vec1 = dynamic_cast<EidosValue_Logical *>(arg1_value)->LogicalVector();
 					
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						for (table_index = 0; table_index < arg1_count; ++table_index)
-							if (bool_vec0[value_index] == bool_vec1[table_index])
+							if (logical_vec0[value_index] == logical_vec1[table_index])
 								break;
 						
 						int_result->PushInt(table_index == arg1_count ? -1 : table_index);
@@ -3314,12 +3314,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == EidosValueType::kValueLogical)
 			{
-				const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+				const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 				bool containsF = false, containsT = false;
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					if (bool_vec[value_index])
+					if (logical_vec[value_index])
 						containsT = true;
 					else
 						containsF = true;
@@ -3337,7 +3337,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
 					result_SP = EidosValue_SP(logical_result);
 					
-					if (bool_vec[0])
+					if (logical_vec[0])
 					{
 						logical_result->PushLogical(true);
 						logical_result->PushLogical(false);
@@ -3446,12 +3446,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
-			const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+			const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 			result_SP = EidosValue_SP(int_result);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				if (bool_vec[value_index])
+				if (logical_vec[value_index])
 					int_result->PushInt(value_index);
 			break;
 		}
@@ -3476,16 +3476,16 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool max = arg0_value->LogicalAtIndex(0, nullptr);
+					eidos_logical_t max = arg0_value->LogicalAtIndex(0, nullptr);
 					
 					if (arg0_count > 1)
 					{
 						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-						const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+						const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 						
 						for (int value_index = 1; value_index < arg0_count; ++value_index)
 						{
-							bool temp = bool_vec[value_index];
+							eidos_logical_t temp = logical_vec[value_index];
 							if (max < temp) { max = temp; first_index = value_index; }
 						}
 					}
@@ -3564,16 +3564,16 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				if (arg0_type == EidosValueType::kValueLogical)
 				{
-					bool min = arg0_value->LogicalAtIndex(0, nullptr);
+					eidos_logical_t min = arg0_value->LogicalAtIndex(0, nullptr);
 					
 					if (arg0_count > 1)
 					{
 						// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-						const std::vector<bool> &bool_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
+						const std::vector<eidos_logical_t> &logical_vec = dynamic_cast<EidosValue_Logical *>(arg0_value)->LogicalVector();
 						
 						for (int value_index = 1; value_index < arg0_count; ++value_index)
 						{
-							bool temp = bool_vec[value_index];
+							eidos_logical_t temp = logical_vec[value_index];
 							if (min > temp) { min = temp; first_index = value_index; }
 						}
 					}
@@ -3705,7 +3705,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			else
 			{
 				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-				std::vector<bool> &logical_result_vec = logical_result->LogicalVector_Mutable();
+				std::vector<eidos_logical_t> &logical_result_vec = logical_result->LogicalVector_Mutable();
 				result_SP = EidosValue_SP(logical_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)

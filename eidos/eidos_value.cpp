@@ -178,8 +178,8 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 	// logical is the next highest type, so we promote to logical if either operand is a logical
 	if ((type1 == EidosValueType::kValueLogical) || (type2 == EidosValueType::kValueLogical))
 	{
-		bool logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
-		bool logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
+		eidos_logical_t logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
+		eidos_logical_t logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
 		
 		return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
 	}
@@ -224,8 +224,8 @@ int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const Eidos
 
 int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
 {
-	bool logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
-	bool logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
+	eidos_logical_t logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
+	eidos_logical_t logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
 	
 	return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
 }
@@ -288,7 +288,7 @@ EidosValue::~EidosValue(void)
 #endif
 }
 
-bool EidosValue::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::LogicalAtIndex): operand type " << this->Type() << " cannot be converted to type logical." << eidos_terminate(p_blame_token);
@@ -427,17 +427,17 @@ EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValue
 {
 }
 
-EidosValue_Logical::EidosValue_Logical(const std::vector<bool> &p_boolvec) : EidosValue(EidosValueType::kValueLogical, false)
+EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec) : EidosValue(EidosValueType::kValueLogical, false)
 {
-	values_ = p_boolvec;
+	values_ = p_logicalvec;
 }
 
-EidosValue_Logical::EidosValue_Logical(bool p_bool1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
+EidosValue_Logical::EidosValue_Logical(eidos_logical_t p_logical1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
 {
-	values_.push_back(p_bool1);
+	values_.push_back(p_logical1);
 }
 
-EidosValue_Logical::EidosValue_Logical(std::initializer_list<bool> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
+EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.push_back(*init_item);
@@ -467,7 +467,7 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (bool value : values_)
+		for (eidos_logical_t value : values_)
 		{
 			if (first)
 				first = false;
@@ -479,7 +479,7 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	}
 }
 
-std::vector<bool> &EidosValue_Logical::LogicalVector_Mutable(void)
+std::vector<eidos_logical_t> &EidosValue_Logical::LogicalVector_Mutable(void)
 {
 	return values_;
 }
@@ -490,7 +490,7 @@ EidosValue_Logical *EidosValue_Logical::Reserve(int p_reserved_size)
 	return this;
 }
 
-bool EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -522,12 +522,12 @@ double EidosValue_Logical::FloatAtIndex(int p_idx, EidosToken *p_blame_token) co
 	return (values_[p_idx] ? 1.0 : 0.0);
 }
 
-void EidosValue_Logical::PushLogical(bool p_logical)
+void EidosValue_Logical::PushLogical(eidos_logical_t p_logical)
 {
 	values_.push_back(p_logical);
 }
 
-void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, bool p_logical, EidosToken *p_blame_token)
+void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetLogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -574,13 +574,13 @@ void EidosValue_Logical::Sort(bool p_ascending)
 	if (p_ascending)
 		std::sort(values_.begin(), values_.end());
 	else
-		std::sort(values_.begin(), values_.end(), std::greater<bool>());
+		std::sort(values_.begin(), values_.end(), std::greater<eidos_logical_t>());
 }
 
 // EidosValue_Logical_const
 #pragma mark EidosValue_Logical_const
 
-EidosValue_Logical_const::EidosValue_Logical_const(bool p_bool1) : EidosValue_Logical(p_bool1)
+EidosValue_Logical_const::EidosValue_Logical_const(eidos_logical_t p_bool1) : EidosValue_Logical(p_bool1)
 {
 	is_singleton_ = true;	// because EidosValue_Logical has a different class structure from the other types, this has to be patched after construction; no harm done...
 }
@@ -611,7 +611,7 @@ EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
 }
 
-std::vector<bool> &EidosValue_Logical_const::LogicalVector_Mutable(void)
+std::vector<eidos_logical_t> &EidosValue_Logical_const::LogicalVector_Mutable(void)
 {
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::LogicalVector_Mutable): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
@@ -622,13 +622,13 @@ EidosValue_Logical *EidosValue_Logical_const::Reserve(int p_reserved_size)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Reserve): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
-void EidosValue_Logical_const::PushLogical(bool p_logical)
+void EidosValue_Logical_const::PushLogical(eidos_logical_t p_logical)
 {
 #pragma unused(p_logical)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushLogical): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
-void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, bool p_logical, EidosToken *p_blame_token)
+void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_logical)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetLogicalAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
@@ -734,7 +734,7 @@ void EidosValue_String_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-bool EidosValue_String_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_String_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -844,7 +844,7 @@ void EidosValue_String_singleton::Print(std::ostream &p_ostream) const
 	}
 }
 
-bool EidosValue_String_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_String_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1011,7 +1011,7 @@ void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-bool EidosValue_Int_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1108,7 +1108,7 @@ void EidosValue_Int_singleton::Print(std::ostream &p_ostream) const
 	p_ostream << value_;
 }
 
-bool EidosValue_Int_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Int_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1273,7 +1273,7 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-bool EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1408,7 +1408,7 @@ void EidosValue_Float_singleton::Print(std::ostream &p_ostream) const
 		p_ostream << value_;
 }
 
-bool EidosValue_Float_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1665,10 +1665,10 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
 
-static bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
-static bool CompareLogicalObjectSortPairsAscending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first < j.first); }
-static bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j);
-static bool CompareLogicalObjectSortPairsDescending(std::pair<bool, EidosObjectElement*> i, std::pair<bool, EidosObjectElement*> j)					{ return (i.first > j.first); }
+static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j);
+static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j)	{ return (i.first < j.first); }
+static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j);
+static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j)	{ return (i.first > j.first); }
 
 static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
 static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first < j.first); }
@@ -1710,7 +1710,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueLogical:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			vector<std::pair<bool, EidosObjectElement*>> sortable_pairs;
+			vector<std::pair<eidos_logical_t, EidosObjectElement*>> sortable_pairs;
 			
 			for (auto value : values_)
 			{
@@ -1721,7 +1721,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << eidos_terminate(nullptr);
 				
-				sortable_pairs.push_back(std::pair<bool, EidosObjectElement*>(temp_result->LogicalAtIndex(0, nullptr), value));
+				sortable_pairs.push_back(std::pair<eidos_logical_t, EidosObjectElement*>(temp_result->LogicalAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
