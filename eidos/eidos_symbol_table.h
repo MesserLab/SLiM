@@ -125,9 +125,9 @@ public:
 	~EidosSymbolTable(void);																							// destructor
 	
 	// symbol access; these are variables defined in the global namespace
-	std::vector<std::string> ReadOnlySymbols(void) const { return _SymbolNames(true, false); }
-	std::vector<std::string> ReadWriteSymbols(void) const { return _SymbolNames(false, true); }
-	std::vector<std::string> AllSymbols(void) const { return _SymbolNames(true, true); }
+	inline __attribute__((always_inline)) std::vector<std::string> ReadOnlySymbols(void) const { return _SymbolNames(true, false); }
+	inline __attribute__((always_inline)) std::vector<std::string> ReadWriteSymbols(void) const { return _SymbolNames(false, true); }
+	inline __attribute__((always_inline)) std::vector<std::string> AllSymbols(void) const { return _SymbolNames(true, true); }
 	
 	// Test for containing a value for a symbol
 	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
@@ -136,15 +136,15 @@ public:
 	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	
 	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
-	void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
-	void RemoveConstantForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
+	inline __attribute__((always_inline)) void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
+	inline __attribute__((always_inline)) void RemoveConstantForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
 	
 	// Get a value, with an optional token used if the call raises due to an undefined symbol
-	EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
-	EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
 	
 	// For the last Get...() call, returns whether the symbol fetched was a constant; apologies for the hack
-	bool LastLookupWasConstant(void) const { return last_get_was_const_; }
+	inline __attribute__((always_inline)) bool LastLookupWasConstant(void) const { return last_get_was_const_; }
 	
 	// Special-purpose methods used for fast setup of new symbol tables with constants.
 	//
@@ -152,8 +152,8 @@ public:
 	// has infinite lifespan, and (2) that the EidosValue passed in is not invisible and is thus suitable for
 	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
-	void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
-	void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
+	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
+	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

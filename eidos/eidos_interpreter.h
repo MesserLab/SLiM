@@ -93,7 +93,7 @@ public:
 	
 	~EidosInterpreter(void);												// destructor
 	
-	inline std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
+	inline __attribute__((always_inline)) std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
 	
 	void SetShouldLogExecution(bool p_log);
 	bool ShouldLogExecution(void);
@@ -102,9 +102,9 @@ public:
 	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	EidosSymbolTable &SymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
-	EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
-	EidosContext *Context(void) const { return eidos_context_; };
+	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
+	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
+	inline __attribute__((always_inline)) EidosContext *Context(void) const { return eidos_context_; };
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosValue_SP EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output
@@ -152,7 +152,7 @@ public:
 	
 	// Function and method dispatch/execution; these are implemented in script_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
-	static EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
+	static inline __attribute__((always_inline)) EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
 	
 	EidosValue_SP ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);

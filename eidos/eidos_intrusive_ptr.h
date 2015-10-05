@@ -89,27 +89,27 @@ public:
 	
 	typedef T element_type;
 	
-	Eidos_intrusive_ptr() : px( 0 )
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr() : px( 0 )
 	{
 	}
 	
-	explicit Eidos_intrusive_ptr( T * p, bool add_ref = true ): px( p )
+	explicit inline __attribute__((always_inline)) Eidos_intrusive_ptr( T * p, bool add_ref = true ): px( p )
 	{
 		if( px != 0 && add_ref ) Eidos_intrusive_ptr_add_ref( px );
 	}
 	
 	template<class U>
-	Eidos_intrusive_ptr( Eidos_intrusive_ptr<U> const & rhs ) : px( rhs.get() )
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr( Eidos_intrusive_ptr<U> const & rhs ) : px( rhs.get() )
 	{
 		if( px != 0 ) Eidos_intrusive_ptr_add_ref( px );
 	}
 	
-	Eidos_intrusive_ptr(Eidos_intrusive_ptr const & rhs): px( rhs.px )
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr(Eidos_intrusive_ptr const & rhs): px( rhs.px )
 	{
 		if( px != 0 ) Eidos_intrusive_ptr_add_ref( px );
 	}
 	
-	~Eidos_intrusive_ptr()
+	inline __attribute__((always_inline)) ~Eidos_intrusive_ptr()
 	{
 		if( px != 0 ) Eidos_intrusive_ptr_release( px );
 	}
@@ -123,18 +123,18 @@ public:
 	*/
 	// Move support
 	
-	Eidos_intrusive_ptr(Eidos_intrusive_ptr && rhs) : px( rhs.px )
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr(Eidos_intrusive_ptr && rhs) : px( rhs.px )
 	{
 		rhs.px = 0;
 	}
 	
-	Eidos_intrusive_ptr & operator=(Eidos_intrusive_ptr && rhs)
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr & operator=(Eidos_intrusive_ptr && rhs)
 	{
 		this_type( static_cast< Eidos_intrusive_ptr && >( rhs ) ).swap(*this);
 		return *this;
 	}
 	
-	Eidos_intrusive_ptr & operator=(Eidos_intrusive_ptr const & rhs)
+	inline __attribute__((always_inline)) Eidos_intrusive_ptr & operator=(Eidos_intrusive_ptr const & rhs)
 	{
 		this_type(rhs).swap(*this);
 		return *this;
@@ -147,56 +147,56 @@ public:
 		return *this;
 	}
 	*/
-	void reset()
+	inline __attribute__((always_inline)) void reset()
 	{
 		this_type().swap( *this );
 	}
 	
-	void reset( T * rhs )
+	inline __attribute__((always_inline)) void reset( T * rhs )
 	{
 		this_type( rhs ).swap( *this );
 	}
 	
-	void reset( T * rhs, bool add_ref )
+	inline __attribute__((always_inline)) void reset( T * rhs, bool add_ref )
 	{
 		this_type( rhs, add_ref ).swap( *this );
 	}
 	
-	T * get() const
+	inline __attribute__((always_inline)) T * get() const
 	{
 		return px;
 	}
 	
-	T * detach()
+	inline __attribute__((always_inline)) T * detach()
 	{
 		T * ret = px;
 		px = 0;
 		return ret;
 	}
 	
-	T & operator*() const
+	inline __attribute__((always_inline)) T & operator*() const
 	{
 		return *px;
 	}
 	
-	T * operator->() const
+	inline __attribute__((always_inline)) T * operator->() const
 	{
 		return px;
 	}
 	
 	// implicit conversion to "bool", from boost/smart_ptr/detail/operator_bool.hpp
 	
-	explicit operator bool () const
+	inline __attribute__((always_inline)) explicit operator bool () const
 	{
 		return px != 0;
 	}
 	
-	bool operator! () const
+	inline __attribute__((always_inline)) bool operator! () const
 	{
 		return px == 0;
 	}
 	
-	void swap(Eidos_intrusive_ptr & rhs)
+	inline __attribute__((always_inline)) void swap(Eidos_intrusive_ptr & rhs)
 	{
 		T * tmp = px;
 		px = rhs.px;
@@ -208,37 +208,37 @@ private:
 	T * px;
 };
 
-template<class T, class U> inline bool operator==(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<U> const & b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator==(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<U> const & b)
 {
 	return a.get() == b.get();
 }
 
-template<class T, class U> inline bool operator!=(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<U> const & b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator!=(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<U> const & b)
 {
 	return a.get() != b.get();
 }
 
-template<class T, class U> inline bool operator==(Eidos_intrusive_ptr<T> const & a, U * b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator==(Eidos_intrusive_ptr<T> const & a, U * b)
 {
 	return a.get() == b;
 }
 
-template<class T, class U> inline bool operator!=(Eidos_intrusive_ptr<T> const & a, U * b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator!=(Eidos_intrusive_ptr<T> const & a, U * b)
 {
 	return a.get() != b;
 }
 
-template<class T, class U> inline bool operator==(T * a, Eidos_intrusive_ptr<U> const & b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator==(T * a, Eidos_intrusive_ptr<U> const & b)
 {
 	return a == b.get();
 }
 
-template<class T, class U> inline bool operator!=(T * a, Eidos_intrusive_ptr<U> const & b)
+template<class T, class U> inline __attribute__((always_inline)) bool operator!=(T * a, Eidos_intrusive_ptr<U> const & b)
 {
 	return a != b.get();
 }
 
-template<class T> inline bool operator<(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<T> const & b)
+template<class T> inline __attribute__((always_inline)) bool operator<(Eidos_intrusive_ptr<T> const & a, Eidos_intrusive_ptr<T> const & b)
 {
 	return std::less<T *>()(a.get(), b.get());
 }
@@ -250,7 +250,7 @@ template<class T> void swap(Eidos_intrusive_ptr<T> & lhs, Eidos_intrusive_ptr<T>
 
 // mem_fn support
 
-template<class T> T * get_pointer(Eidos_intrusive_ptr<T> const & p)
+template<class T> inline __attribute__((always_inline)) T * get_pointer(Eidos_intrusive_ptr<T> const & p)
 {
 	return p.get();
 }

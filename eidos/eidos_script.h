@@ -92,16 +92,16 @@ public:
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;
 	
-	inline const std::string &String(void) const					{ return script_string_; }
-	inline const std::vector<EidosToken *> &Tokens(void) const		{ return token_stream_; }
-	inline const EidosASTNode *AST(void) const						{ return parse_root_; }
+	inline __attribute__((always_inline)) const std::string &String(void) const					{ return script_string_; }
+	inline __attribute__((always_inline)) const std::vector<EidosToken *> &Tokens(void) const	{ return token_stream_; }
+	inline __attribute__((always_inline)) const EidosASTNode *AST(void) const					{ return parse_root_; }
 	
 	// Parsing methods; see grammar for definitions
 	void Consume(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
 	
 	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
-	static inline EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
+	static inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
 	{
 		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16};
 		
@@ -113,7 +113,7 @@ public:
 		return old_position;
 	}
 	
-	static inline void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
+	static inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
 	{
 		gEidosCharacterStartOfError = p_saved_position.characterStartOfError;
 		gEidosCharacterEndOfError = p_saved_position.characterEndOfError;
@@ -121,7 +121,7 @@ public:
 		gEidosCharacterEndOfErrorUTF16 = p_saved_position.characterEndOfErrorUTF16;
 	}
 	
-	static inline void ClearErrorPosition(void)
+	static inline __attribute__((always_inline)) void ClearErrorPosition(void)
 	{
 		gEidosCharacterStartOfError = -1;
 		gEidosCharacterEndOfError = -1;
