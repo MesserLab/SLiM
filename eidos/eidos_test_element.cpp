@@ -140,8 +140,8 @@ const std::vector<const EidosPropertySignature *> *Eidos_TestElementClass::Prope
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gEidosID__yolk));
-		properties->push_back(SignatureForPropertyOrRaise(gEidosID__increment));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID__yolk));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID__increment));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -179,8 +179,8 @@ const std::vector<const EidosMethodSignature *> *Eidos_TestElementClass::Methods
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gEidosID__cubicYolk));
-		methods->push_back(SignatureForMethodOrRaise(gEidosID__squareTest));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID__cubicYolk));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID__squareTest));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

@@ -232,7 +232,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 			subpop_pair.second->migrant_fractions_.erase(subpop_id);
 		
 		// remember the subpop for later disposal
-		removed_subpops_.push_back(&p_subpop);
+		removed_subpops_.emplace_back(&p_subpop);
 	}
 	else
 	{
@@ -957,7 +957,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// create vector with uniqued recombination breakpoints
 			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
 			
-			all_breakpoints.push_back(p_chromosome.last_position_ + 1);
+			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 			sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
@@ -986,7 +986,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						break;
 					
 					// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
-					child_genome.push_back(current_mutation);
+					child_genome.emplace_back(current_mutation);
 					
 					parent_iter++;
 				}
@@ -1014,12 +1014,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			mutation_registry_.push_back(new_mutation);
+			mutation_registry_.emplace_back(new_mutation);
 		}
 		
 		// create vector with uniqued recombination breakpoints
 		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
-		all_breakpoints.push_back(p_chromosome.last_position_ + 1);
+		all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 		sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
@@ -1069,7 +1069,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				while (parent_iter_pos < breakpoint && parent_iter_pos <= mutation_iter_pos)
 				{
 					// add the mutation; we know it is not already present
-					child_genome.push_back(parent_iter_mutation);
+					child_genome.emplace_back(parent_iter_mutation);
 					parent_iter++;
 					
 					if (parent_iter != parent_iter_max) {
@@ -1085,7 +1085,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
 				{
 					// add the mutation; we know it is not already present
-					child_genome.push_back(mutation_iter_mutation);
+					child_genome.emplace_back(mutation_iter_mutation);
 					mutation_iter++;
 					
 					if (mutation_iter != mutation_iter_max) {
@@ -1168,7 +1168,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			mutation_registry_.push_back(new_mutation);
+			mutation_registry_.emplace_back(new_mutation);
 		}
 		
 		// interleave the parental genome with the new mutations
@@ -1187,7 +1187,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			{
 				// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 				// and new mutations are, by definition, new and thus cannot match the existing mutations
-				child_genome.push_back(*parent_iter);
+				child_genome.emplace_back(*parent_iter);
 				parent_iter++;
 			}
 			
@@ -1198,7 +1198,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			{
 				// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 				// and new mutations are, by definition, new and thus cannot match the existing mutations
-				child_genome.push_back(*mutation_iter);
+				child_genome.emplace_back(*mutation_iter);
 				mutation_iter++;
 			}
 		}
@@ -1308,7 +1308,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-					subpop_fitness_callbacks.push_back(callback);
+					subpop_fitness_callbacks.emplace_back(callback);
 			}
 			
 			// Update fitness values, using the callbacks
@@ -1515,7 +1515,7 @@ void Population::RemoveFixedMutations(void)
 			}
 			
 			// We can't delete the mutation yet, because we might need to make a Substitution object from it, so add it to a vector for deletion below
-			removed_mutation_accumulator.push_back(mutation);
+			removed_mutation_accumulator.emplace_back(mutation);
 		}
 	}
 	
@@ -1537,7 +1537,7 @@ void Population::RemoveFixedMutations(void)
 		slim_generation_t generation = sim_.Generation();
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.push_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
+			substitutions_.emplace_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
 	}
 	
 	// now we can delete (or zombify) removed mutation objects
@@ -1725,7 +1725,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
-		sample.push_back(j);
+		sample.emplace_back(j);
 		
 		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
 			AddMutationToPolymorphismMap(&polymorphisms, *subpop_genomes[j][k]);
@@ -1787,7 +1787,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
 		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
 		
-		sample.push_back(j);
+		sample.emplace_back(j);
 		
 		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
 			AddMutationToPolymorphismMap(&polymorphisms, *subpop_genomes[j][k]);

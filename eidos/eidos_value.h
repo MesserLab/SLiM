@@ -427,7 +427,7 @@ public:
 	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline const std::vector<std::string> &StringVector(void) const { return values_; }
-	inline void PushString(const std::string &p_string) { values_.push_back(p_string); }
+	inline void PushString(const std::string &p_string) { values_.emplace_back(p_string); }
 	inline EidosValue_String_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -536,7 +536,7 @@ public:
 	
 	inline const std::vector<int64_t> &IntVector(void) const { return values_; }
 	inline std::vector<int64_t> &IntVector_Mutable(void) { return values_; }
-	inline void PushInt(int64_t p_int) { values_.push_back(p_int); }
+	inline void PushInt(int64_t p_int) { values_.emplace_back(p_int); }
 	inline EidosValue_Int_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -644,7 +644,7 @@ public:
 	
 	inline const std::vector<double> &FloatVector(void) const { return values_; }
 	inline std::vector<double> &FloatVector_Mutable(void) { return values_; }
-	inline void PushFloat(double p_float) { values_.push_back(p_float); }
+	inline void PushFloat(double p_float) { values_.emplace_back(p_float); }
 	inline EidosValue_Float_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;

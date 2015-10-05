@@ -276,7 +276,7 @@ EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusiv
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
-	valueTrackingVector.push_back(this);
+	valueTrackingVector.emplace_back(this);
 #endif
 }
 
@@ -434,13 +434,13 @@ EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_log
 
 EidosValue_Logical::EidosValue_Logical(eidos_logical_t p_logical1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
 {
-	values_.push_back(p_logical1);
+	values_.emplace_back(p_logical1);
 }
 
 EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.push_back(*init_item);
+		values_.emplace_back(*init_item);
 }
 
 EidosValue_Logical::~EidosValue_Logical(void)
@@ -524,7 +524,7 @@ double EidosValue_Logical::FloatAtIndex(int p_idx, EidosToken *p_blame_token) co
 
 void EidosValue_Logical::PushLogical(eidos_logical_t p_logical)
 {
-	values_.push_back(p_logical);
+	values_.emplace_back(p_logical);
 }
 
 void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token)
@@ -564,7 +564,7 @@ EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
 void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueLogical)
-		values_.push_back(p_source_script_value.LogicalAtIndex(p_idx, p_blame_token));
+		values_.emplace_back(p_source_script_value.LogicalAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
@@ -689,7 +689,7 @@ EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string
 EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list) : EidosValue_String(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.push_back(*init_item);
+		values_.emplace_back(*init_item);
 }
 
 EidosValue_String_vector::~EidosValue_String_vector(void)
@@ -798,7 +798,7 @@ EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueString)
-		values_.push_back(p_source_script_value.StringAtIndex(p_idx, p_blame_token));
+		values_.emplace_back(p_source_script_value.StringAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
@@ -958,7 +958,7 @@ EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int16_t> &p_intve
 	values_.reserve(p_intvec.size());
 	
 	for (auto intval : p_intvec)
-		values_.push_back(intval);
+		values_.emplace_back(intval);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int32_t> &p_intvec) : EidosValue_Int(false)
@@ -966,7 +966,7 @@ EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int32_t> &p_intve
 	values_.reserve(p_intvec.size());
 	
 	for (auto intval : p_intvec)
-		values_.push_back(intval);
+		values_.emplace_back(intval);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int64_t> &p_intvec) : EidosValue_Int(false)
@@ -977,7 +977,7 @@ EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int64_t> &p_intve
 EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list) : EidosValue_Int(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.push_back(*init_item);
+		values_.emplace_back(*init_item);
 }
 
 EidosValue_Int_vector::~EidosValue_Int_vector(void)
@@ -1072,7 +1072,7 @@ EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueInt)
-		values_.push_back(p_source_script_value.IntAtIndex(p_idx, p_blame_token));
+		values_.emplace_back(p_source_script_value.IntAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
@@ -1222,13 +1222,13 @@ EidosValue_Float_vector::EidosValue_Float_vector(const std::vector<double> &p_do
 EidosValue_Float_vector::EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length) : EidosValue_Float(false)
 {
 	for (int index = 0; index < p_buffer_length; index++)
-		values_.push_back(p_doublebuf[index]);
+		values_.emplace_back(p_doublebuf[index]);
 }
 
 EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p_init_list) : EidosValue_Float(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.push_back(*init_item);
+		values_.emplace_back(*init_item);
 }
 
 EidosValue_Float_vector::~EidosValue_Float_vector(void)
@@ -1362,7 +1362,7 @@ EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueFloat)
-		values_.push_back(p_source_script_value.FloatAtIndex(p_idx, p_blame_token));
+		values_.emplace_back(p_source_script_value.FloatAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
 }
@@ -1542,7 +1542,7 @@ void EidosValue_Object::Sort(bool p_ascending)
 EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false)
 {
 	for (auto value : p_original.values_)
-		values_.push_back(value->Retain());
+		values_.emplace_back(value->Retain());
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(void) : EidosValue_Object(false)
@@ -1560,7 +1560,7 @@ EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObject
 EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list) : EidosValue_Object(false)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.push_back((*init_item)->Retain());
+		values_.emplace_back((*init_item)->Retain());
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
@@ -1620,7 +1620,7 @@ void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
 	if ((values_.size() > 0) && (Class() != p_element->Class()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushObjectElement): the type of an object cannot be changed." << eidos_terminate(nullptr);
 	else
-		values_.push_back(p_element->Retain());
+		values_.emplace_back(p_element->Retain());
 }
 
 EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
@@ -1659,7 +1659,7 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 		if ((values_.size() > 0) && (Class() != p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Class()))
 			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): the type of an object cannot be changed." << eidos_terminate(p_blame_token);
 		else
-			values_.push_back(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Retain());
+			values_.emplace_back(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Retain());
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
@@ -1721,7 +1721,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << eidos_terminate(nullptr);
 				
-				sortable_pairs.push_back(std::pair<eidos_logical_t, EidosObjectElement*>(temp_result->LogicalAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<eidos_logical_t, EidosObjectElement*>(temp_result->LogicalAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -1734,7 +1734,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			values_.clear();
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.push_back(sorted_pair.second);
+				values_.emplace_back(sorted_pair.second);
 			
 			break;
 		}
@@ -1753,7 +1753,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << eidos_terminate(nullptr);
 				
-				sortable_pairs.push_back(std::pair<int64_t, EidosObjectElement*>(temp_result->IntAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<int64_t, EidosObjectElement*>(temp_result->IntAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -1766,7 +1766,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			values_.clear();
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.push_back(sorted_pair.second);
+				values_.emplace_back(sorted_pair.second);
 			
 			break;
 		}
@@ -1785,7 +1785,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << eidos_terminate(nullptr);
 				
-				sortable_pairs.push_back(std::pair<double, EidosObjectElement*>(temp_result->FloatAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<double, EidosObjectElement*>(temp_result->FloatAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -1798,7 +1798,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			values_.clear();
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.push_back(sorted_pair.second);
+				values_.emplace_back(sorted_pair.second);
 			
 			break;
 		}
@@ -1817,7 +1817,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << eidos_terminate(nullptr);
 				
-				sortable_pairs.push_back(std::pair<std::string, EidosObjectElement*>(temp_result->StringAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<std::string, EidosObjectElement*>(temp_result->StringAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -1830,7 +1830,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			values_.clear();
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.push_back(sorted_pair.second);
+				values_.emplace_back(sorted_pair.second);
 			
 			break;
 		}
@@ -1867,7 +1867,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
 				signature->CheckResultValue(*temp_result);
-				results.push_back(temp_result);
+				results.emplace_back(temp_result);
 			}
 		}
 		else
@@ -1885,7 +1885,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 					checked_multivalued = true;
 				}
 				
-				results.push_back(temp_result);
+				results.emplace_back(temp_result);
 			}
 		}
 		
@@ -1956,7 +1956,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlo
 		vector<EidosValue_SP> results;
 		
 		for (auto value : values_)
-			results.push_back(value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
+			results.emplace_back(value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
 		
 		// concatenate the results using ConcatenateEidosValues()
 		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
@@ -2309,9 +2309,9 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 		methods = new std::vector<const EidosMethodSignature *>;
 		
 		// keep alphabetical order here
-		methods->push_back(SignatureForMethodOrRaise(gEidosID_method));
-		methods->push_back(SignatureForMethodOrRaise(gEidosID_property));
-		methods->push_back(SignatureForMethodOrRaise(gEidosID_str));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_method));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_property));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_str));
 	}
 	
 	return methods;

@@ -241,7 +241,7 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
 				EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
 			
-			dfe_parameters.push_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
 			// intentionally no bounds checks for DFE parameters
 		}
 		
@@ -302,11 +302,11 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_id));
-		properties->push_back(SignatureForPropertyOrRaise(gID_distributionType));
-		properties->push_back(SignatureForPropertyOrRaise(gID_distributionParams));
-		properties->push_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionType));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionParams));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -353,7 +353,7 @@ const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(voi
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_setDistribution));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setDistribution));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

@@ -227,10 +227,10 @@ const std::vector<const EidosPropertySignature *> *GenomicElement_Class::Propert
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_genomicElementType));
-		properties->push_back(SignatureForPropertyOrRaise(gID_startPosition));
-		properties->push_back(SignatureForPropertyOrRaise(gID_endPosition));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementType));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_startPosition));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_endPosition));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -274,7 +274,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElement_Class::Methods(v
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_setGenomicElementType));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setGenomicElementType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

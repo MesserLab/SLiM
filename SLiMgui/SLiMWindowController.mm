@@ -676,7 +676,7 @@
 			Subpopulation *subpop = popIter->second;
 			
 			if (subpop->gui_selected_)
-				selectedSubpops.push_back(subpop);
+				selectedSubpops.emplace_back(subpop);
 			
 			popIter++;
 		}
@@ -809,7 +809,7 @@
 			return;
 		}
 		
-		sim->script_blocks_.push_back(scriptBlock);		// takes ownership from us
+		sim->script_blocks_.emplace_back(scriptBlock);		// takes ownership from us
 		
 		[scriptBlocksTableView reloadData];
 		[scriptBlocksTableView setNeedsDisplay];

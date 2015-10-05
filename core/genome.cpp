@@ -331,7 +331,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 					
 					// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
 					//if (!registry.contains_mutation(new_mutation))
-					//	registry.push_back(new_mutation);
+					//	registry.emplace_back(new_mutation);
 				}
 			}
 			
@@ -392,7 +392,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
-			sim->Population().mutation_registry_.push_back(mutation);
+			sim->Population().mutation_registry_.emplace_back(mutation);
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation));
 		}
@@ -451,7 +451,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
-			sim->Population().mutation_registry_.push_back(mutation);
+			sim->Population().mutation_registry_.emplace_back(mutation);
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation));
 		}
@@ -563,10 +563,10 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_genomeType));
-		properties->push_back(SignatureForPropertyOrRaise(gID_isNullGenome));
-		properties->push_back(SignatureForPropertyOrRaise(gID_mutations));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomeType));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_isNullGenome));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -610,10 +610,10 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_addMutations));
-		methods->push_back(SignatureForMethodOrRaise(gID_addNewDrawnMutation));
-		methods->push_back(SignatureForMethodOrRaise(gID_addNewMutation));
-		methods->push_back(SignatureForMethodOrRaise(gID_removeMutations));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addMutations));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewDrawnMutation));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewMutation));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_removeMutations));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

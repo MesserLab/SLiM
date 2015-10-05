@@ -65,7 +65,7 @@ public:
 	// We use private inheritance from std::vector<GenomicElement> to avoid issues with Chromosome being treated polymorphically
 	// as a std::vector, and forward only the minimal set of std::vector methods that users of Chromosome actually want.
 	// See http://stackoverflow.com/questions/4353203/thou-shalt-not-inherit-from-stdvector for discussion.
-	using std::vector<GenomicElement>::push_back;
+	using std::vector<GenomicElement>::emplace_back;
 	using std::vector<GenomicElement>::begin;
 	using std::vector<GenomicElement>::end;
 	

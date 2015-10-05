@@ -567,7 +567,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			// make the token and push it
 			EidosToken *token = new EidosToken(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
 			
-			token_stream_.push_back(token);
+			token_stream_.emplace_back(token);
 		}
 		
 		// advance to the character immediately past the end of this token
@@ -578,7 +578,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	// add an EOF token at the end
 	EidosToken *eofToken = new EidosToken(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16);
 	
-	token_stream_.push_back(eofToken);
+	token_stream_.emplace_back(eofToken);
 	
 	// if logging of tokens is requested, do that
 	if (gEidosLogTokens)

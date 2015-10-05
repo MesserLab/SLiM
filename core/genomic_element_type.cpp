@@ -261,8 +261,8 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 			
-			mutation_types.push_back(mutation_type_ptr);
-			mutation_fractions.push_back(proportion);
+			mutation_types.emplace_back(mutation_type_ptr);
+			mutation_fractions.emplace_back(proportion);
 		}
 		
 		// Everything seems to be in order, so replace our mutation info with the new info
@@ -325,10 +325,10 @@ const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Pro
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_id));
-		properties->push_back(SignatureForPropertyOrRaise(gID_mutationTypes));
-		properties->push_back(SignatureForPropertyOrRaise(gID_mutationFractions));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationFractions));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -372,7 +372,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Metho
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_setMutationFractions));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationFractions));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

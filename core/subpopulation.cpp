@@ -86,15 +86,15 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 				// females get two Xs
 				for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
 				{
-					child_genomes_.push_back(x_model);
-					child_genomes_.push_back(x_model);
+					child_genomes_.emplace_back(x_model);
+					child_genomes_.emplace_back(x_model);
 				}
 				
 				// males get an X and a Y
 				for (slim_popsize_t i = child_first_male_index_; i < child_subpop_size_; ++i)
 				{
-					child_genomes_.push_back(x_model);
-					child_genomes_.push_back(y_model);
+					child_genomes_.emplace_back(x_model);
+					child_genomes_.emplace_back(y_model);
 				}
 				
 				if (p_parents_also)
@@ -104,15 +104,15 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					// females get two Xs
 					for (slim_popsize_t i = 0; i < parent_first_male_index_; ++i)
 					{
-						parent_genomes_.push_back(x_model);
-						parent_genomes_.push_back(x_model);
+						parent_genomes_.emplace_back(x_model);
+						parent_genomes_.emplace_back(x_model);
 					}
 					
 					// males get an X and a Y
 					for (slim_popsize_t i = parent_first_male_index_; i < parent_subpop_size_; ++i)
 					{
-						parent_genomes_.push_back(x_model);
-						parent_genomes_.push_back(y_model);
+						parent_genomes_.emplace_back(x_model);
+						parent_genomes_.emplace_back(y_model);
 					}
 				}
 				break;
@@ -1077,7 +1077,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 				double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
 				
 				population_.SetMigration(*this, source_subpop_id, migrant_fraction);
-				subpops_seen.push_back(source_subpop_id);
+				subpops_seen.emplace_back(source_subpop_id);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1348,16 +1348,16 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_id));
-		properties->push_back(SignatureForPropertyOrRaise(gID_firstMaleIndex));
-		properties->push_back(SignatureForPropertyOrRaise(gID_genomes));
-		properties->push_back(SignatureForPropertyOrRaise(gID_immigrantSubpopIDs));
-		properties->push_back(SignatureForPropertyOrRaise(gID_immigrantSubpopFractions));
-		properties->push_back(SignatureForPropertyOrRaise(gID_selfingRate));
-		properties->push_back(SignatureForPropertyOrRaise(gID_cloningRate));
-		properties->push_back(SignatureForPropertyOrRaise(gID_sexRatio));
-		properties->push_back(SignatureForPropertyOrRaise(gID_individualCount));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_firstMaleIndex));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopIDs));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopFractions));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_selfingRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_cloningRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexRatio));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_individualCount));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -1419,14 +1419,14 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_setMigrationRates));
-		methods->push_back(SignatureForMethodOrRaise(gID_setCloningRate));
-		methods->push_back(SignatureForMethodOrRaise(gID_setSelfingRate));
-		methods->push_back(SignatureForMethodOrRaise(gID_setSexRatio));
-		methods->push_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
-		methods->push_back(SignatureForMethodOrRaise(gID_cachedFitness));
-		methods->push_back(SignatureForMethodOrRaise(gID_outputMSSample));
-		methods->push_back(SignatureForMethodOrRaise(gID_outputSample));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setMigrationRates));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setCloningRate));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelfingRate));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setSexRatio));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMSSample));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputSample));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

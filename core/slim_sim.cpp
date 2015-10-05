@@ -142,7 +142,7 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	{
 		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
 		
-		script_blocks_.push_back(new_script_block);
+		script_blocks_.emplace_back(new_script_block);
 		
 		// Define the symbol for the script block, if any
 		if (new_script_block->block_id_ != -1)
@@ -287,7 +287,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations.insert(std::pair<int64_t,Mutation*>(mutation_id, new_mutation));
-		population_.mutation_registry_.push_back(new_mutation);
+		population_.mutation_registry_.emplace_back(new_mutation);
 	}
 	
 	// If there is an Individuals section (added in SLiM 2.0), we skip it; we don't need any of the information that it gives, it is mainly for human readability
@@ -381,7 +381,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 				
 				Mutation *mutation = found_mut_pair->second;
 				
-				genome.push_back(mutation);
+				genome.emplace_back(mutation);
 			}
 			while (iss >> sub);
 		}
@@ -432,7 +432,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		}
 		
 		// OK, everything matches, so we want to return this script block
-		matches.push_back(script_block);
+		matches.emplace_back(script_block);
 	}
 	
 	return matches;
@@ -623,7 +623,7 @@ bool SLiMSim::_RunOneGeneration(void)
 					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 					
 					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-						subpop->registered_mate_choice_callbacks_.push_back(callback);
+						subpop->registered_mate_choice_callbacks_.emplace_back(callback);
 				}
 				
 				// Get modifyChild() callbacks that apply to this subpopulation
@@ -632,7 +632,7 @@ bool SLiMSim::_RunOneGeneration(void)
 					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 					
 					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-						subpop->registered_modify_child_callbacks_.push_back(callback);
+						subpop->registered_modify_child_callbacks_.emplace_back(callback);
 				}
 			}
 			
@@ -781,7 +781,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
 		
 		bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
-		chromosome_.push_back(new_genomic_element);
+		chromosome_.emplace_back(new_genomic_element);
 		GenomicElement::LogGenomicElementCopyAndAssign(old_log);
 		
 		chromosome_changed_ = true;
@@ -841,8 +841,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 			
-			mutation_types.push_back(mutation_type_ptr);
-			mutation_fractions.push_back(proportion);
+			mutation_types.emplace_back(mutation_type_ptr);
+			mutation_fractions.emplace_back(proportion);
 		}
 		
 		GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);
@@ -918,7 +918,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
 			
-			dfe_parameters.push_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
 			// intentionally no bounds checks for DFE parameters
 		}
 		
@@ -979,8 +979,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			chromosome_.recombination_rates_.clear();
 			chromosome_.recombination_end_positions_.clear();
 			
-			chromosome_.recombination_rates_.push_back(recombination_rate);
-			//chromosome_.recombination_end_positions_.push_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+			chromosome_.recombination_rates_.emplace_back(recombination_rate);
+			//chromosome_.recombination_end_positions_.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
 		else if (p_argument_count == 2)
 		{
@@ -1012,8 +1012,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
 				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
-				chromosome_.recombination_rates_.push_back(recombination_rate);
-				chromosome_.recombination_end_positions_.push_back(recombination_end_position);
+				chromosome_.recombination_rates_.emplace_back(recombination_rate);
+				chromosome_.recombination_end_positions_.emplace_back(recombination_end_position);
 			}
 		}
 		
@@ -1156,19 +1156,19 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 	// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 	if (!sim_0_signatures_.size())
 	{
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric("rates")->AddInt_O("ends"));
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("rate"));
-		sim_0_signatures_.push_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff"));
 	}
 	
@@ -1609,7 +1609,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
 				
-				scheduled_deregistrations_.push_back(block);
+				scheduled_deregistrations_.emplace_back(block);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1644,7 +1644,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			{
 				// no requested subpops, so we should loop over all subpops
 				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					subpops_to_tally.push_back(subpop_pair.second);
+					subpops_to_tally.emplace_back(subpop_pair.second);
 			}
 			else
 			{
@@ -1654,7 +1654,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				if (requested_subpop_count)
 				{
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-						subpops_to_tally.push_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
+						subpops_to_tally.emplace_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
 				}
 			}
 			
@@ -1790,7 +1790,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			std::vector<Mutation*> mutations;
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
-				mutations.push_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
+				mutations.emplace_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
 			
 			// find all polymorphism of the mutations that are to be tracked
 			if (mutations_count > 0)
@@ -1849,7 +1849,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 					
 					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
-						symbols_to_remove.push_back(symbol_ID);
+						symbols_to_remove.emplace_back(symbol_ID);
 				}
 			}
 			
@@ -1904,7 +1904,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
 			
-			script_blocks_.push_back(new_script_block);		// takes ownership from us
+			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
 			new_script_block->TokenizeAndParse();	// can raise
@@ -1952,7 +1952,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			new_script_block->mutation_type_id_ = mut_type_id;
 			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(new_script_block);		// takes ownership from us
+			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
 			new_script_block->TokenizeAndParse();	// can raise
@@ -2002,7 +2002,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.push_back(new_script_block);		// takes ownership from us
+			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
 			
 			new_script_block->TokenizeAndParse();	// can raise
@@ -2084,18 +2084,18 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_chromosome));
-		properties->push_back(SignatureForPropertyOrRaise(gID_chromosomeType));
-		properties->push_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
-		properties->push_back(SignatureForPropertyOrRaise(gID_mutations));
-		properties->push_back(SignatureForPropertyOrRaise(gID_mutationTypes));
-		properties->push_back(SignatureForPropertyOrRaise(gID_scriptBlocks));
-		properties->push_back(SignatureForPropertyOrRaise(gID_sexEnabled));
-		properties->push_back(SignatureForPropertyOrRaise(gID_subpopulations));
-		properties->push_back(SignatureForPropertyOrRaise(gID_substitutions));
-		properties->push_back(SignatureForPropertyOrRaise(gID_dominanceCoeffX));
-		properties->push_back(SignatureForPropertyOrRaise(gID_generation));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosome));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosomeType));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_scriptBlocks));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexEnabled));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopulations));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_substitutions));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeffX));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_generation));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -2163,20 +2163,20 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_addSubpop));
-		methods->push_back(SignatureForMethodOrRaise(gID_addSubpopSplit));
-		methods->push_back(SignatureForMethodOrRaise(gID_deregisterScriptBlock));
-		methods->push_back(SignatureForMethodOrRaise(gID_mutationFrequencies));
-		methods->push_back(SignatureForMethodOrRaise(gID_outputFixedMutations));
-		methods->push_back(SignatureForMethodOrRaise(gID_outputFull));
-		methods->push_back(SignatureForMethodOrRaise(gID_outputMutations));
-		methods->push_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
-		methods->push_back(SignatureForMethodOrRaise(gID_recalculateFitness));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerEvent));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
-		methods->push_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
-		methods->push_back(SignatureForMethodOrRaise(gID_simulationFinished));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addSubpop));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addSubpopSplit));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_deregisterScriptBlock));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationFrequencies));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputFixedMutations));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputFull));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMutations));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_recalculateFitness));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerEvent));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_simulationFinished));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

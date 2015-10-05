@@ -62,9 +62,9 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	if (p_argument_class && !(p_arg_mask & kEidosValueMaskObject))
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArg): an object element type may only be supplied for an argument of object type." << eidos_terminate(nullptr);
 	
-	arg_masks_.push_back(p_arg_mask);
-	arg_names_.push_back(p_argument_name);
-	arg_classes_.push_back(p_argument_class);
+	arg_masks_.emplace_back(p_arg_mask);
+	arg_names_.emplace_back(p_argument_name);
+	arg_classes_.emplace_back(p_argument_class);
 	
 	if (is_optional)
 		has_optional_args_ = true;

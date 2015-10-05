@@ -689,13 +689,13 @@ const std::vector<const EidosPropertySignature *> *SLiMEidosBlock_Class::Propert
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_id));
-		properties->push_back(SignatureForPropertyOrRaise(gID_start));
-		properties->push_back(SignatureForPropertyOrRaise(gID_end));
-		properties->push_back(SignatureForPropertyOrRaise(gID_type));
-		properties->push_back(SignatureForPropertyOrRaise(gID_source));
-		properties->push_back(SignatureForPropertyOrRaise(gID_active));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_start));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_end));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_type));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_source));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_active));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	

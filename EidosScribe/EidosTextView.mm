@@ -1376,8 +1376,8 @@ using std::string;
 		// to get distracted by a subset sequence, since that does not change the type.  Anything else does not make sense.
 		if (token_type == EidosTokenType::kTokenIdentifier)
 		{
-			identifiers.push_back(token->token_string_);
-			identifiers_are_calls.push_back(justFinishedParenBlock);
+			identifiers.emplace_back(token->token_string_);
+			identifiers_are_calls.emplace_back(justFinishedParenBlock);
 			
 			// set up to continue searching the key path backwards
 			lastTokenWasDot = NO;

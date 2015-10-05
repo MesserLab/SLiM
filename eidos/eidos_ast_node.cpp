@@ -51,7 +51,7 @@ EidosASTNode::~EidosASTNode(void)
 
 void EidosASTNode::AddChild(EidosASTNode *p_child_node)
 {
-	children_.push_back(p_child_node);
+	children_.emplace_back(p_child_node);
 }
 
 void EidosASTNode::ReplaceTokenWithToken(EidosToken *p_token)

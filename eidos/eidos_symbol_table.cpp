@@ -111,12 +111,12 @@ std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants
 		if (using_internal_symbols_)
 		{
 			for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
-				symbol_names.push_back(StringForEidosGlobalStringID(internal_symbols_[symbol_index].symbol_name_));
+				symbol_names.emplace_back(StringForEidosGlobalStringID(internal_symbols_[symbol_index].symbol_name_));
 		}
 		else
 		{
 			for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
-				symbol_names.push_back(StringForEidosGlobalStringID(symbol_slot_iter->first));
+				symbol_names.emplace_back(StringForEidosGlobalStringID(symbol_slot_iter->first));
 		}
 	}
 	

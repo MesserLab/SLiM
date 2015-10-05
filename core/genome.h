@@ -165,7 +165,7 @@ public:
 			--mutation_count_;
 	}
 	
-	inline void push_back(Mutation *p_mutation)
+	inline void emplace_back(Mutation *p_mutation)
 	{
 #ifdef DEBUG
 		if (mutations_ == nullptr)
@@ -222,7 +222,7 @@ public:
 	inline void insert_sorted_mutation(Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
-		push_back(p_mutation);
+		emplace_back(p_mutation);
 		
 		// if it was our first element, then we're done; this would work anyway, but since it is extremely common let's short-circuit it
 		if (mutation_count_ == 1)
@@ -250,7 +250,7 @@ public:
 	inline void insert_sorted_mutation_if_unique(Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
-		push_back(p_mutation);
+		emplace_back(p_mutation);
 		
 		// if it was our first element, then we're done; this would work anyway, but since it is extremely common let's short-circuit it
 		if (mutation_count_ == 1)

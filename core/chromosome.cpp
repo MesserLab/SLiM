@@ -86,7 +86,7 @@ void Chromosome::InitializeDraws(void)
 		if (recombination_rates_.size() != 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified." << eidos_terminate();
 		
-		recombination_end_positions_.push_back(last_position_);
+		recombination_end_positions_.emplace_back(last_position_);
 	}
 	
 	// calculate the overall recombination rate and the lookup table for breakpoints
@@ -174,7 +174,7 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 		else
 			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
 		
-		breakpoints.push_back(breakpoint);
+		breakpoints.emplace_back(breakpoint);
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
@@ -187,7 +187,7 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
 				
 				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
-					breakpoints.push_back(breakpoint2);
+					breakpoints.emplace_back(breakpoint2);
 			}
 		}
 	}
@@ -331,8 +331,8 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			recombination_rates_.clear();
 			recombination_end_positions_.clear();
 			
-			recombination_rates_.push_back(recombination_rate);
-			//recombination_end_positions_.push_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+			recombination_rates_.emplace_back(recombination_rate);
+			//recombination_end_positions_.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
 		else if (p_argument_count == 2)
 		{
@@ -372,8 +372,8 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
 				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
-				recombination_rates_.push_back(recombination_rate);
-				recombination_end_positions_.push_back(recombination_end_position);
+				recombination_rates_.emplace_back(recombination_rate);
+				recombination_end_positions_.emplace_back(recombination_end_position);
 			}
 		}
 		
@@ -432,15 +432,15 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->push_back(SignatureForPropertyOrRaise(gID_genomicElements));
-		properties->push_back(SignatureForPropertyOrRaise(gID_lastPosition));
-		properties->push_back(SignatureForPropertyOrRaise(gID_overallRecombinationRate));
-		properties->push_back(SignatureForPropertyOrRaise(gID_recombinationEndPositions));
-		properties->push_back(SignatureForPropertyOrRaise(gID_recombinationRates));
-		properties->push_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
-		properties->push_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
-		properties->push_back(SignatureForPropertyOrRaise(gID_overallMutationRate));
-		properties->push_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElements));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_lastPosition));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositions));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRates));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallMutationRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -499,7 +499,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->push_back(SignatureForMethodOrRaise(gID_setRecombinationRate));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setRecombinationRate));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
