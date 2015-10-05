@@ -1377,7 +1377,7 @@ using std::string;
 		if (token_type == EidosTokenType::kTokenIdentifier)
 		{
 			identifiers.emplace_back(token->token_string_);
-			identifiers_are_calls.emplace_back(justFinishedParenBlock);
+			identifiers_are_calls.push_back(justFinishedParenBlock);
 			
 			// set up to continue searching the key path backwards
 			lastTokenWasDot = NO;
