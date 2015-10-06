@@ -292,35 +292,35 @@ eidos_logical_t EidosValue::LogicalAtIndex(int p_idx, EidosToken *p_blame_token)
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::LogicalAtIndex): operand type " << this->Type() << " cannot be converted to type logical." << eidos_terminate(p_blame_token);
-	return false;
 }
 
 std::string EidosValue::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::StringAtIndex): operand type " << this->Type() << " cannot be converted to type string." << eidos_terminate(p_blame_token);
-	return std::string();
 }
 
 int64_t EidosValue::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::IntAtIndex): operand type " << this->Type() << " cannot be converted to type integer." << eidos_terminate(p_blame_token);
-	return 0;
 }
 
 double EidosValue::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::FloatAtIndex): operand type " << this->Type() << " cannot be converted to type float." << eidos_terminate(p_blame_token);
-	return 0.0;
 }
 
 EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::ObjectElementAtIndex): operand type " << this->Type() << " cannot be converted to type object." << eidos_terminate(p_blame_token);
-	return nullptr;
+}
+
+void EidosValue::RaiseForUnimplementedVectorCall(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForUnimplementedVectorCall): (internal error) direct vector access attempted on an EidosValue type that does not support it." << eidos_terminate(nullptr);
 }
 
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
@@ -479,11 +479,6 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	}
 }
 
-std::vector<eidos_logical_t> &EidosValue_Logical::LogicalVector_Mutable(void)
-{
-	return values_;
-}
-
 EidosValue_Logical *EidosValue_Logical::Reserve(int p_reserved_size)
 {
 	values_.reserve(p_reserved_size);
@@ -609,11 +604,6 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
-}
-
-std::vector<eidos_logical_t> &EidosValue_Logical_const::LogicalVector_Mutable(void)
-{
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::LogicalVector_Mutable): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
 EidosValue_Logical *EidosValue_Logical_const::Reserve(int p_reserved_size)

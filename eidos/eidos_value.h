@@ -228,6 +228,22 @@ public:
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;	// copy a value
 	virtual void Sort(bool p_ascending) = 0;
 	
+	// Methods to get a type-specific vector for fast manipulation; these raise if called on a value that does not support them.
+	// This is much faster than using dynamic_cast to achieve the same effect, and much safer than using static_cast + non-virtual function.
+	// Note that these methods are conventionally used in Eidos by immediately dereferencing to create a reference to the vector; this
+	// should be safe, since these methods should always raise rather than returning nullptr.
+	void RaiseForUnimplementedVectorCall(void) const __attribute__((__noreturn__));
+	virtual const std::vector<eidos_logical_t> *LogicalVector(void) const { RaiseForUnimplementedVectorCall(); }
+	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	virtual const std::vector<std::string> *StringVector(void) const { RaiseForUnimplementedVectorCall(); }
+	virtual std::vector<std::string> *StringVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	virtual const std::vector<int64_t> *IntVector(void) const { RaiseForUnimplementedVectorCall(); }
+	virtual std::vector<int64_t> *IntVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	virtual const std::vector<double> *FloatVector(void) const { RaiseForUnimplementedVectorCall(); }
+	virtual std::vector<double> *FloatVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	virtual const std::vector<EidosObjectElement *> *ObjectElementVector(void) const { RaiseForUnimplementedVectorCall(); }
+	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
 	inline __attribute__((always_inline)) uint16_t use_count() const { return intrusive_ref_count; }
 	inline __attribute__((always_inline)) bool unique() const { return intrusive_ref_count == 1; }
@@ -327,8 +343,8 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	inline __attribute__((always_inline)) const std::vector<eidos_logical_t> &LogicalVector(void) const { return values_; }
-	virtual std::vector<eidos_logical_t> &LogicalVector_Mutable(void);
+	virtual const std::vector<eidos_logical_t> *LogicalVector(void) const { return &values_; }
+	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { return &values_; }
 	virtual EidosValue_Logical *Reserve(int p_reserved_size);	// returns this, for chaining with new
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -363,7 +379,7 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const;
 	
 	// prohibited actions because this subclass represents only truly immutable objects
-	virtual std::vector<eidos_logical_t> &LogicalVector_Mutable(void);
+	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	virtual EidosValue_Logical *Reserve(int p_reserved_size);
 	virtual void PushLogical(eidos_logical_t p_logical);
 	virtual void SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token);
@@ -428,7 +444,8 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	inline __attribute__((always_inline)) const std::vector<std::string> &StringVector(void) const { return values_; }
+	virtual const std::vector<std::string> *StringVector(void) const { return &values_; }
+	virtual std::vector<std::string> *StringVector_Mutable(void) { return &values_; }
 	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { values_.emplace_back(p_string); }
 	inline __attribute__((always_inline)) EidosValue_String_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
@@ -541,8 +558,8 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	inline __attribute__((always_inline)) const std::vector<int64_t> &IntVector(void) const { return values_; }
-	inline __attribute__((always_inline)) std::vector<int64_t> &IntVector_Mutable(void) { return values_; }
+	virtual const std::vector<int64_t> *IntVector(void) const { return &values_; }
+	virtual std::vector<int64_t> *IntVector_Mutable(void) { return &values_; }
 	inline __attribute__((always_inline)) void PushInt(int64_t p_int) { values_.emplace_back(p_int); }
 	inline __attribute__((always_inline)) EidosValue_Int_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
@@ -649,8 +666,8 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	inline __attribute__((always_inline)) const std::vector<double> &FloatVector(void) const { return values_; }
-	inline __attribute__((always_inline)) std::vector<double> &FloatVector_Mutable(void) { return values_; }
+	virtual const std::vector<double> *FloatVector(void) const { return &values_; }
+	virtual std::vector<double> *FloatVector_Mutable(void) { return &values_; }
 	inline __attribute__((always_inline)) void PushFloat(double p_float) { values_.emplace_back(p_float); }
 	inline __attribute__((always_inline)) EidosValue_Float_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
@@ -764,7 +781,8 @@ public:
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	
-	inline __attribute__((always_inline)) const std::vector<EidosObjectElement *> &ObjectElementVector(void) const { return values_; }
+	virtual const std::vector<EidosObjectElement *> *ObjectElementVector(void) const { return &values_; }
+	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { return &values_; }
 	void PushObjectElement(EidosObjectElement *p_element);
 	inline __attribute__((always_inline)) EidosValue_Object_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
