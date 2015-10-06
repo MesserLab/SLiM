@@ -365,7 +365,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						EidosValue_Float_vector *result_vector_type = dynamic_cast<EidosValue_Float_vector *>(result);
 						
 						if (result_vector_type)
-							memcpy(current_weights, result_vector_type->FloatVector().data(), sizeof(double) * weights_length);
+							memcpy(current_weights, result_vector_type->FloatVector()->data(), sizeof(double) * weights_length);
 						else
 							current_weights[0] = result->FloatAtIndex(0, nullptr);
 						
