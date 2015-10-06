@@ -821,6 +821,7 @@ EidosValue_String_singleton::EidosValue_String_singleton(const std::string &p_st
 
 EidosValue_String_singleton::~EidosValue_String_singleton(void)
 {
+	delete cached_script_;
 }
 
 int EidosValue_String_singleton::Count_Virtual(void) const

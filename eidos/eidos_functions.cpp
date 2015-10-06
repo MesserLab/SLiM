@@ -4004,7 +4004,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
 			EidosValue *arg1_value = p_arguments[1].get();
-			EidosScript script(arg1_value->StringAtIndex(0, nullptr));
+			EidosValue_String_singleton *arg1_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[1].get());
+			EidosScript *script = (arg1_value_singleton ? arg1_value_singleton->CachedScript() : nullptr);
 			vector<EidosValue_SP> results;
 			
 			// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -4019,22 +4020,57 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			EidosScript *current_script_save = gEidosCurrentScript;
 			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
 			
+			// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
+			if (!script)
+			{
+				script = new EidosScript(arg1_value->StringAtIndex(0, nullptr));
+				
+				gEidosCharacterStartOfError = -1;
+				gEidosCharacterEndOfError = -1;
+				gEidosCharacterStartOfErrorUTF16 = -1;
+				gEidosCharacterEndOfErrorUTF16 = -1;
+				gEidosCurrentScript = script;
+				gEidosExecutingRuntimeScript = true;
+				
+				try
+				{
+					script->Tokenize();
+					script->ParseInterpreterBlockToAST();
+				}
+				catch (std::runtime_error err)
+				{
+					if (gEidosTerminateThrows)
+					{
+						gEidosCharacterStartOfError = error_start_save;
+						gEidosCharacterEndOfError = error_end_save;
+						gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+						gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+						gEidosCurrentScript = current_script_save;
+						gEidosExecutingRuntimeScript = executing_runtime_script_save;
+					}
+					
+					delete script;
+					
+					throw;
+				}
+				
+				if (arg1_value_singleton)
+					arg1_value_singleton->SetCachedScript(script);
+			}
+			
+			// Execute inside try/catch so we can handle errors well
 			gEidosCharacterStartOfError = -1;
 			gEidosCharacterEndOfError = -1;
 			gEidosCharacterStartOfErrorUTF16 = -1;
 			gEidosCharacterEndOfErrorUTF16 = -1;
-			gEidosCurrentScript = &script;
+			gEidosCurrentScript = script;
 			gEidosExecutingRuntimeScript = true;
 			
-			// Tokenize, parse, and execute inside try/catch so we can handle errors well
 			try
 			{
-				script.Tokenize();
-				script.ParseInterpreterBlockToAST();
-				
 				EidosSymbolTable &symbols = SymbolTable();									// use our own symbol table
 				EidosFunctionMap &function_map = FunctionMap();								// use our own function map
-				EidosInterpreter interpreter(script, symbols, function_map, this->eidos_context_);
+				EidosInterpreter interpreter(*script, symbols, function_map, this->eidos_context_);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
@@ -4070,6 +4106,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					gEidosExecutingRuntimeScript = executing_runtime_script_save;
 				}
 				
+				if (!arg1_value_singleton)
+					delete script;
+				
 				throw;
 			}
 			
@@ -4080,6 +4119,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
 			gEidosCurrentScript = current_script_save;
 			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			
+			if (!arg1_value_singleton)
+				delete script;
 			
 			break;
 		}
@@ -4109,9 +4151,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		case EidosFunctionIdentifier::executeLambdaFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
-			EidosScript script(arg0_value->StringAtIndex(0, nullptr));
-			bool timed = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
-			clock_t begin = 0, end = 0;
+			EidosValue_String_singleton *arg0_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[0].get());
+			EidosScript *script = (arg0_value_singleton ? arg0_value_singleton->CachedScript() : nullptr);
 			
 			// Errors in lambdas should be reported for the lambda script, not for the calling script,
 			// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -4125,22 +4166,60 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			EidosScript *current_script_save = gEidosCurrentScript;
 			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
 			
+			// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
+			if (!script)
+			{
+				script = new EidosScript(arg0_value->StringAtIndex(0, nullptr));
+				
+				gEidosCharacterStartOfError = -1;
+				gEidosCharacterEndOfError = -1;
+				gEidosCharacterStartOfErrorUTF16 = -1;
+				gEidosCharacterEndOfErrorUTF16 = -1;
+				gEidosCurrentScript = script;
+				gEidosExecutingRuntimeScript = true;
+				
+				try
+				{
+					script->Tokenize();
+					script->ParseInterpreterBlockToAST();
+				}
+				catch (std::runtime_error err)
+				{
+					if (gEidosTerminateThrows)
+					{
+						gEidosCharacterStartOfError = error_start_save;
+						gEidosCharacterEndOfError = error_end_save;
+						gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+						gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+						gEidosCurrentScript = current_script_save;
+						gEidosExecutingRuntimeScript = executing_runtime_script_save;
+					}
+					
+					delete script;
+					
+					throw;
+				}
+				
+				if (arg0_value_singleton)
+					arg0_value_singleton->SetCachedScript(script);
+			}
+			
+			// Execute inside try/catch so we can handle errors well
+			bool timed = (p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false;
+			clock_t begin = 0, end = 0;
+			
 			gEidosCharacterStartOfError = -1;
 			gEidosCharacterEndOfError = -1;
 			gEidosCharacterStartOfErrorUTF16 = -1;
 			gEidosCharacterEndOfErrorUTF16 = -1;
-			gEidosCurrentScript = &script;
+			gEidosCurrentScript = script;
 			gEidosExecutingRuntimeScript = true;
 			
-			// Tokenize, parse, and execute inside try/catch so we can handle errors well
 			try
 			{
-				script.Tokenize();
-				script.ParseInterpreterBlockToAST();
-				
 				EidosSymbolTable &symbols = SymbolTable();									// use our own symbol table
 				EidosFunctionMap &function_map = FunctionMap();								// use our own function map
-				EidosInterpreter interpreter(script, symbols, function_map, this->eidos_context_);
+				EidosInterpreter interpreter(*script, symbols, function_map, this->eidos_context_);
 				
 				if (timed)
 					begin = clock();
@@ -4168,6 +4247,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					gEidosExecutingRuntimeScript = executing_runtime_script_save;
 				}
 				
+				if (!arg0_value_singleton)
+					delete script;
+				
 				throw;
 			}
 			
@@ -4185,6 +4267,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
 			}
+			
+			if (!arg0_value_singleton)
+				delete script;
 			
 			break;
 		}

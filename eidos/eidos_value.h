@@ -37,6 +37,7 @@
 #include "eidos_global.h"
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
+#include "eidos_script.h"
 
 
 class EidosValue;
@@ -448,6 +449,7 @@ class EidosValue_String_singleton : public EidosValue_String
 {
 protected:
 	std::string value_;
+	EidosScript *cached_script_ = nullptr;	// cached by executeLambda() and apply() to avoid multiple tokenize/parse overhead
 	
 public:
 	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct
@@ -459,8 +461,8 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { return value_; }
-	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { value_ = p_string; }
+	inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }
+	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { delete cached_script_; cached_script_ = nullptr; value_ = p_string; }
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
@@ -476,6 +478,10 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
+	
+	// script caching; this is something that only EidosValue_String_singleton does!
+	inline __attribute__((always_inline)) EidosScript *CachedScript(void) { return cached_script_; }
+	inline __attribute__((always_inline)) void SetCachedScript(EidosScript *p_script) { cached_script_ = p_script; }
 };
 
 
