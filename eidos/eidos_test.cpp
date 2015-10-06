@@ -2760,6 +2760,13 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("date('foo');", 0, "requires at most");
 	EidosAssertScriptRaise("date(_Test(7));", 0, "requires at most");
 	
+	// doCall()
+	EidosAssertScriptSuccess("abs(doCall('sin', 0.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(doCall('sin', PI/2) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("doCall('sin');", 0, "missing required argument");
+	EidosAssertScriptRaise("doCall('sin', 'bar');", 0, "cannot be type string");
+	EidosAssertScriptRaise("doCall('sin', 0, 1);", 0, "requires at most 1 argument");
+	
 	// executeLambda()
 	EidosAssertScriptSuccess("x=7; executeLambda('x^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(49)));
 	EidosAssertScriptRaise("x=7; executeLambda('x^2');", 5, "unexpected token");

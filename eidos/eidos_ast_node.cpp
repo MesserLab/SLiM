@@ -232,7 +232,7 @@ void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, u
 		{
 			const string &function_name = function_name_node->token_->token_string_;
 			
-			if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr_rm) == 0))
+			if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
 			{
 				*p_references = true;
 				*p_assigns = true;
