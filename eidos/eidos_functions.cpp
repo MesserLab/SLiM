@@ -244,7 +244,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
 	
-	EidosValueType highest_type = EidosValueType::kValueNULL;
+	EidosValueType highest_type = EidosValueType::kValueNULL;	// start at the lowest
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
 	const EidosObjectClass *element_class = nullptr;
 	int reserve_size = 0;
@@ -261,6 +261,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
 			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << eidos_terminate(nullptr);
 		
+		// The highest type includes arguments of zero length; doing c(3, 7, string(0)) should produce a string vector
 		if (arg_type > highest_type)
 			highest_type = arg_type;
 		
@@ -312,8 +313,26 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value_count; ++value_index)
-				result_vec->emplace_back(arg_value->LogicalAtIndex(value_index, nullptr));
+			if (arg_value_count == 1)
+			{
+				result_vec->emplace_back(arg_value->LogicalAtIndex(0, nullptr));
+			}
+			else if (arg_value_count)
+			{
+				if (arg_value->Type() == EidosValueType::kValueLogical)
+				{
+					// Speed up logical arguments, which are probably common since our result is logical
+					const std::vector<eidos_logical_t> &arg_vec = *arg_value->LogicalVector();
+					
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result_vec->emplace_back(arg_vec[value_index]);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result_vec->emplace_back(arg_value->LogicalAtIndex(value_index, nullptr));
+				}
+			}
 		}
 		
 		return result_SP;
@@ -328,8 +347,26 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value_count; ++value_index)
-				result->PushInt(arg_value->IntAtIndex(value_index, nullptr));
+			if (arg_value_count == 1)
+			{
+				result->PushInt(arg_value->IntAtIndex(0, nullptr));
+			}
+			else if (arg_value_count)
+			{
+				if (arg_value->Type() == EidosValueType::kValueInt)
+				{
+					// Speed up integer arguments, which are probably common since our result is integer
+					const std::vector<int64_t> &arg_vec = *arg_value->IntVector();
+					
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushInt(arg_vec[value_index]);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushInt(arg_value->IntAtIndex(value_index, nullptr));
+				}
+			}
 		}
 		
 		return result_SP;
@@ -344,8 +381,26 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value_count; ++value_index)
-				result->PushFloat(arg_value->FloatAtIndex(value_index, nullptr));
+			if (arg_value_count == 1)
+			{
+				result->PushFloat(arg_value->FloatAtIndex(0, nullptr));
+			}
+			else if (arg_value_count)
+			{
+				if (arg_value->Type() == EidosValueType::kValueFloat)
+				{
+					// Speed up float arguments, which are probably common since our result is float
+					const std::vector<double> &arg_vec = *arg_value->FloatVector();
+					
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushFloat(arg_vec[value_index]);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushFloat(arg_value->FloatAtIndex(value_index, nullptr));
+				}
+			}
 		}
 		
 		return result_SP;
@@ -360,8 +415,26 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value_count; ++value_index)
-				result->PushString(arg_value->StringAtIndex(value_index, nullptr));
+			if (arg_value_count == 1)
+			{
+				result->PushString(arg_value->StringAtIndex(0, nullptr));
+			}
+			else if (arg_value_count)
+			{
+				if (arg_value->Type() == EidosValueType::kValueString)
+				{
+					// Speed up string arguments, which are probably common since our result is string
+					const std::vector<std::string> &arg_vec = *arg_value->StringVector();
+					
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushString(arg_vec[value_index]);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushString(arg_value->StringAtIndex(value_index, nullptr));
+				}
+			}
 		}
 		
 		return result_SP;
@@ -376,8 +449,26 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
 			
-			for (int value_index = 0; value_index < arg_value_count; ++value_index)
-				result->PushObjectElement(arg_value->ObjectElementAtIndex(value_index, nullptr));
+			if (arg_value_count == 1)
+			{
+				result->PushObjectElement(arg_value->ObjectElementAtIndex(0, nullptr));
+			}
+			else if (arg_value_count)
+			{
+				if (arg_value->Type() == EidosValueType::kValueObject)
+				{
+					// Speed up object arguments, which are probably common since our result is object
+					const std::vector<EidosObjectElement *> &arg_vec = *arg_value->ObjectElementVector();
+					
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushObjectElement(arg_vec[value_index]);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->PushObjectElement(arg_value->ObjectElementAtIndex(value_index, nullptr));
+				}
+			}
 		}
 		
 		return result_SP;
