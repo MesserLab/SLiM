@@ -358,19 +358,51 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 						p_indices_ptr->emplace_back(base_indices[value_idx]);
 				}
 			}
-			else if ((second_child_type == EidosValueType::kValueInt) || (second_child_type == EidosValueType::kValueFloat))
+			else
 			{
 				// A numeric vector can be of any length; each number selects the index at that index in base_indices
 				int base_indices_count =  (int)base_indices.size();
 				
-				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+				if (second_child_type == EidosValueType::kValueInt)
 				{
-					int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
-					
-					if ((index_value < 0) || (index_value >= base_indices_count))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
-					else
-						p_indices_ptr->emplace_back(base_indices[index_value]);
+					if (second_child_count == 1)
+					{
+						int64_t index_value = second_child_value->IntAtIndex(0, parent_token);
+						
+						if ((index_value < 0) || (index_value >= base_indices_count))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+						else
+							p_indices_ptr->emplace_back(base_indices[index_value]);
+					}
+					else if (second_child_count)
+					{
+						// fast vector access for the non-singleton case
+						const std::vector<int64_t> &second_child_vec = *second_child_value->IntVector();
+						
+						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+						{
+							int64_t index_value = second_child_vec[value_idx];
+							
+							if ((index_value < 0) || (index_value >= base_indices_count))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+							else
+								p_indices_ptr->emplace_back(base_indices[index_value]);
+						}
+					}
+				}
+				else // (second_child_type == EidosValueType::kValueFloat))
+				{
+					// We do not optimize the float case with direct vector access, because IntAtIndex() has complex behavior
+					// for EidosValue_Float that we want to get here; subsetting with float vectors is slow, don't do it.
+					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+					{
+						int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
+						
+						if ((index_value < 0) || (index_value >= base_indices_count))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+						else
+							p_indices_ptr->emplace_back(base_indices[index_value]);
+					}
 				}
 			}
 			
