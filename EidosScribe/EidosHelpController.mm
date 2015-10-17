@@ -33,7 +33,7 @@
 // EidosHelpTextStorage – a little subclass to make line wrapping in the help textview work the way it should, defined below
 @interface EidosHelpTextStorage : NSTextStorage
 - (id)init;
-- (id)initWithAttributedString:(NSAttributedString *)attrStr;
+- (id)initWithAttributedString:(NSAttributedString *)attrStr NS_DESIGNATED_INITIALIZER;
 @end
 
 // EidosDividerTextAttachmentCell – a little subclass to provide a divider between multiple help items, defined below

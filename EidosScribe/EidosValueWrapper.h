@@ -59,6 +59,7 @@
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue;
 + (instancetype)wrapperForName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount;
 
+- (instancetype)init __attribute__((unavailable("This method is not available")));	// superclass designated initializer is not valid
 - (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount NS_DESIGNATED_INITIALIZER;
 
 - (void)invalidateWrappedValues;

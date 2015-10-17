@@ -38,7 +38,7 @@ using std::string;
 //	EidosTextStorage – a little subclass to make word selection in EidosTextView work the way it should, defined below
 @interface EidosTextStorage : NSTextStorage
 - (id)init;
-- (id)initWithAttributedString:(NSAttributedString *)attrStr;
+- (id)initWithAttributedString:(NSAttributedString *)attrStr NS_DESIGNATED_INITIALIZER;
 @end
 
 

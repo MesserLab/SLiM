@@ -54,6 +54,14 @@
 	return [[[self alloc] initWithWrappedName:aName parent:parent value:std::move(aValue) index:anIndex of:siblingCount] autorelease];
 }
 
+- (instancetype)init
+{
+	// The superclass designated initializer is not valid for us
+	NSAssert(false, @"-init is not defined for this class");
+	
+	return [self initWithWrappedName:nil parent:nil value:EidosValue_SP(nullptr) index:0 of:0];
+}
+
 - (instancetype)initWithWrappedName:(NSString *)aName parent:(EidosValueWrapper *)parent value:(EidosValue_SP)aValue index:(int)anIndex of:(int)siblingCount
 {
 	if (self = [super init])
