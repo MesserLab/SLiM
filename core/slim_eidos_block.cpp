@@ -207,7 +207,7 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 	
 	// set up parse state
 	parse_index_ = 0;
-	current_token_ = token_stream_.at(parse_index_);		// should always have at least an EOF
+	current_token_ = &token_stream_.at(parse_index_);		// should always have at least an EOF
 	current_token_type_ = current_token_->token_type_;
 	
 	// parse a new AST from our start token

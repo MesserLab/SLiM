@@ -62,7 +62,7 @@ protected:
 	
 	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
 	
-	std::vector<EidosToken *> token_stream_;					// OWNED POINTERS
+	std::vector<EidosToken> token_stream_;
 	EidosASTNode *parse_root_ = nullptr;						// OWNED POINTER
 	
 	bool final_semicolon_optional_ = false;
@@ -93,7 +93,7 @@ public:
 	void PrintAST(std::ostream &p_outstream) const;
 	
 	inline __attribute__((always_inline)) const std::string &String(void) const					{ return script_string_; }
-	inline __attribute__((always_inline)) const std::vector<EidosToken *> &Tokens(void) const	{ return token_stream_; }
+	inline __attribute__((always_inline)) const std::vector<EidosToken> &Tokens(void) const		{ return token_stream_; }
 	inline __attribute__((always_inline)) const EidosASTNode *AST(void) const					{ return parse_root_; }
 	
 	// Parsing methods; see grammar for definitions

@@ -86,9 +86,6 @@ EidosScript::EidosScript(const string &p_script_string) :
 
 EidosScript::~EidosScript(void)
 {
-	for (auto token : token_stream_)
-		delete token;
-	
 	delete parse_root_;
 }
 
@@ -99,9 +96,6 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	gEidosCurrentScript = this;
 	
 	// delete all existing tokens, AST, etc.
-	for (auto token : token_stream_)
-		delete token;
-	
 	token_stream_.clear();
 	
 	delete parse_root_;
@@ -565,9 +559,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			}
 			
 			// make the token and push it
-			EidosToken *token = new EidosToken(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
-			
-			token_stream_.emplace_back(token);
+			token_stream_.emplace_back(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
 		}
 		
 		// advance to the character immediately past the end of this token
@@ -576,9 +568,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	}
 	
 	// add an EOF token at the end
-	EidosToken *eofToken = new EidosToken(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16);
-	
-	token_stream_.emplace_back(eofToken);
+	token_stream_.emplace_back(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16);
 	
 	// if logging of tokens is requested, do that
 	if (gEidosLogTokens)
@@ -597,7 +587,7 @@ void EidosScript::Consume(void)
 	if (current_token_type_ != EidosTokenType::kTokenEOF)
 	{
 		++parse_index_;
-		current_token_ = token_stream_.at(parse_index_);
+		current_token_ = &token_stream_.at(parse_index_);
 		current_token_type_ = current_token_->token_type_;
 	}
 }
@@ -610,7 +600,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 		if (current_token_type_ != EidosTokenType::kTokenEOF)
 		{
 			++parse_index_;
-			current_token_ = token_stream_.at(parse_index_);
+			current_token_ = &token_stream_.at(parse_index_);
 			current_token_type_ = current_token_->token_type_;
 		}
 	}
@@ -623,9 +613,9 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0);
+	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0);
 	
-	EidosASTNode *node = new EidosASTNode(virtual_token, true);
+	EidosASTNode *node = new EidosASTNode(&temp_token);	// the stack-local token is replaced below
 	
 	try
 	{
@@ -647,9 +637,7 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 		// swap in a new virtual token that encompasses all our children
 		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		virtual_token = new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
-		
-		node->ReplaceTokenWithToken(virtual_token);
+		node->ReplaceTokenWithToken(new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
 	}
 	catch (...)
 	{
@@ -684,11 +672,9 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 		Match(EidosTokenType::kTokenRBrace, "compound statement");
 		
 		// swap in a new virtual token that encompasses all our children
-		std::string token_string = script_string_.substr(token_start, token_end - token_start + 1);
+		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		EidosToken *virtual_token = new EidosToken(node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
-		
-		node->ReplaceTokenWithToken(virtual_token);
+		node->ReplaceTokenWithToken(new EidosToken(node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
 	}
 	catch (...)
 	{
@@ -1408,7 +1394,7 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	
 	// set up parse state
 	parse_index_ = 0;
-	current_token_ = token_stream_.at(parse_index_);		// should always have at least an EOF
+	current_token_ = &token_stream_.at(parse_index_);		// should always have at least an EOF
 	current_token_type_ = current_token_->token_type_;
 	
 	// set up error tracking for this script
@@ -1435,8 +1421,8 @@ void EidosScript::PrintTokens(ostream &p_outstream) const
 {
 	if (token_stream_.size())
 	{
-		for (auto token : token_stream_)
-			p_outstream << *token << " ";
+		for (auto &token : token_stream_)
+			p_outstream << token << " ";
 		
 		p_outstream << endl;
 	}

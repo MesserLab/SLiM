@@ -704,14 +704,14 @@ using std::string;
 						script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 						
 						// Find the token containing the double-click point
-						const std::vector<EidosToken *> &tokens = script.Tokens();
+						const std::vector<EidosToken> &tokens = script.Tokens();
 						int token_count = (int)tokens.size();
-						EidosToken *click_token = nullptr;
+						const EidosToken *click_token = nullptr;
 						int click_token_index;
 						
 						for (click_token_index = 0; click_token_index < token_count; ++click_token_index)
 						{
-							click_token = tokens[click_token_index];
+							click_token = &tokens[click_token_index];
 							
 							if ((click_token->token_UTF16_start_ <= proposedCharacterIndex) && (click_token->token_UTF16_end_ >= proposedCharacterIndex))
 								break;
@@ -721,7 +721,7 @@ using std::string;
 						// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
 						// that we start in; if in a string, for example, only delimiters within strings affect our scan.
 						EidosTokenType click_token_type = click_token->token_type_;
-						EidosToken *scan_token = click_token;
+						const EidosToken *scan_token = click_token;
 						int scan_token_index = click_token_index;
 						NSInteger scanPosition = proposedCharacterIndex;
 						int balanceCount = 0;
@@ -781,7 +781,7 @@ using std::string;
 									return NSMakeRange(proposedCharacterIndex, 1);
 								}
 								
-								scan_token = tokens[scan_token_index];
+								scan_token = &tokens[scan_token_index];
 							}
 						}
 					}
@@ -847,22 +847,22 @@ using std::string;
 	
 	[ts removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [ts length])];
 	
-	for (EidosToken *token : script.Tokens())
+	for (const EidosToken &token : script.Tokens())
 	{
-		NSRange tokenRange = NSMakeRange(token->token_UTF16_start_, token->token_UTF16_end_ - token->token_UTF16_start_ + 1);
+		NSRange tokenRange = NSMakeRange(token.token_UTF16_start_, token.token_UTF16_end_ - token.token_UTF16_start_ + 1);
 		
-		if (token->token_type_ == EidosTokenType::kTokenNumber)
+		if (token.token_type_ == EidosTokenType::kTokenNumber)
 			[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
-		if (token->token_type_ == EidosTokenType::kTokenString)
+		if (token.token_type_ == EidosTokenType::kTokenString)
 			[ts addAttribute:NSForegroundColorAttributeName value:stringLiteralColor range:tokenRange];
-		if (token->token_type_ == EidosTokenType::kTokenComment)
+		if (token.token_type_ == EidosTokenType::kTokenComment)
 			[ts addAttribute:NSForegroundColorAttributeName value:commentColor range:tokenRange];
-		if (token->token_type_ > EidosTokenType::kFirstIdentifierLikeToken)
+		if (token.token_type_ > EidosTokenType::kFirstIdentifierLikeToken)
 			[ts addAttribute:NSForegroundColorAttributeName value:keywordColor range:tokenRange];
-		if (token->token_type_ == EidosTokenType::kTokenIdentifier)
+		if (token.token_type_ == EidosTokenType::kTokenIdentifier)
 		{
 			// most identifiers are left as black; only special ones get colored
-			const std::string &token_string = token->token_string_;
+			const std::string &token_string = token.token_string_;
 			
 			if ((token_string.compare("T") == 0) ||
 				(token_string.compare("F") == 0) ||
@@ -1079,7 +1079,7 @@ using std::string;
 		// Tokenize
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
-		const vector<EidosToken *> &tokens = script.Tokens();
+		const vector<EidosToken> &tokens = script.Tokens();
 		int tokenCount = (int)tokens.size();
 		
 		//NSLog(@"script string \"%@\" contains %d tokens", scriptString, tokenCount);
@@ -1089,7 +1089,7 @@ using std::string;
 		int tokenIndex;
 		
 		for (tokenIndex = 0; tokenIndex < tokenCount; ++tokenIndex)
-			if (tokens[tokenIndex]->token_UTF16_start_ >= selectionStart)
+			if (tokens[tokenIndex].token_UTF16_start_ >= selectionStart)
 				break;
 		
 		//NSLog(@"token %d follows the selection (selectionStart == %d)", tokenIndex, selectionStart);
@@ -1105,8 +1105,8 @@ using std::string;
 		
 		while (backscanIndex > 0)	// last examined position is 1, since we can't look for an identifier at 0 - 1 == -1
 		{
-			EidosToken *token = tokens[backscanIndex];
-			EidosTokenType tokenType = token->token_type_;
+			const EidosToken &token = tokens[backscanIndex];
+			EidosTokenType tokenType = token.token_type_;
 			
 			if (tokenType == EidosTokenType::kTokenLParen)
 			{
@@ -1114,17 +1114,17 @@ using std::string;
 				
 				if (parenCount < lowestParenCountSeen)
 				{
-					EidosToken *previousToken = tokens[backscanIndex - 1];
-					EidosTokenType previousTokenType = previousToken->token_type_;
+					const EidosToken &previousToken = tokens[backscanIndex - 1];
+					EidosTokenType previousTokenType = previousToken.token_type_;
 					
 					if (previousTokenType == EidosTokenType::kTokenIdentifier)
 					{
 						// OK, we found the pattern "identifier("; extract the name of the function/method
 						// We also figure out here whether it is a method call (tokens like ".identifier(") or not
-						NSString *callName = [NSString stringWithUTF8String:previousToken->token_string_.c_str()];
+						NSString *callName = [NSString stringWithUTF8String:previousToken.token_string_.c_str()];
 						BOOL isMethodCall = NO;
 						
-						if ((backscanIndex > 1) && (tokens[backscanIndex - 2]->token_type_ == EidosTokenType::kTokenDot))
+						if ((backscanIndex > 1) && (tokens[backscanIndex - 2].token_type_ == EidosTokenType::kTokenDot))
 							isMethodCall = YES;
 						
 						return [self attributedSignatureForCallName:callName isMethodCall:isMethodCall];
@@ -1282,9 +1282,9 @@ using std::string;
 	return globals;
 }
 
-- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken *> &)tokens
+- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken> &)tokens
 {
-	EidosToken *token = tokens[lastDotTokenIndex];
+	const EidosToken *token = &tokens[lastDotTokenIndex];
 	EidosTokenType token_type = token->token_type_;
 	
 	if (token_type != EidosTokenType::kTokenDot)
@@ -1304,7 +1304,7 @@ using std::string;
 	
 	for (int tokenIndex = lastDotTokenIndex - 1; tokenIndex >= 0; --tokenIndex)
 	{
-		token = tokens[tokenIndex];
+		token = &tokens[tokenIndex];
 		token_type = token->token_type_;
 		
 		// skip backward over whitespace and comments; they make no difference to us
@@ -1516,11 +1516,11 @@ using std::string;
 	return candidates;
 }
 
-- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken *> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
+- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
 {
 	// What completions we offer depends on the token stream
-	EidosToken *token = tokens[lastTokenIndex];
-	EidosTokenType token_type = token->token_type_;
+	const EidosToken &token = tokens[lastTokenIndex];
+	EidosTokenType token_type = token.token_type_;
 	
 	switch (token_type)
 	{
@@ -1554,8 +1554,8 @@ using std::string;
 				// a key path, otherwise we're in the global context and should filter from those candidates
 				for (int previousTokenIndex = lastTokenIndex - 1; previousTokenIndex >= 0; --previousTokenIndex)
 				{
-					EidosToken *previous_token = tokens[previousTokenIndex];
-					EidosTokenType previous_token_type = previous_token->token_type_;
+					const EidosToken &previous_token = tokens[previousTokenIndex];
+					EidosTokenType previous_token_type = previous_token.token_type_;
 					
 					// if the token we're on is skippable, continue backwards
 					if ((previous_token_type == EidosTokenType::kTokenWhitespace) || (previous_token_type == EidosTokenType::kTokenComment))
@@ -1585,7 +1585,7 @@ using std::string;
 					completions = [self globalCompletionsIncludingStatements:YES];
 				
 				// Now we have an array of possible completions; we just need to remove those that don't start with our existing prefix
-				NSString *baseString = [NSString stringWithUTF8String:token->token_string_.c_str()];
+				NSString *baseString = [NSString stringWithUTF8String:token.token_string_.c_str()];
 				
 				for (int completionIndex = (int)[completions count] - 1; completionIndex >= 0; --completionIndex)
 				{
@@ -1677,12 +1677,12 @@ using std::string;
 		// Tokenize
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
-		auto tokens = script.Tokens();
+		const std::vector<EidosToken> &tokens = script.Tokens();
 		int lastTokenIndex = (int)tokens.size() - 1;
 		BOOL endedCleanly = NO, lastTokenInterrupted = NO;
 		
 		// if we ended with an EOF, that means we did not have a raise and there should be no untokenizable range at the end
-		if ((lastTokenIndex >= 0) && (tokens[lastTokenIndex]->token_type_ == EidosTokenType::kTokenEOF))
+		if ((lastTokenIndex >= 0) && (tokens[lastTokenIndex].token_type_ == EidosTokenType::kTokenEOF))
 		{
 			--lastTokenIndex;
 			endedCleanly = YES;
@@ -1690,9 +1690,9 @@ using std::string;
 		
 		// if we ended with whitespace or a comment, the previous token cannot be extended
 		while (lastTokenIndex >= 0) {
-			EidosToken *token = tokens[lastTokenIndex];
+			const EidosToken &token = tokens[lastTokenIndex];
 			
-			if ((token->token_type_ != EidosTokenType::kTokenWhitespace) && (token->token_type_ != EidosTokenType::kTokenComment))
+			if ((token.token_type_ != EidosTokenType::kTokenWhitespace) && (token.token_type_ != EidosTokenType::kTokenComment))
 				break;
 			
 			--lastTokenIndex;
@@ -1718,8 +1718,8 @@ using std::string;
 				return;
 			}
 			
-			EidosToken *token = tokens[lastTokenIndex];
-			EidosTokenType token_type = token->token_type_;
+			const EidosToken &token = tokens[lastTokenIndex];
+			EidosTokenType token_type = token.token_type_;
 			
 			// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 			// operator, then we can offer completions at the insertion point based on that, otherwise punt.
@@ -1745,17 +1745,17 @@ using std::string;
 			}
 			
 			// the last token was not interrupted, so we can offer completions of it if we want to.
-			EidosToken *token = tokens[lastTokenIndex];
-			NSRange tokenRange = NSMakeRange(token->token_UTF16_start_, token->token_UTF16_end_ - token->token_UTF16_start_ + 1);
+			const EidosToken &token = tokens[lastTokenIndex];
+			NSRange tokenRange = NSMakeRange(token.token_UTF16_start_, token.token_UTF16_end_ - token.token_UTF16_start_ + 1);
 			
-			if (token->token_type_ >= EidosTokenType::kTokenIdentifier)
+			if (token.token_type_ >= EidosTokenType::kTokenIdentifier)
 			{
 				if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
 				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES];
 				return;
 			}
 			
-			if ((token->token_type_ == EidosTokenType::kTokenNumber) || (token->token_type_ == EidosTokenType::kTokenString) || (token->token_type_ == EidosTokenType::kTokenRParen) || (token->token_type_ == EidosTokenType::kTokenRBracket))
+			if ((token.token_type_ == EidosTokenType::kTokenNumber) || (token.token_type_ == EidosTokenType::kTokenString) || (token.token_type_ == EidosTokenType::kTokenRParen) || (token.token_type_ == EidosTokenType::kTokenRBracket))
 			{
 				if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 				if (completions) *completions = nil;

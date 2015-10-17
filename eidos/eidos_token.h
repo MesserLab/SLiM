@@ -114,7 +114,7 @@ public:
 	const int32_t token_UTF16_start_;			// the same as token_start_ but in UTF-16 code units, as NSString uses
 	const int32_t token_UTF16_end_;				// the same as token_end_ but in UTF-16 code units, as NSString uses
 	
-	EidosToken(const EidosToken&) = delete;					// no copying
+	EidosToken(const EidosToken&) = default;				// default copy-construction, for std::vector
 	EidosToken& operator=(const EidosToken&) = delete;		// no copying
 	EidosToken(void) = delete;								// no null construction
 	
