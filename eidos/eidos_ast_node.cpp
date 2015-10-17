@@ -26,6 +26,10 @@
 using std::string;
 
 
+// The global object pool for EidosASTNode, initialized in EidosWarmup()
+EidosObjectPool *gEidosASTNodePool = nullptr;
+
+
 EidosASTNode::EidosASTNode(EidosToken *p_token, bool p_token_is_owned) :
 token_(p_token), token_is_owned_(p_token_is_owned)
 {
@@ -40,7 +44,11 @@ token_(p_token)
 EidosASTNode::~EidosASTNode(void)
 {
 	for (auto child : children_)
-		delete child;
+	{
+		// destroy children and return them to the pool; all children must be allocated out of gEidosASTNodePool!
+		child->~EidosASTNode();
+		gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(child));
+	}
 	
 	if (token_is_owned_)
 	{

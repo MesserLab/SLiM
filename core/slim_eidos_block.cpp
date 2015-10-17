@@ -37,7 +37,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 {
 	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0, 0, 0);
 	
-	EidosASTNode *node = new EidosASTNode(virtual_token, true);
+	EidosASTNode *node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(virtual_token, true);
 	
 	try
 	{
@@ -50,7 +50,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 	}
 	catch (...)
 	{
-		delete node;
+		// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
 		throw;
 	}
 	
@@ -61,7 +67,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 {
 	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0, 0, 0);
 	
-	EidosASTNode *slim_script_block_node = new EidosASTNode(virtual_token, true);
+	EidosASTNode *slim_script_block_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(virtual_token, true);
 	
 	// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 	// We parse the slim_script_info section here, as part of the script block.
@@ -72,7 +78,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
 		{
 			// a script identifier like s1 is present; add it
-			slim_script_block_node->AddChild(new EidosASTNode(current_token_));
+			slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 			
 			Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
 		}
@@ -100,7 +106,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		{
 			if (current_token_->token_string_.compare(gStr_initialize) == 0)
 			{
-				slim_script_block_node->AddChild(new EidosASTNode(current_token_));
+				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM initialize() callback");
 				Match(EidosTokenType::kTokenLParen, "SLiM initialize() callback");
@@ -108,7 +114,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else if (current_token_->token_string_.compare(gStr_fitness) == 0)
 			{
-				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
@@ -117,7 +123,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
 					// A (required) mutation type id is present; add it
-					callback_info_node->AddChild(new EidosASTNode(current_token_));
+					callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
 				}
@@ -133,7 +139,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					
 					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 					{
-						callback_info_node->AddChild(new EidosASTNode(current_token_));
+						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 						
 						Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
 					}
@@ -147,7 +153,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else if (current_token_->token_string_.compare(gStr_mateChoice) == 0)
 			{
-				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
@@ -156,7 +162,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				// A (optional) subpopulation id is present; add it
 				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
-					callback_info_node->AddChild(new EidosASTNode(current_token_));
+					callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM mateChoice() callback");
 				}
@@ -165,7 +171,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else if (current_token_->token_string_.compare(gStr_modifyChild) == 0)
 			{
-				EidosASTNode *callback_info_node = new EidosASTNode(current_token_);
+				EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 				slim_script_block_node->AddChild(callback_info_node);
 				
 				Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
@@ -174,7 +180,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				// A (optional) subpopulation id is present; add it
 				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
-					callback_info_node->AddChild(new EidosASTNode(current_token_));
+					callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM modifyChild() callback");
 				}
@@ -192,7 +198,12 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	}
 	catch (...)
 	{
-		delete slim_script_block_node;
+		if (slim_script_block_node)
+		{
+			slim_script_block_node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(slim_script_block_node));
+		}
+		
 		throw;
 	}
 	
@@ -201,9 +212,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 
 void SLiMEidosScript::ParseSLiMFileToAST(void)
 {
-	// delete the existing AST
-	delete parse_root_;
-	parse_root_ = nullptr;
+	// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
+	if (parse_root_)
+	{
+		parse_root_->~EidosASTNode();
+		gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(parse_root_));
+		parse_root_ = nullptr;
+	}
 	
 	// set up parse state
 	parse_index_ = 0;

@@ -275,7 +275,7 @@ inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const Eid
 {
 	if ((--(p_value->intrusive_ref_count)) == 0)
 	{
-		// We no longer delete; all objects under Eidos_intrusive_ptr should have been allocated out of gEidosValuePool, so it handles the free
+		// We no longer delete; all EidosValues under Eidos_intrusive_ptr should have been allocated out of gEidosValuePool, so it handles the free
 		//delete p_value;
 		p_value->~EidosValue();
 		gEidosValuePool->DisposeChunk(const_cast<EidosValue*>(p_value));

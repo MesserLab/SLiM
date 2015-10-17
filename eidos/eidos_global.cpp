@@ -23,6 +23,7 @@
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
 #include "eidos_object_pool.h"
+#include "eidos_ast_node.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -46,7 +47,7 @@ void Eidos_WarmUp(void)
 	{
 		been_here = true;
 		
-		// Make the shared object pool
+		// Make the shared EidosValue pool
 		size_t maxEidosValueSize = sizeof(EidosValue_NULL);
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical_const));
@@ -65,6 +66,9 @@ void Eidos_WarmUp(void)
 		
 		//std::cout << "maxEidosValueSize == " << maxEidosValueSize << std::endl;
 		gEidosValuePool = new EidosObjectPool(maxEidosValueSize);
+		
+		// Make the shared EidosASTNode pool
+		gEidosASTNodePool = new EidosObjectPool(sizeof(EidosASTNode));
 		
 		// Allocate global permanents
 		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();

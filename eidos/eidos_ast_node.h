@@ -32,6 +32,11 @@ class EidosASTNode;
 class EidosInterpreter;
 
 
+// EidosASTNodes must be allocated out of the global pool, for speed.  See eidos_object_pool.h.  When Eidos disposes of a node,
+// it will assume that it was allocated from this pool, so its use is mandatory except for stack-allocated objects.
+extern EidosObjectPool *gEidosASTNodePool;
+
+
 // A typedef for a pointer to an EidosInterpreter evaluation method, cached for speed
 typedef EidosValue_SP (EidosInterpreter::*EidosEvaluationMethod)(const EidosASTNode *p_node);
 
