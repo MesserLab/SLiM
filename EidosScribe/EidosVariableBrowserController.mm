@@ -158,10 +158,22 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 		{
 			id rowItem = [_browserOutline itemAtRow:i];
 			
-			if ([_browserOutline isItemExpanded:rowItem])
+			// Because we are in transition, it is possible for rowItem to be nil.  Specifically, the outline view may cache the
+			// number of rows, and thus rowCount may be non-zero; and yet when a given row is asked for, the outline view may
+			// then attempt to obtain it from the delegate (because NSOutlineView loads rows lazily), and the row may no longer
+			// be there because the symbol table has changed (or been tossed entirely).  This is OK, actually.  Any row that
+			// comes back as nil here is not expanded; a row doesn't get expanded if it hasn't even been loaded.  So rows that
+			// come back as nil here can simply be ignored, since our only goal is to log a set of the expanded rows.  This
+			// situation does, however, point out the trickiness inherent in asking NSOutlineView about its own state; it will
+			// not necessarily answer in a self-consistent fashion!
+			
+			if (rowItem)
 			{
-				[expandedSet addObject:rowItem];
-				//NSLog(@"remembering item with name %@ (%p, hash %lu) as expanded", ((EidosValueWrapper *)rowItem)->wrappedName, rowItem, (unsigned long)[rowItem hash]);
+				if ([_browserOutline isItemExpanded:rowItem])
+				{
+					[expandedSet addObject:rowItem];
+					//NSLog(@"remembering item with name %@ (%p, hash %lu) as expanded", ((EidosValueWrapper *)rowItem)->wrappedName, rowItem, (unsigned long)[rowItem hash]);
+				}
 			}
 		}
 	}
