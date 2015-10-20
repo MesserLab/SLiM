@@ -419,7 +419,7 @@
 		const char *cstr = newOutput.c_str();
 		NSString *str = [NSString stringWithUTF8String:cstr];
 		NSScrollView *enclosingScrollView = [outputTextView enclosingScrollView];
-		BOOL scrolledToBottom = ([enclosingScrollView hasVerticalScroller] && [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
+		BOOL scrolledToBottom = (![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
 		
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
 		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
