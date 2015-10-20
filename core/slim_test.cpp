@@ -264,7 +264,12 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(stop_test);
 	
 	// Test script registration
+	SLiMAssertScriptStop("initialize() { stop(); } s1 {}");
 	SLiMAssertScriptRaise("initialize() { stop(); } s1 {} s1 {}", 1, 31, "already defined");
+	SLiMAssertScriptStop("initialize() { stop(); } 1: {}");
+	SLiMAssertScriptStop("initialize() { stop(); } :1 {}");
+	SLiMAssertScriptStop("initialize() { stop(); } 1:10 {}");
+	SLiMAssertScriptRaise("initialize() { stop(); } : {}", 1, 27, "unexpected token");
 	
 	
 	// ************************************************************************************

@@ -83,22 +83,37 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
 		}
 		
-		// Next comes an optional generation X or generation range X:Y
+		// Next comes an optional generation X, or a generation range X:Y, X:, or :Y (a lone : is not legal).
+		// We don't parse this as if the : were an operator, since we have to allow for a missing start or end;
+		// for this reason, we make the : into a node of its own, with no children, so X:Y, X:, and :Y are distinct.
+		// SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) handles this anomalous tree structure.
 		if (current_token_type_ == EidosTokenType::kTokenNumber)
 		{
 			// A start generation is present; add it
 			slim_script_block_node->AddChild(Parse_Constant());
 			
+			// If a colon is present, we have a range, although it could be just X:
 			if (current_token_type_ == EidosTokenType::kTokenColon)
 			{
-				// An end generation is present; add it
+				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 				Match(EidosTokenType::kTokenColon, "SLiM script block");
 				
+				// If an end generation is present, add it
 				if (current_token_type_ == EidosTokenType::kTokenNumber)
 					slim_script_block_node->AddChild(Parse_Constant());
-				else
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
 			}
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenColon)
+		{
+			// The generation range starts with a colon; first eat that
+			slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+			Match(EidosTokenType::kTokenColon, "SLiM script block");
+			
+			// In this situation, we must have an end generation; a lone colon is not a legal generation specifier
+			if (current_token_type_ == EidosTokenType::kTokenNumber)
+				slim_script_block_node->AddChild(Parse_Constant());
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
 		}
 		
 		// Now we are to the point of parsing the actual slim_script_block
@@ -311,7 +326,8 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		}
 	}
 	
-	// eat a number, for the start generation, if present
+	// eat the optional generation range, which could be X, X:Y, X:, or :Y
+	// we don't need to syntax-check here since the parse already did
 	if (child_index < n_children)
 	{
 		EidosToken *start_gen_token = block_children[child_index]->token_;
@@ -330,7 +346,18 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		}
 	}
 	
-	// eat a number, for the end generation, if present
+	if (child_index < n_children)
+	{
+		EidosToken *colon_token = block_children[child_index]->token_;
+		
+		// we don't need to do much here except fix the end generation in case none is supplied, as in X:
+		if (colon_token->token_type_ == EidosTokenType::kTokenColon)
+		{
+			end_generation_ = SLIM_MAX_GENERATION;
+			child_index++;
+		}
+	}
+	
 	if (child_index < n_children)
 	{
 		EidosToken *end_gen_token = block_children[child_index]->token_;
