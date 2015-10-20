@@ -2293,8 +2293,9 @@
 			NSString *ns_script_string = [NSString stringWithUTF8String:script_string];
 			
 			// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
+			// note this doesn't really prevent AppKit from wrapping our tooltip, and I'd also like to use Monaco 9; I think I need a custom popup to do that...
 			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
-			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@"\t" withString:@"    "];	// second string is four &nbsp;s
+			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@"\t" withString:@"   "];		// second string is three &nbsp;s
 			
 			return ns_script_string;
 		}
