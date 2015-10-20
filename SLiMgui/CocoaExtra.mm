@@ -616,7 +616,14 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
+@implementation SLiMAutoselectTextField
 
+- (void)mouseDown:(NSEvent *)theEvent
+{
+	[[self currentEditor] selectAll:nil];
+}
+
+@end
 
 
 

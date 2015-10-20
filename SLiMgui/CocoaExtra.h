@@ -83,6 +83,9 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 - (void)slimSetTintColor:(NSColor *)tintColor;
 @end
 
+// A subclass to make an NSTextView that selects its content when clicked, for the generation textfield
+@interface SLiMAutoselectTextField : NSTextField
+@end
 
 
 

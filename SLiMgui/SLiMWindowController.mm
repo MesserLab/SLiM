@@ -1204,7 +1204,24 @@
 {
 	if (!generationPlayOn)
 	{
-		targetGeneration = SLiMClampToGenerationType([[generationTextField stringValue] longLongValue]);
+		NSString *generationString = [generationTextField stringValue];
+		
+		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
+		if ([generationString isEqualToString:@"initialize()"])
+		{
+			if (sim->generation_ != 0)
+			{
+				NSBeep();
+				[self updateGenerationCounter];
+			}
+			
+			return;
+		}
+		
+		// Get the integer value from the textfield, since it is not "initialize()".  I would like the method used here to be
+		// -longLongValue, but that method does not presently exist on NSControl.   [generationString longLongValue] does not
+		// work properly with the formatter; the formatter adds commas and longLongValue doesn't understand them.  Whatever.
+		targetGeneration = SLiMClampToGenerationType([generationTextField integerValue]);
 		
 		// make sure the requested generation is in range
 		if (sim->generation_ >= targetGeneration)
