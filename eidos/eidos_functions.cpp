@@ -1887,7 +1887,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 		case EidosFunctionIdentifier::cFunction:
 		{
-			result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, false);
+			result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true);
 			break;
 		}
 			
