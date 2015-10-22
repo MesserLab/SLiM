@@ -201,6 +201,329 @@
 	[bezierArrowheads fill];
 }
 
+BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, double p2_x, double p2_y, double p3_x, double p3_y);
+BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, double p2_x, double p2_y, double p3_x, double p3_y)
+{
+	double s02_x, s02_y, s10_x, s10_y, s32_x, s32_y, s_numer, t_numer, denom;
+	s10_x = p1_x - p0_x;
+	s10_y = p1_y - p0_y;
+	s32_x = p3_x - p2_x;
+	s32_y = p3_y - p2_y;
+	
+	denom = s10_x * s32_y - s32_x * s10_y;
+	if (denom == 0)
+		return FALSE; // Collinear
+	bool denomPositive = denom > 0;
+	
+	s02_x = p0_x - p2_x;
+	s02_y = p0_y - p2_y;
+	s_numer = s10_x * s02_y - s10_y * s02_x;
+	if ((s_numer < 0) == denomPositive)
+		return FALSE; // No collision
+	
+	t_numer = s32_x * s02_y - s32_y * s02_x;
+	if ((t_numer < 0) == denomPositive)
+		return FALSE; // No collision
+	
+	if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive))
+		return FALSE; // No collision
+	
+	return TRUE;
+}
+
+- (double)scorePositionsWithX:(double *)center_x y:(double *)center_y connected:(BOOL *)connected count:(int)subpopCount
+{
+	double score = 0.0;
+	double meanEdge = 0.0;
+	int edgeCount = 0;
+	double minx = INFINITY, maxy = -INFINITY;
+	
+	// First we calculate the mean edge length; we will consider this the optimum length
+	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+	{
+		double x = center_x[subpopIndex];
+		double y = center_y[subpopIndex];
+		
+		// If any node has a NaN value, that is an immediate disqualifier; I'm not sure how it happens, but it occasionally does
+		if (isnan(x) || isnan(y))
+			return -100000000;
+		
+		if (x < minx) minx = x;
+		if (y > maxy) maxy = y;
+		
+		for (int sourceIndex = subpopIndex + 1; sourceIndex < subpopCount; ++sourceIndex)
+		{
+			if (connected[subpopIndex * subpopCount + sourceIndex])
+			{
+				double dx = x - center_x[sourceIndex];
+				double dy = y - center_y[sourceIndex];
+				double distanceSquared = dx * dx + dy * dy;
+				double distance = sqrt(distanceSquared);
+				
+				meanEdge += distance;
+				edgeCount++;
+			}
+		}
+	}
+	
+	meanEdge /= edgeCount;
+	
+	// Add a little score if the first subpop is near the upper left
+	if ((fabs(center_x[0] - minx) < 0.05) && (fabs(center_y[0] - maxy) < 0.05))
+	{
+		score += 0.01;
+		
+		// Add a little more score if the second subpop is to its right in roughly the same row
+		if ((center_x[1] - center_x[0] > meanEdge/2) && (fabs(center_y[0] - center_y[1]) < 0.05))
+			score += 0.01;
+	}
+	
+	// Score distances and crossings
+	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+	{
+		double x = center_x[subpopIndex];
+		double y = center_y[subpopIndex];
+		
+		for (int sourceIndex = subpopIndex + 1; sourceIndex < subpopCount; ++sourceIndex)
+		{
+			double dx = x - center_x[sourceIndex];
+			double dy = y - center_y[sourceIndex];
+			double distanceSquared = dx * dx + dy * dy;
+			double distance = sqrt(distanceSquared);
+			
+			// being closer than k invokes a penalty
+			if (distance < meanEdge)
+				score -= (meanEdge - distance);
+			
+			// on the other hand, distance between connected subpops is very bad; this is above all what we want to optimize
+			if (connected[subpopIndex * subpopCount + sourceIndex])
+			{
+				if (distance > meanEdge)
+					score -= (distance - meanEdge);
+				
+				// Detect crossings
+				for (int secondSubpop = subpopIndex + 1; secondSubpop < subpopCount; ++secondSubpop)
+					for (int secondSource = secondSubpop + 1; secondSource < subpopCount; ++secondSource)
+						if (connected[secondSubpop * subpopCount + secondSource])
+						{
+							double x0 = x, x1 = center_x[sourceIndex], x2 = center_x[secondSubpop], x3 = center_x[secondSource];
+							double y0 = y, y1 = center_y[sourceIndex], y2 = center_y[secondSubpop], y3 = center_y[secondSource];
+							
+							// I test intersection with slightly shortened line segments, because I don't want endpoints that touch to be marked as intersections
+							if (is_line_intersection(x0*0.99 + x1*0.01, y0*0.99 + y1*0.01,
+													 x0*0.01 + x1*0.99, y0*0.01 + y1*0.99,
+													 x2*0.99 + x3*0.01, y2*0.99 + y3*0.01,
+													 x2*0.01 + x3*0.99, y2*0.01 + y3*0.99))
+								score -= 100;
+						}
+			}
+		}
+	}
+	
+	return score;
+}
+
+// This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
+// there are better algorithms out there, but this one is simple...
+- (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
+{
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	int subpopCount = (int)pop.size();
+	
+	double width = 0.58, length = 0.58;		// allows for the radii of the vertices at max subpop size
+	double area = width * length;
+	double k = sqrt(area / subpopCount);
+	double kSquared = k * k;
+	BOOL *connected;
+	
+	connected = (BOOL *)calloc(subpopCount * subpopCount, sizeof(BOOL));
+	
+	// We start by figuring out connectivity
+	auto subpopIter = pop.begin();
+	
+	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+	{
+		Subpopulation *subpop = (*subpopIter).second;
+		
+		for (const std::pair<const slim_objectid_t,double> &fractions_pair : subpop->migrant_fractions_)
+		{
+			slim_objectid_t migrant_source_id = fractions_pair.first;
+			
+			// We need to get from the source ID to the index of the source subpop in the pop array
+			auto sourceIter = pop.begin();
+			int sourceIndex;
+			
+			for (sourceIndex = 0; sourceIndex < subpopCount; ++sourceIndex)
+			{
+				if ((*sourceIter).first == migrant_source_id)
+					break;
+				
+				++sourceIter;
+			}
+			
+			if (sourceIndex == subpopCount)
+			{
+				free(connected);
+				return;
+			}
+			
+			// Mark the connection bidirectionally
+			connected[subpopIndex * subpopCount + sourceIndex] = YES;
+			connected[sourceIndex * subpopCount + subpopIndex] = YES;
+		}
+		
+		++subpopIter;
+	}
+	
+	double *pos_x, *pos_y;		// vertex positions
+	double *disp_x, *disp_y;	// vertex forces/displacements
+	double *best_x, *best_y;	// best vertex positions from multiple runs
+	double best_score = -INFINITY;
+	
+	pos_x = (double *)malloc(sizeof(double) * subpopCount);
+	pos_y = (double *)malloc(sizeof(double) * subpopCount);
+	disp_x = (double *)malloc(sizeof(double) * subpopCount);
+	disp_y = (double *)malloc(sizeof(double) * subpopCount);
+	best_x = (double *)malloc(sizeof(double) * subpopCount);
+	best_y = (double *)malloc(sizeof(double) * subpopCount);
+	
+	// We do multiple separate runs from different starting configurations, to try to find the optimal solution
+	for (int trialIteration = 0; trialIteration < 50; ++trialIteration)
+	{
+		double temperature = width / 5.0;
+		
+		// initialize positions; this is basically the G := (V,E) step of the Fruchterman & Reingold algorithm
+		for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+		{
+			pos_x[subpopIndex] = (random() / (double)INT32_MAX) * width - width/2;
+			pos_y[subpopIndex] = (random() / (double)INT32_MAX) * length - length/2;
+		}
+		
+		// Then we do the core loop of the Fruchterman & Reingold algorithm, which calculates forces and displacements
+		for (int optimizeIteration = 1; optimizeIteration < 1000; ++optimizeIteration)
+		{
+			// Calculate repulsive forces
+			for (int v = 0; v < subpopCount; ++v)
+			{
+				disp_x[v] = 0.0;
+				disp_y[v] = 0.0;
+				
+				for (int u = 0; u < subpopCount; ++u)
+				{
+					if (u != v)
+					{
+						double delta_x = pos_x[v] - pos_x[u];
+						double delta_y = pos_y[v] - pos_y[u];
+						double delta_magnitude_squared = delta_x * delta_x + delta_y * delta_y;
+						double multiplier = kSquared / delta_magnitude_squared;
+						
+						// This is a speed-optimized version of the pseudocode version commented out below
+						disp_x[v] += delta_x * multiplier;
+						disp_y[v] += delta_y * multiplier;
+						
+						//double delta_magnitude = sqrt(delta_magnitude_squared);
+						
+						//disp_x[v] += (delta_x / delta_magnitude) * (kSquared / delta_magnitude);
+						//disp_y[v] += (delta_y / delta_magnitude) * (kSquared / delta_magnitude);
+					}
+				}
+			}
+			
+			// Calculate attractive forces
+			for (int v = 0; v < subpopCount; ++v)
+			{
+				for (int u = v + 1; u < subpopCount; ++u)
+				{
+					if (connected[v * subpopCount + u])
+					{
+						// There is an edge between u and v
+						double delta_x = pos_x[v] - pos_x[u];
+						double delta_y = pos_y[v] - pos_y[u];
+						double delta_magnitude_squared = delta_x * delta_x + delta_y * delta_y;
+						double delta_magnitude = sqrt(delta_magnitude_squared);
+						double multiplier = (delta_magnitude_squared / k) / delta_magnitude;
+						double delta_multiplier_x = delta_x * multiplier;
+						double delta_multiplier_y = delta_y * multiplier;
+						
+						disp_x[v] -= delta_multiplier_x;
+						disp_y[v] -= delta_multiplier_y;
+						disp_x[u] += delta_multiplier_x;
+						disp_y[u] += delta_multiplier_y;
+					}
+				}
+			}
+			
+			// Limit max displacement to temperature t and prevent displacement outside frame
+			for (int v = 0; v < subpopCount; ++v)
+			{
+				double delta_x = disp_x[v];
+				double delta_y = disp_y[v];
+				double delta_magnitude_squared = delta_x * delta_x + delta_y * delta_y;
+				double delta_magnitude = sqrt(delta_magnitude_squared);
+				
+				if (delta_magnitude < temperature)
+				{
+					pos_x[v] += disp_x[v];
+					pos_y[v] += disp_y[v];
+				}
+				else
+				{
+					pos_x[v] += (disp_x[v] / delta_magnitude) * temperature;
+					pos_y[v] += (disp_y[v] / delta_magnitude) * temperature;
+				}
+				
+				if (pos_x[v] < -width/2) pos_x[v] = -width/2;
+				if (pos_y[v] < -length/2) pos_y[v] = -length/2;
+				if (pos_x[v] > width/2) pos_x[v] = width/2;
+				if (pos_y[v] > length/2) pos_y[v] = length/2;
+			}
+			
+			// reduce the temperature as the layout approaches a better configuration
+			// Fruchterman & Reingold are vague about exactly what they did here, but there is a rapid cooling phase (quenching)
+			// and then a constant low-temperature phase (simmering); I've taken a guess at what that might look like
+			temperature = temperature * 0.95;
+			
+			if (temperature < 0.002)
+				temperature = 0.002;
+		}
+		
+		// Test the final candidate and keep the best candidate
+		double candidate_score = [self scorePositionsWithX:pos_x y:pos_y connected:connected count:subpopCount];
+		
+		if (candidate_score > best_score)
+		{
+			for (int v = 0; v < subpopCount; ++v)
+			{
+				best_x[v] = pos_x[v];
+				best_y[v] = pos_y[v];
+			}
+			best_score = candidate_score;
+			//NSLog(@"better candidate, new score == %f", best_score);
+		}
+	}
+	
+	// Finally, we set the positions we have arrived at back into the subpops
+	subpopIter = pop.begin();
+	
+	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+	{
+		Subpopulation *subpop = (*subpopIter).second;
+		
+		subpop->gui_center_x_ = best_x[subpopIndex] + 0.5;
+		subpop->gui_center_y_ = best_y[subpopIndex] + 0.5;
+		++subpopIter;
+	}
+	
+	free(pos_x);
+	free(pos_y);
+	free(disp_x);
+	free(disp_y);
+	free(connected);
+	free(best_x);
+	free(best_y);
+}
+
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	SLiMSim *sim = controller->sim;
@@ -238,9 +561,7 @@
 	}
 	else if (subpopCount > 1)
 	{
-		// first we do some sizing, to figure out the maximum extent of our subpops, distributed in a ring
-		NSRect boundingBox = NSZeroRect;
-		
+		// first we distribute our subpops in a ring
 		{
 			auto subpopIter = pop.begin();
 			
@@ -249,8 +570,26 @@
 				Subpopulation *subpop = (*subpopIter).second;
 				double theta = (M_PI * 2.0 / subpopCount) * subpopIndex + M_PI_2;
 				
-				subpop->gui_center_x_ = 0.5 + cos(theta) * 0.29;
+				subpop->gui_center_x_ = 0.5 - cos(theta) * 0.29;
 				subpop->gui_center_y_ = 0.5 + sin(theta) * 0.29;
+				++subpopIter;
+			}
+		}
+		
+		// if position optimization is on, we do that to optimize the positions of the subpops
+		if (_optimizePositions && (subpopCount > 2))
+			[self optimizeSubpopPositionsWithController:controller];
+		
+		// then do some sizing, to figure out the maximum extent of our subpops
+		NSRect boundingBox = NSZeroRect;
+		
+		{
+			auto subpopIter = pop.begin();
+			
+			for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+			{
+				Subpopulation *subpop = (*subpopIter).second;
+				
 				NSPoint center = NSMakePoint(subpop->gui_center_x_, subpop->gui_center_y_);
 				NSRect subpopRect = [self rectForSubpop:subpop centeredAt:center];
 				
@@ -307,6 +646,24 @@
 	
 	// We're done with our transformed coordinate system
 	[NSGraphicsContext restoreGraphicsState];
+}
+
+- (IBAction)toggleOptimizedPositions:(id)sender
+{
+	[self setOptimizePositions:![self optimizePositions]];
+	[self setNeedsDisplay:YES];
+}
+
+- (void)subclassAddItemsToMenu:(NSMenu *)menu forEvent:(NSEvent *)theEvent
+{
+	if (menu)
+	{
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:([self optimizePositions] ? @"Standard Positions" : @"Optimized Positions") action:@selector(toggleOptimizedPositions:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+		}
+	}
 }
 
 @end

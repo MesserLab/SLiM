@@ -30,6 +30,9 @@
 @interface GraphView_PopulationVisualization : GraphView
 {
 }
+
+@property (nonatomic) BOOL optimizePositions;
+
 @end
 
 
