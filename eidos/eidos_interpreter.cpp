@@ -3069,22 +3069,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMinus:
-							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								float_vec[value_index] -= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMult:
-							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								float_vec[value_index] *= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenDiv:
-							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								float_vec[value_index] /= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMod:
-							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 							{
 								double &float_vec_value = float_vec[value_index];
 								
@@ -3093,7 +3093,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenExp:
-							for (int value_index = 0; value_index < lvalue_count; --value_index)
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 							{
 								double &float_vec_value = float_vec[value_index];
 								
