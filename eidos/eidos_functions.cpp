@@ -2124,9 +2124,6 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				double rate0 = (arg_rate ? arg_rate->FloatAtIndex(0, nullptr) : 1.0);
 				double mu0 = 1.0 / rate0;
 				
-				if (rate0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0 (" << rate0 << " supplied)." << eidos_terminate(nullptr);
-				
 				if (num_draws == 1)
 				{
 					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential(gEidos_rng, mu0)));
@@ -2148,9 +2145,6 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
 					double rate = arg_rate->FloatAtIndex(draw_index, nullptr);
-					
-					if (rate <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate > 0.0 (" << rate << " supplied)." << eidos_terminate(nullptr);
 					
 					float_result->PushFloat(gsl_ran_exponential(gEidos_rng, 1.0 / rate));
 				}
