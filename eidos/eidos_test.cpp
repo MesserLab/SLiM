@@ -1930,13 +1930,13 @@ void RunEidosTests(void)
 	
 	// c()
 	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
-	EidosAssertScriptRaise("c(NULL);", 0, "NULL is not allowed");
+	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(T);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("c(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("c(3.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
 	EidosAssertScriptSuccess("c('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
 	EidosAssertScriptSuccess("c(_Test(7))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
-	EidosAssertScriptRaise("c(NULL, NULL);", 0, "NULL is not allowed");
+	EidosAssertScriptSuccess("c(NULL, NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(T, F, T, T, T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true, true, false}));
 	EidosAssertScriptSuccess("c(3, 7, 19, -5, 9);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 7, 19, -5, 9}));
 	EidosAssertScriptSuccess("c(3.3, 7.7, 19.1, -5.8, 9.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.3, 7.7, 19.1, -5.8, 9.0}));
@@ -1949,16 +1949,16 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("c(T, 3, F, 7);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 0, 7}));
 	EidosAssertScriptSuccess("c(T, 3, F, 7.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 3, 0, 7.1}));
 	EidosAssertScriptSuccess("c(T, 3, 'bar', 7.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"T", "3", "bar", "7.1"}));
-	EidosAssertScriptRaise("c(T, NULL);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(3, NULL);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(3.1, NULL);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c('foo', NULL);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(_Test(7), NULL);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(NULL, T);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(NULL, 3);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(NULL, 3.1);", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(NULL, 'foo');", 0, "NULL is not allowed");
-	EidosAssertScriptRaise("c(NULL, _Test(7));", 0, "NULL is not allowed");
+	EidosAssertScriptSuccess("c(T, NULL);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("c(3, NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("c(3.1, NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
+	EidosAssertScriptSuccess("c('foo', NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("c(_Test(7), NULL)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
+	EidosAssertScriptSuccess("c(NULL, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("c(NULL, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("c(NULL, 3.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
+	EidosAssertScriptSuccess("c(NULL, 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("c(NULL, _Test(7))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
 	EidosAssertScriptRaise("c(T, _Test(7));", 0, "cannot be mixed");
 	EidosAssertScriptRaise("c(3, _Test(7));", 0, "cannot be mixed");
 	EidosAssertScriptRaise("c(3.1, _Test(7));", 0, "cannot be mixed");

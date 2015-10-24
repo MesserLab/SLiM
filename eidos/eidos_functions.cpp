@@ -291,7 +291,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			
 			has_object_type = true;
 		}
-		else
+		else if (arg_type != EidosValueType::kValueNULL)
 			has_nonobject_type = true;
 	}
 	
