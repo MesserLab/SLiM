@@ -86,6 +86,8 @@ enum class EidosFunctionIdentifier {
 	repFunction,
 	repEachFunction,
 	rexpFunction,
+	rgammaFunction,
+	rlnormFunction,
 	rnormFunction,
 	rpoisFunction,
 	runifFunction,

@@ -117,6 +117,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				EidosFunctionIdentifier::repFunction,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			EidosFunctionIdentifier::repEachFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("shape")->AddNumeric_O("scale"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			EidosFunctionIdentifier::rlnormFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("meanlog")->AddNumeric_O("sdlog"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
@@ -2104,7 +2106,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			
 			//	(float)rexp(integer$ n, [numeric rate])
-			#pragma mark rexp
+#pragma mark rexp
 			
 		case EidosFunctionIdentifier::rexpFunction:
 		{
@@ -2154,6 +2156,130 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
+			//	(float)rgamma(integer$ n, numeric shape, [numeric scale])
+#pragma mark rgamma
+			
+		case EidosFunctionIdentifier::rgammaFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
+			EidosValue *arg_shape = p_arguments[1].get();
+			EidosValue *arg_scale = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+			int arg_shape_count = arg_shape->Count();
+			int arg_scale_count = (arg_scale ? arg_scale->Count() : 1);
+			bool shape_singleton = (arg_shape_count == 1);
+			bool scale_singleton = (arg_scale_count == 1);
+			
+			if (num_draws < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+			if (!shape_singleton && (arg_shape_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape to be of length 1 or n." << eidos_terminate(nullptr);
+			if (!scale_singleton && (arg_scale_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale to be of length 1 or n." << eidos_terminate(nullptr);
+			
+			double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
+			double scale0 = ((arg_scale && arg_scale_count) ? arg_scale->FloatAtIndex(0, nullptr) : 1.0);
+			
+			if (shape_singleton && scale_singleton)
+			{
+				if (shape0 < 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape >= 0.0 (" << shape0 << " supplied)." << eidos_terminate(nullptr);
+				if (scale0 <= 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale > 0.0 (" << scale0 << " supplied)." << eidos_terminate(nullptr);
+				
+				if (num_draws == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma(gEidos_rng, shape0, scale0)));
+				}
+				else
+				{
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape0, scale0));
+				}
+			}
+			else
+			{
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+				result_SP = EidosValue_SP(float_result);
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(draw_index, nullptr));
+					double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex(draw_index, nullptr));
+					
+					if (shape < 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape >= 0.0 (" << shape << " supplied)." << eidos_terminate(nullptr);
+					if (scale <= 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale > 0.0 (" << scale << " supplied)." << eidos_terminate(nullptr);
+					
+					float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape, scale));
+				}
+			}
+			
+			break;
+		}
+			
+			
+			//	(float)rlnorm(integer$ n, [numeric meanlog], [numeric sdlog])
+#pragma mark rlnorm
+			
+		case EidosFunctionIdentifier::rlnormFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
+			EidosValue *arg_meanlog = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+			EidosValue *arg_sdlog = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+			int arg_meanlog_count = (arg_meanlog ? arg_meanlog->Count() : 1);
+			int arg_sdlog_count = (arg_sdlog ? arg_sdlog->Count() : 1);
+			bool meanlog_singleton = (arg_meanlog_count == 1);
+			bool sdlog_singleton = (arg_sdlog_count == 1);
+			
+			if (num_draws < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rlnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+			if (!meanlog_singleton && (arg_meanlog_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rlnorm() requires meanlog to be of length 1 or n." << eidos_terminate(nullptr);
+			if (!sdlog_singleton && (arg_sdlog_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rlnorm() requires sdlog to be of length 1 or n." << eidos_terminate(nullptr);
+			
+			double meanlog0 = ((arg_meanlog && arg_meanlog_count) ? arg_meanlog->FloatAtIndex(0, nullptr) : 0.0);
+			double sdlog0 = ((arg_sdlog && arg_sdlog_count) ? arg_sdlog->FloatAtIndex(0, nullptr) : 1.0);
+			
+			if (meanlog_singleton && sdlog_singleton)
+			{
+				if (num_draws == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_lognormal(gEidos_rng, meanlog0, sdlog0)));
+				}
+				else
+				{
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_ran_lognormal(gEidos_rng, meanlog0, sdlog0));
+				}
+			}
+			else
+			{
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+				result_SP = EidosValue_SP(float_result);
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double meanlog = (meanlog_singleton ? meanlog0 : arg_meanlog->FloatAtIndex(draw_index, nullptr));
+					double sdlog = (sdlog_singleton ? sdlog0 : arg_sdlog->FloatAtIndex(draw_index, nullptr));
+					
+					float_result->PushFloat(gsl_ran_lognormal(gEidos_rng, meanlog, sdlog));
+				}
+			}
+			
+			break;
+		}
+			
+			
 			//	(float)rnorm(integer$ n, [numeric mean], [numeric sd])
 			#pragma mark rnorm
 			
@@ -2175,8 +2301,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (!sigma_singleton && (arg_sigma_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rnorm() requires sd to be of length 1 or n." << eidos_terminate(nullptr);
 			
-			double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
-			double sigma0 = (arg_sigma ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+			double mu0 = ((arg_mu && arg_mu_count) ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
+			double sigma0 = ((arg_sigma && arg_sigma_count) ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
 			
 			if (mu_singleton && sigma_singleton)
 			{
@@ -2320,8 +2446,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (!max_singleton && (arg_max_count != num_draws))
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function runif() requires max to be of length 1 or n." << eidos_terminate(nullptr);
 				
-				double min_value0 = (arg_min ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
-				double max_value0 = (arg_max ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
+				double min_value0 = ((arg_min && arg_min_count) ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
+				double max_value0 = ((arg_max && arg_max_count) ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
 				double range0 = max_value0 - min_value0;
 				
 				if (min_singleton && max_singleton)

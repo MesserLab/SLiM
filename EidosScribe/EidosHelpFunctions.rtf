@@ -901,6 +901,65 @@
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
 
+\f1\fs18 \cf0 (float)rgamma(integer$
+\f2 \'a0
+\f1 n, numeric\'a0shape, [numeric\'a0scale])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a gamma distribution
+\b0  with shape parameter 
+\f1\fs18 shape
+\f0\fs20  and scale parameter 
+\f1\fs18 scale
+\f2\fs20 .
+\f0   The 
+\f1\fs18 shape
+\f0\fs20  and 
+\f1\fs18 scale
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.  By default, 
+\f1\fs18 scale
+\f0\fs20  is 
+\f1\fs18 1.0
+\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
+\f1\fs18 \cf0 (float)rlnorm(integer$
+\f2 \'a0
+\f1 n, [numeric\'a0meanlog], [numeric\'a0sdlog])\
+\pard\pardeftab720\li547\ri720\sb60\sa60
+
+\f0\fs20 \cf0 Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a lognormal distribution
+\b0  with mean 
+\f1\fs18 meanlog
+\f0\fs20  and standard deviation 
+\f1\fs18 sdlog
+\f0\fs20 , specified on the log scale.  The 
+\f1\fs18 meanlog
+\f0\fs20  and 
+\f1\fs18 sdlog
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.  By default, 
+\f1\fs18 meanlog
+\f0\fs20  is 
+\f1\fs18 0.0
+\f0\fs20  and 
+\f1\fs18 sdlog
+\f0\fs20  is 
+\f1\fs18 1.0
+\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60
+
 \f1\fs18 \cf0 (float)rnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mean], [numeric\'a0sd])\
