@@ -410,22 +410,20 @@
 	[path stroke];
 }
 
-- (void)drawInvalidMessageInRect:(NSRect)rect
+- (void)drawMessage:(NSString *)messageString inRect:(NSRect)rect
 {
-	static NSAttributedString *invalidMessage = nil;
+	static NSDictionary *attrs = nil;
 	
-	if (!invalidMessage)
-	{
-		NSDictionary *attrs = @{NSFontAttributeName : [NSFont fontWithName:[[self class] labelFontName] size:16], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]};
+	if (!attrs)
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[[self class] labelFontName] size:16], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]} retain];
 		
-		invalidMessage = [[NSAttributedString alloc] initWithString:@"   invalid\nsimulation" attributes:attrs];
-	}
-	
+	NSAttributedString *attrMessage = [[NSAttributedString alloc] initWithString:messageString attributes:attrs];
 	NSPoint centerPoint = NSMakePoint(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2);
-	NSSize messageSize = [invalidMessage size];
+	NSSize messageSize = [attrMessage size];
 	NSPoint drawPoint = NSMakePoint(SLIM_SCREEN_ROUND(centerPoint.x - messageSize.width / 2.0), SLIM_SCREEN_ROUND(centerPoint.y - messageSize.height / 2.0));
 	
-	[invalidMessage drawAtPoint:drawPoint];
+	[attrMessage drawAtPoint:drawPoint];
+	[attrMessage release];
 }
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
@@ -524,7 +522,7 @@
 	// Get our controller and test for validity, so subclasses don't have to worry about this
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation])
+	if (![controller invalidSimulation] && (controller->sim->generation_ > 0))
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
 		
@@ -573,7 +571,7 @@
 	else
 	{
 		// The controller is invalid, so just draw a generic message
-		[self drawInvalidMessageInRect:bounds];
+		[self drawMessage:@"   invalid\nsimulation" inRect:bounds];
 	}
 }
 
@@ -943,6 +941,42 @@
 
 
 @implementation GraphView (PrefabAdditions)
+
+- (void)setXAxisRangeFromGeneration
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	SLiMSim *sim = controller->sim;
+	slim_generation_t lastGen = sim->EstimatedLastGeneration();
+	
+	// The last generation could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= last_gen, (2) have the axis
+	// max be == last_gen if last_gen is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
+	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
+	// the majors.  Labels that are single-digit multiples of powers of 10 are to be strongly preferred.
+	double lower10power = pow(10.0, floor(log10(lastGen)));		// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
+	double lower5mult = lower10power / 2.0;						// 8000 gives 500, 1000 gives 500, 10000 gives 5000
+	double axisMax = ceil(lastGen / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
+	double contained5mults = axisMax / lower5mult;				// 8000 gives 16, 7500 gives 15, 1100 gives 3, 1000 gives 2
+	
+	if (contained5mults <= 3)
+	{
+		// We have a max like 1500 that divides into 5mults well, so do that
+		[self setXAxisMax:axisMax];
+		[self setXAxisMajorTickInterval:lower5mult];
+		[self setXAxisMinorTickInterval:lower5mult / 5];
+		[self setXAxisMajorTickModulus:5];
+		[self setXAxisTickValuePrecision:0];
+	}
+	else
+	{
+		// We have a max like 7000 that does not divide into 5mults well; for simplicity, we just always divide these in two
+		[self setXAxisMax:axisMax];
+		[self setXAxisMajorTickInterval:axisMax / 2];
+		[self setXAxisMinorTickInterval:axisMax / 4];
+		[self setXAxisMajorTickModulus:2];
+		[self setXAxisTickValuePrecision:0];
+	}
+}
 
 - (NSArray *)mutationTypeLegendKey
 {

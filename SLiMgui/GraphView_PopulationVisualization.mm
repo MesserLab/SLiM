@@ -530,6 +530,12 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	Population &pop = sim->population_;
 	int subpopCount = (int)pop.size();
 	
+	if (subpopCount == 0)
+	{
+		[self drawMessage:@"no subpopulations" inRect:interiorRect];
+		return;
+	}
+	
 	// First, we transform our coordinate system so that a square of size (1,1) fits maximally and centered
 	[NSGraphicsContext saveGraphicsState];
 	

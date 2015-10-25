@@ -27,13 +27,7 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		SLiMSim *sim = [self slimWindowController]->sim;
-		
-		[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
-		[self setXAxisMajorTickInterval:10000];
-		[self setXAxisMinorTickInterval:1000];
-		[self setXAxisMajorTickModulus:10];
-		[self setXAxisTickValuePrecision:0];
+		[self setXAxisRangeFromGeneration];
 		
 		[self setXAxisLabelString:@"Generation"];
 		[self setYAxisLabelString:@"Frequency"];
@@ -106,7 +100,7 @@
 	[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mutationTypeButton]-6-|" options:0 metrics:nil views:viewsDictionary]];
 }
 
-- (void)addSubpopulationsToMenu
+- (BOOL)addSubpopulationsToMenu
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	NSMenuItem *lastItem;
@@ -138,21 +132,28 @@
 	[subpopulationButton slimSortMenuItemsByTag];
 	
 	// If it is empty, disable it
-	[subpopulationButton setEnabled:([subpopulationButton numberOfItems] >= 1)];
+	BOOL hasItems = ([subpopulationButton numberOfItems] >= 1);
+	
+	[subpopulationButton setEnabled:hasItems];
 	
 	// Fix the selection and then select the chosen subpopulation
-	NSInteger indexOfTag = [subpopulationButton indexOfItemWithTag:[self selectedSubpopulationID]];
+	if (hasItems)
+	{
+		NSInteger indexOfTag = [subpopulationButton indexOfItemWithTag:[self selectedSubpopulationID]];
+		
+		if (indexOfTag == -1)
+			[self setSelectedSubpopulationID:-1];
+		if ([self selectedSubpopulationID] == -1)
+			[self setSelectedSubpopulationID:firstTag];
+		
+		[subpopulationButton selectItemWithTag:[self selectedSubpopulationID]];
+		[subpopulationButton synchronizeTitleAndSelectedItem];
+	}
 	
-	if (indexOfTag == -1)
-		[self setSelectedSubpopulationID:-1];
-	if ([self selectedSubpopulationID] == -1)
-		[self setSelectedSubpopulationID:firstTag];
-	
-	[subpopulationButton selectItemWithTag:[self selectedSubpopulationID]];
-	[subpopulationButton synchronizeTitleAndSelectedItem];
+	return hasItems;	// YES if we found at least one subpop to add to the menu, NO otherwise
 }
 
-- (void)addMutationTypesToMenu
+- (BOOL)addMutationTypesToMenu
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	NSMenuItem *lastItem;
@@ -185,18 +186,25 @@
 	[mutationTypeButton slimSortMenuItemsByTag];
 	
 	// If it is empty, disable it
-	[mutationTypeButton setEnabled:([mutationTypeButton numberOfItems] >= 1)];
+	BOOL hasItems = ([mutationTypeButton numberOfItems] >= 1);
+	
+	[mutationTypeButton setEnabled:hasItems];
 	
 	// Fix the selection and then select the chosen mutation type
-	NSInteger indexOfTag = [mutationTypeButton indexOfItemWithTag:[self selectedMutationTypeIndex]];
+	if (hasItems)
+	{
+		NSInteger indexOfTag = [mutationTypeButton indexOfItemWithTag:[self selectedMutationTypeIndex]];
+		
+		if (indexOfTag == -1)
+			[self setSelectedMutationTypeIndex:-1];
+		if ([self selectedMutationTypeIndex] == -1)
+			[self setSelectedMutationTypeIndex:firstTag];
+		
+		[mutationTypeButton selectItemWithTag:[self selectedMutationTypeIndex]];
+		[mutationTypeButton synchronizeTitleAndSelectedItem];
+	}
 	
-	if (indexOfTag == -1)
-		[self setSelectedMutationTypeIndex:-1];
-	if ([self selectedMutationTypeIndex] == -1)
-		[self setSelectedMutationTypeIndex:firstTag];
-	
-	[mutationTypeButton selectItemWithTag:[self selectedMutationTypeIndex]];
-	[mutationTypeButton synchronizeTitleAndSelectedItem];
+	return hasItems;	// YES if we found at least one muttype to add to the menu, NO otherwise
 }
 
 - (void)invalidateCachedData
@@ -242,19 +250,36 @@
 	
 	// Check that the subpop we're supposed to be surveying exists; if not, bail.
 	BOOL foundSelectedSubpop = NO;
+	BOOL foundSelectedMutType = NO;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
 		if (subpop_pair.first == _selectedSubpopulationID)	// find our chosen subpop
 			foundSelectedSubpop = YES;
+	
+	for (const std::pair<const slim_objectid_t,MutationType*> &subpop_pair : sim->mutation_types_)
+		if (subpop_pair.second->mutation_type_index_ == _selectedMutationTypeIndex)	// find our chosen muttype
+			foundSelectedMutType = YES;
 	
 	// Make sure we have a selected subpop if possible.  Our menu might not have been loaded, or our chosen subpop might have vanished.
 	if ((_selectedSubpopulationID == -1) || !foundSelectedSubpop)
 	{
 		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop.  This will call us, so we use a static flag to prevent re-entrancy.
 		alreadyHere = YES;
-		[self addSubpopulationsToMenu];
+		foundSelectedSubpop = [self addSubpopulationsToMenu];
 		alreadyHere = NO;
 	}
+	
+	// Make sure we have a selected muttype if possible.  Our menu might not have been loaded, or our chosen muttype might have vanished.
+	if ((_selectedMutationTypeIndex == -1) || !foundSelectedMutType)
+	{
+		// Call -addMutationTypesToMenu to reload our muttype menu and choose a muttype.  This will call us, so we use a static flag to prevent re-entrancy.
+		alreadyHere = YES;
+		foundSelectedMutType = [self addMutationTypesToMenu];
+		alreadyHere = NO;
+	}
+	
+	if (!foundSelectedSubpop || !foundSelectedMutType)
+		return;
 	
 	if (!frequencyHistoryDict)
 		frequencyHistoryDict = [[NSMutableDictionary alloc] init];
@@ -470,12 +495,13 @@
 		SLiMSim *sim = controller->sim;
 		
 		if (![self xAxisIsUserRescaled])
-			[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
+			[self setXAxisRangeFromGeneration];
 		
 		[self setNeedsDisplay:YES];
 	}
 	
 	// Remake our popups, whether or not the controller is valid
+	[self invalidateCachedData];
 	[self addSubpopulationsToMenu];
 	[self addMutationTypesToMenu];
 	
@@ -492,9 +518,10 @@
 
 - (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
 {
-	// Rebuild the subpop menu; this has the side effect of checking and fixing our subpop selection, and that,
+	// Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
 	[self addSubpopulationsToMenu];
+	[self addMutationTypesToMenu];
 }
 
 - (void)drawHistory:(MutationFrequencyHistory *)history inInteriorRect:(NSRect)interiorRect

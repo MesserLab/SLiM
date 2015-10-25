@@ -52,8 +52,8 @@
 @property (nonatomic) BOOL useColorsForPlotting;
 
 - (NSPopUpButton *)addPopUpWithAction:(SEL)action;
-- (void)addSubpopulationsToMenu;
-- (void)addMutationTypesToMenu;
+- (BOOL)addSubpopulationsToMenu;
+- (BOOL)addMutationTypesToMenu;
 - (void)setConstraintsForPopups;
 
 - (IBAction)subpopulationPopupChanged:(id)sender;

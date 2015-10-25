@@ -44,14 +44,7 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		SLiMSim *sim = [self slimWindowController]->sim;
-		
-		[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
-		[self setXAxisMajorTickInterval:10000];
-		[self setXAxisMinorTickInterval:1000];
-		[self setXAxisMajorTickModulus:10];
-		[self setXAxisTickValuePrecision:0];
-		
+		[self setXAxisRangeFromGeneration];
 		[self setDefaultYAxisRange];
 		
 		[self setXAxisLabelString:@"Generation"];
@@ -78,7 +71,7 @@
 		if (![self yAxisIsUserRescaled])
 			[self setDefaultYAxisRange];
 		if (![self xAxisIsUserRescaled])
-			[self setXAxisMax:sim->EstimatedLastGeneration() - sim->time_start_ + 1];	// duration
+			[self setXAxisRangeFromGeneration];
 		
 		[self setNeedsDisplay:YES];
 	}
@@ -165,7 +158,7 @@
 		NSBitmapImageRep *bitmap = [self bitmapImageRepForCachingDisplayInRect:interiorRect];
 		
 		cachingNow = YES;
-		//NSLog(@"recaching!");
+		NSLog(@"recaching!  completedGenerations == %d", completedGenerations);
 		[bitmap setSize:interiorRect.size];
 		[self cacheDisplayInRect:interiorRect toBitmapImageRep:bitmap];
 		drawingCache = [[NSImage alloc] initWithSize:interiorRect.size];

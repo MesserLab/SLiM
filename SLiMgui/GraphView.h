@@ -105,7 +105,7 @@
 - (void)drawVerticalGridLinesWithInteriorRect:(NSRect)interiorRect;
 - (void)drawHorizontalGridLinesWithInteriorRect:(NSRect)interiorRect;
 
-- (void)drawInvalidMessageInRect:(NSRect)rect;
+- (void)drawMessage:(NSString *)messageString inRect:(NSRect)rect;
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller;
 
@@ -137,6 +137,9 @@
 @end
 
 @interface GraphView (PrefabAdditions)
+
+// A prefab method to set up a good x axis to span the generation range, whatever it might be
+- (void)setXAxisRangeFromGeneration;
 
 // a prefab legend that shows all of the mutation types, with color swatches and labels
 - (NSArray *)mutationTypeLegendKey;
