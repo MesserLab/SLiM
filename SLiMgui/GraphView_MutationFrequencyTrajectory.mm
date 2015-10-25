@@ -492,8 +492,6 @@
 	
 	if (![controller invalidSimulation])
 	{
-		SLiMSim *sim = controller->sim;
-		
 		if (![self xAxisIsUserRescaled])
 			[self setXAxisRangeFromGeneration];
 		

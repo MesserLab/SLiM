@@ -66,8 +66,6 @@
 	
 	if (![controller invalidSimulation])
 	{
-		SLiMSim *sim = controller->sim;
-		
 		if (![self yAxisIsUserRescaled])
 			[self setDefaultYAxisRange];
 		if (![self xAxisIsUserRescaled])
