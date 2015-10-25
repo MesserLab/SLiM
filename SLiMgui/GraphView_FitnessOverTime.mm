@@ -158,7 +158,7 @@
 		NSBitmapImageRep *bitmap = [self bitmapImageRepForCachingDisplayInRect:interiorRect];
 		
 		cachingNow = YES;
-		NSLog(@"recaching!  completedGenerations == %d", completedGenerations);
+		//NSLog(@"recaching!  completedGenerations == %d", completedGenerations);
 		[bitmap setSize:interiorRect.size];
 		[self cacheDisplayInRect:interiorRect toBitmapImageRep:bitmap];
 		drawingCache = [[NSImage alloc] initWithSize:interiorRect.size];
