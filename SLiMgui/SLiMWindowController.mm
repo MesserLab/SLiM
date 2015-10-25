@@ -1269,6 +1269,12 @@
 	[_consoleController validateSymbolTable];
 	[self updateAfterTick];
 	
+	// Update the status field so that if the selection is in an initialize...() function the right signature is shown.  This call would
+	// be more technically correct in -updateAfterTick, but I don't want the tokenization overhead there, it's too heavyweight.  The
+	// only negative consequence of not having it there is that when the user steps out of initialization time into generation 1, an
+	// initialize...() function signature may persist in the status bar that should have been changed to "unrecognized call" - no biggie.
+	[self updateStatusFieldFromSelection];
+
 	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
 }
 
@@ -1957,57 +1963,62 @@
 		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument
 }
 
+- (void)updateStatusFieldFromSelection
+{
+	NSAttributedString *attributedSignature = [scriptTextView attributedSignatureForScriptString:[scriptTextView string] selection:[scriptTextView selectedRange]];
+	NSString *signatureString = [attributedSignature string];
+	
+	// Here we do a little quick-and-dirty patching in order to show signatures when inside callback definitions
+	if ([signatureString hasSuffix:@"unrecognized call"])
+	{
+		if ([signatureString hasPrefix:@"initialize()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"fitness()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("fitness", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"mateChoice()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("mateChoice", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"modifyChild()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("modifyChild", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+	}
+	
+	[scriptStatusTextField setAttributedStringValue:attributedSignature];
+}
+
 - (void)textViewDidChangeSelection:(NSNotification *)notification
 {
 	NSTextView *textView = (NSTextView *)[notification object];
 	
 	if (textView == scriptTextView)
 	{
-		NSAttributedString *attributedSignature = [scriptTextView attributedSignatureForScriptString:[scriptTextView string] selection:[scriptTextView selectedRange]];
-		NSString *signatureString = [attributedSignature string];
-		
-		// Here we do a little quick-and-dirty patching in order to show signatures when inside callback definitions
-		if ([signatureString hasSuffix:@"unrecognized call"])
-		{
-			if ([signatureString hasPrefix:@"initialize()"])
-			{
-				static EidosCallSignature *callbackSig = nullptr;
-				
-				if (!callbackSig)
-					callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
-				
-				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
-			}
-			else if ([signatureString hasPrefix:@"fitness()"])
-			{
-				static EidosCallSignature *callbackSig = nullptr;
-				
-				if (!callbackSig)
-					callbackSig = (new EidosFunctionSignature("fitness", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
-				
-				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
-			}
-			else if ([signatureString hasPrefix:@"mateChoice()"])
-			{
-				static EidosCallSignature *callbackSig = nullptr;
-				
-				if (!callbackSig)
-					callbackSig = (new EidosFunctionSignature("mateChoice", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
-				
-				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
-			}
-			else if ([signatureString hasPrefix:@"modifyChild()"])
-			{
-				static EidosCallSignature *callbackSig = nullptr;
-				
-				if (!callbackSig)
-					callbackSig = (new EidosFunctionSignature("modifyChild", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class);
-				
-				attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
-			}
-		}
-		
-		[scriptStatusTextField setAttributedStringValue:attributedSignature];
+		[self updateStatusFieldFromSelection];
 	}
 }
 
