@@ -43,10 +43,7 @@ using std::vector;
 SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
-	unsigned long int rng_seed;
-	
-	if (p_override_seed_ptr)
-		rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
 	
 	EidosInitializeRNGFromSeed(rng_seed);
 	
@@ -65,10 +62,7 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
 	// track the random number seed given, if there is one
-	unsigned long int rng_seed;
-	
-	if (p_override_seed_ptr)
-		rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
 	
 	EidosInitializeRNGFromSeed(rng_seed);
 	
