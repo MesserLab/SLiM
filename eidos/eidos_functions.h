@@ -76,21 +76,24 @@ enum class EidosFunctionIdentifier {
 	rangeFunction,
 	sdFunction,
 	
-	// vector construction functions
-	cFunction,
-	floatFunction,
-	integerFunction,
-	logicalFunction,
-	objectFunction,
+	// distribution drawing and density functions
+	dnormFunction,
 	rbinomFunction,
-	repFunction,
-	repEachFunction,
 	rexpFunction,
 	rgammaFunction,
 	rlnormFunction,
 	rnormFunction,
 	rpoisFunction,
 	runifFunction,
+	
+	// vector construction functions
+	cFunction,
+	floatFunction,
+	integerFunction,
+	logicalFunction,
+	objectFunction,
+	repFunction,
+	repEachFunction,
 	sampleFunction,
 	seqFunction,
 	seqAlongFunction,

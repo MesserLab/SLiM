@@ -105,6 +105,21 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
+		//	distribution draw / density functions
+		//
+		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",			EidosFunctionIdentifier::dnormFunction,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean")->AddNumeric_O("sd"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kEidosValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("shape")->AddNumeric_O("scale"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			EidosFunctionIdentifier::rlnormFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("meanlog")->AddNumeric_O("sdlog"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
+		
+		
+		// ************************************************************************************
+		//
 		//	vector construction functions
 		//
 		
@@ -113,15 +128,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	EidosFunctionIdentifier::integerFunction,		kEidosValueMaskInt))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	EidosFunctionIdentifier::logicalFunction,		kEidosValueMaskLogical))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	EidosFunctionIdentifier::objectFunction,		kEidosValueMaskObject, gEidos_UndefinedClassObject)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kEidosValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				EidosFunctionIdentifier::repFunction,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			EidosFunctionIdentifier::repEachFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt("count"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("shape")->AddNumeric_O("scale"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			EidosFunctionIdentifier::rlnormFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("meanlog")->AddNumeric_O("sdlog"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			EidosFunctionIdentifier::sampleFunction,		kEidosValueMaskAny))->AddAny("x")->AddInt_S("size")->AddLogical_OS("replace")->AddNumeric_O("weights"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				EidosFunctionIdentifier::seqFunction,			kEidosValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OS("by"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			EidosFunctionIdentifier::seqAlongFunction,		kEidosValueMaskInt))->AddAny("x"));
@@ -1875,92 +1883,75 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			break;
 		}
 			
+			
 		// ************************************************************************************
 		//
-		//	vector construction functions
+		//	distribution draw / density functions
 		//
 #pragma mark -
-#pragma mark Vector conversion functions
+#pragma mark Distribution draw/density functions
 #pragma mark -
 			
 			
-			//	(*)c(...)
-			#pragma mark c
+			//	(float)dnorm(float x, [numeric mean], [numeric sd])
+			#pragma mark dnorm
 			
-		case EidosFunctionIdentifier::cFunction:
+		case EidosFunctionIdentifier::dnormFunction:
 		{
-			result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true);
-			break;
-		}
+			EidosValue *arg_quantile = p_arguments[0].get();
+			int64_t num_quantiles = arg_quantile->Count();
+			EidosValue *arg_mu = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+			EidosValue *arg_sigma = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
+			int arg_sigma_count = (arg_sigma ? arg_sigma->Count() : 1);
+			bool mu_singleton = (arg_mu_count == 1);
+			bool sigma_singleton = (arg_sigma_count == 1);
 			
+			if (!mu_singleton && (arg_mu_count != num_quantiles))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function dnorm() requires mean to be of length 1 or equal in length to x." << eidos_terminate(nullptr);
+			if (!sigma_singleton && (arg_sigma_count != num_quantiles))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function dnorm() requires sd to be of length 1 or equal in length to x." << eidos_terminate(nullptr);
 			
-			//	(float)float(integer$ length)
-			#pragma mark float
+			double mu0 = ((arg_mu && arg_mu_count) ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
+			double sigma0 = ((arg_sigma && arg_sigma_count) ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
 			
-		case EidosFunctionIdentifier::floatFunction:
-		{
-			EidosValue *arg0_value = p_arguments[0].get();
-			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			if (mu_singleton && sigma_singleton)
+			{
+				if (sigma0 <= 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function dnorm() requires sd > 0.0 (" << sigma0 << " supplied)." << eidos_terminate(nullptr);
+				
+				if (num_quantiles == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gaussian_pdf(arg_quantile->FloatAtIndex(0, nullptr) - mu0, sigma0)));
+				}
+				else
+				{
+					const std::vector<double> &float_vec = *arg_quantile->FloatVector();
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_quantiles);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int value_index = 0; value_index < num_quantiles; ++value_index)
+						float_result->PushFloat(gsl_ran_gaussian_pdf(float_vec[value_index] - mu0, sigma0));
+				}
+			}
+			else
+			{
+				const std::vector<double> &float_vec = *arg_quantile->FloatVector();
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_quantiles);
+				result_SP = EidosValue_SP(float_result);
+				
+				for (int value_index = 0; value_index < num_quantiles; ++value_index)
+				{
+					double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
+					double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+					
+					if (sigma <= 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function dnorm() requires sd > 0.0 (" << sigma << " supplied)." << eidos_terminate(nullptr);
+					
+					float_result->PushFloat(gsl_ran_gaussian_pdf(float_vec[value_index] - mu, sigma));
+				}
+			}
 			
-			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
-			
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)element_count);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int64_t value_index = element_count; value_index > 0; --value_index)
-				float_result->PushFloat(0.0);
-			break;
-		}
-			
-			
-			//	(integer)integer(integer$ length)
-			#pragma mark integer
-			
-		case EidosFunctionIdentifier::integerFunction:
-		{
-			EidosValue *arg0_value = p_arguments[0].get();
-			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
-			
-			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
-			
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)element_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int64_t value_index = element_count; value_index > 0; --value_index)
-				int_result->PushInt(0);
-			break;
-		}
-			
-			
-			//	(logical)logical(integer$ length)
-			#pragma mark logical
-			
-		case EidosFunctionIdentifier::logicalFunction:
-		{
-			EidosValue *arg0_value = p_arguments[0].get();
-			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
-			
-			if (element_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
-			
-			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)element_count);
-			std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
-			result_SP = EidosValue_SP(logical_result);
-			
-			for (int64_t value_index = element_count; value_index > 0; --value_index)
-				logical_result_vec.emplace_back(false);
-			break;
-		}
-			
-			
-			//	(object<undefined>)object(void)
-			#pragma mark object
-			
-		case EidosFunctionIdentifier::objectFunction:
-		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
 			break;
 		}
 			
@@ -2032,81 +2023,8 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
-			//	(*)rep(* x, integer$ count)
-			#pragma mark rep
-			
-		case EidosFunctionIdentifier::repFunction:
-		{
-			EidosValue *arg0_value = p_arguments[0].get();
-			int arg0_count = arg0_value->Count();
-			EidosValue *arg1_value = p_arguments[1].get();
-			
-			int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
-			
-			if (rep_count < 0)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
-			
-			// the return type depends on the type of the first argument, which will get replicated
-			result_SP = arg0_value->NewMatchingType();
-			EidosValue *result = result_SP.get();
-			
-			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-					result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
-			
-			break;
-		}
-			
-			
-			//	(*)repEach(* x, integer count)
-			#pragma mark repEach
-			
-		case EidosFunctionIdentifier::repEachFunction:
-		{
-			EidosValue *arg0_value = p_arguments[0].get();
-			int arg0_count = arg0_value->Count();
-			EidosValue *arg1_value = p_arguments[1].get();
-			int arg1_count = arg1_value->Count();
-			
-			// the return type depends on the type of the first argument, which will get replicated
-			result_SP = arg0_value->NewMatchingType();
-			EidosValue *result = result_SP.get();
-			
-			if (arg1_count == 1)
-			{
-				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
-				
-				if (rep_count < 0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
-				
-				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
-			}
-			else if (arg1_count == arg0_count)
-			{
-				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
-				{
-					int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
-					
-					if (rep_count < 0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
-					
-					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
-						result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
-				}
-			}
-			else
-			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that parameter count's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
-			}
-			
-			break;
-		}
-			
-			
 			//	(float)rexp(integer$ n, [numeric rate])
-#pragma mark rexp
+			#pragma mark rexp
 			
 		case EidosFunctionIdentifier::rexpFunction:
 		{
@@ -2157,7 +2075,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			
 			//	(float)rgamma(integer$ n, numeric shape, [numeric scale])
-#pragma mark rgamma
+			#pragma mark rgamma
 			
 		case EidosFunctionIdentifier::rgammaFunction:
 		{
@@ -2224,7 +2142,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			
 			//	(float)rlnorm(integer$ n, [numeric meanlog], [numeric sdlog])
-#pragma mark rlnorm
+			#pragma mark rlnorm
 			
 		case EidosFunctionIdentifier::rlnormFunction:
 		{
@@ -2485,6 +2403,169 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						float_result->PushFloat(gsl_rng_uniform(gEidos_rng) * range + min_value);
 					}
 				}
+			}
+			
+			break;
+		}
+			
+			
+		// ************************************************************************************
+		//
+		//	vector construction functions
+		//
+#pragma mark -
+#pragma mark Vector conversion functions
+#pragma mark -
+			
+			
+			//	(*)c(...)
+			#pragma mark c
+			
+		case EidosFunctionIdentifier::cFunction:
+		{
+			result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true);
+			break;
+		}
+			
+			
+			//	(float)float(integer$ length)
+			#pragma mark float
+			
+		case EidosFunctionIdentifier::floatFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+			
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)element_count);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
+				float_result->PushFloat(0.0);
+			break;
+		}
+			
+			
+			//	(integer)integer(integer$ length)
+			#pragma mark integer
+			
+		case EidosFunctionIdentifier::integerFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+			
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)element_count);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
+				int_result->PushInt(0);
+			break;
+		}
+			
+			
+			//	(logical)logical(integer$ length)
+			#pragma mark logical
+			
+		case EidosFunctionIdentifier::logicalFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+			
+			if (element_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+			
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)element_count);
+			std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+			result_SP = EidosValue_SP(logical_result);
+			
+			for (int64_t value_index = element_count; value_index > 0; --value_index)
+				logical_result_vec.emplace_back(false);
+			break;
+		}
+			
+			
+			//	(object<undefined>)object(void)
+			#pragma mark object
+			
+		case EidosFunctionIdentifier::objectFunction:
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+			break;
+		}
+			
+			
+			//	(*)rep(* x, integer$ count)
+			#pragma mark rep
+			
+		case EidosFunctionIdentifier::repFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1].get();
+			
+			int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (rep_count < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+			
+			// the return type depends on the type of the first argument, which will get replicated
+			result_SP = arg0_value->NewMatchingType();
+			EidosValue *result = result_SP.get();
+			
+			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+					result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
+			
+			break;
+		}
+			
+			
+			//	(*)repEach(* x, integer count)
+			#pragma mark repEach
+			
+		case EidosFunctionIdentifier::repEachFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int arg0_count = arg0_value->Count();
+			EidosValue *arg1_value = p_arguments[1].get();
+			int arg1_count = arg1_value->Count();
+			
+			// the return type depends on the type of the first argument, which will get replicated
+			result_SP = arg0_value->NewMatchingType();
+			EidosValue *result = result_SP.get();
+			
+			if (arg1_count == 1)
+			{
+				int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
+				
+				if (rep_count < 0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+				
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+						result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
+			}
+			else if (arg1_count == arg0_count)
+			{
+				for (int value_idx = 0; value_idx < arg0_count; value_idx++)
+				{
+					int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
+					
+					if (rep_count < 0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+					
+					for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
+						result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
+				}
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function repEach() requires that parameter count's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
 			}
 			
 			break;
