@@ -110,6 +110,7 @@
 	IBOutlet NSTableColumn *subpopSexRatioColumn;
 	
 	IBOutlet PopulationView *populationView;
+	IBOutlet PopulationErrorView *populationErrorView;
 	
 	IBOutlet ChromosomeView *chromosomeOverview;
 	IBOutlet ChromosomeView *chromosomeZoomed;

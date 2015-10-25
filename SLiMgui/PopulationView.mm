@@ -234,6 +234,17 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		// Frame our view
 		[self drawViewFrameInBounds:bounds];
 	}
+	else if (selectedSubpopCount > 10)
+	{
+		// We should be hidden in this case, but just in case, let's draw...
+		
+		// clear to our "too much information" shade
+		glColor3f(0.9f, 0.9f, 1.0f);
+		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+		
+		// Frame our view
+		[self drawViewFrameInBounds:bounds];
+	}
 	else if (selectedSubpopCount == 1)
 	{
 		Subpopulation *subpop = selectedSubpopulations[0];
@@ -283,7 +294,46 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 @end
 
 
+@implementation PopulationErrorView
 
+- (void)drawMessage:(NSString *)messageString inRect:(NSRect)rect
+{
+	static NSDictionary *attrs = nil;
+	
+	if (!attrs)
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:16], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]} retain];
+	
+	NSAttributedString *attrMessage = [[NSAttributedString alloc] initWithString:messageString attributes:attrs];
+	NSPoint centerPoint = NSMakePoint(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2);
+	NSSize messageSize = [attrMessage size];
+	NSPoint drawPoint = NSMakePoint(centerPoint.x - messageSize.width / 2.0, centerPoint.y - messageSize.height / 2.0);
+	
+	[attrMessage drawAtPoint:drawPoint];
+	[attrMessage release];
+}
+
+- (void)drawRect:(NSRect)rect
+{
+	NSRect bounds = [self bounds];
+	
+	// Erase background
+	[[NSColor colorWithDeviceWhite:0.9 alpha:1.0] set];
+	NSRectFill(bounds);
+	
+	// Frame the view
+	[[NSColor colorWithDeviceWhite:0.77 alpha:1.0] set];
+	NSFrameRect(bounds);
+	
+	// Draw the message
+	[self drawMessage:@"     too many\nsubpopulations\n      selected" inRect:NSInsetRect(bounds, 1, 1)];
+}
+
+- (BOOL)isOpaque
+{
+	return YES;
+}
+
+@end
 
 
 

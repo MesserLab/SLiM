@@ -451,6 +451,30 @@
 		[generationTextField setStringValue:@""];
 }
 
+- (void)updatePopulationViewHiding
+{
+	std::vector<Subpopulation*> selectedSubpopulations = [self selectedSubpopulations];
+	int selectedSubpopCount = (int)(selectedSubpopulations.size());
+	
+	// Swap between populationView and populationErrorView as needed to show text messages in the pop view area
+	if (selectedSubpopCount > 10)
+	{
+		if (![populationView isHidden])
+		{
+			[populationView setHidden:YES];
+			[populationErrorView setHidden:NO];
+		}
+	}
+	else
+	{
+		if ([populationView isHidden])
+		{
+			[populationView setHidden:NO];
+			[populationErrorView setHidden:YES];
+		}
+	}
+}
+
 - (void)updateAfterTick
 {
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
@@ -498,6 +522,7 @@
 	[populationView setNeedsDisplay:YES];
 	[chromosomeZoomed setNeedsDisplay:YES];
 	
+	[self updatePopulationViewHiding];
 	[self updateGenerationCounter];
 	
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
@@ -2061,6 +2086,8 @@
 			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
 			// selection changes should not happen often, so we can just always update, I think.
 			[populationView setNeedsDisplay:YES];
+			[self updatePopulationViewHiding];
+			
 			[chromosomeZoomed setNeedsDisplay:YES];
 		}
 	}
