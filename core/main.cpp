@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
 	SLiM_WarmUp();
 	
 	SLiMSim *sim = new SLiMSim(input_file, override_seed_ptr);
+	sim->InitializeRNGFromSeed(override_seed_ptr);
 	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);

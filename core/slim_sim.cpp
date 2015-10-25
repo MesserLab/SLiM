@@ -40,16 +40,8 @@ using std::ifstream;
 using std::vector;
 
 
-SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
-	// track the random number seed given, if there is one
-	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
-	
-	EidosInitializeRNGFromSeed(rng_seed);
-	
-	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
-	
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
 	
@@ -59,16 +51,8 @@ SLiMSim::SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr)
 	InitializeFromFile(p_infile);
 }
 
-SLiMSim::SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
 {
-	// track the random number seed given, if there is one
-	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
-	
-	EidosInitializeRNGFromSeed(rng_seed);
-	
-	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
-	
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
 	
@@ -107,6 +91,17 @@ SLiMSim::~SLiMSim(void)
 	
 	for (const EidosFunctionSignature *signature : sim_0_signatures_)
 		delete signature;
+}
+
+void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
+{
+	// track the random number seed given, if there is one
+	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	
+	EidosInitializeRNGFromSeed(rng_seed);
+	
+	if (DEBUG_INPUT)
+		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &p_infile)

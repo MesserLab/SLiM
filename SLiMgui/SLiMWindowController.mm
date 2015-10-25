@@ -270,6 +270,7 @@
 	try
 	{
 		sim = new SLiMSim(infile);
+		sim->InitializeRNGFromSeed(nullptr);
 		
 		// We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
 		sim_rng = gEidos_rng;
@@ -1717,6 +1718,7 @@
 		std::istringstream infile([[SLiMWindowController defaultScriptString] UTF8String]);
 		
 		SLiMSim signature_sim(infile);
+		// note no sim->InitializeRNGFromSeed() here; we don't need the RNG and don't want it to log or have side effects
 		
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
 		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];

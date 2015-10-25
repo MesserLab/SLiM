@@ -111,11 +111,13 @@ private:
 	
 public:
 	
-	SLiMSim(const SLiMSim&) = delete;														// no copying
-	SLiMSim& operator=(const SLiMSim&) = delete;											// no copying
-	SLiMSim(std::istream &p_infile, unsigned long int *p_override_seed_ptr = nullptr);		// construct a SLiMSim from an input stream, with an optional RNG seed value
-	SLiMSim(const char *p_input_file, unsigned long int *p_override_seed_ptr = nullptr);	// construct a SLiMSim from an input file, with an optional RNG seed value
-	~SLiMSim(void);																			// destructor
+	SLiMSim(const SLiMSim&) = delete;												// no copying
+	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
+	explicit SLiMSim(std::istream &p_infile);										// construct a SLiMSim from an input stream
+	explicit SLiMSim(const char *p_input_file);										// construct a SLiMSim from an input file
+	~SLiMSim(void);																	// destructor
+	
+	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
 	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_subpopulation_id);

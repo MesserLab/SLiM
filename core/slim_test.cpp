@@ -38,7 +38,8 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	std::istringstream infile(p_script_string);
 	
 	try {
-		sim = new SLiMSim(infile, nullptr);
+		sim = new SLiMSim(infile);
+		sim->InitializeRNGFromSeed(nullptr);
 	}
 	catch (std::runtime_error err)
 	{
@@ -81,7 +82,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 	try {
 		std::istringstream infile(p_script_string);
 		
-		sim = new SLiMSim(infile, nullptr);
+		sim = new SLiMSim(infile);
+		sim->InitializeRNGFromSeed(nullptr);
 		
 		while (sim->_RunOneGeneration());
 		
@@ -167,7 +169,8 @@ void SLiMAssertScriptStop(const string &p_script_string)
 	try {
 		std::istringstream infile(p_script_string);
 		
-		sim = new SLiMSim(infile, nullptr);
+		sim = new SLiMSim(infile);
+		sim->InitializeRNGFromSeed(nullptr);
 		
 		while (sim->_RunOneGeneration());
 		
