@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
-	SLiMSim *sim = new SLiMSim(input_file, override_seed_ptr);
+	SLiMSim *sim = new SLiMSim(input_file);
 	sim->InitializeRNGFromSeed(override_seed_ptr);
 	
 	if (keep_mem_hist)
