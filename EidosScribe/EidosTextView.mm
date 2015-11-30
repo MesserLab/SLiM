@@ -1828,7 +1828,7 @@ using std::string;
 - (void)setAttributes:(NSDictionary *)attrs range:(NSRange)range
 {
 	[contents setAttributes:attrs range:range];
-	[self edited:NSTextStorageEditedCharacters range:range changeInLength:0];
+	[self edited:NSTextStorageEditedAttributes range:range changeInLength:0];
 }
 
 // And now the actual reason for this subclass: to provide code-aware word selection behavior
