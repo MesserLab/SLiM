@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="8191" systemVersion="14F27" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9060" systemVersion="14F1021" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="8191"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9060"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="EidosAppDelegate">
@@ -191,7 +191,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rnZ-Mh-Tla">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rnZ-Mh-Tla">
                                         <rect key="frame" x="77" y="725" width="45" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos:" id="76g-uR-h73">
                                             <font key="font" metaFont="systemBold"/>
@@ -328,7 +328,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cRw-Sd-hbx">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cRw-Sd-hbx">
                                         <rect key="frame" x="31" y="725" width="62" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Console:" id="ktz-TJ-uHg">
                                             <font key="font" metaFont="systemBold"/>
@@ -421,7 +421,7 @@
                             <outlet property="delegate" destination="Oju-rn-RJg" id="Xd8-B9-hAA"/>
                         </connections>
                     </splitView>
-                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kY6-al-Llg">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="150" translatesAutoresizingMaskIntoConstraints="NO" id="kY6-al-Llg">
                         <rect key="frame" x="-1" y="-1" width="1026" height="22"/>
                         <textFieldCell key="cell" lineBreakMode="truncatingTail" refusesFirstResponder="YES" allowsUndo="NO" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" usesSingleLineMode="YES" id="zbW-4w-iUT">
                             <font key="font" size="11" name="Menlo-Regular"/>
