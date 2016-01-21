@@ -1796,7 +1796,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 							
 							// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
 							if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
-								AddMutationToPolymorphismMap(&polymorphisms, *scan_mutation);
+								AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
 						}
 					}
 					
@@ -1804,7 +1804,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 					{ 
 						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-						polymorphism_pair.second.print(output_stream, polymorphism_pair.first, false /* no id */);
+						polymorphism_pair.second.print(output_stream, false /* no id */);
 					}
 				}
 			}

@@ -1633,7 +1633,7 @@ void Population::PrintAll(std::ostream &p_out) const
 			if (!genome.IsNull())
 			{
 				for (int k = 0; k < genome.size(); k++)	// go through all mutations
-					AddMutationToPolymorphismMap(&polymorphisms, *genome[k]);
+					AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
 			}
 		}
 	}
@@ -1692,7 +1692,7 @@ void Population::PrintAll(std::ostream &p_out) const
 			{
 				for (int k = 0; k < genome.size(); k++)								// go through all mutations
 				{
-					int id = FindMutationInPolymorphismMap(polymorphisms, *genome[k]);
+					int id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 					p_out << " " << id; 
 				}
 			}
@@ -1728,7 +1728,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 		sample.emplace_back(j);
 		
 		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, *subpop_genomes[j][k]);
+			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[j][k]);
 	}
 	
 	// print the sample's polymorphisms
@@ -1754,7 +1754,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 		{
 			for (int k = 0; k < genome.size(); k++)	// go through all mutations
 			{
-				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, *genome[k]);
+				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 				
 				SLIM_OUTSTREAM << " " << mutation_id;
 			}
@@ -1790,7 +1790,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 		sample.emplace_back(j);
 		
 		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, *subpop_genomes[j][k]);
+			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[j][k]);
 	}
 	
 	// print header
@@ -1819,7 +1819,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 			
 			for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 			{
-				if (polymorphism_pair.first == mutation->position_ && polymorphism_pair.second.mutation_type_ptr_ == mutation->mutation_type_ptr_ && polymorphism_pair.second.selection_coeff_ == mutation->selection_coeff_)
+				if (polymorphism_pair.second.mutation_ptr_ == mutation)
 				{
 					// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
 					genotype.replace(genotype_string_position, 1, "1");
