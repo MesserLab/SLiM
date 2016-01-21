@@ -623,13 +623,12 @@
 			name = ScriptMod;
 			sourceTree = "<group>";
 		};
-		982556AA1BA8E77C0054CB3F /* eidos tool */ = {
+		982556AA1BA8E77C0054CB3F /* eidostool */ = {
 			isa = PBXGroup;
 			children = (
 				982556AB1BA8E77C0054CB3F /* main.cpp */,
 			);
-			name = "eidos tool";
-			path = eidos;
+			path = eidostool;
 			sourceTree = "<group>";
 		};
 		982663471A3BABD300A0CBBF = {
@@ -644,7 +643,7 @@
 				982663521A3BABD300A0CBBF /* core */,
 				9857249E1AD34B120047C223 /* eidos */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
-				982556AA1BA8E77C0054CB3F /* eidos tool */,
+				982556AA1BA8E77C0054CB3F /* eidostool */,
 				985724B01AD478630047C223 /* EidosScribe */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				982663511A3BABD300A0CBBF /* Products */,
