@@ -499,7 +499,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 		}
 			
 			//
-			//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+			//	*********************	- (integer)countOfMutationsOfType(io<MutationType>$ mutType)
 			//
 #pragma mark -countOfMutationsOfType()
 			
@@ -718,7 +718,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
 		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
-		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
+		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 	}
 	

@@ -789,6 +789,7 @@ void RunSLiMTests(void)
 	// Test Genome - (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(m1); stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].countOfMutationsOfType(1); stop(); }");
 	
 	// Test Genome - (void)removeMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");
