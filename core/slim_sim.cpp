@@ -1412,7 +1412,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_generation:
 		{
 			if (!cached_value_generation_)
-				cached_value_generation_ = EidosValue_SP (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
+				cached_value_generation_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
 			return cached_value_generation_;
 		}
 		case gID_tag:
@@ -1695,6 +1695,111 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			return result_SP;
+		}
+			
+			
+			//
+			//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -mutationsOfType()
+			
+		case gID_mutationsOfType:
+		{
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
+				
+				if (found_muttype_pair == mutation_types_.end())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// Count the number of mutations of the given type, so we can reserve the right vector size
+			// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
+			Genome &mutation_registry = population_.mutation_registry_;
+			int mutation_count = mutation_registry.size();
+			int match_count = 0, mut_index;
+			Mutation *first_match = nullptr;
+			
+			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+			{
+				Mutation *mut = mutation_registry[mut_index];
+				
+				if (mut->mutation_type_ptr_ == mutation_type_ptr)
+				{
+					if (++match_count == 1)
+						first_match = mut;
+				}
+			}
+			
+			// Now allocate the result vector and assemble it
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(match_count);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			if (match_count == 0)
+			{
+			}
+			else if (match_count == 1)
+			{
+				vec->PushObjectElement(first_match);
+			}
+			else
+			{
+				for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+				{
+					Mutation *mut = mutation_registry[mut_index];
+					
+					if (mut->mutation_type_ptr_ == mutation_type_ptr)
+						vec->PushObjectElement(mut);
+				}
+			}
+			
+			return result_SP;
+		}
+			
+			
+			//
+			//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -countOfMutationsOfType()
+			
+		case gID_countOfMutationsOfType:
+		{
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = mutation_types_.find(mutation_type_id);
+				
+				if (found_muttype_pair == mutation_types_.end())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// Count the number of mutations of the given type
+			Genome &mutation_registry = population_.mutation_registry_;
+			int mutation_count = mutation_registry.size();
+			int match_count = 0, mut_index;
+			
+			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+				if (mutation_registry[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+					++match_count;
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
 		}
 			
 			
@@ -2156,6 +2261,8 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addSubpopSplit));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_deregisterScriptBlock));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationFrequencies));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputFixedMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputFull));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMutations));
@@ -2179,6 +2286,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *addSubpopSplitSig = nullptr;
 	static EidosInstanceMethodSignature *deregisterScriptBlockSig = nullptr;
 	static EidosInstanceMethodSignature *mutationFrequenciesSig = nullptr;
+	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
+	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *outputFixedMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *outputFullSig = nullptr;
 	static EidosInstanceMethodSignature *outputMutationsSig = nullptr;
@@ -2196,6 +2305,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		addSubpopSplitSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio");
 		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_O("mutations", gSLiM_Mutation_Class);
+		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
+		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL));
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OS("filePath");
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
@@ -2215,6 +2326,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_addSubpopSplit:						return addSubpopSplitSig;
 		case gID_deregisterScriptBlock:					return deregisterScriptBlockSig;
 		case gID_mutationFrequencies:					return mutationFrequenciesSig;
+		case gID_mutationsOfType:						return mutationsOfTypeSig;
+		case gID_countOfMutationsOfType:				return countOfMutationsOfTypeSig;
 		case gID_outputFixedMutations:					return outputFixedMutationsSig;
 		case gID_outputFull:							return outputFullSig;
 		case gID_outputMutations:						return outputMutationsSig;

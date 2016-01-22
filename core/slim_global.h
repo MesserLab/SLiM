@@ -297,6 +297,8 @@ extern const std::string gStr_addSubpop;
 extern const std::string gStr_addSubpopSplit;
 extern const std::string gStr_deregisterScriptBlock;
 extern const std::string gStr_mutationFrequencies;
+extern const std::string gStr_mutationsOfType;
+extern const std::string gStr_countOfMutationsOfType;
 extern const std::string gStr_outputFixedMutations;
 extern const std::string gStr_outputFull;
 extern const std::string gStr_outputMutations;
@@ -432,6 +434,8 @@ enum _SLiMGlobalStringID : int {
 	gID_addSubpopSplit,
 	gID_deregisterScriptBlock,
 	gID_mutationFrequencies,
+	gID_mutationsOfType,
+	gID_countOfMutationsOfType,
 	gID_outputFixedMutations,
 	gID_outputFull,
 	gID_outputMutations,
