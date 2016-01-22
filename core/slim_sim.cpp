@@ -40,7 +40,7 @@ using std::ifstream;
 using std::vector;
 
 
-SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class)))
 {
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
@@ -51,7 +51,7 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	InitializeFromFile(p_infile);
 }
 
-SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class)))
 {
 	// set up the symbol table we will use for all of our constants
 	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
@@ -1331,7 +1331,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_chromosome:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&chromosome_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&chromosome_, gSLiM_Chromosome_Class));
 		case gID_chromosomeType:
 		{
 			switch (modeled_chromosome_type_)
@@ -1343,7 +1343,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genomicElementTypes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElementType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
@@ -1355,7 +1355,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			Genome &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(mutation_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(mutation_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
@@ -1365,7 +1365,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationTypes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
@@ -1375,7 +1375,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_scriptBlocks:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SLiMEidosBlock_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
@@ -1387,7 +1387,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_subpopulations:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Subpopulation_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
@@ -1397,7 +1397,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_substitutions:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Substitution_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
@@ -1741,7 +1741,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// Now allocate the result vector and assemble it
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(match_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			if (match_count == 0)

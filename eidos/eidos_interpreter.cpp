@@ -1074,7 +1074,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
 					const std::vector<EidosObjectElement *> &first_child_vec = *first_child_value->ObjectElementVector();
-					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)first_child_value.get())->Class()));
 					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
@@ -1176,7 +1176,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				{
 					// result type is object; optimize for that
 					const std::vector<EidosObjectElement *> &first_child_vec = *first_child_value->ObjectElementVector();
-					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)first_child_value.get())->Class()));
 					EidosValue_Object_vector *obj_result = obj_result_SP->Reserve(second_child_count);
 					
 					if (second_child_type == EidosValueType::kValueInt)
@@ -4437,7 +4437,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueObject)
 				{
 					const std::vector<EidosObjectElement *> &range_vec = *range_value->ObjectElementVector();
-					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr));
+					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
 					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));

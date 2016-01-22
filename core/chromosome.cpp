@@ -215,7 +215,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomicElements:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)

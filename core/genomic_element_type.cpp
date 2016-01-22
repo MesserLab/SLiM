@@ -29,7 +29,7 @@
 
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
 {
 	InitializeDraws();
 }
@@ -168,7 +168,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationTypes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)

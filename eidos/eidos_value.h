@@ -723,13 +723,15 @@ public:
 //
 //	EidosValue_Object represents objects in Eidos: entities that have properties and can respond to
 //	methods.  The subclass EidosValue_Object_vector is the standard instance class, used to hold vectors
-//	of floats.  EidosValue_Object_singleton is used for speed, to represent single values.
+//	of objects.  EidosValue_Object_singleton is used for speed, to represent single values.
 //
 
 class EidosValue_Object : public EidosValue
 {
 protected:
-	EidosValue_Object(bool p_singleton) : EidosValue(EidosValueType::kValueObject, p_singleton) {}
+	const EidosObjectClass *class_;		// can be gEidos_UndefinedClassObject if the vector is empty
+	
+	EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class) {}
 	
 public:
 	EidosValue_Object(const EidosValue_Object &p_original) = delete;				// no copy-construct
@@ -738,7 +740,7 @@ public:
 	virtual ~EidosValue_Object(void);
 	
 	virtual const std::string &ElementType(void) const;
-	virtual const EidosObjectClass *Class(void) const = 0;
+	inline __attribute__((always_inline)) const EidosObjectClass *Class(void) const { return class_; }
 	virtual int Count_Virtual(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
@@ -766,16 +768,15 @@ protected:
 	std::vector<EidosObjectElement *> values_;		// these use a retain/release system of ownership; see below
 	
 public:
-	EidosValue_Object_vector(const EidosValue_Object_vector &p_original);				// no copy-construct
+	EidosValue_Object_vector(const EidosValue_Object_vector &p_original);				// can copy-construct
 	EidosValue_Object_vector& operator=(const EidosValue_Object_vector&) = delete;		// no copying
 	
-	EidosValue_Object_vector(void);
-	explicit EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec);
+	explicit EidosValue_Object_vector(const EidosObjectClass *p_class);							// can be gEidos_UndefinedClassObject
+	explicit EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class);
 	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
-	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list);
+	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class);
 	virtual ~EidosValue_Object_vector(void);
 	
-	virtual const EidosObjectClass *Class(void) const;
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
@@ -810,10 +811,9 @@ public:
 	EidosValue_Object_singleton(const EidosValue_Object_singleton &p_original) = delete;		// no copy-construct
 	EidosValue_Object_singleton& operator=(const EidosValue_Object_singleton&) = delete;		// no copying
 	EidosValue_Object_singleton(void) = delete;
-	explicit EidosValue_Object_singleton(EidosObjectElement *p_element1);
+	explicit EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class);
 	virtual ~EidosValue_Object_singleton(void);
 	
-	virtual const EidosObjectClass *Class(void) const;
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	

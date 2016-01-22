@@ -1517,7 +1517,7 @@ const std::string &EidosValue_Object::ElementType(void) const
 
 EidosValue_SP EidosValue_Object::NewMatchingType(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 }
 
 void EidosValue_Object::Sort(bool p_ascending)
@@ -1530,28 +1530,49 @@ void EidosValue_Object::Sort(bool p_ascending)
 // EidosValue_Object_vector
 #pragma mark EidosValue_Object_vector
 
-EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false)
+EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false, p_original.Class())
 {
 	for (auto value : p_original.values_)
+	{
+#if DEBUG
+		if (value->Class() != class_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << eidos_terminate(nullptr);
+#endif
+		
 		values_.emplace_back(value->Retain());
+	}
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(void) : EidosValue_Object(false)
+EidosValue_Object_vector::EidosValue_Object_vector(const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec) : EidosValue_Object(false)
+EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
 	values_ = p_elementvec;
 	
 	for (auto value : values_)
+	{
+#if DEBUG
+		if (value->Class() != class_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << eidos_terminate(nullptr);
+#endif
+		
 		value->Retain();
+	}
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list) : EidosValue_Object(false)
+EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+	{
+#if DEBUG
+		if ((*init_item)->Class() != class_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << eidos_terminate(nullptr);
+#endif
+		
 		values_.emplace_back((*init_item)->Retain());
+	}
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
@@ -1563,14 +1584,6 @@ EidosValue_Object_vector::~EidosValue_Object_vector(void)
 	}
 }
 
-const EidosObjectClass *EidosValue_Object_vector::Class(void) const
-{
-	if (values_.size() == 0)
-		return gEidos_UndefinedClassObject;		// this is relied upon by the type-check machinery
-	else
-		return values_[0]->Class();
-}
-
 int EidosValue_Object_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
@@ -1580,7 +1593,7 @@ void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 {
 	if (values_.size() == 0)
 	{
-		p_ostream << "object(0)";
+		p_ostream << "object()<" << class_->ElementType() << ">";
 	}
 	else
 	{
@@ -1608,10 +1621,17 @@ EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, Ei
 
 void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
 {
-	if ((values_.size() > 0) && (Class() != p_element->Class()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushObjectElement): the type of an object cannot be changed." << eidos_terminate(nullptr);
-	else
-		values_.emplace_back(p_element->Retain());
+	const EidosObjectClass *element_class = p_element->Class();
+	
+	if (class_ != element_class)
+	{
+		if (class_ == gEidos_UndefinedClassObject)
+			class_ = element_class;
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushObjectElement): the type of an object cannot be changed." << eidos_terminate(nullptr);
+	}
+	
+	values_.emplace_back(p_element->Retain());
 }
 
 EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
@@ -1619,7 +1639,7 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosTo
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx], Class()));
 }
 
 void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
@@ -1628,8 +1648,15 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
 	// can't change the type of element object we collect
-	if ((values_.size() > 0) && (Class() != p_value.ObjectElementAtIndex(0, p_blame_token)->Class()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << eidos_terminate(p_blame_token);
+	const EidosObjectClass *element_class = ((EidosValue_Object &)p_value).Class();
+	
+	if (class_ != element_class)
+	{
+		if (class_ == gEidos_UndefinedClassObject)
+			class_ = element_class;
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << eidos_terminate(p_blame_token);
+	}
 	
 	EidosObjectElement *new_value = p_value.ObjectElementAtIndex(0, p_blame_token);
 	
@@ -1647,10 +1674,17 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueObject)
 	{
-		if ((values_.size() > 0) && (Class() != p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Class()))
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): the type of an object cannot be changed." << eidos_terminate(p_blame_token);
-		else
-			values_.emplace_back(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Retain());
+		const EidosObjectClass *element_class = ((EidosValue_Object &)p_source_script_value).Class();
+		
+		if (class_ != element_class)
+		{
+			if (class_ == gEidos_UndefinedClassObject)
+				class_ = element_class;
+			else
+				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): the type of an object cannot be changed." << eidos_terminate(p_blame_token);
+		}
+		
+		values_.emplace_back(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Retain());
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << eidos_terminate(p_blame_token);
@@ -1960,21 +1994,23 @@ EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlo
 // EidosValue_Object_singleton
 #pragma mark EidosValue_Object_singleton
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1) : value_(p_element1), EidosValue_Object(true)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class) : value_(p_element1), EidosValue_Object(true, p_class)
 {
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
+	{
+#if DEBUG
+		if (p_element1->Class() != class_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << eidos_terminate(nullptr);
+#endif
+		
 		p_element1->Retain();
+	}
 }
 
 EidosValue_Object_singleton::~EidosValue_Object_singleton(void)
 {
 	value_->Release();
-}
-
-const EidosObjectClass *EidosValue_Object_singleton::Class(void) const
-{
-	return value_->Class();
 }
 
 int EidosValue_Object_singleton::Count_Virtual(void) const
@@ -2000,11 +2036,16 @@ EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, Eido
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()));
 }
 
 void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 {
+#if DEBUG
+	if (p_element->Class() != class_)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetValue): class mismatch." << eidos_terminate(nullptr);
+#endif
+	
 	p_element->Retain();
 	if (value_) value_->Release();		// we might have been initialized with nullptr with the aim of setting a value here
 	value_ = p_element;
@@ -2012,12 +2053,12 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 
 EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()));
 }
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 {
-	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 	
 	new_vec->PushObjectElement(value_);
 	

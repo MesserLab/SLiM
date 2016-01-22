@@ -24,6 +24,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_global.h"
 #include "eidos_rng.h"
+#include "eidos_test_element.h"
 
 #include <iostream>
 #include <string>
@@ -107,6 +108,10 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	else if (result->Type() != p_correct_result->Type())
 	{
 		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return type (" << result->Type() << ", expected " << p_correct_result->Type() << ")" << endl;
+	}
+	else if (result->ElementType() != p_correct_result->ElementType())
+	{
+		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return element type (" << result->ElementType() << ", expected " << p_correct_result->ElementType() << ")" << endl;
 	}
 	else if (result->Count() != p_correct_result->Count())
 	{
@@ -2067,6 +2072,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("c(3, _Test(7));", 0, "cannot be mixed");
 	EidosAssertScriptRaise("c(3.1, _Test(7));", 0, "cannot be mixed");
 	EidosAssertScriptRaise("c('foo', _Test(7));", 0, "cannot be mixed");
+	EidosAssertScriptSuccess("c(object(), _Test(7))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
+	EidosAssertScriptSuccess("c(_Test(7), object())._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
+	EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
+	//EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));		// should fail
+	EidosAssertScriptSuccess("c(object(), _Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
+	EidosAssertScriptSuccess("c(_Test(7)[F], object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
 	
 	// float()
 	EidosAssertScriptSuccess("float(0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
@@ -2099,7 +2110,7 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("logical(integer(0));", 0, "must be a singleton");
 	
 	// object()
-	EidosAssertScriptSuccess("object();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("object();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	EidosAssertScriptRaise("object(NULL);", 0, "requires at most");
 	EidosAssertScriptRaise("object(integer(0));", 0, "requires at most");
 	
@@ -2115,7 +2126,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rep(3, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("rep(3.5, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("rep('foo', 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()));
-	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
 	EidosAssertScriptSuccess("rep(NULL, 2);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("rep(T, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("rep(3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3}));
@@ -2131,7 +2142,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rep(integer(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("rep(float(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("rep(string(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()));
-	EidosAssertScriptSuccess("rep(object(), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("rep(object(), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	EidosAssertScriptRaise("rep(object(), c(5, 3));", 0, "must be a singleton");
 	EidosAssertScriptRaise("rep(object(), integer(0));", 0, "must be a singleton");
 	
@@ -2147,7 +2158,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("repEach(3, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("repEach(3.5, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("repEach('foo', 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()));
-	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
 	EidosAssertScriptSuccess("repEach(NULL, 2);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("repEach(T, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("repEach(3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3}));
@@ -2181,9 +2192,9 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("repEach(integer(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("repEach(float(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("repEach(string(0), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()));
-	EidosAssertScriptSuccess("repEach(object(), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("repEach(object(), 5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	EidosAssertScriptRaise("repEach(object(), c(5, 3));", 0, "requires that parameter");
-	EidosAssertScriptSuccess("repEach(object(), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("repEach(object(), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	
 	// sample() – since this function treats parameter x type-agnostically, we'll test integers only (and NULL a little bit)
 	EidosAssertScriptSuccess("sample(NULL, 0, T);", gStaticEidosValueNULL);
@@ -2533,7 +2544,7 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("sortBy(5);", 0, "cannot be type");
 	EidosAssertScriptRaise("sortBy(9.1);", 0, "cannot be type");
 	EidosAssertScriptRaise("sortBy('foo');", 0, "cannot be type");
-	EidosAssertScriptSuccess("sortBy(object(), 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("sortBy(object(), 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk')._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-8, 2, 3, 7, 75}));
 	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk', T)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-8, 2, 3, 7, 75}));
 	EidosAssertScriptSuccess("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk', F)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{75, 7, 3, 2, -8}));
@@ -2590,7 +2601,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("unique(integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("unique(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("unique(string(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()));
-	EidosAssertScriptSuccess("unique(object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector()));
+	EidosAssertScriptSuccess("unique(object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject)));
 	EidosAssertScriptSuccess("unique(T);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("unique(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("unique(3.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.5)));
@@ -2695,6 +2706,10 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("elementType('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string")));
 	EidosAssertScriptSuccess("elementType(_Test(7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
 	EidosAssertScriptSuccess("elementType(object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("undefined")));
+	EidosAssertScriptSuccess("elementType(c(object(), object()));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("undefined")));
+	EidosAssertScriptSuccess("elementType(c(_Test(7), object()));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
+	EidosAssertScriptSuccess("elementType(c(object(), _Test(7)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
+	EidosAssertScriptSuccess("elementType(_Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
 	
 	// isFloat()
 	EidosAssertScriptSuccess("isFloat(NULL);", gStaticEidosValue_LogicalF);

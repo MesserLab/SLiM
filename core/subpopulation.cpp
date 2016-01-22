@@ -133,7 +133,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -153,7 +153,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this)))
+	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -329,7 +329,7 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object_singleton local_mut(p_mutation);
+					EidosValue_Object_singleton local_mut(p_mutation, gSLiM_Mutation_Class);
 					EidosValue_Float_singleton local_relFitness(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -952,7 +952,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_));
 		case gID_genomes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			if (child_generation_valid_)

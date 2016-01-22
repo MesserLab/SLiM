@@ -230,7 +230,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 						
 						if (argument_class != signature_class)
 						{
-							// Empty object vectors are allowed to be passed for type-specified parameters; an empty object vector is generic
+							// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
 							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
 								break;
 							

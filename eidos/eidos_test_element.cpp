@@ -56,7 +56,7 @@ EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 	if (p_property_id == gEidosID__yolk)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1), gEidos_TestElementClass));
 	
 	// all others, including gID_none
 	else
@@ -87,7 +87,7 @@ EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_met
 		}
 		case gEidosID__squareTest:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_)));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_), gEidos_TestElementClass));
 		}
 			
 			// all others, including gID_none

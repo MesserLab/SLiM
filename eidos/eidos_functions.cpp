@@ -256,7 +256,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	
 	EidosValueType highest_type = EidosValueType::kValueNULL;	// start at the lowest
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
-	const EidosObjectClass *element_class = nullptr;
+	const EidosObjectClass *element_class = gEidos_UndefinedClassObject;
 	int reserve_size = 0;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
@@ -280,13 +280,13 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		
 		if (arg_type == EidosValueType::kValueObject)
 		{
-			if (arg_value_count > 0)		// object(0) parameters do not conflict with other object types
+			const EidosObjectClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
+			
+			if (this_element_class != gEidos_UndefinedClassObject)	// undefined objects do not conflict with other object types
 			{
-				const EidosObjectClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
-				
-				if (!element_class)
+				if (element_class == gEidos_UndefinedClassObject)
 				{
-					// we haven't seen a (non-empty) object type yet, so remember what type we're dealing with
+					// we haven't seen a (defined) object type yet, so remember what type we're dealing with
 					element_class = this_element_class;
 				}
 				else
@@ -451,7 +451,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	}
 	else if (has_object_type)
 	{
-		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(reserve_size);
+		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(element_class))->Reserve(reserve_size);
 		EidosValue_Object_vector_SP result_SP = EidosValue_Object_vector_SP(result);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
@@ -2494,7 +2494,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 		case EidosFunctionIdentifier::objectFunction:
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector());
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject));
 			break;
 		}
 			
@@ -3396,7 +3396,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int arg0_count = arg0_value->Count();
-			EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector())->Reserve(arg0_count);
+			EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class()))->Reserve(arg0_count);
 			result_SP = EidosValue_SP(object_result);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -3710,7 +3710,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == EidosValueType::kValueObject)
 			{
-				EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector();
+				EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
 				result_SP = EidosValue_SP(object_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
@@ -4772,7 +4772,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0, nullptr));
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement, gEidos_TestElementClass));
 			testElement->Release();
 			break;
 		}
