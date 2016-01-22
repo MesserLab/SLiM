@@ -1210,7 +1210,22 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		for (const EidosMethodSignature *sig : *methodSignatures)
 		{
 			if (previous_sig && (sig->function_name_.compare(previous_sig->function_name_) == 0))
-				std::cout << "Duplicate method name: " << sig->function_name_ << std::endl;
+			{
+				// We have a name collision.  That is OK as long as the method signatures are identical.
+				if ((typeid(*sig) != typeid(*previous_sig)) ||
+					(sig->is_class_method != previous_sig->is_class_method) ||
+					(sig->function_name_ != previous_sig->function_name_) ||
+					(sig->function_id_ != previous_sig->function_id_) ||
+					(sig->return_mask_ != previous_sig->return_mask_) ||
+					(sig->return_class_ != previous_sig->return_class_) ||
+					(sig->arg_masks_ != previous_sig->arg_masks_) ||
+					(sig->arg_names_ != previous_sig->arg_names_) ||
+					(sig->arg_classes_ != previous_sig->arg_classes_) ||
+					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
+					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
+					std::cout << "Duplicate method name with a different signature: " << sig->function_name_ << std::endl;
+			}
+			
 			previous_sig = sig;
 		}
 		
@@ -1270,14 +1285,12 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		{
 			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
 			{
-				// We have a name collision.  That is not legal for methods, which need to be uniquely named;
-				// but for properties it's OK as long as the property signatures are identical.  (That would
-				// probably be OK for methods too, actually, but checking for it would be a hassle.)
+				// We have a name collision.  That is OK as long as the property signatures are identical.
 				if ((sig->property_id_ != previous_sig->property_id_) ||
 					(sig->read_only_ != previous_sig->read_only_) ||
 					(sig->value_mask_ != previous_sig->value_mask_) ||
 					(sig->value_class_ != previous_sig->value_class_))
-					std::cout << "Duplicate property name: " << sig->property_name_ << std::endl;
+					std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
 			}
 			
 			previous_sig = sig;

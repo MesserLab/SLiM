@@ -455,7 +455,88 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
 		}
+
 			
+			//
+			//	*********************	- (logical)containsMutations(object<Mutation> mutations)
+			//
+#pragma mark -containsMutations()
+			
+		case gID_containsMutations:
+		{
+			int arg0_count = arg0_value->Count();
+			int mutation_count = this->size();
+			
+			if (arg0_count == 1)
+			{
+				Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+				
+				for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+					if (mutations_[mut_index] == mut)
+						return gStaticEidosValue_LogicalT;
+				
+				return gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
+				std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+					bool contains_mut = false;
+					
+					for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+						if (mutations_[mut_index] == mut)
+							contains_mut = true;
+					
+					logical_result_vec.emplace_back(contains_mut);
+				}
+				
+				return EidosValue_SP(logical_result);
+			}
+		}
+			
+			//
+			//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -countOfMutationsOfType()
+			
+		case gID_countOfMutationsOfType:
+		{
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				
+				if (!sim)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair == sim->MutationTypes().end())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// Count the number of mutations of the given type
+			int mutation_count = this->size();
+			int match_count = 0, mut_index;
+			
+			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+				if (mutations_[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+					++match_count;
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
+		}
 			
 			//
 			//	*********************	- (void)removeMutations(object mutations)
@@ -613,6 +694,8 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewDrawnMutation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewMutation));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_removeMutations));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -625,6 +708,8 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	static EidosInstanceMethodSignature *addMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *addNewDrawnMutationSig = nullptr;
 	static EidosInstanceMethodSignature *addNewMutationSig = nullptr;
+	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
+	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *removeMutationsSig = nullptr;
 	
 	if (!addMutationsSig)
@@ -632,16 +717,20 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
 		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
+		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
+		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gID_addMutations:			return addMutationsSig;
-		case gID_addNewDrawnMutation:	return addNewDrawnMutationSig;
-		case gID_addNewMutation:		return addNewMutationSig;
-		case gID_removeMutations:		return removeMutationsSig;
+		case gID_addMutations:				return addMutationsSig;
+		case gID_addNewDrawnMutation:		return addNewDrawnMutationSig;
+		case gID_addNewMutation:			return addNewMutationSig;
+		case gID_containsMutations:			return containsMutationsSig;
+		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
+		case gID_removeMutations:			return removeMutationsSig;
 			
 			// all others, including gID_none
 		default:

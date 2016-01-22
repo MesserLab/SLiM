@@ -470,12 +470,12 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1); }", 1, 301, "cannot be type integer");						// this is one API where integer identifiers can't be used
 	
 	// Test sim - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.mutationsOfType(m1); } ");
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.mutationsOfType(1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.mutationsOfType(m1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.mutationsOfType(1); } ");
 	
 	// Test sim - (object<Mutation>)countOfMutationsOfType(io<MutationType>$ mutType)
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.countOfMutationsOfType(m1); } ");
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.countOfMutationsOfType(1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.countOfMutationsOfType(m1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.countOfMutationsOfType(1); } ");
 	
 	// Test sim - (void)outputFixedMutations(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");
@@ -781,6 +781,14 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, -1, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 100000, 0.1, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "past the end");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, NULL, 5000, 0.1, 237); p1.genomes.addMutations(mut); stop(); }");			// bad subpop, but this is legal to allow "tagging" of mutations
+	
+	// Test Genome - (logical)containsMutations(object<Mutation> mutations)
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMutations(object()); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMutations(sim.mutations); stop(); }");
+	
+	// Test Genome - (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(m1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }");
 	
 	// Test Genome - (void)removeMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");
