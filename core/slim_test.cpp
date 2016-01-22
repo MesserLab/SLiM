@@ -469,6 +469,14 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }");												// legal to specify an empty object vector
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1); }", 1, 301, "cannot be type integer");						// this is one API where integer identifiers can't be used
 	
+	// Test sim - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.mutationsOfType(m1); } ");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.mutationsOfType(1); } ");
+	
+	// Test sim - (object<Mutation>)countOfMutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.countOfMutationsOfType(m1); } ");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.addSubpop('p1', 10); } 10 { sim.countOfMutationsOfType(1); } ");
+	
 	// Test sim - (void)outputFixedMutations(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");
 	
