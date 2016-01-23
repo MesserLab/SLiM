@@ -8,6 +8,7 @@
 
 #include "slim_test.h"
 #include "slim_sim.h"
+#include "eidos_test.h"
 
 #include <iostream>
 #include <string>
@@ -43,7 +44,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	}
 	catch (std::runtime_error err)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during new SLiMSim(): " << EidosGetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -57,7 +58,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	{
 		delete sim;
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during RunOneGeneration(): " << EidosGetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -69,7 +70,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string)
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
 	gSLiMTestSuccessCount++;
 	
-	//std::cerr << p_script_string << " : \e[32mSUCCESS\e[0m" << endl;
+	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
 	gEidosCurrentScript = nullptr;
 	gEidosExecutingRuntimeScript = false;
@@ -89,7 +90,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		
 		gSLiMTestFailureCount++;
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << endl;
 	}
 	catch (std::runtime_error err)
 	{
@@ -106,13 +107,13 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 					{
 						gSLiMTestSuccessCount++;
 						
-						//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+						//std::cerr << p_script_string << " == (expected raise) : " << EIDOS_OUTPUT_SUCCESS_TAG << "\n   " << raise_message << endl;
 					}
 					else
 					{
 						gSLiMTestFailureCount++;
 						
-						std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
+						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but no error info set" << endl;
 						std::cerr << "   raise message: " << raise_message << endl;
 						std::cerr << "--------------------" << std::endl << std::endl;
 					}
@@ -125,7 +126,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 					{
 						gSLiMTestFailureCount++;
 						
-						std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but error position unexpected" << endl;
+						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << endl;
 						std::cerr << "   raise message: " << raise_message << endl;
 						eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 						std::cerr << "--------------------" << std::endl << std::endl;
@@ -134,7 +135,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 					{
 						gSLiMTestSuccessCount++;
 						
-						//std::cerr << p_script_string << " == (expected raise) : \e[32mSUCCESS\e[0m\n   " << raise_message << endl;
+						//std::cerr << p_script_string << " == (expected raise) : " << EIDOS_OUTPUT_SUCCESS_TAG << "\n   " << raise_message << endl;
 					}
 				}
 			}
@@ -142,7 +143,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 			{
 				gSLiMTestFailureCount++;
 				
-				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
 				std::cerr << "   raise message: " << raise_message << endl;
 				std::cerr << "--------------------" << std::endl << std::endl;
 			}
@@ -151,7 +152,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		{
 			gSLiMTestFailureCount++;
 			
-			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : stop() reached (expected \"" << p_reason_snip << "\")." << endl;
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() reached (expected \"" << p_reason_snip << "\")." << endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
 	}
@@ -176,7 +177,7 @@ void SLiMAssertScriptStop(const string &p_script_string)
 		
 		gSLiMTestFailureCount++;
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during SLiM execution." << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution." << endl;
 	}
 	catch (std::runtime_error err)
 	{
@@ -187,7 +188,7 @@ void SLiMAssertScriptStop(const string &p_script_string)
 		{
 			gSLiMTestFailureCount++;
 			
-			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : stop() not reached" << endl;
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() not reached" << endl;
 			std::cerr << "   raise message: " << raise_message << endl;
 			
 			if ((gEidosCharacterStartOfError != -1) && (gEidosCharacterEndOfError != -1) && gEidosCurrentScript)
@@ -202,7 +203,7 @@ void SLiMAssertScriptStop(const string &p_script_string)
 		{
 			gSLiMTestSuccessCount++;
 			
-			//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
+			//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 		}
 	}
 	
@@ -1027,8 +1028,8 @@ void RunSLiMTests(void)
 	//
 	std::cerr << endl;
 	if (gSLiMTestFailureCount)
-		std::cerr << "\e[31mFAILURE\e[0m count: " << gSLiMTestFailureCount << endl;
-	std::cerr << "\e[32mSUCCESS\e[0m count: " << gSLiMTestSuccessCount << endl;
+		std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gSLiMTestFailureCount << endl;
+	std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gSLiMTestSuccessCount << endl;
 	std::cerr.flush();
 	
 	// Clear out the SLiM output stream post-test

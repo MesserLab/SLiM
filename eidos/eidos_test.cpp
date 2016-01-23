@@ -66,7 +66,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	catch (std::runtime_error err)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during Tokenize(): " << EidosGetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -78,7 +78,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	catch (std::runtime_error err)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during ParseToAST(): " << EidosGetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -92,7 +92,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	catch (std::runtime_error err)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise during EvaluateInterpreterBlock(): " << EidosGetTrimmedRaiseMessage() << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -103,19 +103,19 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	// Check that the result is actually what we want it to be
 	if (!result)
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : return value is nullptr" << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : return value is nullptr" << endl;
 	}
 	else if (result->Type() != p_correct_result->Type())
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return type (" << result->Type() << ", expected " << p_correct_result->Type() << ")" << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : unexpected return type (" << result->Type() << ", expected " << p_correct_result->Type() << ")" << endl;
 	}
 	else if (result->ElementType() != p_correct_result->ElementType())
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return element type (" << result->ElementType() << ", expected " << p_correct_result->ElementType() << ")" << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : unexpected return element type (" << result->ElementType() << ", expected " << p_correct_result->ElementType() << ")" << endl;
 	}
 	else if (result->Count() != p_correct_result->Count())
 	{
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : unexpected return length (" << result->Count() << ", expected " << p_correct_result->Count() << ")" << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : unexpected return length (" << result->Count() << ", expected " << p_correct_result->Count() << ")" << endl;
 	}
 	else
 	{
@@ -123,7 +123,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 		{
 			if (CompareEidosValues(*result, value_index, *p_correct_result, value_index, nullptr) != 0)
 			{
-				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << endl;
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << endl;
 				
 				return;
 			}
@@ -132,7 +132,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 		gEidosTestFailureCount--;	// correct for our assumption of failure above
 		gEidosTestSuccessCount++;
 		
-		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : \e[32mSUCCESS\e[0m" << endl;
+		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	}
 	
 	gEidosCurrentScript = nullptr;
@@ -157,7 +157,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 		
 		gEidosTestFailureCount++;
 		
-		std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : no raise during EvaluateInterpreterBlock()." << endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during EvaluateInterpreterBlock()." << endl;
 	}
 	catch (std::runtime_error err)
 	{
@@ -170,7 +170,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 			{
 				gEidosTestFailureCount++;
 				
-				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but no error info set" << endl;
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but no error info set" << endl;
 				std::cerr << p_script_string << "   raise message: " << raise_message << endl;
 				std::cerr << "--------------------" << std::endl << std::endl;
 			}
@@ -178,7 +178,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 			{
 				gEidosTestFailureCount++;
 				
-				std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise expected, but error position unexpected" << endl;
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << endl;
 				std::cerr << p_script_string << "   raise message: " << raise_message << endl;
 				eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 				std::cerr << "--------------------" << std::endl << std::endl;
@@ -187,14 +187,14 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 			{
 				gEidosTestSuccessCount++;
 				
-				//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : \e[32mSUCCESS\e[0m" << endl;
+				//std::cerr << p_script_string << " == (expected raise) " << raise_message << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 			}
 		}
 		else
 		{
 			gEidosTestFailureCount++;
 			
-			std::cerr << p_script_string << " : \e[31mFAILURE\e[0m : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
 			std::cerr << "   raise message: " << raise_message << endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
@@ -2963,8 +2963,8 @@ void RunEidosTests(void)
 	//
     std::cerr << endl;
     if (gEidosTestFailureCount)
-        std::cerr << "\e[31mFAILURE\e[0m count: " << gEidosTestFailureCount << endl;
-    std::cerr << "\e[32mSUCCESS\e[0m count: " << gEidosTestSuccessCount << endl;
+        std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gEidosTestFailureCount << endl;
+    std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gEidosTestSuccessCount << endl;
 	
 	// If we are tracking allocations, print a count
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION

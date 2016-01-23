@@ -32,6 +32,21 @@
 void RunEidosTests(void);
 
 
+// Can turn on escape sequences to color test output; at present we turn these on for the command-line
+// tools and off for the GUI tools, since Terminal supports these codes but Xcode does not.
+#ifdef EIDOS_GUI
+
+#define EIDOS_OUTPUT_FAILURE_TAG	"FAILURE"
+#define EIDOS_OUTPUT_SUCCESS_TAG	"SUCCESS"
+
+#else
+
+#define EIDOS_OUTPUT_FAILURE_TAG	"\e[31mFAILURE\e[0m"
+#define EIDOS_OUTPUT_SUCCESS_TAG	"\e[32mSUCCESS\e[0m"
+
+#endif
+
+
 #endif /* defined(__Eidos__eidos_test__) */
 
 
