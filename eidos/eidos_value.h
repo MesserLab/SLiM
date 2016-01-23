@@ -759,7 +759,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value) = 0;
 	
-	virtual EidosValue_SP ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 };
 
 class EidosValue_Object_vector : public EidosValue_Object
@@ -799,7 +799,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 class EidosValue_Object_singleton : public EidosValue_Object
@@ -836,7 +836,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

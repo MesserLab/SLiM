@@ -150,13 +150,12 @@ public:
 	EidosValue_SP Evaluate_Break(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Return(const EidosASTNode *p_node);
 	
-	// Function and method dispatch/execution; these are implemented in script_functions.cpp
+	// Function dispatch/execution; these are implemented in eidos_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
 	static inline __attribute__((always_inline)) EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
 	
 	EidosValue_SP ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
-	EidosValue_SP ExecuteMethodCall(EidosValue_Object &p_method_object, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count);
 	
 	// Utility static methods for numeric conversions
 	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);

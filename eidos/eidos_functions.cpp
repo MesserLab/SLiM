@@ -4795,30 +4795,6 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 	return result_SP;
 }
 
-EidosValue_SP EidosInterpreter::ExecuteMethodCall(EidosValue_Object &p_method_object, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count)
-{
-	EidosValue_SP result_SP(nullptr);
-	
-	// Get the function signature and check our arguments against it
-	const EidosObjectClass *object_class = p_method_object.Class();
-	const EidosMethodSignature *method_signature = object_class->SignatureForMethod(p_method_id);
-	
-	if (!method_signature)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << "() is not defined on object element type " << object_class->ElementType() << "." << eidos_terminate(nullptr);
-	
-	method_signature->CheckArguments(p_arguments, p_argument_count);
-	
-	// Make the method call
-	if (method_signature->is_class_method)
-		result_SP = object_class->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, *this);
-	else
-		result_SP = p_method_object.ExecuteInstanceMethodOfElements(p_method_id, p_arguments, p_argument_count, *this);
-	
-	// Check the return value against the signature
-	method_signature->CheckReturn(*result_SP);
-	
-	return result_SP;
-}
 
 
 

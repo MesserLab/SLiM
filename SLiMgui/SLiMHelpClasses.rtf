@@ -137,7 +137,7 @@
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio])
+\f2\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio])
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -161,7 +161,7 @@
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Subpopulation>)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio])
+\f2\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio])
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -195,7 +195,7 @@
 
 \f2\fs18 \cf0 \'96
 \f3 \'a0
-\f2 (integer)countOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f2 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f3 \
 \pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -383,7 +383,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
@@ -422,7 +422,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
@@ -473,7 +473,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
@@ -520,7 +520,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)registerModifyChildCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop], [integer$\'a0start], [integer$\'a0end])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
@@ -1069,7 +1069,7 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, io<Subpopulation>$\'a0originSubpop)
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewDrawnMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, io<Subpopulation>$\'a0originSubpop)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1114,7 +1114,7 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>)addNewMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, numeric$\'a0selectionCoeff, io<Subpopulation>$\'a0originSubpop)
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, numeric$\'a0selectionCoeff, io<Subpopulation>$\'a0originSubpop)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1178,7 +1178,7 @@ Changing this will normally affect the fitness values calculated at the end of t
 
 \f2\fs18 \cf0 \'96
 \f3 \'a0
-\f2 (integer)countOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f2 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

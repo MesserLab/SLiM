@@ -1865,12 +1865,37 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
 	auto values_size = values_.size();
-	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
+	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
 	if (!signature)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << eidos_terminate(nullptr);
 	
-	if (values_size == 1)
+	if (values_size == 0)
+	{
+		// With a zero-length vector, the return is a zero-length vector of the type specified by the property signature.  This
+		// allows code to proceed without errors without having to check for the zero-length case, by simply propagating the
+		// zero-length-ness forward while preserving the expected type for the expression.  If multiple return types are possible,
+		// we return a zero-length vector for the simplest type supported.
+		EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
+		
+		if (sig_mask & kEidosValueMaskNULL) return gStaticEidosValueNULL;	// we assume visible NULL is the NULL desired, to avoid masking errors
+		if (sig_mask & kEidosValueMaskLogical) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
+		if (sig_mask & kEidosValueMaskInt) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+		if (sig_mask & kEidosValueMaskFloat) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+		if (sig_mask & kEidosValueMaskString) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+		if (sig_mask & kEidosValueMaskObject)
+		{
+			const EidosObjectClass *value_class = signature->value_class_;
+			
+			if (value_class)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class));
+			else
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject));
+		}
+		
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << StringForEidosGlobalStringID(p_property_id) << " does not specify a value type, and thus cannot be accessed on a zero-length vector." << eidos_terminate(nullptr);
+	}
+	else if (values_size == 1)
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		EidosObjectElement *value = values_[0];
@@ -1953,19 +1978,53 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
+	// Get the function signature and check our arguments against it
+	const EidosMethodSignature *method_signature = class_->SignatureForMethod(p_method_id);
+	
+	if (!method_signature)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << "() is not defined on object element type " << ElementType() << "." << eidos_terminate(nullptr);
+	
+	method_signature->CheckArguments(p_arguments, p_argument_count);
+	
+	// If the method is a class method, dispatch it to the class object
+	if (method_signature->is_class_method)
+	{
+		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		method_signature->CheckReturn(*result_SP);
+		
+		return result_SP;
+	}
+	
+	// Otherwise, it is an instance method, so it gets dispatched to all of our elements
 	auto values_size = values_.size();
 	
 	if (values_size == 0)
 	{
-		// We special-case str() here as a bit of a hack.  It is defined on the base object element type, so it is always available.
-		// Calling it should thus not result in an error, even though we don't know the class of the object; it should just do nothing.
-		// This situation cannot arise for any other method, since str() is the only instance method supported by the base class.
-		if (p_method_id != gEidosID_str)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteInstanceMethodOfElements): method " << StringForEidosGlobalStringID(p_method_id) << " is not recognized because the object vector is empty." << eidos_terminate(nullptr);
+		// With a zero-length vector, the return is a zero-length vector of the type specified by the method signature.  This
+		// allows code to proceed without errors without having to check for the zero-length case, by simply propagating the
+		// zero-length-ness forward while preserving the expected type for the expression.  If multiple return types are possible,
+		// we return a zero-length vector for the simplest type supported.
+		EidosValueMask sig_mask = (method_signature->return_mask_ & kEidosValueMaskFlagStrip);
 		
-		return gStaticEidosValueNULLInvisible;
+		if (sig_mask & kEidosValueMaskNULL) return gStaticEidosValueNULL;	// we assume visible NULL is the NULL desired, to avoid masking errors
+		if (sig_mask & kEidosValueMaskLogical) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
+		if (sig_mask & kEidosValueMaskInt) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+		if (sig_mask & kEidosValueMaskFloat) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+		if (sig_mask & kEidosValueMaskString) return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+		if (sig_mask & kEidosValueMaskObject)
+		{
+			const EidosObjectClass *return_class = method_signature->return_class_;
+			
+			if (return_class)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(return_class));
+			else
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject));
+		}
+		
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << " does not specify a return type, and thus cannot be called on a zero-length vector." << eidos_terminate(nullptr);
 	}
 	else if (values_size == 1)
 	{
@@ -1973,6 +2032,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlo
 		EidosObjectElement *value = values_[0];
 		EidosValue_SP result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		
+		method_signature->CheckReturn(*result);
 		return result;
 	}
 	else
@@ -1980,8 +2040,35 @@ EidosValue_SP EidosValue_Object_vector::ExecuteInstanceMethodOfElements(EidosGlo
 		// call the method on all elements and collect the results
 		vector<EidosValue_SP> results;
 		
-		for (auto value : values_)
-			results.emplace_back(value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter));
+		if (values_size < 10)
+		{
+			// with small objects, we check every value
+			for (auto value : values_)
+			{
+				EidosValue_SP temp_result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+				
+				method_signature->CheckReturn(*temp_result);
+				results.emplace_back(temp_result);
+			}
+		}
+		else
+		{
+			// with large objects, we just spot-check the first value, for speed
+			bool checked_multivalued = false;
+			
+			for (auto value : values_)
+			{
+				EidosValue_SP temp_result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+				
+				if (!checked_multivalued)
+				{
+					method_signature->CheckReturn(*temp_result);
+					checked_multivalued = true;
+				}
+				
+				results.emplace_back(temp_result);
+			}
+		}
 		
 		// concatenate the results using ConcatenateEidosValues()
 		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
@@ -2109,9 +2196,31 @@ void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_pr
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_singleton::ExecuteInstanceMethodOfElements(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	return value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	// Get the function signature and check our arguments against it
+	const EidosMethodSignature *method_signature = class_->SignatureForMethod(p_method_id);
+	
+	if (!method_signature)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(p_method_id) << "() is not defined on object element type " << ElementType() << "." << eidos_terminate(nullptr);
+	
+	method_signature->CheckArguments(p_arguments, p_argument_count);
+	
+	// If the method is a class method, dispatch it to the class object
+	if (method_signature->is_class_method)
+	{
+		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		method_signature->CheckReturn(*result_SP);
+		
+		return result_SP;
+	}
+	
+	// Otherwise, it is an instance method, so it gets dispatched to our element
+	EidosValue_SP result = value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	
+	method_signature->CheckReturn(*result);
+	return result;
 }
 
 

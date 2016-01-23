@@ -920,7 +920,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node
 		
 		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
 		if (method_object)
-			result_SP = ExecuteMethodCall(*method_object, method_id, arguments_array, arguments_count);
+			result_SP = method_object->ExecuteMethodCall(method_id, arguments_array, arguments_count, *this);
 		else
 			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
 		
@@ -959,7 +959,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node
 		EidosValue_SP *arguments_ptr = arguments.data();
 		
 		if (method_object)
-			result_SP = ExecuteMethodCall(*method_object, method_id, arguments_ptr, arguments_count);
+			result_SP = method_object->ExecuteMethodCall(method_id, arguments_ptr, arguments_count, *this);
 		else
 			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
 		
