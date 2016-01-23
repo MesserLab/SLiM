@@ -1754,28 +1754,28 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// Now allocate the result vector and assemble it
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
-			EidosValue_SP result_SP = EidosValue_SP(vec);
-			
-			if (match_count == 0)
+			if (match_count == 1)
 			{
-			}
-			else if (match_count == 1)
-			{
-				vec->PushObjectElement(first_match);
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
 			}
 			else
 			{
-				for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
+				EidosValue_SP result_SP = EidosValue_SP(vec);
+				
+				if (match_count != 0)
 				{
-					Mutation *mut = mutation_registry[mut_index];
-					
-					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-						vec->PushObjectElement(mut);
+					for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+					{
+						Mutation *mut = mutation_registry[mut_index];
+						
+						if (mut->mutation_type_ptr_ == mutation_type_ptr)
+							vec->PushObjectElement(mut);
+					}
 				}
+				
+				return result_SP;
 			}
-			
-			return result_SP;
 		}
 			
 			

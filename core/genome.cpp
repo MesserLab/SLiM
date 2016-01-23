@@ -518,7 +518,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 				
 				if (found_muttype_pair == sim->MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 				
 				mutation_type_ptr = found_muttype_pair->second;
 			}
@@ -537,6 +537,78 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
 		}
+			
+			//
+			//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -mutationsOfType()
+			
+		case gID_mutationsOfType:
+		{
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				
+				if (!sim)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair == sim->MutationTypes().end())
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// Count the number of mutations of the given type, so we can reserve the right vector size
+			// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
+			int mutation_count = this->size();
+			int match_count = 0, mut_index;
+			Mutation *first_match = nullptr;
+			
+			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+			{
+				Mutation *mut = mutations_[mut_index];
+				
+				if (mut->mutation_type_ptr_ == mutation_type_ptr)
+				{
+					if (++match_count == 1)
+						first_match = mut;
+				}
+			}
+			
+			// Now allocate the result vector and assemble it
+			if (match_count == 1)
+			{
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
+			}
+			else
+			{
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
+				EidosValue_SP result_SP = EidosValue_SP(vec);
+				
+				if (match_count != 0)
+				{
+					for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+					{
+						Mutation *mut = mutations_[mut_index];
+						
+						if (mut->mutation_type_ptr_ == mutation_type_ptr)
+							vec->PushObjectElement(mut);
+					}
+				}
+				
+				return result_SP;
+			}
+		}
+			
 			
 			//
 			//	*********************	- (void)removeMutations(object mutations)
@@ -696,6 +768,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewMutation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_removeMutations));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -710,6 +783,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	static EidosInstanceMethodSignature *addNewMutationSig = nullptr;
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
+	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *removeMutationsSig = nullptr;
 	
 	if (!addMutationsSig)
@@ -719,6 +793,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_SN("originGeneration")->AddInt_S("position")->AddNumeric_S("selectionCoeff")->AddIntObject_S("originSubpop", gSLiM_Subpopulation_Class);
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
+		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 	}
 	
@@ -730,6 +805,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		case gID_addNewMutation:			return addNewMutationSig;
 		case gID_containsMutations:			return containsMutationsSig;
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
+		case gID_mutationsOfType:			return mutationsOfTypeSig;
 		case gID_removeMutations:			return removeMutationsSig;
 			
 			// all others, including gID_none

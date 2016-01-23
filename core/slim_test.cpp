@@ -791,6 +791,11 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].countOfMutationsOfType(1); stop(); }");
 	
+	// Test Genome - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { p1.genomes[0].mutationsOfType(m1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { p1.genomes[0].mutationsOfType(1); } ");
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { p1.genomes[0:1].mutationsOfType(1); } ");
+	
 	// Test Genome - (void)removeMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); stop(); }");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 10, 5000, 0.1, p1); gen.removeMutations(mut); gen.removeMutations(mut); stop(); }");	// legal to remove a mutation that is not present

@@ -1174,16 +1174,42 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20 ) or absent (
 \f2\fs18 F
 \f0\fs20 ).  This method is provided for speed; it is much faster than the corresponding Eidos code.\
-\pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(integer)countOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (integer)countOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f3 \
-\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns the number of mutations in the genome that are of the mutation type specified by 
+\f0\fs20 \cf0 Returns the number of mutations that are of the type specified by 
 \f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the genome.  If you need a vector of the matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, rather than just a count, use 
+\f2\fs18 -mutationsOfType()
 \f3\fs20 .
-\f0   This method is provided for speed; it is much faster than the corresponding Eidos code.\
+\f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (object<Mutation>)mutationsOfType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns an 
+\f2\fs18 object
+\f0\fs20  vector of all the mutations that are of the type specified by 
+\f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the genome.  If you just need a count of the matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, rather than a vector of the matches, use 
+\f2\fs18 -countOfMutationsOfType()
+\f3\fs20 .
+\f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)removeMutations(object<Mutation>\'a0mutations)
