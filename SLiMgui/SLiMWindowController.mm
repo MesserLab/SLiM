@@ -1566,7 +1566,7 @@
 								// Then import the population file
 								const char *filePath = [fileURL fileSystemRepresentation];
 								
-								sim->InitializePopulationFromFile(filePath);
+								sim->InitializePopulationFromFile(filePath, nullptr);
 								
 								// Figure out what generation the file says to start at
 								NSArray *matches = [regex matchesInString:popString options:0 range:NSMakeRange(0, [popString length])];

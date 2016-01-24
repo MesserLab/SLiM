@@ -170,7 +170,7 @@ void GetInputLine(istream &p_input_file, string &p_line)
 	p_line.erase(p_line.find_last_not_of(" \t") + 1);
 }
 
-void SLiMSim::InitializePopulationFromFile(const char *p_file)
+void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	std::map<int64_t,Mutation*> mutations;
 	string line, sub; 
@@ -220,7 +220,15 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file)
 		}
 		
 		// Create the population population
-		population_.AddSubpopulation(subpop_index, subpop_size, sex_ratio);
+		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_index, subpop_size, sex_ratio);
+		
+		// define a new Eidos variable to refer to the new subpopulation
+		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
+		
+		if (p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): new subpopulation symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
 	
 	// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
@@ -1967,7 +1975,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			population_.RemoveAllSubpopulationInfo();
 			
 			// then read from the file to get our new info
-			InitializePopulationFromFile(file_path.c_str());
+			InitializePopulationFromFile(file_path.c_str(), &p_interpreter);
 			
 			return gStaticEidosValueNULLInvisible;
 		}
