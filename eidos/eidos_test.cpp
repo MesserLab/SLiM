@@ -1548,6 +1548,46 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("cos(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptRaise("cos(string(0));", 0, "cannot be type");
 	
+	// cumProduct()
+	EidosAssertScriptSuccess("cumProduct(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("cumProduct(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess("cumProduct(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, -14, 252, 3024}));
+	EidosAssertScriptSuccess("cumProduct(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
+	EidosAssertScriptSuccess("cumProduct(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
+	EidosAssertScriptSuccess("cumProduct(c(-2.0, 7.0, -18.0, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, -14.0, 252.0, 3024.0}));
+	EidosAssertScriptRaise("cumProduct(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("cumProduct('foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("cumProduct(_Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("cumProduct(NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("cumProduct(logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("cumProduct(integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
+	EidosAssertScriptSuccess("cumProduct(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
+	EidosAssertScriptRaise("cumProduct(string(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
+	EidosAssertScriptRaise("cumProduct(c(-922337203685477581, 10));", 0, "multiplication overflow");
+	EidosAssertScriptRaise("cumProduct(c(922337203685477581, 10));", 0, "multiplication overflow");
+	
+	// cumSum()
+	EidosAssertScriptSuccess("cumSum(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("cumSum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess("cumSum(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, 5, -13, -1}));
+	EidosAssertScriptSuccess("cumSum(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
+	EidosAssertScriptSuccess("cumSum(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
+	EidosAssertScriptSuccess("cumSum(c(-2.0, 7.0, -18.0, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 5.0, -13.0, -1.0}));
+	EidosAssertScriptRaise("cumSum(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("cumSum('foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("cumSum(_Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("cumSum(NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("cumSum(logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("cumSum(integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
+	EidosAssertScriptSuccess("cumSum(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
+	EidosAssertScriptRaise("cumSum(string(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
+	EidosAssertScriptRaise("cumSum(c(-9223372036854775807, -1, -1));", 0, "addition overflow");
+	EidosAssertScriptRaise("cumSum(c(9223372036854775807, 1, 1));", 0, "addition overflow");
+	
 	// exp()
 	EidosAssertScriptSuccess("abs(exp(0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(exp(0.0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);

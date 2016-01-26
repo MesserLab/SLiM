@@ -70,6 +70,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("atan2",			EidosFunctionIdentifier::atan2Function,			kEidosValueMaskFloat))->AddNumeric("x")->AddNumeric("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ceil",				EidosFunctionIdentifier::ceilFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cos",				EidosFunctionIdentifier::cosFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cumProduct",		EidosFunctionIdentifier::cumProductFunction,	kEidosValueMaskNumeric))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cumSum",			EidosFunctionIdentifier::cumSumFunction,		kEidosValueMaskNumeric))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exp",				EidosFunctionIdentifier::expFunction,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("floor",			EidosFunctionIdentifier::floorFunction,			kEidosValueMaskFloat))->AddFloat("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("integerDiv",		EidosFunctionIdentifier::integerDivFunction,	kEidosValueMaskInt))->AddInt("x")->AddInt("y"));
@@ -750,6 +752,134 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					float_result->PushFloat(cos(arg0_value->FloatAtIndex(value_index, nullptr)));
+			}
+			break;
+		}
+			
+			
+			//	(numeric)cumProduct(numeric x)
+			#pragma mark cumProduct
+			
+		case EidosFunctionIdentifier::cumProductFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			EidosValueType arg0_type = arg0_value->Type();
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_type == EidosValueType::kValueInt)
+			{
+				if (arg0_count == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr)));
+				}
+				else
+				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+					int64_t product = 1;
+					EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(arg0_count);
+					result_SP = EidosValue_SP(int_result);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						int64_t operand = int_vec[value_index];
+						
+						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
+						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
+						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
+						bool overflow = __builtin_smulll_overflow(product, operand, &product);
+						
+						if (overflow)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer multiplication overflow in function cumProduct()." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(product);
+					}
+				}
+			}
+			else if (arg0_type == EidosValueType::kValueFloat)
+			{
+				if (arg0_count == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr)));
+				}
+				else
+				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = *arg0_value->FloatVector();
+					double product = 1.0;
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(arg0_count);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						product *= float_vec[value_index];
+						float_result->PushFloat(product);
+					}
+				}
+			}
+			break;
+		}
+			
+			
+			//	(numeric)cumSum(numeric x)
+			#pragma mark cumSum
+			
+		case EidosFunctionIdentifier::cumSumFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			EidosValueType arg0_type = arg0_value->Type();
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_type == EidosValueType::kValueInt)
+			{
+				if (arg0_count == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(arg0_value->IntAtIndex(0, nullptr)));
+				}
+				else
+				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+					const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+					int64_t sum = 0;
+					EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(arg0_count);
+					result_SP = EidosValue_SP(int_result);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						int64_t operand = int_vec[value_index];
+						
+						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
+						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
+						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
+						bool overflow = __builtin_saddll_overflow(sum, operand, &sum);
+						
+						if (overflow)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer addition overflow in function cumSum()." << eidos_terminate(nullptr);
+						
+						int_result->PushInt(sum);
+					}
+				}
+			}
+			else if (arg0_type == EidosValueType::kValueFloat)
+			{
+				if (arg0_count == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr)));
+				}
+				else
+				{
+					// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+					const std::vector<double> &float_vec = *arg0_value->FloatVector();
+					double sum = 0.0;
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(arg0_count);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						sum += float_vec[value_index];
+						float_result->PushFloat(sum);
+					}
+				}
 			}
 			break;
 		}

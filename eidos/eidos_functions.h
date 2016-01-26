@@ -49,6 +49,8 @@ enum class EidosFunctionIdentifier {
 	atan2Function,
 	ceilFunction,
 	cosFunction,
+	cumProductFunction,
+	cumSumFunction,
 	expFunction,
 	floorFunction,
 	integerDivFunction,
