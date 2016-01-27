@@ -1111,19 +1111,25 @@
 			maxGenerationsPerSecond = (uint64_t)floor(speedSliderValue * speedSliderValue * 1000 + 1.0);
 		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %llu", speedSliderValue, maxGenerationsPerSecond);
 		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+		BOOL reachedEnd = reachedSimulationEnd;
+		
 		do
 		{
 			if (continuousPlayGenerationsCompleted / intervalSinceStarting >= maxGenerationsPerSecond)
 				break;
 			
 			@autoreleasepool {
-				[self setReachedSimulationEnd:![self runSimOneGeneration]];
+				reachedEnd = ![self runSimOneGeneration];
 			}
 			
 			continuousPlayGenerationsCompleted++;
 		}
-		while (!reachedSimulationEnd && (-[startDate timeIntervalSinceNow] < 0.01));
+		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.01));
 		
+		[self setReachedSimulationEnd:reachedEnd];
 		[self updateAfterTick];
 		
 		if (!reachedSimulationEnd)
@@ -1203,17 +1209,23 @@
 	{
 		NSDate *startDate = [NSDate date];
 		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+		BOOL reachedEnd = reachedSimulationEnd;
+		
 		do
 		{
 			if (sim->generation_ >= targetGeneration)
 				break;
 			
 			@autoreleasepool {
-				[self setReachedSimulationEnd:![self runSimOneGeneration]];
+				reachedEnd = ![self runSimOneGeneration];
 			}
 		}
-		while (!reachedSimulationEnd && (-[startDate timeIntervalSinceNow] < 0.01));
+		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.01));
 		
+		[self setReachedSimulationEnd:reachedEnd];
 		[self updateAfterTick];
 		
 		if (!reachedSimulationEnd && !(sim->generation_ >= targetGeneration))
