@@ -351,18 +351,112 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	Mutation **mutations = mutationRegistry.mutations_;
 	int mutationCount = mutationRegistry.mutation_count_;
 	
-	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
-		const Mutation *mutation = mutations[mutIndex];
-		slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-		slim_position_t mutationPosition = mutation->position_;
-		NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		{
+			const Mutation *mutation = mutations[mutIndex];
+			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+			slim_position_t mutationPosition = mutation->position_;
+			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+			
+			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+			RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+			NSRectFill(mutationTickRect);
+		}
+	}
+	else
+	{
+		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
+		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
+		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
+		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
+		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+		int displayPixelWidth = (int)interiorRect.size.width;
+		int *heightBuffer = (int *)malloc(displayPixelWidth * sizeof(int));
 		
-		mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-		RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-		[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-		NSRectFill(mutationTickRect);
+		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
+		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+			mutations[mutIndex]->gui_scratch_reference_count_ = 0;
+		
+		// Then loop through the declared mutation types
+		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
+		
+		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
+		{
+			MutationType *mut_type = mutationTypeIter->second;
+			
+			// We optimize fixed-DFE mutation types only
+			if (mut_type->dfe_type_ == DFEType::kFixed)
+			{
+				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+				
+				bzero(heightBuffer, displayPixelWidth * sizeof(int));
+				
+				// Scan through the mutation list for mutations of this type with the right selcoeff
+				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				{
+					const Mutation *mutation = mutations[mutIndex];
+					
+					if ((mutation->mutation_type_ptr_ == mut_type) && (mutation->selection_coeff_ == mut_type_selcoeff))
+					{
+						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+						slim_position_t mutationPosition = mutation->position_;
+						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+						
+						int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+						int height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						
+						if ((xPos >= 0) && (xPos < displayPixelWidth))
+							if (height > heightBuffer[xPos])
+								heightBuffer[xPos] = height;
+						
+						mutation->gui_scratch_reference_count_ = 1;
+					}
+				}
+				
+				// Now draw all of the mutations we found, by looping through our radix bins
+				RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				
+				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+				{
+					int height = heightBuffer[binIndex];
+					
+					if (height)
+					{
+						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+						
+						NSRectFill(mutationTickRect);
+					}
+				}
+			}
+		}
+		
+		free(heightBuffer);
+		
+		// Draw any undrawn mutations on top
+		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		{
+			const Mutation *mutation = mutations[mutIndex];
+			
+			if (mutation->gui_scratch_reference_count_ == 0)
+			{
+				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+				slim_position_t mutationPosition = mutation->position_;
+				NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+				
+				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+				RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				NSRectFill(mutationTickRect);
+			}
+		}
 	}
 }
 
