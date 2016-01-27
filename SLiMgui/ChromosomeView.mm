@@ -318,26 +318,96 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	Population &pop = sim->population_;
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
-	for (const Substitution *substitution : substitutions)
+	if ((substitutions.size() < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
-		slim_position_t substitutionPosition = substitution->position_;
-		NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (const Substitution *substitution : substitutions)
+		{
+			slim_position_t substitutionPosition = substitution->position_;
+			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
+			
+			if (shouldDrawMutations)
+			{
+				// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
+				[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:1.0] set];
+			}
+			else
+			{
+				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+				float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+				
+				RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+			}
+			
+			NSRectFill(substitutionTickRect);
+		}
+	}
+	else
+	{
+		// We have a lot of substitutions, so do a radix sort, as we do in drawMutationsInInteriorRect: below.
+		int displayPixelWidth = (int)interiorRect.size.width;
+		const Substitution **subBuffer = (const Substitution **)calloc(displayPixelWidth, sizeof(Substitution *));
+		
+		for (const Substitution *substitution : substitutions)
+		{
+			slim_position_t substitutionPosition = substitution->position_;
+			double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
+			int xPos = (int)floor(startFraction * interiorRect.size.width);
+			
+			if ((xPos >= 0) && (xPos < displayPixelWidth))
+				subBuffer[xPos] = substitution;
+		}
 		
 		if (shouldDrawMutations)
 		{
 			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
+			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
+			
 			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:1.0] set];
+			
+			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+			{
+				const Substitution *substitution = subBuffer[binIndex];
+				
+				if (substitution)
+				{
+					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+					mutationTickRect.size.width = 1;
+					
+					// consolidate adjacent lines together, since they are all the same color
+					while ((binIndex + 1 < displayPixelWidth) && subBuffer[binIndex + 1])
+					{
+						mutationTickRect.size.width++;
+						binIndex++;
+					}
+					
+					NSRectFill(mutationTickRect);
+				}
+			}
 		}
 		else
 		{
 			// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
 			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 			
-			RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-			[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+			{
+				const Substitution *substitution = subBuffer[binIndex];
+				
+				if (substitution)
+				{
+					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+					
+					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					NSRectFill(mutationTickRect);
+				}
+			}
 		}
 		
-		NSRectFill(substitutionTickRect);
+		free(subBuffer);
 	}
 }
 
