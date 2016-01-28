@@ -1069,11 +1069,11 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewDrawnMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, io<Subpopulation>$\'a0originSubpop)
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewDrawnMutation(io<MutationType>$\'a0mutationType, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Add a new mutation to the genome with the specified 
 \f2\fs18 mutationType
@@ -1082,18 +1082,18 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20  object or by 
 \f2\fs18 integer
 \f0\fs20  identifier), 
+\f2\fs18 position
+\f0\fs20 , 
 \f2\fs18 originGeneration
 \f0\fs20  (which may be 
 \f2\fs18 NULL
-\f0\fs20  to specify the current generation), 
-\f2\fs18 position
-\f0\fs20 , and 
+\f0\fs20  or missing to specify the current generation), and 
 \f2\fs18 originSubpop
 \f0\fs20  (specified by the 
 \f2\fs18 Subpopulation
 \f0\fs20  object or by 
 \f2\fs18 integer
-\f0\fs20  identifier).  If 
+\f0\fs20  identifier, or may be missing to specify the subpopulation to which the target genome belongs).  If 
 \f2\fs18 originSubpop
 \f0\fs20  is supplied as an 
 \f2\fs18 integer
@@ -1109,16 +1109,16 @@ Note that if you wish to add the same new mutation to multiple genomes, you shou
 \f0\fs20 ; calling 
 \f2\fs18 addNewDrawnMutation()
 \f0\fs20  on a vector containing multiple genomes will generate a different drawn mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
-Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewMutation(io<MutationType>$\'a0mutationType, Ni$\'a0originGeneration, integer$\'a0position, numeric$\'a0selectionCoeff, io<Subpopulation>$\'a0originSubpop)
+\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewMutation(io<MutationType>$\'a0mutationType, numeric$\'a0selectionCoeff, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Add a new mutation to the genome with the specified 
 \f2\fs18 mutationType
@@ -1127,20 +1127,20 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20  object or by 
 \f2\fs18 integer
 \f0\fs20  identifier), 
+\f2\fs18 selectionCoeff
+\f0\fs20 , 
+\f2\fs18 position
+\f0\fs20 , 
 \f2\fs18 originGeneration
 \f0\fs20  (which may be 
 \f2\fs18 NULL
-\f0\fs20  to specify the current generation), 
-\f2\fs18 position
-\f0\fs20 , 
-\f2\fs18 selectionCoeff
-\f0\fs20 , and 
+\f0\fs20  or missing to specify the current generation), and 
 \f2\fs18 originSubpop
 \f0\fs20  (specified by the 
 \f2\fs18 Subpopulation
 \f0\fs20  object or by 
 \f2\fs18 integer
-\f0\fs20  identifier).  If 
+\f0\fs20  identifier, or may be missing to specify the subpopulation to which the target genome belongs).  If 
 \f2\fs18 originSubpop
 \f0\fs20  is supplied as an 
 \f2\fs18 integer
@@ -1156,7 +1156,7 @@ Note that if you wish to add the same new mutation to multiple genomes, you shou
 \f0\fs20 ; calling 
 \f2\fs18 addNewMutation()
 \f0\fs20  on a vector containing multiple genomes will generate a different mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
-Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()

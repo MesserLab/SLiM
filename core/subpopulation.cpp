@@ -919,6 +919,29 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 }
 
+bool Subpopulation::ContainsGenome(Genome *p_genome)
+{
+	if (parent_genomes_.size())
+	{
+		Genome *parent_genomes_front = &parent_genomes_.front();
+		Genome *parent_genomes_back = &parent_genomes_.back();
+		
+		if ((p_genome >= parent_genomes_front) && (p_genome <= parent_genomes_back))
+			return true;
+	}
+	
+	if (child_genomes_.size())
+	{
+		Genome *child_genomes_front = &child_genomes_.front();
+		Genome *child_genomes_back = &child_genomes_.back();
+		
+		if ((p_genome >= child_genomes_front) && (p_genome <= child_genomes_back))
+			return true;
+	}
+	
+	return false;
+}
+
 
 //
 //	Eidos support
