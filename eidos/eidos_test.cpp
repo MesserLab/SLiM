@@ -2446,13 +2446,27 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("ifelse(logical(0), NULL, integer(0));", 0, "to be the same type");
 	EidosAssertScriptRaise("ifelse(logical(0), integer(0), NULL);", 0, "to be the same type");
 	EidosAssertScriptSuccess("ifelse(logical(0), integer(0), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
-	EidosAssertScriptRaise("ifelse(logical(0), 5, 2);", 0, "of equal length");
+	EidosAssertScriptRaise("ifelse(logical(0), 5:6, 2);", 0, "of equal length");
+	EidosAssertScriptRaise("ifelse(logical(0), 5, 2:3);", 0, "of equal length");
 	EidosAssertScriptRaise("ifelse(T, integer(0), integer(0));", 0, "of equal length");
 	EidosAssertScriptRaise("ifelse(T, 5, 2:3);", 0, "of equal length");
 	EidosAssertScriptRaise("ifelse(T, 5:6, 2);", 0, "of equal length");
-	EidosAssertScriptRaise("ifelse(c(T,T), 5, 2);", 0, "of equal length");
+	EidosAssertScriptRaise("ifelse(c(T,T), 5:7, 2);", 0, "of equal length");
+	EidosAssertScriptRaise("ifelse(c(T,T), 5, 2:4);", 0, "of equal length");
+	EidosAssertScriptRaise("ifelse(c(T,T), 5:7, 2:4);", 0, "of equal length");
+	EidosAssertScriptSuccess("ifelse(logical(0), 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector()));
 	EidosAssertScriptSuccess("ifelse(T, 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("ifelse(F, 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess("ifelse(c(T,T), 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 5}));
+	EidosAssertScriptSuccess("ifelse(c(F,F), 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2}));
+	EidosAssertScriptSuccess("ifelse(c(T,F), 5, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 2}));
+	EidosAssertScriptSuccess("ifelse(c(T,T), 5:6, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 6}));
+	EidosAssertScriptSuccess("ifelse(c(T,T), 5, 2:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 5}));
+	EidosAssertScriptSuccess("ifelse(c(F,F), 5:6, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2}));
+	EidosAssertScriptSuccess("ifelse(c(F,F), 5, 2:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("ifelse(c(T,T), 5:6, 2:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 6}));
+	EidosAssertScriptSuccess("ifelse(c(F,F), 5:6, 2:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("ifelse(c(T,F), 5:6, 2:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 3}));
 	EidosAssertScriptSuccess("ifelse(c(T,F,F,T,F,T), 1:6, -6:-1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, -5, -4, 4, -2, 6}));
 	
 	// match()

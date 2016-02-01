@@ -3147,20 +3147,64 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			EidosValueType arg2_type = arg2_value->Type();
 			int arg2_count = arg2_value->Count();
 			
-			if (arg0_count != arg1_count || arg0_count != arg2_count)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments of equal length." << eidos_terminate(nullptr);
 			if (arg1_type != arg2_type)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments 2 and 3 to be the same type (" << arg1_type << " and " << arg2_type << " supplied)." << eidos_terminate(nullptr);
 			
-			result_SP = arg1_value->NewMatchingType();
-			EidosValue *result = result_SP.get();
-			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			if ((arg1_count == arg0_count) && (arg2_count == arg0_count))
 			{
-				if (logical_vec[value_index])
-					result->PushValueFromIndexOfEidosValue(value_index, *arg1_value, nullptr);
-				else
-					result->PushValueFromIndexOfEidosValue(value_index, *arg2_value, nullptr);
+				result_SP = arg1_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					if (logical_vec[value_index])
+						result->PushValueFromIndexOfEidosValue(value_index, *arg1_value, nullptr);
+					else
+						result->PushValueFromIndexOfEidosValue(value_index, *arg2_value, nullptr);
+				}
+			}
+			else if ((arg1_count == 1) && (arg2_count == 1))
+			{
+				result_SP = arg1_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					if (logical_vec[value_index])
+						result->PushValueFromIndexOfEidosValue(0, *arg1_value, nullptr);
+					else
+						result->PushValueFromIndexOfEidosValue(0, *arg2_value, nullptr);
+				}
+			}
+			else if ((arg1_count == arg0_count) && (arg2_count == 1))
+			{
+				result_SP = arg1_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					if (logical_vec[value_index])
+						result->PushValueFromIndexOfEidosValue(value_index, *arg1_value, nullptr);
+					else
+						result->PushValueFromIndexOfEidosValue(0, *arg2_value, nullptr);
+				}
+			}
+			else if ((arg1_count == 1) && (arg2_count == arg0_count))
+			{
+				result_SP = arg1_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int value_index = 0; value_index < arg0_count; ++value_index)
+				{
+					if (logical_vec[value_index])
+						result->PushValueFromIndexOfEidosValue(0, *arg1_value, nullptr);
+					else
+						result->PushValueFromIndexOfEidosValue(value_index, *arg2_value, nullptr);
+				}
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function ifelse() requires arguments of equal length, or trueValues and falseValues most both be of length 1." << eidos_terminate(nullptr);
 			}
 			break;
 		}

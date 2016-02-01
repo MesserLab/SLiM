@@ -1400,22 +1400,49 @@
 \f0\fs20  is 
 \f1\fs18 F
 \f0\fs20 .  The lengths of 
-\f1\fs18 test
-\f0\fs20 , 
 \f1\fs18 trueValues
-\f0\fs20 , and 
+\f0\fs20  and 
 \f1\fs18 falseValues
-\f0\fs20  must be equal, and the type of 
+\f0\fs20  must either be equal to 
+\f1\fs18 1
+\f0\fs20  or to the length of 
+\f1\fs18 test
+\f0\fs20 ; however, 
+\f1\fs18 trueValues
+\f0\fs20  and 
+\f1\fs18 falseValues
+\f0\fs20  don\'92t need to be the same length as each other.  Furthermore, the type of 
 \f1\fs18 trueValues
 \f0\fs20  and 
 \f1\fs18 falseValues
 \f0\fs20  must be the same (including, if they are 
 \f1\fs18 object
-\f0\fs20  type, their element type).  The return will be of the same length and type as 
+\f0\fs20  type, their element type).  The return will be of the same length as 
+\f1\fs18 test
+\f0\fs20 , and of the same type as 
 \f1\fs18 trueValues
 \f0\fs20  and 
 \f1\fs18 falseValues
-\f0\fs20 .  This is quite similar to a function in R of the same name; note, however, that Eidos evaluates all arguments to functions calls immediately, so 
+\f0\fs20 .  Each element of the return vector will be taken from the corresponding element of 
+\f1\fs18 trueValues
+\f0\fs20  if the corresponding element of 
+\f1\fs18 test
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20 , or from the corresponding element of 
+\f1\fs18 falseValues
+\f0\fs20  if the corresponding element of 
+\f1\fs18 test
+\f0\fs20  is 
+\f1\fs18 F
+\f0\fs20 ; if the vector from which the value is to be taken (i.e., 
+\f1\fs18 trueValues
+\f0\fs20  or 
+\f1\fs18 falseValues
+\f0\fs20 ) has a length of 
+\f1\fs18 1
+\f0\fs20 , that single value is used repeatedly, recycling the vector.\
+This is quite similar to a function in R of the same name; note, however, that Eidos evaluates all arguments to functions calls immediately, so 
 \f1\fs18 trueValues
 \f0\fs20  and 
 \f1\fs18 falseValues
