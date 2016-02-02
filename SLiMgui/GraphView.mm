@@ -932,7 +932,7 @@
 {
 }
 
-- (void)setNeedsDisplay
+- (void)updateAfterTick
 {
 	[self setNeedsDisplay:YES];
 }

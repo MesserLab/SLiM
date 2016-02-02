@@ -90,10 +90,11 @@
 	[super dealloc];
 }
 
-- (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+- (void)updateAfterTick
 {
 	if (![self yAxisIsUserRescaled])
 	{
+		SLiMWindowController *controller = [self slimWindowController];
 		SLiMSim *sim = controller->sim;
 		Population &pop = sim->population_;
 		double *history = pop.fitness_history_;
@@ -140,6 +141,8 @@
 			}
 		}
 	}
+	
+	[super updateAfterTick];
 }
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller

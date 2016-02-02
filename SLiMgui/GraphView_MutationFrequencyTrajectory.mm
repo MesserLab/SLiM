@@ -514,12 +514,14 @@
 	[self fetchDataForFinishedGeneration];
 }
 
-- (void)willDrawWithInteriorRect:(NSRect)interiorRect andController:(SLiMWindowController *)controller
+- (void)updateAfterTick
 {
 	// Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
 	[self addSubpopulationsToMenu];
 	[self addMutationTypesToMenu];
+	
+	[super updateAfterTick];
 }
 
 - (void)drawHistory:(MutationFrequencyHistory *)history inInteriorRect:(NSRect)interiorRect

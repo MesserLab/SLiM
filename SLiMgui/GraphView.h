@@ -132,7 +132,7 @@
 - (void)controllerRecycled;				// called by SLiMWindowController when the simulation is recycled, to let the GraphView do whatever re-initialization is needed
 - (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond
 - (void)controllerGenerationFinished;	// called by SLiMWindowController when a simulation generation ends, to allow per-generation data gathering; redrawing should not be done here
-- (void)setNeedsDisplay;				// shorthand for setNeedsDisplay:YES, to allow use of performSelector:
+- (void)updateAfterTick;				// by default, calls setNeedsDisplay:YES; can also perform other updating work
 
 @end
 

@@ -562,8 +562,8 @@
 			sim->chromosome_changed_ = false;
 	}
 	
-	// Update graph windows as well; it is assumed that all graphs need updating every tick
-	[self sendAllGraphViewsSelector:@selector(setNeedsDisplay)];
+	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
+	[self sendAllGraphViewsSelector:@selector(updateAfterTick)];
 }
 
 - (void)chromosomeSelectionChanged:(NSNotification *)note
