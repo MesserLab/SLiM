@@ -858,33 +858,62 @@
 \f2\fs20 .
 \f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rgamma(integer$
 \f2 \'a0
-\f1 n, numeric\'a0shape, [numeric\'a0scale])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 n, numeric\'a0mean, numeric\'a0shape)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
 \f0\fs20  
 \b random draws from a gamma distribution
-\b0  with shape parameter 
+\b0  with mean 
+\f1\fs18 mean
+\f0\fs20  and shape parameter 
 \f1\fs18 shape
-\f0\fs20  and scale parameter 
-\f1\fs18 scale
-\f2\fs20 .
-\f0   The 
-\f1\fs18 shape
+\f0\fs20 .  The 
+\f1\fs18 mean
 \f0\fs20  and 
-\f1\fs18 scale
+\f1\fs18 shape
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 scale
-\f0\fs20  is 
-\f1\fs18 1.0
-\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f0\fs20 , specifying a value for each draw.  Draws are made from a gamma distribution with probability density 
+\f2\i P
+\i0 (
+\i s
+\i0 \'a0|\'a0
+\f4\i \uc0\u945 
+\f2\i0 ,
+\f4\i \uc0\u946 
+\f2\i0 )\'a0= [
+\f4 \uc0\u915 
+\f2 (
+\f4\i \uc0\u945 
+\f2\i0 )
+\f4\i \uc0\u946 \u945 
+\f2\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
+\i s
+\i0 /
+\f4\i \uc0\u946 
+\f2\i0 )
+\f0 , where 
+\f4\i \uc0\u945 
+\f0\i0  is the shape parameter 
+\f1\fs18 shape
+\f0\fs20 , and the mean of the distribution given by 
+\f1\fs18 mean
+\f0\fs20  is equal to 
+\f4\i \uc0\u945 \u946 
+\f2\i0 .
+\f0   Values of 
+\f1\fs18 mean
+\f0\fs20  less than zero are allowed, and are equivalent (in principle) to the negation of a draw from a gamma distribution with the same 
+\f1\fs18 shape
+\f0\fs20  parameter and the negation of the 
+\f1\fs18 mean
+\f0\fs20  parameter.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

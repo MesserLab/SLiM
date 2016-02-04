@@ -2044,12 +2044,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rgamma(0, 0, 1000);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("rgamma(0, float(0), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptSuccess("rgamma(3, 0, 1000);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, 0.0, 0.0}));
-	EidosAssertScriptSuccess("setSeed(1); abs(rgamma(3, 1, 100) - c(88.1, 160.9, 35.9)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(1); abs(rgamma(3, 1, 100) - c(1.02069, 1.0825, 0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(1); abs(rgamma(3, -1, 100) - c(-1.02069, -1.0825, -0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
 	EidosAssertScriptRaise("rgamma(-1, 0, 1000);", 0, "requires n to be");
-	EidosAssertScriptRaise("rgamma(2, -1, 100.0);", 0, "requires shape");
-	EidosAssertScriptRaise("rgamma(2, 0, 0);", 0, "requires scale");
-	EidosAssertScriptRaise("rgamma(2, c(-10, 10, 1), 100.0);", 0, "requires shape to be");
-	EidosAssertScriptRaise("rgamma(2, 10.0, c(0.1, 10, 1));", 0, "requires scale to be");
+	EidosAssertScriptRaise("rgamma(2, 0, 0);", 0, "requires shape");
+	EidosAssertScriptRaise("rgamma(2, c(0.1, 10, 1), 10.0);", 0, "requires mean to be of length");
+	EidosAssertScriptRaise("rgamma(2, 10.0, c(0.1, 10, 1));", 0, "requires shape to be of length");
 	
 	// rlnorm()
 	EidosAssertScriptSuccess("rlnorm(0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));

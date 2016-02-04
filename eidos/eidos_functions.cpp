@@ -113,7 +113,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",			EidosFunctionIdentifier::dnormFunction,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kEidosValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("shape")->AddNumeric_O("scale"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			EidosFunctionIdentifier::rlnormFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("meanlog")->AddNumeric_O("sdlog"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
@@ -2204,48 +2204,48 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
-			//	(float)rgamma(integer$ n, numeric shape, [numeric scale])
+			//	(float)rgamma(integer$ n, numeric mean, numeric shape)
 			#pragma mark rgamma
 			
 		case EidosFunctionIdentifier::rgammaFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
-			EidosValue *arg_shape = p_arguments[1].get();
-			EidosValue *arg_scale = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+			EidosValue *arg_mean = p_arguments[1].get();
+			EidosValue *arg_shape = p_arguments[2].get();
+			int arg_mean_count = arg_mean->Count();
 			int arg_shape_count = arg_shape->Count();
-			int arg_scale_count = (arg_scale ? arg_scale->Count() : 1);
+			bool mean_singleton = (arg_mean_count == 1);
 			bool shape_singleton = (arg_shape_count == 1);
-			bool scale_singleton = (arg_scale_count == 1);
 			
 			if (num_draws < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+			if (!mean_singleton && (arg_mean_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires mean to be of length 1 or n." << eidos_terminate(nullptr);
 			if (!shape_singleton && (arg_shape_count != num_draws))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape to be of length 1 or n." << eidos_terminate(nullptr);
-			if (!scale_singleton && (arg_scale_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale to be of length 1 or n." << eidos_terminate(nullptr);
 			
+			double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
 			double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
-			double scale0 = ((arg_scale && arg_scale_count) ? arg_scale->FloatAtIndex(0, nullptr) : 1.0);
 			
-			if (shape_singleton && scale_singleton)
+			if (mean_singleton && shape_singleton)
 			{
-				if (shape0 < 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape >= 0.0 (" << shape0 << " supplied)." << eidos_terminate(nullptr);
-				if (scale0 <= 0.0)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale > 0.0 (" << scale0 << " supplied)." << eidos_terminate(nullptr);
+				if (shape0 <= 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape > 0.0 (" << shape0 << " supplied)." << eidos_terminate(nullptr);
 				
 				if (num_draws == 1)
 				{
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma(gEidos_rng, shape0, scale0)));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma(gEidos_rng, shape0, mean0/shape0)));
 				}
 				else
 				{
 					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
 					result_SP = EidosValue_SP(float_result);
 					
+					double scale = mean0 / shape0;
+					
 					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-						float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape0, scale0));
+						float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape0, scale));
 				}
 			}
 			else
@@ -2255,15 +2255,13 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
+					double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(draw_index, nullptr));
 					double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(draw_index, nullptr));
-					double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex(draw_index, nullptr));
 					
-					if (shape < 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape >= 0.0 (" << shape << " supplied)." << eidos_terminate(nullptr);
-					if (scale <= 0.0)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires scale > 0.0 (" << scale << " supplied)." << eidos_terminate(nullptr);
+					if (shape <= 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rgamma() requires shape > 0.0 (" << shape << " supplied)." << eidos_terminate(nullptr);
 					
-					float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape, scale));
+					float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape, mean / shape));
 				}
 			}
 			
