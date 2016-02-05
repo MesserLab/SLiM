@@ -1,24 +1,37 @@
 SLiM:
 	setting sim.generation needs to fix up various generation-based buffers; see FIXME
 	write the SLiM Cookbook
+	could add DFE: normal distribution (document that it is unbounded and can thus cross 0 and can give s < -1)
+	could add DFE: user-specified with lookup tables, similar to how recombination rate is specified, to allow arbitrary DFEs from the user
+	mutationsOfType() method could be optimized by caching the result, invalidating the cache only when the registry changes; or by keeping separate registries by type...?
+	optimize fitness callback mechanism: it should know which mutation types have active callbacks, and should short-circuit the callback mechanism for types with no callback
+	crash: adding a mutation with an introduction generation later than the actual gen can lead to a negative fixation time, causing a negative bin number in the tally code
+	add a way to calculate the fitness of an individual, period, rather than the fitness effect per mutation
+		think about how fitness() callbacks work; would be nice to be able to say "this is it for this individual" or "this is it for this mutation type"
 
 Eidos:
 	think about allowing named arguments as an optional syntax; named arguments good
 	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
+	precalculate and fold expressions like (0:499)*2+1
+	add tests to exercise all compound-operator cases like *= += etc.
+	fix code completion to handle declared variables – search backwards for an assignment to that variable name, and extract the type from the right-hand side
+		or perhaps ask the user what type it is, and remember in a dictionary?
+		code completion should also know when you're inside a callback, and supply the correct additional variables
 
 SLiMgui work:
 	update the SLiMgui Help file, which is presently the version 1.8 PDF
 	do a better job saving window positions, splitter positions, etc.
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
+	Aaron feedback: need some kind of UI cue as to why splitting a subpop does not work in the initialization step; need to channel users into the right mental model
+	improve the color slider spectra; neutral mutations should be easily distinguished from nearly neutral regardless of slider position
 
 scriptability:
 	extensions for Daphnia model:
 		add a "modify generated child" event that can be used to make resting eggs by (1) setting a flag saying that the generated child should not be used, and (2) scheduling a new script event for the future that wakes up the resting egg
 		add a "generate child" event that can be used to wake up a resting egg by taking values defining the mutations present and creating a child out of them
 		add a "add existing mutation" method that searches for an exact match for mutation parameters, uses that mutation if found, otherwise makes a new mutation – or use an int64_t mutation id to uniquely identify the mutation to re-create, perhaps even better but more complex
-	selective sweeps - use scripting to guarantee that a mutation sweeps by taking a snapshot and then restoring the snapshot if conditions are not met (like the mutation is lost)
 
 changes to mention in docs:
 	changed comment format from / to //
