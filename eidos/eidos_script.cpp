@@ -98,8 +98,11 @@ EidosScript::~EidosScript(void)
 void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 {
 	// set up error tracking for this script
+	// Note: Here and elsewhere in this method, if p_make_bad_tokens is set we do not do error tracking.  This
+	// is so that we don't overwrite valid error tracking info when we're tokenizing for internal purposes.
 	EidosScript *current_script_save = gEidosCurrentScript;
-	gEidosCurrentScript = this;
+	if (!p_make_bad_tokens)
+		gEidosCurrentScript = this;
 	
 	// delete all existing tokens
 	token_stream_.clear();
@@ -189,11 +192,6 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					
 					while (true)
 					{
-						gEidosCharacterStartOfError = token_start;
-						gEidosCharacterEndOfError = token_end;
-						gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-						gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-						
 						if (token_end + 1 >= len)
 						{
 							if (p_make_bad_tokens)
@@ -201,6 +199,11 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								token_type = EidosTokenType::kTokenBad;
 								break;
 							}
+							
+							gEidosCharacterStartOfError = token_start;
+							gEidosCharacterEndOfError = token_end;
+							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << eidos_terminate();
 						}
@@ -388,14 +391,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					token_type = EidosTokenType::kTokenString;
 					
 					do 
-						
 					{
-						// during tokenization we don't treat the error position as a stack
-						gEidosCharacterStartOfError = token_start;
-						gEidosCharacterEndOfError = token_end;
-						gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-						gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-						
 						// unlike most other tokens, string literals do not terminate automatically at EOF or an illegal character
 						if (token_end + 1 == len)
 						{
@@ -404,6 +400,11 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								token_type = EidosTokenType::kTokenBad;
 								break;
 							}
+							
+							gEidosCharacterStartOfError = token_start;
+							gEidosCharacterEndOfError = token_end;
+							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 						}
@@ -427,6 +428,11 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 									token_type = EidosTokenType::kTokenBad;
 									break;
 								}
+								
+								gEidosCharacterStartOfError = token_start;
+								gEidosCharacterEndOfError = token_end;
+								gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+								gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 								
 								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 							}
@@ -474,6 +480,11 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								token_type = EidosTokenType::kTokenBad;
 								break;
 							}
+							
+							gEidosCharacterStartOfError = token_start;
+							gEidosCharacterEndOfError = token_end;
+							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
+							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
 						}
@@ -589,7 +600,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	}
 	
 	// restore error tracking
-	gEidosCurrentScript = current_script_save;
+	if (!p_make_bad_tokens)
+		gEidosCurrentScript = current_script_save;
 }
 
 void EidosScript::Consume(void)
