@@ -661,13 +661,21 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 "e"
 \f0\fs20 , in which case the ellipsis should supply a 
 \f2\fs18 numeric$
-\f0\fs20  mean selection coefficient for the exponential distribution; or 
+\f0\fs20  mean selection coefficient for the exponential distribution; 
 \f2\fs18 "g"
 \f0\fs20 , in which case the ellipsis should supply a 
 \f2\fs18 numeric$
 \f0\fs20  mean selection coefficient and a 
 \f2\fs18 numeric$
-\f0\fs20  alpha shape parameter (see SLiM\'92s documentation for further details).  This is normally a constant in simulations, so be sure you know what you are doing.
+\f0\fs20  alpha shape parameter for a gamma distribution (using the same parameterization as the Eidos function 
+\f2\fs18 rgamma()
+\f0\fs20 ); or 
+\f2\fs18 "n"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  mean selection coefficient and a 
+\f2\fs18 numeric$
+\f0\fs20  sigma (standard deviation) parameter for a normal distribution.  This is normally a constant in simulations, so be sure you know what you are doing.
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

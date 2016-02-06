@@ -37,10 +37,12 @@
 	// set initial control values
 	[mutationTypeTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)[self bestAvailableMuttypeID]]];
 	[dominanceCoeffTextField setStringValue:@"1.0"];
-	[fixedSelCoeffTextField setStringValue:@"1.0"];
-	[expMeanSelCoeffTextField setStringValue:@"1.0"];
-	[gammaMeanSelCoeffTextField setStringValue:@"1.0"];
+	[fixedSelCoeffTextField setStringValue:@"0.0"];
+	[expMeanSelCoeffTextField setStringValue:@"0.1"];
+	[gammaMeanSelCoeffTextField setStringValue:@"-0.1"];
 	[gammaAlphaTextField setStringValue:@"1.0"];
+	[normalMeanSelCoeffTextField setStringValue:@"0.0"];
+	[normalSigmaTextField setStringValue:@"0.1"];
 	
 	[super configSheetLoaded];
 }
@@ -69,35 +71,50 @@
 	[gammaDFEParamsLabel2 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 2)]];
 	[gammaMeanSelCoeffTextField setEnabled:(dfeTag == 2)];
 	[gammaAlphaTextField setEnabled:(dfeTag == 2)];
+	[normalDFEParamsLabel1 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 3)]];
+	[normalDFEParamsLabel2 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 3)]];
+	[normalMeanSelCoeffTextField setEnabled:(dfeTag == 3)];
+	[normalSigmaTextField setEnabled:(dfeTag == 3)];
 	
 	// set all DFE param textfields to a white background, and then validate them below; this way if they are not enabled they are always white
 	[fixedSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
 	[expMeanSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
 	[gammaMeanSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
-	[gammaMeanSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
 	[gammaAlphaTextField setBackgroundColor:[NSColor whiteColor]];
+	[normalMeanSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
+	[normalSigmaTextField setBackgroundColor:[NSColor whiteColor]];
 	
 	if (dfeTag == 0)		// fixed
 	{
-		BOOL fixedCoeffValid = [ScriptMod validFloatValueInTextField:fixedSelCoeffTextField withMin:0.0 max:999.0];
+		BOOL fixedCoeffValid = [ScriptMod validFloatValueInTextField:fixedSelCoeffTextField withMin:-999.0 max:999.0];
 		validInput = validInput && fixedCoeffValid;
 		[fixedSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:fixedCoeffValid]];
 	}
 	else if (dfeTag == 1)	// exponential
 	{
-		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:expMeanSelCoeffTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
+		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:expMeanSelCoeffTextField withMin:-999.0 max:999.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && meanCoeffValid;
 		[expMeanSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:meanCoeffValid]];
 	}
 	else if (dfeTag == 2)	// gamma
 	{
-		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:gammaMeanSelCoeffTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
+		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:gammaMeanSelCoeffTextField withMin:-999.0 max:999.0 excludingMin:YES excludingMax:NO];
 		validInput = validInput && meanCoeffValid;
 		[gammaMeanSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:meanCoeffValid]];
 		
 		BOOL alphaValid = [ScriptMod validFloatValueInTextField:gammaAlphaTextField withMin:0.0 max:999.0];
 		validInput = validInput && alphaValid;
 		[gammaAlphaTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:alphaValid]];
+	}
+	else if (dfeTag == 3)	// normal
+	{
+		BOOL meanCoeffValid = [ScriptMod validFloatValueInTextField:normalMeanSelCoeffTextField withMin:-999.0 max:999.0 excludingMin:YES excludingMax:NO];
+		validInput = validInput && meanCoeffValid;
+		[normalMeanSelCoeffTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:meanCoeffValid]];
+		
+		BOOL sigmaValid = [ScriptMod validFloatValueInTextField:normalSigmaTextField withMin:0.0 max:999.0];
+		validInput = validInput && sigmaValid;
+		[normalSigmaTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sigmaValid]];
 	}
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
@@ -127,6 +144,8 @@
 		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"e\", %@);\n}\n", mutationTypeID, dominanceCoeffString, [expMeanSelCoeffTextField stringValue]];
 	else if (dfeTag == 2)	// gamma
 		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"g\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [gammaMeanSelCoeffTextField stringValue], [gammaAlphaTextField stringValue]];
+	else if (dfeTag == 3)	// normal
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"n\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [normalMeanSelCoeffTextField stringValue], [normalSigmaTextField stringValue]];
 	
 	return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@);\n}\n", mutationTypeID, dominanceCoeffString];
 }

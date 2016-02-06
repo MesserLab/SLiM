@@ -34,6 +34,10 @@
 	IBOutlet NSTextField *gammaDFEParamsLabel2;
 	IBOutlet NSTextField *gammaMeanSelCoeffTextField;
 	IBOutlet NSTextField *gammaAlphaTextField;
+	IBOutlet NSTextField *normalDFEParamsLabel1;
+	IBOutlet NSTextField *normalDFEParamsLabel2;
+	IBOutlet NSTextField *normalMeanSelCoeffTextField;
+	IBOutlet NSTextField *normalSigmaTextField;
 }
 @end
 

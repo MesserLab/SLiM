@@ -44,7 +44,8 @@ extern EidosObjectClass *gSLiM_MutationType_Class;
 enum class DFEType : char {
 	kFixed = 0,
 	kGamma,
-	kExponential
+	kExponential,
+	kNormal
 };
 
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
@@ -70,7 +71,7 @@ public:
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
 	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
-	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential)
+	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
 	slim_usertag_t tag_value_;					// a user-defined tag value
