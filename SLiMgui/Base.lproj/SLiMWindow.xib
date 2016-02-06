@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9060" systemVersion="14F1021" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15D21" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9060"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="SLiMWindowController">
@@ -76,11 +76,11 @@
                     <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" horizontalScrollElasticity="none" verticalScrollElasticity="none" translatesAutoresizingMaskIntoConstraints="NO" id="gYT-79-LuL" userLabel="Bordered Scroll View - SLiM Table View">
                         <rect key="frame" x="20" y="750" width="257" height="208"/>
                         <clipView key="contentView" id="W1T-hP-cku">
-                            <rect key="frame" x="1" y="0.0" width="238" height="134"/>
+                            <rect key="frame" x="1" y="0.0" width="255" height="207"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="firstColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" headerView="Pg2-UV-Ozl" id="l73-oi-ONH" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                    <rect key="frame" x="0.0" y="0.0" width="256" height="190"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="256" height="184"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -88,7 +88,7 @@
                                     <tableColumns>
                                         <tableColumn editable="NO" width="42" minWidth="42" maxWidth="42" headerToolTip="the Eidos identifier for the subpopulation" id="JUP-60-29u">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -101,7 +101,7 @@
                                         </tableColumn>
                                         <tableColumn editable="NO" width="48" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="N">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -114,7 +114,7 @@
                                         </tableColumn>
                                         <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the selfing rate of the subpopulation" id="Hbw-nw-0u9">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="self">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -127,7 +127,7 @@
                                         </tableColumn>
                                         <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the cloning rate of the subpopulation, for females" id="abH-RI-Xxq">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="fcl">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -140,7 +140,7 @@
                                         </tableColumn>
                                         <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the cloning rate of the subpopulation, for males" id="3aN-DZ-0sG">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="mcl">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -153,7 +153,7 @@
                                         </tableColumn>
                                         <tableColumn editable="NO" width="37" minWidth="37" maxWidth="37" headerToolTip="the sex ratio of the subpopulation, M:(M+F)" id="ago-k9-R5M">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="sex">
-                                                <font key="font" metaFont="smallSystemBold"/>
+                                                <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
@@ -186,12 +186,12 @@
                             <rect key="frame" x="1" y="119" width="223" height="15"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
-                        <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="LtZ-kw-GFb">
+                        <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="LtZ-kw-GFb">
                             <rect key="frame" x="224" y="17" width="15" height="102"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <tableHeaderView key="headerView" id="Pg2-UV-Ozl">
-                            <rect key="frame" x="0.0" y="0.0" width="256" height="17"/>
+                            <rect key="frame" x="0.0" y="0.0" width="256" height="23"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </tableHeaderView>
                     </scrollView>
@@ -565,7 +565,7 @@
                             </binding>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Bdq-3V-iQ8">
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bdq-3V-iQ8">
                         <rect key="frame" x="962" y="850" width="78" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation:" id="fmB-1c-4a3">
                             <font key="font" metaFont="systemBold"/>
@@ -576,7 +576,7 @@
                             <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="K0I-2S-JQz"/>
                         </connections>
                     </textField>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Li-Tb-lf1">
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2Li-Tb-lf1">
                         <rect key="frame" x="962" y="817" width="98" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Fitness values:" id="ud2-EE-3Fg">
                             <font key="font" metaFont="systemBold"/>
@@ -587,7 +587,7 @@
                             <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="dib-ph-3zt"/>
                         </connections>
                     </textField>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MEL-RZ-Op6">
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MEL-RZ-Op6">
                         <rect key="frame" x="962" y="752" width="144" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Selection coefficients:" id="i3E-i5-VhN">
                             <font key="font" metaFont="systemBold"/>
@@ -598,7 +598,7 @@
                             <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="WHb-o1-P3j"/>
                         </connections>
                     </textField>
-                    <textField toolTip="the generation that is about to execute" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
+                    <textField toolTip="the generation that is about to execute" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
                         <rect key="frame" x="1071" y="848" width="89" height="22"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1" drawsBackground="YES" id="bq2-MX-jxa">
                             <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
@@ -698,7 +698,7 @@
                                             <rect key="frame" x="1" y="1" width="223" height="133"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
+                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
                                                     <rect key="frame" x="0.0" y="0.0" width="223" height="524"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -765,7 +765,7 @@
                                             </binding>
                                         </connections>
                                     </button>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
                                         <rect key="frame" x="95" y="510" width="117" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Input Commands:" id="5TY-HF-5xK">
                                             <font key="font" metaFont="systemBold"/>
@@ -887,7 +887,7 @@
                                             </binding>
                                         </connections>
                                     </button>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="25p-qC-Ntg">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="25p-qC-Ntg">
                                         <rect key="frame" x="49" y="510" width="80" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Run Output:" id="mtR-8d-kHj">
                                             <font key="font" metaFont="systemBold"/>
@@ -917,7 +917,7 @@
                                             </binding>
                                         </connections>
                                     </button>
-                                    <button toolTip="add an output command" translatesAutoresizingMaskIntoConstraints="NO" id="sTd-Ob-2rT" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
+                                    <button toolTip="add an output command" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sTd-Ob-2rT" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
                                         <rect key="frame" x="147" y="508" width="20" height="20"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="20" id="Ius-KD-8G4"/>
@@ -935,7 +935,7 @@
                                             </binding>
                                         </connections>
                                     </button>
-                                    <button toolTip="show a graph" translatesAutoresizingMaskIntoConstraints="NO" id="jBY-mF-gPl" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
+                                    <button toolTip="show a graph" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="jBY-mF-gPl" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
                                         <rect key="frame" x="170" y="508" width="20" height="20"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="20" id="KJG-l7-7ce"/>
@@ -983,24 +983,24 @@
                             <outlet property="delegate" destination="-2" id="bR3-qB-Bu7"/>
                         </connections>
                     </splitView>
-                    <progressIndicator horizontalHuggingPriority="750" verticalHuggingPriority="750" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="VWw-o4-Pjo">
+                    <progressIndicator horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="VWw-o4-Pjo">
                         <rect key="frame" x="1047" y="849" width="16" height="16"/>
                     </progressIndicator>
-                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="34c-xZ-32c" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
+                    <customView misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="34c-xZ-32c" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
                         <rect key="frame" x="966" y="782" width="182" height="27"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="27" id="3F2-1a-Am5"/>
                             <constraint firstAttribute="width" constant="182" id="DvR-yi-fiy"/>
                         </constraints>
                     </customView>
-                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="SGz-ny-AvE" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
+                    <customView misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SGz-ny-AvE" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
                         <rect key="frame" x="966" y="717" width="182" height="27"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="182" id="F6U-Qr-9aI"/>
                             <constraint firstAttribute="height" constant="27" id="z5A-Wl-aoP"/>
                         </constraints>
                     </customView>
-                    <slider toolTip="fitness coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="4kM-3W-gya">
+                    <slider toolTip="fitness coloring scale factor" horizontalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4kM-3W-gya">
                         <rect key="frame" x="1146" y="781" width="15" height="53"/>
                         <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="3" doubleValue="1.5" tickMarkPosition="right" sliderType="linear" id="5GY-Bd-ALg"/>
                         <connections>
@@ -1012,7 +1012,7 @@
                             </binding>
                         </connections>
                     </slider>
-                    <slider toolTip="selection coefficient coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mYQ-CE-Kge">
+                    <slider toolTip="selection coefficient coloring scale factor" horizontalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mYQ-CE-Kge">
                         <rect key="frame" x="1146" y="716" width="15" height="53"/>
                         <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="10" doubleValue="3.5" tickMarkPosition="right" sliderType="linear" id="Sts-DM-74l"/>
                         <connections>
@@ -1326,7 +1326,7 @@
             <rect key="frame" x="0.0" y="0.0" width="280" height="570"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="DPt-AC-FkI">
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DPt-AC-FkI">
                     <rect key="frame" x="18" y="533" width="104" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Mutation Types:" id="kbX-rh-UR0">
                         <font key="font" metaFont="systemBold"/>
@@ -1337,7 +1337,7 @@
                         <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="2mq-SA-JiA"/>
                     </connections>
                 </textField>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="4rT-qK-JNW">
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4rT-qK-JNW">
                     <rect key="frame" x="18" y="350" width="160" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Genomic Element Types:" id="j3V-NJ-ulW">
                         <font key="font" metaFont="systemBold"/>
@@ -1351,11 +1351,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7GG-eb-uRQ">
                     <rect key="frame" x="32" y="386" width="228" height="139"/>
                     <clipView key="contentView" id="kOe-M0-icb">
-                        <rect key="frame" x="1" y="0.0" width="238" height="134"/>
+                        <rect key="frame" x="1" y="0.0" width="226" height="138"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="bNE-qm-DmG" id="cuy-J5-PqR" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="121"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1431,23 +1431,23 @@
                         <rect key="frame" x="1" y="119" width="223" height="15"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
-                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="1IA-b0-dsX">
+                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="1IA-b0-dsX">
                         <rect key="frame" x="224" y="17" width="15" height="102"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
                     <tableHeaderView key="headerView" id="bNE-qm-DmG">
-                        <rect key="frame" x="0.0" y="0.0" width="226" height="17"/>
+                        <rect key="frame" x="0.0" y="0.0" width="226" height="23"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sez-rK-O1h">
                     <rect key="frame" x="32" y="203" width="228" height="139"/>
                     <clipView key="contentView" id="y9i-Z5-n1Q">
-                        <rect key="frame" x="1" y="0.0" width="238" height="134"/>
+                        <rect key="frame" x="1" y="0.0" width="226" height="138"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="8xi-NL-17O" id="YFd-nW-pee" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="121"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1510,16 +1510,16 @@
                         <rect key="frame" x="1" y="119" width="223" height="15"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
-                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="Ni5-6s-Xke">
+                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="Ni5-6s-Xke">
                         <rect key="frame" x="224" y="17" width="15" height="102"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
                     <tableHeaderView key="headerView" id="8xi-NL-17O">
-                        <rect key="frame" x="0.0" y="0.0" width="226" height="17"/>
+                        <rect key="frame" x="0.0" y="0.0" width="226" height="23"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
                     <rect key="frame" x="18" y="167" width="90" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos Blocks:" id="OOa-Ar-p63">
                         <font key="font" metaFont="systemBold"/>
@@ -1533,11 +1533,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8qO-Fw-xcP">
                     <rect key="frame" x="32" y="20" width="228" height="139"/>
                     <clipView key="contentView" id="RTN-L2-LBh">
-                        <rect key="frame" x="1" y="0.0" width="238" height="134"/>
+                        <rect key="frame" x="1" y="0.0" width="226" height="138"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="NXa-cS-jsO" id="7Xo-DL-2qY" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="121"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1613,12 +1613,12 @@
                         <rect key="frame" x="1" y="119" width="223" height="15"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
-                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="bJW-GP-cAS">
+                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="bJW-GP-cAS">
                         <rect key="frame" x="224" y="17" width="15" height="102"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </scroller>
                     <tableHeaderView key="headerView" id="NXa-cS-jsO">
-                        <rect key="frame" x="0.0" y="0.0" width="226" height="17"/>
+                        <rect key="frame" x="0.0" y="0.0" width="226" height="23"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
