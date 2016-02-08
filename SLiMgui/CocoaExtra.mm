@@ -173,7 +173,11 @@ const int heightForTicks = 15;
 	{
 		NSRect stripe = NSMakeRect(interiorRect.origin.x + x, interiorRect.origin.y, 1, interiorRect.size.height);
 		float red = 0.0, green = 0.0, blue = 0.0;
-		double fraction = x / interiorRect.size.width;	// note this is never quite 1.0
+		double fraction = x / (interiorRect.size.width - 1);
+		
+		// guarantee that there is a pixel position where fraction is 0.5, so neutrality gets drawn
+		if (x == floor((interiorRect.size.width - 1) / 2.0))
+			fraction = 0.5;
 		
 		if (metric == 1)
 		{
@@ -212,7 +216,7 @@ const int heightForTicks = 15;
 
 @end
 
-const float greenBrightness = 0.9f;
+const float greenBrightness = 0.8f;
 
 void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
@@ -257,33 +261,54 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	// and add 1, just so we can re-use the same code as in RGBForFitness()
 	value += 1.0;
 	
-	if (value <= 0.5)
+	if (value <= 0.0)
 	{
-		// value <= 0.5 is a shade of red, going down to black
-		*colorRed = (float)(value * 2.0);
+		// value <= 0.0 is the darkest shade of red we use
+		*colorRed = 0.5;
 		*colorGreen = 0.0;
 		*colorBlue = 0.0;
 	}
-	else if (value >= 2.0)
+	else if (value <= 0.5)
 	{
-		// value >= 2.0 is a shade of green, going up to white
-		*colorRed = (float)((value - 2.0) * greenBrightness / value);
-		*colorGreen = greenBrightness;
-		*colorBlue = (float)((value - 2.0) * greenBrightness / value);
+		// value <= 0.5 is a shade of red, going down toward black
+		*colorRed = (float)(value + 0.5);
+		*colorGreen = 0.0;
+		*colorBlue = 0.0;
 	}
-	else if (value <= 1.0)
+	else if (value < 1.0)
 	{
-		// value <= 1.0 (but > 0.5) goes from red (unfit) to yellow (neutral)
+		// value <= 1.0 (but > 0.5) goes from red (very unfit) to orange (nearly neutral)
 		*colorRed = 1.0;
-		*colorGreen = (float)((value - 0.5) * 2.0);
+		*colorGreen = (float)((value - 0.5) * 1.0);
 		*colorBlue = 0.0;
 	}
-	else	// 1.0 < value < 2.0
+	else if (value == 1.0)
 	{
-		// value > 1.0 (but < 2.0) goes from yellow (neutral) to green (fit)
-		*colorRed = (float)(2.0 - value);
-		*colorGreen = (float)(greenBrightness + (1.0 - greenBrightness) * (2.0 - value));
+		// exactly neutral mutations are yellow
+		*colorRed = 1.0;
+		*colorGreen = 1.0;
 		*colorBlue = 0.0;
+	}
+	else if (value <= 1.5)
+	{
+		// value > 1.0 (but < 1.5) goes from green (nearly neutral) to cyan (fit)
+		*colorRed = 0.0;
+		*colorGreen = greenBrightness;
+		*colorBlue = (float)((value - 1.0) * 2.0);
+	}
+	else if (value <= 2.0)
+	{
+		// value > 1.5 (but < 2.0) goes from cyan (fit) to blue (very fit)
+		*colorRed = 0.0;
+		*colorGreen = (float)(greenBrightness * ((2.0 - value) * 2.0));
+		*colorBlue = 1.0;
+	}
+	else // (value > 2.0)
+	{
+		// value > 2.0 is a shade of blue, going up toward white
+		*colorRed = (float)((value - 2.0) * 0.75 / value);
+		*colorGreen = (float)((value - 2.0) * 0.75 / value);
+		*colorBlue = 1.0;
 	}
 }
 

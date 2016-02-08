@@ -24,7 +24,6 @@ SLiMgui work:
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 	Aaron feedback: need some kind of UI cue as to why splitting a subpop does not work in the initialization step; need to channel users into the right mental model
-	improve the color slider spectra; neutral mutations should be easily distinguished from nearly neutral regardless of slider position
 
 scriptability:
 	extensions for Daphnia model:
