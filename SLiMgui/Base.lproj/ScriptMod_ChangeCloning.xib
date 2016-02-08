@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="7702" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15D21" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="7702"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="ScriptMod_ChangeCloning">
@@ -14,11 +14,11 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
+        <customView misplaced="YES" placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
             <rect key="frame" x="0.0" y="0.0" width="403" height="151"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cXU-20-n64">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cXU-20-n64">
                     <rect key="frame" x="48" y="104" width="146" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation for change:" id="Teb-5E-ffj">
                         <font key="font" metaFont="system"/>
@@ -26,7 +26,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
                     <rect key="frame" x="48" y="67" width="164" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Subpopulation to change:" id="RcV-Ss-pQT">
                         <font key="font" metaFont="system"/>
@@ -34,7 +34,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="M8O-Rd-GEL">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M8O-Rd-GEL">
                     <rect key="frame" x="48" y="30" width="204" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="New subpopulation cloning rate:" id="TZd-C3-yca">
                         <font key="font" metaFont="system"/>
@@ -42,7 +42,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
                     <rect key="frame" x="258" y="102" width="95" height="22"/>
                     <constraints>
                         <constraint firstAttribute="width" constant="95" id="5cw-Ku-huL"/>
@@ -56,7 +56,7 @@
                         <outlet property="delegate" destination="-2" id="vnx-QO-T2l"/>
                     </connections>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BlU-kC-voe">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BlU-kC-voe">
                     <rect key="frame" x="256" y="61" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="zWb-ks-v7K" id="cyH-24-qrh">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -70,7 +70,7 @@
                         </menu>
                     </popUpButtonCell>
                 </popUpButton>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hsR-7t-6Qj">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hsR-7t-6Qj">
                     <rect key="frame" x="258" y="28" width="95" height="22"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="tQp-ap-zPS">
                         <font key="font" metaFont="system"/>

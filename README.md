@@ -20,7 +20,7 @@ Messer Lab home page for SLiM: [http://messerlab.org/software/](http://messerlab
 License
 ----------
 
-Copyright (c) 2015 Philipp Messer.  All rights reserved.
+Copyright (c) 2016 Philipp Messer.  All rights reserved.
 
 This file is part of SLiM.
 

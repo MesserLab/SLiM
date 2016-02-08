@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15D21" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="ScriptMod_AddGenomicElementType">
@@ -21,7 +21,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
+        <customView misplaced="YES" placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
             <rect key="frame" x="0.0" y="0.0" width="371" height="299"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
@@ -33,7 +33,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cOx-n1-K14">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cOx-n1-K14">
                     <rect key="frame" x="48" y="252" width="164" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Genomic element type ID:" id="ka4-JZ-KPg">
                         <font key="font" metaFont="system"/>
@@ -41,7 +41,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
                     <rect key="frame" x="64" y="178" width="126" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Relative proportion:" id="RcV-Ss-pQT">
                         <font key="font" metaFont="system"/>
@@ -49,7 +49,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
                     <rect key="frame" x="226" y="176" width="95" height="22"/>
                     <constraints>
                         <constraint firstAttribute="width" constant="95" id="5cw-Ku-huL"/>
@@ -63,7 +63,7 @@
                         <outlet property="delegate" destination="-2" id="vnx-QO-T2l"/>
                     </connections>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZPc-65-xxE">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZPc-65-xxE">
                     <rect key="frame" x="236" y="250" width="85" height="22"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="bV4-f4-Ufu">
                         <font key="font" metaFont="system"/>
@@ -74,7 +74,7 @@
                         <outlet property="delegate" destination="-2" id="xPv-XB-juX"/>
                     </connections>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wuS-fR-NLv">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wuS-fR-NLv">
                     <rect key="frame" x="224" y="252" width="12" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="g" id="T89-Dc-d53">
                         <font key="font" metaFont="system"/>
@@ -82,7 +82,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sjz-yG-jNG">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sjz-yG-jNG">
                     <rect key="frame" x="48" y="141" width="154" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Mutation type (optional):" id="V5w-og-aQ8">
                         <font key="font" metaFont="system"/>
@@ -90,7 +90,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="u32-Ve-nuw">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="u32-Ve-nuw">
                     <rect key="frame" x="64" y="104" width="126" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Relative proportion:" id="dxU-L5-olu">
                         <font key="font" metaFont="system"/>
@@ -98,7 +98,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Mci-yh-wDI">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mci-yh-wDI">
                     <rect key="frame" x="226" y="102" width="95" height="22"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="gU0-Tt-mHo">
                         <font key="font" metaFont="system"/>
@@ -109,7 +109,7 @@
                         <outlet property="delegate" destination="-2" id="Gmt-DC-xJL"/>
                     </connections>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="u7s-fM-TqQ">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="u7s-fM-TqQ">
                     <rect key="frame" x="224" y="135" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="3Xo-h9-LNV" id="A1J-ex-bcm">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -126,7 +126,7 @@
                         <action selector="validateControls:" target="-2" id="3x2-wG-Vq5"/>
                     </connections>
                 </popUpButton>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="M8c-ix-Lrx">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M8c-ix-Lrx">
                     <rect key="frame" x="48" y="67" width="154" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Mutation type (optional):" id="5iH-xf-6ta">
                         <font key="font" metaFont="system"/>
@@ -134,7 +134,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="a1D-q8-j06">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="a1D-q8-j06">
                     <rect key="frame" x="64" y="30" width="126" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Relative proportion:" id="4lL-Dn-jSI">
                         <font key="font" metaFont="system"/>
@@ -142,7 +142,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bMJ-5i-sZC">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bMJ-5i-sZC">
                     <rect key="frame" x="226" y="28" width="95" height="22"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="dXh-p2-myg">
                         <font key="font" metaFont="system"/>
@@ -153,7 +153,7 @@
                         <outlet property="delegate" destination="-2" id="Rt2-Hk-sbY"/>
                     </connections>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BXy-ri-7FB">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BXy-ri-7FB">
                     <rect key="frame" x="224" y="61" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="fi7-Ns-La9" id="Pb3-fl-NEb">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -170,7 +170,7 @@
                         <action selector="validateControls:" target="-2" id="6NN-xl-T30"/>
                     </connections>
                 </popUpButton>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="roc-a0-gQ4">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="roc-a0-gQ4">
                     <rect key="frame" x="224" y="209" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="oTi-Pj-wM8" id="TQN-sm-J8P">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>

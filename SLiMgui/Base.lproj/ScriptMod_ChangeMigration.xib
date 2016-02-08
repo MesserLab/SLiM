@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15D21" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="ScriptMod_ChangeMigration">
@@ -15,11 +15,11 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
+        <customView misplaced="YES" placeholderIntrinsicWidth="362" placeholderIntrinsicHeight="197" id="c22-O7-iKe" customClass="ScriptModSubclassViewPlaceholder">
             <rect key="frame" x="0.0" y="0.0" width="343" height="188"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cXU-20-n64">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cXU-20-n64">
                     <rect key="frame" x="48" y="141" width="137" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation for resize:" id="Teb-5E-ffj">
                         <font key="font" metaFont="system"/>
@@ -27,7 +27,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MNC-OH-9jP">
                     <rect key="frame" x="48" y="104" width="138" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Target subpopulation:" id="RcV-Ss-pQT">
                         <font key="font" metaFont="system"/>
@@ -35,7 +35,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="GQV-5w-gus">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="GQV-5w-gus">
                     <rect key="frame" x="48" y="67" width="144" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Source subpopulation:" id="bDo-aM-1xx">
                         <font key="font" metaFont="system"/>
@@ -43,7 +43,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="M8O-Rd-GEL">
+                <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M8O-Rd-GEL">
                     <rect key="frame" x="48" y="30" width="125" height="17"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="New migration rate:" id="TZd-C3-yca">
                         <font key="font" metaFont="system"/>
@@ -51,7 +51,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cTD-YU-teQ">
                     <rect key="frame" x="198" y="139" width="95" height="22"/>
                     <constraints>
                         <constraint firstAttribute="width" constant="95" id="5cw-Ku-huL"/>
@@ -65,7 +65,7 @@
                         <outlet property="delegate" destination="-2" id="vnx-QO-T2l"/>
                     </connections>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BlU-kC-voe">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BlU-kC-voe">
                     <rect key="frame" x="196" y="98" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="zWb-ks-v7K" id="cyH-24-qrh">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -82,7 +82,7 @@
                         <action selector="validateControls:" target="-2" id="CPm-n0-J94"/>
                     </connections>
                 </popUpButton>
-                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hsR-7t-6Qj">
+                <textField verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hsR-7t-6Qj">
                     <rect key="frame" x="198" y="28" width="95" height="22"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="tQp-ap-zPS">
                         <font key="font" metaFont="system"/>
@@ -93,7 +93,7 @@
                         <outlet property="delegate" destination="-2" id="Gfd-y4-v2D"/>
                     </connections>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1Ju-FG-xG6">
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Ju-FG-xG6">
                     <rect key="frame" x="196" y="61" width="100" height="26"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="fQY-zg-Ge1" id="JDf-XK-upq">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
