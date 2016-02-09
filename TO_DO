@@ -8,7 +8,6 @@ SLiM:
 
 Eidos:
 	precalculate and fold expressions like (0:499)*2+1
-	add tests to exercise all compound-operator cases like *= += etc.
 	fix code completion to handle declared variables – search backwards for an assignment to that variable name, and extract the type from the right-hand side
 		or perhaps ask the user what type it is, and remember in a dictionary?
 		code completion should also know when you're inside a callback, and supply the correct additional variables
@@ -16,6 +15,9 @@ Eidos:
 SLiMgui work:
 	do a better job saving window positions, splitter positions, etc.
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
+	improve display in cases with many subpopulations and/or many individuals
+		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...
+		with many subpops selected, could superimpose such fitness histograms as curves on a single plot?
 
 scriptability:
 	extensions for Daphnia model:
