@@ -1,6 +1,4 @@
 SLiM:
-	write the SLiM Cookbook
-	could add DFE: user-specified with lookup tables, similar to how recombination rate is specified, to allow arbitrary DFEs from the user
 	mutationsOfType() method could be optimized by caching the result, invalidating the cache only when the registry changes; or by keeping separate registries by type...?
 	optimize fitness callback mechanism: it should know which mutation types have active callbacks, and should short-circuit the callback mechanism for types with no callback
 	crash: adding a mutation with an introduction generation later than the actual gen can lead to a negative fixation time, causing a negative bin number in the tally code
@@ -9,9 +7,6 @@ SLiM:
 		think about how fitness() callbacks work; would be nice to be able to say "this is it for this individual" or "this is it for this mutation type"
 
 Eidos:
-	think about allowing named arguments as an optional syntax; named arguments good
-	documentation work: write a manual section about using Eidos in a third-party project, how to connect up to it, how to make a GUI editor, etc.
-	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
 	precalculate and fold expressions like (0:499)*2+1
 	add tests to exercise all compound-operator cases like *= += etc.
 	fix code completion to handle declared variables – search backwards for an assignment to that variable name, and extract the type from the right-hand side
@@ -21,7 +16,6 @@ Eidos:
 SLiMgui work:
 	update the SLiMgui Help file, which is presently the version 1.8 PDF
 	do a better job saving window positions, splitter positions, etc.
-	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 
 scriptability:
@@ -77,6 +71,10 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 future plans:
+	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
+	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
+	think about allowing named arguments as an optional syntax; named arguments good
+	could add DFE: user-specified with lookup tables, similar to how recombination rate is specified, to allow arbitrary DFEs from the user
 	evaluate code coverage of tests
 	an Objective-C port of Eidos would be nice
 	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
