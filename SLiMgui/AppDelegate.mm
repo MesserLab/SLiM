@@ -20,6 +20,7 @@
 
 #import "AppDelegate.h"
 #import "SLiMWindowController.h"
+#import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import <WebKit/WebKit.h>
 
@@ -193,6 +194,7 @@ typedef enum SLiMLaunchAction
 
 - (IBAction)showHelp:(id)sender
 {
+	/*
 	if (!helpWindow)
 	{
 		[[NSBundle mainBundle] loadNibNamed:@"HelpWindow" owner:self topLevelObjects:NULL];
@@ -209,6 +211,12 @@ typedef enum SLiMLaunchAction
 	
 	// Now that everything is set up, show the window
 	[helpWindow makeKeyAndOrderFront:nil];
+	*/
+	
+	// We used to show the SLiM 1.8 manual as a PDF in a separate window.  That code is commented out above.
+	// I've left HelpWindow.xib in the project, in case we want to go back to doing that sort of thing; but
+	// for now, we show the script help window.
+	[[EidosHelpController sharedController] showWindow];
 }
 
 - (IBAction)sendFeedback:(id)sender

@@ -201,8 +201,6 @@
 		98D4C20D1A715F6100FFB083 /* AboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C20B1A715F6100FFB083 /* AboutWindow.xib */; };
 		98D4C20E1A7164F700FFB083 /* README.html in Resources */ = {isa = PBXBuildFile; fileRef = 98E5F0551A3DFD3900FABCC8 /* README.html */; };
 		98D4C2101A716E0E00FFB083 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D4C20F1A716E0E00FFB083 /* WebKit.framework */; };
-		98D4C2111A71831000FFB083 /* SLiM_manual.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */; };
-		98D4C2141A71838400FFB083 /* HelpWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2121A71838400FFB083 /* HelpWindow.xib */; };
 		98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D4C2151A7187E200FFB083 /* Quartz.framework */; };
 		98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C21B1A718EFD00FFB083 /* CocoaExtra.mm */; };
 		98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2231A71F8AD00FFB083 /* check_H.pdf */; };
@@ -405,7 +403,6 @@
 		985724F51AD6DD470047C223 /* show_execution.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_execution.pdf; sourceTree = "<group>"; };
 		9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_intrusive_ptr.h; sourceTree = "<group>"; };
 		985A11861BBA07CB009EE1FF /* eidos_object_pool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_object_pool.h; sourceTree = "<group>"; };
-		986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SLiM_manual.pdf; sourceTree = "<group>"; };
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		986021091A3BB504001BDCFE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
@@ -639,7 +636,6 @@
 				986021081A3BB504001BDCFE /* LICENSE */,
 				986021091A3BB504001BDCFE /* README.md */,
 				98E5F0551A3DFD3900FABCC8 /* README.html */,
-				986021071A3BB4EE001BDCFE /* SLiM_manual.pdf */,
 				982663521A3BABD300A0CBBF /* core */,
 				9857249E1AD34B120047C223 /* eidos */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
@@ -1148,11 +1144,9 @@
 				986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */,
 				98DE4C2F1B713F65004FDF5F /* ScriptMod_AddGenomicElementType.xib in Resources */,
 				98453F581A76004300C058CB /* show_fixed_H.pdf in Resources */,
-				98D4C2111A71831000FFB083 /* SLiM_manual.pdf in Resources */,
 				987AD8781B2CBE280035D6C8 /* execute_script_H.pdf in Resources */,
 				98D4C2011A70192A00FFB083 /* SLiMWindow.xib in Resources */,
 				987AD8761B2CBE010035D6C8 /* show_browser_H.pdf in Resources */,
-				98D4C2141A71838400FFB083 /* HelpWindow.xib in Resources */,
 				98D4C1F61A70040400FFB083 /* play.pdf in Resources */,
 				98D4C1F21A6FEEAB00FFB083 /* change_migration.pdf in Resources */,
 				987AD8751B2CBDA70035D6C8 /* show_console.pdf in Resources */,

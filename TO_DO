@@ -14,7 +14,6 @@ Eidos:
 		code completion should also know when you're inside a callback, and supply the correct additional variables
 
 SLiMgui work:
-	update the SLiMgui Help file, which is presently the version 1.8 PDF
 	do a better job saving window positions, splitter positions, etc.
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 

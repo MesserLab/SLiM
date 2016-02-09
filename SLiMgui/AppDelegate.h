@@ -42,9 +42,9 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 	IBOutlet WebView *aboutWebView;
 	IBOutlet NSTextField *aboutVersionTextField;
 	
-	// Help window cruft
-	IBOutlet NSWindow *helpWindow;
-	IBOutlet PDFView *helpPDFView;
+	// Help window cruft; kept for possible resurrection, see -showHelp:
+	//IBOutlet NSWindow *helpWindow;
+	//IBOutlet PDFView *helpPDFView;
 }
 
 - (IBAction)newDocument:(id)sender;
