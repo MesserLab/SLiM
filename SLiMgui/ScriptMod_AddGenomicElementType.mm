@@ -32,6 +32,11 @@
 	return @"Add Genomic Element Type";
 }
 
+- (BOOL)checkEligibility
+{
+	return ([self checkMutationTypesDefined]);
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values

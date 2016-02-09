@@ -32,6 +32,11 @@
 	return @"Add Genomic Element to Chromosome";
 }
 
+- (BOOL)checkEligibility
+{
+	return ([self checkGenomicElementTypesDefined]);
+}
+
 - (void)configSheetLoaded
 {
 	// find last defined chromosome position

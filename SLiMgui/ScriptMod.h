@@ -81,6 +81,11 @@
 + (NSColor *)textColorForEnableState:(BOOL)enabled;				// used to standardize the color for disabled labels
 + (NSColor *)backgroundColorForValidationState:(BOOL)valid;		// used to standardize textfield background colors used for validation
 
+- (BOOL)checkEligibility;					// called before the ScriptMod's sheet is run, to see if there is any chance it will work; can raise an alert and return NO
+- (BOOL)checkSubpopsDefined;				// a prefab method for checkEligibility to call, returning NO if no subpops are defined
+- (BOOL)checkMutationTypesDefined;			// a prefab method for checkEligibility to call, returning NO if no mutation types are defined
+- (BOOL)checkGenomicElementTypesDefined;	// a prefab method for checkEligibility to call, returning NO if no genomic element types are defined
+
 - (void)configureSubpopulationPopup:(NSPopUpButton *)button;					// set up a standard popup menu to choose a subpopulation
 - (BOOL)isAvailableSubpopID:(slim_objectid_t)subpopID;							// check that a given ID is currently unused
 - (slim_objectid_t)bestAvailableSubpopID;										// return a good unused ID

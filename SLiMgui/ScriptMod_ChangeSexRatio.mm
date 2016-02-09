@@ -32,6 +32,11 @@
 	return @"Change Sex Ratio";
 }
 
+- (BOOL)checkEligibility
+{
+	return ([self checkSubpopsDefined]);
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values

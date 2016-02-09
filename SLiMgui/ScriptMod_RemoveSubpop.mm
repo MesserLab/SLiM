@@ -32,6 +32,11 @@
 	return @"Remove Subpopulation";
 }
 
+- (BOOL)checkEligibility
+{
+	return ([self checkSubpopsDefined]);
+}
+
 - (void)configSheetLoaded
 {
 	// set initial control values

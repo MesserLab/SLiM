@@ -241,8 +241,12 @@
 {
 	ScriptMod *scriptMod = [[[self class] alloc] initWithController:windowController];
 	
-	[scriptMod loadConfigurationSheet];
-	[scriptMod runConfigurationSheet];
+	if ([scriptMod checkEligibility])
+	{
+		[scriptMod loadConfigurationSheet];
+		[scriptMod runConfigurationSheet];
+	}
+	
 	[scriptMod autorelease];
 }
 
@@ -291,6 +295,68 @@
 	controller = nil;
 	
 	[super dealloc];
+}
+
+- (BOOL)checkEligibility
+{
+	return YES;
+}
+
+- (BOOL)checkSubpopsDefined
+{
+	if (controller->sim->population_.size() == 0)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setMessageText:@"No subpopulations defined"];
+		[alert setInformativeText:@"No subpopulations are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which subpopulations have been defined.)"];
+		[alert addButtonWithTitle:@"OK"];
+		
+		[alert beginSheetModalForWindow:[controller window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+		
+		return NO;
+	}
+	
+	return YES;
+}
+
+- (BOOL)checkMutationTypesDefined
+{
+	if (controller->sim->mutation_types_.size() == 0)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setMessageText:@"No mutation types defined"];
+		[alert setInformativeText:@"No mutation types are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which mutation types have been defined.)"];
+		[alert addButtonWithTitle:@"OK"];
+		
+		[alert beginSheetModalForWindow:[controller window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+		
+		return NO;
+	}
+	
+	return YES;
+}
+
+- (BOOL)checkGenomicElementTypesDefined
+{
+	if (controller->sim->genomic_element_types_.size() == 0)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setMessageText:@"No genomic element types defined"];
+		[alert setInformativeText:@"No genomic element types are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which genomic element types have been defined.)"];
+		[alert addButtonWithTitle:@"OK"];
+		
+		[alert beginSheetModalForWindow:[controller window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+		
+		return NO;
+	}
+	
+	return YES;
 }
 
 - (void)swapSubclassViewForPlaceholder
