@@ -64,7 +64,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="SLiMgui" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="HDg-UE-KLh">
+        <window title="SLiMgui" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="SLiMgui" animationBehavior="default" id="HDg-UE-KLh">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" unifiedTitleAndToolbar="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="748" y="451" width="1180" height="978"/>
@@ -685,7 +685,7 @@
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <splitView vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SJd-UQ-477">
+                    <splitView autosaveName="SLiMgui Splitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SJd-UQ-477">
                         <rect key="frame" x="20" y="41" width="1140" height="531"/>
                         <subviews>
                             <customView id="cas-KD-TD2">
@@ -1363,7 +1363,7 @@
                                 <tableColumns>
                                     <tableColumn editable="NO" width="40" minWidth="40" maxWidth="40" id="c5C-lt-ckm">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1376,7 +1376,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="40" minWidth="40" maxWidth="40" id="YfC-9j-8Mz">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="h">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1389,7 +1389,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="50" minWidth="50" maxWidth="50" id="yb0-yM-lTy">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="DFE">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1402,7 +1402,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="84" minWidth="65" maxWidth="500" id="QI1-51-Ixv">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Params">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1455,7 +1455,7 @@
                                 <tableColumns>
                                     <tableColumn editable="NO" width="40" minWidth="40" maxWidth="40" id="mYu-Tp-AnJ">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1468,7 +1468,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="40" minWidth="40" maxWidth="40" id="hiN-OA-WpD">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Color">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1481,7 +1481,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="137" minWidth="120" maxWidth="500" id="HQN-n3-bmZ">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Mutation types">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1545,7 +1545,7 @@
                                 <tableColumns>
                                     <tableColumn editable="NO" width="40" minWidth="40" maxWidth="40" id="dCL-Kg-IzO">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1558,7 +1558,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="60" minWidth="60" maxWidth="60" id="6U4-H9-ZJJ">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Start">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1571,7 +1571,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="60" minWidth="60" maxWidth="60" id="pZn-5h-Ysy">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="End">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
@@ -1584,7 +1584,7 @@
                                     </tableColumn>
                                     <tableColumn editable="NO" width="54" minWidth="40" maxWidth="500" id="Ar2-sx-Oqi">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Type">
-                                            <font key="font" metaFont="smallSystemBold"/>
+                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>

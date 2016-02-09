@@ -96,6 +96,9 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	// Tell Cocoa that we can go full-screen
 	[scriptWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
+	// Fix our splitview's position restore, which NSSplitView sometimes screws up
+	[mainSplitView eidosRestoreAutosavedPositions];
+	
 	// Show a welcome message
 	[outputTextView showWelcomeMessage];
 	
@@ -565,12 +568,31 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[outputTextView clearOutput];
 }
 
+- (void)fixDumbSelectionBug:(id)unused
+{
+	// See comment below in toggleConsoleVisibility:
+	[outputTextView setSelectable:YES];
+	[outputTextView setEditable:YES];
+	[scriptWindow makeFirstResponder:outputTextView];
+}
+
 - (IBAction)toggleConsoleVisibility:(id)sender
 {
 	if ([scriptWindow isVisible])
 		[scriptWindow performClose:nil];
 	else
+	{
 		[scriptWindow makeKeyAndOrderFront:nil];
+		
+		// I have no idea what the heck is going on here, but without this code, the console window comes up – in SLiMgui only – with
+		// the insertion point blinking several lines up from the prompt, in a nonsensical position.  It looks to me like an AppKit bug;
+		// I think the Kit is deciding where the insertion point is prior to some view resize or relayout operation, and the position
+		// isn't getting recalculated after that resize/relayout.  I couldn't figure out why it was doing that, or why it happens only
+		// in SLiMgui, and this is the cleanest workaround I could find.  Sheesh.  BCH 9 February 2016.
+		[outputTextView setSelectable:NO];
+		[scriptWindow makeFirstResponder:nil];
+		[self performSelector:@selector(fixDumbSelectionBug:) withObject:nil afterDelay:0.0];
+	}
 }
 
 - (IBAction)toggleBrowserVisibility:(id)sender

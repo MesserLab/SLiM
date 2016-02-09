@@ -618,6 +618,9 @@
 	// Tell Cocoa that we can go full-screen
 	[[self window] setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
+	// Fix our splitview's position restore, which NSSplitView sometimes screws up
+	[mainSplitView eidosRestoreAutosavedPositions];
+	
 	// Change column headers in the subpopulation table to images
 	[self replaceHeaderForColumn:subpopSelfingRateColumn withImageNamed:@"change_selfing_ratio" scaledToSize:14 withSexSymbol:IndividualSex::kUnspecified];
 	[self replaceHeaderForColumn:subpopFemaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kFemale];

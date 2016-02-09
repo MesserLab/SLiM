@@ -13,7 +13,6 @@ Eidos:
 		code completion should also know when you're inside a callback, and supply the correct additional variables
 
 SLiMgui work:
-	do a better job saving window positions, splitter positions, etc.
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 	improve display in cases with many subpopulations and/or many individuals
 		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...

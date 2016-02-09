@@ -11,7 +11,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Variable Browser" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="NRo-a8-DAD" userLabel="Variable Browser">
+        <window title="Variable Browser" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="Variable Browser" animationBehavior="default" id="NRo-a8-DAD" userLabel="Variable Browser">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="283" y="348" width="800" height="302"/>
@@ -27,14 +27,14 @@
                             <rect key="frame" x="1" y="0.0" width="800" height="303"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
-                                <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" headerView="Rl0-FI-YeK" indentationPerLevel="10" outlineTableColumn="o39-eJ-hfF" id="hH1-M5-dOk">
+                                <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveName="Variable Browser Table" headerView="Rl0-FI-YeK" indentationPerLevel="10" outlineTableColumn="o39-eJ-hfF" id="hH1-M5-dOk">
                                     <rect key="frame" x="0.0" y="0.0" width="800" height="280"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                     <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                     <tableColumns>
-                                        <tableColumn editable="NO" width="200" minWidth="150" maxWidth="300" id="o39-eJ-hfF">
+                                        <tableColumn identifier="Symbol" editable="NO" width="200" minWidth="150" maxWidth="300" id="o39-eJ-hfF">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Symbol">
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -47,7 +47,7 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="160" minWidth="100" maxWidth="200" id="nDl-km-47h">
+                                        <tableColumn identifier="Type" editable="NO" width="160" minWidth="100" maxWidth="200" id="nDl-km-47h">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Type">
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -60,7 +60,7 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="75" minWidth="50" maxWidth="100" id="abz-vU-rF5">
+                                        <tableColumn identifier="Size" editable="NO" width="75" minWidth="50" maxWidth="100" id="abz-vU-rF5">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Size">
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -73,7 +73,7 @@
                                             </textFieldCell>
                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         </tableColumn>
-                                        <tableColumn editable="NO" width="353" minWidth="10" maxWidth="3.4028234663852886e+38" id="se1-Pr-NhJ">
+                                        <tableColumn identifier="Values" editable="NO" width="353" minWidth="10" maxWidth="3.4028234663852886e+38" id="se1-Pr-NhJ">
                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Values">
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -144,7 +144,7 @@
                 <outlet property="valueColumn" destination="se1-Pr-NhJ" id="VwY-ut-Skf"/>
             </connections>
         </customObject>
-        <window title="Eidos Console" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="X56-a6-BnZ">
+        <window title="Eidos Console" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="Eidos Console" animationBehavior="default" id="X56-a6-BnZ">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <rect key="contentRect" x="335" y="390" width="1024" height="768"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
@@ -153,7 +153,7 @@
                 <rect key="frame" x="0.0" y="0.0" width="1024" height="768"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <splitView dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OgO-Qu-oJA">
+                    <splitView autosaveName="Eidos Console Splitter" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OgO-Qu-oJA">
                         <rect key="frame" x="0.0" y="21" width="1024" height="747"/>
                         <subviews>
                             <customView id="jpo-0u-yWF">
@@ -442,6 +442,7 @@
             </view>
             <connections>
                 <outlet property="delegate" destination="Oju-rn-RJg" id="IPT-YX-WCW"/>
+                <outlet property="initialFirstResponder" destination="hNz-Jr-UfL" id="VYj-Y2-E15"/>
             </connections>
             <point key="canvasLocation" x="1547" y="1065"/>
         </window>

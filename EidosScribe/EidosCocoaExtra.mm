@@ -316,6 +316,44 @@
 @end
 
 
+@implementation NSSplitView (EidosAdditions)
+
+- (void)eidosRestoreAutosavedPositions
+{
+	NSString *key = [NSString stringWithFormat:@"NSSplitView Subview Frames %@", self.autosaveName];
+	NSArray *subviewFrames = [[NSUserDefaults standardUserDefaults] valueForKey:key];
+	
+	// the last frame is skipped because I have one less divider than I have frames
+	for (NSUInteger i = 0; i < subviewFrames.count; i++)
+	{
+		if (i < self.subviews.count)	 // safety-check (in case number of views have been removed while dev)
+		{
+			// this is the saved frame data - it's an NSString
+			NSString *frameString = subviewFrames[i];
+			NSArray *components = [frameString componentsSeparatedByString:@", "];
+			
+			// Manage the 'hidden state' per view
+			BOOL hidden = [components[4] boolValue];
+			NSView *subView = [self subviews][i];
+			[subView setHidden:hidden];
+			
+			// Set height (horizontal) or width (vertical)
+			if (!self.vertical)
+			{
+				CGFloat height = [components[3] floatValue];
+				[subView setFrameSize:NSMakeSize(subView.frame.size.width, height)];
+			}
+			else
+			{
+				CGFloat width = [components[2] floatValue];
+				[subView setFrameSize:NSMakeSize(width, subView.frame.size.height)];
+			}
+		}
+	}
+}
+
+
+@end
 
 
 
