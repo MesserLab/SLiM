@@ -118,6 +118,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",			EidosFunctionIdentifier::rpoisFunction,			kEidosValueMaskInt))->AddInt_S("n")->AddNumeric("lambda"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",			EidosFunctionIdentifier::runifFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("min")->AddNumeric_O("max"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rweibull",			EidosFunctionIdentifier::rweibullFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("lambda")->AddNumeric("k"));
 		
 		
 		// ************************************************************************************
@@ -2530,6 +2531,73 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						
 						float_result->PushFloat(gsl_rng_uniform(gEidos_rng) * range + min_value);
 					}
+				}
+			}
+			
+			break;
+		}
+			
+			
+			//	(float)rweibull(integer$ n, numeric lambda, numeric k)
+			#pragma mark rweibull
+			
+		case EidosFunctionIdentifier::rweibullFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
+			EidosValue *arg_lambda = p_arguments[1].get();
+			EidosValue *arg_k = p_arguments[2].get();
+			int arg_lambda_count = arg_lambda->Count();
+			int arg_k_count = arg_k->Count();
+			bool lambda_singleton = (arg_lambda_count == 1);
+			bool k_singleton = (arg_k_count == 1);
+			
+			if (num_draws < 0)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+			if (!lambda_singleton && (arg_lambda_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires lambda to be of length 1 or n." << eidos_terminate(nullptr);
+			if (!k_singleton && (arg_k_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires k to be of length 1 or n." << eidos_terminate(nullptr);
+			
+			double lambda0 = (arg_lambda_count ? arg_lambda->FloatAtIndex(0, nullptr) : 0.0);
+			double k0 = (arg_k_count ? arg_k->FloatAtIndex(0, nullptr) : 0.0);
+			
+			if (lambda_singleton && k_singleton)
+			{
+				if (lambda0 <= 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires lambda > 0.0 (" << lambda0 << " supplied)." << eidos_terminate(nullptr);
+				if (k0 <= 0.0)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires k > 0.0 (" << k0 << " supplied)." << eidos_terminate(nullptr);
+				
+				if (num_draws == 1)
+				{
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_weibull(gEidos_rng, lambda0, k0)));
+				}
+				else
+				{
+					EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+					result_SP = EidosValue_SP(float_result);
+					
+					for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->PushFloat(gsl_ran_weibull(gEidos_rng, lambda0, k0));
+				}
+			}
+			else
+			{
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
+				result_SP = EidosValue_SP(float_result);
+				
+				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double lambda = (lambda_singleton ? lambda0 : arg_lambda->FloatAtIndex(draw_index, nullptr));
+					double k = (k_singleton ? k0 : arg_k->FloatAtIndex(draw_index, nullptr));
+					
+					if (lambda <= 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires lambda > 0.0 (" << lambda << " supplied)." << eidos_terminate(nullptr);
+					if (k <= 0.0)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rweibull() requires k > 0.0 (" << k << " supplied)." << eidos_terminate(nullptr);
+					
+					float_result->PushFloat(gsl_ran_weibull(gEidos_rng, lambda, k));
 				}
 			}
 			

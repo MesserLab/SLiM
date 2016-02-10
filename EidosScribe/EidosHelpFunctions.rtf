@@ -1031,6 +1031,49 @@
 \f2\fs20 .
 \f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)rweibull(integer$
+\f2 \'a0
+\f1 n, numeric\'a0lambda, numeric\'a0k)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a Weibull distribution
+\b0  with scale parameter 
+\f1\fs18 lambda
+\f0\fs20  and shape parameter 
+\f1\fs18 k
+\f0\fs20 , both greater than zero.  The 
+\f1\fs18 lambda
+\f0\fs20  and 
+\f1\fs18 k
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.  Draws are made from a Weibull distribution with probability distribution 
+\f2\i P
+\i0 (
+\i s
+\i0 \'a0|\'a0
+\f4\i \uc0\u955 
+\f2\i0 ,
+\i k
+\i0 )\'a0=\'a0(
+\i k
+\i0  / 
+\f4\i \uc0\u955 
+\f2 \super k
+\i0 \nosupersub )\'a0
+\i s\super k
+\i0 \uc0\u8722 1\nosupersub \'a0exp(-(
+\i s
+\i0 /
+\f4\i \uc0\u955 
+\f2\i0 )
+\i \super k
+\i0 \nosupersub ).\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.4.  Vector construction functions\
@@ -2400,8 +2443,9 @@ The
 \f0\fs20  is 
 \f1\fs18 F
 \f2\fs20 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 The current implementation of 
+\f0 \cf0 The current implementation of 
 \f1\fs18 executeLambda()
 \f0\fs20  caches a tokenized and parsed version of 
 \f1\fs18 lambdaSource

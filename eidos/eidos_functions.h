@@ -87,6 +87,7 @@ enum class EidosFunctionIdentifier {
 	rnormFunction,
 	rpoisFunction,
 	runifFunction,
+	rweibullFunction,
 	
 	// vector construction functions
 	cFunction,
