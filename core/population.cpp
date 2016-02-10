@@ -1248,6 +1248,14 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 	slim_generation_t *buffer = *p_buffer;
 	uint32_t bufferBins = *p_bufferBins;
 	
+	// A negative bin number can occur if the user is using the origin generation of mutations for their own purposes, as a tag field.  To protect against
+	// crashing, we therefore clamp the bin number into [0, 1000000].  The upper bound is somewhat arbitrary, but we don't really want to allocate a larger
+	// buffer than that anyway, and having values that large get clamped is not the end of the world, since these tallies are just for graphing.
+	if (p_bin_number < 0)
+		p_bin_number = 0;
+	if (p_bin_number > 1000000)
+		p_bin_number = 1000000;
+	
 	if (p_bin_number >= (int64_t)bufferBins)
 	{
 		int oldEntryCount = bufferBins * p_mutation_type_count;
