@@ -58,7 +58,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 	this->clear();
 	
-	// Free all substitutions andclear out the substitution vector
+	// Free all substitutions and clear out the substitution vector
 	for (auto substitution : substitutions_)
 		delete substitution;
 	
@@ -95,12 +95,14 @@ void Population::RemoveAllSubpopulationInfo(void)
 		mutation_fixation_times_ = nullptr;
 		mutation_fixation_gen_slots_ = 0;
 	}
-	if (fitness_history_)
-	{
-		free(fitness_history_);
-		fitness_history_ = nullptr;
-		fitness_history_length_ = 0;
-	}
+	// Don't throw away the fitness history; it is perfectly valid even if the population has just been changed completely.  It happened.
+	// If the read is followed by setting the generation backward, individual fitness history entries will be invalidated in response.
+//	if (fitness_history_)
+//	{
+//		free(fitness_history_);
+//		fitness_history_ = nullptr;
+//		fitness_history_length_ = 0;
+//	}
 #endif
 }
 
@@ -1242,7 +1244,6 @@ void Population::SurveyPopulation(void)
 
 #ifdef SLIMGUI
 // This method is used to tally up histogram metrics that are kept per mutation type for SLiMgui
-// FIXME the way that signed/unsigned and int sizes are handled for this buffer stuff seems pretty unsafe and careless
 void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins)
 {
 	slim_generation_t *buffer = *p_buffer;

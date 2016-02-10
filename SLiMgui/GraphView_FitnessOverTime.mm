@@ -151,6 +151,14 @@
 	Population &pop = sim->population_;
 	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
+	// The generation counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
+	// future that may no longer happen.  So we need to detect that case and invalidate our cache.
+	if (!cachingNow && drawingCache && (drawingCacheGeneration > completedGenerations))
+	{
+		//NSLog(@"backward generation change detected, invalidating drawing cache");
+		[self invalidateDrawingCache];
+	}
+	
 	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
 	if (!cachingNow && (!drawingCache || ((completedGenerations / 1000) > (drawingCacheGeneration / 1000))))
 	{
@@ -177,13 +185,13 @@
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_time = substitution->fixation_time_;
+		slim_generation_t fixation_gen = substitution->fixation_generation_;
 		
 		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow && (fixation_time < drawingCacheGeneration))
+		if (!cachingNow && (fixation_gen < drawingCacheGeneration))
 			continue;
 		
-		double substitutionX = [self plotToDeviceX:fixation_time withInteriorRect:interiorRect];
+		double substitutionX = [self plotToDeviceX:fixation_gen withInteriorRect:interiorRect];
 		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
@@ -228,9 +236,9 @@
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_time = substitution->fixation_time_;
+		slim_generation_t fixation_gen = substitution->fixation_generation_;
 		
-		[string appendFormat:@"%lld, ", (int64_t)fixation_time];
+		[string appendFormat:@"%lld, ", (int64_t)fixation_gen];
 	}
 	
 	// Fitness history

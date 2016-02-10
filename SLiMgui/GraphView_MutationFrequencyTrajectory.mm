@@ -450,6 +450,8 @@
 	}
 	
 	//NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
+	
+	lastGeneration = sim->generation_;
 }
 
 - (void)setSelectedSubpopulationID:(slim_objectid_t)newID
@@ -509,6 +511,16 @@
 - (void)controllerGenerationFinished
 {
 	[super controllerGenerationFinished];
+	
+	// Check for an unexpected change in generation_, in which case we invalidate all our histories and start over
+	SLiMWindowController *controller = [self slimWindowController];
+	SLiMSim *sim = controller->sim;
+	
+	if (lastGeneration != sim->generation_ - 1)
+	{
+		[self invalidateCachedData];
+		[self setNeedsDisplay:YES];
+	}
 	
 	// Fetch and store the frequencies for all mutations of the selected mutation type(s), within the subpopulation selected
 	[self fetchDataForFinishedGeneration];

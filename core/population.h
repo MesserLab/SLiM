@@ -77,7 +77,7 @@ public:
 	slim_generation_t *mutation_fixation_times_ = nullptr;	// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
 	uint32_t mutation_fixation_gen_slots_ = 0;				// the number of generation-sized slots (with bins per mutation-type) presently allocated
 	double *fitness_history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
-	slim_generation_t fitness_history_length_ = 0;			// the number of entries in the fitnessHistory buffer
+	slim_generation_t fitness_history_length_ = 0;			// the number of entries in the fitness_history buffer
 #endif
 	
 	Population(const Population&) = delete;					// no copying

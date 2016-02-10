@@ -41,6 +41,8 @@
 	
 	NSPopUpButton *subpopulationButton;
 	NSPopUpButton *mutationTypeButton;
+	
+	slim_generation_t lastGeneration;						// the last generation data was gathered for; used to detect a backward move in time
 }
 
 // The subpop and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)

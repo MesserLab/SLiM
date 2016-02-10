@@ -1458,12 +1458,37 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		case gID_generation:
 		{
 			int64_t value = p_value.IntAtIndex(0, nullptr);
+			slim_generation_t old_generation = generation_;
 			
 			generation_ = SLiMCastToGenerationTypeOrRaise(value);
 			cached_value_generation_.reset();
 			
-			// FIXME need to handle mutationLossTimes, mutationFixationTimes, fitnessHistory for SLiMgui here
-			// FIXME also need to do something with population_.substitutions_, perhaps; remove all subs that occurred on/after the new generation?
+			// Setting the generation into the future is generally harmless; the simulation logic is designed to handle that anyway, since
+			// that happens every generation.  Setting the generation into the past is a bit tricker, since some things that have already
+			// occurred need to be invalidated.  In particular, historical data cached by SLiMgui needs to be fixed.  Note that here we
+			// do NOT remove Substitutions that are in the future, or otherwise try to backtrack the actual simulation state.  If the user
+			// actually restores a past state with readFromPopulationFile(), all that kind of stuff will be reset; but if all they do is
+			// set the generation counter back, the model state is unchanged, substitutions are still fixed, etc.  This means that the
+			// simulation code needs to be robust to the possibility that some records, e.g. for Substitutions, may appear to be about
+			// events in the future.  But usually users will only set the generation back if they also call readFromPopulationFile().
+			if (generation_ < old_generation)
+			{
+#ifdef SLIMGUI
+				// Fix fitness_history_ for SLiMgui.  Note that mutation_loss_times_ and mutation_fixation_times_ are not fixable, since
+				// their entries are not separated out by generation, so we just leave them as is, containing information about
+				// alternative futures of the model.
+				double *history = population_.fitness_history_;
+				
+				if (history)
+				{
+					int old_last_valid_history_index = std::max(0, old_generation - 2);		// if gen==2, gen 1 was the last valid entry, and it is at index 0
+					int new_last_valid_history_index = std::max(0, generation_ - 2);		// ditto
+					
+					for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
+						history[entry_index] = NAN;
+				}
+#endif
+			}
 			
 			return;
 		}
@@ -1953,7 +1978,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		{
 			string file_path = arg0_value->StringAtIndex(0, nullptr);
 			
-			// first we clear out all variables of type Subpopulation from the symbol table; they will all be invalid momentarily
+			// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
 			EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 			std::vector<std::string> all_symbols = symbols.AllSymbols();

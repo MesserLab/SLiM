@@ -52,13 +52,12 @@
 	[super dealloc];
 }
 
-// FIXME the way that signed/unsigned and int sizes are handled for this buffer stuff seems pretty unsafe and careless
 - (double *)lossTimeDataWithController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
 	slim_generation_t *histogram = controller->sim->population_.mutation_loss_times_;
-	uint32_t histogramBins = controller->sim->population_.mutation_loss_gen_slots_;	// fewer than binCount * mutationTypeCount may exist
+	int64_t histogramBins = (int64_t)controller->sim->population_.mutation_loss_gen_slots_;	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = NULL;
 	static uint32_t rebinBins = 0;
 	uint32_t usedRebinBins = binCount * mutationTypeCount;
@@ -79,7 +78,7 @@
 		{
 			int histIndex = j + i * mutationTypeCount;
 			
-			if (histIndex < (int64_t)histogramBins)
+			if (histIndex < histogramBins)
 				rebin[histIndex] += histogram[histIndex];
 		}
 	}

@@ -49,7 +49,7 @@ public:
 	slim_selcoeff_t selection_coeff_;			// selection coefficient
 	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
 	slim_generation_t generation_;				// generation in which mutation arose  
-	slim_generation_t fixation_time_;			// fixation time
+	slim_generation_t fixation_generation_;		// generation in which mutation fixed
 #ifdef SLIMGUI
 	const uint64_t mutation_id_;				// a unique id for each mutation, used to track mutations in SLiMgui
 #endif
@@ -57,7 +57,7 @@ public:
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
-	Substitution(Mutation &p_mutation, slim_generation_t p_fixation_time);		// construct from the mutation that has fixed, and the generation in which it fixed
+	Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
 	void print(std::ostream &p_out) const;
 	

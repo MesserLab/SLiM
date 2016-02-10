@@ -282,7 +282,7 @@ extern const std::string gStr_selfingRate;
 extern const std::string gStr_cloningRate;
 extern const std::string gStr_sexRatio;
 extern const std::string gStr_individualCount;
-extern const std::string gStr_fixationTime;
+extern const std::string gStr_fixationGeneration;
 
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_addMutations;
@@ -423,7 +423,7 @@ enum _SLiMGlobalStringID : int {
 	gID_cloningRate,
 	gID_sexRatio,
 	gID_individualCount,
-	gID_fixationTime,
+	gID_fixationGeneration,
 	
 	gID_setRecombinationRate,
 	gID_addMutations,

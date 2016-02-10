@@ -154,7 +154,7 @@ const std::string gStr_selfingRate = "selfingRate";
 const std::string gStr_cloningRate = "cloningRate";
 const std::string gStr_sexRatio = "sexRatio";
 const std::string gStr_individualCount = "individualCount";
-const std::string gStr_fixationTime = "fixationTime";
+const std::string gStr_fixationGeneration = "fixationGeneration";
 
 // mostly method names
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
@@ -309,7 +309,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_cloningRate, gID_cloningRate);
 		Eidos_RegisterStringForGlobalID(gStr_sexRatio, gID_sexRatio);
 		Eidos_RegisterStringForGlobalID(gStr_individualCount, gID_individualCount);
-		Eidos_RegisterStringForGlobalID(gStr_fixationTime, gID_fixationTime);
+		Eidos_RegisterStringForGlobalID(gStr_fixationGeneration, gID_fixationGeneration);
 		
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);

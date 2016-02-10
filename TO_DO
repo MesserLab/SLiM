@@ -1,8 +1,6 @@
 SLiM:
 	mutationsOfType() method could be optimized by caching the result, invalidating the cache only when the registry changes; or by keeping separate registries by type...?
 	optimize fitness callback mechanism: it should know which mutation types have active callbacks, and should short-circuit the callback mechanism for types with no callback
-	crash: adding a mutation with an introduction generation later than the actual gen can lead to a negative fixation time, causing a negative bin number in the tally code
-		setting sim.generation needs to fix up various generation-based buffers; see FIXME
 	add a way to calculate the fitness of an individual, period, rather than the fitness effect per mutation
 		think about how fitness() callbacks work; would be nice to be able to say "this is it for this individual" or "this is it for this mutation type"
 
