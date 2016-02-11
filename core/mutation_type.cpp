@@ -43,6 +43,7 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 		case DFEType::kGamma:			p_out << gStr_g; break;
 		case DFEType::kExponential:		p_out << gStr_e; break;
 		case DFEType::kNormal:			p_out << gStr_n; break;
+		case DFEType::kWeibull:			p_out << gStr_w; break;
 	}
 	
 	return p_out;
@@ -75,6 +76,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 		case DFEType::kGamma:			return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
 		case DFEType::kExponential:		return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
 		case DFEType::kNormal:			return gsl_ran_gaussian(gEidos_rng, dfe_parameters_[1]) + dfe_parameters_[0];
+		case DFEType::kWeibull:			return gsl_ran_weibull(gEidos_rng, dfe_parameters_[0], dfe_parameters_[1]);
 	}
 }
 
@@ -141,6 +143,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dfe_string_g;
 			static EidosValue_SP static_dfe_string_e;
 			static EidosValue_SP static_dfe_string_n;
+			static EidosValue_SP static_dfe_string_w;
 			
 			if (!static_dfe_string_f)
 			{
@@ -148,6 +151,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
 				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
 				static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_n));
+				static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
 			}
 			
 			switch (dfe_type_)
@@ -156,6 +160,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case DFEType::kGamma:			return static_dfe_string_g;
 				case DFEType::kExponential:		return static_dfe_string_e;
 				case DFEType::kNormal:			return static_dfe_string_n;
+				case DFEType::kWeibull:			return static_dfe_string_w;
 			}
 		}
 		case gID_distributionParams:
@@ -237,8 +242,13 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			dfe_type = DFEType::kNormal;
 			expected_dfe_param_count = 2;
 		}
+		else if (dfe_type_string.compare(gStr_w) == 0)
+		{
+			dfe_type = DFEType::kWeibull;
+			expected_dfe_param_count = 2;
+		}
 		else
-			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", or \"n\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", or \"w\"." << eidos_terminate();
 		
 		if (p_argument_count != 1 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();

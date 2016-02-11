@@ -2218,6 +2218,7 @@
 						case DFEType::kGamma:			return @"gamma";
 						case DFEType::kExponential:		return @"exp";
 						case DFEType::kNormal:			return @"normal";
+						case DFEType::kWeibull:			return @"Weibull";
 					}
 				}
 				else if (aTableColumn == mutTypeDFEParamsColumn)
@@ -2234,6 +2235,7 @@
 							case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
 							case DFEType::kExponential:		paramSymbol = @"s̄"; break;
 							case DFEType::kNormal:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"σ"); break;
+							case DFEType::kWeibull:			paramSymbol = (paramIndex == 0 ? @"λ" : @"k"); break;
 						}
 						
 						[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];

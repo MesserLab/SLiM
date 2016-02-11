@@ -38,6 +38,10 @@
 	IBOutlet NSTextField *normalDFEParamsLabel2;
 	IBOutlet NSTextField *normalMeanSelCoeffTextField;
 	IBOutlet NSTextField *normalSigmaTextField;
+	IBOutlet NSTextField *weibullDFEParamsLabel1;
+	IBOutlet NSTextField *weibullDFEParamsLabel2;
+	IBOutlet NSTextField *weibullLambdaTextField;
+	IBOutlet NSTextField *weibullKTextField;
 }
 @end
 

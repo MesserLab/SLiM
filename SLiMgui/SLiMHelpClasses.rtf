@@ -1,6 +1,6 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf340
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
-\f3\froman\fcharset0 TimesNewRomanPSMT;}
+\f3\froman\fcharset0 TimesNewRomanPSMT;\f4\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
@@ -591,19 +591,25 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 
 \f0\fs20 \cf0 The parameters that configure the chosen distribution of fitness effects.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 distributionType => (string$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The type of distribution of fitness effects; one of 
 \f2\fs18 "f"
 \f0\fs20 , 
 \f2\fs18 "g"
-\f0\fs20 , or 
+\f3\fs20 ,
+\f0  
 \f2\fs18 "e"
-\f0\fs20  (see SLiM\'92s documentation).
-\f3 \
+\f3\fs20 ,
+\f0  
+\f2\fs18 "n"
+\f3\fs20 ,
+\f0  or 
+\f2\fs18 "w"
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 dominanceCoeff <\'96> (float$)\
@@ -643,11 +649,11 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\i\fs22 \cf0 5.4.2  
 \f1\fs18 MutationType
 \f0\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i0\fs18 \cf0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Set the distribution of fitness effects for a mutation type.  The 
 \f2\fs18 distributionType
@@ -669,13 +675,21 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 numeric$
 \f0\fs20  alpha shape parameter for a gamma distribution (using the same parameterization as the Eidos function 
 \f2\fs18 rgamma()
-\f0\fs20 ); or 
+\f0\fs20 ); 
 \f2\fs18 "n"
 \f0\fs20 , in which case the ellipsis should supply a 
 \f2\fs18 numeric$
 \f0\fs20  mean selection coefficient and a 
 \f2\fs18 numeric$
-\f0\fs20  sigma (standard deviation) parameter for a normal distribution.  This is normally a constant in simulations, so be sure you know what you are doing.
+\f0\fs20  sigma (standard deviation) parameter for a normal distribution; or 
+\f2\fs18 "w"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  
+\f4 \uc0\u955 
+\f0  scale parameter and a 
+\f2\fs18 numeric$
+\f0\fs20  k shape parameter for a Weibull distribution.  This is normally a constant in simulations, so be sure you know what you are doing.
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

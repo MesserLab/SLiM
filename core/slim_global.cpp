@@ -235,6 +235,7 @@ const std::string gStr_f = "f";
 const std::string gStr_g = "g";
 const std::string gStr_e = "e";
 const std::string gStr_n = "n";
+const std::string gStr_w = "w";
 const std::string gStr_event = "event";
 const std::string gStr_initialize = "initialize";
 const std::string gStr_fitness = "fitness";
@@ -386,6 +387,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_g, gID_g);
 		Eidos_RegisterStringForGlobalID(gStr_e, gID_e);
 		Eidos_RegisterStringForGlobalID(gStr_n, gID_n);
+		Eidos_RegisterStringForGlobalID(gStr_w, gID_w);
 		Eidos_RegisterStringForGlobalID(gStr_event, gID_event);
 		Eidos_RegisterStringForGlobalID(gStr_initialize, gID_initialize);
 		Eidos_RegisterStringForGlobalID(gStr_fitness, gID_fitness);

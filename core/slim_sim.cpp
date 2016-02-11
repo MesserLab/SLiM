@@ -906,8 +906,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			dfe_type = DFEType::kNormal;
 			expected_dfe_param_count = 2;
 		}
+		else if (dfe_type_string.compare(gStr_w) == 0)
+		{
+			dfe_type = DFEType::kWeibull;
+			expected_dfe_param_count = 2;
+		}
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", or \"n\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", or \"w\"." << eidos_terminate();
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();

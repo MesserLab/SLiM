@@ -43,6 +43,8 @@
 	[gammaAlphaTextField setStringValue:@"1.0"];
 	[normalMeanSelCoeffTextField setStringValue:@"0.0"];
 	[normalSigmaTextField setStringValue:@"0.1"];
+	[weibullLambdaTextField setStringValue:@"1.0"];
+	[weibullKTextField setStringValue:@"1.0"];
 	
 	[super configSheetLoaded];
 }
@@ -75,6 +77,10 @@
 	[normalDFEParamsLabel2 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 3)]];
 	[normalMeanSelCoeffTextField setEnabled:(dfeTag == 3)];
 	[normalSigmaTextField setEnabled:(dfeTag == 3)];
+	[weibullDFEParamsLabel1 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 4)]];
+	[weibullDFEParamsLabel2 setTextColor:[ScriptMod textColorForEnableState:(dfeTag == 4)]];
+	[weibullLambdaTextField setEnabled:(dfeTag == 4)];
+	[weibullKTextField setEnabled:(dfeTag == 4)];
 	
 	// set all DFE param textfields to a white background, and then validate them below; this way if they are not enabled they are always white
 	[fixedSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
@@ -83,6 +89,8 @@
 	[gammaAlphaTextField setBackgroundColor:[NSColor whiteColor]];
 	[normalMeanSelCoeffTextField setBackgroundColor:[NSColor whiteColor]];
 	[normalSigmaTextField setBackgroundColor:[NSColor whiteColor]];
+	[weibullLambdaTextField setBackgroundColor:[NSColor whiteColor]];
+	[weibullKTextField setBackgroundColor:[NSColor whiteColor]];
 	
 	if (dfeTag == 0)		// fixed
 	{
@@ -116,6 +124,16 @@
 		validInput = validInput && sigmaValid;
 		[normalSigmaTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sigmaValid]];
 	}
+	else if (dfeTag == 4)	// Weibull
+	{
+		BOOL lambdaValid = [ScriptMod validFloatValueInTextField:weibullLambdaTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
+		validInput = validInput && lambdaValid;
+		[weibullLambdaTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:lambdaValid]];
+		
+		BOOL kValid = [ScriptMod validFloatValueInTextField:weibullKTextField withMin:0.0 max:999.0 excludingMin:YES excludingMax:NO];
+		validInput = validInput && kValid;
+		[weibullKTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:kValid]];
+	}
 	
 	// determine whether we will need to recycle to simulation to make the change take effect
 	needsRecycle = YES;
@@ -146,6 +164,8 @@
 		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"g\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [gammaMeanSelCoeffTextField stringValue], [gammaAlphaTextField stringValue]];
 	else if (dfeTag == 3)	// normal
 		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"n\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [normalMeanSelCoeffTextField stringValue], [normalSigmaTextField stringValue]];
+	else if (dfeTag == 4)	// Weibull
+		return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@, \"w\", %@, %@);\n}\n", mutationTypeID, dominanceCoeffString, [weibullLambdaTextField stringValue], [weibullKTextField stringValue]];
 	
 	return [NSString stringWithFormat:@"initialize() {\n\tinitializeMutationType(%d, %@);\n}\n", mutationTypeID, dominanceCoeffString];
 }

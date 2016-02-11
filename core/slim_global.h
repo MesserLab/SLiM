@@ -359,6 +359,7 @@ extern const std::string gStr_f;
 extern const std::string gStr_g;
 extern const std::string gStr_e;
 extern const std::string gStr_n;
+extern const std::string gStr_w;
 extern const std::string gStr_event;
 extern const std::string gStr_initialize;
 extern const std::string gStr_fitness;
@@ -500,6 +501,7 @@ enum _SLiMGlobalStringID : int {
 	gID_g,
 	gID_e,
 	gID_n,
+	gID_w,
 	gID_event,
 	gID_initialize,
 	gID_fitness,
