@@ -125,7 +125,16 @@
 \f3 \uc0\u955 
 \f2  scale parameter and a 
 \f0\fs18 numeric$
-\f2\fs20  k shape parameter for a Weibull distribution.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.
+\f2\fs20  k shape parameter for a Weibull distribution.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+Note that by default, all mutations of a given mutation type will be converted into 
+\f0\fs18 Substitution
+\f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
+\f0\fs18 convertToSubstitution
+\f2\fs20  property of 
+\f0\fs18 MutationType
+\f2\fs20  to 
+\f0\fs18 T
+\f2\fs20 .  See section 13.4.1 for further discussion regarding that property.
 \f1 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

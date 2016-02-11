@@ -128,6 +128,7 @@ const std::string gStr_originGeneration = "originGeneration";
 const std::string gStr_position = "position";
 const std::string gStr_selectionCoeff = "selectionCoeff";
 const std::string gStr_subpopID = "subpopID";
+const std::string gStr_convertToSubstitution = "convertToSubstitution";
 const std::string gStr_distributionType = "distributionType";
 const std::string gStr_distributionParams = "distributionParams";
 const std::string gStr_dominanceCoeff = "dominanceCoeff";
@@ -284,6 +285,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_position, gID_position);
 		Eidos_RegisterStringForGlobalID(gStr_selectionCoeff, gID_selectionCoeff);
 		Eidos_RegisterStringForGlobalID(gStr_subpopID, gID_subpopID);
+		Eidos_RegisterStringForGlobalID(gStr_convertToSubstitution, gID_convertToSubstitution);
 		Eidos_RegisterStringForGlobalID(gStr_distributionType, gID_distributionType);
 		Eidos_RegisterStringForGlobalID(gStr_distributionParams, gID_distributionParams);
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeff, gID_dominanceCoeff);

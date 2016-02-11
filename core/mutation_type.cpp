@@ -55,7 +55,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 #else
 MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
 #endif
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), 
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), convert_to_substitution_(true),
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class)))
 {
 	if (dfe_parameters_.size() == 0)
@@ -167,6 +167,8 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(dfe_parameters_));
 			
 			// variables
+		case gID_convertToSubstitution:
+			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(dominance_coeff_));
 		case gID_tag:
@@ -183,6 +185,14 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_convertToSubstitution:
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			convert_to_substitution_ = value;
+			return;
+		}
+			
 		case gID_dominanceCoeff:
 		{
 			double value = p_value.FloatAtIndex(0, nullptr);
@@ -323,6 +333,7 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_convertToSubstitution));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionParams));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
@@ -337,6 +348,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 {
 	// Signatures are all preallocated, for speed
 	static EidosPropertySignature *idSig = nullptr;
+	static EidosPropertySignature *convertToSubstitutionSig = nullptr;
 	static EidosPropertySignature *distributionTypeSig = nullptr;
 	static EidosPropertySignature *distributionParamsSig = nullptr;
 	static EidosPropertySignature *dominanceCoeffSig = nullptr;
@@ -344,17 +356,19 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 	
 	if (!idSig)
 	{
-		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,	gID_distributionType,	true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,	gID_distributionParams,	true,	kEidosValueMaskFloat));
-		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		gID_dominanceCoeff,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						gID_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		convertToSubstitutionSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	gID_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
+		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		gID_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat));
+		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 		case gID_id:					return idSig;
+		case gID_convertToSubstitution:	return convertToSubstitutionSig;
 		case gID_distributionType:		return distributionTypeSig;
 		case gID_distributionParams:	return distributionParamsSig;
 		case gID_dominanceCoeff:		return dominanceCoeffSig;

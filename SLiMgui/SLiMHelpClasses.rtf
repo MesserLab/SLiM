@@ -584,9 +584,49 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \i\b0 \cf0 5.4.1  
 \f1\fs18 MutationType
 \f0\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 convertToSubstitution <\'96> (logical$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 This property governs whether mutations of this mutation type will be converted to 
+\f2\fs18 Substitution
+\f0\fs20  objects when they reach fixation.  This property is 
+\f2\fs18 T
+\f0\fs20  by default, since conversion to 
+\f2\fs18 Substitution
+\f0\fs20  objects provides large speed benefits; it should be set to 
+\f2\fs18 F
+\f0\fs20  only if necessary, and only on the mutation types for which it is necessary.  This might be needed, for example, if you are using a 
+\f2\fs18 fitness()
+\f0\fs20  callback to implement an epistatic relationship between mutations; a mutation epistatically influencing the fitness of other mutations through a 
+\f2\fs18 fitness()
+\f0\fs20  callback would need to continue having that influence even after reaching fixation, but if SLiM\'92s were to replace the fixed mutation with a 
+\f2\fs18 Substitution
+\f0\fs20  object the mutation would no longer be considered in fitness calculations (unless the callback explicitly consulted the list of 
+\f2\fs18 Substitution
+\f0\fs20  objects kept by the simulation)
+\f3 .
+\f0   Other script-defined behaviors in 
+\f2\fs18 fitness()
+\f0\fs20 , 
+\f2\fs18 mateChoice()
+\f0\fs20 , and 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks might also necessitate the disabling of substitution for a given mutation type; this is an important consideration to keep in mind.\
+SLiM consults this flag at the end of each generation when deciding whether to substitute each fixed mutations.  If you change this flag to 
+\f2\fs18 T
+\f0\fs20 , all eligible fixed mutations will be converted at the end of the current generation, even if they were previously left unconverted because of the previous value of the flag.  Setting this flag to 
+\f2\fs18 F
+\f0\fs20  will prevent future substitutions, but will not cause any existing 
+\f2\fs18 Substitution
+\f0\fs20  objects to be converted back into 
+\f2\fs18 Mutation
+\f0\fs20  objects.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 distributionParams => (float)\
+\f2\fs18 \cf0 distributionParams => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The parameters that configure the chosen distribution of fitness effects.

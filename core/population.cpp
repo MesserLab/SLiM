@@ -1484,7 +1484,7 @@ void Population::RemoveFixedMutations(void)
 			
 			remove_mutation = true;
 		}
-		else if (reference_count == total_genome_count_)
+		else if ((reference_count == total_genome_count_) && (mutation->mutation_type_ptr_->convert_to_substitution_))
 		{
 #if DEBUG_MUTATIONS
 			SLIM_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;

@@ -75,6 +75,8 @@ public:
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
+	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
+	
 	slim_usertag_t tag_value_;					// a user-defined tag value
 
 #ifdef SLIMGUI

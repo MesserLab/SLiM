@@ -256,6 +256,7 @@ extern const std::string gStr_originGeneration;
 extern const std::string gStr_position;
 extern const std::string gStr_selectionCoeff;
 extern const std::string gStr_subpopID;
+extern const std::string gStr_convertToSubstitution;
 extern const std::string gStr_distributionType;
 extern const std::string gStr_distributionParams;
 extern const std::string gStr_dominanceCoeff;
@@ -398,6 +399,7 @@ enum _SLiMGlobalStringID : int {
 	gID_position,
 	gID_selectionCoeff,
 	gID_subpopID,
+	gID_convertToSubstitution,
 	gID_distributionType,
 	gID_distributionParams,
 	gID_dominanceCoeff,
