@@ -539,8 +539,8 @@ DQ
                 <rect key="frame" x="0.0" y="0.0" width="268" height="364"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <button misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
-                        <rect key="frame" x="32" y="200" width="126" height="18"/>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
+                        <rect key="frame" x="32" y="200" width="125" height="18"/>
                         <buttonCell key="cell" type="check" title="In the script area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="9pj-Hb-YGA">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -549,8 +549,8 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.SyntaxHighlightScript" id="E5P-Jd-Zih"/>
                         </connections>
                     </button>
-                    <button misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="LNo-up-hn1">
-                        <rect key="frame" x="32" y="180" width="132" height="18"/>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="LNo-up-hn1">
+                        <rect key="frame" x="32" y="180" width="130" height="18"/>
                         <buttonCell key="cell" type="check" title="In the output area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="ihE-H7-bQ0">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -559,8 +559,8 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.SyntaxHighlightOutput" id="bnx-Hd-3Wk"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
-                        <rect key="frame" x="18" y="224" width="181" height="17"/>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
+                        <rect key="frame" x="18" y="224" width="180" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Enable syntax highlighting:" id="oD3-D6-zvA">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -589,16 +589,16 @@ DQ
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6sR-dN-vyi">
-                        <rect key="frame" x="18" y="145" width="197" height="17"/>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="6sR-dN-vyi">
+                        <rect key="frame" x="18" y="145" width="196" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When checking script syntax:" id="GjS-PY-od2">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <button misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eGw-cr-yvD">
-                        <rect key="frame" x="32" y="121" width="164" height="18"/>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="eGw-cr-yvD">
+                        <rect key="frame" x="32" y="121" width="160" height="18"/>
                         <buttonCell key="cell" type="check" title="Play sound on success" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="3e1-wW-7r7">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -607,8 +607,8 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.PlaySoundParseSuccess" id="9mA-T4-sK2"/>
                         </connections>
                     </button>
-                    <button misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="A87-L1-NNH">
-                        <rect key="frame" x="32" y="101" width="151" height="18"/>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="A87-L1-NNH">
+                        <rect key="frame" x="32" y="101" width="148" height="18"/>
                         <buttonCell key="cell" type="check" title="Play sound on failure" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tjb-mF-4Z6">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -617,18 +617,18 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.PlaySoundParseFailure" id="ol0-B0-hQe"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
-                        <rect key="frame" x="18" y="327" width="144" height="17"/>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
+                        <rect key="frame" x="18" y="327" width="143" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMgui starts:" id="dL6-Sg-GED">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <matrix verticalHuggingPriority="750" misplaced="YES" allowsEmptySelection="NO" autorecalculatesCellSize="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gPW-po-YSE">
-                        <rect key="frame" x="34" y="261" width="214" height="58"/>
+                    <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autorecalculatesCellSize="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gPW-po-YSE">
+                        <rect key="frame" x="33" y="261" width="209" height="58"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        <size key="cellSize" width="214" height="18"/>
+                        <size key="cellSize" width="209" height="18"/>
                         <size key="intercellSpacing" width="4" height="2"/>
                         <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="UXn-kw-QHE">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
