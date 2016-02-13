@@ -547,6 +547,10 @@ bool SLiMSim::_RunOneGeneration(void)
 	gEidosCurrentScript = script_;
 	gEidosExecutingRuntimeScript = false;
 	
+	// Activate all registered script blocks at the beginning of the generation
+	for (SLiMEidosBlock *script_block : script_blocks_)
+		script_block->active_ = -1;
+	
 	if (generation_ == 0)
 	{
 		RunInitializeCallbacks();
