@@ -112,7 +112,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",			EidosFunctionIdentifier::dnormFunction,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean")->AddNumeric_O("sd"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			EidosFunctionIdentifier::rbinomFunction,		kEidosValueMaskInt))->AddInt_S("n")->AddInt("size")->AddFloat("prob"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("rate"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				EidosFunctionIdentifier::rexpFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mu"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			EidosFunctionIdentifier::rgammaFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			EidosFunctionIdentifier::rlnormFunction,		kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("meanlog")->AddNumeric_O("sdlog"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",			EidosFunctionIdentifier::rnormFunction,			kEidosValueMaskFloat))->AddInt_S("n")->AddNumeric_O("mean")->AddNumeric_O("sd"));
@@ -2154,26 +2154,25 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
-			//	(float)rexp(integer$ n, [numeric rate])
+			//	(float)rexp(integer$ n, [numeric mu])
 			#pragma mark rexp
 			
 		case EidosFunctionIdentifier::rexpFunction:
 		{
 			EidosValue *arg0_value = p_arguments[0].get();
 			int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
-			EidosValue *arg_rate = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-			int arg_rate_count = (arg_rate ? arg_rate->Count() : 1);
-			bool rate_singleton = (arg_rate_count == 1);
+			EidosValue *arg_mu = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+			int arg_mu_count = (arg_mu ? arg_mu->Count() : 1);
+			bool mu_singleton = (arg_mu_count == 1);
 			
 			if (num_draws < 0)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
-			if (!rate_singleton && (arg_rate_count != num_draws))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires rate to be of length 1 or n." << eidos_terminate(nullptr);
+			if (!mu_singleton && (arg_mu_count != num_draws))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function rexp() requires mu to be of length 1 or n." << eidos_terminate(nullptr);
 			
-			if (rate_singleton)
+			if (mu_singleton)
 			{
-				double rate0 = (arg_rate ? arg_rate->FloatAtIndex(0, nullptr) : 1.0);
-				double mu0 = 1.0 / rate0;
+				double mu0 = (arg_mu ? arg_mu->FloatAtIndex(0, nullptr) : 1.0);
 				
 				if (num_draws == 1)
 				{
@@ -2195,9 +2194,9 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					double rate = arg_rate->FloatAtIndex(draw_index, nullptr);
+					double mu = arg_mu->FloatAtIndex(draw_index, nullptr);
 					
-					float_result->PushFloat(gsl_ran_exponential(gEidos_rng, 1.0 / rate));
+					float_result->PushFloat(gsl_ran_exponential(gEidos_rng, mu));
 				}
 			}
 			

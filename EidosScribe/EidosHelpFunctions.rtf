@@ -780,10 +780,10 @@
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.3.  Distribution drawing and density functions\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (float)dnorm(float\'a0x, [numeric\'a0mean], [numeric\'a0sd])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \b probability densities for a normal distribution
@@ -793,8 +793,7 @@
 \f1\fs18 mean
 \f0\fs20  and standard deviation 
 \f1\fs18 sd
-\f2\fs20 .
-\f0   The 
+\f0\fs20 .  The 
 \f1\fs18 mean
 \f0\fs20  and 
 \f1\fs18 sd
@@ -809,12 +808,12 @@
 \f0\fs20  is 
 \f1\fs18 1.0
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)rbinom(integer$
 \f2 \'a0
 \f1 n, integer\'a0size, float\'a0prob)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -830,34 +829,32 @@
 \f1\fs18 prob
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f0\fs20 , specifying a value for each draw.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rexp(integer$
 \f2 \'a0
-\f1 n, [numeric\'a0rate])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 n, [numeric\'a0mu])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
 \f0\fs20  
 \b random draws from an exponential distribution
-\b0  with rate parameter 
-\f1\fs18 rate
-\f0\fs20  (i.e. mean 
-\f1\fs18 1/rate
+\b0  with mean 
+\f1\fs18 mu
+\f0\fs20  (i.e. rate 
+\f1\fs18 1/mu
 \f0\fs20 ).  The 
-\f1\fs18 rate
+\f1\fs18 mu
 \f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
 \f1\fs18 n
 \f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 rate
+\f1\fs18 mu
 \f0\fs20  is 
 \f1\fs18 1.0
-\f2\fs20 .
-\f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
-\f2 \
+\f2\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rgamma(integer$
@@ -915,12 +912,12 @@
 \f1\fs18 mean
 \f0\fs20  parameter.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rlnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0meanlog], [numeric\'a0sdlog])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -944,14 +941,13 @@
 \f1\fs18 sdlog
 \f0\fs20  is 
 \f1\fs18 1.0
-\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
-\f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mean], [numeric\'a0sd])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -961,8 +957,7 @@
 \f1\fs18 mean
 \f0\fs20  and standard deviation 
 \f1\fs18 sd
-\f2\fs20 .
-\f0   The 
+\f0\fs20 .  The 
 \f1\fs18 mean
 \f0\fs20  and 
 \f1\fs18 sd
@@ -976,14 +971,13 @@
 \f1\fs18 sd
 \f0\fs20  is 
 \f1\fs18 1.0
-\f0\fs20 .  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
-\f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)rpois(integer$
 \f2 \'a0
 \f1 n, numeric\'a0lambda)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -999,12 +993,12 @@
 \f1\fs18 lambda
 \f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.  The algorithm used is from the GNU Scientific Library.
+\f0\fs20 , specifying a value for each draw.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)runif(integer$\'a0n, [numeric\'a0min], [numeric\'a0max])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -1028,15 +1022,13 @@
 \f1\fs18 max
 \f0\fs20  is 
 \f1\fs18 1.0
-\f2\fs20 .
-\f0   The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.
-\f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rweibull(integer$
 \f2 \'a0
 \f1 n, numeric\'a0lambda, numeric\'a0k)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -2443,9 +2435,8 @@ The
 \f0\fs20  is 
 \f1\fs18 F
 \f2\fs20 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 \cf0 The current implementation of 
+\f0 The current implementation of 
 \f1\fs18 executeLambda()
 \f0\fs20  caches a tokenized and parsed version of 
 \f1\fs18 lambdaSource
