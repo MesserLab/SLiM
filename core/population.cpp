@@ -571,9 +571,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
 	
-	// BCH 27 Dec. 2014: Note that child_map has been removed here, so the order of generated children is NOT RANDOM!
-	// Any code that chooses individuals from the population should choose randomly to avoid order-dependency!
-	
 	// set up to draw migrants; this works the same in the sex and asex cases, and for males / females / hermaphrodites
 	// the way the code is now structured, "migrant" really includes everybody; we are a migrant source subpop for ourselves
 	int migrant_source_count = static_cast<int>(p_subpop.migrant_fractions_.size());
@@ -632,138 +629,623 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << eidos_terminate();
 	}
 	
-	// Now we're ready to actually generate offspring.  We loop to generate females first (sex_index == 0) and
-	// males second (sex_index == 1).  In nonsexual simulations number_of_sexes == 1 and this loops just once.
-	slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
-	
-	for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present)
 	{
-		slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
-		IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
+		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
+		// limited number of mating events, for example).  So in this code branch, we prepare an overall plan for migration and sex, and then execute
+		// that plan in an order randomized with gsl_ran_shuffle().
 		
-		// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
 		if (migrant_source_count == 0)
-			num_migrants[0] = (unsigned int)total_children_of_sex;
-		else
-			gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
-		
-		// loop over all source subpops, including ourselves
-		for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
 		{
-			slim_popsize_t migrants_to_generate = static_cast<slim_popsize_t>(num_migrants[pop_count]);
+			// CALLBACKS, NO MIGRATION: Here we are drawing all offspring from the local pool, so we can optimize a lot.  We only need to shuffle
+			// the order in which males and females are generated, if we're running with sex, selfing, or cloning; if not, we actually don't need
+			// to shuffle at all, because no aspect of the mating algorithm is predetermined.
+			slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
+			Subpopulation &source_subpop = p_subpop;
+			slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
+			double selfing_fraction = source_subpop.selfing_fraction_;
+			double cloning_fraction = source_subpop.female_clone_fraction_;
 			
-			if (migrants_to_generate > 0)
+			// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
+			std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
+			
+			if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
+				mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
+			if (p_modify_child_callbacks_present && source_subpop.registered_modify_child_callbacks_.size())
+				modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
+			
+			if (sex_enabled || (selfing_fraction > 0.0) || (cloning_fraction > 0.0))
 			{
-				Subpopulation &source_subpop = *(migration_sources[pop_count]);
-				slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
-				double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
-				double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
-				
-				// figure out how many from this source subpop are the result of selfing and/or cloning
-				slim_popsize_t number_to_self = 0, number_to_clone = 0;
-				
-				if (selfing_fraction > 0)
+				// We have either sex, selfing, or cloning as attributes of each individual child, so we need to pre-plan and shuffle.
+				typedef struct
 				{
-					if (cloning_fraction > 0)
+					IndividualSex planned_sex;
+					uint8_t planned_cloned;
+					uint8_t planned_selfed;
+				} offspring_plan;
+				
+				offspring_plan planned_offspring[total_children];
+				
+				for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
+				{
+					slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
+					IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+					slim_popsize_t migrants_to_generate = total_children_of_sex;
+					
+					if (migrants_to_generate > 0)
 					{
-						double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
-						unsigned int counts[3] = {0, 0, 0};
+						// figure out how many from this source subpop are the result of selfing and/or cloning
+						slim_popsize_t number_to_self = 0, number_to_clone = 0;
 						
-						gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+						if (selfing_fraction > 0)
+						{
+							if (cloning_fraction > 0)
+							{
+								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
+								unsigned int counts[3] = {0, 0, 0};
+								
+								gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								
+								number_to_self = static_cast<slim_popsize_t>(counts[0]);
+								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
+							}
+							else
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+						}
+						else if (cloning_fraction > 0)
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
 						
-						number_to_self = static_cast<slim_popsize_t>(counts[0]);
-						number_to_clone = static_cast<slim_popsize_t>(counts[1]);
+						// generate all selfed, cloned, and autogamous offspring in one shared loop
+						slim_popsize_t migrant_count = 0;
+						
+						while (migrant_count < migrants_to_generate)
+						{
+							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							
+							offspring_plan_ptr->planned_sex = child_sex;
+							
+							if (number_to_clone > 0)
+							{
+								offspring_plan_ptr->planned_cloned = true;
+								offspring_plan_ptr->planned_selfed = false;
+								--number_to_clone;
+							}
+							else if (number_to_self > 0)
+							{
+								offspring_plan_ptr->planned_cloned = false;
+								offspring_plan_ptr->planned_selfed = true;
+								--number_to_self;
+							}
+							else
+							{
+								offspring_plan_ptr->planned_cloned = false;
+								offspring_plan_ptr->planned_selfed = false;
+							}
+							
+							// change all our counters
+							migrant_count++;
+							child_count++;
+						}
+					}
+				}
+				
+				gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
+				
+				// Now we can run through our plan vector and generate each planned child in order.
+				for (child_count = 0; child_count < total_children; ++child_count)
+				{
+					// Get the plan for this offspring from our shuffled plan vector
+					offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+					
+					IndividualSex child_sex = offspring_plan_ptr->planned_sex;
+					bool selfed, cloned;
+					bool firstTry = true;
+					
+					// We loop back to here to retry child generation if a mateChoice() or modifyChild() callback causes our first attempt at
+					// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
+					// draw selfed and cloned randomly based on the probabilities set for the source subpop.  This allows the callbacks to
+					// actually influence the proportion selfed/cloned, through e.g. lethal epistatic interactions or failed mate search.
+				retryChild:
+					
+					if (firstTry)
+					{
+						// first mating event, so follow our original plan for this offspring
+						// note we could draw self/cloned as below even for the first try; this code path is just more efficient,
+						// since it avoids a gsl_ran_uniform() for each child, in favor of one gsl_ran_multinomial() above
+						selfed = offspring_plan_ptr->planned_selfed;
+						cloned = offspring_plan_ptr->planned_cloned;
 					}
 					else
-						number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
-				}
-				else if (cloning_fraction > 0)
-					number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
-				
-				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
-				
-				if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
-					mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
-				if (p_modify_child_callbacks_present && source_subpop.registered_modify_child_callbacks_.size())
-					modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
-				
-				// generate all selfed, cloned, and autogamous offspring in one shared loop
-				slim_popsize_t migrant_count = 0;
-				
-				if ((number_to_self == 0) && (number_to_clone == 0) && !mate_choice_callbacks && !modify_child_callbacks)
-				{
-					// a simple loop for the base case with no selfing, no cloning, and no callbacks
-					while (migrant_count < migrants_to_generate)
 					{
-						slim_popsize_t parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
-						slim_popsize_t parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+						// a whole new mating event, so we draw selfed/cloned based on the source subpop's probabilities
+						selfed = false;
+						cloned = false;
+						
+						if (selfing_fraction > 0)
+						{
+							if (cloning_fraction > 0)
+							{
+								double draw = gsl_rng_uniform(gEidos_rng);
+								
+								if (draw < selfing_fraction)							selfed = true;
+								else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
+							}
+							else
+							{
+								double draw = gsl_rng_uniform(gEidos_rng);
+								
+								if (draw < selfing_fraction)							selfed = true;
+							}
+						}
+						else if (cloning_fraction > 0)
+						{
+							double draw = gsl_rng_uniform(gEidos_rng);
+							
+							if (draw < cloning_fraction)								cloned = true;
+						}
+						
+						// we do not redraw the sex of the child, however, because that is predetermined; we need to hit our target ratio
+						// we could trade our planned sex for a randomly chosen planned sex from the remaining children to generate, but
+						// that gets a little complicated because of selfing, and I'm having trouble imagining a scenario where it matters
+					}
+					
+					slim_popsize_t parent1, parent2;
+					
+					if (cloned)
+					{
+						if (sex_enabled)
+							parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
+						else
+							parent1 = source_subpop.DrawParentUsingFitness();
+						
+						parent2 = parent1;
+						
+						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					}
+					else
+					{
+						parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+						
+						if (selfed)							parent2 = parent1;
+						else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+						else
+						{
+							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							
+							if (parent2 == -1)
+							{
+								// The mateChoice() callbacks rejected parent1 altogether, so we need to choose a new parent1 and start over
+								firstTry = false;
+								goto retryChild;
+							}
+						}
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
-						
-						migrant_count++;
-						child_count++;
 					}
+					
+					if (modify_child_callbacks)
+					{
+						if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
+						{
+							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
+							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
+							firstTry = false;
+							goto retryChild;
+						}
+					}
+				}
+			}
+			else
+			{
+				// CALLBACKS, NO MIGRATION, NO SEX, NO SELFING, NO CLONING: so we don't need to preplan or shuffle, each child is generated in the same exact way.
+				while (child_count < total_children)
+				{
+					slim_popsize_t parent1, parent2;
+					
+					parent1 = source_subpop.DrawParentUsingFitness();
+					
+					if (!mate_choice_callbacks)	parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+					else
+					{
+						while (true)	// loop while parent2 == -1, indicating a request for a new first parent
+						{
+							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							
+							if (parent2 != -1)
+								break;
+							
+							// parent1 was rejected by the callbacks, so we need to redraw a new parent1
+							parent1 = source_subpop.DrawParentUsingFitness();
+						}
+					}
+					
+					// recombination, gene-conversion, mutation
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
+					
+					if (modify_child_callbacks)
+						if (!ApplyModifyChildCallbacks(child_count, IndividualSex::kHermaphrodite, parent1, parent2, false, false, &p_subpop, &source_subpop, *modify_child_callbacks))
+							continue;
+					
+					// if the child was accepted, change all our counters; can't be done before the modifyChild() callback since it might reject the child!
+					child_count++;
+				}
+			}
+		}
+		else
+		{
+			// CALLBACKS WITH MIGRATION: Here we need to shuffle the migration source subpops, as well as the offspring sex.  This makes things so
+			// different that it is worth treating it as an entirely separate case; it is far less optimizable than the case without migration.
+			// Note that this is pretty much the general case of this whole method; all the other cases are optimized sub-cases of this code!
+			slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
+			
+			// Pre-plan and shuffle.
+			typedef struct
+			{
+				Subpopulation *planned_source;
+				IndividualSex planned_sex;
+				uint8_t planned_cloned;
+				uint8_t planned_selfed;
+			} offspring_plan;
+			
+			offspring_plan planned_offspring[total_children];
+			
+			for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
+			{
+				slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
+				IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+				
+				// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
+				if (migrant_source_count == 0)
+					num_migrants[0] = (unsigned int)total_children_of_sex;
+				else
+					gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+				
+				// loop over all source subpops, including ourselves
+				for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
+				{
+					slim_popsize_t migrants_to_generate = static_cast<slim_popsize_t>(num_migrants[pop_count]);
+					
+					if (migrants_to_generate > 0)
+					{
+						Subpopulation &source_subpop = *(migration_sources[pop_count]);
+						double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
+						double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
+						
+						// figure out how many from this source subpop are the result of selfing and/or cloning
+						slim_popsize_t number_to_self = 0, number_to_clone = 0;
+						
+						if (selfing_fraction > 0)
+						{
+							if (cloning_fraction > 0)
+							{
+								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
+								unsigned int counts[3] = {0, 0, 0};
+								
+								gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								
+								number_to_self = static_cast<slim_popsize_t>(counts[0]);
+								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
+							}
+							else
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+						}
+						else if (cloning_fraction > 0)
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
+						
+						// generate all selfed, cloned, and autogamous offspring in one shared loop
+						slim_popsize_t migrant_count = 0;
+						
+						while (migrant_count < migrants_to_generate)
+						{
+							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							
+							offspring_plan_ptr->planned_source = &source_subpop;
+							offspring_plan_ptr->planned_sex = child_sex;
+							
+							if (number_to_clone > 0)
+							{
+								offspring_plan_ptr->planned_cloned = true;
+								offspring_plan_ptr->planned_selfed = false;
+								--number_to_clone;
+							}
+							else if (number_to_self > 0)
+							{
+								offspring_plan_ptr->planned_cloned = false;
+								offspring_plan_ptr->planned_selfed = true;
+								--number_to_self;
+							}
+							else
+							{
+								offspring_plan_ptr->planned_cloned = false;
+								offspring_plan_ptr->planned_selfed = false;
+							}
+							
+							// change all our counters
+							migrant_count++;
+							child_count++;
+						}
+					}
+				}
+			}
+			
+			gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
+			
+			// Now we can run through our plan vector and generate each planned child in order.
+			for (child_count = 0; child_count < total_children; ++child_count)
+			{
+				// Get the plan for this offspring from our shuffled plan vector
+				offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+				
+				Subpopulation *source_subpop = offspring_plan_ptr->planned_source;
+				IndividualSex child_sex = offspring_plan_ptr->planned_sex;
+				bool selfed, cloned;
+				bool firstTry = true;
+				
+				// We loop back to here to retry child generation if a modifyChild() callback causes our first attempt at
+				// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
+				// draw selfed and cloned randomly based on the probabilities set for the source subpop.  This allows the callbacks to
+				// actually influence the proportion selfed/cloned, through e.g. lethal epistatic interactions or failed mate search.
+			retryWithNewSourceSubpop:
+				
+				slim_objectid_t subpop_id = source_subpop->subpopulation_id_;
+				
+				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
+				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
+				
+				if (source_subpop->registered_mate_choice_callbacks_.size())
+					mate_choice_callbacks = &source_subpop->registered_mate_choice_callbacks_;
+				if (source_subpop->registered_modify_child_callbacks_.size())
+					modify_child_callbacks = &source_subpop->registered_modify_child_callbacks_;
+				
+				// Similar to retryWithNewSourceSubpop: but assumes that the subpop remains unchanged; used after a failed mateChoice()
+				// callback, which rejects parent1 but does not cause a redraw of the source subpop.
+			retryWithSameSourceSubpop:
+				
+				if (firstTry)
+				{
+					// first mating event, so follow our original plan for this offspring
+					// note we could draw self/cloned as below even for the first try; this code path is just more efficient,
+					// since it avoids a gsl_ran_uniform() for each child, in favor of one gsl_ran_multinomial() above
+					selfed = offspring_plan_ptr->planned_selfed;
+					cloned = offspring_plan_ptr->planned_cloned;
 				}
 				else
 				{
-					// the full loop with support for selfing/ cloning, and callbacks
-					while (migrant_count < migrants_to_generate)
+					// a whole new mating event, so we draw selfed/cloned based on the source subpop's probabilities
+					double selfing_fraction = sex_enabled ? 0.0 : source_subpop->selfing_fraction_;
+					double cloning_fraction = (child_sex != IndividualSex::kMale) ? source_subpop->female_clone_fraction_ : source_subpop->male_clone_fraction_;
+					
+					selfed = false;
+					cloned = false;
+					
+					if (selfing_fraction > 0)
 					{
-						bool selfed = false, cloned = false;
-						slim_popsize_t parent1, parent2;
-						
-						if (number_to_clone > 0)
+						if (cloning_fraction > 0)
 						{
-							if (sex_enabled)
-								parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
-							else
-								parent1 = source_subpop.DrawParentUsingFitness();
+							double draw = gsl_rng_uniform(gEidos_rng);
 							
-							parent2 = parent1;
-							cloned = true;
-							
-							DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-							DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+							if (draw < selfing_fraction)							selfed = true;
+							else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 						}
 						else
 						{
-							parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+							double draw = gsl_rng_uniform(gEidos_rng);
 							
-							if (number_to_self > 0)				parent2 = parent1, selfed = true;
-							else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+							if (draw < selfing_fraction)							selfed = true;
+						}
+					}
+					else if (cloning_fraction > 0)
+					{
+						double draw = gsl_rng_uniform(gEidos_rng);
+						
+						if (draw < cloning_fraction)								cloned = true;
+					}
+					
+					// we do not redraw the sex of the child, however, because that is predetermined; we need to hit our target ratio
+					// we could trade our planned sex for a randomly chosen planned sex from the remaining children to generate, but
+					// that gets a little complicated because of selfing, and I'm having trouble imagining a scenario where it matters
+				}
+				
+				slim_popsize_t parent1, parent2;
+				
+				if (cloned)
+				{
+					if (sex_enabled)
+						parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop->DrawFemaleParentUsingFitness() : source_subpop->DrawMaleParentUsingFitness();
+					else
+						parent1 = source_subpop->DrawParentUsingFitness();
+					
+					parent2 = parent1;
+					
+					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+				}
+				else
+				{
+					parent1 = sex_enabled ? source_subpop->DrawFemaleParentUsingFitness() : source_subpop->DrawParentUsingFitness();
+					
+					if (selfed)							parent2 = parent1;
+					else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop->DrawMaleParentUsingFitness() : source_subpop->DrawParentUsingFitness();	// selfing possible!
+					else
+					{
+						parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, source_subpop, *mate_choice_callbacks);
+						
+						if (parent2 == -1)
+						{
+							// The mateChoice() callbacks rejected parent1 altogether, so we need to choose a new parent1 and start over
+							firstTry = false;
+							goto retryWithSameSourceSubpop;
+						}
+					}
+					
+					// recombination, gene-conversion, mutation
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+				}
+				
+				if (modify_child_callbacks)
+				{
+					if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
+					{
+						// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
+						// we need to even change the source subpop for our next attempt, so that differential mortality between different
+						// migration sources leads to differential representation in the offspring generation – more offspring from the
+						// subpop that is more successful at contributing migrants.
+						gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, 1, migration_rates, num_migrants);
+						
+						for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
+							if (num_migrants[pop_count] > 0)
+							{
+								source_subpop = migration_sources[pop_count];
+								break;
+							}
+						
+						firstTry = false;
+						goto retryWithNewSourceSubpop;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		// NO CALLBACKS PRESENT: offspring can be generated in a fixed (i.e. predetermined) order.  This is substantially faster, since it avoids
+		// some setup overhead, including the gsl_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
+		// the fact that the individuals might be in a non-random order, because of this code path.  BEWARE!
+		
+		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
+		// In nonsexual simulations number_of_sexes == 1 and this loops just once.
+		slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
+		
+		for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
+		{
+			slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
+			IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+			
+			// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
+			if (migrant_source_count == 0)
+				num_migrants[0] = (unsigned int)total_children_of_sex;
+			else
+				gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+			
+			// loop over all source subpops, including ourselves
+			for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
+			{
+				slim_popsize_t migrants_to_generate = static_cast<slim_popsize_t>(num_migrants[pop_count]);
+				
+				if (migrants_to_generate > 0)
+				{
+					Subpopulation &source_subpop = *(migration_sources[pop_count]);
+					slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
+					double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
+					double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
+					
+					// figure out how many from this source subpop are the result of selfing and/or cloning
+					slim_popsize_t number_to_self = 0, number_to_clone = 0;
+					
+					if (selfing_fraction > 0)
+					{
+						if (cloning_fraction > 0)
+						{
+							double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
+							unsigned int counts[3] = {0, 0, 0};
+							
+							gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+							
+							number_to_self = static_cast<slim_popsize_t>(counts[0]);
+							number_to_clone = static_cast<slim_popsize_t>(counts[1]);
+						}
+						else
+							number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+					}
+					else if (cloning_fraction > 0)
+						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
+					
+					// generate all selfed, cloned, and autogamous offspring in one shared loop
+					slim_popsize_t migrant_count = 0;
+					
+					if ((number_to_self == 0) && (number_to_clone == 0))
+					{
+						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
+						if (sex_enabled)
+						{
+							while (migrant_count < migrants_to_generate)
+							{
+								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness();
+								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
+								
+								// recombination, gene-conversion, mutation
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+								
+								migrant_count++;
+								child_count++;
+							}
+						}
+						else
+						{
+							while (migrant_count < migrants_to_generate)
+							{
+								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness();
+								slim_popsize_t parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+								
+								// recombination, gene-conversion, mutation
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+								
+								migrant_count++;
+								child_count++;
+							}
+						}
+					}
+					else
+					{
+						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
+						while (migrant_count < migrants_to_generate)
+						{
+							slim_popsize_t parent1, parent2;
+							
+							if (number_to_clone > 0)
+							{
+								if (sex_enabled)
+									parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
+								else
+									parent1 = source_subpop.DrawParentUsingFitness();
+								
+								parent2 = parent1;
+								--number_to_clone;
+								
+								DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+								DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+							}
 							else
 							{
-								while (true)	// loop while parent2 == -1, indicating a request for a new first parent
+								parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+								
+								if (number_to_self > 0)
 								{
-									parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
-									
-									if (parent2 != -1)
-										break;
-									
-									// parent1 was rejected by the callbacks, so we need to redraw a new parent1
-									parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+									parent2 = parent1;
+									--number_to_self;
 								}
+								else
+								{
+									parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+								}
+								
+								// recombination, gene-conversion, mutation
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
 							}
 							
-							// recombination, gene-conversion, mutation
-							DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-							DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+							// change counters
+							migrant_count++;
+							child_count++;
 						}
-						
-						if (modify_child_callbacks)
-							if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
-								continue;
-						
-						// if the child was accepted, change all our counters; can't be done before the modifyChild() callback since it might reject the child!
-						if (cloned)
-							--number_to_clone;
-						else if (selfed)
-							--number_to_self;
-						migrant_count++;
-						child_count++;
 					}
 				}
 			}
