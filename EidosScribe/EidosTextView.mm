@@ -154,6 +154,16 @@ using std::string;
 	[self insertText:whitespaceString replacementRange:NSMakeRange(NSNotFound, NSNotFound)];
 }
 
+// handle the home and end keys; rather bizarre that Apple doesn't implement these for us, but whatever...
+- (void)scrollToBeginningOfDocument:(id)sender
+{
+	[self scrollRangeToVisible:NSMakeRange(0, 0)];
+}
+- (void)scrollToEndOfDocument:(id)sender
+{
+	[self scrollRangeToVisible:NSMakeRange([[self string] length], 0)];
+}
+
 // NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for the user; the
 // user can't change the font, size, etc.  But we still can, and do, programatically to do our syntax formatting.  We want that style information to get
 // copied to the pasteboard, and as far as I can tell this subclass is necessary to make it happen.  Seems kind of lame.
