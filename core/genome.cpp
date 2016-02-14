@@ -67,7 +67,9 @@ void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count)
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed (copy it backward to the backfill pointer)
 	while (genome_iter != genome_max)
 	{
-		if ((*genome_iter)->reference_count_ == p_fixed_count)
+		Mutation *mutation_ptr = *genome_iter;
+		
+		if ((mutation_ptr->reference_count_ == p_fixed_count) && (mutation_ptr->mutation_type_ptr_->convert_to_substitution_))
 		{
 			// Fixed mutation; we want to omit it, so we just advance our pointer
 			++genome_iter;
@@ -76,7 +78,7 @@ void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count)
 		{
 			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
 			if (genome_backfill_iter != genome_iter)
-				*genome_backfill_iter = *genome_iter;
+				*genome_backfill_iter = mutation_ptr;
 			
 			++genome_backfill_iter;
 			++genome_iter;
