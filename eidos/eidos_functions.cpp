@@ -4421,7 +4421,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			else
 			{
 				// not a fatal error, just a warning log
-				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function filesAtPath() could not open path " << path << "." << endl;
+				ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function filesAtPath() could not open path " << path << "." << endl;
 				result_SP = gStaticEidosValueNULL;
 			}
 			break;
@@ -4443,7 +4443,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (!file_stream.is_open())
 			{
 				// not a fatal error, just a warning log
-				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() could not read file at path " << file_path << "." << endl;
+				ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function readFile() could not read file at path " << file_path << "." << endl;
 				result_SP = gStaticEidosValueNULL;
 			}
 			else
@@ -4459,7 +4459,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (file_stream.bad())
 				{
 					// not a fatal error, just a warning log
-					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function readFile() encountered stream errors while reading file at path " << file_path << "." << endl;
+					ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function readFile() encountered stream errors while reading file at path " << file_path << "." << endl;
 					
 					result_SP = gStaticEidosValueNULL;
 				}
@@ -4487,7 +4487,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (!file_stream.is_open())
 			{
 				// Not a fatal error, just a warning log
-				ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() could not write to file at path " << file_path << "." << endl;
+				ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function writeFile() could not write to file at path " << file_path << "." << endl;
 				result_SP = gStaticEidosValue_LogicalF;
 			}
 			else
@@ -4507,7 +4507,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				if (file_stream.bad())
 				{
 					// Not a fatal error, just a warning log
-					ExecutionOutputStream() << "WARNING (ExecuteFunctionCall): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+					ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
 					result_SP = gStaticEidosValue_LogicalF;
 				}
 				else

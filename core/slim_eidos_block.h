@@ -35,7 +35,8 @@
 
 
 enum class SLiMEidosBlockType {
-	SLiMEidosEvent = 0,
+	SLiMEidosEventEarly = 0,
+	SLiMEidosEventLate,
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
 	SLiMEidosMateChoiceCallback,
@@ -92,7 +93,7 @@ private:
 	
 public:
 	
-	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosEvent;
+	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosEventEarly;
 	
 	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes

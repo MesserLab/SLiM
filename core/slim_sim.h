@@ -48,6 +48,18 @@ class EidosInterpreter;
 
 extern EidosObjectClass *gSLiM_SLiMSim_Class;
 
+enum class SLiMGenerationStage
+{
+	kStage0PreGeneration = 0,
+	kStage1ExecuteEarlyScripts,
+	kStage2GenerateOffspring,
+	kStage3RemoveFixedMutations,
+	kStage4SwapGenerations,
+	kStage5ExecuteLateScripts,
+	kStage6CalculateFitness,
+	kStage7AdvanceGenerationCounter
+};
+
 
 class SLiMSim : public EidosObjectElement
 {
@@ -65,6 +77,7 @@ private:
 	
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
+	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;		// the within-generation stage currently being executed
 	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
 	
@@ -111,6 +124,11 @@ private:
 	
 public:
 	
+	// warning flags; used to issue warnings only once per run of the simulation
+	bool warned_early_mutation_add_ = false;
+	bool warned_early_mutation_remove_ = false;
+	bool warned_early_output_ = false;
+	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
 	explicit SLiMSim(std::istream &p_infile);										// construct a SLiMSim from an input stream
@@ -131,6 +149,7 @@ public:
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
 	inline slim_generation_t Generation(void) const									{ return generation_; }
+	inline SLiMGenerationStage GenerationStage(void) const							{ return generation_stage_; }
 	inline Chromosome &Chromosome(void)												{ return chromosome_; }
 	inline Population &Population(void)												{ return population_; }
 	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }

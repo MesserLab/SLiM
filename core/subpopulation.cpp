@@ -1286,6 +1286,13 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputSample:
 		{
 			SLiMSim &sim = population_.sim_;
+			
+			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_output_))
+			{
+				SLIM_OUTSTREAM << "#WARNING (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				sim.warned_early_output_ = true;
+			}
+			
 			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			IndividualSex requested_sex = IndividualSex::kUnspecified;
 			
@@ -1300,10 +1307,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 				else if (sex_string.compare("*") == 0)
 					requested_sex = IndividualSex::kUnspecified;
 				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 				
 				if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requested sex is not legal in a non-sexual simulation." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << eidos_terminate();
 			}
 			
 			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;

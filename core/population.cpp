@@ -1808,8 +1808,8 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	}
 }
 
-// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
-void Population::SwapGenerations(void)
+// Tally mutations and remove fixed/lost mutations
+void Population::MaintainRegistry(void)
 {
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences();
@@ -1821,7 +1821,11 @@ void Population::SwapGenerations(void)
 #if DEBUG_MUTATION_ZOMBIES
 	CheckMutationRegistry();
 #endif
-	
+}
+
+// step forward a generation: make the children become the parents
+void Population::SwapGenerations(void)
+{
 	// dispose of any freed subpops
 	if (removed_subpops_.size())
 	{
@@ -1837,14 +1841,6 @@ void Population::SwapGenerations(void)
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
 	child_generation_valid_ = false;
-	
-	// do fitness recalculations with the new parental generation
-	RecalculateFitness(sim_.Generation() + 1);
-	sim_.DeregisterScheduledScriptBlocks();
-	
-#ifdef SLIMGUI
-	SurveyPopulation();
-#endif
 }
 
 // count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)

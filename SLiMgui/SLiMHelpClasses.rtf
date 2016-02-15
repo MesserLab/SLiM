@@ -282,48 +282,45 @@
 \f3\fs20 .
 \f0   This method is often used to look up an introduced mutation at a later point in the simulation, since there is no way to keep persistent references to objects in SLiM.  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations(void)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output all fixed mutations (see SLiM\'92s documentation for further details).\
-Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f2\fs18 n+1
-\f0\fs20  to see the final state in generation 
-\f2\fs18 n
-\f3\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputFull([string$\'a0filePath])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output the state of the entire population.  Output will be sent to the filesystem path 
 \f2\fs18 filePath
 \f0\fs20  if supplied, otherwise to Eidos\'92s output stream (see SLiM\'92s documentation for further details).
 \f3 \
 
-\f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f2\fs18 n+1
-\f0\fs20  to see the final state in generation 
-\f2\fs18 n
-\f3\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0 Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.
 \f3 \
 
-\f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f2\fs18 n+1
-\f0\fs20  to see the final state in generation 
-\f2\fs18 n
-\f3\fs20 .\
+\f0 Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)readFromPopulationFile(string$\'a0filePath)\
@@ -381,16 +378,18 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 fitness()
 \f0\fs20  callbacks, so this is quite a heavyweight operation; you should think carefully about what side effects might result (which is why fitness recalculation does not just occur automatically after changes that might affect fitness values).
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerEarlyEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
 \f2\fs18 string
 \f0\fs20  singleton 
 \f2\fs18 source
-\f0\fs20 , as an Eidos event in the current simulation, with optional 
+\f0\fs20 , as an Eidos 
+\f2\fs18 early()
+\f0\fs20  event in the current simulation, with optional 
 \f2\fs18 start
 \f0\fs20  and 
 \f2\fs18 end
@@ -416,9 +415,9 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
 \i may
-\i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
+\i0  be eligible to execute in the current generation (see section 15.5 for details).  The new 
 \f2\fs18 SLiMEidosBlock
-\f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
+\f0\fs20  will be defined as a global variable immediately by this method (see section 14.11), and will also be returned by this method.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -470,6 +469,47 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \i0  be eligible to execute in the current generation (see section 5.13.5 for details).  The new 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 5.10), and will also be returned by this method.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerLateEvent(Nis$\'a0id, string$\'a0source, [integer$\'a0start], [integer$\'a0end])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f2\fs18 string
+\f0\fs20  singleton 
+\f2\fs18 source
+\f0\fs20 , as an Eidos 
+\f2\fs18 late()
+\f0\fs20  event in the current simulation, with optional 
+\f2\fs18 start
+\f0\fs20  and 
+\f2\fs18 end
+\f0\fs20  generations limiting its applicability.  The script block will be given identifier 
+\f2\fs18 id
+\f0\fs20  (specified as an 
+\f2\fs18 integer
+\f0\fs20 , or as a 
+\f2\fs18 string
+\f0\fs20  symbolic name such as 
+\f2\fs18 "s5"
+\f0\fs20 ); this may be 
+\f2\fs18 NULL
+\f0\fs20  if there is no need to be able to refer to the block later (thus the parameter signature 
+\f2\fs18 Nis
+\f0\fs20 : 
+\f2\fs18 NULL
+\f0\fs20  / 
+\f2\fs18 integer
+\f0\fs20  / 
+\f2\fs18 string
+\f0\fs20 ).  The registered event is added to the end of the list of registered 
+\f2\fs18 SLiMEidosBlock
+\f0\fs20  objects, and is active immediately; it 
+\i may
+\i0  be eligible to execute in the current generation (see section 15.5 for details).  The new 
+\f2\fs18 SLiMEidosBlock
+\f0\fs20  will be defined as a global variable immediately by this method (see section 14.11), and will also be returned by this method.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1420,13 +1460,13 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 fitness()
 \f0\fs20  callbacks are therefore not called as a side effect of this method.  The cached values are only valid during the parental stage of each generation, so this function may not be called after generation of offspring has completed.  (At present there is no way for Eidos to be called after offspring generation has completed anyway.)
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Output a random sample from the subpopulation in MS format.  A sample of size 
+\f0\fs20 \cf0 Output a random sample from the subpopulation in MS format.  A sample of genomes (not entire individuals, note) of size 
 \f2\fs18 sampleSize
 \f0\fs20  from the subpopulation will be output.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
 \f2\fs18 "M"
@@ -1438,22 +1478,21 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 "*"
 \f0\fs20  or not supplying 
 \f2\fs18 requestedSex
-\f0\fs20  indicates that individuals should be selected randomly, without respect for sex.  If non-MS format is desired, use 
+\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.  If non-MS format is desired, use 
 \f2\fs18 outputSample()
 \f3\fs20 .\
 
-\f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f2\fs18 n+1
-\f0\fs20  to see the final state in generation 
-\f2\fs18 n
-\f3\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0 Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Output a random sample from the subpopulation.  A sample of size 
+\f0\fs20 \cf0 Output a random sample from the subpopulation.  A sample of genomes (not entire individuals, note) of size 
 \f2\fs18 sampleSize
 \f0\fs20  from the subpopulation will be output.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
 \f2\fs18 "M"
@@ -1465,15 +1504,14 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 "*"
 \f0\fs20  or not supplying 
 \f2\fs18 requestedSex
-\f0\fs20  indicates that individuals should be selected randomly, without respect for sex.  If MS format is desired, use 
+\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.  If MS format is desired, use 
 \f2\fs18 outputMSSample()
 \f3\fs20 .\
 
-\f0 Note that since Eidos events are run early in each generation (see section 5.13.1), you might wish to call this method in generation 
-\f2\fs18 n+1
-\f0\fs20  to see the final state in generation 
-\f2\fs18 n
-\f3\fs20 .\
+\f0 Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)setCloningRate(numeric\'a0rate)

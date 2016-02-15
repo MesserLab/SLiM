@@ -119,7 +119,24 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		// Now we are to the point of parsing the actual slim_script_block
 		if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 		{
-			if (current_token_->token_string_.compare(gStr_initialize) == 0)
+			if (current_token_->token_string_.compare(gStr_early) == 0)
+			{
+				// Note that "early()" is optional, and is ignored; no placeholder child is inserted
+				//slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM early() event");
+				Match(EidosTokenType::kTokenLParen, "SLiM early() event");
+				Match(EidosTokenType::kTokenRParen, "SLiM early() event");
+			}
+			else if (current_token_->token_string_.compare(gStr_late) == 0)
+			{
+				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM late() event");
+				Match(EidosTokenType::kTokenLParen, "SLiM late() event");
+				Match(EidosTokenType::kTokenRParen, "SLiM late() event");
+			}
+			else if (current_token_->token_string_.compare(gStr_initialize) == 0)
 			{
 				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 				
@@ -204,7 +221,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, early, late, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
 			}
 		}
 		
@@ -392,7 +409,19 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			
 			identifier_token_ = callback_token;	// remember our identifier token for easy access later
 			
-			if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
+			if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_early) == 0))
+			{
+				// this should never be hit, because "early()" is optional and is eaten without producing a child node; it is the default
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): callback type 'early' unexpected." << eidos_terminate(callback_token);
+			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_late) == 0))
+			{
+				if (n_callback_children != 0)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): late() event needs 0 parameters." << eidos_terminate(callback_token);
+				
+				type_ = SLiMEidosBlockType::SLiMEidosEventLate;
+			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_initialize) == 0))
 			{
 				if (n_callback_children != 0)
 					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters." << eidos_terminate(callback_token);
@@ -606,7 +635,8 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 	
 	switch (type_)
 	{
-		case SLiMEidosBlockType::SLiMEidosEvent:				p_ostream << gStr_event; break;
+		case SLiMEidosBlockType::SLiMEidosEventEarly:			p_ostream << gStr_early; break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:			p_ostream << gStr_late; break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:	p_ostream << gStr_initialize; break;
 		case SLiMEidosBlockType::SLiMEidosFitnessCallback:		p_ostream << gStr_fitness; break;
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	p_ostream << gStr_mateChoice; break;
@@ -636,7 +666,8 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEvent:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_event));
+				case SLiMEidosBlockType::SLiMEidosEventEarly:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
+				case SLiMEidosBlockType::SLiMEidosEventLate:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
 				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
 				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));

@@ -119,7 +119,10 @@ public:
 	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
 	void RecalculateFitness(slim_generation_t p_generation);
 	
-	// step forward a generation: remove fixed mutations, then make the children become the parents and update fitnesses
+	// Tally mutations and remove fixed/lost mutations
+	void MaintainRegistry(void);
+	
+	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
 	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)

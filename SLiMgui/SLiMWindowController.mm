@@ -123,13 +123,10 @@
 							"	sim.addSubpop(\"p1\", 500);\n"
 							"}\n"
 							"\n"
-							"// output events: samples of 10 genomes periodically, all fixed mutations at end\n"
-							"2000 { p1.outputSample(10); }\n"
-							"4000 { p1.outputSample(10); }\n"
-							"6000 { p1.outputSample(10); }\n"
-							"8000 { p1.outputSample(10); }\n"
-							"10000 { p1.outputSample(10); }\n"
-							"10000 { sim.outputFixedMutations(); }\n";
+							"// output samples of 10 genomes periodically, all fixed mutations at end\n"
+							"1000 late() { p1.outputSample(10); }\n"
+							"2000 late() { p1.outputSample(10); }\n"
+							"2000 late() { sim.outputFixedMutations(); }\n";
 	
 	return str;
 }
@@ -639,6 +636,12 @@
 	
 	[selectionColorStripe setMetricToPlot:2];
 	[selectionColorStripe setScalingFactor:selectionColorScale];
+	
+	// Set up syntax coloring based on the user's defaults
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	[scriptTextView setSyntaxColoring:([defaults boolForKey:defaultsSyntaxHighlightScriptKey] ? kEidosSyntaxColoringEidos : kEidosSyntaxColoringNone)];
+	[outputTextView setSyntaxColoring:([defaults boolForKey:defaultsSyntaxHighlightOutputKey] ? kEidosSyntaxColoringOutput : kEidosSyntaxColoringNone)];
 	
 	// Set the script textview to show its string, with correct formatting
 	[scriptTextView setString:scriptString];
@@ -1789,7 +1792,7 @@
 
 - (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController
 {
-	return @[@"initialize", @"fitness", @"mateChoice", @"modifyChild"];
+	return @[@"initialize", @"early", @"late", @"fitness", @"mateChoice", @"modifyChild"];
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
@@ -1829,6 +1832,8 @@
 {
 	// A few strings which, when option-clicked, should result in more targeted searches.
 	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
+	if ([clickedText isEqualToString:@"early"])		return @"early()";
+	if ([clickedText isEqualToString:@"late"])		return @"late()";
 	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
 	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
 	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
@@ -2019,6 +2024,24 @@
 			
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("initialize", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"early()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("early", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"late()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("late", EidosFunctionIdentifier::kNoFunction, kEidosValueMaskNULL));
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 		}
@@ -2324,7 +2347,8 @@
 				{
 					switch (scriptBlock->type_)
 					{
-						case SLiMEidosBlockType::SLiMEidosEvent:				return @"event";
+						case SLiMEidosBlockType::SLiMEidosEventEarly:			return @"early()";
+						case SLiMEidosBlockType::SLiMEidosEventLate:			return @"late()";
 						case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return @"initialize()";
 						case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return @"fitness()";
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return @"mateChoice()";

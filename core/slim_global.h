@@ -308,7 +308,8 @@ extern const std::string gStr_outputFull;
 extern const std::string gStr_outputMutations;
 extern const std::string gStr_readFromPopulationFile;
 extern const std::string gStr_recalculateFitness;
-extern const std::string gStr_registerEvent;
+extern const std::string gStr_registerEarlyEvent;
+extern const std::string gStr_registerLateEvent;
 extern const std::string gStr_registerFitnessCallback;
 extern const std::string gStr_registerMateChoiceCallback;
 extern const std::string gStr_registerModifyChildCallback;
@@ -361,7 +362,8 @@ extern const std::string gStr_g;
 extern const std::string gStr_e;
 extern const std::string gStr_n;
 extern const std::string gStr_w;
-extern const std::string gStr_event;
+extern const std::string gStr_early;
+extern const std::string gStr_late;
 extern const std::string gStr_initialize;
 extern const std::string gStr_fitness;
 extern const std::string gStr_mateChoice;
@@ -451,7 +453,8 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMutations,
 	gID_readFromPopulationFile,
 	gID_recalculateFitness,
-	gID_registerEvent,
+	gID_registerEarlyEvent,
+	gID_registerLateEvent,
 	gID_registerFitnessCallback,
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
@@ -504,7 +507,8 @@ enum _SLiMGlobalStringID : int {
 	gID_e,
 	gID_n,
 	gID_w,
-	gID_event,
+	gID_early,
+	gID_late,
 	gID_initialize,
 	gID_fitness,
 	gID_mateChoice,

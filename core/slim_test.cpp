@@ -242,7 +242,7 @@ void RunSLiMTests(void)
 								 initializeRecombinationRate(1e-8);
 							 }
 							 1 { sim.addSubpop('p1', 500); }
-							 5 { sim.outputFull(); }
+							 5 late() { sim.outputFull(); }
 							 
 							 )V0G0N");
 	
@@ -261,7 +261,7 @@ void RunSLiMTests(void)
 						  }
 						  1 { sim.addSubpop('p1', 500); }
 						  3 { stop('fail!'); }
-						  5 { sim.outputFull(); }
+						  5 late() { sim.outputFull(); }
 						  
 						  )V0G0N");
 	
@@ -489,36 +489,47 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.countOfMutationsOfType(1); } ");
 	
 	// Test sim - (void)outputFixedMutations(void)
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFixedMutations(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations(); }");
 	
 	// Test sim - (void)outputFull([string$ filePath])
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull(); }");
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.outputFull('/tmp/slimOutputFullTest.txt'); }");									// legal, output to file path; this test might work only on Un*x systems
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('/tmp/slimOutputFullTest.txt'); }");									// legal, output to file path; this test might work only on Un*x systems
 	
 	// Test sim - (void)outputMutations(object<Mutation> mutations)
 	std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
 	
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations); }");											// legal; should have some mutations by gen 5
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[0]); }");										// legal; output just one mutation
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(sim.mutations[integer(0)]); }");								// legal to specify an empty object vector
-	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 { sim.outputMutations(object()); }");												// legal to specify an empty object vector
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 { sim.outputMutations(NULL); }", 1, 251, "cannot be type NULL");
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations); }");											// legal; should have some mutations by gen 5
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations[0]); }");										// legal; output just one mutation
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations[integer(0)]); }");								// legal to specify an empty object vector
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(object()); }");												// legal to specify an empty object vector
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(NULL); }", 1, 258, "cannot be type NULL");
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");												// legal, read from file path; depends on the outputFull() test above
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220, "could not open");
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); if (size(sim.subpopulations) != 3) stop(); }");	// legal; should wipe previous state
 	
-	// Test sim - (object<SLiMEidosBlock>)registerEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEvent(NULL, '{ stop(); }', 2, 2); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 2, 2); sim.registerEvent(1, '{ stop(); }', 2, 2); }", 1, 294, "already defined");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
+	// Test sim - (object<SLiMEidosBlock>)registerEarlyEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEarlyEvent(NULL, '{ stop(); }', 2, 2); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEarlyEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 299, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
+	
+	// Test sim - (object<SLiMEidosBlock>)registerLateEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerLateEvent(NULL, '{ stop(); }', 2, 2); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerLateEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 2, 2); sim.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 298, "already defined");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token");
 	
 	// Test sim - (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }");
@@ -906,42 +917,42 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range");
 	
 	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(5); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(10); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(20); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }", 1, 250, "non-sexual simulation");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }", 1, 250, "non-sexual simulation");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 250, "requested sex");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(20); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, 'M'); stop(); }", 1, 257, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, 'F'); stop(); }", 1, 257, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, 'Z'); stop(); }", 1, 257, "requested sex");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(5); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(10); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(20); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'M'); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'F'); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, '*'); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputMSSample(1, 'Z'); stop(); }", 1, 270, "requested sex");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(20); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, 'M'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, 'F'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, 'Z'); stop(); }", 1, 277, "requested sex");
 	
 	// Test Subpopulation - (void)outputSample(integer$ sampleSize, [string$ requestedSex])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(5); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(10); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(20); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'M'); stop(); }", 1, 250, "non-sexual simulation");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'F'); stop(); }", 1, 250, "non-sexual simulation");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.outputSample(1, '*'); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 250, "requested sex");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(20); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(1, 'M'); stop(); }", 1, 257, "non-sexual simulation");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(1, 'F'); stop(); }", 1, 257, "non-sexual simulation");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(1, 'Z'); stop(); }", 1, 257, "requested sex");
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(5); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(10); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(20); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'M'); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'F'); stop(); }");
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.outputSample(1, '*'); stop(); }");
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.outputSample(1, 'Z'); stop(); }", 1, 270, "requested sex");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(5); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(10); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(20); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, 'M'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, 'F'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, '*'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, 'Z'); stop(); }", 1, 277, "requested sex");
 	
 	// Test Subpopulation - (void)setCloningRate(numeric rate)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setCloningRate(0.0); } 10 { if (p1.cloningRate == 0.0) stop(); }");
@@ -1048,7 +1059,9 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.source == '{ sim = 10; }') stop(); } s1 2:4 { sim = 10; } ");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.start == 2) stop(); } s1 2:4 { sim = 10; } ");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag; stop(); } s1 2:4 { sim = 10; } ");
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'event') stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'early') stop(); } s1 2:4 { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'early') stop(); } s1 2:4 early() { sim = 10; } ");
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'late') stop(); } s1 2:4 late() { sim = 10; } ");
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.active = 198; if (s1.active == 198) stop(); } s1 2:4 { sim = 10; } ");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.end = 4; stop(); } s1 2:4 { sim = 10; } ", 1, 254, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.id = 1; stop(); } s1 2:4 { sim = 10; } ", 1, 253, "read-only property");

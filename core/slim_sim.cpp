@@ -139,7 +139,7 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 			EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 			
 			if (simulation_constants_->ContainsSymbol(symbol_entry.first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate(new_script_block->root_node_->children_[0]->token_);
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate(new_script_block->root_node_->children_[0]->token_);
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		}
@@ -226,7 +226,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter 
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): new subpopulation symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): new subpopulation symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -506,7 +506,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 	time_start_ = SLIM_MAX_GENERATION;
 	
 	for (auto script_block : script_blocks_)
-		if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosEvent) && (script_block->start_generation_ < time_start_) && (script_block->start_generation_ > 0))
+		if (((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+			&& (script_block->start_generation_ < time_start_) && (script_block->start_generation_ > 0))
 			time_start_ = script_block->start_generation_;
 	
 	if (time_start_ == SLIM_MAX_GENERATION)
@@ -543,6 +544,12 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 // blow through to the catch block in the test harness so that they can be handled there.
 bool SLiMSim::_RunOneGeneration(void)
 {
+	// ******************************************************************
+	//
+	// Stage 0: Pre-generation bookkeeping
+	//
+	generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;
+	
 	// Define the current script around each generation execution, for error reporting
 	gEidosCurrentScript = script_;
 	gEidosExecutingRuntimeScript = false;
@@ -564,11 +571,13 @@ bool SLiMSim::_RunOneGeneration(void)
 	{
 		// ******************************************************************
 		//
-		// Stage 1: Execute script events for the current generation
+		// Stage 1: Execute early() script events for the current generation
 		//
-		std::vector<SLiMEidosBlock*> blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEvent, -1, -1);
+		generation_stage_ = SLiMGenerationStage::kStage1ExecuteEarlyScripts;
 		
-		for (auto script_block : blocks)
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1);
+		
+		for (auto script_block : early_blocks)
 			if (script_block->active_)
 				population_.ExecuteScript(script_block, generation_, chromosome_);
 		
@@ -578,8 +587,10 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		// ******************************************************************
 		//
-		// Stage 2: Evolve all subpopulations
+		// Stage 2: Generate offspring: evolve all subpopulations
 		//
+		generation_stage_ = SLiMGenerationStage::kStage2GenerateOffspring;
+		
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
 		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
@@ -663,11 +674,61 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		// ******************************************************************
 		//
-		// Stage 3: Swap generations and advance to the next generation
+		// Stage 3: Remove fixed mutations and associated tasks
 		//
+		generation_stage_ = SLiMGenerationStage::kStage3RemoveFixedMutations;
+		
+		population_.MaintainRegistry();
+		
+		
+		// ******************************************************************
+		//
+		// Stage 4: Swap generations
+		//
+		generation_stage_ = SLiMGenerationStage::kStage4SwapGenerations;
+		
 		population_.SwapGenerations();
 		
-		// advance the generation counter as soon as the generation is done
+		
+		// ******************************************************************
+		//
+		// Stage 5: Execute late() script events for the current generation
+		//
+		generation_stage_ = SLiMGenerationStage::kStage5ExecuteLateScripts;
+		
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1);
+		
+		for (auto script_block : late_blocks)
+			if (script_block->active_)
+				population_.ExecuteScript(script_block, generation_, chromosome_);
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+		
+		// ******************************************************************
+		//
+		// Stage 6: Calculate fitness values for the new parental generation
+		//
+		generation_stage_ = SLiMGenerationStage::kStage6CalculateFitness;
+		
+		population_.RecalculateFitness(generation_ + 1);
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+#ifdef SLIMGUI
+		// Let SLiMgui survey the population for mean fitness and such, if it is our target
+		population_.SurveyPopulation();
+#endif
+		
+		
+		// ******************************************************************
+		//
+		// Stage 7: Advance the generation counter and do end-generation tasks
+		//
+		generation_stage_ = SLiMGenerationStage::kStage7AdvanceGenerationCounter;
+		
 		cached_value_generation_.reset();
 		generation_++;
 		
@@ -854,7 +915,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		EidosSymbolTableEntry &symbol_entry = new_genomic_element_type->SymbolTableEntry();
 		
 		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -947,7 +1008,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 		
 		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -1562,7 +1623,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 			
 			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpop() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			
@@ -1614,7 +1675,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 			
 			if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): addSubpopSplit() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			
@@ -1870,6 +1931,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_outputFixedMutations:
 		{
+			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+			{
+				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFixedMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
+			
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
 			output_stream << "#OUT: " << generation_ << " F " << endl;
@@ -1894,6 +1961,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_outputFull:
 		{
+			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+			{
+				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFull() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
+			
 			if (p_argument_count == 0)
 			{
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
@@ -1936,6 +2009,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_outputMutations:
 		{
+			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+			{
+				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
+			
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
@@ -2039,11 +2118,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	- (object<SLiMEidosBlock>)registerEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerEarlyEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+			//	*********************	- (object<SLiMEidosBlock>)registerLateEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 			//
-#pragma mark -registerEvent()
+#pragma mark -registerEarlyEvent()
+#pragma mark -registerLateEvent()
 			
-		case gID_registerEvent:
+		case gID_registerEarlyEvent:
+		case gID_registerLateEvent:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
@@ -2054,9 +2136,9 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 			
 			if (start_generation > end_generation)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() requires start <= end." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosEvent, start_generation, end_generation);
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
 			
 			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
 			scripts_changed_ = true;
@@ -2069,7 +2151,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
 				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerEvent() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
@@ -2117,7 +2199,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
 				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
@@ -2167,7 +2249,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
 				
 				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << symbol_entry.first << " was already defined prior to its definition here." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 				
 				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 			}
@@ -2328,7 +2410,8 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_readFromPopulationFile));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_recalculateFitness));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_registerEvent));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerEarlyEvent));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerLateEvent));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
@@ -2353,7 +2436,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *outputMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *readFromPopulationFileSig = nullptr;
 	static EidosInstanceMethodSignature *recalculateFitnessSig = nullptr;
-	static EidosInstanceMethodSignature *registerEventSig = nullptr;
+	static EidosInstanceMethodSignature *registerEarlyEventSig = nullptr;
+	static EidosInstanceMethodSignature *registerLateEventSig = nullptr;
 	static EidosInstanceMethodSignature *registerFitnessCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
@@ -2372,7 +2456,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskNULL))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OS("generation");
-		registerEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
+		registerEarlyEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
+		registerLateEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");
 		registerFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class)->AddInt_OS("start")->AddInt_OS("end");
@@ -2393,7 +2478,8 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_outputMutations:						return outputMutationsSig;
 		case gID_readFromPopulationFile:				return readFromPopulationFileSig;
 		case gID_recalculateFitness:					return recalculateFitnessSig;
-		case gID_registerEvent:							return registerEventSig;
+		case gID_registerEarlyEvent:					return registerEarlyEventSig;
+		case gID_registerLateEvent:						return registerLateEventSig;
 		case gID_registerFitnessCallback:				return registerFitnessCallbackSig;
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
