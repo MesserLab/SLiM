@@ -155,6 +155,8 @@ using std::string;
 }
 
 // handle the home and end keys; rather bizarre that Apple doesn't implement these for us, but whatever...
+// OK, Apple *does* implement these, but apparently sometimes their implementation does nothing.  I haven't figured out a reproducible case to make that
+// happen, but it does happen, and when it does, this fixes it.  Overriding these methods seems quite harmless, so I'll leave this code in here.
 - (void)scrollToBeginningOfDocument:(id)sender
 {
 	[self scrollRangeToVisible:NSMakeRange(0, 0)];
