@@ -342,11 +342,16 @@ Output is generally done in a
 \f2\fs18 Subpopulation
 \f0\fs20  objects loaded from the file.  Fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
 \f2\fs18 fitness()
-\f0\fs20  callbacks.\
+\f0\fs20  callbacks.  Note that it is likely to be better to call 
+\f2\fs18 readFromPopulationFile()
+\f0\fs20  in a 
+\f2\fs18 late()
+\f0\fs20  event, so that fitness values are being recalculated at the usual time in the generation life cycle (see chapter 13, and comments on 
+\f2\fs18 recalculateFitness()
+\f0\fs20  below).\
 This method can be used to restore the state of a simulation to a previous point in time that was saved to a file; however, this method does not change the generation counter, so if you want the generation counterto reset you should do that manually by setting 
 \f2\fs18 sim.generation
-\f3\fs20 .
-\f0   Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
+\f0\fs20 .  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
 \f2\fs18 setSeed()
 \f0\fs20  can be used to establish a new seed value.  Any changes made to the simulation\'92s structure (mutation types, genomic element types, etc.) will not be wiped and re-established by 
 \f2\fs18 readFromPopulationFile()
@@ -363,11 +368,19 @@ The optional parameter
 \f2\fs18 generation
 \f0\fs20  provides the generation for which 
 \f2\fs18 fitness()
-\f0\fs20  callbacks should be selected.  You may wish this to be 
+\f0\fs20  callbacks should be selected.  If you call 
+\f2\fs18 recalculateFitness()
+\f0\fs20  in an 
+\f2\fs18 early()
+\f0\fs20  event, you may wish this to be 
 \f2\fs18 sim.generation - 1
 \f0\fs20  in order to utilize the 
 \f2\fs18 fitness()
-\f0\fs20  callbacks for the previous generation, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous generation when the new generation was first created and evaluated.  However, regardless of the value supplied for 
+\f0\fs20  callbacks for the previous generation, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous generation when the new generation was first created and evaluated (usually it is simpler to just make such changes in a 
+\f2\fs18 late()
+\f0\fs20  event instead, however, in which calling 
+\f2\fs18 recalculateFitness()
+\f0\fs20  is probably not necessary at all since fitness values will be recalculated immediately afterwards).  Regardless of the value supplied for 
 \f2\fs18 generation
 \f0\fs20  here, 
 \f2\fs18 sim.generation
