@@ -422,7 +422,6 @@
 		986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_PopulationVisualization.mm; sourceTree = "<group>"; };
 		986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_call_signature.cpp; sourceTree = "<group>"; };
 		986D73E71B07E89E007FBB70 /* eidos_call_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_call_signature.h; sourceTree = "<group>"; };
-		9876DD7E1A51132600F39F17 /* PROFILING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PROFILING; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
 		987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_console_H.pdf; sourceTree = "<group>"; };
@@ -632,7 +631,6 @@
 			isa = PBXGroup;
 			children = (
 				98E9A6B21A3CE299000AD4FC /* TO_DO */,
-				9876DD7E1A51132600F39F17 /* PROFILING */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				986021091A3BB504001BDCFE /* README.md */,
 				98E5F0551A3DFD3900FABCC8 /* README.html */,
