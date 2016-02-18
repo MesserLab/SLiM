@@ -385,12 +385,12 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter 
 	}
 	
 	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
-	// Note that generation+1 is used; we are computing fitnesses for the next generation
+	// used to be generation + 1; removing that 18 Feb 2016 BCH
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 	{
 		slim_objectid_t subpop_id = subpop_pair.first;
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_ + 1, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, subpop_id);
+		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, subpop_id);
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
@@ -712,7 +712,7 @@ bool SLiMSim::_RunOneGeneration(void)
 		//
 		generation_stage_ = SLiMGenerationStage::kStage6CalculateFitness;
 		
-		population_.RecalculateFitness(generation_ + 1);
+		population_.RecalculateFitness(generation_);	// used to be generation_ + 1; removing that 18 Feb 2016 BCH
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
