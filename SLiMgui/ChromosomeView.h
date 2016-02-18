@@ -33,6 +33,10 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	BOOL hasSelection;
 	slim_position_t selectionFirstBase, selectionLastBase;
 	
+	// Selection memory – saved and restored across events like recycles
+	BOOL savedHasSelection;
+	slim_position_t savedSelectionFirstBase, savedSelectionLastBase;
+	
 	// Tracking
 	BOOL isTracking;
 	slim_position_t trackingStartBase, trackingLastBase;
@@ -51,6 +55,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 
 - (NSRange)selectedRange;
 - (void)setSelectedRange:(NSRange)selectionRange;
+- (void)restoreLastSelection;
 
 - (NSRange)displayedRange;	// either the full chromosome range, or the selected range of our reference chromosome
 

@@ -552,7 +552,7 @@
 	
 	if (invalid || sim->chromosome_changed_)
 	{
-		[chromosomeOverview setSelectedRange:NSMakeRange(0, 0)];
+		[chromosomeOverview restoreLastSelection];
 		[chromosomeOverview setNeedsDisplay:YES];
 		
 		if (sim)

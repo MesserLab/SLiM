@@ -134,6 +134,40 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		selectionFirstBase = (slim_position_t)selectionRange.location;
 		selectionLastBase = (slim_position_t)(selectionRange.location + selectionRange.length) - 1;
 		hasSelection = YES;
+		
+		// Save the selection for restoring across recycles, etc.
+		savedSelectionFirstBase = selectionFirstBase;
+		savedSelectionLastBase = selectionLastBase;
+		savedHasSelection = hasSelection;
+	}
+	else if (hasSelection)
+	{
+		hasSelection = NO;
+		
+		// Save the selection for restoring across recycles, etc.
+		savedHasSelection = hasSelection;
+	}
+	else
+	{
+		// Save the selection for restoring across recycles, etc.
+		savedHasSelection = NO;
+		
+		return;
+	}
+	
+	// Our selection changed, so update and post a change notification
+	[self setNeedsDisplay:YES];
+	
+	[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
+}
+
+- (void)restoreLastSelection
+{
+	if ([self isSelectable] && savedHasSelection)
+	{
+		selectionFirstBase = savedSelectionFirstBase;
+		selectionLastBase = savedSelectionLastBase;
+		hasSelection = savedHasSelection;
 	}
 	else if (hasSelection)
 	{
@@ -738,6 +772,10 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 			if (hasSelection)
 			{
 				hasSelection = NO;
+				
+				// Save the selection for restoring across recycles, etc.
+				savedHasSelection = hasSelection;
+				
 				[self setNeedsDisplay:YES];
 				[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
 			}
@@ -809,6 +847,9 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 			
 			hasSelection = NO;
 			
+			// Save the selection for restoring across recycles, etc.
+			savedHasSelection = hasSelection;
+			
 			[self removeSelectionMarkers];
 		}
 		else
@@ -817,6 +858,11 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 			hasSelection = YES;
 			selectionFirstBase = trackingLeftBase;
 			selectionLastBase = trackingRightBase;
+			
+			// Save the selection for restoring across recycles, etc.
+			savedSelectionFirstBase = selectionFirstBase;
+			savedSelectionLastBase = selectionLastBase;
+			savedHasSelection = hasSelection;
 			
 			[self setUpMarker:&startMarker atBase:selectionFirstBase isLeft:YES];
 			[self setUpMarker:&endMarker atBase:selectionLastBase isLeft:NO];
