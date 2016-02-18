@@ -212,7 +212,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		EidosFunctionIdentifier::filesAtPathFunction,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			EidosFunctionIdentifier::readFileFunction,		kEidosValueMaskString))->AddString_S("filePath"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append"));
 
 		
 		// ************************************************************************************
@@ -4468,7 +4468,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
-			//	(logical$)writeFile(string$ filePath, string contents)
+			//	(logical$)writeFile(string$ filePath, string contents, [logical$ append])
 			#pragma mark writeFile
 			
 		case EidosFunctionIdentifier::writeFileFunction:
@@ -4481,8 +4481,11 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			EidosValue *arg1_value = p_arguments[1].get();
 			int arg1_count = arg1_value->Count();
 			
+			// the third argument is an optional append flag, F by default
+			bool append = (p_argument_count >= 3) ? p_arguments[2]->LogicalAtIndex(0, nullptr) : false;
+			
 			// write the contents out
-			std::ofstream file_stream(file_path.c_str());
+			std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 			
 			if (!file_stream.is_open())
 			{

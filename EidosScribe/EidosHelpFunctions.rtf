@@ -2225,20 +2225,28 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 NULL
 \f0\fs20  will be returned.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents)
+\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$ append])
 \f2 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Writes out a new file
-\b0  to 
+\f0\b\fs20 \cf0 Writes or appends to a file
+\b0  specified by 
 \f1\fs18 filePath
 \f0\fs20  with contents specified by 
 \f1\fs18 contents
 \f0\fs20 , a 
 \f1\fs18 string
-\f0\fs20  vector of lines.  Note that newline characters will be added at the ends of the lines in 
+\f0\fs20  vector of lines.  If 
+\f1\fs18 append
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20 , the write will be appended to the existing file (if any) at 
+\f1\fs18 filePath
+\f0\fs20 ; if it is 
+\f1\fs18 F
+\f0\fs20  or omitted, the write will replace an existing file at that path.  Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f0\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()
