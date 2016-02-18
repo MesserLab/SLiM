@@ -111,6 +111,124 @@ using std::string;
 	[super setDelegate:delegate];
 }
 
+// handle flashing of matching delimiters
+- (void)insertText:(id)insertString
+{
+	[super insertText:insertString];
+	
+	// if the insert string isn't one character in length, it cannot be a brace character
+	if ([insertString length] != 1)
+		return;
+	
+	unichar uch = [insertString characterAtIndex:0];
+	
+	if ((uch == '}') || (uch == ']') || (uch == ')'))
+	{
+		// MAINTENANCE NOTE: This also exists, in slightly altered form, in selectionRangeForProposedRange:granularity:, so please maintain the two in parallel!
+		NSString *scriptString = [[self textStorage] string];
+		int stringLength = (int)[scriptString length];
+		int proposedCharacterIndex = (int)[self selectedRange].location - 1;	// just inserted a single character
+		BOOL forward = false;
+		unichar incrementChar = ' ';
+		unichar decrementChar = ' ';
+		EidosTokenType token1 = EidosTokenType::kTokenNone;
+		EidosTokenType token2 = EidosTokenType::kTokenNone;
+		
+		// Check for any of the delimiter types we support, and set up to do a scan
+		if (uch == '}')		{ forward = false; incrementChar = '}'; decrementChar = '{'; token1 = EidosTokenType::kTokenLBrace; token2 = EidosTokenType::kTokenRBrace; }
+		if (uch == ')')		{ forward = false; incrementChar = ')'; decrementChar = '('; token1 = EidosTokenType::kTokenLParen; token2 = EidosTokenType::kTokenRParen; }
+		if (uch == ']')		{ forward = false; incrementChar = ']'; decrementChar = '['; token1 = EidosTokenType::kTokenLBracket; token2 = EidosTokenType::kTokenRBracket; }
+		
+		if (token1 != EidosTokenType::kTokenNone)
+		{
+			// We've got a double-click on a character that we want to balance-select.  This is complicated mostly
+			// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
+			// in the token stream parallel to searching in the text.
+			std::string script_string([scriptString UTF8String]);
+			EidosScript script(script_string);
+			
+			// Tokenize
+			script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
+			
+			// Find the token containing the double-click point
+			const std::vector<EidosToken> &tokens = script.Tokens();
+			int token_count = (int)tokens.size();
+			const EidosToken *click_token = nullptr;
+			int click_token_index;
+			
+			for (click_token_index = 0; click_token_index < token_count; ++click_token_index)
+			{
+				click_token = &tokens[click_token_index];
+				
+				if ((click_token->token_UTF16_start_ <= proposedCharacterIndex) && (click_token->token_UTF16_end_ >= proposedCharacterIndex))
+					break;
+			}
+			
+			// OK, this token contains the character that was double-clicked.  We could have the actual token
+			// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
+			// that we start in; if in a string, for example, only delimiters within strings affect our scan.
+			EidosTokenType click_token_type = click_token->token_type_;
+			const EidosToken *scan_token = click_token;
+			int scan_token_index = click_token_index;
+			NSInteger scanPosition = proposedCharacterIndex;
+			int balanceCount = 0;
+			
+			while (YES)
+			{
+				EidosTokenType scan_token_type = scan_token->token_type_;
+				BOOL isCandidate;
+				
+				if (click_token_type == EidosTokenType::kTokenComment)
+					isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
+				else if (click_token_type == EidosTokenType::kTokenString)
+					isCandidate = (scan_token_type == EidosTokenType::kTokenString);
+				else
+					isCandidate = ((scan_token_type == token1) || (scan_token_type == token2));
+				
+				if (isCandidate)
+				{
+					uch = [scriptString characterAtIndex:scanPosition];
+					
+					if (uch == incrementChar)
+						balanceCount++;
+					else if (uch == decrementChar)
+						balanceCount--;
+					
+					// If balanceCount is now zero, all opens have been balanced by closes, and we have found our matching delimiter
+					if (balanceCount == 0)
+					{
+						[self showFindIndicatorForRange:NSMakeRange(scanPosition, 1)];
+						return;
+					}
+				}
+				
+				// Advance, forward or backward, to the next character
+				scanPosition += (forward ? 1 : -1);
+				if ((scanPosition == stringLength) || (scanPosition == -1))
+				{
+					//NSBeep();
+					return;
+				}
+				
+				// Make sure we're in the right token
+				while ((scan_token->token_UTF16_start_ > scanPosition) || (scan_token->token_UTF16_end_ < scanPosition))
+				{
+					scan_token_index += (forward ? 1 : -1);
+					
+					if ((scan_token_index < 0) || (scan_token_index == token_count))
+					{
+						NSLog(@"ran out of tokens!");
+						//NSBeep();
+						return;
+					}
+					
+					scan_token = &tokens[scan_token_index];
+				}
+			}
+		}
+	}
+}
+
 // handle autoindent by matching the whitespace beginning the current line
 - (void)insertNewline:(id)sender
 {
@@ -686,6 +804,7 @@ using std::string;
 				// After the double-click interval since the second mouseDown, the mouseUp is no longer eligible
 				if (eventTime - doubleDownTime <= [NSEvent doubleClickInterval])
 				{
+					// MAINTENANCE NOTE: This also exists, in slightly altered form, in insertText:, so please maintain the two in parallel!
 					NSString *scriptString = [[self textStorage] string];
 					int stringLength = (int)[scriptString length];
 					int proposedCharacterIndex = (int)proposedCharRange.location;
