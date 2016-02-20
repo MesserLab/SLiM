@@ -209,9 +209,80 @@ void EidosSymbolTable::_SwitchToHash(void)
 
 void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	// If it's invisible then we copy it, since the symbol table never stores invisible values
-	if (p_value->Invisible())
+	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
+	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
+	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
+	if ((p_value->use_count() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
+	
+	if (using_internal_symbols_)
+	{
+		int symbol_slot;
+		
+		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+		for (symbol_slot = (int)internal_symbol_count_ - 1; symbol_slot >= 0; --symbol_slot)
+			if (internal_symbols_[symbol_slot].symbol_name_ == p_symbol_name)
+				break;
+		
+		if (symbol_slot == -1)
+		{
+			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a parent table.
+			// At present, we assume that if it is defined in a parent table it is a constant, which is true for now.
+			if (parent_symbol_table_ && parent_symbol_table_->ContainsSymbol(p_symbol_name))
+				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+			
+			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
+			{
+				EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
+				
+				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
+				new_symbol_slot_ptr->symbol_name_ = p_symbol_name;
+				
+				++internal_symbol_count_;
+				return;
+			}
+			
+			_SwitchToHash();
+		}
+		else
+		{
+			// The symbol is already defined in this table, so it can be redefined (illegal cases were caught above already).
+			// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
+			// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
+			internal_symbols_[symbol_slot].symbol_value_SP_ = std::move(p_value);
+			return;
+		}
+	}
+	
+	// fall-through to the hash table case
+	auto existing_symbol_slot_iter = hash_symbols_.find(p_symbol_name);
+	
+	if (existing_symbol_slot_iter == hash_symbols_.end())
+	{
+		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a parent table.
+		// At present, we assume that if it is defined in a parent table it is a constant, which is true for now.
+		if (parent_symbol_table_ && parent_symbol_table_->ContainsSymbol(p_symbol_name))
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+		
+		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
+	}
+	else
+	{
+		existing_symbol_slot_iter->second = std::move(p_value);
+	}
+}
+
+void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
+{
+	// So, this is a little weird.  SetValueForSymbol() copies the passed value, as explained in its comment above.
+	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
+	// values directly inside a value we just set in the symbol table.  Evaluate_For() is the worst offender in this
+	// because it wants to set up an index variable once and then munge its value directly each time through the loop,
+	// for speed.  _ProcessSubscriptAssignment() also does it in one case, where it needs to change a singleton into a
+	// vector value so that it can do a subscripted assignment.  For that special purpose, this function is provided.
+	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
+	if (p_value->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): (internal) no copy requested with invisible value." << eidos_terminate(nullptr);
 	
 	if (using_internal_symbols_)
 	{
@@ -301,11 +372,11 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 		childTable->parent_symbol_table_ = definedConstantsTable;
 	}
 	
-	// Always copy the value, to eliminate any risk of containing a reference to something that could get changed underneath us
-	// This is overkill, but it means that (a) we don't have to worry about invisible values, and (b) callers like defineConstant()
-	// don't have to worry about whether the value they've been passed is an lvalue or not.  Constants generally get defined just
-	// once, so speed is pretty irrelevant here I think.
-	p_value = p_value->CopyValues();
+	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
+	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
+	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
+	if ((p_value->use_count() != 1) || p_value->Invisible())
+		p_value = p_value->CopyValues();
 	
 	// Then ask the defined constants table to add the constant
 	definedConstantsTable->InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value));

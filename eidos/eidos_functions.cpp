@@ -4614,7 +4614,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					EidosValue_SP apply_value = arg0_value->GetValueAtIndex(value_index, nullptr);
 					
 					// Set the iterator variable "applyValue" to the value
-					symbols.SetValueForSymbol(gEidosID_applyValue, std::move(apply_value));
+					symbols.SetValueForSymbolNoCopy(gEidosID_applyValue, std::move(apply_value));
 					
 					// Get the result
 					results.emplace_back(interpreter.EvaluateInterpreterBlock(false));

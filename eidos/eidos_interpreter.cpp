@@ -452,7 +452,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 				identifier_value_SP = identifier_value->VectorBasedCopy();
 				identifier_value = identifier_value_SP.get();
 				
-				global_symbols_.SetValueForSymbol(p_parent_node->cached_stringID_, identifier_value_SP);
+				global_symbols_.SetValueForSymbolNoCopy(p_parent_node->cached_stringID_, identifier_value_SP);
 			}
 			
 			*p_base_value_ptr = std::move(identifier_value_SP);
@@ -4305,7 +4305,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_index == range_count)
 				range_index--;
 			
-			global_symbols_.SetValueForSymbol(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
+			global_symbols_.SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
 		}
 		else	// !assigns_index, guaranteed above
 		{
@@ -4314,7 +4314,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 			EidosValue_Int_singleton *index_value = index_value_SP.get();
 			
-			global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+			global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
@@ -4363,7 +4363,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				if (range_index == range_count)
 					range_index--;
 				
-				global_symbols_.SetValueForSymbol(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
+				global_symbols_.SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
 				
 				loop_handled = true;
 			}
@@ -4377,7 +4377,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4398,7 +4398,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0));
 					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4419,7 +4419,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
 					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4440,7 +4440,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4464,7 +4464,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					index_value->PushLogical(false);	// initial placeholder
 					
-					global_symbols_.SetValueForSymbol(identifier_name, std::move(index_value_SP));
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4487,9 +4487,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				for (int range_index = 0; range_index < range_count; ++range_index)
 				{
 					// set the index variable to the range value and then throw the range value away
-					EidosValue_SP range_value_at_index = range_value->GetValueAtIndex(range_index, operator_token);
-					
-					global_symbols_.SetValueForSymbol(identifier_name, range_value_at_index);
+					global_symbols_.SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
 					
 					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
 					EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
