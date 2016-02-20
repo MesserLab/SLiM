@@ -5,16 +5,13 @@ SLiM:
 		think about how fitness() callbacks work; would be nice to be able to say "this is it for this individual" or "this is it for this mutation type"
 
 Eidos:
-	precalculate and fold expressions like (0:499)*2+1
+	precalculate and short-circuit expressions like (0:499)*2+1
 	fix code completion to handle declared variables – search backwards for an assignment to that variable name, and extract the type from the right-hand side
 		or perhaps ask the user what type it is, and remember in a dictionary?
 		code completion should also know when you're inside a callback, and supply the correct additional variables
 
 SLiMgui work:
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
-	improve display in cases with many subpopulations and/or many individuals
-		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...
-		with many subpops selected, could superimpose such fitness histograms as curves on a single plot?
 
 scriptability:
 	extensions for Daphnia model:
@@ -69,6 +66,9 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 future plans:
+	improve display in cases with many subpopulations and/or many individuals
+		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...
+		with many subpops selected, could superimpose such fitness histograms as curves on a single plot?
 	provide a function clArgs() to access the command-line arguments, plus a way to provide additional args to slim and eidos command-line runs?
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
