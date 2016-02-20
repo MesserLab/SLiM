@@ -69,6 +69,7 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 future plans:
+	provide a function clArgs() to access the command-line arguments, plus a way to provide additional args to slim and eidos command-line runs?
 	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
 	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
 	think about allowing named arguments as an optional syntax; named arguments good
