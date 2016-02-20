@@ -192,12 +192,14 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,	EidosFunctionIdentifier::applyFunction,			kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	EidosFunctionIdentifier::defineConstantFunction,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	EidosFunctionIdentifier::doCallFunction,		kEidosValueMaskAny))->AddString_S("function")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			EidosFunctionIdentifier::existsFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("symbol"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			EidosFunctionIdentifier::functionFunction,		kEidosValueMaskNULL))->AddString_OS("functionName"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		EidosFunctionIdentifier::lsFunction,			kEidosValueMaskNULL)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			EidosFunctionIdentifier::licenseFunction,		kEidosValueMaskNULL)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		EidosFunctionIdentifier::rmFunction,			kEidosValueMaskNULL))->AddString_O("variableNames")->AddLogical_OS("removeConstants"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			EidosFunctionIdentifier::setSeedFunction,		kEidosValueMaskNULL))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			EidosFunctionIdentifier::getSeedFunction,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				EidosFunctionIdentifier::stopFunction,			kEidosValueMaskNULL))->AddString_OS("message"));
@@ -4680,6 +4682,23 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
+			//	(void)defineConstant(string$ symbol, + x)
+			#pragma mark defineConstant
+			
+		case EidosFunctionIdentifier::defineConstantFunction:
+		{
+			std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
+			const EidosValue_SP x_value_sp = p_arguments[1];
+			EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+			EidosSymbolTable &symbols = SymbolTable();
+			
+			symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
+			
+			result_SP = gStaticEidosValueNULLInvisible;
+			break;
+		}
+			
+			
 			//	(*)doCall(string$ function, ...)
 			#pragma mark doCall
 			
@@ -4824,6 +4843,22 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
+			//	(logical$)exists(string$ symbol)
+			#pragma mark exists
+			
+		case EidosFunctionIdentifier::existsFunction:
+		{
+			std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
+			EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+			EidosSymbolTable &symbols = SymbolTable();
+			
+			bool exists = symbols.ContainsSymbol(symbol_id);
+			
+			result_SP = (exists ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			break;
+		}
+			
+			
 			//	(void)function([string$ functionName])
 			#pragma mark function
 			
@@ -4903,11 +4938,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		}
 			
 			
-			//	(void)rm([string variableNames])
+			//	(void)rm([string variableNames], [logical$ removeConstants])
 			#pragma mark rm
 			
 		case EidosFunctionIdentifier::rmFunction:
 		{
+			bool removeConstants = ((p_argument_count >= 2) ? p_arguments[1]->LogicalAtIndex(0, nullptr) : false);
 			vector<string> symbols_to_remove;
 			
 			if (p_argument_count == 0)
@@ -4921,8 +4957,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					symbols_to_remove.emplace_back(arg0_value->StringAtIndex(value_index, nullptr));
 			}
 			
-			for (string &symbol : symbols_to_remove)
-				global_symbols_.RemoveValueForSymbol(EidosGlobalStringIDForString(symbol));
+			if (removeConstants)
+				for (string &symbol : symbols_to_remove)
+					global_symbols_.RemoveConstantForSymbol(EidosGlobalStringIDForString(symbol));
+			else
+				for (string &symbol : symbols_to_remove)
+					global_symbols_.RemoveValueForSymbol(EidosGlobalStringIDForString(symbol));
 			
 			result_SP = gStaticEidosValueNULLInvisible;
 			break;

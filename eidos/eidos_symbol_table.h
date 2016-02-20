@@ -83,13 +83,32 @@ typedef struct {
 #define EIDOS_SYMBOL_TABLE_BASE_SIZE		30
 
 
+// Symbol tables can come in various types.  This is mostly hidden from clients of this class.  The intrinsic
+// constants table holds Eidos constants like T, F, INF, and NAN.  The defined constants table, which should be
+// the direct child of the intrinsic table, holds constants defined by the user with DefineConstantForSymbol().
+// The context constants table is used by the Context for its own constants; SLiM uses it for constants like
+// sim, p1, g1, m1, s1, etc.  Finally, the variables table contains all user-defined variables.  This linked-list
+// design for the symbol table makes it easy to throw out variables while keeping constants, to differentiate
+// between different responsibilities for constants without having to keep a tag for each defined symbol, etc.
+// Clients of this class can just use the symbol table they have a reference to, which will generally be a
+// variables table at the end of the chain.  Only clients that are constructing or destructing a symbol table
+// setup need to know about these types and how they are supposed to interact.
+enum class EidosSymbolTableType
+{
+	kEidosIntrinsicConstantsTable = 0,	// just one of these
+	kEidosDefinedConstantsTable,		// and just one of these
+	kContextConstantsTable,				// can be any number of these
+	kVariablesTable						// and finally, just one of these
+};
+
+
 class EidosSymbolTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
 	// In this design, a whole symbol table either contains constants or variables; a mix is allowed using parent_symbol_table_ to hold constants
-	bool is_constant_table_;
+	EidosSymbolTableType table_type_;
 	
 	// This flag indicates which storage strategy we are using
 	bool using_internal_symbols_;
@@ -121,7 +140,7 @@ public:
 	
 	EidosSymbolTable(const EidosSymbolTable&) = delete;																	// no copying
 	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;														// no copying
-	explicit EidosSymbolTable(bool p_constants_table, EidosSymbolTable *p_parent_table, bool p_start_with_hash=false);	// standard constructor
+	explicit EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash=false);	// standard constructor
 	~EidosSymbolTable(void);																							// destructor
 	
 	// symbol access; these are variables defined in the global namespace
@@ -132,8 +151,11 @@ public:
 	// Test for containing a value for a symbol
 	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
 	
-	// Set as a variable (raises if already defined as a constant) or as a constant (raises if already defined at all)
+	// Set as a variable (raises if already defined as a constant)
 	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
+	
+	// Set as a constant (raises if already defined as a variable or a constant); adds to the kEidosDefinedConstantsTable, creating it if necessary
+	void DefineConstantForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	
 	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
 	inline __attribute__((always_inline)) void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }

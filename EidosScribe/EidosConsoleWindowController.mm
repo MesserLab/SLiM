@@ -301,7 +301,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:symbolsFromBaseSymbols:)])
 			global_symbols = [delegate eidosConsoleWindowController:self symbolsFromBaseSymbols:global_symbols];
 		
-		global_symbols = new EidosSymbolTable(false, global_symbols);	// add a table for script-defined variables on top
+		global_symbols = new EidosSymbolTable(EidosSymbolTableType::kVariablesTable, global_symbols);	// add a table for script-defined variables on top
 	}
 	
 	// Get a function map and let our delegate add functions to it

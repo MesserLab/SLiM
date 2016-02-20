@@ -43,7 +43,7 @@ using std::vector;
 SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class)))
 {
 	// set up the symbol table we will use for all of our constants
-	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
+	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
 	
 	// read all configuration information from the input file
 	p_infile.clear();
@@ -54,7 +54,7 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class)))
 {
 	// set up the symbol table we will use for all of our constants
-	simulation_constants_ = new EidosSymbolTable(true, gEidosConstantsSymbolTable);
+	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
 	
 	// Open our file stream
 	std::ifstream infile(p_input_file);

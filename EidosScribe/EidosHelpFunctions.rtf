@@ -2392,6 +2392,28 @@ The
 \f1\fs18 %d-%m-%Y
 \f0\fs20  (day in two digits, then month in two digits, then year in four digits, zero-padded and separated by dashes) regardless of the localization of the executing machine, for predictability and consistency.
 \f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (void)defineConstant(string$\'a0symbol, +\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Defines a new constant
+\b0  with the name 
+\f1\fs18 symbol
+\f0\fs20  and the value specified by 
+\f1\fs18 x
+\f0\fs20 .  The value may be any non-object value at all.  The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
+\f1\fs18 T
+\f0\fs20 , 
+\f1\fs18 NAN
+\f0\fs20 , and 
+\f1\fs18 PI
+\f0\fs20 , and will remain defined for as long as the Eidos context lives even if it is defined inside a block being executed by 
+\f1\fs18 executeLambda()
+\f0\fs20 , 
+\f1\fs18 apply()
+\f0\fs20 , or a Context-defined script block.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)doCall(string$\'a0function, ...)\
@@ -2443,9 +2465,8 @@ The
 \f0\fs20  is 
 \f1\fs18 F
 \f2\fs20 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 \cf0 The current implementation of 
+\f0 The current implementation of 
 \f1\fs18 executeLambda()
 \f0\fs20  caches a tokenized and parsed version of 
 \f1\fs18 lambdaSource
@@ -2464,6 +2485,34 @@ The
 \f0\fs20 , or reuse a constructed source 
 \f1\fs18 string
 \f0\fs20  stored a variable, that will improve performance considerably.
+\f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (logical$)exists(string$\'a0symbol)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a 
+\f1\fs18 logical
+\f0\fs20  value indicating 
+\b whether a symbol exists
+\f2\b0 .
+\f0   If the symbol has been defined as an intrinsic Eidos constant like 
+\f1\fs18 T
+\f0\fs20 , 
+\f1\fs18 INF
+\f0\fs20 , and 
+\f1\fs18 PI
+\f0\fs20 , or as a Context-defined constant like 
+\f1\fs18 sim
+\f0\fs20  in SLiM, or as a user-defined constant using 
+\f1\fs18 defineConstant()
+\f0\fs20 , or as a variable by assignment, this function returns 
+\f1\fs18 T
+\f0\fs20 .  Otherwise, the symbol has not been defined, and 
+\f1\fs18 exists()
+\f0\fs20  returns 
+\f1\fs18 F
+\f0\fs20 .  This is commonly used to check whether a user-defined constant already exists, with the intention of defining the constant if it has not already been defined.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2510,7 +2559,7 @@ The
 
 \f1\fs18 \cf0 (void)rm([string
 \f2 \'a0
-\f1 variableNames])\
+\f1 variableNames], [logical$\'a0removeConstants])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Removes global variables
@@ -2522,7 +2571,13 @@ The
 \f1\fs18 variableNames
 \f0\fs20  parameter is omitted, 
 \i all
-\i0  variables will be removed (be careful!).  Attempting to remove a constant is an error.
+\i0  variables will be removed (be careful!).  Attempting to remove a constant is an error unless 
+\f1\fs18 removeConstants
+\f0\fs20  is specified to be 
+\f1\fs18 T
+\f0\fs20 ; in that case, constants defined with 
+\f1\fs18 defineConstant()
+\f0\fs20  may be removed, but attempting to remove intrinsic Eidos constants is still an error.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

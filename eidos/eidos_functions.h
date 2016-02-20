@@ -146,8 +146,10 @@ enum class EidosFunctionIdentifier {
 	// miscellaneous functions
 	applyFunction,
 	dateFunction,
+	defineConstantFunction,
 	doCallFunction,
 	executeLambdaFunction,
+	existsFunction,
 	functionFunction,
 	lsFunction,
 	licenseFunction,

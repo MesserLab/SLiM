@@ -334,8 +334,8 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
-						EidosSymbolTable callback_symbols(true, &population_.sim_.SymbolTable());
-						EidosSymbolTable client_symbols(false, &callback_symbols);
+						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &population_.sim_.SymbolTable());
+						EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
 						EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
 						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
 						

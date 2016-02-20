@@ -84,7 +84,7 @@ void Eidos_WarmUp(void)
 		EidosInterpreter::CacheBuiltInFunctionMap();
 		
 		// Set up the symbol table for Eidos constants
-		gEidosConstantsSymbolTable = new EidosSymbolTable(true, nullptr);
+		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 	}
 }
 

@@ -55,7 +55,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 {
 	EidosScript script(p_script_string);
 	EidosValue_SP result;
-	EidosSymbolTable symbol_table(false, gEidosConstantsSymbolTable);
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
 	
 	gEidosCurrentScript = &script;
 	
@@ -143,7 +143,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_position, const std::string &p_reason_snip)
 {
 	EidosScript script(p_script_string);
-	EidosSymbolTable symbol_table(false, gEidosConstantsSymbolTable);
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
 	
 	gEidosCurrentScript = &script;
 	
@@ -3002,6 +3002,13 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("date('foo');", 0, "requires at most");
 	EidosAssertScriptRaise("date(_Test(7));", 0, "requires at most");
 	
+	// defineConstant()
+	EidosAssertScriptSuccess("defineConstant('foo', 5:10); sum(foo);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(45)));
+	EidosAssertScriptRaise("defineConstant('T', 5:10);", 0, "is already defined");
+	EidosAssertScriptRaise("defineConstant('foo', 5:10); defineConstant('foo', 5:10); sum(foo);", 29, "is already defined");
+	EidosAssertScriptRaise("foo = 5:10; defineConstant('foo', 5:10); sum(foo);", 12, "is already defined");
+	EidosAssertScriptRaise("defineConstant('foo', 5:10); rm('foo');", 29, "cannot be removed");
+	
 	// doCall()
 	EidosAssertScriptSuccess("abs(doCall('sin', 0.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(doCall('sin', PI/2) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3020,6 +3027,13 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("executeLambda(3);", 0, "cannot be type");
 	EidosAssertScriptRaise("executeLambda(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("executeLambda(_Test(7));", 0, "cannot be type");
+	
+	// exists()
+	EidosAssertScriptSuccess("exists('T');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("exists('foo');", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("foo = 5:10; exists('foo');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("foo = 5:10; rm('foo'); exists('foo');", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("defineConstant('foo', 5:10); exists('foo');", gStaticEidosValue_LogicalT);
 	
 	// function()
 	EidosAssertScriptSuccess("function();", gStaticEidosValueNULL);
@@ -3064,7 +3078,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("rm(NAN);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(E);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(PI);", 0, "cannot be type");
-
+	EidosAssertScriptRaise("rm('PI');", 0, "intrinsic Eidos constant");
+	EidosAssertScriptRaise("rm('PI', T);", 0, "intrinsic Eidos constant");
+	EidosAssertScriptRaise("defineConstant('foo', 1:10); rm('foo'); foo;", 29, "is a constant");
+	EidosAssertScriptRaise("defineConstant('foo', 1:10); rm('foo', T); foo;", 43, "undefined identifier");
+	
 	// setSeed()
 	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(5); y=runif(10); all(x==y);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("setSeed(5); x=runif(10); setSeed(6); y=runif(10); all(x==y);", gStaticEidosValue_LogicalF);
