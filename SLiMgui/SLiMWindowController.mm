@@ -530,7 +530,7 @@
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView 
 	[populationView setNeedsDisplay:YES];
-	[chromosomeZoomed setNeedsDisplay:YES];
+	[chromosomeZoomed setNeedsDisplayInInterior];
 	
 	[self updatePopulationViewHiding];
 	
@@ -1371,7 +1371,7 @@
 	[selectionColorStripe setScalingFactor:selectionColorScale];
 	[selectionColorStripe setNeedsDisplay:YES];
 	
-	[chromosomeZoomed setNeedsDisplay:YES];
+	[chromosomeZoomed setNeedsDisplayInInterior];
 }
 
 - (IBAction)checkScript:(id)sender
@@ -1506,7 +1506,7 @@
 	{
 		zoomedChromosomeShowsRecombinationIntervals = newValue;
 		[chromosomeZoomed setShouldDrawRecombinationIntervals:zoomedChromosomeShowsRecombinationIntervals];
-		[chromosomeZoomed setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplayInInterior];
 	}
 }
 
@@ -1518,7 +1518,7 @@
 	{
 		zoomedChromosomeShowsGenomicElements = newValue;
 		[chromosomeZoomed setShouldDrawGenomicElements:zoomedChromosomeShowsGenomicElements];
-		[chromosomeZoomed setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplayInInterior];
 	}
 }
 
@@ -1530,7 +1530,7 @@
 	{
 		zoomedChromosomeShowsMutations = newValue;
 		[chromosomeZoomed setShouldDrawMutations:zoomedChromosomeShowsMutations];
-		[chromosomeZoomed setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplayInInterior];
 	}
 }
 
@@ -1542,7 +1542,7 @@
 	{
 		zoomedChromosomeShowsFixedSubstitutions = newValue;
 		[chromosomeZoomed setShouldDrawFixedSubstitutions:zoomedChromosomeShowsFixedSubstitutions];
-		[chromosomeZoomed setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplayInInterior];
 	}
 }
 
@@ -2148,7 +2148,7 @@
 			[populationView setNeedsDisplay:YES];
 			[self updatePopulationViewHiding];
 			
-			[chromosomeZoomed setNeedsDisplay:YES];
+			[chromosomeZoomed setNeedsDisplayInInterior];
 		}
 	}
 }

@@ -175,7 +175,9 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	}
 	else
 	{
-		return;
+		// We want to always post the notification, to make sure updating happens correctly;
+		// this ensures that correct ticks marks get drawn after a recycle, etc.
+		//return;
 	}
 	
 	// Our selection changed, so update and post a change notification
@@ -626,6 +628,11 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 	return NSInsetRect([self contentRect], 1, 1);
 }
 
+- (void)setNeedsDisplayInInterior
+{
+	[self setNeedsDisplayInRect:[self interiorRect]];
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
@@ -647,7 +654,8 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		NSRange displayedRange = [self displayedRange];
 		
 		// draw ticks at bottom of content rect
-		[self drawTicksInContentRect:contentRect withController:controller displayedRange:displayedRange];
+		if (!NSContainsRect(interiorRect, dirtyRect))
+			[self drawTicksInContentRect:contentRect withController:controller displayedRange:displayedRange];
 		
 		// draw recombination intervals in interior
 		if (shouldDrawRecombinationIntervals)

@@ -59,6 +59,8 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 
 - (NSRange)displayedRange;	// either the full chromosome range, or the selected range of our reference chromosome
 
+- (void)setNeedsDisplayInInterior;	// set to need display only within the interior; avoid redrawing ticks unnecessarily
+
 @end
 
 
