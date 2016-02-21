@@ -3951,17 +3951,19 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			else if (arg0_type == EidosValueType::kValueObject)
 			{
+				// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Object_vector; we can use the fast API
+				const std::vector<EidosObjectElement*> &object_vec = *arg0_value->ObjectElementVector();
 				EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
 				result_SP = EidosValue_SP(object_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					EidosObjectElement *value = arg0_value->ObjectElementAtIndex(value_index, nullptr);
+					EidosObjectElement *value = object_vec[value_index];
 					int scan_index;
 					
 					for (scan_index = 0; scan_index < value_index; ++scan_index)
 					{
-						if (value == arg0_value->ObjectElementAtIndex(scan_index, nullptr))
+						if (value == object_vec[scan_index])
 							break;
 					}
 					
