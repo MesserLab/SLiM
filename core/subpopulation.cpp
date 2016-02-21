@@ -42,8 +42,13 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	
 	// throw out whatever used to be there
 	child_genomes_.clear();
+	cached_child_genomes_value_.reset();
+	
 	if (p_parents_also)
+	{
 		parent_genomes_.clear();
+		cached_parent_genomes_value_.reset();
+	}
 	
 	// make new stuff
 	if (sex_enabled_)
@@ -905,6 +910,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	
 	// Execute the genome swap
 	child_genomes_.swap(parent_genomes_);
+	cached_child_genomes_value_.swap(cached_parent_genomes_value_);
 	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
@@ -975,17 +981,68 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_));
 		case gID_genomes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
-			EidosValue_SP result_SP = EidosValue_SP(vec);
-			
 			if (child_generation_valid_)
-				for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-					vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+			{
+				if (!cached_child_genomes_value_)
+				{
+					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
+					cached_child_genomes_value_ = EidosValue_SP(vec);
+					
+					for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
+						vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+				}
+				/*
+				else
+				{
+					// check that the cache is correct
+					EidosValue_Object_vector *vec = (EidosValue_Object_vector *)cached_child_genomes_value_.get();
+					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
+					int vec_size = (int)vec_direct->size();
+					
+					if (vec_size == (int)child_genomes_.size())
+					{
+						for (int i = 0; i < vec_size; ++i)
+							if ((*vec_direct)[i] != &(child_genomes_[i]))
+								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << eidos_terminate();
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_child_genomes_value_." << eidos_terminate();
+				}
+				*/
+				
+				return cached_child_genomes_value_;
+			}
 			else
-				for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-					vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
-			
-			return result_SP;
+			{
+				if (!cached_parent_genomes_value_)
+				{
+					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
+					cached_parent_genomes_value_ = EidosValue_SP(vec);
+					
+					for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
+						vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+				}
+				/*
+				else
+				{
+					// check that the cache is correct
+					EidosValue_Object_vector *vec = (EidosValue_Object_vector *)cached_parent_genomes_value_.get();
+					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
+					int vec_size = (int)vec_direct->size();
+					
+					if (vec_size == (int)parent_genomes_.size())
+					{
+						for (int i = 0; i < vec_size; ++i)
+							if ((*vec_direct)[i] != &(parent_genomes_[i]))
+								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << eidos_terminate();
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_genomes_value_." << eidos_terminate();
+				}
+				*/
+				
+				return cached_parent_genomes_value_;
+			}
 		}
 		case gID_immigrantSubpopIDs:
 		{
