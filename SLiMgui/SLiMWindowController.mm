@@ -1155,7 +1155,7 @@
 		
 		if (!reachedSimulationEnd)
 		{
-			[self updateAfterTickFull:NO];
+			[self updateAfterTickFull:(-[startDate timeIntervalSinceNow] > 0.04)];	// if too much time has elapsed, do a full update
 			[self performSelector:@selector(_continuousPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 		}
 		else
@@ -1254,7 +1254,7 @@
 		
 		if (!reachedSimulationEnd && !(sim->generation_ >= targetGeneration))
 		{
-			[self updateAfterTickFull:NO];
+			[self updateAfterTickFull:(-[startDate timeIntervalSinceNow] > 0.04)];	// if too much time has elapsed, do a full update
 			[self performSelector:@selector(_generationPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 		}
 		else
