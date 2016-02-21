@@ -51,6 +51,7 @@
 	slim_generation_t targetGeneration;
 	NSDate *continuousPlayStartDate;
 	uint64_t continuousPlayGenerationsCompleted;
+	int partialUpdateCount;
 	
 	// display-related variables
 	double fitnessColorScale, selectionColorScale;

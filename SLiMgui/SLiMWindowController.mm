@@ -472,55 +472,70 @@
 	}
 }
 
-- (void)updateAfterTick
+- (void)updateAfterTickFull:(BOOL)fullUpdate
 {
+	// fullUpdate is used to suppress some expensive updating to every third update
+	if (!fullUpdate)
+	{
+		if (++partialUpdateCount >= 3)
+		{
+			partialUpdateCount = 0;
+			fullUpdate = YES;
+		}
+	}
+	
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
 	[self checkForSimulationTermination];
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
 	bool invalid = [self invalidSimulation];
 	
-	// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
-	[self updateOutputTextView];
-	
-	// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
-	// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
-	// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
-	// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
-	reloadingSubpopTableview = YES;
-	[subpopTableView reloadData];
-	
-	if (invalid)
+	if (fullUpdate)
 	{
-		[subpopTableView deselectAll:nil];
-	}
-	else
-	{
-		Population &population = sim->population_;
-		int subpopCount = (int)population.size();
-		auto popIter = population.begin();
-		NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
+		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
+		[self updateOutputTextView];
 		
-		for (int i = 0; i < subpopCount; ++i)
+		// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
+		// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
+		// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
+		// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
+		reloadingSubpopTableview = YES;
+		[subpopTableView reloadData];
+		
+		if (invalid)
 		{
-			if (popIter->second->gui_selected_)
-				[indicesToSelect addIndex:i];
+			[subpopTableView deselectAll:nil];
+		}
+		else
+		{
+			Population &population = sim->population_;
+			int subpopCount = (int)population.size();
+			auto popIter = population.begin();
+			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
 			
-			popIter++;
+			for (int i = 0; i < subpopCount; ++i)
+			{
+				if (popIter->second->gui_selected_)
+					[indicesToSelect addIndex:i];
+				
+				popIter++;
+			}
+			
+			[subpopTableView selectRowIndexes:indicesToSelect byExtendingSelection:NO];
 		}
 		
-		[subpopTableView selectRowIndexes:indicesToSelect byExtendingSelection:NO];
+		reloadingSubpopTableview = NO;
+		[subpopTableView setNeedsDisplay];
 	}
 	
-	reloadingSubpopTableview = NO;
-	
 	// Now update our other UI, some of which depends upon the state of subpopTableView 
-	[subpopTableView setNeedsDisplay];
 	[populationView setNeedsDisplay:YES];
 	[chromosomeZoomed setNeedsDisplay:YES];
 	
 	[self updatePopulationViewHiding];
-	[self updateGenerationCounter];
+	
+	if (fullUpdate)
+		[self updateGenerationCounter];
 	
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
 	if (invalid || sim->mutation_types_changed_)
@@ -560,7 +575,8 @@
 	}
 	
 	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
-	[self sendAllGraphViewsSelector:@selector(updateAfterTick)];
+	if (fullUpdate)
+		[self sendAllGraphViewsSelector:@selector(updateAfterTick)];
 }
 
 - (void)chromosomeSelectionChanged:(NSNotification *)note
@@ -687,7 +703,7 @@
 	[drawer close];
 	
 	// Update all our UI to reflect the current state of the simulation
-	[self updateAfterTick];
+	[self updateAfterTickFull:YES];
 	
 	// Load our console window nib
 	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
@@ -1100,7 +1116,7 @@
 		[_consoleController invalidateSymbolTable];
 		[self setReachedSimulationEnd:![self runSimOneGeneration]];
 		[_consoleController validateSymbolTable];
-		[self updateAfterTick];
+		[self updateAfterTickFull:YES];
 	}
 }
 
@@ -1133,16 +1149,19 @@
 			
 			continuousPlayGenerationsCompleted++;
 		}
-		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.01));
+		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 		
 		[self setReachedSimulationEnd:reachedEnd];
-		[self updateAfterTick];
 		
 		if (!reachedSimulationEnd)
+		{
+			[self updateAfterTickFull:NO];
 			[self performSelector:@selector(_continuousPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		}
 		else
 		{
 			// stop playing
+			[self updateAfterTickFull:YES];
 			[playButton setState:NSOffState];
 			[self play:nil];
 		}
@@ -1201,7 +1220,7 @@
 		[self setContinuousPlayOn:NO];
 		
 		[_consoleController validateSymbolTable];
-		[self updateAfterTick];
+		[self updateAfterTickFull:YES];
 		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
 		if ([self reachedSimulationEnd])
@@ -1229,16 +1248,19 @@
 				reachedEnd = ![self runSimOneGeneration];
 			}
 		}
-		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.01));
+		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 		
 		[self setReachedSimulationEnd:reachedEnd];
-		[self updateAfterTick];
 		
 		if (!reachedSimulationEnd && !(sim->generation_ >= targetGeneration))
+		{
+			[self updateAfterTickFull:NO];
 			[self performSelector:@selector(_generationPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		}
 		else
 		{
 			// stop playing
+			[self updateAfterTickFull:YES];
 			[self generationChanged:nil];
 		}
 	}
@@ -1311,7 +1333,7 @@
 	[self clearOutput:nil];
 	[self setScriptStringAndInitializeSimulation:[scriptTextView string]];
 	[_consoleController validateSymbolTable];
-	[self updateAfterTick];
+	[self updateAfterTickFull:YES];
 	
 	// Update the status field so that if the selection is in an initialize...() function the right signature is shown.  This call would
 	// be more technically correct in -updateAfterTick, but I don't want the tokenization overhead there, it's too heavyweight.  The
@@ -1601,7 +1623,7 @@
 								
 								// Clean up after the import; the order of these steps is quite sensitive, so be careful
 								sim->generation_ = newGeneration;
-								[self updateAfterTick];							// we need to do this first, to select all our subpopulations so our stats-gathering is correct
+								[self updateAfterTickFull:YES];						// we need to do this first, to select all our subpopulations so our stats-gathering is correct
 								sim->population_.TallyMutationReferences(nullptr, true);
 								sim->population_.SurveyPopulation();
 							}
