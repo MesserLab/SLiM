@@ -1735,61 +1735,25 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		{
 			slim_refcount_t total_genome_count = 0;
 			
-			// The code below blows away the reference counts kept by Mutation, which must be valid at the end of each generation for
-			// SLiM's internal machinery to work properly, so for simplicity we require that we're in the parental generation.
-			if (population_.child_generation_valid_)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): mutationFrequencies() may only be called when the parental generation is active (before offspring generation)." << eidos_terminate();
-			
-			// first zero out the refcounts in all registered Mutation objects
-			Mutation **registry_iter = population_.mutation_registry_.begin_pointer();
-			Mutation **registry_iter_end = population_.mutation_registry_.end_pointer();
-			
-			for (; registry_iter != registry_iter_end; ++registry_iter)
-				(*registry_iter)->reference_count_ = 0;
-			
-			// figure out which subpopulations we are supposed to tally across
-			vector<Subpopulation*> subpops_to_tally;
-			
+			// tally across the requested subpops
 			if (arg0_value->Type() == EidosValueType::kValueNULL)
 			{
-				// no requested subpops, so we should loop over all subpops
-				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					subpops_to_tally.emplace_back(subpop_pair.second);
+				// tally across the whole population
+				total_genome_count = population_.TallyMutationReferences(nullptr, false);
 			}
 			else
 			{
 				// requested subpops, so get them
 				int requested_subpop_count = arg0_value->Count();
+				vector<Subpopulation*> subpops_to_tally;
 				
 				if (requested_subpop_count)
 				{
 					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
 						subpops_to_tally.emplace_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
 				}
-			}
-			
-			// then increment the refcounts through all pointers to Mutation in all genomes; the script command may have specified
-			// a limited set of mutations, but it would actually make us slower to try to limit our counting to that subset
-			for (Subpopulation *subpop : subpops_to_tally)
-			{
-				slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-				std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
 				
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)								// parent genomes
-				{
-					Genome &genome = subpop_genomes[i];
-					
-					if (!genome.IsNull())
-					{
-						Mutation **genome_iter = genome.begin_pointer();
-						Mutation **genome_end_iter = genome.end_pointer();
-						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
-							++((*genome_iter)->reference_count_);
-						
-						total_genome_count++;	// count only non-null genomes to determine fixation
-					}
-				}
+				total_genome_count = population_.TallyMutationReferences(&subpops_to_tally, false);
 			}
 			
 			// OK, now construct our result vector from the tallies for just the requested mutations
@@ -1810,8 +1774,10 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			else
 			{
-				// no mutation vectoe was given, so return all frequencies from the registry
-				for (registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+				// no mutation vector was given, so return all frequencies from the registry
+				Mutation **registry_iter_end = population_.mutation_registry_.end_pointer();
+				
+				for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
 					float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
 			}
 			

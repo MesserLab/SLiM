@@ -1812,7 +1812,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 void Population::MaintainRegistry(void)
 {
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
-	TallyMutationReferences();
+	TallyMutationReferences(nullptr, true);
 	
 	// remove any mutations that have been eliminated or have fixed
 	RemoveFixedMutations();
@@ -1845,65 +1845,53 @@ void Population::SwapGenerations(void)
 
 // count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
-void Population::TallyMutationReferences(void)
+slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache)
 {
-	slim_refcount_t total_genome_count = 0;
-#ifdef SLIMGUI
-	slim_refcount_t gui_total_genome_count = 0;
-#endif
-	
-	// first zero out the refcounts in all registered Mutation objects
-	Mutation **registry_iter = mutation_registry_.begin_pointer();
-	Mutation **registry_iter_end = mutation_registry_.end_pointer();
-	
-	for (; registry_iter != registry_iter_end; ++registry_iter)
+	// First, figure out whether we're doing all subpops or a subset
+	if (p_subpops_to_tally)
 	{
-		(*registry_iter)->reference_count_ = 0;
-#ifdef SLIMGUI
-		(*registry_iter)->gui_reference_count_ = 0;
-#endif
+		if (p_subpops_to_tally->size() == this->size())
+		{
+			// Rather than doing an equality test, we'll just assume that if there are N subpops and we've been asked to tally across N subpops,
+			// we have been asked to tally across the whole population.  Hard to imagine a rational case that would violate that assumption.
+			p_subpops_to_tally = nullptr;
+		}
 	}
 	
-	// then increment the refcounts through all pointers to Mutation in all genomes
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// subpopulations
+	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
+	if (!p_force_recache && (cached_genome_count_ != 0))
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-		// when the parental generation is active and the child generation is invalid.
-		slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
-		std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
-		
-#ifdef SLIMGUI
-		// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
-		// the else clause here drops outside of the #ifdef to the standard tally code.
-		if (subpop->gui_selected_)
+		if ((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0))
 		{
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
-			{
-				Genome &genome = subpop_genomes[i];
-				
-				if (!genome.IsNull())
-				{
-					Mutation **genome_iter = genome.begin_pointer();
-					Mutation **genome_end_iter = genome.end_pointer();
-					
-					for (; genome_iter != genome_end_iter; ++genome_iter)
-					{
-						const Mutation *mutation = *genome_iter;
-						
-						(mutation->reference_count_)++;
-						(mutation->gui_reference_count_)++;
-					}
-					
-					total_genome_count++;	// count only non-null genomes to determine fixation
-					gui_total_genome_count++;
-				}
-			}
+			return cached_genome_count_;
 		}
-		else
-#endif
+		else if (p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
 		{
+			return cached_genome_count_;
+		}
+	}
+	
+	// Now do the actual tallying, since apparently it is necessary
+	if (p_subpops_to_tally)
+	{
+		// When tallying just a subset of the subpops, we don't update the SLiMgui counts, nor do we update total_genome_count_
+		slim_refcount_t total_genome_count = 0;
+		
+		// first zero out the refcounts in all registered Mutation objects
+		Mutation **registry_iter = mutation_registry_.begin_pointer();
+		Mutation **registry_iter_end = mutation_registry_.end_pointer();
+		
+		for (; registry_iter != registry_iter_end; ++registry_iter)
+			(*registry_iter)->reference_count_ = 0;
+		
+		// then increment the refcounts through all pointers to Mutation in all genomes
+		for (Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
+			// when the parental generation is active and the child generation is invalid.
+			slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
+			std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
+			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
 				Genome &genome = subpop_genomes[i];
@@ -1920,15 +1908,107 @@ void Population::TallyMutationReferences(void)
 				}
 			}
 		}
+		
+		// set up the cache info
+		last_tallied_subpops_ = *p_subpops_to_tally;
+		cached_genome_count_ = total_genome_count;
+		
+		return total_genome_count;
 	}
-	
-	total_genome_count_ = total_genome_count;
+	else
+	{
+		// When tallying the full population, we update SLiMgui counts as well, and we update total_genome_count_
+		slim_refcount_t total_genome_count = 0;
 #ifdef SLIMGUI
-	gui_total_genome_count_ = gui_total_genome_count;
+		slim_refcount_t gui_total_genome_count = 0;
 #endif
+		
+		// first zero out the refcounts in all registered Mutation objects
+		Mutation **registry_iter = mutation_registry_.begin_pointer();
+		Mutation **registry_iter_end = mutation_registry_.end_pointer();
+		
+		for (; registry_iter != registry_iter_end; ++registry_iter)
+		{
+			(*registry_iter)->reference_count_ = 0;
+#ifdef SLIMGUI
+			(*registry_iter)->gui_reference_count_ = 0;
+#endif
+		}
+		
+		// then increment the refcounts through all pointers to Mutation in all genomes
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
+			// when the parental generation is active and the child generation is invalid.
+			slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
+			std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
+			
+#ifdef SLIMGUI
+			// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
+			// the else clause here drops outside of the #ifdef to the standard tally code.
+			if (subpop->gui_selected_)
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+				{
+					Genome &genome = subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						Mutation **genome_iter = genome.begin_pointer();
+						Mutation **genome_end_iter = genome.end_pointer();
+						
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+						{
+							const Mutation *mutation = *genome_iter;
+							
+							(mutation->reference_count_)++;
+							(mutation->gui_reference_count_)++;
+						}
+						
+						total_genome_count++;	// count only non-null genomes to determine fixation
+						gui_total_genome_count++;
+					}
+				}
+			}
+			else
+#endif
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+				{
+					Genome &genome = subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						Mutation **genome_iter = genome.begin_pointer();
+						Mutation **genome_end_iter = genome.end_pointer();
+						
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+							++((*genome_iter)->reference_count_);
+						
+						total_genome_count++;	// count only non-null genomes to determine fixation
+					}
+				}
+			}
+		}
+		
+		// set up the cache info
+		last_tallied_subpops_.clear();
+		cached_genome_count_ = total_genome_count;
+		
+		// set up the global genome counts
+		total_genome_count_ = total_genome_count;
+#ifdef SLIMGUI
+		gui_total_genome_count_ = gui_total_genome_count;
+#endif
+		
+		return total_genome_count;
+	}
 }
 
 // handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
+// TallyMutationReferences() must have cached tallies across the whole population before this is called, or it will malfunction!
 void Population::RemoveFixedMutations(void)
 {
 	Genome removed_mutation_accumulator;

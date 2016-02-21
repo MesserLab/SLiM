@@ -1602,7 +1602,7 @@
 								// Clean up after the import; the order of these steps is quite sensitive, so be careful
 								sim->generation_ = newGeneration;
 								[self updateAfterTick];							// we need to do this first, to select all our subpopulations so our stats-gathering is correct
-								sim->population_.TallyMutationReferences();
+								sim->population_.TallyMutationReferences(nullptr, true);
 								sim->population_.SurveyPopulation();
 							}
 						}
@@ -2119,7 +2119,7 @@
 			}
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
-			population.TallyMutationReferences();
+			population.TallyMutationReferences(nullptr, true);
 			
 			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
 			// selection changes should not happen often, so we can just always update, I think.

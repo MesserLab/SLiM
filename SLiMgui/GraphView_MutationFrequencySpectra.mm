@@ -80,6 +80,9 @@
 	// tally into our bins
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
+	
+	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
+	
 	double totalGenomeCount = pop.total_genome_count_;
 	Genome &mutationRegistry = pop.mutation_registry_;
 	Mutation **mutations = mutationRegistry.mutations_;

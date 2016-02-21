@@ -51,7 +51,7 @@ public:
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t generation_;				// generation in which mutation arose
-	mutable slim_refcount_t reference_count_;			// a count of the number of occurrences of this mutation; valid only at generation end, after ManageMutationReferencesAndRemoveFixedMutations()
+	mutable slim_refcount_t reference_count_;			// a count of the uses of this mutation; managed by Population, see TallyMutationReferences()
 #ifdef SLIMGUI
 	const uint64_t mutation_id_;						// a unique id for each mutation, used to track mutations in SLiMgui
 	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end

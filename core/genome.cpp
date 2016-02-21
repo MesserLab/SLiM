@@ -53,6 +53,7 @@ void Genome::NullGenomeAccessError(void) const
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
+// This must be called with mutation counts set up correctly as all-population counts, or it will malfunction!
 void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count)
 {
 #ifdef DEBUG
