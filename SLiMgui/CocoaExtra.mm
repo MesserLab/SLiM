@@ -187,6 +187,9 @@ const int heightForTicks = 15;
 			else if (fraction < 0.75) fitness = (fraction - 0.5) * 4.0 + 1.0;	// [0.5, 0.75] -> [1.0, 2.0]
 			else fitness = 0.50 / (0.25 - (fraction - 0.75));					// [0.75, 1.0] -> [2.0, +Inf]
 			
+			if (fraction == 1.0)
+				fitness = 1e100;	// avoid infinity
+			
 			RGBForFitness(fitness, &red, &green, &blue, scaling);
 		}
 		else if (metric == 2)
