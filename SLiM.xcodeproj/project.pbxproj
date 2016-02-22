@@ -661,8 +661,8 @@
 		98C821231C7A980000548839 /* infnan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = infnan.c; sourceTree = "<group>"; };
 		98C8219D1C7A99B200548839 /* minmax.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = minmax.c; sourceTree = "<group>"; };
 		98C821A21C7A99F000548839 /* pow_int.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pow_int.c; sourceTree = "<group>"; };
-		98C821A71C7A9B1600548839 /* discrete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = discrete.c; path = "../../../../../../../Desktop/gsl_finder/gsl-2.1/randist/discrete.c"; sourceTree = "<group>"; };
-		98C821A81C7A9B1600548839 /* geometric.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = geometric.c; path = "../../../../../../../Desktop/gsl_finder/gsl-2.1/randist/geometric.c"; sourceTree = "<group>"; };
+		98C821A71C7A9B1600548839 /* discrete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = discrete.c; sourceTree = "<group>"; };
+		98C821A81C7A9B1600548839 /* geometric.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = geometric.c; sourceTree = "<group>"; };
 		98C821B11C7A9B9F00548839 /* shuffle.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shuffle.c; sourceTree = "<group>"; };
 		98D218C31B2E213200156FC3 /* EidosTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosTextView.h; sourceTree = "<group>"; };
 		98D218C41B2E213200156FC3 /* EidosTextView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTextView.mm; sourceTree = "<group>"; };
