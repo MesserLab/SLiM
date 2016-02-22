@@ -27,8 +27,31 @@
 #define __Eidos__eidos_rng__
 
 
+#if 1
+
+// To build with the GSL code included inside SLiM, use this branch, which includes the local GSL headers.  Do not
+// include the GSL's include paths in the project's header search paths, and do not link with -lgsl or lgslcblas.
+// See the _README file in the gsl directory for information on the local copy of the GSL included in this project.
+#include "gsl_rng.h"
+#include "gsl_randist.h"
+
+#else
+
+// To build with an externally built GSL library, use this branch, which includes GSL headers from the linked library.
+//
+// - compile with "Header Search Paths" : /opt/local/include and /usr/local/include
+// - compile with "Library Search Paths" : /opt/local/lib and /usr/local/lib
+// - link with "Other Linker Flags" : -lgsl and -lgslcblas.
+//
+// This should work with a GSL installed by either Macports or Homebrew on OS X.  On other platforms, use
+// gsl-config --cflags --libs to get the correct header and library search paths.  You will likely want to
+// remove the GSL folder inside this project, too, so there are no conflicts.
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+
+#endif
+
+
 #include "math.h"
 
 

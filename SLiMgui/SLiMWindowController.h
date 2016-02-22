@@ -19,9 +19,8 @@
 
 
 #import <Cocoa/Cocoa.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 
+#include "eidos_rng.h"
 #include "slim_sim.h"
 #import "ChromosomeView.h"
 #import "PopulationView.h"

@@ -19,7 +19,6 @@
 
 
 #include <iostream>
-#include <gsl/gsl_randist.h>
 #include <sstream>
 
 #include "mutation_type.h"
