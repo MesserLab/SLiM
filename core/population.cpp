@@ -1767,7 +1767,6 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	// note that generation+1 is used; we are computing fitnesses for the next generation
 	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1);
 	bool no_active_callbacks = true;
 	
