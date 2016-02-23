@@ -3,7 +3,7 @@
 //  EidosScribe
 //
 //  Created by Ben Haller on 6/13/15.
-//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 

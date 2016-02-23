@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/22/15.
-//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 
@@ -25,11 +25,6 @@
 
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
 @interface SLiMTableView : NSTableView
-@end
-
-// An NSApplication subclass to direct the showHelp: method to our AppDelegate
-@interface SLiMApp : NSApplication
-@property (nonatomic, readonly) SLiMWindowController *mainSLiMWindowController;
 @end
 
 // An NSDocumentController subclass to make the Recent Documents menu work; well, maybe we don't need it after all...

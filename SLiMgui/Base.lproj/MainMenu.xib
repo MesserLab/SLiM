@@ -497,7 +497,7 @@ DQ
                         <items>
                             <menuItem title="SLiMgui Help" keyEquivalent="?" id="FKE-Sm-Kum">
                                 <connections>
-                                    <action selector="showHelp:" target="-1" id="y7X-2Q-9no"/>
+                                    <action selector="showHelp:" target="Voe-Tx-rLC" id="1Sw-II-Pnj"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="akG-Ew-mj0"/>

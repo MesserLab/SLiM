@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/22/15.
-//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 
@@ -27,22 +27,6 @@
 - (BOOL)acceptsFirstResponder
 {
 	return NO;
-}
-
-@end
-
-
-@implementation SLiMApp
-
-- (SLiMWindowController *)mainSLiMWindowController
-{
-	return (SLiMWindowController *)[[self mainWindow] windowController];
-}
-
-- (IBAction)showHelp:(id)sender
-{
-	// Delegate this to, hey, our delegate.  Annoying that Apple hasn't fixed this so subclassing NSApplication is not necessary...
-	[(AppDelegate *)[self delegate] showHelp:sender];
 }
 
 @end

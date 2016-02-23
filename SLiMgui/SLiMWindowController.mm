@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 
@@ -1757,7 +1757,10 @@
 	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
 	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
-	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\nSLiM version 2.0.\n" attributes:outputAttrs];	// SLIM VERSION
+	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
+	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
+	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"Connected to SLiMgui simulation.\nSLiM version %@.\n", versionString] attributes:outputAttrs];	// SLIM VERSION
 	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];

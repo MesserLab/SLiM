@@ -3,7 +3,7 @@
 //  EidosScribe
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/software/
 //
 
@@ -23,6 +23,7 @@
 #import "EidosValueWrapper.h"
 #import "EidosConsoleWindowController.h"
 #import "EidosConsoleWindowControllerDelegate.h"
+#import "EidosHelpController.h"
 
 #include "eidos_global.h"
 #include "eidos_test.h"
@@ -83,8 +84,9 @@
 	[aboutWindow retain];
 	
 	// Set our version number string
-	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-	NSString *versionString = [NSString stringWithFormat:@"v. %@", bundleVersion];
+	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
+	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
 	
 	[aboutVersionTextField setStringValue:versionString];
 	
@@ -110,6 +112,11 @@
 - (IBAction)showStickSoftware:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.sticksoftware.com/"]];
+}
+
+- (IBAction)showHelp:(id)sender
+{
+	[[EidosHelpController sharedController] showWindow];
 }
 
 
