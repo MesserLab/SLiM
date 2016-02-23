@@ -1757,7 +1757,7 @@
 	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
 	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
-	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\nSLiM version 2.0a3.\n" attributes:outputAttrs];
+	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:@"Connected to SLiMgui simulation.\nSLiM version 2.0.\n" attributes:outputAttrs];	// SLIM VERSION
 	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];
