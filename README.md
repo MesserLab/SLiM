@@ -1,28 +1,13 @@
-PLEASE NOTE THAT THIS VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
+PLEASE NOTE THAT THE GITHUB VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
 ---------------------------------------------------------------------------------------------
-It is strongly recommended that all end users of SLiM use version 1.8, released at [http://messerlab.org/software/](http://messerlab.org/software/).
+It is strongly recommended that all end users of SLiM use version 2.0, released at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 ---------------------------------------------------------------------------------------------
  
-
-SLiM 2.0 (prerelease)
-=================
-
-**S**election on **Li**nked **M**utations: a forward population genetic simulation for studying linkage effects, such as hitchhiking, background selection, and Hill-Robertson interference.
-
-SLiM can incorporate complex scenarios of demography and population substructure, various models for selection and dominance of new mutations, realistic gene and chromosome structure, and user-defined recombination maps. Emphasis was further placed on the ability to model and track individual selective sweeps – both complete and partial. While retaining all capabilities of a forward simulation, SLiM utilizes sophisticated algorithms and optimized data structures that enable simulations on the scale of entire eukaryotic chromosomes in reasonably large populations. All these features are implemented in an easy-to-use C++ command line program.
-
-SLiM is a product of the Messer Lab at Cornell University. It was developed by Philipp Messer, and is now maintained and extended by Benjamin C. Haller and Philipp Messer.
-
-GitHub home page for SLiM: [https://github.com/MesserLab/SLiM](https://github.com/MesserLab/SLiM)
-
-Messer Lab home page for SLiM: [http://messerlab.org/software/](http://messerlab.org/software/)
 
 License
 ----------
 
 Copyright (c) 2016 Philipp Messer.  All rights reserved.
-
-This file is part of SLiM.
 
 SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -30,101 +15,7 @@ SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
 
 You should have received a copy of the GNU General Public License along with SLiM.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
-Building SLiM
-------------------------------------
-
-First of all, regardless of what platform you are on, you need to have the GNU Scientific Library (GSL) installed on your machine to use SLiM.  On Mac OS X, we recommend installing it using MacPorts.  Ample documentation on this should be available on the web.  The instructions below assume that you have already done that.
-
-**OS X**
-
-For Mac OS X users, we will provide a package with pre-built binaries for SLiM, SLiMgui,and EidosScribe; installing that package is the simplest way to get going.  That package is not yet available since SLiM 2.0 has not yet been officially released; stay tuned.
-
-For those on OS X who want to build SLiM themselves, an Xcode project is provided in this repository. On OS X, building SLiM in Xcode is recommended so that your build uses all of the settings defined by the Xcode project.  The Xcode project also has targets for building SLiMgui and EidosScribe.  It is recommended that you use the Release build configuration for all SLiM targets, for better runtime performance; this can be achieved either by editing the build scheme of the chosen target, or by using Xcode's Archive feature.  See the Xcode documentation for details.
-
-**Other Un\*x-based platforms**
-
-For users on other Un*x-based platforms, SLiM can be built in a shell with the commands:
-
-```
-cd SLiM
-g++ -O3 ./core/*.cpp ./eidos/*.cpp -iquote./eidos -lgsl -lgslcblas -std=c++11 -o slim
-```
-
-Note that SLiM uses C++11 extensions, and thus that standard is specified at compilation.
-
-If your GNU Scientific Library (GSL) headers are not in the default search path for g++, you will need to supply them on the command line.  You can find out the right command-line arguments to use for this by executing:
-
-```
-gsl-config --cflags --libs
-```
-
-For example, I have installed gsl using MacPorts, so my compilation command looks like:
-
-```
-g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
-```
-
-**Other non-Un\*x platforms**
-
-If you are not on a Unix-based platform, you will need to figure out how to obtain, install, and use the g++ compiler on your platform; building SLiM with other C++ compilers has not been tested and is not recommended.  Your build command should ensure that SLiM is build as a 64-bit executable.  If you figure out good build instructions for your platform, let us know and we will add them to this document.
-
-Running SLiM
--------------------
-
-Once SLiM is installed or built, it is a good idea to have it run a few self-tests.  This is done in your shell – the Terminal app, on Mac OS X, for example.  At your shell's command line (assuming you are in the directory where the built SLiM executable is located), you can run these two commands:
-
-```
-./slim -testEidos
-./slim -testSLiM
-```
-
-Each command should print out a "SUCCESS" line with a count of the number of tests performed.  If you see "FAILURE" messages instead, there is some problem with your build; contact us for help if you can't determine the problem.
-
-Assuming those self-tests indicate that SLiM is working well, you can now just run SLiM at your shell's command line. For example, to run the first example provided in SLiM's distribution (again, assuming you are in the right directory, with the examples as a subdirectory there), execute:
-
-```
-./slim ./examples/input_example_1.txt
-```
-
-If Xcode installed SLiM on your OS X, it should be at /usr/local/bin/slim; you can provide that path or ensure that it is part of your shell's default search path.
 
 Development & Feedback
 -----------------------------------
 SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
-
-References
----------------
-<u>The original paper on SLiM:</u>
-
-Messer, P. W. (2013). SLiM: Simulating evolution with selection and linkage. *Genetics 194*(4), 1037-1039.  [DOI](http://dx.doi.org/10.1534/genetics.113.152181)
-
-<u>Selected publications that have used SLiM for core analyses:</u>
-
-Arunkumar, R., Ness, R. W., Wright, S. I., & Barrett, S. C. (2014). The evolution of selfing Is accompanied by reduced efficacy of selection and purging of deleterious mutations. *Genetics* (Early Online).  [DOI](http://dx.doi.org/10.1534/genetics.114.172809)
-
-Bergland, A. O., Behrman, E. L., O'Brien, K. R., Schmidt, P. S., & Petrov, D. A. (2013). Genomic evidence of rapid and stable adaptive oscillations over seasonal time scales in *Drosophila*. *PLOS Genetics 10*(11), e1004775.  [DOI](http://dx.doi.org/10.1371/journal.pgen.1004775)
-
-Comeron, J. M. (2014). Background selection as baseline for nucleotide variation across the *Drosophila* genome. *PLOS Genetics 10*(6), e1004434.  [DOI](http://dx.doi.org/10.1371/journal.pgen.1004434)
-
-Enard, D., Messer, P. W., & Petrov, D. A. (2014). Genome-wide signals of positive selection in human evolution. *Genome Research 24*(6), 885-895.  [DOI](http://dx.doi.org/10.1101/gr.164822.113)
-
-Hussin, J., Hodgkinson, A., Idaghdour, Y., Grenier, J. C., Goulet, J. P., Gbeha, E., Hip-Ki, E., & Awadalla, P. (2014). Recombination impacts damaging and disease mutation accumulation in human populations. *bioRxiv*:006064.  [DOI](http://dx.doi.org/10.1101/006064)
-
-Kousathanas, A., & Keightley, P. D. (2013). A comparison of models to infer the distribution of fitness effects of new mutations. *Genetics 193*(4), 1197-1208.  [DOI](http://dx.doi.org/10.1534/genetics.112.148023)
-
-Messer, P. W., & Petrov, D. A. (2013). Frequent adaptation and the McDonald–Kreitman test. *Proceedings of the National Academy of Sciences 110*(21), 8615-8620.  [DOI](http://dx.doi.org/10.1073/pnas.1220835110)
-
-Schrider, D. R., & Kern, A. D. (2014). Inferring selective constraint from population genomic data reveals recent regulatory turnover in the human brain.  *arXiv*:1309.2521.  [URL](http://arxiv.org/abs/1309.2521)
-
-Veeramah, K. R., Gutenkunst, R. N., Woerner, A. E., Watkins, J. C., & Hammer, M. F. (2014). Evidence for increased levels of positive and negative selection on the X chromosome versus autosomes in humans. *Molecular Biology and Evolution 31*(9), 2267-2282.  [DOI](http://dx.doi.org/10.1093/molbev/msu166)
-
-Using SLiM in Your Research
----------------------------------------
-
-SLiM is open-source and can be used without restriction in scientific research.  We have only three requests:
-
-  * If you use SLiM to obtain data used in a publication, please ***cite SLiM*** by citing the original paper about SLiM (Messer 2013 *Genetics*).
-  * Please also notify Philipp Messer of your publication at [messer@cornell.edu](mailto:messer@cornell.edu), so that he can add it to the list of publications above.
-  * If you request a new feature in SLiM and we implement it for you, co-authorship is generally appropriate.
-
-Thanks, and enjoy!
