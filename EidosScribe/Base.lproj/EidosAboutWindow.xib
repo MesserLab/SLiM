@@ -15,14 +15,14 @@
         <window allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="745" width="621" height="398"/>
+            <rect key="contentRect" x="196" y="745" width="621" height="483"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
             <view key="contentView" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="621" height="398"/>
+                <rect key="frame" x="0.0" y="0.0" width="621" height="483"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="CxN-ue-roS">
-                        <rect key="frame" x="20" y="250" width="128" height="128"/>
+                        <rect key="frame" x="20" y="335" width="128" height="128"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="128" id="rVI-r9-sd7"/>
                             <constraint firstAttribute="width" constant="128" id="sfg-xt-7oO"/>
@@ -30,7 +30,7 @@
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSApplicationIcon" id="6vw-j2-cwW"/>
                     </imageView>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wDw-79-A4b">
-                        <rect key="frame" x="175" y="339" width="317" height="17"/>
+                        <rect key="frame" x="175" y="424" width="317" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="EidosScribe : An interactive interpreter for Eidos" id="sJB-jI-icR">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -38,7 +38,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9KH-lz-tf6">
-                        <rect key="frame" x="175" y="271" width="268" height="17"/>
+                        <rect key="frame" x="175" y="356" width="268" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="By Benjamin C. Haller, http://benhaller.com/" id="cag-MY-und">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -46,7 +46,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="C4q-EC-cXM">
-                        <rect key="frame" x="175" y="314" width="389" height="17"/>
+                        <rect key="frame" x="175" y="399" width="389" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/slim/" id="jqg-yt-Wpi">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -54,7 +54,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cD8-Mz-qIr">
-                        <rect key="frame" x="175" y="296" width="329" height="17"/>
+                        <rect key="frame" x="175" y="381" width="329" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Copyright © 2016 Philipp Messer.  All rights reserved." id="jZm-bw-sGW">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -62,7 +62,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WB2-cU-hkd">
-                        <rect key="frame" x="409" y="371" width="204" height="17"/>
+                        <rect key="frame" x="409" y="456" width="204" height="17"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="200" id="SBS-mC-L6n"/>
                             <constraint firstAttribute="height" constant="17" id="kLz-az-BTI"/>
@@ -74,17 +74,19 @@
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l8N-rU-b5f">
-                        <rect key="frame" x="46" y="40" width="529" height="170"/>
+                        <rect key="frame" x="46" y="40" width="529" height="255"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="525" id="3Yu-Qt-RPr"/>
                         </constraints>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" id="efh-34-WId">
                             <font key="font" metaFont="system"/>
-                            <string key="title">Eidos is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+                            <mutableString key="title">Eidos is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 Eidos is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Eidos. If not, see http://www.gnu.org/licenses/.</string>
+You should have received a copy of the GNU General Public License along with Eidos. If not, see http://www.gnu.org/licenses/.
+
+Eidos contains a modified distribution of the GNU Scientific Library (GSL), which is also licensed under the GNU General Public License under the same terms stated above.  Thanks to the authors of the GSL for their very useful software, which can be found in full form at http://www.gnu.org/software/gsl/.</mutableString>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
@@ -109,7 +111,7 @@ You should have received a copy of the GNU General Public License along with Eid
                     <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zxo-Hp-C8e"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="695.5" y="706.5"/>
+            <point key="canvasLocation" x="695.5" y="748.5"/>
         </window>
     </objects>
     <resources>
