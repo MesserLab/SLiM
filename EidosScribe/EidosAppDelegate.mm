@@ -99,6 +99,11 @@
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"mailto:philipp.messer@gmail.com?subject=Eidos%20Feedback"]];
 }
 
+- (IBAction)showEidosHomePage:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://benhaller.com/eidos.html"]];
+}
+
 - (IBAction)showMesserLab:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://messerlab.org/"]];

@@ -508,10 +508,16 @@ DQ
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="iTy-zx-Yi2"/>
-                            <menuItem title="About the Messer Lab" id="vIK-TB-KPI">
+                            <menuItem title="SLiM Home Page" id="vIK-TB-KPI">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="showMesserLab:" target="Voe-Tx-rLC" id="JGk-JA-iGP"/>
+                                    <action selector="showSlimHomePage:" target="Voe-Tx-rLC" id="R8x-VO-uO1"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="About the Messer Lab" id="AGL-3n-d6g">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showMesserLab:" target="Voe-Tx-rLC" id="g28-5s-ZAa"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="About Ben Haller" id="DnV-Km-JKi">

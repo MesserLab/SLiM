@@ -350,10 +350,16 @@ DQ
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="fIh-ql-Nxy"/>
-                            <menuItem title="About the Messer Lab" id="chy-2l-Hqa">
+                            <menuItem title="Eidos Home Page" id="chy-2l-Hqa">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="showMesserLab:" target="Voe-Tx-rLC" id="ZBT-DX-gXd"/>
+                                    <action selector="showEidosHomePage:" target="Voe-Tx-rLC" id="6nZ-1y-OgL"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="About the Messer Lab" id="zdG-NR-pNh">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showMesserLab:" target="Voe-Tx-rLC" id="6aq-iQ-YKj"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="About Ben Haller" id="yhH-YO-dTk">
