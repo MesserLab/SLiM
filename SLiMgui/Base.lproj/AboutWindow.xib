@@ -49,8 +49,8 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="C4q-EC-cXM">
-                        <rect key="frame" x="175" y="418" width="380" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/software/" id="jqg-yt-Wpi">
+                        <rect key="frame" x="175" y="418" width="352" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/slim/" id="jqg-yt-Wpi">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
