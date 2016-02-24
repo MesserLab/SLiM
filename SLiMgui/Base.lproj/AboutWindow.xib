@@ -3,13 +3,11 @@
     <dependencies>
         <development version="6300" identifier="xcode"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
-        <plugIn identifier="com.apple.WebKitIBPlugin" version="9531"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="AppDelegate">
             <connections>
                 <outlet property="aboutVersionTextField" destination="WB2-cU-hkd" id="CNZ-WA-EUh"/>
-                <outlet property="aboutWebView" destination="phj-Uk-cfr" id="WHx-Y9-dPr"/>
                 <outlet property="aboutWindow" destination="QvC-M9-y7g" id="7vI-I4-hc5"/>
             </connections>
         </customObject>
@@ -18,14 +16,14 @@
         <window allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="745" width="619" height="502"/>
+            <rect key="contentRect" x="196" y="745" width="621" height="473"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
             <view key="contentView" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="619" height="502"/>
+                <rect key="frame" x="0.0" y="0.0" width="621" height="473"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="CxN-ue-roS">
-                        <rect key="frame" x="20" y="354" width="128" height="128"/>
+                        <rect key="frame" x="20" y="325" width="128" height="128"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="128" id="rVI-r9-sd7"/>
                             <constraint firstAttribute="width" constant="128" id="sfg-xt-7oO"/>
@@ -33,7 +31,7 @@
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSApplicationIcon" id="6vw-j2-cwW"/>
                     </imageView>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wDw-79-A4b">
-                        <rect key="frame" x="175" y="443" width="291" height="17"/>
+                        <rect key="frame" x="175" y="414" width="291" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="SLiMgui : A graphical user interface for SLiM" id="sJB-jI-icR">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -41,7 +39,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9KH-lz-tf6">
-                        <rect key="frame" x="175" y="375" width="268" height="17"/>
+                        <rect key="frame" x="175" y="346" width="268" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="By Benjamin C. Haller, http://benhaller.com/" id="cag-MY-und">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -49,7 +47,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="C4q-EC-cXM">
-                        <rect key="frame" x="175" y="418" width="352" height="17"/>
+                        <rect key="frame" x="175" y="389" width="352" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/slim/" id="jqg-yt-Wpi">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -57,7 +55,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cD8-Mz-qIr">
-                        <rect key="frame" x="175" y="400" width="329" height="17"/>
+                        <rect key="frame" x="175" y="371" width="329" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Copyright © 2016 Philipp Messer.  All rights reserved." id="jZm-bw-sGW">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -65,7 +63,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WB2-cU-hkd">
-                        <rect key="frame" x="407" y="475" width="204" height="17"/>
+                        <rect key="frame" x="409" y="446" width="204" height="17"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="200" id="SBS-mC-L6n"/>
                             <constraint firstAttribute="height" constant="17" id="kLz-az-BTI"/>
@@ -76,55 +74,45 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <box autoresizesSubviews="NO" borderWidth="0.0" boxType="oldStyle" borderType="line" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="VAa-Uu-Ccu">
-                        <rect key="frame" x="20" y="20" width="579" height="314"/>
-                        <view key="contentView">
-                            <rect key="frame" x="1" y="1" width="577" height="312"/>
-                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                            <subviews>
-                                <webView maintainsBackForwardList="NO" translatesAutoresizingMaskIntoConstraints="NO" id="phj-Uk-cfr">
-                                    <rect key="frame" x="-1" y="-1" width="579" height="314"/>
-                                    <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
-                                        <nil key="identifier"/>
-                                    </webPreferences>
-                                    <connections>
-                                        <outlet property="policyDelegate" destination="-2" id="xze-uw-031"/>
-                                    </connections>
-                                </webView>
-                            </subviews>
-                        </view>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Khq-in-4x8">
+                        <rect key="frame" x="46" y="40" width="529" height="255"/>
                         <constraints>
-                            <constraint firstItem="phj-Uk-cfr" firstAttribute="leading" secondItem="VAa-Uu-Ccu" secondAttribute="leading" id="0j0-aw-Duh"/>
-                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="314" id="3Rk-2o-5VI"/>
-                            <constraint firstAttribute="trailing" secondItem="phj-Uk-cfr" secondAttribute="trailing" id="88g-RR-fLn"/>
-                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="579" id="VkB-Ey-jMZ"/>
-                            <constraint firstAttribute="bottom" secondItem="phj-Uk-cfr" secondAttribute="bottom" id="XPL-Jt-Ra4"/>
-                            <constraint firstItem="phj-Uk-cfr" firstAttribute="top" secondItem="VAa-Uu-Ccu" secondAttribute="top" id="cyf-bg-Zf9"/>
+                            <constraint firstAttribute="width" constant="525" id="RZq-0f-pKI"/>
                         </constraints>
-                        <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                        <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                    </box>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" id="xpC-h2-wjV">
+                            <font key="font" metaFont="system"/>
+                            <mutableString key="title">SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with SLiM. If not, see http://www.gnu.org/licenses/.
+
+SLiM contains a modified distribution of the GNU Scientific Library (GSL), which is also licensed under the GNU General Public License under the same terms stated above.  Thanks to the authors of the GSL for their very useful software, which can be found in full form at http://www.gnu.org/software/gsl/.</mutableString>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
                 </subviews>
                 <constraints>
-                    <constraint firstItem="VAa-Uu-Ccu" firstAttribute="top" secondItem="CxN-ue-roS" secondAttribute="bottom" constant="20" id="7rH-XA-pQx"/>
+                    <constraint firstAttribute="trailing" secondItem="Khq-in-4x8" secondAttribute="trailing" constant="48" id="2CV-ji-UcW"/>
+                    <constraint firstAttribute="bottom" secondItem="Khq-in-4x8" secondAttribute="bottom" constant="40" id="6XZ-EZ-OTI"/>
                     <constraint firstAttribute="trailing" secondItem="WB2-cU-hkd" secondAttribute="trailing" constant="10" id="DNR-LT-Q4b"/>
                     <constraint firstItem="C4q-EC-cXM" firstAttribute="leading" secondItem="wDw-79-A4b" secondAttribute="leading" id="HW0-by-DLL"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="C4q-EC-cXM" secondAttribute="leading" id="JdI-QS-ppx"/>
                     <constraint firstItem="WB2-cU-hkd" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="10" id="Jzj-ki-KJ3"/>
                     <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="-39" id="SgS-FZ-ZOF"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="top" secondItem="C4q-EC-cXM" secondAttribute="bottom" constant="1" id="TsK-bf-Azp"/>
+                    <constraint firstItem="Khq-in-4x8" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="48" id="Vdb-Fz-zuX"/>
                     <constraint firstItem="CxN-ue-roS" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="b1f-cV-8HA"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="9KH-lz-tf6" secondAttribute="leading" id="chO-2v-wka"/>
-                    <constraint firstAttribute="bottom" secondItem="VAa-Uu-Ccu" secondAttribute="bottom" constant="20" id="fMc-xt-Ej8"/>
                     <constraint firstItem="C4q-EC-cXM" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="8" id="iNQ-B5-u82"/>
                     <constraint firstItem="9KH-lz-tf6" firstAttribute="top" secondItem="cD8-Mz-qIr" secondAttribute="bottom" constant="8" id="sch-36-LNf"/>
-                    <constraint firstItem="VAa-Uu-Ccu" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="vhy-wf-L8e"/>
-                    <constraint firstAttribute="trailing" secondItem="VAa-Uu-Ccu" secondAttribute="trailing" constant="20" id="xUa-48-xh4"/>
+                    <constraint firstItem="Khq-in-4x8" firstAttribute="top" secondItem="CxN-ue-roS" secondAttribute="bottom" constant="30" id="vXy-xu-99m"/>
                     <constraint firstItem="wDw-79-A4b" firstAttribute="leading" secondItem="CxN-ue-roS" secondAttribute="trailing" constant="29" id="z2U-EL-tOb"/>
                     <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zxo-Hp-C8e"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="962.5" y="617"/>
+            <point key="canvasLocation" x="957.5" y="617"/>
         </window>
     </objects>
     <resources>
