@@ -10,8 +10,8 @@ Eidos:
 SLiMgui work:
 	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 
-building on the command line for me:
-	g++ -O3 ./core/*.cpp ./eidos/*.cpp -I/opt/local/include -iquote./eidos -L/opt/local/lib -lgsl -lgslcblas -std=c++11 -o slim
+building on the command line:
+	g++ -O3 ./core/*.cpp ./eidos/*.cpp ./gsl/*/*.c -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/complex -std=c++11 -o slim
 
 look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
