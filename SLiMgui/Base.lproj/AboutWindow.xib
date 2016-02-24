@@ -9,6 +9,9 @@
             <connections>
                 <outlet property="aboutVersionTextField" destination="WB2-cU-hkd" id="CNZ-WA-EUh"/>
                 <outlet property="aboutWindow" destination="QvC-M9-y7g" id="7vI-I4-hc5"/>
+                <outlet property="benHallerLineTextField" destination="9KH-lz-tf6" id="XIG-vn-iuX"/>
+                <outlet property="licenseTextField" destination="Khq-in-4x8" id="jGW-BO-KlO"/>
+                <outlet property="messerLabLineTextField" destination="C4q-EC-cXM" id="aA6-UQ-o81"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>

@@ -24,6 +24,7 @@
 #import "EidosConsoleWindowController.h"
 #import "EidosConsoleWindowControllerDelegate.h"
 #import "EidosHelpController.h"
+#import "EidosCocoaExtra.h"
 
 #include "eidos_global.h"
 #include "eidos_test.h"
@@ -36,6 +37,9 @@
 	// About window outlets associated with EidosAboutWindow.xib
 	IBOutlet NSWindow *aboutWindow;
 	IBOutlet NSTextField *aboutVersionTextField;
+	IBOutlet NSTextField *messerLabLineTextField;
+	IBOutlet NSTextField *benHallerLineTextField;
+	IBOutlet NSTextField *licenseTextField;
 }
 @end
 
@@ -89,6 +93,12 @@
 	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
 	
 	[aboutVersionTextField setStringValue:versionString];
+	
+	// Fix up hyperlinks
+	[messerLabLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://messerlab.org/slim/"] onText:@"http://messerlab.org/slim/"];
+	[benHallerLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://benhaller.com/"] onText:@"http://benhaller.com/"];
+	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/licenses/"] onText:@"http://www.gnu.org/licenses/"];
+	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/software/gsl/"] onText:@"http://www.gnu.org/software/gsl/"];
 	
 	// Now that everything is set up, show the window
 	[aboutWindow makeKeyAndOrderFront:nil];

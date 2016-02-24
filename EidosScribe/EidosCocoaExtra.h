@@ -73,6 +73,12 @@ class EidosPropertySignature;
 @end
 
 
+@interface NSTextField (EidosAdditions)
+
+- (void)eidosSetHyperlink:(NSURL *)url onText:(NSString *)text;
+
+@end
+
 
 
 

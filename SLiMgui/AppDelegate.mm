@@ -22,6 +22,7 @@
 #import "SLiMWindowController.h"
 #import "EidosHelpController.h"
 #import "CocoaExtra.h"
+#import "EidosCocoaExtra.h"
 #import <WebKit/WebKit.h>
 
 
@@ -38,6 +39,22 @@ typedef enum SLiMLaunchAction
 	kLaunchNewScriptWindow,
 	kLaunchRunOpenPanel
 } SLiMLaunchAction;
+
+
+@interface AppDelegate () <NSApplicationDelegate>
+{
+	// About window cruft
+	IBOutlet NSWindow *aboutWindow;
+	IBOutlet NSTextField *aboutVersionTextField;
+	IBOutlet NSTextField *messerLabLineTextField;
+	IBOutlet NSTextField *benHallerLineTextField;
+	IBOutlet NSTextField *licenseTextField;
+	
+	// Help window cruft; kept for possible resurrection, see -showHelp:
+	//IBOutlet NSWindow *helpWindow;
+	//IBOutlet PDFView *helpPDFView;
+}
+@end
 
 
 @implementation AppDelegate
@@ -158,11 +175,11 @@ typedef enum SLiMLaunchAction
 	// Note that the aboutWindow and aboutWebView outlets do not get zeroed out when the about window closes; but we only use them here.
 	[aboutWindow retain];
 	
-	// And we need to make our WebView load our README.html file
-	NSString *readmeURL = [[[NSBundle mainBundle] URLForResource:@"README" withExtension:@"html"] absoluteString];
-	
-	[aboutWebView setShouldCloseWithWindow:YES];
-	[aboutWebView setMainFrameURL:readmeURL];
+//	// And we need to make our WebView load our README.html file
+//	NSString *readmeURL = [[[NSBundle mainBundle] URLForResource:@"README" withExtension:@"html"] absoluteString];
+//	
+//	[aboutWebView setShouldCloseWithWindow:YES];
+//	[aboutWebView setMainFrameURL:readmeURL];
 	
 	// Set our version number string
 	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
@@ -170,6 +187,12 @@ typedef enum SLiMLaunchAction
 	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
 	
 	[aboutVersionTextField setStringValue:versionString];
+	
+	// Fix up hyperlinks
+	[messerLabLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://messerlab.org/slim/"] onText:@"http://messerlab.org/slim/"];
+	[benHallerLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://benhaller.com/"] onText:@"http://benhaller.com/"];
+	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/licenses/"] onText:@"http://www.gnu.org/licenses/"];
+	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/software/gsl/"] onText:@"http://www.gnu.org/software/gsl/"];
 	
 	// Now that everything is set up, show the window
 	[aboutWindow makeKeyAndOrderFront:nil];

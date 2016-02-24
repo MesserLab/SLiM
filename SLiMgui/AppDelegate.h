@@ -37,14 +37,6 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 {
-	// About window cruft
-	IBOutlet NSWindow *aboutWindow;
-	IBOutlet WebView *aboutWebView;
-	IBOutlet NSTextField *aboutVersionTextField;
-	
-	// Help window cruft; kept for possible resurrection, see -showHelp:
-	//IBOutlet NSWindow *helpWindow;
-	//IBOutlet PDFView *helpPDFView;
 }
 
 - (IBAction)newDocument:(id)sender;

@@ -356,6 +356,37 @@
 @end
 
 
+@implementation NSTextField (EidosAdditions)
+
+- (void)eidosSetHyperlink:(NSURL *)url onText:(NSString *)text
+{
+	NSMutableAttributedString *attrString = [[self attributedStringValue] mutableCopy];
+	NSString *string = [attrString string];
+	NSRange range = [string rangeOfString:text];
+	
+	if (range.location != NSNotFound)
+	{
+		// Apple sez: both are needed, otherwise hyperlink won't accept mousedown
+		[self setAllowsEditingTextAttributes: YES];
+		[self setSelectable: YES];
+		
+		// Add the link attribute
+		[attrString beginEditing];
+		
+		[attrString addAttribute:NSLinkAttributeName value:[url absoluteString] range:range];																// link
+		[attrString addAttribute:NSForegroundColorAttributeName value:[NSColor colorWithCalibratedRed:0.0 green:0.0 blue:0.7 alpha:1.0] range:range];		// dark blue
+		[attrString addAttribute:NSUnderlineStyleAttributeName value:[NSNumber numberWithInt:NSUnderlineStyleSingle] range:range];							// underlined
+		
+		[attrString endEditing];
+		
+		[self setAttributedStringValue:attrString];
+	}
+	
+	[attrString release];
+}
+
+@end
+
 
 
 
