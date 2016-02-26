@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <limits>
 
 
 using std::string;
@@ -466,10 +467,14 @@ void RunEidosTests(void)
 	// operator +: raise on integer addition overflow for all code paths
 	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("5e18 + 5e18;", 5, "overflow with the binary");
 	EidosAssertScriptRaise("5e18 + c(0, 0, 5e18, 0);", 5, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + c(0, 0, 5e18, 0);", 17, "overflow with the binary");
+#else
+	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
+#endif
 	
 	// operator -
 	#pragma mark operator −
@@ -512,12 +517,14 @@ void RunEidosTests(void)
 	// operator -: raise on integer subtraction overflow for all code paths
 	EidosAssertScriptSuccess("9223372036854775807;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MAX)));
 	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
-	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0, "overflow with the unary");
 	EidosAssertScriptSuccess("-5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5000000000000000000LL)));
+#if EIDOS_HAS_OVERFLOW_BUILTINS
+	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-5e18 - 5e18;", 6, "overflow with the binary");
 	EidosAssertScriptRaise("-5e18 - c(0, 0, 5e18, 0);", 6, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - 5e18;", 18, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - c(0, 0, 5e18, 0);", 18, "overflow with the binary");
+#endif
 	
     // operator *
 	#pragma mark operator *
@@ -560,11 +567,13 @@ void RunEidosTests(void)
 	// operator *: raise on integer multiplication overflow for all code paths
 	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("5e18 * 2;", 5, "multiplication overflow");
 	EidosAssertScriptRaise("5e18 * c(0, 0, 2, 0);", 5, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * 5e18;", 14, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * c(0, 0, 5e18, 0);", 14, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) * c(0, 0, 2, 0);", 17, "multiplication overflow");
+#endif
 	
     // operator /
 	#pragma mark operator /
@@ -1694,9 +1703,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("cumProduct(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptRaise("cumProduct(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumProduct(c(-922337203685477581, 10));", 0, "multiplication overflow");
 	EidosAssertScriptRaise("cumProduct(c(922337203685477581, 10));", 0, "multiplication overflow");
+#endif
 	
 	// cumSum()
 	EidosAssertScriptSuccess("cumSum(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -1714,9 +1725,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("cumSum(float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector()));
 	EidosAssertScriptRaise("cumSum(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumSum(c(-9223372036854775807, -1, -1));", 0, "addition overflow");
 	EidosAssertScriptRaise("cumSum(c(9223372036854775807, 1, 1));", 0, "addition overflow");
+#endif
 	
 	// exp()
 	EidosAssertScriptSuccess("abs(exp(0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -1882,7 +1895,9 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("product(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("product(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
 	EidosAssertScriptSuccess("product(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3024)));
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptSuccess("product(c(200000000, 3000000000000, 1000));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(6e23)));
+#endif
 	EidosAssertScriptSuccess("product(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
 	EidosAssertScriptSuccess("product(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
 	EidosAssertScriptSuccess("product(c(-2.5, 7.5, -18.5, 12.5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-2.5*7.5*-18.5*12.5)));
@@ -1944,7 +1959,9 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("sum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
 	EidosAssertScriptSuccess("sum(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
 	EidosAssertScriptSuccess("sum(c(200000000, 3000000000000));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3000200000000)));
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptSuccess("sum(rep(3000000000000000000, 100));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3e20)));
+#endif
 	EidosAssertScriptSuccess("sum(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
 	EidosAssertScriptSuccess("sum(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
 	EidosAssertScriptSuccess("sum(c(-2.5, 7.5, -18.5, 12.5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-1)));

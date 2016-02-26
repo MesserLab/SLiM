@@ -15,6 +15,8 @@
 #include "eidos_ast_node.h"
 
 #include "errno.h"
+#include "string.h"
+#include <algorithm>
 
 
 using std::endl;

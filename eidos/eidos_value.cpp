@@ -22,6 +22,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
+#include <algorithm>
 #include "math.h"
 #include "errno.h"
 
@@ -1251,7 +1252,7 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 			// Customize our output a bit to look like Eidos, not C++
 			if (isinf(value))
 			{
-				if (signbit(value))
+				if (std::signbit(value))
 					p_ostream << gEidosStr_MINUS_INF;
 				else
 					p_ostream << gEidosStr_INF;
@@ -1289,7 +1290,7 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blam
 	// Customize our output a bit to look like Eidos, not C++
 	if (isinf(value))
 	{
-		if (signbit(value))
+		if (std::signbit(value))
 			ss << gEidosStr_MINUS_INF;
 		else
 			ss << gEidosStr_INF;
@@ -1388,7 +1389,7 @@ void EidosValue_Float_singleton::Print(std::ostream &p_ostream) const
 	// Customize our output a bit to look like Eidos, not C++
 	if (isinf(value_))
 	{
-		if (signbit(value_))
+		if (std::signbit(value_))
 			p_ostream << gEidosStr_MINUS_INF;
 		else
 			p_ostream << gEidosStr_INF;
@@ -1421,7 +1422,7 @@ std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, EidosToken *p_b
 	// Customize our output a bit to look like Eidos, not C++
 	if (isinf(value_))
 	{
-		if (signbit(value_))
+		if (std::signbit(value_))
 			ss << gEidosStr_MINUS_INF;
 		else
 			ss << gEidosStr_INF;

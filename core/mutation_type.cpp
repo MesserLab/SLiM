@@ -18,15 +18,16 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <iostream>
-#include <sstream>
-
 #include "mutation_type.h"
 #include "eidos_rng.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "slim_eidos_block.h"
+
+#include <iostream>
+#include <sstream>
+#include <algorithm>
 
 
 using std::endl;

@@ -24,6 +24,8 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
+#include <algorithm>
+
 
 bool GenomicElement::s_log_copy_and_assign_ = true;
 

@@ -30,8 +30,8 @@
 #define __SLiM__substitution__
 
 
-#import "mutation.h"
-#import "chromosome.h"
+#include "mutation.h"
+#include "chromosome.h"
 #include "eidos_value.h"
 
 

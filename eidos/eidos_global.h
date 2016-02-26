@@ -133,6 +133,64 @@ std::string EidosResolvedPath(const std::string p_path);
 
 // *******************************************************************************************************************
 //
+//	Overflow-detecting integer operations
+//
+
+// Clang and GCC 5.0 support a suite a builtin functions that perform integer operations with detection of overflow.
+//
+//     http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
+//     https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
+//
+// We want to use those builtins when possible, so that Eidos integer arithmetic is robust against overflow bugs.
+// However, since GCC pre-5.0 doesn't have these builtins, and other compilers probably don't either, we have to
+// do some messy version checking and such.
+
+#if (defined(__clang__) && defined(__has_builtin))
+
+#if __has_builtin(__builtin_saddll_overflow)
+// Clang with support for overflow built-ins (if one is defined we assume all of them are)
+#define Eidos_saddll_overflow(a, b, c)	__builtin_saddll_overflow((a), (b), (c))
+#define Eidos_ssubll_overflow(a, b, c)	__builtin_ssubll_overflow((a), (b), (c))
+#define Eidos_smulll_overflow(a, b, c)	__builtin_smulll_overflow((a), (b), (c))
+#endif
+
+#elif defined(__GNUC__)
+
+#if (__GNUC__ >= 5)
+// GCC 5.0 or later; overflow built-ins supported
+#define Eidos_saddll_overflow(a, b, c)	__builtin_saddll_overflow((a), (b), (c))
+#define Eidos_ssubll_overflow(a, b, c)	__builtin_ssubll_overflow((a), (b), (c))
+#define Eidos_smulll_overflow(a, b, c)	__builtin_smulll_overflow((a), (b), (c))
+#endif
+
+#endif
+
+// Uncomment these to test handling of missing built-ins on a system that does have the built-ins; with these
+// uncommented, the Eidos test suite should emit a warning about missing integer overflow checks, but all tests
+// that are run should pass.
+//#undef Eidos_saddll_overflow
+//#undef Eidos_ssubll_overflow
+//#undef Eidos_smulll_overflow
+
+
+#ifdef Eidos_saddll_overflow
+
+#define EIDOS_HAS_OVERFLOW_BUILTINS		1
+
+#else
+
+// Define the macros to just use simple operators, in all other cases.  Note that this means overflows are not
+// detected!  The Eidos test suite will emit a warning in this case, telling the user to upgrade their compiler.
+#define Eidos_saddll_overflow(a, b, c)	(*(c)=(a)+(b), false)
+#define Eidos_ssubll_overflow(a, b, c)	(*(c)=(a)-(b), false)
+#define Eidos_smulll_overflow(a, b, c)	(*(c)=(a)*(b), false)
+#define EIDOS_HAS_OVERFLOW_BUILTINS		0
+
+#endif
+
+
+// *******************************************************************************************************************
+//
 //	Global strings & IDs
 //
 

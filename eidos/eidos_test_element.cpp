@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <algorithm>
 
 
 using std::string;

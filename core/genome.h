@@ -28,11 +28,12 @@
 #define __SLiM__genome__
 
 
-#include <vector>
-
 #include "mutation.h"
 #include "slim_global.h"
 #include "eidos_value.h"
+
+#include <vector>
+#include <string.h>
 
 
 extern EidosObjectClass *gSLiM_Genome_Class;
@@ -95,7 +96,7 @@ public:
 		return (mutations_ == nullptr);
 	}
 	
-	GenomeType GenomeType(void) const								// returns the type of the genome: automosomal, X chromosome, or Y chromosome
+	GenomeType Type(void) const										// returns the type of the genome: automosomal, X chromosome, or Y chromosome
 	{
 		return genome_type_;
 	}

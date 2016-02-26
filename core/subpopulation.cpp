@@ -18,15 +18,16 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <iostream>
-#include <assert.h>
-
 #include "subpopulation.h"
 #include "slim_sim.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+
+#include <iostream>
+#include <algorithm>
+#include <assert.h>
 
 
 using std::string;
@@ -489,7 +490,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 		Mutation **genome_iter = genome->begin_pointer();
 		Mutation **genome_max = genome->end_pointer();
 		
-		if (genome->GenomeType() == GenomeType::kXChromosome)
+		if (genome->Type() == GenomeType::kXChromosome)
 		{
 			// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
 			while (genome_iter != genome_max)
@@ -760,7 +761,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 		Mutation **genome_iter = genome->begin_pointer();
 		Mutation **genome_max = genome->end_pointer();
 		
-		if (genome->GenomeType() == GenomeType::kXChromosome)
+		if (genome->Type() == GenomeType::kXChromosome)
 		{
 			// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
 			while (genome_iter != genome_max)
@@ -1015,7 +1016,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 		Mutation **genome_iter = genome->begin_pointer();
 		Mutation **genome_max = genome->end_pointer();
 		
-		if (genome->GenomeType() == GenomeType::kXChromosome)
+		if (genome->Type() == GenomeType::kXChromosome)
 		{
 			// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
 			while (genome_iter != genome_max)
@@ -1894,7 +1895,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			if (p_method_id == gID_outputSample)
 				population_.PrintSample(*this, sample_size, requested_sex);
 			else
-				population_.PrintSample_ms(*this, sample_size, sim.Chromosome(), requested_sex);
+				population_.PrintSample_ms(*this, sample_size, sim.TheChromosome(), requested_sex);
 			
 			return gStaticEidosValueNULLInvisible;
 		}

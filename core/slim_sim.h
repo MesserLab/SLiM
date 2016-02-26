@@ -150,8 +150,8 @@ public:
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
 	inline slim_generation_t Generation(void) const									{ return generation_; }
 	inline SLiMGenerationStage GenerationStage(void) const							{ return generation_stage_; }
-	inline Chromosome &Chromosome(void)												{ return chromosome_; }
-	inline Population &Population(void)												{ return population_; }
+	inline Chromosome &TheChromosome(void)											{ return chromosome_; }
+	inline Population &ThePopulation(void)											{ return population_; }
 	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }
 	inline const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void) { return genomic_element_types_; }
 	

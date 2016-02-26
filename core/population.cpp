@@ -22,6 +22,8 @@
 
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
+#include <cmath>
 
 #include "slim_sim.h"
 #include "slim_global.h"
@@ -411,7 +413,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		{
 			double x = current_weights[weight_index];
 			
-			if (!isfinite(x))
+			if (!std::isfinite(x))
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 			if (x < 0.0)
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
@@ -1278,11 +1280,11 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
 	
 	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
-	GenomeType child_genome_type = child_genome.GenomeType();
+	GenomeType child_genome_type = child_genome.Type();
 	Genome *parent_genome_1 = &(p_source_subpop->parent_genomes_[p_parent1_genome_index]);
-	GenomeType parent1_genome_type = parent_genome_1->GenomeType();
+	GenomeType parent1_genome_type = parent_genome_1->Type();
 	Genome *parent_genome_2 = &(p_source_subpop->parent_genomes_[p_parent2_genome_index]);
-	GenomeType parent2_genome_type = parent_genome_2->GenomeType();
+	GenomeType parent2_genome_type = parent_genome_2->Type();
 	
 	if (child_genome_type == GenomeType::kAutosome)
 	{
@@ -1442,7 +1444,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
 			
 			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
-			sort(all_breakpoints.begin(), all_breakpoints.end());
+			std::sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			
 			// do the crossover
@@ -1504,7 +1506,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		// create vector with uniqued recombination breakpoints
 		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
 		all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
-		sort(all_breakpoints.begin(), all_breakpoints.end());
+		std::sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		
 		// do the crossover
@@ -1610,9 +1612,9 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 #endif
 	
 	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
-	GenomeType child_genome_type = child_genome.GenomeType();
+	GenomeType child_genome_type = child_genome.Type();
 	Genome *parent_genome = &(p_source_subpop->parent_genomes_[p_parent_genome_index]);
-	GenomeType parent_genome_type = parent_genome->GenomeType();
+	GenomeType parent_genome_type = parent_genome->Type();
 	
 	if (child_genome_type != parent_genome_type)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (type != type)." << eidos_terminate();
@@ -2248,7 +2250,7 @@ void Population::PrintAll(std::ostream &p_out) const
 		{
 			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
 			
-			p_out << "p" << subpop_id << ":" << i << " " << genome.GenomeType();
+			p_out << "p" << subpop_id << ":" << i << " " << genome.Type();
 			
 			if (genome.IsNull())
 			{
@@ -2310,7 +2312,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.GenomeType();
+		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.Type();
 		
 		if (genome.IsNull())
 		{

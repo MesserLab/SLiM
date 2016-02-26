@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <pwd.h>
 #include <unistd.h>
+#include "string.h"
 
 
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;

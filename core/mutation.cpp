@@ -22,6 +22,8 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
+#include <algorithm>
+
 
 // All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()
 EidosObjectPool *gSLiM_Mutation_Pool = nullptr;

@@ -24,6 +24,8 @@
 #include "eidos_property_signature.h"
 #include "slim_sim.h"	// we need to register mutations in the simulation...
 
+#include <algorithm>
+
 
 #ifdef DEBUG
 bool Genome::s_log_copy_and_assign_ = true;
@@ -391,7 +393,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
-			if (position > sim->Chromosome().last_position_)
+			if (position > sim->TheChromosome().last_position_)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			slim_generation_t origin_generation;
@@ -405,7 +407,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if (!arg3_value)
 			{
-				Population &pop = sim->Population();
+				Population &pop = sim->ThePopulation();
 				
 				origin_subpop_id = -1;
 				
@@ -426,7 +428,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
-			sim->Population().mutation_registry_.emplace_back(mutation);
+			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
 		}
@@ -472,7 +474,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
-			if (position > sim->Chromosome().last_position_)
+			if (position > sim->TheChromosome().last_position_)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			slim_generation_t origin_generation;
@@ -486,7 +488,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if (!arg4_value)
 			{
-				Population &pop = sim->Population();
+				Population &pop = sim->ThePopulation();
 				
 				origin_subpop_id = -1;
 				
@@ -506,7 +508,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 			
 			insert_sorted_mutation(mutation);
-			sim->Population().mutation_registry_.emplace_back(mutation);
+			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
 		}

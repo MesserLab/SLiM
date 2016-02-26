@@ -19,12 +19,13 @@
 
 
 #include "genomic_element_type.h"
-
 #include "slim_global.h"
 #include "slim_sim.h"
 #include "mutation_type.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+
+#include <algorithm>
 
 
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :

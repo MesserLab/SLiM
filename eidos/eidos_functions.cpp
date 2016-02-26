@@ -34,6 +34,8 @@
 #include <sys/types.h>
 #include <fstream>
 #include <stdexcept>
+#include <algorithm>
+#include <cmath>
 
 
 using std::string;
@@ -557,11 +559,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(llabs(arg0_value->IntAtIndex(0, nullptr)));
 					
 					int64_t operand = arg0_value->IntAtIndex(0, nullptr);
-					int64_t abs_result = llabs(operand);
 					
-					// llabs() man page: "The absolute value of the most negative integer remains negative."
-					if (abs_result < 0)
+					// the absolute value of INT64_MIN cannot be represented in int64_t
+					if (operand == INT64_MIN)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+					
+					int64_t abs_result = llabs(operand);
 					
 					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(abs_result));
 				}
@@ -578,11 +581,12 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						//int_result->PushInt(llabs(int_vec[value_index]));
 						
 						int64_t operand = int_vec[value_index];
-						int64_t abs_result = llabs(operand);
 						
-						// llabs() man page: "The absolute value of the most negative integer remains negative."
-						if (abs_result < 0)
+						// the absolute value of INT64_MIN cannot be represented in int64_t
+						if (operand == INT64_MIN)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+						
+						int64_t abs_result = llabs(operand);
 						
 						int_result->PushInt(abs_result);
 					}
@@ -787,10 +791,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					{
 						int64_t operand = int_vec[value_index];
 						
-						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
-						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
-						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-						bool overflow = __builtin_smulll_overflow(product, operand, &product);
+						bool overflow = Eidos_smulll_overflow(product, operand, &product);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer multiplication overflow in function cumProduct()." << eidos_terminate(nullptr);
@@ -851,10 +852,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					{
 						int64_t operand = int_vec[value_index];
 						
-						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
-						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
-						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-						bool overflow = __builtin_saddll_overflow(sum, operand, &sum);
+						bool overflow = Eidos_saddll_overflow(sum, operand, &sum);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer addition overflow in function cumSum()." << eidos_terminate(nullptr);
@@ -1108,7 +1106,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			
 			if (arg0_count == 1)
 			{
-				result_SP = (isfinite(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				result_SP = (std::isfinite(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -1119,7 +1117,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				result_SP = EidosValue_SP(logical_result);
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					logical_result_vec.emplace_back(isfinite(float_vec[value_index]));
+					logical_result_vec.emplace_back(std::isfinite(float_vec[value_index]));
 			}
 			break;
 		}
@@ -1283,10 +1281,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						int64_t old_product = product;
 						int64_t temp = int_vec[value_index];
 						
-						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
-						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
-						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-						bool overflow = __builtin_smulll_overflow(old_product, temp, &product);
+						bool overflow = Eidos_smulll_overflow(old_product, temp, &product);
 						
 						// switch to float computation on overflow, and accumulate in the float product just before overflow
 						if (overflow)
@@ -1359,10 +1354,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						int64_t old_sum = sum;
 						int64_t temp = int_vec[value_index];
 						
-						// Overflow detection is provided by this built-in function, supported by both GCC and clang.
-						// see http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins and
-						// see https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-						bool overflow = __builtin_saddll_overflow(old_sum, temp, &sum);
+						bool overflow = Eidos_saddll_overflow(old_sum, temp, &sum);
 						
 						// switch to float computation on overflow, and accumulate in the float sum just before overflow
 						if (overflow)

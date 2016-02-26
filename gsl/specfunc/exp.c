@@ -214,7 +214,9 @@ int gsl_sf_exp_mult_e10_e(const double x, const double y, gsl_sf_result_e10 * re
       const int    N   = (int) floor(l10_val);
       const double arg_val = (l10_val - N) * M_LN10;
 #pragma GCC diagnostic push
+#if (GNU_C >= 5)
 #pragma GCC diagnostic ignored "-Wabsolute-value"
+#endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wabsolute-value"
 		const double arg_err = 2.0 * GSL_DBL_EPSILON * (fabs(x) + fabs(ly) + M_LN10*fabs(N));

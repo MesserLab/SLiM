@@ -30,14 +30,15 @@
 #define __SLiM__subpopulation__
 
 
-#include <vector>
-
 #include "slim_global.h"
 #include "eidos_rng.h"
 #include "genome.h"
 #include "chromosome.h"
 #include "eidos_value.h"
 #include "slim_eidos_block.h"
+
+#include <vector>
+#include "limits.h"
 
 
 class Population;

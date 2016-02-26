@@ -19,14 +19,14 @@
 
 
 #include "chromosome.h"
-
-#include <iostream>
-#include "math.h"
-
 #include "eidos_rng.h"
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+
+#include <iostream>
+#include <algorithm>
+#include "math.h"
 
 
 Chromosome::Chromosome(void) : lookup_mutation_(nullptr), lookup_recombination_(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0_(0.0), probability_both_0_OR_mut_0_break_non0_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)

@@ -22,6 +22,8 @@
 #include "eidos_value.h"
 #include "eidos_global.h"
 #include "eidos_token.h"
+
+#include <algorithm>
 #include "math.h"
 
 

@@ -1612,7 +1612,9 @@ int gsl_sf_choose_e(unsigned int n, unsigned int m, gsl_sf_result * result)
         }
         result->val = prod;
 #pragma GCC diagnostic push
+#if (GNU_C >= 5)
 #pragma GCC diagnostic ignored "-Wabsolute-value"
+#endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wabsolute-value"
 		  result->err = 2.0 * GSL_DBL_EPSILON * prod * fabs(n-m);

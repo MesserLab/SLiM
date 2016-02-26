@@ -24,6 +24,7 @@
 #include "eidos_property_signature.h"
 
 #include <iostream>
+#include <algorithm>
 
 
 #ifdef SLIMGUI

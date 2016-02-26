@@ -19,16 +19,16 @@
 
 
 #include "slim_sim.h"
-
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-
 #include "eidos_test.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
+#include <algorithm>
 
 
 using std::multimap;
@@ -339,11 +339,11 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter 
 			if ((sub.compare(gStr_A) == 0) || (sub.compare(gStr_X) == 0) || (sub.compare(gStr_Y) == 0))
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
-				if ((sub.compare(gStr_A) == 0) && genome.GenomeType() != GenomeType::kAutosome)
+				if ((sub.compare(gStr_A) == 0) && genome.Type() != GenomeType::kAutosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as A (autosome), but the instantiated genome does not match." << eidos_terminate();
-				if ((sub.compare(gStr_X) == 0) && genome.GenomeType() != GenomeType::kXChromosome)
+				if ((sub.compare(gStr_X) == 0) && genome.Type() != GenomeType::kXChromosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << eidos_terminate();
-				if ((sub.compare(gStr_Y) == 0) && genome.GenomeType() != GenomeType::kYChromosome)
+				if ((sub.compare(gStr_Y) == 0) && genome.Type() != GenomeType::kYChromosome)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << eidos_terminate();
 				
 				if (iss >> sub)
@@ -1649,9 +1649,9 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				if (sim)
 				{
-					auto found_subpop_pair = sim->Population().find(source_subpop_id);
+					auto found_subpop_pair = sim->ThePopulation().find(source_subpop_id);
 					
-					if (found_subpop_pair != sim->Population().end())
+					if (found_subpop_pair != sim->ThePopulation().end())
 						source_subpop = found_subpop_pair->second;
 				}
 				
