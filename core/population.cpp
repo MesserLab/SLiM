@@ -394,7 +394,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			if (redraw_mating)
 			{
 				if (weights_modified)
-					delete current_weights;
+					free(current_weights);
 				
 				return -1;
 			}
@@ -461,7 +461,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				drawn_parent = weights_length - 1;
 		}
 		
-		delete current_weights;
+		free(current_weights);
 		
 		return drawn_parent;
 	}
