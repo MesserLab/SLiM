@@ -348,6 +348,8 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 					// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
 					//if (!registry.contains_mutation(new_mutation))
 					//	registry.emplace_back(new_mutation);
+					
+					// Similarly, no need to check and set pure_neutral_; the mutation is already in the system
 				}
 			}
 			
@@ -430,6 +432,10 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			insert_sorted_mutation(mutation);
 			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
 			
+			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+			if (selection_coeff != 0.0)
+				sim->pure_neutral_ = false;
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
 		}
 			
@@ -509,6 +515,10 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			insert_sorted_mutation(mutation);
 			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
+			
+			// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
+			if (selection_coeff != 0.0)
+				sim->pure_neutral_ = false;
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
 		}

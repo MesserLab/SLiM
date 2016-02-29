@@ -264,6 +264,15 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			
 			mutation_types.emplace_back(mutation_type_ptr);
 			mutation_fractions.emplace_back(proportion);
+			
+			// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
+			if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
+			{
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				
+				if (sim)
+					sim->pure_neutral_ = false;
+			}
 		}
 		
 		// Everything seems to be in order, so replace our mutation info with the new info

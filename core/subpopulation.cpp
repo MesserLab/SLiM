@@ -261,6 +261,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	cached_fitness_size_ = 0;	// while we're refilling, the fitness cache is invalid
 	
+	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
+	bool pure_neutral = (!fitness_callbacks_exist && population_.sim_.pure_neutral_);
+	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
 	{
@@ -276,7 +279,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		{
 			double fitness;
 			
-			if (!fitness_callbacks_exist)
+			if (pure_neutral)
+				fitness = 1.0;
+			else if (!fitness_callbacks_exist)
 				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * i, 2 * i + 1);
 			else if (single_fitness_callback)
 				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * i, 2 * i + 1, p_fitness_callbacks, single_callback_mut_type);
@@ -301,7 +306,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			slim_popsize_t individual_index = (i + parent_first_male_index_);
 			double fitness;
 			
-			if (!fitness_callbacks_exist)
+			if (pure_neutral)
+				fitness = 1.0;
+			else if (!fitness_callbacks_exist)
 				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * individual_index, 2 * individual_index + 1);
 			else if (single_fitness_callback)
 				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * individual_index, 2 * individual_index + 1, p_fitness_callbacks, single_callback_mut_type);
@@ -329,7 +336,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		{
 			double fitness;
 			
-			if (!fitness_callbacks_exist)
+			if (pure_neutral)
+				fitness = 1.0;
+			else if (!fitness_callbacks_exist)
 				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * i, 2 * i + 1);
 			else if (single_fitness_callback)
 				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * i, 2 * i + 1, p_fitness_callbacks, single_callback_mut_type);

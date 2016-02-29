@@ -24,6 +24,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "slim_eidos_block.h"
+#include "slim_sim.h"	// we need to tell the simulation if a DFE is set to non-neutral...
 
 #include <iostream>
 #include <sstream>
@@ -278,6 +279,15 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 		// Everything seems to be in order, so replace our distribution info with the new info
 		dfe_type_ = dfe_type;
 		dfe_parameters_ = dfe_parameters;
+		
+		// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_
+		if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
+		{
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (sim)
+				sim->pure_neutral_ = false;
+		}
 		
 		return gStaticEidosValueNULLInvisible;
 	}

@@ -285,6 +285,10 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter 
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations.insert(std::pair<int64_t,Mutation*>(mutation_id, new_mutation));
 		population_.mutation_registry_.emplace_back(new_mutation);
+		
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
+		if (selection_coeff != 0.0)
+			pure_neutral_ = false;
 	}
 	
 	// If there is an Individuals section (added in SLiM 2.0), we skip it; we don't need any of the information that it gives, it is mainly for human readability
@@ -905,6 +909,15 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			
 			mutation_types.emplace_back(mutation_type_ptr);
 			mutation_fractions.emplace_back(proportion);
+			
+			// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
+			if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
+			{
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				
+				if (sim)
+					sim->pure_neutral_ = false;
+			}
 		}
 		
 		GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);

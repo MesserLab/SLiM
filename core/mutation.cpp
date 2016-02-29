@@ -21,6 +21,7 @@
 #include "mutation.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "slim_sim.h"	// we need to tell the simulation if a selection coefficient is set to non-neutral...
 
 #include <algorithm>
 
@@ -138,6 +139,17 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
 		// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
 		// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
+		
+		// since this selection coefficient came from the user, check and set pure_neutral_
+		if (selection_coeff_ != 0.0)
+		{
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			sim->pure_neutral_ = false;
+		}
 		
 		return gStaticEidosValueNULLInvisible;
 	}

@@ -1501,6 +1501,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			mutation_registry_.emplace_back(new_mutation);
+			
+			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
 		}
 		
 		// create vector with uniqued recombination breakpoints
@@ -1655,6 +1657,8 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			mutation_registry_.emplace_back(new_mutation);
+			
+			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
 		}
 		
 		// interleave the parental genome with the new mutations
