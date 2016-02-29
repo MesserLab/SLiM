@@ -88,12 +88,6 @@ private:
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	
-	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
-	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
-	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
-	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.
-	bool pure_neutral_ = true;														// optimization flag
-	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
@@ -129,6 +123,12 @@ private:
 	slim_usertag_t tag_value_;														// a user-defined tag value
 	
 public:
+	
+	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
+	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
+	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
+	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.
+	bool pure_neutral_ = true;														// optimization flag
 	
 	// warning flags; used to issue warnings only once per run of the simulation
 	bool warned_early_mutation_add_ = false;
