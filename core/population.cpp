@@ -2098,13 +2098,40 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		Mutation **registry_iter = mutation_registry_.begin_pointer();
 		Mutation **registry_iter_end = mutation_registry_.end_pointer();
 		
-		for (; registry_iter != registry_iter_end; ++registry_iter)
-		{
-			(*registry_iter)->reference_count_ = 0;
 #ifdef SLIMGUI
-			(*registry_iter)->gui_reference_count_ = 0;
-#endif
+		while (registry_iter != registry_iter_end)
+		{
+			const Mutation *mutation = *(registry_iter++);
+			
+			mutation->reference_count_ = 0;
+			mutation->gui_reference_count_ = 0;
 		}
+#else
+		// Do 16 reps
+		while (registry_iter + 16 <= registry_iter_end)
+		{
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+			(*registry_iter++)->reference_count_ = 0;
+		}
+		
+		// Finish off
+		while (registry_iter != registry_iter_end)
+			(*registry_iter++)->reference_count_ = 0;
+#endif
 		
 		// then increment the refcounts through all pointers to Mutation in all genomes
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
@@ -2130,9 +2157,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 						Mutation **genome_iter = genome.begin_pointer();
 						Mutation **genome_end_iter = genome.end_pointer();
 						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
+						while (genome_iter != genome_end_iter)
 						{
-							const Mutation *mutation = *genome_iter;
+							const Mutation *mutation = *(genome_iter++);
 							
 							(mutation->reference_count_)++;
 							(mutation->gui_reference_count_)++;
@@ -2155,8 +2182,30 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 						Mutation **genome_iter = genome.begin_pointer();
 						Mutation **genome_end_iter = genome.end_pointer();
 						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
-							++((*genome_iter)->reference_count_);
+						// Do 16 reps
+						while (genome_iter + 16 <= genome_end_iter)
+						{
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+							((*genome_iter++)->reference_count_)++;
+						}
+						
+						// Finish off
+						while (genome_iter != genome_end_iter)
+							((*genome_iter++)->reference_count_)++;
 						
 						total_genome_count++;	// count only non-null genomes to determine fixation
 					}
