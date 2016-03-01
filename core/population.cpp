@@ -1255,6 +1255,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 	}
 }
 
+// This controls the activation of optimization blocks that do binary searches positions within genomes, rather than linear searches,
+// in Population::DoCrossoverMutation() below.  The behavior ought to be exactly the same with or without the optimization, and it seems
+// to be a fairly big performance win for models with a lot of circulating mutations (long chromosome and/or high mutation rate), so it
+// is recommended that this optimization be left on.
+#define SLIM_USE_BINARY_SEARCHES	1
+
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
@@ -1464,6 +1470,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				slim_position_t breakpoint = all_breakpoints[break_index];
 				
 				// while there are still old mutations in the parent before the current breakpoint...
+				
+#if !SLIM_USE_BINARY_SEARCHES
+#warning slow code path enabled!
+				// This does the same thing as the code below, but less efficiently
 				while (parent_iter != parent_iter_max)
 				{
 					Mutation *current_mutation = *parent_iter;
@@ -1476,6 +1486,52 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					
 					parent_iter++;
 				}
+#else
+//#warning test code path enabled!
+//				// FOR TESTING THE BINARY SEARCH: enable this block and the block below
+//				Mutation **test_iter = parent_iter;
+//				
+//				while (test_iter != parent_iter_max)
+//				{
+//					Mutation *current_mutation = *test_iter;
+//					
+//					if (current_mutation->position_ >= breakpoint)
+//						break;
+//					
+//					test_iter++;
+//				}
+//				
+//				long correct_copy_count = test_iter - parent_iter;
+				
+				// first we search for the first iterator position at or after the breakpoint, scanning by binary search
+				// thanks to http://stackoverflow.com/questions/6553970/find-the-first-element-in-an-array-that-is-greater-than-the-target
+				long low = 0, high = parent_iter_max - parent_iter;	// we set high one *beyond* the last valid position!
+				
+				while (low != high)
+				{
+					long mid = ((low + high) >> 1);	// if high == low + 1, then mid will be set to low, so we never test the last position!
+					slim_position_t skip_pos = (*(parent_iter + mid))->position_;
+					
+					if (skip_pos < breakpoint)	// conceptually, target is breakpoint - 0.5, and we want (skip_pos <= breakpoint - 0.5)
+						low = mid + 1;
+					else
+						high = mid;
+				}
+				
+				// Now low and high both point to the first element at or after the breakpoint.
+				long copy_count = low;
+				
+//#warning test code path enabled!
+//				// FOR TESTING THE BINARY SEARCH: set a breakpoint on the assignment here
+//				if (copy_count != correct_copy_count)
+//					copy_count = correct_copy_count;
+				
+				child_genome.emplace_back_bulk(parent_iter, copy_count);
+				//std::cout << "Copied " << copy_count << " mutation pointers" << std::endl;
+				
+				// and then we move forward
+				parent_iter += copy_count;
+#endif
 				
 				// we have reached the breakpoint, so swap parents
 				parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
@@ -1483,8 +1539,28 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
 				
 				// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+#if !SLIM_USE_BINARY_SEARCHES
+#warning slow code path enabled!
 				while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
 					parent_iter++;
+#else
+				// another binary search; see comments above
+				low = 0, high = parent_iter_max - parent_iter;
+				
+				while (low != high)
+				{
+					long mid = ((low + high) >> 1);
+					slim_position_t skip_pos = (*(parent_iter + mid))->position_;
+					
+					if (skip_pos < breakpoint)
+						low = mid + 1;
+					else
+						high = mid;
+				}
+				
+				parent_iter += low;
+				//std::cout << "Skipped " << low << " mutation pointers" << std::endl;
+#endif
 			}
 		}
 	}
@@ -1554,6 +1630,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			while ((parent_iter_pos < breakpoint) || (mutation_iter_pos < breakpoint))
 			{
 				// while an old mutation in the parent is before the breakpoint and before the next new mutation...
+				
+#if !SLIM_USE_BINARY_SEARCHES
+#warning slow code path enabled!
+				// This does the same thing as the code below, but less efficiently
 				while (parent_iter_pos < breakpoint && parent_iter_pos <= mutation_iter_pos)
 				{
 					// add the mutation; we know it is not already present
@@ -1568,6 +1648,72 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 					}
 				}
+#else
+//#warning test code path enabled!
+//				// FOR TESTING THE BINARY SEARCH: enable this block and the block below
+//				Mutation **test_iter = parent_iter;
+//				Mutation *test_iter_mutation = parent_iter_mutation;
+//				slim_position_t test_iter_pos = parent_iter_pos;
+//				
+//				while (test_iter_pos < breakpoint && test_iter_pos <= mutation_iter_pos)
+//				{
+//					// add the mutation; we know it is not already present
+//					test_iter++;
+//					
+//					if (test_iter != parent_iter_max) {
+//						test_iter_mutation = *test_iter;
+//						test_iter_pos = test_iter_mutation->position_;
+//					} else {
+//						test_iter_mutation = nullptr;
+//						test_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+//					}
+//				}
+//				
+//				long correct_copy_count = test_iter - parent_iter;
+				
+				// first we search for the first iterator position at or after the breakpoint AND after the next mutation, scanning by binary search
+				// thanks to http://stackoverflow.com/questions/6553970/find-the-first-element-in-an-array-that-is-greater-than-the-target
+				long low = 0, high = parent_iter_max - parent_iter;	// we set high one *beyond* the last valid position!
+				
+				while (low != high)
+				{
+					long mid = ((low + high) >> 1);	// if high == low + 1, then mid will be set to low, so we never test the last position!
+					slim_position_t skip_pos = (*(parent_iter + mid))->position_;
+					
+					// conceptually, target is breakpoint - 0.5, and we want (skip_pos <= breakpoint - 0.5), which is (skip_pos < breakpoint)
+					// conceptually, target is mutation_iter_pos + 0.5, and we want (skip_pos <= mutation_iter_pos + 0.5), which is (skip_pos <= mutation_iter_pos)
+					if ((skip_pos < breakpoint) && (skip_pos <= mutation_iter_pos))
+						low = mid + 1;
+					else
+						high = mid;
+				}
+				
+				// Now low and high both point to the first element at or after the breakpoint.
+				long copy_count = low;
+				
+				child_genome.emplace_back_bulk(parent_iter, copy_count);
+				//std::cout << "Copied " << copy_count << " mutation pointers" << std::endl;
+				
+				// and then we move forward and update the position-dependent state
+				parent_iter += copy_count;
+				
+				if (parent_iter != parent_iter_max) {
+					parent_iter_mutation = *parent_iter;
+					parent_iter_pos = parent_iter_mutation->position_;
+				} else {
+					parent_iter_mutation = nullptr;
+					parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+				}
+				
+//#warning test code path enabled!
+//				// FOR TESTING THE BINARY SEARCH: set a breakpoint on the assignment here
+//				if (copy_count != correct_copy_count)
+//					copy_count = correct_copy_count;
+//				if (parent_iter_mutation != test_iter_mutation)
+//					parent_iter_mutation = test_iter_mutation;
+//				if (parent_iter_pos != test_iter_pos)
+//					parent_iter_pos = test_iter_pos;
+#endif
 				
 				// while a new mutation is before the breakpoint and before the next old mutation in the parent...
 				while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
@@ -1599,8 +1745,28 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
 			
 			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+#if !SLIM_USE_BINARY_SEARCHES
+#warning slow code path enabled!
 			while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
 				parent_iter++;
+#else
+			// another binary search; see comments above
+			long low = 0, high = parent_iter_max - parent_iter;
+			
+			while (low != high)
+			{
+				long mid = ((low + high) >> 1);
+				slim_position_t skip_pos = (*(parent_iter + mid))->position_;
+				
+				if (skip_pos < breakpoint)
+					low = mid + 1;
+				else
+					high = mid;
+			}
+			
+			parent_iter += low;
+			//std::cout << "Skipped " << low << " mutation pointers" << std::endl;
+#endif
 		}
 	}
 }

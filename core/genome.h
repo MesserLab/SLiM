@@ -220,6 +220,58 @@ public:
 		++mutation_count_;
 	}
 	
+	inline void emplace_back_bulk(Mutation **p_mutation_ptr, long p_copy_count)
+	{
+#ifdef DEBUG
+		if (mutations_ == nullptr)
+			NullGenomeAccessError();
+#endif
+		if (mutation_count_ + p_copy_count > mutation_capacity_)
+		{
+			// See emplace_back for comments on our capacity policy
+			if (mutations_ == mutations_buffer_)
+			{
+				// We're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  We might try jumping by
+				// more than a factor of two, to avoid repeated reallocs; in practice, that is not a win.  The large majority of SLiM's
+				// memory usage in typical simulations comes from these arrays of pointers kept by Genome, so making them larger
+				// than necessary can massively balloon SLiM's memory usage for very little gain.  The realloc() calls are very fast;
+				// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
+				// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
+				mutation_capacity_ = SLIM_GENOME_MUT_BUFFER_SIZE * 2;
+				
+				while (mutation_count_ + p_copy_count > mutation_capacity_)
+				{
+					if (mutation_capacity_ < 32)
+						mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+					else
+						mutation_capacity_ += 16;
+				}
+				
+				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
+				
+				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));
+			}
+			else
+			{
+				do
+				{
+					if (mutation_capacity_ < 32)
+						mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+					else
+						mutation_capacity_ += 16;
+				}
+				while (mutation_count_ + p_copy_count > mutation_capacity_);
+				
+				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			}
+		}
+		
+		// Now we are guaranteed to have enough memory, so copy the pointers in
+		// (unless malloc/realloc failed, which we're not going to worry about!)
+		memcpy(mutations_ + mutation_count_, p_mutation_ptr, p_copy_count * sizeof(Mutation*));
+		mutation_count_ += p_copy_count;
+	}
+	
 	inline void insert_sorted_mutation(Mutation *p_mutation)
 	{
 		// first push it back on the end, which deals with capacity issues
