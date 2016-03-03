@@ -29,6 +29,7 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 future plans:
+	plot fitness of each subpop alongside overall fitness, optionally (Aaron)
 	precalculate and short-circuit expressions like (0:499)*2+1
 	improve display in cases with many subpopulations and/or many individuals
 		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...
