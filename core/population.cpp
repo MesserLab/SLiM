@@ -623,7 +623,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 	{
 		double sex_ratio = p_subpop.child_sex_ratio_;
 		
-		total_male_children = static_cast<slim_popsize_t>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male
+		total_male_children = static_cast<slim_popsize_t>(lround(total_children * sex_ratio));		// sex ratio is defined as proportion male; round in favor of males, arbitrarily
 		total_female_children = total_children - total_male_children;
 		number_of_sexes = 2;
 		

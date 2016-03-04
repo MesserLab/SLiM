@@ -55,7 +55,9 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	if (sex_enabled_)
 	{
 		// Figure out the first male index from the sex ratio, and exit if we end up with all one sex
-		child_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - child_sex_ratio_) * child_subpop_size_));
+		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(child_sex_ratio_ * child_subpop_size_));	// round in favor of males, arbitrarily
+		
+		child_first_male_index_ = child_subpop_size_ - total_males;
 		
 		if (child_first_male_index_ <= 0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females." << eidos_terminate();
@@ -64,7 +66,9 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		
 		if (p_parents_also)
 		{
-			parent_first_male_index_ = static_cast<slim_popsize_t>(lround((1.0 - parent_sex_ratio_) * parent_subpop_size_));
+			total_males = static_cast<slim_popsize_t>(lround(parent_sex_ratio_ * parent_subpop_size_));	// round in favor of males, arbitrarily
+			
+			parent_first_male_index_ = parent_subpop_size_ - total_males;
 			
 			if (parent_first_male_index_ <= 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females." << eidos_terminate();
