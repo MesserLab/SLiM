@@ -31,11 +31,13 @@ Polymorphism::Polymorphism(int p_mutation_id, const Mutation *p_mutation_ptr, sl
 {
 }
 
-void Polymorphism::print(std::ostream &p_out, bool p_include_id /* = true*/) const
+void Polymorphism::print(std::ostream &p_out) const
 {
-	if (p_include_id)
-		p_out << mutation_id_ << " ";
-	
+	p_out << mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
+}
+
+void Polymorphism::print_no_id(std::ostream &p_out) const
+{
 	p_out << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
 }
 

@@ -2572,7 +2572,7 @@ void Population::PrintAll(std::ostream &p_out) const
 	p_out << "Mutations:"  << endl;
 	
 	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms)
-		polymorphism_pair.second.print(p_out, polymorphism_pair.first);
+		polymorphism_pair.second.print(p_out);
 	
 	// print all individuals
 	p_out << "Individuals:" << endl;
@@ -2665,7 +2665,7 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	SLIM_OUTSTREAM << "Mutations:"  << endl;
 	
 	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.print(SLIM_OUTSTREAM, polymorphism_pair.first);
+		polymorphism_pair.second.print(SLIM_OUTSTREAM);
 	
 	// print the sample's genomes
 	SLIM_OUTSTREAM << "Genomes:" << endl;

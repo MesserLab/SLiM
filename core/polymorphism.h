@@ -46,7 +46,8 @@ public:
 	Polymorphism(void) = delete;				// no null construction
 	Polymorphism(int p_mutation_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence);
 	
-	void print(std::ostream &p_out, bool p_include_id = true) const;
+	void print(std::ostream &p_out) const;
+	void print_no_id(std::ostream &p_out) const;
 };
 
 

@@ -2027,7 +2027,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
 					{ 
 						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-						polymorphism_pair.second.print(output_stream, false /* no id */);
+						polymorphism_pair.second.print_no_id(output_stream);
 					}
 				}
 			}
