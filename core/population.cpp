@@ -1255,36 +1255,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 	}
 }
 
-// This controls the activation of optimization blocks that do binary searches for positions within genomes, rather than linear
-// searches, in Population::DoCrossoverMutation() below.  The behavior ought to be exactly the same with or without the optimization,
-// and it can be a performance win (more than 10%) for models with a lot of circulating mutations and a low recombination rate.
-// That combination of parameters means that long swathes of mutations get copied from parent strand to child continuously.  Finding
-// those long swathes and copying them as a unit is where the performance win lies.
-//
-// The performance win here is more subtle than it might appear at first.  To copy a long swathe of mutations, you must always read
-// the mutation pointers from memory and write them out to memory.  Without binary search, the read in from memory is done as an
-// integral part of the scan, and then the read value is simply written or not written.  There are thus basically no wasted reads.
-// With binary search, the reads and writes are done with a memcpy() call in Genome::emplace_back_bulk() – but in addition, all of
-// the reads that are done during the binary search happen as well, and they are effectively wasted.  So the binary search method
-// actually does more memory accesses, and it has more logistical overhead as well.  The win comes solely from the fact that memcpy()
-// is much faster than reading and writing individual pointers.  You therefore have to be doing enough of them in one swathe for
-// memcpy() to dominate.  For shorter swathes, binary search is a lose.  The code below therefore estimates how long of a swathe
-// can be expected, based on the number of "events" (breakpoints + mutations) and the number of mutation pointers total in the
-// parent genomes.  The binary search algorithm is used only if the ratio between those is favorable.  Unfortunately, what is
-// "favorable" is platform-dependent.  I have used an estimate based on testing on my own machine.  Unless a target machine's
-// memcpy() performance if vastly different, it shouldn't matter much; cases near the borderline might lose a little, or fail to
-// win a little, but those effects will be marginal.  The wins will come when really long swathes get copied, and when the
-// algorithm correctly avoids doing a binary search with very short swathes.
-#define SLIM_USE_BINARY_SEARCHES	1
-#define SLIM_BINARY_SEARCH_THRESHOLD	30.0
-
-// Enable this to turn on testing of the binary search code.  This should probably never be turned on unless you are me.
-#define SLIM_TEST_BINARY_SEARCHES	0
-
-#if !SLIM_USE_BINARY_SEARCHES
-#warning Binary searches turned off for Population::DoCrossoverMutation()
-#endif
-
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
 {
@@ -1488,139 +1458,49 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			Mutation **parent_iter_max	= parent1_iter_max;
 			
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
-			double genome_mutations_to_process = (((parent1_iter_max - parent1_iter) + (parent2_iter_max - parent2_iter)) / 2.0);
-			int total_event_count = (break_index_max + 1);
-			double parent_muts_per_breakmut = genome_mutations_to_process / total_event_count;
 			
-			if (!SLIM_USE_BINARY_SEARCHES || (parent_muts_per_breakmut < SLIM_BINARY_SEARCH_THRESHOLD))
+			for (int break_index = 0; break_index != break_index_max; break_index++)
 			{
-				for (int break_index = 0; break_index != break_index_max; break_index++)
+				slim_position_t breakpoint = all_breakpoints[break_index];
+				
+				// NOTE It is tempting to optimize this loop to scan for the position of the breakpoint with a binary search, and then
+				// copy all of the mutation pointers up to the breakpoint with one memcpy() call.  Surely that's faster, right?  Well,
+				// not really.  On OS X it sometimes provides a small win (~10%), in cases where the chromosome has a large number of
+				// mutations in between breakpoints; the rest of the time it is a lose.  On the Cornell cluster, it is a large lose
+				// across the board.  Why?  Well, the loop as written here involves one memory read per memory write.  Adding in a
+				// binary search for the right break position entails additional memory reads on top of that same overhead (because
+				// the bulk memcpy() has to do the same reads and writes to copy the pointers).  So memcpy() has to be substantially
+				// faster than a simple memory-copying loop for the binary search to be a win; the overhead of the search is large.
+				// It is also hard to get the details of the binary search correct, because with multiple breakpoints, the expected
+				// position of the next breakpoint is not random, but is instead biased toward the beginning; so a simple binary search
+				// actually performs worse than expected.  This was all tested quite thoroughly, and even doing a binary search only
+				// when the expected number of mutations before the next breakpoint was >35 (which seemed like the optimal cutoff on
+				// OS X) made SLiM 2.0 run an average of almost two times slower on the cluster.  Ouch.  So I pulled the code entirely;
+				// possibly it could have been further tweaked to provide some marginal benefit even on the cluster, but it was way too
+				// much code complexity for way too little payoff.
+				
+				// while there are still old mutations in the parent before the current breakpoint...
+				while (parent_iter != parent_iter_max)
 				{
-					slim_position_t breakpoint = all_breakpoints[break_index];
+					Mutation *current_mutation = *parent_iter;
 					
-					// while there are still old mutations in the parent before the current breakpoint...
-					while (parent_iter != parent_iter_max)
-					{
-						Mutation *current_mutation = *parent_iter;
-						
-						if (current_mutation->position_ >= breakpoint)
-							break;
-						
-						// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
-						child_genome.emplace_back(current_mutation);
-						
-						parent_iter++;
-					}
+					if (current_mutation->position_ >= breakpoint)
+						break;
 					
-					// we have reached the breakpoint, so swap parents
-					parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-					parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-					parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+					// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+					child_genome.emplace_back(current_mutation);
 					
-					// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-					while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
-						parent_iter++;
+					parent_iter++;
 				}
-			}
-			else
-			{
-				for (int break_index = 0; break_index != break_index_max; break_index++)
-				{
-					slim_position_t breakpoint = all_breakpoints[break_index];
-					long division_factor = break_index_max - break_index + 2;	// if break_index == break_index_max, we want to divide by 2
-					
-					// while there are still old mutations in the parent before the current breakpoint...
-					
-#if SLIM_TEST_BINARY_SEARCHES
-#warning test code path enabled!
-					// FOR TESTING THE BINARY SEARCH: enable this block and the block below
-					Mutation **test_iter = parent_iter;
-					
-					while (test_iter != parent_iter_max)
-					{
-						Mutation *current_mutation = *test_iter;
-						
-						if (current_mutation->position_ >= breakpoint)
-							break;
-						
-						test_iter++;
-					}
-					
-					long correct_copy_count = test_iter - parent_iter;
-#endif
-					
-					// first we search for the first iterator position at or after the breakpoint, scanning by binary search
-					// thanks to http://stackoverflow.com/questions/6553970/find-the-first-element-in-an-array-that-is-greater-than-the-target
-					// I have modified that, however, to do a binary search biased towards the beginning, according to the number
-					// of breakpoints left.  If there is one breakpoint left, we guess mid=(low+high)*0.5, but if there are two,
-					// we guess mid=(low+(high-low)*0.33), if three, mid=(low+(high-low)*0.25), etc.  This should improve our search
-					// time considerably with large numbers of breakpoints and/or mutations.
-					long low = 0, high = parent_iter_max - parent_iter;	// we set high one *beyond* the last valid position!
-					long local_division_factor = division_factor;
-					
-					while (low != high)
-					{
-						long mid = low + ((high - low) / local_division_factor);	// if high == low + 1, then mid will be set to low, so we never test the last position!
-						slim_position_t skip_pos = (*(parent_iter + mid))->position_;
-						
-						if (skip_pos < breakpoint)	// conceptually, target is breakpoint - 0.5, and we want (skip_pos <= breakpoint - 0.5)
-						{
-							low = mid + 1;
-							local_division_factor++;		// bias even more toward the beginning now that we've skipped ahead some
-						}
-						else
-						{
-							high = mid;
-							local_division_factor = 2;		// we are now in the first division; a binary search from here on is fine
-						}
-					}
-					
-					// Now low and high both point to the first element at or after the breakpoint.
-					long copy_count = low;
-					
-#if SLIM_TEST_BINARY_SEARCHES
-#warning test code path enabled!
-					// FOR TESTING THE BINARY SEARCH: set a breakpoint on the assignment here; if it is hit, there is a problem.
-					if (copy_count != correct_copy_count)
-						copy_count = correct_copy_count;
-					
-#endif 
-					child_genome.emplace_back_bulk(parent_iter, copy_count);
-					//std::cout << "Copied " << copy_count << " mutation pointers" << std::endl;
-					
-					// and then we move forward
-					parent_iter += copy_count;
-					
-					// we have reached the breakpoint, so swap parents
-					parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-					parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-					parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
-					
-					// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-					// another binary search; see comments above
-					low = 0, high = parent_iter_max - parent_iter;
-					local_division_factor = division_factor;
-					
-					while (low != high)
-					{
-						long mid = low + ((high - low) / local_division_factor);
-						slim_position_t skip_pos = (*(parent_iter + mid))->position_;
-						
-						if (skip_pos < breakpoint)
-						{
-							low = mid + 1;
-							local_division_factor++;		// bias even more toward the beginning now that we've skipped ahead some
-						}
-						else
-						{
-							high = mid;
-							local_division_factor = 2;		// we are now in the first division; a binary search from here on is fine
-						}
-					}
-					
-					parent_iter += low;
-					//std::cout << "Skipped " << low << " mutation pointers" << std::endl;
-				}
+				
+				// we have reached the breakpoint, so swap parents
+				parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
+				parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
+				parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+				
+				// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+				while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
+					parent_iter++;
 			}
 		}
 	}
@@ -1661,181 +1541,40 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		Mutation **parent_iter_max	= parent1_iter_max;
 		
 		int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
-		double genome_mutations_to_process = (((parent1_iter_max - parent1_iter) + (parent2_iter_max - parent2_iter)) / 2.0);
-		int total_event_count = (break_index_max + 1) + num_mutations;
-		double parent_muts_per_breakmut = genome_mutations_to_process / total_event_count;
 		
-		if (!SLIM_USE_BINARY_SEARCHES || (parent_muts_per_breakmut < SLIM_BINARY_SEARCH_THRESHOLD))
+		for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
 		{
-			for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
-			{
-				slim_position_t breakpoint = all_breakpoints[break_index];
-				
-				// NOTE these caches are valid from here...
-				Mutation *parent_iter_mutation, *mutation_iter_mutation;
-				slim_position_t parent_iter_pos, mutation_iter_pos;
-				
-				if (parent_iter != parent_iter_max) {
-					parent_iter_mutation = *parent_iter;
-					parent_iter_pos = parent_iter_mutation->position_;
-				} else {
-					parent_iter_mutation = nullptr;
-					parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-				}
-				
-				if (mutation_iter != mutation_iter_max) {
-					mutation_iter_mutation = *mutation_iter;
-					mutation_iter_pos = mutation_iter_mutation->position_;
-				} else {
-					mutation_iter_mutation = nullptr;
-					mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-				}
-				
-				// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
-				while ((parent_iter_pos < breakpoint) || (mutation_iter_pos < breakpoint))
-				{
-					// while an old mutation in the parent is before the breakpoint and before the next new mutation...
-					while (parent_iter_pos < breakpoint && parent_iter_pos <= mutation_iter_pos)
-					{
-						// add the mutation; we know it is not already present
-						child_genome.emplace_back(parent_iter_mutation);
-						parent_iter++;
-						
-						if (parent_iter != parent_iter_max) {
-							parent_iter_mutation = *parent_iter;
-							parent_iter_pos = parent_iter_mutation->position_;
-						} else {
-							parent_iter_mutation = nullptr;
-							parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-						}
-					}
-					
-					// while a new mutation is before the breakpoint and before the next old mutation in the parent...
-					while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
-					{
-						// add the mutation; we know it is not already present
-						child_genome.emplace_back(mutation_iter_mutation);
-						mutation_iter++;
-						
-						if (mutation_iter != mutation_iter_max) {
-							mutation_iter_mutation = *mutation_iter;
-							mutation_iter_pos = mutation_iter_mutation->position_;
-						} else {
-							mutation_iter_mutation = nullptr;
-							mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-						}
-					}
-				}
-				// NOTE ...to here
-				
-				// these statements complete our for loop; they are here so that if we have no breakpoints we do not touch the second strand below
-				break_index++;
-				
-				if (break_index == break_index_max)
-					break;
-				
-				// we have reached the breakpoint, so swap parents
-				parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-				parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-				parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
-				
-				// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-				while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
-					parent_iter++;
+			slim_position_t breakpoint = all_breakpoints[break_index];
+			
+			// NOTE these caches are valid from here...
+			Mutation *parent_iter_mutation, *mutation_iter_mutation;
+			slim_position_t parent_iter_pos, mutation_iter_pos;
+			
+			if (parent_iter != parent_iter_max) {
+				parent_iter_mutation = *parent_iter;
+				parent_iter_pos = parent_iter_mutation->position_;
+			} else {
+				parent_iter_mutation = nullptr;
+				parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 			}
-		}
-		else
-		{
-			for (int break_index = 0; ; )	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
+			
+			if (mutation_iter != mutation_iter_max) {
+				mutation_iter_mutation = *mutation_iter;
+				mutation_iter_pos = mutation_iter_mutation->position_;
+			} else {
+				mutation_iter_mutation = nullptr;
+				mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+			}
+			
+			// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
+			while ((parent_iter_pos < breakpoint) || (mutation_iter_pos < breakpoint))
 			{
-				slim_position_t breakpoint = all_breakpoints[break_index];
-				long division_factor = break_index_max - break_index + 2;	// if break_index == break_index_max, we want to divide by 2
-				
-				// NOTE these caches are valid from here...
-				Mutation *parent_iter_mutation, *mutation_iter_mutation;
-				slim_position_t parent_iter_pos, mutation_iter_pos;
-				
-				if (parent_iter != parent_iter_max) {
-					parent_iter_mutation = *parent_iter;
-					parent_iter_pos = parent_iter_mutation->position_;
-				} else {
-					parent_iter_mutation = nullptr;
-					parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-				}
-				
-				if (mutation_iter != mutation_iter_max) {
-					mutation_iter_mutation = *mutation_iter;
-					mutation_iter_pos = mutation_iter_mutation->position_;
-				} else {
-					mutation_iter_mutation = nullptr;
-					mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-				}
-				
-				// while there are still old mutations in the parent, or new mutations to be added, before the current breakpoint...
-				while ((parent_iter_pos < breakpoint) || (mutation_iter_pos < breakpoint))
+				// while an old mutation in the parent is before the breakpoint and before the next new mutation...
+				while (parent_iter_pos < breakpoint && parent_iter_pos <= mutation_iter_pos)
 				{
-					// while an old mutation in the parent is before the breakpoint and before the next new mutation...
-					
-#if SLIM_TEST_BINARY_SEARCHES
-#warning test code path enabled!
-					// FOR TESTING THE BINARY SEARCH: enable this block and the block below
-					Mutation **test_iter = parent_iter;
-					Mutation *test_iter_mutation = parent_iter_mutation;
-					slim_position_t test_iter_pos = parent_iter_pos;
-					
-					while (test_iter_pos < breakpoint && test_iter_pos <= mutation_iter_pos)
-					{
-						// add the mutation; we know it is not already present
-						test_iter++;
-						
-						if (test_iter != parent_iter_max) {
-							test_iter_mutation = *test_iter;
-							test_iter_pos = test_iter_mutation->position_;
-						} else {
-							test_iter_mutation = nullptr;
-							test_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-						}
-					}
-					
-					long correct_copy_count = test_iter - parent_iter;
-#endif
-					
-					// first we search for the first iterator position at or after the breakpoint AND after the next mutation, scanning by binary search
-					// thanks to http://stackoverflow.com/questions/6553970/find-the-first-element-in-an-array-that-is-greater-than-the-target
-					// I have modified that, however, to do a binary search biased towards the beginning, according to the number
-					// of breakpoints left.  If there is one breakpoint left, we guess mid=(low+high)*0.5, but if there are two,
-					// we guess mid=(low+(high-low)*0.33), if three, mid=(low+(high-low)*0.25), etc.  This should improve our search
-					// time considerably with large numbers of breakpoints and/or mutations.
-					long low = 0, high = parent_iter_max - parent_iter;	// we set high one *beyond* the last valid position!
-					long local_division_factor = division_factor;
-					
-					while (low != high)
-					{
-						long mid = low + ((high - low) / local_division_factor);	// if high == low + 1, then mid will be set to low, so we never test the last position!
-						slim_position_t skip_pos = (*(parent_iter + mid))->position_;
-						
-						// conceptually, target is breakpoint - 0.5, and we want (skip_pos <= breakpoint - 0.5), which is (skip_pos < breakpoint)
-						// conceptually, target is mutation_iter_pos + 0.5, and we want (skip_pos <= mutation_iter_pos + 0.5), which is (skip_pos <= mutation_iter_pos)
-						if ((skip_pos < breakpoint) && (skip_pos <= mutation_iter_pos))
-						{
-							low = mid + 1;
-							local_division_factor++;		// bias even more toward the beginning now that we've skipped ahead some
-						}
-						else
-						{
-							high = mid;
-							local_division_factor = 2;		// we are now in the first division; a binary search from here on is fine
-						}
-					}
-					
-					// Now low and high both point to the first element at or after the breakpoint.
-					long copy_count = low;
-					
-					child_genome.emplace_back_bulk(parent_iter, copy_count);
-					//std::cout << "Copied " << copy_count << " mutation pointers" << std::endl;
-					
-					// and then we move forward and update the position-dependent state
-					parent_iter += copy_count;
+					// add the mutation; we know it is not already present
+					child_genome.emplace_back(parent_iter_mutation);
+					parent_iter++;
 					
 					if (parent_iter != parent_iter_max) {
 						parent_iter_mutation = *parent_iter;
@@ -1844,72 +1583,40 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						parent_iter_mutation = nullptr;
 						parent_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 					}
-					
-#if SLIM_TEST_BINARY_SEARCHES
-#warning test code path enabled!
-					// FOR TESTING THE BINARY SEARCH: set a breakpoint on the assignment here
-					if (copy_count != correct_copy_count)
-						copy_count = correct_copy_count;
-					if (parent_iter_mutation != test_iter_mutation)
-						parent_iter_mutation = test_iter_mutation;
-					if (parent_iter_pos != test_iter_pos)
-						parent_iter_pos = test_iter_pos;
-#endif
-					
-					// while a new mutation is before the breakpoint and before the next old mutation in the parent...
-					while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
-					{
-						// add the mutation; we know it is not already present
-						child_genome.emplace_back(mutation_iter_mutation);
-						mutation_iter++;
-						
-						if (mutation_iter != mutation_iter_max) {
-							mutation_iter_mutation = *mutation_iter;
-							mutation_iter_pos = mutation_iter_mutation->position_;
-						} else {
-							mutation_iter_mutation = nullptr;
-							mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
-						}
-					}
 				}
-				// NOTE ...to here
 				
-				// these statements complete our for loop; they are here so that if we have no breakpoints we do not touch the second strand below
-				break_index++;
-				
-				if (break_index == break_index_max)
-					break;
-				
-				// we have reached the breakpoint, so swap parents
-				parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
-				parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
-				parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
-				
-				// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-				// another binary search; see comments above
-				long low = 0, high = parent_iter_max - parent_iter;
-				long local_division_factor = division_factor;
-				
-				while (low != high)
+				// while a new mutation is before the breakpoint and before the next old mutation in the parent...
+				while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
 				{
-					long mid = low + ((high - low) / local_division_factor);
-					slim_position_t skip_pos = (*(parent_iter + mid))->position_;
+					// add the mutation; we know it is not already present
+					child_genome.emplace_back(mutation_iter_mutation);
+					mutation_iter++;
 					
-					if (skip_pos < breakpoint)
-					{
-						low = mid + 1;
-						local_division_factor++;		// bias even more toward the beginning now that we've skipped ahead some
-					}
-					else
-					{
-						high = mid;
-						local_division_factor = 2;		// we are now in the first division; a binary search from here on is fine
+					if (mutation_iter != mutation_iter_max) {
+						mutation_iter_mutation = *mutation_iter;
+						mutation_iter_pos = mutation_iter_mutation->position_;
+					} else {
+						mutation_iter_mutation = nullptr;
+						mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
 					}
 				}
-				
-				parent_iter += low;
-				//std::cout << "Skipped " << low << " mutation pointers" << std::endl;
 			}
+			// NOTE ...to here
+			
+			// these statements complete our for loop; they are here so that if we have no breakpoints we do not touch the second strand below
+			break_index++;
+			
+			if (break_index == break_index_max)
+				break;
+			
+			// we have reached the breakpoint, so swap parents
+			parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;
+			parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;
+			parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max; 
+			
+			// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+			while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
+				parent_iter++;
 		}
 	}
 }
