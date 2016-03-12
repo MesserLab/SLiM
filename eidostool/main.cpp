@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string.h>
 
 #include "eidos_global.h"
 #include "eidos_interpreter.h"
