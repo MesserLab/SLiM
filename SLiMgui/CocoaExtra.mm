@@ -39,9 +39,9 @@
 
 static NSDictionary *tickAttrs = nil;
 static NSDictionary *disabledTickAttrs = nil;
-const int numberOfTicks = 4;
-const int tickLength = 4;
-const int heightForTicks = 15;
+static const int numberOfTicks = 4;
+static const int tickLength = 4;
+static const int heightForTicks = 15;
 
 @implementation SLiMColorStripeView
 

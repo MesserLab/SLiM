@@ -26,11 +26,11 @@
 NSString *SLiMChromosomeSelectionChangedNotification = @"SLiMChromosomeSelectionChangedNotification";
 
 static NSDictionary *tickAttrs = nil;
-const int numberOfTicks = 4;
-const int tickLength = 5;
-const int heightForTicks = 16;
-const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
-const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
+static const int numberOfTicksPlusOne = 4;
+static const int tickLength = 5;
+static const int heightForTicks = 16;
+static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
+static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
 
 @implementation ChromosomeView
 
@@ -237,14 +237,27 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	NSRect interiorRect = [self interiorRect];
+	int lastTickIndex = numberOfTicksPlusOne;
 	
-	for (int tickIndex = 0; tickIndex <= numberOfTicks; ++tickIndex)
+	// Display fewer ticks when we are displaying a very small number of positions
+	lastTickIndex = MIN(lastTickIndex, ((int)displayedRange.length + 1) / 3);
+	
+	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : (double)lastTickIndex);		// avoid a divide by zero when we are displaying a single site
+	
+	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
 	{
-		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)floor((displayedRange.length - 1) * (tickIndex / (double)numberOfTicks));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)floor((displayedRange.length - 1) * (tickIndex / tickIndexDivisor));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
 		NSRect tickRect = [self rectEncompassingBase:tickBase toBase:tickBase interiorRect:interiorRect displayedRange:displayedRange];
 		
 		tickRect.origin.y = contentRect.origin.y - tickLength;
 		tickRect.size.height = tickLength;
+		
+		// if we are displaying a single site or two sites, make a tick mark one pixel wide, rather than a very wide one, which looks weird
+		if (displayedRange.length <= 2)
+		{
+			tickRect.origin.x = (int)floor(tickRect.origin.x + tickRect.size.width / 2.0 - 0.5);
+			tickRect.size.width = 1.0;
+		}
 		
 		[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
 		NSRectFill(tickRect);
@@ -253,10 +266,11 @@ const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExte
 		NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:tickAttrs];
 		NSSize tickLabelSize = [tickAttrLabel size];
 		int tickLabelX = (int)floor(tickRect.origin.x + tickRect.size.width / 2.0);
+		BOOL forceCenteredLabel = (displayedRange.length <= 101);	// a selected subrange is never <=101 length, so this is safe even with large chromosomes
 		
-		if (tickIndex == numberOfTicks)
+		if ((tickIndex == lastTickIndex) && !forceCenteredLabel)
 			tickLabelX -= (tickLabelSize.width - 2);
-		else if (tickIndex > 0)
+		else if ((tickIndex > 0) || forceCenteredLabel)
 			tickLabelX -= (int)round(tickLabelSize.width / 2.0);
 		
 		[tickAttrLabel drawAtPoint:NSMakePoint(tickLabelX, contentRect.origin.y - (tickLength + 12))];
