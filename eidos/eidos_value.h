@@ -115,7 +115,7 @@ extern EidosValue_Logical_SP gStaticEidosValue_LogicalF;
 // EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated
 // type; all objects in Eidos are vectors.  The order of these types is in type-promotion order, from lowest to highest, except
 // that NULL never gets promoted to any other type, and nothing ever gets promoted to object type.
-enum class EidosValueType
+enum class EidosValueType : uint8_t
 {
 	kValueNULL = 0,		// special NULL type; this cannot be mixed with other types or promoted to other types
 	
@@ -184,8 +184,8 @@ class EidosValue
 	//	This class has its assignment operator disabled, to prevent accidental copying.
 protected:
 	
+	mutable uint32_t intrusive_ref_count;					// used by Eidos_intrusive_ptr
 	const EidosValueType cached_type_;						// allows Type() to be an inline function; cached at construction
-	mutable uint16_t intrusive_ref_count;					// used by Eidos_intrusive_ptr
 	uint8_t invisible_;										// as in R; if true, the value will not normally be printed to the console
 	uint8_t is_singleton_;									// allows Count() and IsSingleton() to be inline; cached at construction
 	
@@ -245,7 +245,7 @@ public:
 	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
-	inline __attribute__((always_inline)) uint16_t use_count() const { return intrusive_ref_count; }
+	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
 	inline __attribute__((always_inline)) bool unique() const { return intrusive_ref_count == 1; }
 	inline __attribute__((always_inline)) void stack_allocated() { intrusive_ref_count++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
 	
