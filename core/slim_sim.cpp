@@ -279,7 +279,7 @@ void SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter 
 		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
 		
-		// construct the new mutation
+		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry

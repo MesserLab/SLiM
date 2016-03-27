@@ -1516,9 +1516,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			mutation_registry_.emplace_back(new_mutation);
 			
 			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
+			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
 		
 		// create vector with uniqued recombination breakpoints
@@ -1588,8 +1589,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				// while a new mutation is before the breakpoint and before the next old mutation in the parent...
 				while (mutation_iter_pos < breakpoint && mutation_iter_pos <= parent_iter_pos)
 				{
-					// add the mutation; we know it is not already present
-					child_genome.emplace_back(mutation_iter_mutation);
+					// add the mutation; we know it is not already present, but we do have to worry about the stacking policy
+					if (child_genome.enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+					{
+						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
+						child_genome.emplace_back(mutation_iter_mutation);
+						mutation_registry_.emplace_back(mutation_iter_mutation);
+					}
+					else
+					{
+						// The mutation was rejected by the stacking policy, so we have to dispose of it
+						// We no longer delete mutation objects; instead, we remove them from our shared pool
+						//delete mutation;
+						mutation_iter_mutation->~Mutation();
+						gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+					}
+					
 					mutation_iter++;
 					
 					if (mutation_iter != mutation_iter_max) {
@@ -1672,9 +1687,10 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			mutation_registry_.emplace_back(new_mutation);
 			
 			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
+			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
 		
 		// interleave the parental genome with the new mutations
@@ -1702,9 +1718,25 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			
 			while ((mutation_iter != mutation_iter_max) && ((*mutation_iter)->position_ <= parent_iter_pos))
 			{
+				Mutation *mutation_iter_mutation = *mutation_iter;
+				
 				// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 				// and new mutations are, by definition, new and thus cannot match the existing mutations
-				child_genome.emplace_back(*mutation_iter);
+				if (child_genome.enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+				{
+					// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
+					child_genome.emplace_back(mutation_iter_mutation);
+					mutation_registry_.emplace_back(mutation_iter_mutation);
+				}
+				else
+				{
+					// The mutation was rejected by the stacking policy, so we have to dispose of it
+					// We no longer delete mutation objects; instead, we remove them from our shared pool
+					//delete mutation;
+					mutation_iter_mutation->~Mutation();
+					gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+				}
+				
 				mutation_iter++;
 			}
 		}

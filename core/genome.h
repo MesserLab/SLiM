@@ -338,6 +338,28 @@ public:
 		*sort_position = p_mutation;
 	}
 	
+	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy);
+	
+	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+	{
+#ifdef DEBUG
+		if (mutations_ == nullptr)
+			NullGenomeAccessError();
+#endif
+		MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
+		
+		if (policy == MutationStackPolicy::kStack)
+		{
+			// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
+			return true;
+		}
+		else
+		{
+			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
+			return _enforce_stack_policy_for_addition(p_position, p_mut_type_ptr, policy);
+		}
+	}
+	
 	inline void copy_from_genome(const Genome &p_source_genome)
 	{
 		if (p_source_genome.mutations_ == nullptr)

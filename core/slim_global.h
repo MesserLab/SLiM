@@ -260,6 +260,7 @@ extern const std::string gStr_convertToSubstitution;
 extern const std::string gStr_distributionType;
 extern const std::string gStr_distributionParams;
 extern const std::string gStr_dominanceCoeff;
+extern const std::string gStr_mutationStackPolicy;
 extern const std::string gStr_start;
 extern const std::string gStr_end;
 extern const std::string gStr_type;
@@ -362,6 +363,8 @@ extern const std::string gStr_g;
 extern const std::string gStr_e;
 extern const std::string gStr_n;
 extern const std::string gStr_w;
+extern const std::string gStr_l;
+extern const std::string gStr_s;
 extern const std::string gStr_early;
 extern const std::string gStr_late;
 extern const std::string gStr_initialize;
@@ -405,6 +408,7 @@ enum _SLiMGlobalStringID : int {
 	gID_distributionType,
 	gID_distributionParams,
 	gID_dominanceCoeff,
+	gID_mutationStackPolicy,
 	gID_start,
 	gID_end,
 	gID_type,
@@ -507,6 +511,8 @@ enum _SLiMGlobalStringID : int {
 	gID_e,
 	gID_n,
 	gID_w,
+	gID_l,
+	gID_s,
 	gID_early,
 	gID_late,
 	gID_initialize,

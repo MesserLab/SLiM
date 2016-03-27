@@ -51,6 +51,15 @@ enum class DFEType : char {
 
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 
+	
+// This enumeration represents the policy followed for multiple mutations at the same position.
+// Such "stacked" mutations can be allowed (the default), or the first or last mutation at the position can be kept.
+enum class MutationStackPolicy : char {
+	kStack = 0,
+	kKeepFirst,
+	kKeepLast,
+};
+
 
 class MutationType : public EidosObjectElement
 {
@@ -76,6 +85,7 @@ public:
 	std::vector<double> dfe_parameters_;		// DFE parameters
 	
 	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
+	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack be default)
 	
 	slim_usertag_t tag_value_;					// a user-defined tag value
 

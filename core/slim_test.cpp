@@ -596,12 +596,17 @@ void RunSLiMTests(void)
 	
 	// Test MutationType properties
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.convertToSubstitution == T) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.mutationStackPolicy == 's') stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.dominanceCoeff == 0.5) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.id == 1) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }");
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.convertToSubstitution = F; }");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 's'; }");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 'f'; }");
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 'l'; }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.mutationStackPolicy = 'z'; }", 1, 239, "property mutationStackPolicy must be");
 	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionParams = 0.1; }", 1, 238, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionType = 'g'; }", 1, 236, "read-only property");
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.dominanceCoeff = 0.3; }");

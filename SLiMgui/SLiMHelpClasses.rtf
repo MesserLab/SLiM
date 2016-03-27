@@ -724,6 +724,41 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f0\fs20 , for example, this is 
 \f2\fs18 3
 \f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationStackPolicy <\'96> (string$)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 This property governs whether mutations of this mutation type can \'93stack\'94 \'96 can occupy the same position in a single individual.  This property is 
+\f2\fs18 "s"
+\f0\fs20  by default, indicating that mutations of this type should be allowed to stack without restriction.  If the policy is set to 
+\f2\fs18 "f"
+\f0\fs20 , the 
+\i first
+\i0  mutation of this type at a given site is retained; further mutations of this type at the same site are discarded with no effect.  This can be useful for modeling one-way changes to single nucleotides, for example; once a 
+\f2\fs18 T
+\f0\fs20  changes to an 
+\f2\fs18 A
+\f0\fs20 , further changes of the 
+\f2\fs18 A
+\f0\fs20  to an 
+\f2\fs18 A
+\f0\fs20  are not changes at all.  If the policy is set to 
+\f2\fs18 "l"
+\f0\fs20 , the last mutation of this type at a given site is retained; earlier mutation of this type at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+The mutation stacking policy applies only within the given mutation type; mutations of different mutation types are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
+\f2\fs18 addMutation()
+\f0\fs20 , 
+\f2\fs18 addNewMutation()
+\f0\fs20 , or 
+\f2\fs18 addNewDrawnMutation()
+\f0\fs20 , or are added by SLiM\'92s own mutation-generation machinery.  However, no attempt is made to enforce the policy for mutations already existing at the time the policy is set; typically, therefore, the policy is set in an 
+\f2\fs18 initialize()
+\f0\fs20  callback so that it applies throughout the simulation.  The policy is also not enforced upon the mutations loaded from a file with 
+\f2\fs18 readFromPopulationFile()
+\f0\fs20 ; such mutations were governed by whatever stacking policy was in effect when the population file was generated.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
@@ -1170,16 +1205,20 @@ Note that the
 \f0\i\fs22 \cf0 5.9.2  
 \f1\fs18 Genome
 \f0\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i0\fs18 \cf0 \'96\'a0(void)addMutations(object<Mutation>\'a0mutations)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Add the existing mutations in 
 \f2\fs18 mutations
-\f0\fs20  to the genome, if they are not already present (if they are already present, they will be ignored).\
-Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f0\fs20  to the genome, if they are not already present (if they are already present, they will be ignored), and if the addition is not prevented by the mutation stacking policy (see the 
+\f2\fs18 mutationStackPolicy
+\f0\fs20  property of 
+\f2\fs18 MutationType
+\f0\fs20 ).\
+Calling this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
@@ -1214,7 +1253,13 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f2\fs18 originSubpop
-\f0\fs20  to \'93tag\'94 the mutations that you create (see section 5.8.1).  The selection coefficient of the mutation is drawn from the mutation type.  The new mutation is returned.\
+\f0\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficient of the mutation is drawn from the mutation type.  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
+\f2\fs18 NULL
+\f0\fs20  is returned; see the 
+\f2\fs18 mutationStackPolicy
+\f0\fs20  property of 
+\f2\fs18 MutationType
+\f0\fs20 ).\
 Note that if you wish to add the same new mutation to multiple genomes, you should call 
 \f2\fs18 addNewDrawnMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
@@ -1223,7 +1268,7 @@ Note that if you wish to add the same new mutation to multiple genomes, you shou
 \f2\fs18 addMutations()
 \f0\fs20 ; calling 
 \f2\fs18 addNewDrawnMutation()
-\f0\fs20  on a vector containing multiple genomes will generate a different drawn mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
+\f0\fs20  on a vector containing multiple genomes will generate a different drawn mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see the Eidos manual).\
 Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
@@ -1261,7 +1306,13 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f2\fs18 originSubpop
-\f0\fs20  to \'93tag\'94 the mutations that you create (see section 5.8.1).  The new mutation is returned.\
+\f0\fs20  to \'93tag\'94 the mutations that you create.  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
+\f2\fs18 NULL
+\f0\fs20  is returned; see the 
+\f2\fs18 mutationStackPolicy
+\f0\fs20  property of 
+\f2\fs18 MutationType
+\f0\fs20 ).\
 Note that if you wish to add the same new mutation to multiple genomes, you should call 
 \f2\fs18 addNewMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
@@ -1270,7 +1321,7 @@ Note that if you wish to add the same new mutation to multiple genomes, you shou
 \f2\fs18 addMutations()
 \f0\fs20 ; calling 
 \f2\fs18 addNewMutation()
-\f0\fs20  on a vector containing multiple genomes will generate a different mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see section 2.8.6).\
+\f0\fs20  on a vector containing multiple genomes will generate a different mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see the Eidos manual).\
 Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 

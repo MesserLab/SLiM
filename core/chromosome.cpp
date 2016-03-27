@@ -154,6 +154,7 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
+	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT GENOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	return new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
 }
 

@@ -56,7 +56,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 #else
 MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
 #endif
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), convert_to_substitution_(true),
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack),
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class)))
 {
 	if (dfe_parameters_.size() == 0)
@@ -172,6 +172,26 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(dominance_coeff_));
+		case gID_mutationStackPolicy:
+		{
+			static EidosValue_SP static_policy_string_s;
+			static EidosValue_SP static_policy_string_f;
+			static EidosValue_SP static_policy_string_l;
+			
+			if (!static_policy_string_s)
+			{
+				static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_s));
+				static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
+				static_policy_string_l = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_l));
+			}
+			
+			switch (stack_policy_)
+			{
+				case MutationStackPolicy::kStack:		return static_policy_string_s;
+				case MutationStackPolicy::kKeepFirst:	return static_policy_string_f;
+				case MutationStackPolicy::kKeepLast:	return static_policy_string_l;
+			}
+		}
 		case gID_tag:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
@@ -199,6 +219,22 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+			return;
+		}
+			
+		case gID_mutationStackPolicy:
+		{
+			std::string value = p_value.StringAtIndex(0, nullptr);
+			
+			if (value.compare(gStr_s) == 0)
+				stack_policy_ = MutationStackPolicy::kStack;
+			else if (value.compare(gStr_f) == 0)
+				stack_policy_ = MutationStackPolicy::kKeepFirst;
+			else if (value.compare(gStr_l) == 0)
+				stack_policy_ = MutationStackPolicy::kKeepLast;
+			else
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << StringForEidosGlobalStringID(p_property_id) << " must be \"s\", \"f\", or \"l\"." << eidos_terminate();
+			
 			return;
 		}
 			
@@ -347,6 +383,7 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionParams));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationStackPolicy));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -362,6 +399,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 	static EidosPropertySignature *distributionTypeSig = nullptr;
 	static EidosPropertySignature *distributionParamsSig = nullptr;
 	static EidosPropertySignature *dominanceCoeffSig = nullptr;
+	static EidosPropertySignature *mutationStackPolicySig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	
 	if (!idSig)
@@ -371,6 +409,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		gID_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat));
 		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
@@ -382,6 +421,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		case gID_distributionType:		return distributionTypeSig;
 		case gID_distributionParams:	return distributionParamsSig;
 		case gID_dominanceCoeff:		return dominanceCoeffSig;
+		case gID_mutationStackPolicy:	return mutationStackPolicySig;
 		case gID_tag:					return tagSig;
 			
 			// all others, including gID_none

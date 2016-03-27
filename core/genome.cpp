@@ -92,6 +92,78 @@ void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count)
 	mutation_count_ -= (genome_iter - genome_backfill_iter);
 }
 
+bool Genome::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy)
+{
+	Mutation **begin_ptr = begin_pointer();
+	Mutation **end_ptr = end_pointer();
+	
+	if (p_policy == MutationStackPolicy::kKeepFirst)
+	{
+		// If the first mutation occurring at a site is kept, then we need to check for an existing mutation of this type
+		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		{
+			Mutation *mut = *mut_ptr;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				return false;
+			else if (mut_position < p_position)
+				return true;
+		}
+		
+		return true;
+	}
+	else if (p_policy == MutationStackPolicy::kKeepLast)
+	{
+		// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this type
+		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		Mutation **first_match_ptr = nullptr;
+		
+		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		{
+			Mutation *mut = *mut_ptr;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
+			else if (mut_position < p_position)
+				break;
+		}
+		
+		// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
+		if (first_match_ptr)
+		{
+			Mutation **replace_ptr = first_match_ptr;	// replace at the first match position
+			Mutation **mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
+			
+			for ( ; mut_ptr < end_ptr; ++mut_ptr)
+			{
+				Mutation *mut = *mut_ptr;
+				slim_position_t mut_position = mut->position_;
+				
+				if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				{
+					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+					continue;
+				}
+				else
+				{
+					// The current scan position is a valid mutation, so we copy it backwards
+					*(replace_ptr++) = mut;
+				}
+			}
+			
+			// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+			mutation_count_ -= (mut_ptr - replace_ptr);
+		}
+		
+		return true;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Genome::_enforce_stack_policy_for_addition): (internal error) invalid policy." << eidos_terminate();
+}
+
 
 //
 //	Methods to enforce limited copying
@@ -343,13 +415,16 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				{
 					Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 					
-					insert_sorted_mutation_if_unique(new_mutation);
-					
-					// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
-					//if (!registry.contains_mutation(new_mutation))
-					//	registry.emplace_back(new_mutation);
-					
-					// Similarly, no need to check and set pure_neutral_; the mutation is already in the system
+					if (enforce_stack_policy_for_addition(new_mutation->position_, new_mutation->mutation_type_ptr_))
+					{
+						insert_sorted_mutation_if_unique(new_mutation);
+						
+						// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
+						//if (!registry.contains_mutation(new_mutation))
+						//	registry.emplace_back(new_mutation);
+						
+						// Similarly, no need to check and set pure_neutral_; the mutation is already in the system
+					}
 				}
 			}
 			
@@ -426,17 +501,24 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				origin_subpop_id = dynamic_cast<Subpopulation *>(arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			// Generate and add the new mutation
-			double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
-			
-			insert_sorted_mutation(mutation);
-			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
-			
-			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-			if (selection_coeff != 0.0)
-				sim->pure_neutral_ = false;
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			if (enforce_stack_policy_for_addition(position, mutation_type_ptr))
+			{
+				double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+				
+				insert_sorted_mutation(mutation);
+				sim->ThePopulation().mutation_registry_.emplace_back(mutation);
+				
+				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+				if (selection_coeff != 0.0)
+					sim->pure_neutral_ = false;
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			}
+			else
+			{
+				return gStaticEidosValueNULLInvisible;
+			}
 		}
 			
 			
@@ -511,16 +593,23 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				origin_subpop_id = dynamic_cast<Subpopulation *>(arg4_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 			
 			// Generate and add the new mutation
-			Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
-			
-			insert_sorted_mutation(mutation);
-			sim->ThePopulation().mutation_registry_.emplace_back(mutation);
-			
-			// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
-			if (selection_coeff != 0.0)
-				sim->pure_neutral_ = false;
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			if (enforce_stack_policy_for_addition(position, mutation_type_ptr))
+			{
+				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+				
+				insert_sorted_mutation(mutation);
+				sim->ThePopulation().mutation_registry_.emplace_back(mutation);
+				
+				// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
+				if (selection_coeff != 0.0)
+					sim->pure_neutral_ = false;
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			}
+			else
+			{
+				return gStaticEidosValueNULLInvisible;
+			}
 		}
 
 			
