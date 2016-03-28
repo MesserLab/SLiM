@@ -2047,32 +2047,56 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
-			EidosSymbolTable &symbols = p_interpreter.SymbolTable();
-			std::vector<std::string> all_symbols = symbols.AllSymbols();
-			std::vector<EidosGlobalStringID> symbols_to_remove;
+			// FIXME: Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
+			// and so EidosConsoleWindowController has to do an ugly and only partly effective hack to work around this issue.
+			// FIXME we also have the issue that if the file is corrupt in some way, we have no fallback; we have cleared out the old
+			// mutation, genome, and subpopulation information, and we have no way to restore it.  We can at least check for the
+			// existence of the file to be read; if the user gives us a file that exists but is invalid, then to some extent it is their
+			// fault if things go south (but it would be nice to be more robust nevertheless).
+			const char *file_path_cstr = file_path.c_str();
+			bool file_exists = false;
 			
-			for (string symbol_name : all_symbols)
+			if (file_path_cstr)
 			{
-				EidosGlobalStringID symbol_ID = EidosGlobalStringIDForString(symbol_name);
-				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
+				ifstream infile(file_path_cstr);
 				
-				if (symbol_value->Type() == EidosValueType::kValueObject)
-				{
-					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
-					
-					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
-						symbols_to_remove.emplace_back(symbol_ID);
-				}
+				if (infile.is_open() && !infile.eof())
+					file_exists = true;
 			}
 			
-			for (EidosGlobalStringID symbol_ID : symbols_to_remove)
-				symbols.RemoveConstantForSymbol(symbol_ID);
-			
-			// then we dispose of all existing subpopulations, mutations, etc.
-			population_.RemoveAllSubpopulationInfo();
-			
-			// then read from the file to get our new info
-			InitializePopulationFromFile(file_path.c_str(), &p_interpreter);
+			if (file_exists)
+			{
+				EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+				std::vector<std::string> all_symbols = symbols.AllSymbols();
+				std::vector<EidosGlobalStringID> symbols_to_remove;
+				
+				for (string symbol_name : all_symbols)
+				{
+					EidosGlobalStringID symbol_ID = EidosGlobalStringIDForString(symbol_name);
+					EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
+					
+					if (symbol_value->Type() == EidosValueType::kValueObject)
+					{
+						const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
+						
+						if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
+							symbols_to_remove.emplace_back(symbol_ID);
+					}
+				}
+				
+				for (EidosGlobalStringID symbol_ID : symbols_to_remove)
+					symbols.RemoveConstantForSymbol(symbol_ID);
+				
+				// then we dispose of all existing subpopulations, mutations, etc.
+				population_.RemoveAllSubpopulationInfo();
+				
+				// then read from the file to get our new info
+				InitializePopulationFromFile(file_path_cstr, &p_interpreter);
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): initialization file does not exist or is invalid." << eidos_terminate();
+			}
 			
 			return gStaticEidosValueNULLInvisible;
 		}
