@@ -1955,7 +1955,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			else if (p_argument_count == 1)
 			{
-				string outfile_path = arg0_value->StringAtIndex(0, nullptr);
+				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 				std::ofstream outfile;
 				outfile.open(outfile_path.c_str());
 				
@@ -2043,7 +2043,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_readFromPopulationFile:
 		{
-			string file_path = arg0_value->StringAtIndex(0, nullptr);
+			string file_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 			
 			// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
