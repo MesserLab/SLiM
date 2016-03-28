@@ -4493,14 +4493,20 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			{
 				if (arg1_count == 1)
 				{
-					file_stream << arg1_value->StringAtIndex(0, nullptr) << endl;
+					file_stream << arg1_value->StringAtIndex(0, nullptr);
 				}
 				else
 				{
 					const std::vector<std::string> &string_vec = *arg1_value->StringVector();
 					
 					for (int value_index = 0; value_index < arg1_count; ++value_index)
-						file_stream << string_vec[value_index] << endl;
+					{
+						file_stream << string_vec[value_index];
+						
+						// Add newlines after all lines but the last
+						if (value_index + 1 < arg1_count)
+							file_stream << endl;
+					}
 				}
 				
 				if (file_stream.bad())
