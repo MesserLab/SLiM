@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/3/15.
-//	A product of the Messer Lab, http://messerlab.org/software/
+//	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
 //	This file is part of SLiM.
