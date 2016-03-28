@@ -223,6 +223,22 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	EidosScript script(script_string);
 	string output;
 	
+	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in
+	// the variable browser, in such an abrupt way that it causes a crash.  Basically, the code in readFromPopulationFile() that "cleans" all
+	// references to mutations and such does not have any way to clean SLiMgui's references, and so those stale references cause a crash.
+	// There is probably a better solution, but for now, we look for code containing readFromPopulationFile() and special-case it.  The user
+	// could circumvent this and trigger a crash, so this is just a band-aid; a proper solution is needed.  Another problem with this band-aid
+	// is that SLiMgui's display does not refresh to show the new population state.  Indeed, that is an issue with anything that changes the
+	// visible state, such as adding new mutations.  There needs to be some way for Eidos code to tell SLiMgui that UI refreshing is needed,
+	// and to clean references to variables that are about to invalidated.  FIXME
+	BOOL safeguardReferences = NO;
+	
+	if ([scriptString containsString:@"readFromPopulationFile"])
+		safeguardReferences = YES;
+	
+	if (safeguardReferences)
+		[self invalidateSymbolTable];
+	
 	// Make the final semicolon optional if requested; this allows input like "6+7" in the console
 	if (semicolonOptional)
 		script.SetFinalSemicolonOptional(true);
@@ -350,6 +366,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerDidExecuteScript:)])
 		[delegate eidosConsoleWindowControllerDidExecuteScript:self];
+	
+	// See comment on safeguardReferences above
+	if (safeguardReferences)
+		[self validateSymbolTable];
 	
 	return [NSString stringWithUTF8String:output.c_str()];
 }
