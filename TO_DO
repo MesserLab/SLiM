@@ -1,14 +1,5 @@
-SLiM:
-	add a way to calculate the fitness of an individual, period, rather than the fitness effect per mutation
-		think about how fitness() callbacks work; would be nice to be able to say "this is it for this individual" or "this is it for this mutation type"
+to do:
 
-Eidos:
-	fix code completion to handle declared variables – search backwards for an assignment to that variable name, and extract the type from the right-hand side
-		or perhaps ask the user what type it is, and remember in a dictionary?
-		code completion should also know when you're inside a callback, and supply the correct additional variables
-
-SLiMgui work:
-	completion inside a callback could supply the names of vars defined by the callback; this is quite hard though
 
 building on the command line:
 	g++ -O3 ./core/*.cpp ./eidos/*.cpp ./gsl/*/*.c -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/complex -std=c++11 -o slim
@@ -28,32 +19,6 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testEidos	(with Debug version; not on Darwin yet)
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
-future plans:
-	plot fitness of each subpop alongside overall fitness, optionally (Aaron)
-	precalculate and short-circuit expressions like (0:499)*2+1
-	improve display in cases with many subpopulations and/or many individuals
-		with many individuals, perhaps show a fitness histogram rather than individual squares?  could be an option all the time, actually, sounds useful...
-		with many subpops selected, could superimpose such fitness histograms as curves on a single plot?
-	provide a function clArgs() to access the command-line arguments, plus a way to provide additional args to slim and eidos command-line runs?
-	save per-script-file preferences for the color scale sliders, and later other things too; use the full file path as a key, probably – or put them into the script itself, using SLiMgui-specific tags, maybe
-	what about Eidos applications that involve external objects coming and going during the execution of a single script or interactive session?
-	think about allowing named arguments as an optional syntax; named arguments good
-	could add DFE: user-specified with lookup tables, similar to how recombination rate is specified, to allow arbitrary DFEs from the user
-	evaluate code coverage of tests
-	an Objective-C port of Eidos would be nice
-	might want to be able to set values for constants on the command line, for variation of parameter values driving a script; Philipp is not crazy about this idea though, wait and see
-	spatially and temporally varying selection pressures: for mutation-types
-		in generation x, I want to change the sel coeff of all mutations of a given mutation-type in a given subpopulation
-		what happens for new mutations of that type?
-		seasonal changes in optimal phenotype, spatial variation in environmental optimum
-		these seasonal changes alter the strength of selection, but not the optimum
-		so this is a new type of event: for a given subpop and mutation-type, rescale all selection coefficients by x
-	multiple chromosomes – more than one per individual
-	test cases for verification: population genetic predictions like fixation probability
-	pull the dominance coefficient into the mutations, like the selection coefficient, and add events to change these too?
-	possibility of providing the alternative of Poisson-based offspring generation: choose parent pairs, draw # of offspring
-		individuals could have individual-types, which would define their expected # of children
-		statistical genetics and human evolution: bottlenecks and effective population size, debunking bottleneck myths
 
 
 
