@@ -113,7 +113,7 @@ const std::string gStr_recombinationEndPositions = "recombinationEndPositions";
 const std::string gStr_recombinationRates = "recombinationRates";
 const std::string gStr_geneConversionFraction = "geneConversionFraction";
 const std::string gStr_geneConversionMeanLength = "geneConversionMeanLength";
-const std::string gStr_overallMutationRate = "overallMutationRate";
+const std::string gStr_mutationRate = "mutationRate";
 const std::string gStr_genomeType = "genomeType";
 const std::string gStr_isNullGenome = "isNullGenome";
 const std::string gStr_mutations = "mutations";
@@ -275,7 +275,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_recombinationRates, gID_recombinationRates);
 		Eidos_RegisterStringForGlobalID(gStr_geneConversionFraction, gID_geneConversionFraction);
 		Eidos_RegisterStringForGlobalID(gStr_geneConversionMeanLength, gID_geneConversionMeanLength);
-		Eidos_RegisterStringForGlobalID(gStr_overallMutationRate, gID_overallMutationRate);
+		Eidos_RegisterStringForGlobalID(gStr_mutationRate, gID_mutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_genomeType, gID_genomeType);
 		Eidos_RegisterStringForGlobalID(gStr_isNullGenome, gID_isNullGenome);
 		Eidos_RegisterStringForGlobalID(gStr_mutations, gID_mutations);

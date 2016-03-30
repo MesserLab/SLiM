@@ -507,7 +507,7 @@ void RunSLiMTests(void)
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");												// legal, read from file path; depends on the outputFull() test above
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220, "could not open");
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/notAFile.foo'); }", 1, 220, "does not exist or is invalid");
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); if (size(sim.subpopulations) != 3) stop(); }");	// legal; should wipe previous state
 	
 	// Test sim - (object<SLiMEidosBlock>)registerEarlyEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
@@ -719,7 +719,7 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }");
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallMutationRate == 1e-7) stop(); }");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.mutationRate == 1e-7) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallRecombinationRate == 1e-8 * 100000) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationEndPositions == 99999) stop(); }");
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationRates == 1e-8) stop(); }");
@@ -732,9 +732,9 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }");												// legal; no upper bound
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 256, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 253, "read-only property");
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e-6; if (ch.overallMutationRate == 1e-6) stop(); }");
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = -1e-6; stop(); }", 1, 260, "out of range");
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.overallMutationRate = 1e6; stop(); }");														// legal; no upper bound
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.mutationRate = 1e-6; if (ch.mutationRate == 1e-6) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.mutationRate = -1e-6; stop(); }", 1, 253, "out of range");
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.mutationRate = 1e6; stop(); }");														// legal; no upper bound
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 265, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationEndPositions = 99999; stop(); }", 1, 266, "read-only property");
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationRates = 1e-8; stop(); }", 1, 259, "read-only property");

@@ -242,7 +242,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_fraction_));
 		case gID_geneConversionMeanLength:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_avg_length_));
-		case gID_overallMutationRate:
+		case gID_mutationRate:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_));
 		case gID_tag:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
@@ -278,7 +278,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			gene_conversion_avg_length_ = value;
 			return;
 		}
-		case gID_overallMutationRate:
+		case gID_mutationRate:
 		{
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
@@ -440,7 +440,7 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRates));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallMutationRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRate));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -458,7 +458,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *recombinationRatesSig = nullptr;
 	static EidosPropertySignature *geneConversionFractionSig = nullptr;
 	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
-	static EidosPropertySignature *overallMutationRateSig = nullptr;
+	static EidosPropertySignature *mutationRateSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	
 	if (!genomicElementsSig)
@@ -470,7 +470,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kEidosValueMaskFloat));
 		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallMutationRateSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,			gID_overallMutationRate,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		mutationRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRate,				gID_mutationRate,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
@@ -484,7 +484,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 		case gID_recombinationRates:		return recombinationRatesSig;
 		case gID_geneConversionFraction:	return geneConversionFractionSig;
 		case gID_geneConversionMeanLength:	return geneConversionMeanLengthSig;
-		case gID_overallMutationRate:		return overallMutationRateSig;
+		case gID_mutationRate:				return mutationRateSig;
 		case gID_tag:						return tagSig;
 			
 			// all others, including gID_none
