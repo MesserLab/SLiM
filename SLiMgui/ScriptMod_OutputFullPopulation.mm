@@ -73,7 +73,7 @@
 		scriptInternal = [NSString stringWithFormat:@"{\n\tsim.outputFull(\"%@\");\n}", filename];
 	else
 		scriptInternal = [NSString stringWithFormat:@"{\n\tsim.outputFull();\n}"];
-	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ late() %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{

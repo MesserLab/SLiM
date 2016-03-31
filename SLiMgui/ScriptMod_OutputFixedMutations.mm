@@ -62,7 +62,7 @@
 	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
 	
 	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tsim.outputFixedMutations();\n}"];
-	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ late() %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{

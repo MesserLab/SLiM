@@ -86,7 +86,7 @@
 	BOOL useMS = ([useMSFormatCheckbox state] == NSOnState);
 	
 	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%lld%@);\n}", populationID, useMS ? @"MS" : @"", (int64_t)sampleSize, (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"")];
-	NSString *scriptCommand = [NSString stringWithFormat:@"%@ %@\n", targetGeneration, scriptInternal];
+	NSString *scriptCommand = [NSString stringWithFormat:@"%@ late() %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)
 	{
