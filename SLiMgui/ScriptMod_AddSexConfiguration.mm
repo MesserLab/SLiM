@@ -29,7 +29,7 @@
 
 - (NSString *)sheetTitle
 {
-	return @"Add Mutation Type";
+	return @"Add Sex Configuration";
 }
 
 - (void)configSheetLoaded
