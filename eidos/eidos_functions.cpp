@@ -194,7 +194,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,	EidosFunctionIdentifier::applyFunction,			kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	EidosFunctionIdentifier::defineConstantFunction,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	EidosFunctionIdentifier::defineConstantFunction,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	EidosFunctionIdentifier::doCallFunction,		kEidosValueMaskAny))->AddString_S("function")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	EidosFunctionIdentifier::executeLambdaFunction,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			EidosFunctionIdentifier::existsFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("symbol"));
