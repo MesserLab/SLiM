@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf340
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 Helvetica;\f5\fnil\fcharset0 Menlo-Bold;
 }
@@ -1150,7 +1150,25 @@
 \f1\fs18 string()
 \f0\fs20 , a length cannot be specified and the new vector contains no elements.  This is because there is no default value for the object type.  Adding to such a vector is typically done with 
 \f1\fs18 c()
-\f2\fs20 .\
+\f2\fs20 .
+\f0   Note that the return value is of type 
+\f1\fs18 object<undefined>
+\f0\fs20 ; this method creates an 
+\f1\fs18 object
+\f0\fs20  vector that does not know what element type it contains.  Such 
+\f1\fs18 object
+\f0\fs20  vectors may be mixed freely with other 
+\f1\fs18 object
+\f0\fs20  vectors in 
+\f1\fs18 c()
+\f0\fs20  and similar contexts; the result of such mixing will take its 
+\f1\fs18 object
+\f0\fs20 -element type from the 
+\f1\fs18 object
+\f0\fs20  vector with a defined 
+\f1\fs18 object
+\f0\fs20 -element type (if any).
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)rep(*
@@ -2394,14 +2412,14 @@ The
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)defineConstant(string$\'a0symbol, +\'a0x)\
+\f1\fs18 \cf0 (void)defineConstant(string$\'a0symbol, +\'a0value)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Defines a new constant
 \b0  with the name 
 \f1\fs18 symbol
 \f0\fs20  and the value specified by 
-\f1\fs18 x
+\f1\fs18 value
 \f0\fs20 .  The value may be any non-object value at all.  The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
 \f1\fs18 T
 \f0\fs20 , 
