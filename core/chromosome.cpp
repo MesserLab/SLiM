@@ -170,10 +170,19 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination_));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
+		
+		// BCH 4 April 2016: Changed from (pos[x] - pos[x-1]) to (pos[x] - pos[x-1] + 1).  We were failing to draw recombination events at all possible positions, leading even to
+		// a crash with recombination intervals encompassing only a single base, because we would then ask the GSL to draw a random integer between 0 and -1.  Now for a recombination
+		// interval spanning bases 0 to 1 (a two-base-long interval) we can draw either a 0 or a 1.  Breakpoints occur to the left of the specified base position (as defined by the
+		// behavior of the crossover-mutation code, which loops through mutations as long as their position is *less than* the position of the next breakpoint; when their position
+		// is *equal* to the breakpoint position, the breakpoint is handled first, and then mutation copying resumes, which places the break to the left of the base).  In the example,
+		// a 1 would thus represent the position between base 0 and base 1, while 0 would represent the position between base 0 and the preceding recombination interval.  We can draw
+		// position 0 even for the first recombination interval, which causes a switch to the other strand before any mutations at all have been copied – a bit pointless, but we
+		// allow it for consistency, rather than special-casing that position to avoid the possibility.
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]));
+			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] + 1));
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1] + 1));
 		
 		breakpoints.emplace_back(breakpoint);
 		
