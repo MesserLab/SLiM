@@ -1,0 +1,14 @@
+VERSION HISTORY
+
+This version history begins with the final release of version 2.0.  Versions prior to 2.0 are lost in the mists of time; since the switch from 1.8 to 2.0 was so large, it was not worth tracking all of the individual changes that were made.
+
+Note that not every commit will be logged here; that is what the Github commit history is for.  The purpose of this file is to record major feature additions, major bug fixes, etc., so that it is easier to track down which version number a particular major change occurred in.  To that end, major changes made in the development head will be logged below; when we decide to roll a new version number and do a new release, all of those development head changes will be reassigned as belonging to the new version number.  We'll see how that goes, and whether I remember to update this file.  :->
+
+The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
+
+
+Development head:
+	-
+
+2.0 (build 803):
+	Version history starts.
