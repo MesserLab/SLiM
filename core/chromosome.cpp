@@ -94,7 +94,10 @@ void Chromosome::InitializeDraws(void)
 	
 	overall_recombination_rate_ = 0.0;
 	
-	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0] + 1);		// +1 here because position zero is included; fixed BCH 30 August 2015
+	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
+																							// So a 1-base model (position 0 to 0) has a recombination end of 0, and thus an overall rate of 0.
+																							// This means that gsl_ran_discrete_preproc() is given an interval with rate 0, but it does not
+																							// seem to mind that.  BCH 4 April 2016
 	overall_recombination_rate_ += B[0];
 	
 	for (unsigned int i = 1; i < recombination_rates_.size(); i++) 
@@ -171,18 +174,39 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		
-		// BCH 4 April 2016: Changed from (pos[x] - pos[x-1]) to (pos[x] - pos[x-1] + 1).  We were failing to draw recombination events at all possible positions, leading even to
-		// a crash with recombination intervals encompassing only a single base, because we would then ask the GSL to draw a random integer between 0 and -1.  Now for a recombination
-		// interval spanning bases 0 to 1 (a two-base-long interval) we can draw either a 0 or a 1.  Breakpoints occur to the left of the specified base position (as defined by the
-		// behavior of the crossover-mutation code, which loops through mutations as long as their position is *less than* the position of the next breakpoint; when their position
-		// is *equal* to the breakpoint position, the breakpoint is handled first, and then mutation copying resumes, which places the break to the left of the base).  In the example,
-		// a 1 would thus represent the position between base 0 and base 1, while 0 would represent the position between base 0 and the preceding recombination interval.  We can draw
-		// position 0 even for the first recombination interval, which causes a switch to the other strand before any mutations at all have been copied – a bit pointless, but we
-		// allow it for consistency, rather than special-casing that position to avoid the possibility.
+		// BCH 4 April 2016: Added +1 to positions in the first interval.  We do not want to generate a recombination breakpoint
+		// to the left of the 0th base, and the code in InitializeDraws() above explicitly omits that position from its calculation
+		// of the overall recombination rate.  Using recombination_end_positions_[recombination_interval] here for the first
+		// interval means that we use one less breakpoint position than usual; conceptually, the previous breakpoint ended at -1,
+		// so it ought to be recombination_end_positions_[recombination_interval]+1, but we do not add one there, in order to
+		// use one fewer positions.  We then shift all the positions to the right one, with the +1 that is added here, thereby
+		// making the position that was omitted be the position to the left of the 0th base.
+		//
+		// I also added +1 in the formula for regions after the 0th.  In general, we want a recombination interval to own all the
+		// positions to the left of its enclosed bases, up to and including the position to the left of the final base given as the
+		// end position of the interval.  The next interval's first owned recombination position is therefore to the left of the
+		// base that is one position to the right of the end of the preceding interval.  So we have to add one to the position
+		// given by recombination_end_positions_[recombination_interval - 1], at minimum.  Since gsl_rng_uniform_int() returns
+		// a zero-based random number, that means we need a +1 here as well.
+		//
+		// The key fact here is that a recombination breakpoint position of 1 means "break to the left of the base at position 1" –
+		// the breakpoint falls between bases, to the left of the bse at the specified number.  This is a consequence of the logic
+		// is the crossover-mutation code, which copies mutations as long as their position is *less than* the position of the next
+		// breakpoint.  When their position is *equal*, the breakpoint gets serviced by switching strands.  That logic causes the
+		// breakpoints to fall to the left of their designated base.
+		//
+		// Note that gsl_rng_uniform_int() crashes (well, aborts fatally) if passed 0 for n.  We need to guarantee that that doesn't
+		// happen, and we don't want to waste time checking for that condition here.  For a 1-base model, we are guaranteed that
+		// the overall recombination rate will be zero, by the logic in InitializeDraws(), and so we should not be called in the
+		// first place.  For longer chromosomes that start with a 1-base recombination interval, the rate calculated by
+		// InitializeDraws() for the first interval should be 0, so gsl_ran_discrete() should never return the first interval to
+		// us here.  For all other recombination intervals, the math of pos[x]-pos[x-1] should always result in a value >0,
+		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
+		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] + 1));
+			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]) + 1);
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1] + 1));
+			breakpoint = recombination_end_positions_[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
 		
 		breakpoints.emplace_back(breakpoint);
 		
