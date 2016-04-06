@@ -29,6 +29,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
+#include <typeinfo>
 
 
 using std::multimap;
