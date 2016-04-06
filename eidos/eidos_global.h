@@ -145,22 +145,27 @@ std::string EidosResolvedPath(const std::string p_path);
 // However, since GCC pre-5.0 doesn't have these builtins, and other compilers probably don't either, we have to
 // do some messy version checking and such.
 
+// BCH 6 April 2016: switched from the type-specific variants (i.e. __builtin_saddll_overflow, etc.) to the
+// type-non-specific variants (i.e. __builtin_add_overflow) since some platforms use more than 64 bits for
+// "long long".  The non-specific variants should choose which type-specific variant to use at compile time
+// anyway, so this should not be an issue as long as we are careful to always use int64_t operands.
+
 #if (defined(__clang__) && defined(__has_builtin))
 
-#if __has_builtin(__builtin_saddll_overflow)
+#if __has_builtin(__builtin_add_overflow)
 // Clang with support for overflow built-ins (if one is defined we assume all of them are)
-#define Eidos_saddll_overflow(a, b, c)	__builtin_saddll_overflow((a), (b), (c))
-#define Eidos_ssubll_overflow(a, b, c)	__builtin_ssubll_overflow((a), (b), (c))
-#define Eidos_smulll_overflow(a, b, c)	__builtin_smulll_overflow((a), (b), (c))
+#define Eidos_add_overflow(a, b, c)	__builtin_add_overflow((a), (b), (c))
+#define Eidos_sub_overflow(a, b, c)	__builtin_sub_overflow((a), (b), (c))
+#define Eidos_mul_overflow(a, b, c)	__builtin_mul_overflow((a), (b), (c))
 #endif
 
 #elif defined(__GNUC__)
 
 #if (__GNUC__ >= 5)
 // GCC 5.0 or later; overflow built-ins supported
-#define Eidos_saddll_overflow(a, b, c)	__builtin_saddll_overflow((a), (b), (c))
-#define Eidos_ssubll_overflow(a, b, c)	__builtin_ssubll_overflow((a), (b), (c))
-#define Eidos_smulll_overflow(a, b, c)	__builtin_smulll_overflow((a), (b), (c))
+#define Eidos_add_overflow(a, b, c)	__builtin_add_overflow((a), (b), (c))
+#define Eidos_sub_overflow(a, b, c)	__builtin_sub_overflow((a), (b), (c))
+#define Eidos_mul_overflow(a, b, c)	__builtin_mul_overflow((a), (b), (c))
 #endif
 
 #endif
@@ -168,12 +173,12 @@ std::string EidosResolvedPath(const std::string p_path);
 // Uncomment these to test handling of missing built-ins on a system that does have the built-ins; with these
 // uncommented, the Eidos test suite should emit a warning about missing integer overflow checks, but all tests
 // that are run should pass.
-//#undef Eidos_saddll_overflow
-//#undef Eidos_ssubll_overflow
-//#undef Eidos_smulll_overflow
+//#undef Eidos_add_overflow
+//#undef Eidos_sub_overflow
+//#undef Eidos_mul_overflow
 
 
-#ifdef Eidos_saddll_overflow
+#ifdef Eidos_add_overflow
 
 #define EIDOS_HAS_OVERFLOW_BUILTINS		1
 
@@ -181,9 +186,9 @@ std::string EidosResolvedPath(const std::string p_path);
 
 // Define the macros to just use simple operators, in all other cases.  Note that this means overflows are not
 // detected!  The Eidos test suite will emit a warning in this case, telling the user to upgrade their compiler.
-#define Eidos_saddll_overflow(a, b, c)	(*(c)=(a)+(b), false)
-#define Eidos_ssubll_overflow(a, b, c)	(*(c)=(a)-(b), false)
-#define Eidos_smulll_overflow(a, b, c)	(*(c)=(a)*(b), false)
+#define Eidos_add_overflow(a, b, c)	(*(c)=(a)+(b), false)
+#define Eidos_sub_overflow(a, b, c)	(*(c)=(a)-(b), false)
+#define Eidos_mul_overflow(a, b, c)	(*(c)=(a)*(b), false)
 #define EIDOS_HAS_OVERFLOW_BUILTINS		0
 
 #endif

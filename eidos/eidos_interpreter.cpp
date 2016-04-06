@@ -1446,7 +1446,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
 					int64_t add_result;
-					bool overflow = Eidos_saddll_overflow(first_operand, second_operand, &add_result);
+					bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
@@ -1468,7 +1468,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						int64_t first_operand = first_child_vec[value_index];
 						int64_t second_operand = second_child_vec[value_index];
 						int64_t add_result;
-						bool overflow = Eidos_saddll_overflow(first_operand, second_operand, &add_result);
+						bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
@@ -1493,7 +1493,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int64_t second_operand = second_child_vec[value_index];
 					int64_t add_result;
-					bool overflow = Eidos_saddll_overflow(singleton_int, second_operand, &add_result);
+					bool overflow = Eidos_add_overflow(singleton_int, second_operand, &add_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
@@ -1517,7 +1517,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int64_t first_operand = first_child_vec[value_index];
 					int64_t add_result;
-					bool overflow = Eidos_saddll_overflow(first_operand, singleton_int, &add_result);
+					bool overflow = Eidos_add_overflow(first_operand, singleton_int, &add_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
@@ -1662,7 +1662,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				
 				int64_t operand = first_child_value->IntAtIndex(0, operator_token);
 				int64_t subtract_result;
-				bool overflow = Eidos_ssubll_overflow(0, operand, &subtract_result);
+				bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
 				
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
@@ -1682,7 +1682,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int64_t operand = first_child_vec[value_index];
 					int64_t subtract_result;
-					bool overflow = Eidos_ssubll_overflow(0, operand, &subtract_result);
+					bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
@@ -1736,7 +1736,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
 					int64_t subtract_result;
-					bool overflow = Eidos_ssubll_overflow(first_operand, second_operand, &subtract_result);
+					bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
@@ -1758,7 +1758,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						int64_t first_operand = first_child_vec[value_index];
 						int64_t second_operand = second_child_vec[value_index];
 						int64_t subtract_result;
-						bool overflow = Eidos_ssubll_overflow(first_operand, second_operand, &subtract_result);
+						bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
@@ -1783,7 +1783,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int64_t second_operand = second_child_vec[value_index];
 					int64_t subtract_result;
-					bool overflow = Eidos_ssubll_overflow(singleton_int, second_operand, &subtract_result);
+					bool overflow = Eidos_sub_overflow(singleton_int, second_operand, &subtract_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
@@ -1807,7 +1807,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					int64_t first_operand = first_child_vec[value_index];
 					int64_t subtract_result;
-					bool overflow = Eidos_ssubll_overflow(first_operand, singleton_int, &subtract_result);
+					bool overflow = Eidos_sub_overflow(first_operand, singleton_int, &subtract_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
@@ -2086,7 +2086,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				int64_t first_operand = first_child_value->IntAtIndex(0, operator_token);
 				int64_t second_operand = second_child_value->IntAtIndex(0, operator_token);
 				int64_t multiply_result;
-				bool overflow = Eidos_smulll_overflow(first_operand, second_operand, &multiply_result);
+				bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
 				
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
@@ -2108,7 +2108,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 					int64_t first_operand = first_child_vec[value_index];
 					int64_t second_operand = second_child_vec[value_index];
 					int64_t multiply_result;
-					bool overflow = Eidos_smulll_overflow(first_operand, second_operand, &multiply_result);
+					bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
@@ -2196,7 +2196,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				
 				int64_t first_operand = any_count_vec[value_index];
 				int64_t multiply_result;
-				bool overflow = Eidos_smulll_overflow(first_operand, singleton_int, &multiply_result);
+				bool overflow = Eidos_mul_overflow(first_operand, singleton_int, &multiply_result);
 				
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
@@ -2932,7 +2932,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							case EidosTokenType::kTokenPlus:
 							{
 								int64_t &operand1_value = int_singleton->IntValue_Mutable();
-								bool overflow = Eidos_saddll_overflow(operand1_value, operand2_value, &operand1_value);
+								bool overflow = Eidos_add_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
@@ -2941,7 +2941,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							case EidosTokenType::kTokenMinus:
 							{
 								int64_t &operand1_value = int_singleton->IntValue_Mutable();
-								bool overflow = Eidos_ssubll_overflow(operand1_value, operand2_value, &operand1_value);
+								bool overflow = Eidos_sub_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
@@ -2950,7 +2950,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							case EidosTokenType::kTokenMult:
 							{
 								int64_t &operand1_value = int_singleton->IntValue_Mutable();
-								bool overflow = Eidos_smulll_overflow(operand1_value, operand2_value, &operand1_value);
+								bool overflow = Eidos_mul_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);
@@ -2971,7 +2971,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								{
 									int64_t &int_vec_value = int_vec[value_index];
-									bool overflow = Eidos_saddll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									bool overflow = Eidos_add_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
 										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
@@ -2983,7 +2983,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								{
 									int64_t &int_vec_value = int_vec[value_index];
-									bool overflow = Eidos_ssubll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									bool overflow = Eidos_sub_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
 										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
@@ -2995,7 +2995,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								for (int value_index = 0; value_index < lvalue_count; ++value_index)
 								{
 									int64_t &int_vec_value = int_vec[value_index];
-									bool overflow = Eidos_smulll_overflow(int_vec_value, operand2_value, &int_vec_value);
+									bool overflow = Eidos_mul_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
 										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);

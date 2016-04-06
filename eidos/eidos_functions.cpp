@@ -791,7 +791,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					{
 						int64_t operand = int_vec[value_index];
 						
-						bool overflow = Eidos_smulll_overflow(product, operand, &product);
+						bool overflow = Eidos_mul_overflow(product, operand, &product);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer multiplication overflow in function cumProduct()." << eidos_terminate(nullptr);
@@ -852,7 +852,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 					{
 						int64_t operand = int_vec[value_index];
 						
-						bool overflow = Eidos_saddll_overflow(sum, operand, &sum);
+						bool overflow = Eidos_add_overflow(sum, operand, &sum);
 						
 						if (overflow)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): integer addition overflow in function cumSum()." << eidos_terminate(nullptr);
@@ -1281,7 +1281,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						int64_t old_product = product;
 						int64_t temp = int_vec[value_index];
 						
-						bool overflow = Eidos_smulll_overflow(old_product, temp, &product);
+						bool overflow = Eidos_mul_overflow(old_product, temp, &product);
 						
 						// switch to float computation on overflow, and accumulate in the float product just before overflow
 						if (overflow)
@@ -1354,7 +1354,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 						int64_t old_sum = sum;
 						int64_t temp = int_vec[value_index];
 						
-						bool overflow = Eidos_saddll_overflow(old_sum, temp, &sum);
+						bool overflow = Eidos_add_overflow(old_sum, temp, &sum);
 						
 						// switch to float computation on overflow, and accumulate in the float sum just before overflow
 						if (overflow)
