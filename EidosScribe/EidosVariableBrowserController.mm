@@ -111,12 +111,18 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 
 - (void)expandItemsInSet:(NSSet *)set belowItem:(id)parentItem
 {
-	NSUInteger childCount = [_browserOutline numberOfChildrenOfItem:parentItem];
+	// BCH 4/7/2016: The -numberOfChildrenOfItem: and child:ofItem: methods of NSOutlineView do not exist in 10.9,
+	// so we have to get the datasource of the outline view and get the information ourselves.
+	BOOL respondsToNumberOfChildrenOfItem = [_browserOutline respondsToSelector:@selector(numberOfChildrenOfItem:)];
+	BOOL respondsToChildOfItem = [_browserOutline respondsToSelector:@selector(child:ofItem:)];
+	id <NSOutlineViewDataSource> datasource = ((respondsToNumberOfChildrenOfItem && respondsToChildOfItem) ? nil : [_browserOutline dataSource]);
+	
+	NSUInteger childCount = (respondsToNumberOfChildrenOfItem ? [_browserOutline numberOfChildrenOfItem:parentItem] : [datasource outlineView:_browserOutline numberOfChildrenOfItem:parentItem]);
 	//NSLog(@"after reload, outline has %lu children (%ld rows), expandedSet has %lu items", (unsigned long)childCount, (long)[_browserOutline numberOfRows], (unsigned long)[expandedSet count]);
 	
 	for (unsigned int i = 0; i < childCount; ++i)
 	{
-		id childItem = [_browserOutline child:i ofItem:parentItem];
+		id childItem = (respondsToChildOfItem ? [_browserOutline child:i ofItem:parentItem] : [datasource outlineView:_browserOutline child:i ofItem:parentItem]);
 		
 		if ([expandedSet containsObject:childItem])		// uses -hash and -isEqual:, not pointer equality!
 		{

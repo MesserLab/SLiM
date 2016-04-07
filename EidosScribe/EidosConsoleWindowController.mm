@@ -233,7 +233,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	// and to clean references to variables that are about to invalidated.  FIXME
 	BOOL safeguardReferences = NO;
 	
-	if ([scriptString containsString:@"readFromPopulationFile"])
+	if ([scriptString rangeOfString:@"readFromPopulationFile"].location != NSNotFound)	// BCH 4/7/2016: containsString: added in 10.10
 		safeguardReferences = YES;
 	
 	if (safeguardReferences)
@@ -392,7 +392,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 									  errorString:&errorString
 							withOptionalSemicolon:semicolonOptional];
 	
-	if ([errorString containsString:@"unexpected token 'EOF'"])
+	if ([errorString rangeOfString:@"unexpected token 'EOF'"].location != NSNotFound)	// BCH 4/7/2016: containsString: added in 10.10
 	{
 		// The user has entered an incomplete script line, so we need to append a newline...
 		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];

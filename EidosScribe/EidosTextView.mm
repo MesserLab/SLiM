@@ -693,7 +693,7 @@ using std::string;
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
-	NSEventModifierFlags modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
 	
 	// If the control key is down, the click will be interpreted by super as a context-menu click even with option down, so we can let that through.
 	// Otherwise, option-clicks produce discontiguous selections that we want to prevent since we are not prepared to deal with them.  Instead, we

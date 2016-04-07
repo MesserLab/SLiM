@@ -338,7 +338,7 @@
 			[subView setHidden:hidden];
 			
 			// Set height (horizontal) or width (vertical)
-			if (!self.vertical)
+			if (![self isVertical])		// BCH 4/7/2016: vertical property not available in 10.9
 			{
 				CGFloat height = [components[3] floatValue];
 				[subView setFrameSize:NSMakeSize(subView.frame.size.width, height)];

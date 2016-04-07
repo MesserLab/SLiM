@@ -20,6 +20,13 @@
 
 #import <Cocoa/Cocoa.h>
 
+
+// BCH 4/7/2016: So we can build against the OS X 10.9 SDK
+#ifndef NS_DESIGNATED_INITIALIZER
+#define NS_DESIGNATED_INITIALIZER
+#endif
+
+
 @protocol EidosVariableBrowserControllerDelegate;
 
 

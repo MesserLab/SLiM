@@ -26,6 +26,12 @@
 #include "eidos_property_signature.h"
 
 
+// BCH 4/7/2016: So we can build against the OS X 10.9 SDK
+#ifndef NS_DESIGNATED_INITIALIZER
+#define NS_DESIGNATED_INITIALIZER
+#endif
+
+
 // EidosHelpOutlineView – this lets us colorize rows in the outline
 @interface EidosHelpOutlineView : NSOutlineView
 @end
@@ -927,7 +933,7 @@
 	// We want to colorize group rows green if they are from the Eidos doc, blue otherwise (Context doc)
 	if ([delegate outlineView:self isGroupItem:item])
 	{
-		if ([item containsString:@"Eidos"])
+		if ([item rangeOfString:@"Eidos"].location != NSNotFound)	// BCH 4/7/2016: containsString: added in 10.10
 		{
 			[[NSColor colorWithCalibratedRed:0 green:1.0 blue:0 alpha:0.04] set];
 			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);

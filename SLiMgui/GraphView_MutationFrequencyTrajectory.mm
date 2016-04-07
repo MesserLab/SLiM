@@ -72,7 +72,10 @@
 {
 	NSPopUpButton *popupButton = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(10, 10, 100, 47) pullsDown:NO];
 	[popupButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSMiniControlSize]]];
-	[popupButton setControlSize:NSMiniControlSize];
+	if ([popupButton respondsToSelector:@selector(setControlSize:)])
+		[popupButton setControlSize:NSMiniControlSize];
+	else
+		[[popupButton cell] setControlSize:NSMiniControlSize];	// BCH 4/7/2016: call on the cell; on the view, not supported in 10.9
 	[popupButton setAutoenablesItems:NO];
 	[popupButton setTarget:self];
 	[popupButton setAction:action];

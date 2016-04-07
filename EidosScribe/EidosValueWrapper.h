@@ -23,6 +23,12 @@
 #include "eidos_value.h"
 
 
+// BCH 4/7/2016: So we can build against the OS X 10.9 SDK
+#ifndef NS_DESIGNATED_INITIALIZER
+#define NS_DESIGNATED_INITIALIZER
+#endif
+
+
 /*
  
  This is an Objective-C++ header, and so can only be included by Objective-C++ compilations (.mm files instead of .m files).
