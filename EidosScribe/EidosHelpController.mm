@@ -933,7 +933,7 @@
 	// We want to colorize group rows green if they are from the Eidos doc, blue otherwise (Context doc)
 	if ([delegate outlineView:self isGroupItem:item])
 	{
-		if ([item rangeOfString:@"Eidos"].location != NSNotFound)	// BCH 4/7/2016: containsString: added in 10.10
+		if (item && ([item rangeOfString:@"Eidos"].location != NSNotFound))	// BCH 4/7/2016: containsString: added in 10.10
 		{
 			[[NSColor colorWithCalibratedRed:0 green:1.0 blue:0 alpha:0.04] set];
 			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
