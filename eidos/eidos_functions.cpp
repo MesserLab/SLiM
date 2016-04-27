@@ -38,6 +38,24 @@
 #include <cmath>
 
 
+// From stackoverflow: http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf/
+// I chose to use iFreilicht's answer, which requires C++11.  BCH 26 April 2016
+#include <memory>
+#include <iostream>
+#include <string>
+#include <cstdio>
+#include <cinttypes>
+
+template<typename ... Args>
+std::string EidosStringFormat(const std::string& format, Args ... args)
+{
+	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;	// Extra space for '\0'
+	std::unique_ptr<char[]> buf(new char[size]); 
+	snprintf(buf.get(), size, format.c_str(), args ...);
+	return std::string(buf.get(), buf.get() + size - 1);				// We don't want the '\0' inside
+}
+
+
 using std::string;
 using std::vector;
 using std::map;
@@ -149,6 +167,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				EidosFunctionIdentifier::allFunction,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				EidosFunctionIdentifier::anyFunction,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				EidosFunctionIdentifier::catFunction,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("format",			EidosFunctionIdentifier::formatFunction,		kEidosValueMaskString))->AddString_S("format")->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("identical",		EidosFunctionIdentifier::identicalFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x")->AddAny("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			EidosFunctionIdentifier::ifelseFunction,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",			EidosFunctionIdentifier::matchFunction,			kEidosValueMaskInt))->AddAny("x")->AddAny("table"));
@@ -3065,6 +3084,238 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			}
 			
 			result_SP = gStaticEidosValueNULLInvisible;
+			break;
+		}
+			
+			
+			//	(string)format(string$ format, numeric x)
+			#pragma mark format
+			
+		case EidosFunctionIdentifier::formatFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			string format = arg0_value->StringAtIndex(0, nullptr);
+			EidosValue *arg1_value = p_arguments[1].get();
+			EidosValueType arg1_type = arg1_value->Type();
+			int arg1_count = arg1_value->Count();
+			
+			// Check the format string for correct syntax.  We have to be pretty careful about what we pass on to C++, both
+			// for robustness and for security.  We allow the standard flags (+- #0), an integer field width (but not *), and
+			// an integer precision (but not *).  For integer x we allow %d %i %o %x %X, for float x we allow %f %F %e %E %g %G;
+			// other conversion specifiers are not allowed.  We do not allow a length modifier; we supply the correct length
+			// modifier ourselves, which is platform-dependent.  We allow the format to be embedded within a longer string,
+			// as usual, for convenience, but only one % specifier may exist within the format string.
+			int length = (int)format.length();
+			int pos = 0;
+			int conversion_specifier_pos = -1;
+			char conv_ch = ' ';
+			bool flag_plus = false, flag_minus = false, flag_space = false, flag_pound = false, flag_zero = false;
+			
+			while (pos < length)
+			{
+				if (format[pos] == '%')
+				{
+					if ((pos + 1 < length) && (format[pos + 1] == '%'))
+					{
+						// skip over %% escapes
+						pos += 2;
+					}
+					else if (conversion_specifier_pos != -1)
+					{
+						// we already saw a format specifier
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); only one % escape is allowed." << eidos_terminate(nullptr);
+					}
+					else
+					{
+						// other uses of % must be the format specifier, which we now parse
+						
+						// skip the %
+						++pos;
+						
+						// skip over the optional +- #0 flags
+						while (pos < length)
+						{
+							char flag = format[pos];
+							
+							if (flag == '+')
+							{
+								if (flag_plus)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); flag '+' specified more than once." << eidos_terminate(nullptr);
+								
+								flag_plus = true;
+								++pos;	// skip the '+'
+							}
+							else if (flag == '-')
+							{
+								if (flag_minus)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); flag '-' specified more than once." << eidos_terminate(nullptr);
+								
+								flag_minus = true;
+								++pos;	// skip the '-'
+							}
+							else if (flag == ' ')
+							{
+								if (flag_space)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); flag ' ' specified more than once." << eidos_terminate(nullptr);
+								
+								flag_space = true;
+								++pos;	// skip the ' '
+							}
+							else if (flag == '#')
+							{
+								if (flag_pound)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); flag '#' specified more than once." << eidos_terminate(nullptr);
+								
+								flag_pound = true;
+								++pos;	// skip the '#'
+							}
+							else if (flag == '0')
+							{
+								if (flag_zero)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); flag '0' specified more than once." << eidos_terminate(nullptr);
+								
+								flag_zero = true;
+								++pos;	// skip the '0'
+							}
+							else
+							{
+								// not a flag character, so we are done with our optional flags
+								break;
+							}
+						}
+						
+						// skip over the optional field width; eat a [1-9] followed by any number of [0-9]
+						if (pos < length)
+						{
+							char fieldwidth_ch = format[pos];
+							
+							if ((fieldwidth_ch >= '1') && (fieldwidth_ch <= '9'))
+							{
+								// skip the leading digit
+								++pos;
+								
+								while (pos < length)
+								{
+									fieldwidth_ch = format[pos];
+									
+									if ((fieldwidth_ch >= '0') && (fieldwidth_ch <= '9'))
+										++pos;	// skip the digit
+									else
+										break;
+								}
+							}
+						}
+						
+						// skip the optional precision specifier, a '.' followed by an integer
+						if ((pos < length) && (format[pos] == '.'))
+						{
+							// skip the leading '.'
+							++pos;
+							
+							while (pos < length)
+							{
+								char precision_ch = format[pos];
+								
+								if ((precision_ch >= '0') && (precision_ch <= '9'))
+									++pos;	// skip the digit
+								else
+									break;
+							}
+						}
+						
+						// now eat the required conversion specifier
+						if (pos < length)
+						{
+							conv_ch = format[pos];
+							
+							conversion_specifier_pos = pos;
+							++pos;
+							
+							if ((conv_ch == 'd') || (conv_ch == 'i') || (conv_ch == 'o') || (conv_ch == 'x') || (conv_ch == 'X'))
+							{
+								if (arg1_type != EidosValueType::kValueInt)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type integer." << eidos_terminate(nullptr);
+							}
+							else if ((conv_ch == 'f') || (conv_ch == 'F') || (conv_ch == 'e') || (conv_ch == 'E') || (conv_ch == 'g') || (conv_ch == 'G'))
+							{
+								if (arg1_type != EidosValueType::kValueFloat)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type float." << eidos_terminate(nullptr);
+							}
+							else
+							{
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); conversion specifier '" << conv_ch << "' not supported." << eidos_terminate(nullptr);
+							}
+						}
+						else
+						{
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); missing conversion specifier after '%'." << eidos_terminate(nullptr);
+						}
+					}
+				}
+				else
+				{
+					// Skip over all other characters
+					++pos;
+				}
+			}
+			
+			// Fix the format string to have the correct length modifier.  This is an issue only for integer; for float, the
+			// default is double anyway so we're fine.  For integer, the correct format strings are defined by <cinttypes>:
+			// PRId64, PRIi64, PRIo64, PRIx64, and PRIX64.
+			if (arg1_type == EidosValueType::kValueInt)
+			{
+				string new_conv_string;
+				
+				if (conv_ch == 'd')
+					new_conv_string = PRId64;
+				else if (conv_ch == 'i')
+					new_conv_string = PRIi64;
+				else if (conv_ch == 'o')
+					new_conv_string = PRIo64;
+				else if (conv_ch == 'x')
+					new_conv_string = PRIx64;
+				else if (conv_ch == 'X')
+					new_conv_string = PRIX64;
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): (internal error) bad format string in function format(); conversion specifier '" << conv_ch << "' not recognized in format string fix code." << eidos_terminate(nullptr);
+				
+				format.replace(conversion_specifier_pos, 1, new_conv_string);
+			}
+			
+			// Check for possibilities that produce undefined behavior according to the C++11 standard
+			if (flag_pound && ((conv_ch == 'd') || (conv_ch == 'i')))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): bad format string in function format(); the flag '#' may not be used with the conversion specifier '" << conv_ch << "'." << eidos_terminate(nullptr);
+			
+			if (arg1_count == 1)
+			{
+				// singleton case
+				string result_string;
+				
+				if (arg1_type == EidosValueType::kValueInt)
+					result_string = EidosStringFormat(format, arg1_value->IntAtIndex(0, nullptr));
+				else if (arg1_type == EidosValueType::kValueFloat)
+					result_string = EidosStringFormat(format, arg1_value->FloatAtIndex(0, nullptr));
+				
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
+			}
+			else
+			{
+				// non-singleton x vector, with a singleton format vector
+				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(arg1_count);
+				result_SP = EidosValue_SP(string_result);
+				
+				if (arg1_type == EidosValueType::kValueInt)
+				{
+					for (int value_index = 0; value_index < arg1_count; ++value_index)
+						string_result->PushString(EidosStringFormat(format, arg1_value->IntAtIndex(value_index, nullptr)));
+				}
+				else if (arg1_type == EidosValueType::kValueFloat)
+				{
+					for (int value_index = 0; value_index < arg1_count; ++value_index)
+						string_result->PushString(EidosStringFormat(format, arg1_value->FloatAtIndex(value_index, nullptr)));
+				}
+			}
+			
 			break;
 		}
 			

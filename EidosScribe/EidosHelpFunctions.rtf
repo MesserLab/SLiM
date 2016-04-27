@@ -1,8 +1,12 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 Helvetica;\f5\fnil\fcharset0 Menlo-Bold;
-}
+\f6\ftech\fcharset77 Symbol;}
 {\colortbl;\red255\green255\blue255;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab397
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
@@ -1424,6 +1428,259 @@
 \f1\fs18 cat(NULL)
 \f0\fs20  will emit nothing.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (string)format(string$
+\f2 \'a0
+\f1 format, numeric\'a0x)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector of 
+\b formatted strings
+\b0  generated from 
+\f1\fs18 x
+\f0\fs20 , based upon the formatting string 
+\f1\fs18 format
+\f2\fs20 .
+\f0   The 
+\f1\fs18 format
+\f0\fs20  parameter may be any 
+\f1\fs18 string
+\f0\fs20  value, but must contain exactly one escape sequence beginning with the 
+\f1\fs18 %
+\f0\fs20  character.  This escape sequence specifies how to format a single value from the vector 
+\f1\fs18 x
+\f0\fs20 .  The returned vector contains one 
+\f1\fs18 string
+\f0\fs20  value for each element of 
+\f1\fs18 x
+\f0\fs20 ; each 
+\f1\fs18 string
+\f0\fs20  value is identical to the string supplied in 
+\f1\fs18 format
+\f0\fs20 , except with a formatted version of the corresponding value from 
+\f1\fs18 x
+\f0\fs20  substituted in place of the escape sequence.\
+The syntax for 
+\f1\fs18 format
+\f0\fs20  is a subset of the standard C/C++ 
+\f1\fs18 printf()
+\f0\fs20 -style format strings (e.g., http://en.cppreference.com/w/c/io/fprintf).  The escape sequence used to format each value of x is composed of several elements:\
+\pard\pardeftab397\li907\fi-187\ri720\sb60\sa60\partightenfactor0
+\ls1\ilvl0\cf0 \'96  A 
+\f1\fs18 %
+\f0\fs20  character at the beginning, initiating the escape sequence (if an actual 
+\f1\fs18 %
+\f0\fs20  character is desired, rather than an escape sequence, 
+\f1\fs18 %%
+\f0\fs20  may be used)\
+\'96  Optional flags that modify the style of formatting:\
+\pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
+\ls2\ilvl0
+\f6\fs18 \cf0 \'a5	
+\f1 -
+\f0\fs20  :	The value is left-justified with the field (as opposed to the default of right-justification).\
+\ls2\ilvl0
+\f6\fs18 \'a5	
+\f1 +
+\f0\fs20  :	The sign of the value is always prepended, even if the value is positive (as opposed to the default of appending the sign only if the value is negative).\
+\pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
+\ls2\ilvl0
+\f6 \cf0 \'a5	
+\f0\i space
+\i0  :	The value is prepended by a space when a sign is not prepended.  This is ignored if the 
+\f1\fs18 +
+\f0\fs20  flag is present, since values are then always prepended by a sign.\
+\pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
+\ls2\ilvl0
+\f6\fs18 \cf0 \'a5	
+\f1 #
+\f0\fs20  :	An alternative format is used.  For 
+\f1\fs18 %o
+\f0\fs20 , at least one leading zero is always produced.  For 
+\f1\fs18 %x
+\f0\fs20  and 
+\f1\fs18 %X
+\f0\fs20 , 
+\f1\fs18 0x
+\f0\fs20  or 
+\f1\fs18 0X
+\f0\fs20  (respectively) is prepended if the value is nonzero.  For 
+\f1\fs18 %f
+\f0\fs20 , 
+\f1\fs18 %F
+\f0\fs20 , 
+\f1\fs18 %e
+\f0\fs20 , 
+\f1\fs18 %E
+\f0\fs20 , 
+\f1\fs18 %g
+\f0\fs20 , and 
+\f1\fs18 %G
+\f0\fs20 , a decimal point is forced even if no zeros follow.\
+\ls2\ilvl0
+\f6\fs18 \'a5	
+\f1 0
+\f0\fs20  :	The value is left-justified with the field (as opposed to the default of right-justification)\
+\pard\pardeftab397\li907\fi-187\ri720\sb60\sa60\partightenfactor0
+\ls3\ilvl0\cf0 \'96  An optional minimum field width, specified as an integer value.  Fields will be padded out to this minimum width.  Padding will be done with space characters by default (or with zeros, if the 
+\f1\fs18 0
+\f0\fs20  flag is used), on the left by default (or on the right, if the 
+\f1\fs18 -
+\f0\fs20  flag is used).\
+\'96  An optional precision, given as an integer value preceded by a 
+\f1\fs18 .
+\f0\fs20  character.  If no integer value follows the 
+\f1\fs18 .
+\f0\fs20  character, a precision of zero will be used.  For integer values of 
+\f1\fs18 x
+\f0\fs20  (formatted with 
+\f1\fs18 %d
+\f0\fs20 , 
+\f1\fs18 %i
+\f0\fs20 , 
+\f1\fs18 %o
+\f0\fs20 , 
+\f1\fs18 %x
+\f0\fs20 , or 
+\f1\fs18 %X
+\f0\fs20 ) the precision specifies the minimum number of digits that will appear (with extra zeros on the left if necessary), with a default precision of 
+\f1\fs18 1
+\f2\fs20 .
+\f0   For float values of 
+\f1\fs18 x
+\f0\fs20  formatted with 
+\f1\fs18 %f
+\f0\fs20 , 
+\f1\fs18 %F
+\f0\fs20 , 
+\f1\fs18 %e
+\f0\fs20 , 
+\f1\fs18 %E
+\f0\fs20 , 
+\f1\fs18 %g
+\f0\fs20 , or 
+\f1\fs18 %G
+\f0\fs20 , the precision specifies the minimum number of digits that will appear to the right of the decimal point (with extra zeros on the right if necessary), with a default precision of 
+\f1\fs18 6
+\f2\fs20 .\
+\ls3\ilvl0
+\f0 \'96  A format specifier.  For 
+\f1\fs18 integer
+\f0\fs20  values, this may be 
+\f1\fs18 %d
+\f0\fs20  or 
+\f1\fs18 %i
+\f0\fs20  (producing base-10 output; there is no difference between the two), 
+\f1\fs18 %o
+\f0\fs20  (producing base-8 or octal output), 
+\f1\fs18 %x
+\f0\fs20  (producing base-16 hexadecimal output using lowercase letters), or 
+\f1\fs18 %X
+\f0\fs20  (producing base-16 hexadecimal output using uppercase letters).  For 
+\f1\fs18 float
+\f0\fs20  values, this may be 
+\f1\fs18 %f
+\f0\fs20  or 
+\f1\fs18 %F
+\f0\fs20  to produce decimal notation (of the form 
+\f1\fs18 [\uc0\u8722 ]ddd.ddd
+\f0\fs20 ; there is no difference between the two), 
+\f1\fs18 %e
+\f0\fs20  or 
+\f1\fs18 %E
+\f0\fs20  to produce scientific notation (of the form 
+\f1\fs18 [\uc0\u8722 ]d.ddde\'b1dd
+\f0\fs20  or 
+\f1\fs18 [\uc0\u8722 ]d.dddE\'b1dd
+\f0\fs20 , respectively), or 
+\f1\fs18 %g
+\f0\fs20  or 
+\f1\fs18 %G
+\f0\fs20  to produce either decimal notation or scientific notation (using the formatting of 
+\f1\fs18 %f
+\f0\fs20  / 
+\f1\fs18 %e
+\f0\fs20  or 
+\f1\fs18 %F
+\f0\fs20  / 
+\f1\fs18 %E
+\f0\fs20 , respectively) on a per-value basis, depending upon the range of the value.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 Note that relative to the standard C/C++ 
+\f1\fs18 printf()
+\f0\fs20 -style behavior, there are a few differences: (1) only a single escape sequence may be present in the format string, (2) the use of 
+\f1\fs18 *
+\f0\fs20  to defer field width and precision values to a passed parameter is not supported, (3) only 
+\f1\fs18 integer
+\f0\fs20  and 
+\f1\fs18 float
+\f0\fs20  values of 
+\f1\fs18 x
+\f0\fs20  are supported, (4) only the 
+\f1\fs18 %d
+\f0\fs20 , 
+\f1\fs18 %i
+\f0\fs20 , 
+\f1\fs18 %o
+\f0\fs20 , 
+\f1\fs18 %x
+\f0\fs20 , 
+\f1\fs18 %X
+\f0\fs20 , 
+\f1\fs18 %f
+\f0\fs20 , 
+\f1\fs18 %F
+\f0\fs20 , 
+\f1\fs18 %e
+\f0\fs20 , 
+\f1\fs18 %E
+\f0\fs20 , 
+\f1\fs18 %g
+\f0\fs20 , and 
+\f1\fs18 %G
+\f0\fs20  format specifiers are supported, and (5) no length modifiers may be supplied, since Eidos does not support different sizes of the 
+\f1\fs18 integer
+\f0\fs20  and 
+\f1\fs18 float
+\f0\fs20  types.  Note also that the Eidos conventions of emitting 
+\f1\fs18 INF
+\f0\fs20  and 
+\f1\fs18 NAN
+\f0\fs20  for infinities and Not-A-Number values respectively is not honored by this function; the strings generated for such values are platform-dependent, following the implementation definition of the C++ compiler used to build Eidos, since 
+\f1\fs18 format()
+\f0\fs20  calls through to 
+\f1\fs18 snprintf()
+\f0\fs20  to assemble the final string values.\
+For example, 
+\f1\fs18 format("A number: %+7.2f", c(-4.1, 15.375, 8))
+\f0\fs20  will produce a vector with three elements: 
+\f1\fs18 "A number:   -4.10" "A number:  +15.38" "A number:   +8.00"
+\f2\fs20 .
+\f0   The precision of 
+\f1\fs18 .2
+\f0\fs20  results in two digits after the decimal point, the minimum field width of 
+\f1\fs18 7
+\f0\fs20  results in padding of the values on the left (with spaces) to a minimum of seven characters, the flag 
+\f1\fs18 +
+\f0\fs20  causes a sign to be shown on positive values as well as negative values, and the format specifier 
+\f1\fs18 f
+\f0\fs20  leads to the 
+\f1\fs18 float
+\f0\fs20  values of 
+\f1\fs18 x
+\f0\fs20  being formatted in base-10 decimal.  One 
+\f1\fs18 string
+\f0\fs20  value is produced in the result vector for each value in the parameter 
+\f1\fs18 x
+\f2\fs20 .
+\f0   These values could then be merged into a single string with 
+\f1\fs18 paste()
+\f0\fs20 , for example, or printed with 
+\f1\fs18 print()
+\f0\fs20  or 
+\f1\fs18 cat()
+\f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y)\
