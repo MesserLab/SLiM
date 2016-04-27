@@ -10,5 +10,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 Development head:
 	-
 
-2.0 (build 811):
+2.0.1 (build 814; Eidos version 1.0.1):
+	Added format() to Eidos
+	Fixed performance issues in SLiMgui with a very large number of subpopulations
+
+2.0 (build 811; Eidos version 1.0):
 	Version history starts.

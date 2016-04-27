@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			SLIM_OUTSTREAM << "SLiM version 2.0, built " << __DATE__ << " " __TIME__ << std::endl;	// SLIM VERSION
+			SLIM_OUTSTREAM << "SLiM version 2.0.1, built " << __DATE__ << " " __TIME__ << std::endl;	// SLIM VERSION
 			exit(0);
 		}
 		

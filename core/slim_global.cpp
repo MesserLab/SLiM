@@ -257,7 +257,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
-		gEidosContextVersion = "SLiM version 2.0";	// SLIM VERSION
+		gEidosContextVersion = "SLiM version 2.0.1";	// SLIM VERSION
 		gEidosContextLicense = "SLiM is free software: you can redistribute it and/or\nmodify it under the terms of the GNU General Public\nLicense as published by the Free Software Foundation,\neither version 3 of the License, or (at your option)\nany later version.\n\nSLiM is distributed in the hope that it will be\nuseful, but WITHOUT ANY WARRANTY; without even the\nimplied warranty of MERCHANTABILITY or FITNESS FOR\nA PARTICULAR PURPOSE.  See the GNU General Public\nLicense for more details.\n\nYou should have received a copy of the GNU General\nPublic License along with SLiM.  If not, see\n<http://www.gnu.org/licenses/>.";
 		
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
