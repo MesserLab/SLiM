@@ -101,7 +101,7 @@ public:
 	slim_usertag_t tag_value_;										// a user-defined tag value
 	
 #ifdef SLIMGUI
-	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations
+	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!
 	double parental_total_fitness_ = 0.0;				// updated in UpdateFitness() when running under SLiMgui
 	double gui_center_x_, gui_center_y_, gui_radius_;	// used as scratch space by GraphView_PopulationVisualization
 #endif

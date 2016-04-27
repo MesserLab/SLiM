@@ -82,6 +82,9 @@ public:
 	uint32_t mutation_fixation_gen_slots_ = 0;				// the number of generation-sized slots (with bins per mutation-type) presently allocated
 	double *fitness_history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
 	slim_generation_t fitness_history_length_ = 0;			// the number of entries in the fitness_history buffer
+	
+	// true if gui_selected_ is set for all subpops, otherwise false; must be kept in synch with subpop flags!
+	bool gui_all_selected_ = false;
 #endif
 	
 	Population(const Population&) = delete;					// no copying
