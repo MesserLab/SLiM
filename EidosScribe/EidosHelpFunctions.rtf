@@ -2658,6 +2658,98 @@ The
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf0 (void)beep([string$\'a0soundName])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Plays a sound or beeps.
+\b0   On Mac OS X in a GUI environment (i.e., in EidosScribe or SLiMgui), 
+\f1\fs18 soundName
+\f0\fs20  is the name of a sound file to play; in other cases (at the command line, and on platforms other than OS X) 
+\f1\fs18 soundName
+\f0\fs20  is ignored and a standard system beep is played.\
+When using 
+\f1\fs18 soundName
+\f0\fs20 , a sound file in a supported format (such as 
+\f1\fs18 .aiff
+\f0\fs20  or 
+\f1\fs18 .mp3
+\f0\fs20 ) is searched for sequentially in four standard locations, in this order: 
+\f1\fs18 ~/Library/Sounds
+\f0\fs20 , 
+\f1\fs18 /Library/Sounds
+\f0\fs20 , 
+\f1\fs18 /Network/Library/Sounds
+\f0\fs20 , and finally 
+\f1\fs18 /System/Library/Sounds
+\f0\fs20 .  Standard OS X sounds located in /System/Library/Sounds include 
+\f1\fs18 "Basso"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Blow"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Bottle"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Frog"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Funk"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Glass"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Hero"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Morse"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Ping"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Pop"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Purr"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Sosumi"
+\f2\fs20 ,
+\f0  
+\f1\fs18 "Submarine"
+\f0\fs20 , and 
+\f1\fs18 "Tink"
+\f2\fs20 .
+\f0   Do not include the file extension, such as 
+\f1\fs18 .aiff
+\f0\fs20  or 
+\f1\fs18 .mp3
+\f0\fs20 , in 
+\f1\fs18 soundName
+\f2\fs20 .\
+
+\f0\b CAUTION:
+\b0  When 
+\f1\fs18 soundName
+\f0\fs20  is not used (i.e., when not in EidosScribe or SLiMgui), it is often the case that the only simple means available to play a beep is to send a 
+\f1\fs18 BEL
+\f0\fs20  character (ASCII 7) to the standard output.  Unfortunately, when this is the case, it means that (1) no beep will be audible if output is being redirected into a file, and (2) a control character, 
+\f1\fs18 ^G
+\f0\fs20 , will occur in the output at the point when the beep was requested.  It is therefore recommended that 
+\f1\fs18 beep()
+\f0\fs20  be used only when doing interactive work in a terminal shell (or in a GUI, on OS X), not when producing output files.  However, this issue is platform-specific; on some platforms 
+\f1\fs18 beep()
+\f0\fs20  may result in a beep, and no emitted 
+\f1\fs18 ^G
+\f2\fs20 ,
+\f0  even when output is redirected.  When a 
+\f1\fs18 ^G
+\f0\fs20  must be emitted to the standard output to generate the beep, a warning message will also be emitted to make any associated problems easier to diagnose.
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 (string$)date(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
