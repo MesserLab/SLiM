@@ -3078,6 +3078,10 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue;'); y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue; y;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	
+	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
+	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
+	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);
+	
 	// date()
 	EidosAssertScriptSuccess("size(strsplit(date(), '-'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptRaise("date(NULL);", 0, "requires at most");

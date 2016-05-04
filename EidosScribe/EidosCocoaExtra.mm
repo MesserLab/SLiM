@@ -22,6 +22,7 @@
 
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "eidos_beep.h"
 
 
 @implementation NSAttributedString (EidosAdditions)
@@ -388,6 +389,66 @@
 @end
 
 
+// This is declared in eidos_beep.h, but in the GUI case (EidosScribe and SLiMgui) it is actually defined here,
+// because we want the definition in that case to be able to use Objective-C and Cocoa.
+std::string EidosBeep(std::string p_sound_name)
+{
+	NSString *soundName = [NSString stringWithUTF8String:p_sound_name.c_str()];
+	
+	if (!soundName || ![soundName length])
+		soundName = @"Pop";
+	
+	static NSSound *cachedSound = nil;
+	static NSTimeInterval cachedSoundDuration = 0;
+	static NSString *cachedSoundName = nil;
+	static NSDate *playFinishDate = nil;
+	
+	std::string return_string;
+	
+	// If playFinishDate is non-nil, we started playing a sound before, and we need to wait synchronously here for it to finish
+	if (playFinishDate)
+	{
+		NSTimeInterval remainingTime = [playFinishDate timeIntervalSinceNow];
+		
+		if (remainingTime > 0)
+			usleep((useconds_t)(remainingTime * 1000000.0));
+		
+		[playFinishDate release];
+		playFinishDate = nil;
+	}
+	
+	// If cachedSound is non-nil, we played it in the past, and we should now make sure that it is stopped, otherwise it ignores -play
+	if (cachedSound)
+		[cachedSound stop];
+	
+	// Now we switch cachedSound over to the requested sound
+	if (!cachedSound || ![soundName isEqualToString:cachedSoundName])
+	{
+		[cachedSound release];
+		[cachedSoundName release];
+		
+		cachedSound = [[NSSound soundNamed:soundName] retain];
+		
+		// If the requested sound did not exist, we fall back on the default, which ought to always exist
+		if (!cachedSound)
+		{
+			return_string = "#WARNING (ExecuteFunctionCall): function beep() could not find the requested sound.";
+			
+			soundName = @"Pop";
+			cachedSound = [[NSSound soundNamed:soundName] retain];
+		}
+		
+		cachedSoundName = [soundName retain];
+		cachedSoundDuration = [cachedSound duration];
+	}
+	
+	// Start playing our sound.  We return immediately, but we make a note of when we expect the sound to stop playing.  If we get called
+	// again to play a sound before the current one has finished, we will synchronously wait the remaining time, above.
+	[cachedSound play];
+	playFinishDate = [[NSDate dateWithTimeIntervalSinceNow:cachedSoundDuration] retain];
+	
+	return return_string;
+}
 
 
 

@@ -23,6 +23,7 @@
 #include "eidos_test_element.h"
 #include "eidos_interpreter.h"
 #include "eidos_rng.h"
+#include "eidos_beep.h"
 
 #include "math.h"
 
@@ -212,6 +213,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,	EidosFunctionIdentifier::applyFunction,			kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				EidosFunctionIdentifier::beepFunction,			kEidosValueMaskNULL))->AddString_OS("soundName"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				EidosFunctionIdentifier::dateFunction,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	EidosFunctionIdentifier::defineConstantFunction,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	EidosFunctionIdentifier::doCallFunction,		kEidosValueMaskAny))->AddString_S("function")->AddEllipsis());
@@ -4911,6 +4913,28 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 			if (!arg1_value_singleton)
 				delete script;
 			
+			break;
+		}
+			
+			
+			//	(void)beep([string$ soundName])
+			#pragma mark beep
+			
+		case EidosFunctionIdentifier::beepFunction:
+		{
+			EidosValue *arg0_value = (p_argument_count >= 1) ? p_arguments[0].get() : nullptr;
+			string name_string = (arg0_value ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+			
+			string beep_error = EidosBeep(name_string);
+			
+			if (beep_error.length())
+			{
+				std::ostringstream &output_stream = ExecutionOutputStream();
+				
+				output_stream << beep_error << std::endl;
+			}
+			
+			result_SP = gStaticEidosValueNULLInvisible;
 			break;
 		}
 			
