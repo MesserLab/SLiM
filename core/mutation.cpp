@@ -146,10 +146,45 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			sim->pure_neutral_ = false;
 		}
+		
+		return gStaticEidosValueNULLInvisible;
+	}
+	
+	//
+	//	*********************	- (void)setMutationType(io<MutationType>$ mutType)
+	//
+#pragma mark -setMutationType()
+	
+	if (p_method_id == gID_setMutationType)
+	{
+		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+		
+		if (!sim)
+			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+		
+		MutationType *mutation_type_ptr = nullptr;
+		
+		if (arg0_value->Type() == EidosValueType::kValueInt)
+		{
+			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+			auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+			
+			if (found_muttype_pair == sim->MutationTypes().end())
+				EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): setMutationType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			
+			mutation_type_ptr = found_muttype_pair->second;
+		}
+		else
+		{
+			mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+		}
+		
+		// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
+		mutation_type_ptr_ = mutation_type_ptr;
 		
 		return gStaticEidosValueNULLInvisible;
 	}
@@ -256,6 +291,7 @@ const std::vector<const EidosMethodSignature *> *Mutation_Class::Methods(void) c
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelectionCoeff));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
@@ -265,14 +301,18 @@ const std::vector<const EidosMethodSignature *> *Mutation_Class::Methods(void) c
 const EidosMethodSignature *Mutation_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	static EidosInstanceMethodSignature *setSelectionCoeffSig = nullptr;
+	static EidosInstanceMethodSignature *setMutationTypeSig = nullptr;
 	
 	if (!setSelectionCoeffSig)
 	{
 		setSelectionCoeffSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskNULL))->AddFloat_S("selectionCoeff");
+		setMutationTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskNULL))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 	}
 	
 	if (p_method_id == gID_setSelectionCoeff)
 		return setSelectionCoeffSig;
+	else if (p_method_id == gID_setMutationType)
+		return setMutationTypeSig;
 	else
 		return EidosObjectClass::SignatureForMethod(p_method_id);
 }

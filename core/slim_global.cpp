@@ -170,6 +170,7 @@ const std::string gStr_removeMutations = "removeMutations";
 const std::string gStr_setGenomicElementType = "setGenomicElementType";
 const std::string gStr_setMutationFractions = "setMutationFractions";
 const std::string gStr_setSelectionCoeff = "setSelectionCoeff";
+const std::string gStr_setMutationType = "setMutationType";
 const std::string gStr_setDistribution = "setDistribution";
 const std::string gStr_addSubpop = "addSubpop";
 const std::string gStr_addSubpopSplit = "addSubpopSplit";
@@ -331,6 +332,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setGenomicElementType, gID_setGenomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationFractions, gID_setMutationFractions);
 		Eidos_RegisterStringForGlobalID(gStr_setSelectionCoeff, gID_setSelectionCoeff);
+		Eidos_RegisterStringForGlobalID(gStr_setMutationType, gID_setMutationType);
 		Eidos_RegisterStringForGlobalID(gStr_setDistribution, gID_setDistribution);
 		Eidos_RegisterStringForGlobalID(gStr_addSubpop, gID_addSubpop);
 		Eidos_RegisterStringForGlobalID(gStr_addSubpopSplit, gID_addSubpopSplit);

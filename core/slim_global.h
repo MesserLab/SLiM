@@ -297,6 +297,7 @@ extern const std::string gStr_removeMutations;
 extern const std::string gStr_setGenomicElementType;
 extern const std::string gStr_setMutationFractions;
 extern const std::string gStr_setSelectionCoeff;
+extern const std::string gStr_setMutationType;
 extern const std::string gStr_setDistribution;
 extern const std::string gStr_addSubpop;
 extern const std::string gStr_addSubpopSplit;
@@ -445,6 +446,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setGenomicElementType,
 	gID_setMutationFractions,
 	gID_setSelectionCoeff,
+	gID_setMutationType,
 	gID_setDistribution,
 	gID_addSubpop,
 	gID_addSubpopSplit,

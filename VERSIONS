@@ -8,7 +8,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 Development head:
-	added beep() function to Eidos
+	Added beep() function to Eidos
+	Added setMutationType() method on Mutation
 
 2.0.1 (build 815; Eidos version 1.0.1):
 	Added format() to Eidos

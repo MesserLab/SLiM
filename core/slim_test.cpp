@@ -774,6 +774,11 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", 1, 291, "read-only property");
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }");						// legal; this field may be used as a user tag
 	
+	// Test Mutation - (void)setMutationType(io<MutationType>$ mutType)
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setMutationType(m1); if (mut.mutationType == m1) stop(); }");
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setMutationType(m1); if (mut.mutationType == m1) stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setMutationType(2); if (mut.mutationType == m1) stop(); }", 1, 276, "mutation type m2 not defined");
+	
 	// Test Mutation - (void)setSelectionCoeff(float$ selectionCoeff)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(0.5); if (mut.selectionCoeff == 0.5) stop(); }");
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(1); if (mut.selectionCoeff == 1) stop(); }", 1, 276, "cannot be type integer");

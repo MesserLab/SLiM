@@ -568,7 +568,27 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
+\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Set the mutation type of the mutation to 
+\f2\fs18 mutType
+\f0\fs20  (which may be specified as either an 
+\f2\fs18 integer
+\f0\fs20  identifier or a 
+\f2\fs18 MutationType
+\f0\fs20  object).  This implicitly changes the dominance coefficient of the mutation to that of the new mutation type, since the dominance coefficient is a property of the mutation type.  On the other hand, the selection coefficient of the mutation is not changed, since it is a property of the mutation object itself; it can be changed explicitly using the 
+\f2\fs18 setSelectionCoeff()
+\f0\fs20  method if so desired.\
+The mutation type of a mutation is normally a constant in simulations, so be sure you know what you are doing.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f2\fs18 SLiMSim
+\f0\fs20 \'92s method 
+\f2\fs18 recalculateFitness()
+\f0\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -576,9 +596,10 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 selectionCoeff
 \f0\fs20 .  The selection coefficient will be changed for all individuals that possess the mutation, since they all share a single 
 \f2\fs18 Mutation
-\f0\fs20  object (note that the dominance coefficient will remain unchanged, as it is determined by the mutation type).  This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
+\f0\fs20  object (note that the dominance coefficient will remain unchanged, as it is determined by the mutation type).\
+This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
 \f2\fs18 fitness()
-\f0\fs20  callback is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f0\fs20  callback (see section 17.2) is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
