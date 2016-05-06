@@ -2353,6 +2353,227 @@ void Population::PrintAll(std::ostream &p_out) const
 	}
 }
 
+// print all mutations and all genomes to a stream in binary, for maximum reading speed
+void Population::PrintAllBinary(std::ostream &p_out) const
+{
+	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This is a little tricky, so be careful when modifying this code!
+	
+	int32_t section_end_tag = 0xFFFF0000;
+	
+	// Header section
+	{
+		// Write a 32-bit endianness tag
+		int32_t endianness_tag = 0x12345678;
+		
+		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
+		
+		// Write a format version tag
+		int32_t version_tag = 1;
+		
+		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
+		
+		// Write the size of a double
+		int32_t double_size = sizeof(double);
+		
+		p_out.write(reinterpret_cast<char *>(&double_size), sizeof double_size);
+		
+		// Write a test double, to ensure the same format is used on the reading machine
+		double double_test = 1234567890.0987654321;
+		
+		p_out.write(reinterpret_cast<char *>(&double_test), sizeof double_test);
+		
+		// Write the sizes of the various SLiM types
+		int32_t slim_generation_t_size = sizeof(slim_generation_t);
+		int32_t slim_position_t_size = sizeof(slim_position_t);
+		int32_t slim_objectid_t_size = sizeof(slim_objectid_t);
+		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
+		int32_t slim_refcount_t_size = sizeof(slim_refcount_t);
+		int32_t slim_selcoeff_t_size = sizeof(slim_selcoeff_t);
+		
+		p_out.write(reinterpret_cast<char *>(&slim_generation_t_size), sizeof slim_generation_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_objectid_t_size), sizeof slim_objectid_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_refcount_t_size), sizeof slim_refcount_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
+		
+		// Write the generation
+		p_out.write(reinterpret_cast<char *>(&sim_.generation_), sizeof sim_.generation_);
+	}
+	
+	// Write a tag indicating the section has ended
+	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	
+	// Populations section
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_objectid_t subpop_id = subpop_pair.first;
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		double subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
+		
+		// Write a tag indicating we are starting a new subpopulation
+		int32_t subpop_start_tag = 0xFFFF0001;
+		
+		p_out.write(reinterpret_cast<char *>(&subpop_start_tag), sizeof subpop_start_tag);
+		
+		// Write the subpop identifier
+		p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
+		
+		// Write the subpop size
+		p_out.write(reinterpret_cast<char *>(&subpop_size), sizeof subpop_size);
+		
+		// Write a flag indicating whether this population has sexual or hermaphroditic
+		int32_t sex_flag = (subpop->sex_enabled_ ? 1 : 0);
+		
+		p_out.write(reinterpret_cast<char *>(&sex_flag), sizeof sex_flag);
+		
+		// Write the sex ratio; if we are not sexual, this will be garbage, but that is fine, we want a constant-length record
+		p_out.write(reinterpret_cast<char *>(&subpop_sex_ratio), sizeof subpop_sex_ratio);
+		
+		// now will come either a subpopulation start tag, or a section end tag
+	}
+	
+	// Write a tag indicating the section has ended
+	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	
+	// Find all polymorphisms
+	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		
+		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
+		{
+			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
+			
+			if (!genome.IsNull())
+			{
+				for (int k = 0; k < genome.size(); k++)	// go through all mutations
+					AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
+			}
+		}
+	}
+	
+	// Write out the size of the mutation map, so we can allocate a vector rather than using std::map when reading
+	int32_t mutation_map_size = (int32_t)polymorphisms.size();
+	
+	p_out.write(reinterpret_cast<char *>(&mutation_map_size), sizeof mutation_map_size);
+	
+	// Mutations section
+	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms)
+	{
+		const Polymorphism &polymorphism = polymorphism_pair.second;
+		const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
+		const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
+		
+		int32_t mutation_id = polymorphism.mutation_id_;
+		slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
+		slim_position_t position = mutation_ptr->position_;
+		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
+		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
+		slim_generation_t generation = mutation_ptr->generation_;
+		slim_refcount_t prevalence = polymorphism.prevalence_;
+		
+		// Write a tag indicating we are starting a new mutation
+		int32_t mutation_start_tag = 0xFFFF0002;
+		
+		p_out.write(reinterpret_cast<char *>(&mutation_start_tag), sizeof mutation_start_tag);
+		
+		// Write the mutation data
+		p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
+		p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
+		p_out.write(reinterpret_cast<char *>(&position), sizeof position);
+		p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
+		p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+		p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
+		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
+		p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
+		
+		// now will come either a mutation start tag, or a section end tag
+	}
+	
+	// Write a tag indicating the section has ended
+	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	
+	// Genomes section
+	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_objectid_t subpop_id = subpop_pair.first;
+		slim_popsize_t subpop_size = (child_generation_valid_ ? subpop->child_subpop_size_ : subpop->parent_subpop_size_);
+		
+		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
+		{
+			Genome &genome = child_generation_valid_ ? subpop->child_genomes_[i] : subpop->parent_genomes_[i];
+			
+			// Write out the genome header; start with the genome type to guarantee that the first 32 bits are != section_end_tag
+			int32_t genome_type = (int32_t)(genome.Type());
+			
+			p_out.write(reinterpret_cast<char *>(&genome_type), sizeof genome_type);
+			p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
+			p_out.write(reinterpret_cast<char *>(&i), sizeof i);
+			
+			// Write out the mutation list
+			if (genome.IsNull())
+			{
+				// null genomes get a 32-bit flag value written instead of a mutation count
+				int32_t null_genome_tag = 0xFFFF1000;
+				
+				p_out.write(reinterpret_cast<char *>(&null_genome_tag), sizeof null_genome_tag);
+			}
+			else
+			{
+				// write a 32-bit mutation count
+				int32_t total_mutations = genome.size();
+				
+				p_out.write(reinterpret_cast<char *>(&total_mutations), sizeof total_mutations);
+				
+				if (use_16_bit)
+				{
+					// Write out 16-bit mutation tags
+					for (int32_t k = 0; k < total_mutations; k++)								// go through all mutations
+					{
+						int32_t id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+						
+						if (id <= UINT16_MAX - 1)
+						{
+							uint16_t id_16 = (uint16_t)id;
+							
+							p_out.write(reinterpret_cast<char *>(&id_16), sizeof id_16);
+						}
+						else
+						{
+							EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) mutation id out of 16-bit bounds." << eidos_terminate();
+						}
+					}
+				}
+				else
+				{
+					// Write out 32-bit mutation tags
+					for (int32_t k = 0; k < total_mutations; k++)								// go through all mutations
+					{
+						int32_t id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+						
+						p_out.write(reinterpret_cast<char *>(&id), sizeof id);
+					}
+				}
+				
+				// now will come either a genome type (32 bits: 0, 1, or 2), or a section end tag
+			}
+		}
+	}
+	
+	// Write a tag indicating the section has ended
+	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+}
+
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
 void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
 {

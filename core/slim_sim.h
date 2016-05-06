@@ -100,7 +100,10 @@ private:
 	EidosFunctionMap *sim_0_function_map_ = nullptr;								// OWNED POINTER: the function map with sim_0_signatures_ added, used only in gen 0
 	
 	// private initialization methods
-	void InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from the information in the file given
+	int FormatOfPopulationFile(const char *p_file);			// -1 is file does not exist, 0 is format unrecognized, 1 is text, 2 is binary
+	slim_generation_t InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter);		// initialize the population from the file
+	slim_generation_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from a text file
+	slim_generation_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from a binary file
 	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks

@@ -1318,26 +1318,36 @@ Output is generally done in a
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFull([string$\'a0filePath])
+\f2\fs18 \cf0 \'96\'a0(void)outputFull([string$\'a0filePath], [logical$\'a0binary])
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output the state of the entire population.  Output will be sent to the filesystem path 
 \f2\fs18 filePath
-\f0\fs20  if supplied, otherwise to Eidos\'92s output stream (see the SLiM\'92s manual for further details).
+\f0\fs20  if supplied, otherwise to Eidos\'92s output stream (see section 4.2.1).  When writing to a file, a 
+\f2\fs18 logical
+\f0\fs20  flag, 
+\f2\fs18 binary
+\f0\fs20 , may be supplied as well.  If 
+\f2\fs18 binary
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , the population state will be written as a binary file instead of a text file.  The binary file is usually smaller, and in any case will be read much faster than the corresponding text file would be read.  Binary files are not guaranteed to be portable between platforms; in other words, a binary file written on one machine may not be readable on a different machine (but in practice it usually will be, unless the platforms being used are fairly unusual).  The default, if 
+\f2\fs18 binary
+\f0\fs20  is not specified, is to write a text file.
 \f3 \
 
 \f0 Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.
 \f3 \
@@ -1348,10 +1358,13 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)readFromPopulationFile(string$\'a0filePath)\
+\f2\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Read from a population initialization file.  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in generation 1, immediately after simulation initialization), it may be called in any Eidos event; the current state of all populations will be wiped and replaced by the state in the file at 
+\f0\fs20 \cf0 Read from a population initialization file, whether in text or binary format as previously specified to 
+\f2\fs18 outputFull()
+\f3\fs20 ,
+\f0  and return the generation counter value represented by the file\'92s contents (i.e., the generation at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in generation 1, immediately after simulation initialization), it may be called in any Eidos event; the current state of all populations will be wiped and replaced by the state in the file at 
 \f2\fs18 filePath
 \f0\fs20 .  All Eidos variables that are of type 
 \f2\fs18 object
@@ -1371,10 +1384,12 @@ Output is generally done in a
 \f2\fs18 readFromPopulationFile()
 \f0\fs20  in a 
 \f2\fs18 late()
-\f0\fs20  event, so that fitness values are being recalculated at the usual time in the generation life cycle.\
+\f0\fs20  event, so that fitness values are being recalculated at the usual time in the generation life cycle (see chapter 15, and comments on 
+\f2\fs18 recalculateFitness()
+\f0\fs20  below).\
 This method can be used to restore the state of a simulation to a previous point in time that was saved to a file; however, this method does not change the generation counter, so if you want the generation counter to reset you should do that manually by setting 
 \f2\fs18 sim.generation
-\f0\fs20 .  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
+\f0\fs20  (probably to the value returned by this method).  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
 \f2\fs18 setSeed()
 \f0\fs20  can be used to establish a new seed value.  Any changes made to the simulation\'92s structure (mutation types, genomic element types, etc.) will not be wiped and re-established by 
 \f2\fs18 readFromPopulationFile()
