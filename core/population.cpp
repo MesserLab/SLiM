@@ -2399,7 +2399,9 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
 		
 		// Write the generation
-		p_out.write(reinterpret_cast<char *>(&sim_.generation_), sizeof sim_.generation_);
+		slim_generation_t generation = sim_.Generation();
+		
+		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
 	}
 	
 	// Write a tag indicating the section has ended
