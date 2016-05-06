@@ -1,6 +1,6 @@
 PLEASE NOTE THAT THE GITHUB VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
 ---------------------------------------------------------------------------------------------
-It is strongly recommended that all end users of SLiM use version 2.0, released at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+It is strongly recommended that all end users of SLiM use the current release version, available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 ---------------------------------------------------------------------------------------------
  
 
