@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 Development head:
 
 
-2.0.2 (build 821; Eidos version 1.0.2):
+2.0.2 (build 824; Eidos version 1.0.2):
 	Added beep() function to Eidos
 	Added setMutationType() method on Mutation
 	Added binary option for outputFull()
