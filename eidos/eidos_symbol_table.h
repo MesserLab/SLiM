@@ -57,6 +57,7 @@
 #include "eidos_ast_node.h"
 
 class EidosSymbolTable;
+class EidosTypeTable;
 
 
 // This is a shared global symbol table containing the standard Eidos constants; it should be linked to as a parent symbol table
@@ -177,6 +178,9 @@ public:
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
+	
+	// A utility method to add entries for defined symbols into an EidosTypeTable
+	void AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const;
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

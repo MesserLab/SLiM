@@ -834,14 +834,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 #pragma mark -
 #pragma mark EidosTextViewDelegate
 
-- (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView
-{
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerLanguageKeywordsForCompletion:)])
-		return [delegate eidosConsoleWindowControllerLanguageKeywordsForCompletion:self];
-	else
-		return nil;
-}
-
 - (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
 	return global_symbols;	// we keep our own symbol table, so we don't call our delegate here

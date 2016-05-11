@@ -22,6 +22,7 @@
 #include "eidos_value.h"
 #include "eidos_global.h"
 #include "eidos_token.h"
+#include "eidos_type_table.h"
 
 #include <algorithm>
 #include "math.h"
@@ -482,6 +483,40 @@ void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symb
 	
 	// fall-through to the hash table case
 	hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
+}
+
+void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
+{
+	// start with the symbols from our parent symbol table
+	if (parent_symbol_table_)
+		parent_symbol_table_->AddSymbolsToTypeTable(p_type_table);
+	
+	if (using_internal_symbols_)
+	{
+		for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
+		{
+			EidosValue *symbol_value = internal_symbols_[symbol_index].symbol_value_SP_.get();
+			EidosValueType symbol_type = symbol_value->Type();
+			EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
+			const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
+			EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
+			
+			p_type_table->SetTypeForSymbol(internal_symbols_[symbol_index].symbol_name_, symbol_type_specifier);
+		}
+	}
+	else
+	{
+		for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
+		{
+			EidosValue *symbol_value = symbol_slot_iter->second.get();
+			EidosValueType symbol_type = symbol_value->Type();
+			EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
+			const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
+			EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
+			
+			p_type_table->SetTypeForSymbol(symbol_slot_iter->first, symbol_type_specifier);
+		}
+	}
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols)

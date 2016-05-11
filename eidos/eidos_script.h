@@ -71,6 +71,7 @@ protected:
 	int parse_index_;						// index into token_stream_ of the current token
 	EidosToken *current_token_;				// token_stream_[parse_index_]; owned indirectly
 	EidosTokenType current_token_type_;		// token_stream_[parse_index_]->token_type_
+	bool parse_make_bad_nodes_ = false;		// if true, do error-tolerant parsing and introduce dummy nodes as needed
 	
 public:
 	
@@ -87,7 +88,7 @@ public:
 	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);
 	
 	// generate AST from token stream for an interpreter block ( statement* EOF )
-	void ParseInterpreterBlockToAST(void);
+	void ParseInterpreterBlockToAST(bool p_make_bad_nodes = false);
 	
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;

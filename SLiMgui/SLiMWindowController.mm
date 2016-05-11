@@ -45,6 +45,7 @@
 #import "EidosHelpController.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_call_signature.h"
+#import "eidos_type_interpreter.h"
 #import "slim_test.h"
 
 #include <iostream>
@@ -1782,11 +1783,6 @@
 	return baseFunctionMap;
 }
 
-- (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController
-{
-	return @[@"initialize", @"early", @"late", @"fitness", @"mateChoice", @"modifyChild"];
-}
-
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return SLiMSim::AllMethodSignatures();
@@ -1803,7 +1799,7 @@
 	{
 		unichar first_ch = token_string[0];
 		
-		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm'))
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
 		{
 			for (int ch_index = 1; ch_index < len; ++ch_index)
 			{
@@ -1889,11 +1885,6 @@
 // EidosConsoleWindowControllerDelegate (for the console window we own), and the delegate protocols are similar
 // but not identical.  This protocol just forwards on to the EidosConsoleWindowControllerDelegate methods.
 
-- (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;
-{
-	return [self eidosConsoleWindowControllerLanguageKeywordsForCompletion:nullptr];
-}
-
 - (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
 	// Here we use the symbol table from the console window, rather than calling the console window controller delegate
@@ -1919,6 +1910,230 @@
 - (NSString *)eidosTextView:(EidosTextView *)eidosTextView helpTextForClickedText:(NSString *)clickedText
 {
 	return [self eidosConsoleWindowController:nullptr helpTextForClickedText:clickedText];
+}
+
+- (BOOL)eidosTextView:(EidosTextView *)eidosTextView completionContextWithScriptString:(NSString *)completionScriptString selection:(NSRange)selection typeTable:(EidosTypeTable **)typeTable functionMap:(EidosFunctionMap **)functionMap keywords:(NSMutableArray *)keywords
+{
+	// Code completion in the console window and other ancillary EidosTextViews should use the standard code completion
+	// machinery in EidosTextView.  In the script view, however, we want things to behave somewhat differently.  In
+	// other contexts, we want the variables and functions available to depend solely upon the current state of the
+	// simulation; whatever is actually available is what code completion provides.  In the script view, however, we
+	// want to be smarter than that.  Initialization functions should be available when the user is completing
+	// inside an initialize() callback, and not available otherwise, regardless of the current simulation state.
+	// Similarly, variables associated with particular types of callbacks should always be available within those
+	// callbacks; variables defined in script blocks other than the focal block should not be visible in code
+	// completion; defined constants should be available everywhere; and it should be assumed that variables with
+	// names like pX, mX, gX, and sX have their usual types even if they are not presently defined.  This delegate
+	// method accomplishes all of those things, by replacing the standard EidosTextView completion handling.
+	if (eidosTextView == scriptTextView)
+	{
+		std::string script_string([completionScriptString UTF8String]);
+		SLiMEidosScript script(script_string);
+		
+		//std::cout << "SLiM script:\n" << script_string << std::endl << std::endl;
+		
+		// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
+		script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
+		script.ParseSLiMFileToAST(true);			// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+		
+		//std::ostringstream parse_stream;
+		//script.PrintAST(parse_stream);
+		//std::cout << "SLiM AST:\n" << parse_stream.str() << std::endl << std::endl;
+		
+		// Substitute a type table of class SLiMTypeTable and add any defined symbols to it.  We use SLiMTypeTable so that
+		// variables like pX, gX, mX, and sX have a known object type even if they are not presently defined in the simulation.
+		*typeTable = new SLiMTypeTable();
+		EidosSymbolTable *symbols = [_consoleController symbols];
+		
+		if (symbols)
+			symbols->AddSymbolsToTypeTable(*typeTable);
+		
+		// Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
+		// script block is the one we are actually completing inside, but we also want to do a quick scan of any other
+		// blocks we find, solely to add entries for any defineConstant() calls we can decode.
+		const EidosASTNode *script_root = script.AST();
+		
+		if (script_root && (script_root->children_.size() > 0))
+		{
+			EidosASTNode *completion_block = script_root->children_.back();
+			
+			// If the last script block has a range that ends before the start of the selection, then we are completing after the end
+			// of that block, at the outer level of the script.  Detect that case and fall through to the handler for it at the end.
+			int32_t completion_block_end = completion_block->token_->token_end_;
+			
+			if ((int)(selection.location + selection.length) > completion_block_end)
+			{
+				 // Selection is after end of completion_block
+				completion_block = nullptr;
+			}
+			
+			if (completion_block)
+			{
+				for (EidosASTNode *script_block_node : script_root->children_)
+				{
+					// script_block_node can have various children, such as an sX identifier, start and end generations, a block type
+					// identifier like late(), and then the root node of the compound statement for the script block.  We want to
+					// decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
+					EidosASTNode *block_statement_root = nullptr;
+					SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+					
+					for (EidosASTNode *block_child : script_block_node->children_)
+					{
+						EidosToken *child_token = block_child->token_;
+						
+						if (child_token->token_type_ == EidosTokenType::kTokenIdentifier)
+						{
+							const std::string &child_string = child_token->token_string_;
+							
+							if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+							else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
+							else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;
+							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+							
+							// Check for an sX designation on a script block and, if found, add a symbol for it
+							else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
+							{
+								if (child_string[0] == 's')
+								{
+									bool all_numeric = true;
+									
+									for (size_t idx = 1; idx < child_string.length(); ++idx)
+										if (!isdigit(child_string[idx]))
+											all_numeric = false;
+									
+									if (all_numeric)
+									{
+										EidosGlobalStringID constant_id = EidosGlobalStringIDForString(child_string);
+										
+										(*typeTable)->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
+									}
+								}
+							}
+						}
+						else if (child_token->token_type_ == EidosTokenType::kTokenLBrace)
+						{
+							block_statement_root = block_child;
+						}
+					}
+					
+					// Now we know the type of the node, and the root node of its compound statement; extract what we want
+					if (block_statement_root)
+					{
+						// The symbol sim is defined in initialize() blocks and not in other blocks; we need to add and remove it
+						// dynamically so that each block has it defined or not defined as necessary.  Since the completion block
+						// is last, the sim symbol will be correctly defined at the end of this process.
+						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+							(*typeTable)->RemoveTypeForSymbol(gID_sim);
+						else
+							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+						
+						if (script_block_node == completion_block)
+						{
+							// This is the block we're actually completing in the context of; it is also the last block in the script
+							// snippet that we're working with.  We want to first define any callback-associated variables for the block.
+							(*typeTable)->SetTypeForSymbol(gID_self, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
+							
+							switch (block_type)
+							{
+								case SLiMEidosBlockType::SLiMEidosEventEarly:
+									break;
+								case SLiMEidosBlockType::SLiMEidosEventLate:
+									break;
+								case SLiMEidosBlockType::SLiMEidosInitializeCallback:
+									break;
+								case SLiMEidosBlockType::SLiMEidosFitnessCallback:
+									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
+									(*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									break;
+								case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
+									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_weights,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+									break;
+								case SLiMEidosBlockType::SLiMEidosModifyChildCallback:
+									(*typeTable)->SetTypeForSymbol(gID_childGenome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_childGenome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_childIsFemale,	EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_parent1Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_parent1Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_isCloning,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_isSelfing,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_parent2Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_parent2Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									break;
+							}
+							
+							// Get a function map and add initialization functions to it if we're completing inside an initialize() callback
+							if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+							{
+								if (sim)
+								{
+									const std::vector<const EidosFunctionSignature*> *signatures = sim->ZeroGenerationFunctionSignatures();
+									
+									if (signatures)
+									{
+										for (const EidosFunctionSignature *signature : *signatures)
+											(*functionMap)->insert(EidosFunctionMapPair(signature->function_name_, signature));
+									}
+								}
+							}
+							
+							// Make a type interpreter and add symbols to our type table using it
+							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
+							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap);
+							
+							typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+							
+							return YES;
+						}
+						else
+						{
+							// This is not the block we're completing in.  We want to add symbols for any constant-defining calls
+							// in this block; apart from that, this block cannot affect the completion block, due to scoping.
+							
+							// Make a type interpreter and add symbols to our type table using it
+							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
+							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, true);
+							
+							typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+						}
+					}
+				}
+			}
+		}
+		
+		// We drop through to here if we have a bad or empty script root, or if the final script block (completion_block) didn't
+		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
+		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
+		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
+		// keywords like "fitness" and "modifyChild" are.
+		[keywords removeAllObjects];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n"]];
+		
+		// At the outer level, functions are also not legal
+		(*functionMap)->clear();
+		
+		// And no variables exist except SLiM objects like pX, gX, mX, sX
+		std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
+		
+		for (EidosGlobalStringID symbol_id : symbol_ids)
+			if ((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject)
+				(*typeTable)->RemoveTypeForSymbol(symbol_id);
+		
+		return YES;
+	}
+	
+	return NO;
 }
 
 

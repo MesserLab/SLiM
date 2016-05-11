@@ -150,6 +150,7 @@ EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, 
 
 
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
+// Note that these mask values must correspond to the values in EidosValueType directly; (1 << (int)type) == mask must be true.
 typedef uint32_t EidosValueMask;
 
 const EidosValueMask kEidosValueMaskNone =			0x00000000;

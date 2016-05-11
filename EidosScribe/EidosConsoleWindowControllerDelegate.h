@@ -74,7 +74,6 @@
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController;
 
 // messages from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
-- (NSArray *)eidosConsoleWindowControllerLanguageKeywordsForCompletion:(EidosConsoleWindowController *)eidosConsoleController;
 - (BOOL)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 - (NSString *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController helpTextForClickedText:(NSString *)clickedText;
 

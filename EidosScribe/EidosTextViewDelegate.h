@@ -23,6 +23,7 @@
 #include <string>
 
 #include "eidos_interpreter.h"
+#include "eidos_type_table.h"
 
 @class EidosTextView;
 
@@ -52,14 +53,14 @@
 
 @optional
 
-// Supply additional language keywords that should be completed; used if the Context
-// extends the grammar of Eidos, otherwise can be unimplemented
-- (NSArray *)eidosTextViewLanguageKeywordsForCompletion:(EidosTextView *)eidosTextView;
-
-// This allows the Context to define its own symbols beyond those in Eidos itself
+// This allows the Context to define its own symbols beyond those in Eidos itself.
+// The returned symbol table is not freed by the caller, since it is assumed to be
+// an existing object with a lifetime managed by the callee.
 - (EidosSymbolTable *)eidosTextView:(EidosTextView *)eidosTextView symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols;
 
-// This allows the Context to define its own functions beyond those in Eidos itself
+// This allows the Context to define its own functions beyond those in Eidos itself.
+// The returned symbol table is not freed by the caller, since it is assumed to be
+// an existing object with a lifetime managed by the callee.
 - (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap;
 
 // This allows the Context to define some special identifier tokens that should
@@ -72,7 +73,46 @@
 // is desired, returning nil is recommended.
 - (NSString *)eidosTextView:(EidosTextView *)eidosTextView helpTextForClickedText:(NSString *)clickedText;
 
+// This allows the Context to customize the behavior of code completion, depending upon
+// the context in which the completion occurs (as determined by the script string, which
+// extends up to the end of the selection, and the selection range).  The delegate should
+// add types to the type table (which is empty), add functions to the function map (which
+// has the built-in Eidos functions already), and add applicable language keywords to the
+// keywords array.  If this delegate method is not implemented, EidosTextView will do its
+// standard behavior.  In particular, types will be found with ParseInterpreterBlockToAST()
+// and TypeEvaluateInterpreterBlock() in addition to symbolsFromBaseSymbols:, functions
+// will be found with functionMapFromBaseMap:, and no keywords will be added to the base
+// set.  This standard behavior is fine for Contexts that do not define context-dependent
+// language constructs in the way that SLiM does.
+//
+// Note that unlike symbolsFromBaseSymbols: and functionMapFromBaseMap:, here the delegate
+// is expected to modify the objects passed to it.  This difference is motivated by the idea
+// that the other delegate methods are providing a standard symbol table and function map
+// kept by the Context, whereas this delegate method is expected to create context-dependent
+// information that differs from the current state of the Context.  The delegate may even
+// replace the pointers passed to the type table and/or function map, in order to substitute
+// a new object (perhaps a subclass object) for those objects; in that case, the substituted
+// object will be freed by the callee, in accord with the motivated described here.
+//
+// Also note that the delegate does not need to worry about uniquing or sorting type entries.
+//
+// Return NO if you want Eidos to do its default behavior, YES if you have taken care of it.
+- (BOOL)eidosTextView:(EidosTextView *)eidosTextView completionContextWithScriptString:(NSString *)scriptString selection:(NSRange)selection typeTable:(EidosTypeTable **)typeTable functionMap:(EidosFunctionMap **)functionMap keywords:(NSMutableArray *)keywords;
+
 @end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

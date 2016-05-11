@@ -629,8 +629,9 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	}
 	else
 	{
-		// not finding the right token type is fatal
-		EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << eidos_terminate(current_token_);
+		// if we are doing a fault-tolerant parse, just pretend we saw the token; otherwise, not finding the right token type is fatal
+		if (!parse_make_bad_nodes_)
+			EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << eidos_terminate(current_token_);
 	}
 }
 
@@ -687,7 +688,7 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 		
 		Match(EidosTokenType::kTokenLBrace, "compound statement");
 		
-		while (current_token_type_ != EidosTokenType::kTokenRBrace)
+		while ((current_token_type_ != EidosTokenType::kTokenRBrace) && (current_token_type_ != EidosTokenType::kTokenEOF))
 		{
 			EidosASTNode *child = Parse_Statement();
 			
@@ -733,7 +734,34 @@ EidosASTNode *EidosScript::Parse_Statement(void)
 	else if ((current_token_type_ == EidosTokenType::kTokenNext) || (current_token_type_ == EidosTokenType::kTokenBreak) || (current_token_type_ == EidosTokenType::kTokenReturn))
 		return Parse_JumpStatement();
 	else
-		return Parse_ExprStatement();
+	{
+		if (parse_make_bad_nodes_)
+		{
+			// If we are doing a fault-tolerant parse, we need to guarantee that we don't get stuck in an infinite loop.
+			// Various functions, such as Parse_InterpreterBlock() and Parse_CompoundStatement(), call this function
+			// inside a loop and expect it to always advance the current token.  If the cases above, that is guaranteed;
+			// the current token is some special token that will be matched.  In this case, however, it is not guaranteed;
+			// a bad token like ',' will fail to be processed, we will get a bad node, and we will not advance.  In this
+			// circumstance, we Consume() one token and return the bad token.  This method thus guarantees that it advances.
+			
+			// Note that all other loops in this parser loop conditional on the current token being of a particular type,
+			// and then consume the current token because the loop knows that it matches.  All other loops besides the
+			// loops that call Parse_Statement() are therefore guaranteed to terminate on bad input.  Many of the parsing
+			// methods are not guaranteed to advance on bad input; many of them will end up generating a bad node and
+			// not advancing.  That is OK – that is great – because somebody above them in the call stack *is* guaranteed
+			// to advance, or at least to terminate, because of the above logic.  We may generate weird garbage, but we
+			// will not hang, and for fault-tolerant parsing, that's about as much as you can reasonably expect.
+			EidosToken *old_current_token = current_token_;
+			EidosASTNode *expr_statement_node = Parse_ExprStatement();
+			
+			if (current_token_ == old_current_token)
+				Consume();
+			
+			return expr_statement_node;
+		}
+		else
+			return Parse_ExprStatement();
+	}
 }
 
 EidosASTNode *EidosScript::Parse_ExprStatement(void)
@@ -1481,7 +1509,14 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			
+			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing primary expression
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+			
+			node = bad_node;
 		}
 	}
 	catch (...)
@@ -1557,7 +1592,15 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			// This case should actually never be hit, since Parse_Constant() is only called when we have already seen a number or string token
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			
+			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing constant
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+			
+			node = bad_node;
 		}
 	}
 	catch (...)
@@ -1574,7 +1617,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 	return node;
 }
 
-void EidosScript::ParseInterpreterBlockToAST(void)
+void EidosScript::ParseInterpreterBlockToAST(bool p_make_bad_nodes)
 {
 	// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
 	if (parse_root_)
@@ -1588,6 +1631,7 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	parse_index_ = 0;
 	current_token_ = &token_stream_.at(parse_index_);		// should always have at least an EOF
 	current_token_type_ = current_token_->token_type_;
+	parse_make_bad_nodes_ = p_make_bad_nodes;
 	
 	// set up error tracking for this script
 	EidosScript *current_script_save = gEidosCurrentScript;
@@ -1607,6 +1651,7 @@ void EidosScript::ParseInterpreterBlockToAST(void)
 	
 	// restore error tracking
 	gEidosCurrentScript = current_script_save;
+	parse_make_bad_nodes_ = false;
 }
 
 void EidosScript::PrintTokens(ostream &p_outstream) const

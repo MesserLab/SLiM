@@ -32,6 +32,8 @@
 #include "eidos_script.h"
 #include "eidos_value.h"
 #include "eidos_functions.h"
+#include "eidos_type_table.h"
+#include "eidos_type_interpreter.h"
 
 
 enum class SLiMEidosBlockType {
@@ -54,7 +56,7 @@ public:
 	
 	virtual ~SLiMEidosScript(void);												// destructor
 	
-	void ParseSLiMFileToAST(void);									// generate AST from token stream for a SLiM input file ( slim_script_block* EOF )
+	void ParseSLiMFileToAST(bool p_make_bad_nodes = false);						// generate AST from token stream for a SLiM input file ( slim_script_block* EOF )
 	
 	// Top-level parse methods for SLiM input files
 	EidosASTNode *Parse_SLiMFile(void);
@@ -158,6 +160,46 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+};
+
+
+class SLiMTypeTable : public EidosTypeTable
+{
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+public:
+	
+	SLiMTypeTable(const SLiMTypeTable&) = delete;										// no copying
+	SLiMTypeTable& operator=(const SLiMTypeTable&) = delete;							// no copying
+	explicit SLiMTypeTable(void);														// standard constructor
+	virtual ~SLiMTypeTable(void);														// destructor
+	
+	// Test for containing a value for a symbol
+	virtual bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
+	
+	// Get the type for a symbol
+	virtual EidosTypeSpecifier GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const;
+};
+
+
+class SLiMTypeInterpreter : public EidosTypeInterpreter
+{
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+public:
+	
+	SLiMTypeInterpreter(const SLiMTypeInterpreter&) = delete;					// no copying
+	SLiMTypeInterpreter& operator=(const SLiMTypeInterpreter&) = delete;		// no copying
+	SLiMTypeInterpreter(void) = delete;											// no null construction
+	
+	SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);			// we use the passed symbol table but do not own it
+	SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);		// we use the passed symbol table but do not own it
+	
+	virtual ~SLiMTypeInterpreter(void);													// destructor
+	
+	void _SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosObjectClass *p_type_class);
+	
+	virtual EidosTypeSpecifier _TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode **const p_arguments, int p_argument_count);
+	
+	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode **const p_arguments, int p_argument_count);
 };
 
 

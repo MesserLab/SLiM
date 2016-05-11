@@ -27,6 +27,8 @@
 #include "eidos_script.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "eidos_type_table.h"
+#include "eidos_type_interpreter.h"
 
 #include <stdexcept>
 
@@ -1343,7 +1345,9 @@ using std::string;
 {
 	NSArray *completions = nil;
 	
+	//std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: START" << std::endl;
 	[self _completionHandlerWithRangeForCompletion:NULL completions:&completions];
+	//std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: END" << std::endl;
 	
 	return completions;
 }
@@ -1352,68 +1356,49 @@ using std::string;
 {
 	NSRange baseRange = NSMakeRange(NSNotFound, 0);
 	
+	//std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: START" << std::endl;
 	[self _completionHandlerWithRangeForCompletion:&baseRange completions:NULL];
+	//std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: END" << std::endl;
 	
 	return baseRange;
 }
 
-- (NSMutableArray *)globalCompletionsIncludingStatements:(BOOL)includeStatements
+- (NSMutableArray *)globalCompletionsWithTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
 {
 	NSMutableArray *globals = [NSMutableArray array];
-	id delegate = [self delegate];
 	
-	// First, a sorted list of globals
-	EidosSymbolTable *globalSymbolTable = gEidosConstantsSymbolTable;
+	// First add entries for symbols in our type table (from Eidos constants, defined symbols, or our delegate)
+	if (typeTable)
+	{
+		std::vector<std::string> typedSymbols = typeTable->AllSymbols();
+		
+		for (std::string &symbol_name : typedSymbols)
+			[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
+	}
 	
-	if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
-		globalSymbolTable = [delegate eidosTextView:self symbolsFromBaseSymbols:globalSymbolTable];
-	
-	for (std::string &symbol_name : globalSymbolTable->AllSymbols())
-		[globals addObject:[NSString stringWithUTF8String:symbol_name.c_str()]];
-	
+	// Sort the symbols, who knows what order they come from EidosTypeTable in...
 	[globals sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of functions, with () appended
-	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-	
-	if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
-		function_map = [delegate eidosTextView:self functionMapFromBaseMap:function_map];
-	
-	for (const auto& function_iter : *function_map)
+	if (functionMap)
 	{
-		const EidosFunctionSignature *sig = function_iter.second;
-		NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
-		
-		[globals addObject:[functionName stringByAppendingString:@"()"]];
+		for (const auto& function_iter : *functionMap)
+		{
+			const EidosFunctionSignature *sig = function_iter.second;
+			NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
+			
+			[globals addObject:[functionName stringByAppendingString:@"()"]];
+		}
 	}
 	
 	// Finally, provide language keywords as an option if requested
-	if (includeStatements)
-	{
-		[globals addObject:@"break"];
-		[globals addObject:@"do"];
-		[globals addObject:@"else"];
-		[globals addObject:@"for"];
-		[globals addObject:@"if"];
-		[globals addObject:@"in"];
-		[globals addObject:@"next"];
-		[globals addObject:@"return"];
-		[globals addObject:@"while"];
-		
-		// keywords from our Context, if any
-		if ([delegate respondsToSelector:@selector(eidosTextViewLanguageKeywordsForCompletion:)])
-		{
-			NSArray *keywords = [delegate eidosTextViewLanguageKeywordsForCompletion:self];
-			
-			if (keywords)
-				[globals addObjectsFromArray:keywords];
-		}
-	}
+	if (keywords)
+		[globals addObjectsFromArray:keywords];
 	
 	return globals;
 }
 
-- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken> &)tokens
+- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken> &)tokens withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
 {
 	const EidosToken *token = &tokens[lastDotTokenIndex];
 	EidosTokenType token_type = token->token_type_;
@@ -1545,15 +1530,7 @@ using std::string;
 	if (identifier_is_call)
 	{
 		// The root identifier is a call, so it should be a function call; try to look it up
-		id delegate = [self delegate];
-		
-		// Look in the delegate's list of functions first
-		EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-		
-		if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
-			function_map = [delegate eidosTextView:self functionMapFromBaseMap:function_map];
-		
-		for (const auto& function_iter : *function_map)
+		for (const auto& function_iter : *functionMap)
 		{
 			const EidosFunctionSignature *sig = function_iter.second;
 			
@@ -1564,26 +1541,13 @@ using std::string;
 			}
 		}
 	}
-	else
+	else if (typeTable)
 	{
 		// The root identifier is not a call, so it should be a global symbol; try to look it up
-		EidosSymbolTable *globalSymbolTable = gEidosConstantsSymbolTable;
-		id delegate = [self delegate];
+		EidosTypeSpecifier type_specifier = typeTable->GetTypeForSymbol(identifier_ID);
 		
-		if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
-			globalSymbolTable = [delegate eidosTextView:self symbolsFromBaseSymbols:globalSymbolTable];
-		
-		if (!globalSymbolTable->ContainsSymbol(identifier_ID))	// check first so we never get a raise
-			return nil;
-		
-		EidosValue *key_path_root = globalSymbolTable->GetValueOrRaiseForSymbol(identifier_ID).get();
-		
-		if (!key_path_root)
-			return nil;			// unknown symbol at the root, so we have no idea what's going on
-		if (key_path_root->Type() != EidosValueType::kValueObject)
-			return nil;			// the root symbol is not an object, so it should not have a key path off of it; bail
-		
-		key_path_class = ((EidosValue_Object *)key_path_root)->Class();
+		if (!!(type_specifier.type_mask & kEidosValueMaskObject))
+			key_path_class = type_specifier.object_class;
 	}
 	
 	if (!key_path_class)
@@ -1647,7 +1611,7 @@ using std::string;
 	return candidates;
 }
 
-- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend
+- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
 {
 	// What completions we offer depends on the token stream
 	const EidosToken &token = tokens[lastTokenIndex];
@@ -1695,25 +1659,25 @@ using std::string;
 					// if the token we're on is a dot, we are indeed at the end of a key path, and can fetch the completions for it
 					if (previous_token_type == EidosTokenType::kTokenDot)
 					{
-						completions = [self completionsForKeyPathEndingInTokenIndex:previousTokenIndex ofTokenStream:tokens];
+						completions = [self completionsForKeyPathEndingInTokenIndex:previousTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap keywords:keywords];
 						break;
 					}
 					
 					// if we see a semicolon or brace, we are in a completely global context
 					if ((previous_token_type == EidosTokenType::kTokenSemicolon) || (previous_token_type == EidosTokenType::kTokenLBrace) || (previous_token_type == EidosTokenType::kTokenRBrace))
 					{
-						completions = [self globalCompletionsIncludingStatements:YES];
+						completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
 						break;
 					}
 					
 					// if we see any other token, we are not in a key path; let's assume we're following an operator
-					completions = [self globalCompletionsIncludingStatements:NO];
+					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil];
 					break;
 				}
 				
 				// If we ran out of tokens, we're at the beginning of the file and so in the global context
 				if (!completions)
-					completions = [self globalCompletionsIncludingStatements:YES];
+					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
 				
 				// Now we have an array of possible completions; we just need to remove those that don't start with our existing prefix
 				NSString *baseString = [NSString stringWithUTF8String:token.token_string_.c_str()];
@@ -1740,13 +1704,13 @@ using std::string;
 			
 		case EidosTokenType::kTokenDot:
 			// This is the other tricky case, because we're being asked to extend a key path like foo.bar[5:8].
-			return [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens];
+			return [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap keywords:keywords];
 			
 		case EidosTokenType::kTokenSemicolon:
 		case EidosTokenType::kTokenLBrace:
 		case EidosTokenType::kTokenRBrace:
 			// We are in the global context and anything goes, including a new statement
-			return [self globalCompletionsIncludingStatements:YES];
+			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
 			
 		case EidosTokenType::kTokenColon:
 		case EidosTokenType::kTokenComma:
@@ -1769,7 +1733,7 @@ using std::string;
 		case EidosTokenType::kTokenNot:
 		case EidosTokenType::kTokenNotEq:
 			// We are following an operator, so globals are OK but new statements are not
-			return [self globalCompletionsIncludingStatements:NO];
+			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil];
 	}
 	
 	return nil;
@@ -1803,9 +1767,61 @@ using std::string;
 		// Get the substring up to the start of the selection; that is the range relevant for completion
 		NSString *scriptSubstring = [scriptString substringToIndex:selStart];
 		std::string script_string([scriptSubstring UTF8String]);
-		EidosScript script(script_string);
 		
-		// Tokenize
+		// Do shared completion processing that can be intercepted by our delegate: getting a type table for defined variables,
+		// as well as a function map and any added language keywords, all of which depend upon the point of completion
+		id delegate = [self delegate];
+		EidosTypeTable typeTable;
+		EidosTypeTable *typeTablePtr = &typeTable;
+		EidosFunctionMap functionMap(*EidosInterpreter::BuiltInFunctionMap());
+		EidosFunctionMap *functionMapPtr = &functionMap;
+		NSMutableArray *keywords = [NSMutableArray arrayWithObjects:@"break", @"do", @"else", @"for", @"if", @"in", @"next", @"return", @"while", nil];
+		BOOL delegateHandled = NO;
+		
+		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:keywords:)])
+		{
+			delegateHandled = [delegate eidosTextView:self completionContextWithScriptString:scriptSubstring selection:selection typeTable:&typeTablePtr functionMap:&functionMapPtr keywords:keywords];
+		}
+		
+		// set up automatic disposal of a substitute type table or function map provided by delegate
+		std::unique_ptr<EidosTypeTable> raii_typeTablePtr((typeTablePtr != &typeTable) ? typeTablePtr : nullptr);
+		std::unique_ptr<EidosFunctionMap> raii_functionMapPtr((functionMapPtr != &functionMap) ? functionMapPtr : nullptr);
+		
+		if (!delegateHandled)
+		{
+			// First, set up a base type table using the symbol table
+			EidosSymbolTable *symbols = gEidosConstantsSymbolTable;
+			
+			if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
+				symbols = [delegate eidosTextView:self symbolsFromBaseSymbols:symbols];
+			
+			if (symbols)
+				symbols->AddSymbolsToTypeTable(typeTablePtr);
+			
+			// Next, let our delegate give us a new function map
+			if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
+				functionMapPtr = [delegate eidosTextView:self functionMapFromBaseMap:functionMapPtr];
+			
+			// Next, add type table entries based on parsing and analysis of the user's code
+			EidosScript script(script_string);
+			//std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
+			
+			script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
+			script.ParseInterpreterBlockToAST(true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+			
+			//std::ostringstream parse_stream;
+			//script.PrintAST(parse_stream);
+			//std::cout << "Eidos AST:\n" << parse_stream.str() << std::endl << std::endl;
+			
+			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr);
+			
+			typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+		}
+		
+		//std::cout << "Type table:\n" << *typeTablePtr << std::endl;
+		
+		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
+		EidosScript script(script_string);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 		const std::vector<EidosToken> &tokens = script.Tokens();
@@ -1845,7 +1861,7 @@ using std::string;
 			{
 				// We're at the end of nothing but initial whitespace and comments; offer insertion-point completions
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self globalCompletionsIncludingStatements:YES];
+				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
 			}
 			
@@ -1862,7 +1878,7 @@ using std::string;
 			}
 			
 			if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO];
+			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 			return;
 		}
 		else
@@ -1871,7 +1887,7 @@ using std::string;
 			{
 				// We're at the very beginning of the script; offer insertion-point completions
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self globalCompletionsIncludingStatements:YES];
+				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
 			}
 			
@@ -1882,7 +1898,7 @@ using std::string;
 			if (token.token_type_ >= EidosTokenType::kTokenIdentifier)
 			{
 				if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES];
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
 			}
 			
@@ -1894,7 +1910,7 @@ using std::string;
 			}
 			
 			if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO];
+			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 			return;
 		}
 	}

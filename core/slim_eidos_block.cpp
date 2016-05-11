@@ -13,6 +13,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+#include "slim_sim.h"
 
 #include "errno.h"
 #include "string.h"
@@ -76,6 +77,10 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	// We parse the slim_script_info section here, as part of the script block.
 	try
 	{
+		// Keep track of the beginning of the script block, to patch virtual_token below...
+		const int32_t token_start = current_token_->token_start_;
+		const int32_t token_UTF16_start = current_token_->token_UTF16_start_;
+		
 		// The first element is an optional script identifier like s1; we check here that an identifier matches the
 		// pattern sX before eating it, since an identifier here could also be a callback tag like "fitness".
 		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
@@ -116,7 +121,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			if (current_token_type_ == EidosTokenType::kTokenNumber)
 				slim_script_block_node->AddChild(Parse_Constant());
 			else
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
+			{
+				if (!parse_make_bad_nodes_)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << eidos_terminate(current_token_);
+				
+				// Introduce a bad node, since we're being error-tolerant
+				slim_script_block_node->AddChild(Parse_Constant());
+			}
 		}
 		
 		// Now we are to the point of parsing the actual slim_script_block
@@ -164,7 +175,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << eidos_terminate(current_token_);
+					if (!parse_make_bad_nodes_)
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << eidos_terminate(current_token_);
+					
+					// Make a placeholder bad node, to be error-tolerant
+					EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+					EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+					callback_info_node->AddChild(bad_node);
 				}
 				
 				if (current_token_type_ == EidosTokenType::kTokenComma)
@@ -180,7 +197,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << eidos_terminate(current_token_);
+						if (!parse_make_bad_nodes_)
+							EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << eidos_terminate(current_token_);
+						
+						// Make a placeholder bad node, to be error-tolerant
+						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+						EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+						callback_info_node->AddChild(bad_node);
 					}
 				}
 				
@@ -224,12 +247,26 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, early, late, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
+				if (!parse_make_bad_nodes_)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, early, late, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
+				
+				// Consume the stray identifier, to be error-tolerant
+				Consume();
 			}
 		}
 		
 		// Regardless of what happened above, all Eidos blocks end with a compound statement, which is the last child of the node
-		slim_script_block_node->AddChild(Parse_CompoundStatement());
+		EidosASTNode *compound_statement_node = Parse_CompoundStatement();
+		
+		slim_script_block_node->AddChild(compound_statement_node);
+		
+		// Patch virtual_token to contain the range from beginning to end of the script block
+		const int32_t token_end = compound_statement_node->token_->token_end_;
+		const int32_t token_UTF16_end = compound_statement_node->token_->token_UTF16_end_;
+		
+		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
+		
+		slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
 	}
 	catch (...)
 	{
@@ -245,7 +282,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 	return slim_script_block_node;
 }
 
-void SLiMEidosScript::ParseSLiMFileToAST(void)
+void SLiMEidosScript::ParseSLiMFileToAST(bool p_make_bad_nodes)
 {
 	// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
 	if (parse_root_)
@@ -259,6 +296,7 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 	parse_index_ = 0;
 	current_token_ = &token_stream_.at(parse_index_);		// should always have at least an EOF
 	current_token_type_ = current_token_->token_type_;
+	parse_make_bad_nodes_ = p_make_bad_nodes;
 	
 	// parse a new AST from our start token
 	parse_root_ = Parse_SLiMFile();
@@ -271,6 +309,8 @@ void SLiMEidosScript::ParseSLiMFileToAST(void)
 		std::cout << "AST : \n";
 		this->PrintAST(std::cout);
 	}
+	
+	parse_make_bad_nodes_ = false;
 }
 
 bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, char p_prefix_char)
@@ -842,8 +882,203 @@ EidosValue_SP SLiMEidosBlock_Class::ExecuteClassMethod(EidosGlobalStringID p_met
 }
 
 
+//
+//	SLiMTypeTable
+//
+#pragma mark -
+#pragma mark SLiMTypeTable
+
+SLiMTypeTable::SLiMTypeTable(void) : EidosTypeTable()
+{
+}
+
+SLiMTypeTable::~SLiMTypeTable(void)
+{
+}
+
+bool SLiMTypeTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
+{
+	bool has_symbol = EidosTypeTable::ContainsSymbol(p_symbol_name);
+	
+	if (!has_symbol)
+	{
+		// If our superclass is not aware of the symbol, then we want to pretend it exists if it follows
+		// one of the standard naming patterns pX, gX, mX, or sX; this lets the user complete off of
+		// those roots even if the simulation is not aware of the existence of the variable.  See also
+		// eidosConsoleWindowController:tokenStringIsSpecialIdentifier:
+		const std::string &token_string = StringForEidosGlobalStringID(p_symbol_name);
+		int len = (int)token_string.length();
+		
+		if (len >= 2)
+		{
+			char first_ch = token_string[0];
+			
+			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+			{
+				for (int ch_index = 1; ch_index < len; ++ch_index)
+				{
+					char idx_ch = token_string[ch_index];
+					
+					if ((idx_ch < '0') || (idx_ch > '9'))
+						return false;
+				}
+				
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	return has_symbol;
+}
+
+EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const
+{
+	EidosTypeSpecifier symbol_type = EidosTypeTable::GetTypeForSymbol(p_symbol_name);
+	
+	if (symbol_type.type_mask == kEidosValueMaskNone)
+	{
+		// If our superclass is not aware of the symbol, then we want to pretend it exists if it follows
+		// one of the standard naming patterns pX, gX, mX, or sX; this lets the user complete off of
+		// those roots even if the simulation is not aware of the existence of the variable.  See also
+		// eidosConsoleWindowController:tokenStringIsSpecialIdentifier:
+		const std::string &token_string = StringForEidosGlobalStringID(p_symbol_name);
+		int len = (int)token_string.length();
+		
+		if (len >= 2)
+		{
+			char first_ch = token_string[0];
+			
+			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+			{
+				for (int ch_index = 1; ch_index < len; ++ch_index)
+				{
+					char idx_ch = token_string[ch_index];
+					
+					if ((idx_ch < '0') || (idx_ch > '9'))
+						return symbol_type;
+				}
+				
+				if (first_ch == 'p')
+					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class};
+				if (first_ch == 'g')
+					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class};
+				if (first_ch == 'm')
+					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
+				if (first_ch == 's')
+					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
+			}
+		}
+		
+		return symbol_type;
+	}
+	
+	return symbol_type;
+}
 
 
+//
+//	SLiMTypeInterpreter
+//
+#pragma mark -
+#pragma mark SLiMTypeInterpreter
+
+SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
+	: EidosTypeInterpreter(p_script, p_symbols, p_functions, p_defines_only)
+{
+}
+
+SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
+	: EidosTypeInterpreter(p_root_node_, p_symbols, p_functions, p_defines_only)
+{
+}
+
+SLiMTypeInterpreter::~SLiMTypeInterpreter(void)
+{
+}
+
+void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosObjectClass *p_type_class)
+{
+	const EidosToken *arg_token = p_arg_node->token_;
+	
+	if (arg_token->token_type_ == EidosTokenType::kTokenString)
+	{
+		// The argument can be a string, in which case it must start with p_symbol_prefix and then have 1+ numeric characters
+		const std::string &constant_name = arg_token->token_string_;
+		
+		if ((constant_name.length() >= 2) && (constant_name[0] == p_symbol_prefix))
+		{
+			bool all_numeric = true;
+			
+			for (size_t idx = 1; idx < constant_name.length(); ++idx)
+				if (!isdigit(constant_name[idx]))
+					all_numeric = false;
+			
+			if (all_numeric)
+			{
+				EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
+				
+				global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+			}
+		}
+	}
+	else if (arg_token->token_type_ == EidosTokenType::kTokenNumber)
+	{
+		// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
+		EidosValue *cached_value = p_arg_node->cached_value_.get();
+		
+		if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
+		{
+			int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
+			
+			if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
+			{
+				EidosGlobalStringID constant_id = EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix(p_symbol_prefix, static_cast<slim_objectid_t>(cached_int)));
+				
+				global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+			}
+		}
+	}
+}
+
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode **const p_arguments, int p_argument_count)
+{
+	if ((p_function_name == "initializeGenomicElementType") && (p_argument_count >= 1))
+	{
+		_SetTypeForISArgumentOfClass(p_arguments[0], 'g', gSLiM_GenomicElementType_Class);
+	}
+	else if ((p_function_name == "initializeMutationType") && (p_argument_count >= 1))
+	{
+		_SetTypeForISArgumentOfClass(p_arguments[0], 'm', gSLiM_MutationType_Class);
+	}
+	
+	// call super
+	return EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments, p_argument_count);
+}
+
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode **const p_arguments, int p_argument_count)
+{
+	if (p_method_signature)
+	{
+		if (p_target == gSLiM_SLiMSim_Class)
+		{
+			const std::string &function_name = p_method_signature->function_name_;
+			
+			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (p_argument_count >= 1))
+			{
+				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
+			}
+			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback")) && (p_argument_count >= 1))
+			{
+				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
+			}
+		}
+	}
+	
+	// call super
+	return EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments, p_argument_count);
+}
 
 
 
