@@ -159,6 +159,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_RangeExpr(const EidosASTNo
 
 EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode ** p_arguments, int p_argument_count)
 {
+#pragma unused(p_function_name)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	if (p_function_signature)
@@ -189,6 +190,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 
 EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode ** p_arguments, int p_argument_count)
 {
+#pragma unused(p_target, p_arguments, p_argument_count)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	// We just look up the result type from the method signature, if there is one
@@ -511,6 +513,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Exp(const EidosASTNode *p_
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_And(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -518,6 +521,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_And(const EidosASTNode *p_
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Or(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -525,6 +529,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Or(const EidosASTNode *p_n
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Not(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -551,6 +556,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Assign(const EidosASTNode 
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Eq(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -558,6 +564,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Eq(const EidosASTNode *p_n
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Lt(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -565,6 +572,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Lt(const EidosASTNode *p_n
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_LtEq(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -572,6 +580,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_LtEq(const EidosASTNode *p
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Gt(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -579,6 +588,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Gt(const EidosASTNode *p_n
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_GtEq(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -586,6 +596,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_GtEq(const EidosASTNode *p
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_NotEq(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskLogical, nullptr};
 	
 	return result_type;
@@ -612,6 +623,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Number(const EidosASTNode 
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_String(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskString, nullptr};
 	
 	return result_type;
@@ -684,6 +696,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_For(const EidosASTNode *p_
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Next(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	return result_type;
@@ -691,6 +704,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Next(const EidosASTNode *p
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Break(const EidosASTNode *p_node)
 {
+#pragma unused(p_node)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	return result_type;

@@ -20,6 +20,7 @@
 
 #include "eidos_type_table.h"
 
+#include <algorithm>
 
 
 EidosTypeTable::EidosTypeTable(void)
