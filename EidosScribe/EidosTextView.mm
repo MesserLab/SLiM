@@ -31,6 +31,7 @@
 #include "eidos_type_interpreter.h"
 
 #include <stdexcept>
+#include <memory>
 
 
 using std::vector;

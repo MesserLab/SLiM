@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <typeinfo>
+#include <memory>
 
 
 using std::multimap;
