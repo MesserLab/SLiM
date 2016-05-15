@@ -28,6 +28,8 @@
 #include <iostream>
 #include <algorithm>
 #include <assert.h>
+#include <string>
+#include <map>
 
 
 using std::string;

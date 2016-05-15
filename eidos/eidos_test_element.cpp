@@ -31,6 +31,8 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 
 using std::string;

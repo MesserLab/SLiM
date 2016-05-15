@@ -22,6 +22,8 @@
 #include "eidos_interpreter.h"
 
 #include "errno.h"
+#include <string>
+
 
 using std::string;
 

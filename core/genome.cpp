@@ -25,6 +25,7 @@
 #include "slim_sim.h"	// we need to register mutations in the simulation...
 
 #include <algorithm>
+#include <string>
 
 
 #ifdef DEBUG

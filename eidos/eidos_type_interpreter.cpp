@@ -24,8 +24,9 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
-
 #include <sstream>
+#include <string>
+#include <vector>
 
 
 using std::string;

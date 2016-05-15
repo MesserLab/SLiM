@@ -21,6 +21,8 @@
 #include "slim_global.h"
 #include "mutation.h"
 
+#include <string>
+
 
 void SLiM_WarmUp(void)
 {

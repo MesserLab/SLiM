@@ -31,6 +31,8 @@
 #include <algorithm>
 #include <typeinfo>
 #include <memory>
+#include <string>
+#include <utility>
 
 
 using std::multimap;

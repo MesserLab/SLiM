@@ -24,6 +24,8 @@
 #include "slim_sim.h"	// we need to tell the simulation if a selection coefficient is set to non-neutral...
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 
 // All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()

@@ -17,7 +17,9 @@
 
 #include "errno.h"
 #include "string.h"
+#include <string>
 #include <algorithm>
+#include <vector>
 
 
 using std::endl;

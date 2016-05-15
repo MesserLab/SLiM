@@ -20,6 +20,8 @@
 
 #include "eidos_property_signature.h"
 
+#include <string>
+
 
 using std::string;
 using std::ostream;

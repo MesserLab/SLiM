@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 
 // From stackoverflow: http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf/

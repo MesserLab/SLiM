@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "slim_sim.h"
 #include "slim_global.h"

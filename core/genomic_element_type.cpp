@@ -26,6 +26,7 @@
 #include "eidos_property_signature.h"
 
 #include <algorithm>
+#include <string>
 
 
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :

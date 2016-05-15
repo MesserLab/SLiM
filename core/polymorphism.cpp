@@ -21,6 +21,8 @@
 #include "polymorphism.h"
 
 #include <fstream>
+#include <map>
+#include <utility>
 
 
 using std::multimap;

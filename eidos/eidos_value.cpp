@@ -23,6 +23,8 @@
 #include "eidos_property_signature.h"
 
 #include <algorithm>
+#include <utility>
+#include <functional>
 #include "math.h"
 #include "errno.h"
 

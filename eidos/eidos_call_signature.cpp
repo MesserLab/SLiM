@@ -20,6 +20,8 @@
 
 #include "eidos_call_signature.h"
 
+#include <string>
+
 
 using std::string;
 using std::vector;

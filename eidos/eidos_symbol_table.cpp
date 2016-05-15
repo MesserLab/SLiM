@@ -25,6 +25,8 @@
 #include "eidos_type_table.h"
 
 #include <algorithm>
+#include <utility>
+#include <limits>
 #include "math.h"
 
 
