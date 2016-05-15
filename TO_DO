@@ -20,7 +20,7 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-pages/cpplint):
-	cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp
+	cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
 
 
