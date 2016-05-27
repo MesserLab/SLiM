@@ -404,7 +404,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (Genome::ExecuteInstanceMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_add_ = true;
 			}
 			
@@ -447,7 +447,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (Genome::ExecuteInstanceMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_add_ = true;
 			}
 			
@@ -537,7 +537,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (Genome::ExecuteInstanceMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_add_ = true;
 			}
 			
@@ -781,7 +781,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_remove_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (Genome::ExecuteInstanceMethod): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_remove_ = true;
 			}
 			

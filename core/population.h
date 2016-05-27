@@ -146,10 +146,10 @@ public:
 	void PrintAllBinary(std::ostream &p_out) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id
-	void PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const;
+	void PrintSample(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-	void PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
+	void PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
 	
 	// remove subpopulations, purge all mutations and substitutions, etc.; called before InitializePopulationFrom[Text|Binary]File()
 	void RemoveAllSubpopulationInfo(void);

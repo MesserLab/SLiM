@@ -2401,13 +2401,13 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_outputFixedMutations:
 		{
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			
 			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFixedMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				output_stream << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFixedMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
-			
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
 			output_stream << "#OUT: " << generation_ << " F " << endl;
 			output_stream << "Mutations:" << endl;
@@ -2433,7 +2433,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		{
 			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFull() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputFull() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
 			
@@ -2492,13 +2492,13 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_outputMutations:
 		{
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			
 			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				output_stream << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
-			
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
 			EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;

@@ -2578,7 +2578,7 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
+void Population::PrintSample(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -2607,23 +2607,23 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 	}
 	
 	// print the sample's polymorphisms
-	SLIM_OUTSTREAM << "Mutations:"  << endl;
+	p_out << "Mutations:"  << endl;
 	
 	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.print(SLIM_OUTSTREAM);
+		polymorphism_pair.second.print(p_out);
 	
 	// print the sample's genomes
-	SLIM_OUTSTREAM << "Genomes:" << endl;
+	p_out << "Genomes:" << endl;
 	
 	for (unsigned int j = 0; j < sample.size(); j++)														// go through all individuals
 	{
 		Genome &genome = subpop_genomes[sample[j]];
 		
-		SLIM_OUTSTREAM << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.Type();
+		p_out << "p" << p_subpop.subpopulation_id_ << ":" << sample[j] << " " << genome.Type();
 		
 		if (genome.IsNull())
 		{
-			SLIM_OUTSTREAM << " <null>";
+			p_out << " <null>";
 		}
 		else
 		{
@@ -2631,16 +2631,16 @@ void Population::PrintSample(Subpopulation &p_subpop, slim_popsize_t p_sample_si
 			{
 				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 				
-				SLIM_OUTSTREAM << " " << mutation_id;
+				p_out << " " << mutation_id;
 			}
 		}
 		
-		SLIM_OUTSTREAM << endl;
+		p_out << endl;
 	}
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
+void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -2669,17 +2669,17 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 	}
 	
 	// print header
-	SLIM_OUTSTREAM << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
+	p_out << endl << "//" << endl << "segsites: " << polymorphisms.size() << endl;
 	
 	// print the sample's positions
 	if (polymorphisms.size() > 0)
 	{
-		SLIM_OUTSTREAM << "positions:";
+		p_out << "positions:";
 		
 		for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
-			SLIM_OUTSTREAM << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+			p_out << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
-		SLIM_OUTSTREAM << endl;
+		p_out << endl;
 	}
 	
 	// print the sample's genotypes
@@ -2705,7 +2705,7 @@ void Population::PrintSample_ms(Subpopulation &p_subpop, slim_popsize_t p_sample
 			}
 		}
 		
-		SLIM_OUTSTREAM << genotype << endl;
+		p_out << genotype << endl;
 	}
 }
 

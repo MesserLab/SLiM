@@ -1872,11 +1872,12 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputMSSample:
 		case gID_outputSample:
 		{
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			SLiMSim &sim = population_.sim_;
 			
 			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_output_))
 			{
-				SLIM_OUTSTREAM << "#WARNING (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				output_stream << "#WARNING (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				sim.warned_early_output_ = true;
 			}
 			
@@ -1900,17 +1901,17 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << eidos_terminate();
 			}
 			
-			SLIM_OUTSTREAM << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
+			output_stream << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
 			
 			if (sim.SexEnabled())
-				SLIM_OUTSTREAM << " " << requested_sex;
+				output_stream << " " << requested_sex;
 			
-			SLIM_OUTSTREAM << endl;
+			output_stream << endl;
 			
 			if (p_method_id == gID_outputSample)
-				population_.PrintSample(*this, sample_size, requested_sex);
+				population_.PrintSample(output_stream, *this, sample_size, requested_sex);
 			else
-				population_.PrintSample_ms(*this, sample_size, sim.TheChromosome(), requested_sex);
+				population_.PrintSample_ms(output_stream, *this, sample_size, sim.TheChromosome(), requested_sex);
 			
 			return gStaticEidosValueNULLInvisible;
 		}

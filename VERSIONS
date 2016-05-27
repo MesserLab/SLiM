@@ -8,7 +8,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 Development head:
-
+	Fix issue with interleaving of output from SLiM versus Eidos
+	Fix for a code completion bug with if() statements
 
 2.0.3 (build 828; Eidos version 1.0.3):
 	Greatly improved code completion facilities
