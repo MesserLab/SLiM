@@ -5307,7 +5307,7 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 		{
 			std::ostringstream &output_stream = ExecutionOutputStream();
 			
-			output_stream << "Eidos version 1.0.3" << endl;	// EIDOS VERSION
+			output_stream << "Eidos version 1.0.4" << endl;	// EIDOS VERSION
 			
 			if (gEidosContextVersion.length())
 				output_stream << gEidosContextVersion << endl;
