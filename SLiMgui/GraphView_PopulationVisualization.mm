@@ -61,10 +61,12 @@
 
 - (void)drawSubpop:(Subpopulation *)subpop withID:(slim_objectid_t)subpopID centeredAt:(NSPoint)center controller:(SLiMWindowController *)controller
 {
-	static NSDictionary *labelAttrs = nil;
+	static NSDictionary *blackLabelAttrs = nil, *whiteLabelAttrs = nil;
 	
-	if (!labelAttrs)
-		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:0.04]} retain];
+	if (!blackLabelAttrs)
+		blackLabelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:0.04], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
+	if (!whiteLabelAttrs)
+		whiteLabelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:0.04], NSForegroundColorAttributeName : [NSColor whiteColor]} retain];
 	
 	// figure out the right radius, clamped to reasonable limits
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
@@ -99,6 +101,8 @@
 	
 	// label it with the subpopulation ID
 	NSString *popString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
+	double brightness = 0.299 * colorRed + 0.587 * colorGreen + 0.114 * colorBlue;
+	NSDictionary *labelAttrs = ((brightness > 0.5) ? blackLabelAttrs : whiteLabelAttrs);
 	NSAttributedString *popLabel = [[NSAttributedString alloc] initWithString:popString attributes:labelAttrs];
 	NSSize labelSize = [popLabel size];
 	
