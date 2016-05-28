@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="10116" systemVersion="15E65" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="10116"/>
     </dependencies>
     <objects>
@@ -505,6 +506,18 @@ DQ
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="sendFeedback:" target="Voe-Tx-rLC" id="6xx-73-aMp"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Mailing List: slim-announce" id="0z5-95-PGp">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="mailingListAnnounce:" target="Voe-Tx-rLC" id="2mT-z1-X0Z"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Mailing List: slim-discuss" id="P55-d4-Gg2">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="mailingListDiscuss:" target="Voe-Tx-rLC" id="7sc-gc-PXU"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="iTy-zx-Yi2"/>

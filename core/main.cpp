@@ -32,11 +32,45 @@
 #include "slim_test.h"
 
 
-void PrintUsageAndDie();
+void PrintUsageAndDie(bool p_fullOutput);
 
-void PrintUsageAndDie()
+void PrintUsageAndDie(bool p_fullOutput)
 {
+	if (p_fullOutput)
+	{
+		SLIM_OUTSTREAM << "SLiM version 2.0.4, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
+		
+		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2016 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "SLiM home page: http://messerlab.org/slim/" << std::endl;
+		SLIM_OUTSTREAM << "slim-announce mailing list: https://groups.google.com/d/forum/slim-announce" << std::endl;
+		SLIM_OUTSTREAM << "slim-discuss mailing list: https://groups.google.com/d/forum/slim-discuss" << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
+
+		SLIM_OUTSTREAM << "SLiM is free software: you can redistribute it and/or modify it under the terms" << std::endl;
+		SLIM_OUTSTREAM << "of the GNU General Public License as published by the Free Software Foundation," << std::endl;
+		SLIM_OUTSTREAM << "either version 3 of the License, or (at your option) any later version." << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;" << std::endl;
+		SLIM_OUTSTREAM << "without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR" << std::endl;
+		SLIM_OUTSTREAM << "PURPOSE.  See the GNU General Public License for more details." << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "You should have received a copy of the GNU General Public License along with" << std::endl;
+		SLIM_OUTSTREAM << "SLiM.  If not, see <http://www.gnu.org/licenses/>." << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
+	}
+	
 	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM | [-seed <seed>] [-time] [-mem] [-Memhist] <script file>" << std::endl;
+	
+	if (p_fullOutput)
+		SLIM_OUTSTREAM << std::endl;
+	
 	exit(0);
 }
 
@@ -51,6 +85,9 @@ int main(int argc, char *argv[])
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
 	
+	if (argc == 1)
+		PrintUsageAndDie(true);
+	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
 		const char *arg = argv[arg_index];
@@ -59,7 +96,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
 		{
 			if (++arg_index == argc)
-				PrintUsageAndDie();
+				PrintUsageAndDie(false);
 			
 			override_seed = strtol(argv[arg_index], NULL, 10);
 			override_seed_ptr = &override_seed;
@@ -120,20 +157,18 @@ int main(int argc, char *argv[])
 		
 		// -usage or -u: print usage information
 		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
-		{
-			PrintUsageAndDie();
-		}
+			PrintUsageAndDie(false);
 		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
-			PrintUsageAndDie();
+			PrintUsageAndDie(false);
 		
 		input_file = argv[arg_index];
 	}
 	
 	// check that we got what we need
 	if (!input_file)
-		PrintUsageAndDie();
+		PrintUsageAndDie(false);
 	
 	// announce if we are running a debug build
 #ifdef DEBUG

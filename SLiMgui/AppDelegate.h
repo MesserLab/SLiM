@@ -48,6 +48,8 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 
 - (IBAction)showHelp:(id)sender;
 - (IBAction)sendFeedback:(id)sender;
+- (IBAction)mailingListAnnounce:(id)sender;
+- (IBAction)mailingListDiscuss:(id)sender;
 - (IBAction)showMesserLab:(id)sender;
 - (IBAction)showBenHaller:(id)sender;
 - (IBAction)showStickSoftware:(id)sender;

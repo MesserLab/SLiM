@@ -250,6 +250,16 @@ typedef enum SLiMLaunchAction
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"mailto:philipp.messer@gmail.com?subject=SLiM%20Feedback"]];
 }
 
+- (IBAction)mailingListAnnounce:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://groups.google.com/d/forum/slim-announce"]];
+}
+
+- (IBAction)mailingListDiscuss:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://groups.google.com/d/forum/slim-discuss"]];
+}
+
 - (IBAction)showSlimHomePage:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://messerlab.org/slim/"]];
