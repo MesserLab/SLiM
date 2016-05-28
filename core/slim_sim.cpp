@@ -2048,18 +2048,26 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			if (generation_ < old_generation)
 			{
 #ifdef SLIMGUI
-				// Fix fitness_history_ for SLiMgui.  Note that mutation_loss_times_ and mutation_fixation_times_ are not fixable, since
+				// Fix fitness histories for SLiMgui.  Note that mutation_loss_times_ and mutation_fixation_times_ are not fixable, since
 				// their entries are not separated out by generation, so we just leave them as is, containing information about
 				// alternative futures of the model.
-				double *history = population_.fitness_history_;
-				
-				if (history)
+				for (auto history_record_iter : population_.fitness_histories_)
 				{
-					int old_last_valid_history_index = std::max(0, old_generation - 2);		// if gen==2, gen 1 was the last valid entry, and it is at index 0
-					int new_last_valid_history_index = std::max(0, generation_ - 2);		// ditto
+					FitnessHistory &history_record = history_record_iter.second;
+					double *history = history_record.history_;
 					
-					for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
-						history[entry_index] = NAN;
+					if (history)
+					{
+						int old_last_valid_history_index = std::max(0, old_generation - 2);		// if gen==2, gen 1 was the last valid entry, and it is at index 0
+						int new_last_valid_history_index = std::max(0, generation_ - 2);		// ditto
+						
+						// make sure that we don't overrun the end of the buffer
+						if (old_last_valid_history_index > history_record.history_length_ - 1)
+							old_last_valid_history_index = history_record.history_length_ - 1;
+						
+						for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
+							history[entry_index] = NAN;
+					}
 				}
 #endif
 			}

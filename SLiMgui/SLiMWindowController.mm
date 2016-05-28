@@ -132,7 +132,7 @@
 	return str;
 }
 
-+ (NSColor *)colorForIndex:(int)index
++ (NSColor *)blackContrastingColorForIndex:(int)index
 {
 	static NSColor **colorArray = NULL;
 	
@@ -144,13 +144,33 @@
 		colorArray[1] = [[NSColor colorWithCalibratedHue:0.55 saturation:1.0 brightness:1.0 alpha:1.0] retain];
 		colorArray[2] = [[NSColor colorWithCalibratedHue:0.40 saturation:1.0 brightness:0.9 alpha:1.0] retain];
 		colorArray[3] = [[NSColor colorWithCalibratedHue:0.16 saturation:1.0 brightness:1.0 alpha:1.0] retain];
-		colorArray[4] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.65 brightness:1.0 alpha:1.0] retain];
-		colorArray[5] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.65 brightness:1.0 alpha:1.0] retain];
-		colorArray[6] = [[NSColor colorWithCalibratedHue:0.75 saturation:0.55 brightness:1.0 alpha:1.0] retain];
+		colorArray[4] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.65 brightness:1.0 alpha:1.0] retain];
+		colorArray[5] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.65 brightness:1.0 alpha:1.0] retain];
+		colorArray[6] = [[NSColor colorWithCalibratedHue:0.80 saturation:0.65 brightness:1.0 alpha:1.0] retain];
 		colorArray[7] = [[NSColor colorWithCalibratedWhite:0.8 alpha:1.0] retain];
 	}
 	
 	return ((index >= 0) && (index <= 6)) ? colorArray[index] : colorArray[7];
+}
+
++ (NSColor *)whiteContrastingColorForIndex:(int)index
+{
+	static NSColor **colorArray = NULL;
+	
+	if (!colorArray)
+	{
+		colorArray = (NSColor **)malloc(7 * sizeof(NSColor *));
+		
+		colorArray[0] = [[NSColor colorWithCalibratedHue:0.65 saturation:0.75 brightness:1.0 alpha:1.0] retain];
+		colorArray[1] = [[NSColor colorWithCalibratedHue:0.55 saturation:1.0 brightness:1.0 alpha:1.0] retain];
+		colorArray[2] = [[NSColor colorWithCalibratedHue:0.40 saturation:1.0 brightness:0.8 alpha:1.0] retain];
+		colorArray[3] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.75 brightness:1.0 alpha:1.0] retain];
+		colorArray[4] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.85 brightness:1.0 alpha:1.0] retain];
+		colorArray[5] = [[NSColor colorWithCalibratedHue:0.80 saturation:0.85 brightness:1.0 alpha:1.0] retain];
+		colorArray[6] = [[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] retain];
+	}
+	
+	return ((index >= 0) && (index <= 5)) ? colorArray[index] : colorArray[6];
 }
 
 - (id)initWithWindow:(NSWindow *)window
@@ -746,7 +766,7 @@
 	{
 		int elementCount = (int)[genomicElementColorRegistry count];
 		
-		elementColor = [SLiMWindowController colorForIndex:elementCount];
+		elementColor = [SLiMWindowController blackContrastingColorForIndex:elementCount];
 		[genomicElementColorRegistry setObject:elementColor forKey:key];
 	}
 	

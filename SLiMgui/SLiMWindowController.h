@@ -143,7 +143,8 @@
 }
 
 + (NSString *)defaultScriptString;
-+ (NSColor *)colorForIndex:(int)index;
++ (NSColor *)blackContrastingColorForIndex:(int)index;
++ (NSColor *)whiteContrastingColorForIndex:(int)index;
 
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 - (void)setDefaultScriptStringAndInitializeSimulation;

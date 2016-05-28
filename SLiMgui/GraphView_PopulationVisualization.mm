@@ -669,11 +669,9 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 {
 	if (menu)
 	{
-		{
-			NSMenuItem *menuItem = [menu addItemWithTitle:([self optimizePositions] ? @"Standard Positions" : @"Optimized Positions") action:@selector(toggleOptimizedPositions:) keyEquivalent:@""];
-			
-			[menuItem setTarget:self];
-		}
+		NSMenuItem *menuItem = [menu addItemWithTitle:([self optimizePositions] ? @"Standard Positions" : @"Optimized Positions") action:@selector(toggleOptimizedPositions:) keyEquivalent:@""];
+		
+		[menuItem setTarget:self];
 	}
 }
 

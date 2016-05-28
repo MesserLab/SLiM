@@ -33,6 +33,10 @@
 	NSImage *drawingCache;
 	slim_generation_t drawingCacheGeneration;
 }
+
+@property (nonatomic) BOOL showSubpopulations;
+@property (nonatomic) BOOL drawLines;
+
 @end
 
 

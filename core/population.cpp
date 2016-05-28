@@ -46,6 +46,21 @@ Population::~Population(void)
 {
 	RemoveAllSubpopulationInfo();
 	
+#ifdef SLIMGUI
+	// release malloced storage for SLiMgui statistics collection
+	for (auto history_record_iter : fitness_histories_)
+	{
+		FitnessHistory &history_record = history_record_iter.second;
+		
+		if (history_record.history_)
+		{
+			free(history_record.history_);
+			history_record.history_ = nullptr;
+			history_record.history_length_ = 0;
+		}
+	}
+#endif
+	
 	// dispose of any freed subpops
 	for (auto removed_subpop : removed_subpops_)
 		delete removed_subpop;
@@ -1727,12 +1742,62 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 }
 
 #ifdef SLIMGUI
+void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double fitness_value)
+{
+	FitnessHistory *history_rec_ptr = nullptr;
+	
+	// Find the existing history record, if it exists
+	auto history_iter = fitness_histories_.find(p_subpop_id);
+	
+	if (history_iter != fitness_histories_.end())
+		history_rec_ptr = &(history_iter->second);
+	
+	// If not, create a new history record and add it to our vector
+	if (!history_rec_ptr)
+	{
+		FitnessHistory history_record;
+		
+		history_record.history_ = nullptr;
+		history_record.history_length_ = 0;
+		
+		auto emplace_rec = fitness_histories_.emplace(std::pair<slim_objectid_t,FitnessHistory>(p_subpop_id, std::move(history_record)));
+		
+		if (emplace_rec.second)
+			history_rec_ptr = &(emplace_rec.first->second);
+	}
+	
+	// Assuming we now have a record, resize it as needed and insert the new value
+	if (history_rec_ptr)
+	{
+		double *history = history_rec_ptr->history_;
+		slim_generation_t history_length = history_rec_ptr->history_length_;
+		
+		if (p_history_index >= history_length)
+		{
+			slim_generation_t oldHistoryLength = history_length;
+			
+			history_length = p_history_index + 1000;			// give some elbow room for expansion
+			history = (double *)realloc(history, history_length * sizeof(double));
+			
+			for (slim_generation_t i = oldHistoryLength; i < history_length; ++i)
+				history[i] = NAN;
+			
+			// Copy the new values back into the history record
+			history_rec_ptr->history_ = history;
+			history_rec_ptr->history_length_ = history_length;
+		}
+		
+		history[p_history_index] = fitness_value;
+	}
+}
+
 // This method is used to record population statistics that are kept per generation for SLiMgui
 void Population::SurveyPopulation(void)
 {
 	// Calculate mean fitness for this generation; this integrates the subpop mean fitness values from UpdateFitness()
 	double totalFitness = 0.0;
 	slim_popsize_t individualCount = 0;
+	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{ 
@@ -1740,24 +1805,11 @@ void Population::SurveyPopulation(void)
 		
 		totalFitness += subpop->parental_total_fitness_;
 		individualCount += subpop->parent_subpop_size_;
+		
+		RecordFitness(historyIndex, subpop_pair.first, subpop->parental_total_fitness_ / subpop->parent_subpop_size_);
 	}
 	
-	double meanFitness = totalFitness / individualCount;
-	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
-	
-	// Add the mean fitness to the population history
-	if (historyIndex >= fitness_history_length_)
-	{
-		slim_generation_t oldHistoryLength = fitness_history_length_;
-		
-		fitness_history_length_ = historyIndex + 1000;			// give some elbow room for expansion
-		fitness_history_ = (double *)realloc(fitness_history_, fitness_history_length_ * sizeof(double));
-		
-		for (slim_generation_t i = oldHistoryLength; i < fitness_history_length_; ++i)
-			fitness_history_[i] = NAN;
-	}
-	
-	fitness_history_[historyIndex] = meanFitness;
+	RecordFitness(historyIndex, -1, totalFitness / individualCount);
 }
 #endif
 

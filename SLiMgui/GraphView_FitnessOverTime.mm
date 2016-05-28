@@ -56,6 +56,8 @@
 		
 		[self setShowHorizontalGridLines:YES];
 		[self setTweakXAxisTickLabelAlignment:YES];
+		
+		[self setShowSubpopulations:YES];
 	}
 	
 	return self;
@@ -98,22 +100,31 @@
 		SLiMWindowController *controller = [self slimWindowController];
 		SLiMSim *sim = controller->sim;
 		Population &pop = sim->population_;
-		double *history = pop.fitness_history_;
-		slim_generation_t historyLength = pop.fitness_history_length_;
 		double minHistory = INFINITY;
 		double maxHistory = -INFINITY;
+		BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 		
-		// find the min and max history value
-		for (int i = 0; i < historyLength; ++i)
+		for (auto history_record_iter : pop.fitness_histories_)
 		{
-			double historyEntry = history[i];
-			
-			if (!isnan(historyEntry))
+			if (showSubpops || (history_record_iter.first == -1))
 			{
-				if (historyEntry > maxHistory)
-					maxHistory = historyEntry;
-				if (historyEntry < minHistory)
-					minHistory = historyEntry;
+				FitnessHistory &history_record = history_record_iter.second;
+				double *history = history_record.history_;
+				slim_generation_t historyLength = history_record.history_length_;
+				
+				// find the min and max history value
+				for (int i = 0; i < historyLength; ++i)
+				{
+					double historyEntry = history[i];
+					
+					if (!isnan(historyEntry))
+					{
+						if (historyEntry > maxHistory)
+							maxHistory = historyEntry;
+						if (historyEntry < minHistory)
+							minHistory = historyEntry;
+					}
+				}
 			}
 		}
 		
@@ -146,7 +157,7 @@
 	[super updateAfterTick];
 }
 
-- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+- (void)drawPointGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
@@ -200,25 +211,181 @@
 	}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
-	double *history = pop.fitness_history_;
-	slim_generation_t historyLength = pop.fitness_history_length_;
+	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
+	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
 	
-	[[NSColor blackColor] set];
-	
-	// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-	slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
-	
-	for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+	// First draw subpops
+	if (showSubpops)
 	{
-		double historyEntry = history[i];
-		
-		if (!isnan(historyEntry))
+		for (auto history_record_iter : pop.fitness_histories_)
 		{
-			NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
-			
-			NSRectFill(NSMakeRect(historyPoint.x - 0.5, historyPoint.y - 0.5, 1.0, 1.0));
+			if (history_record_iter.first != -1)
+			{
+				FitnessHistory &history_record = history_record_iter.second;
+				double *history = history_record.history_;
+				slim_generation_t historyLength = history_record.history_length_;
+				
+				if (drawSubpopsGray)
+					[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
+				else
+					[[SLiMWindowController whiteContrastingColorForIndex:history_record_iter.first] set];
+				
+				// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
+				slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
+				
+				for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+				{
+					double historyEntry = history[i];
+					
+					if (!isnan(historyEntry))
+					{
+						NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
+						
+						NSRectFill(NSMakeRect(historyPoint.x - 0.5, historyPoint.y - 0.5, 1.0, 1.0));
+					}
+				}
+			}
 		}
 	}
+	
+	// Then draw the mean population fitness
+	for (auto history_record_iter : pop.fitness_histories_)
+	{
+		if (history_record_iter.first == -1)
+		{
+			FitnessHistory &history_record = history_record_iter.second;
+			double *history = history_record.history_;
+			slim_generation_t historyLength = history_record.history_length_;
+			
+			[[NSColor blackColor] set];
+			
+			// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
+			slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
+			
+			for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+			{
+				double historyEntry = history[i];
+				
+				if (!isnan(historyEntry))
+				{
+					NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
+					
+					NSRectFill(NSMakeRect(historyPoint.x - 0.5, historyPoint.y - 0.5, 1.0, 1.0));
+				}
+			}
+		}
+	}
+}
+
+- (void)drawLineGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+{
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	slim_generation_t completedGenerations = sim->generation_ - 1;
+	
+	// Draw fixation events
+	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	
+	for (const Substitution *substitution : substitutions)
+	{
+		slim_generation_t fixation_gen = substitution->fixation_generation_;
+		double substitutionX = [self plotToDeviceX:fixation_gen withInteriorRect:interiorRect];
+		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
+		
+		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
+		NSRectFillUsingOperation(substitutionRect, NSCompositeSourceOver);
+	}
+	
+	// Draw the fitness history as a scatter plot; better suited to caching of the image
+	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
+	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+	
+	// First draw subpops
+	if (showSubpops)
+	{
+		for (auto history_record_iter : pop.fitness_histories_)
+		{
+			if (history_record_iter.first != -1)
+			{
+				FitnessHistory &history_record = history_record_iter.second;
+				double *history = history_record.history_;
+				slim_generation_t historyLength = history_record.history_length_;
+				NSBezierPath *linePath = [NSBezierPath bezierPath];
+				BOOL startedLine = NO;
+				
+				for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+				{
+					double historyEntry = history[i];
+					
+					if (isnan(historyEntry))
+					{
+						startedLine = NO;
+					}
+					else
+					{
+						NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
+						
+						if (startedLine)	[linePath lineToPoint:historyPoint];
+						else				[linePath moveToPoint:historyPoint];
+						
+						startedLine = YES;
+					}
+				}
+				
+				if (drawSubpopsGray)
+					[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
+				else
+					[[SLiMWindowController whiteContrastingColorForIndex:history_record_iter.first] set];
+				
+				[linePath setLineWidth:1.0];
+				[linePath stroke];
+			}
+		}
+	}
+	
+	// Then draw the mean population fitness
+	for (auto history_record_iter : pop.fitness_histories_)
+	{
+		if (history_record_iter.first == -1)
+		{
+			FitnessHistory &history_record = history_record_iter.second;
+			double *history = history_record.history_;
+			slim_generation_t historyLength = history_record.history_length_;
+			NSBezierPath *linePath = [NSBezierPath bezierPath];
+			BOOL startedLine = NO;
+			
+			for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+			{
+				double historyEntry = history[i];
+				
+				if (isnan(historyEntry))
+				{
+					startedLine = NO;
+				}
+				else
+				{
+					NSPoint historyPoint = NSMakePoint([self plotToDeviceX:i withInteriorRect:interiorRect], [self plotToDeviceY:historyEntry withInteriorRect:interiorRect]);
+					
+					if (startedLine)	[linePath lineToPoint:historyPoint];
+					else				[linePath moveToPoint:historyPoint];
+					
+					startedLine = YES;
+				}
+			}
+			
+			[[NSColor blackColor] set];
+			[linePath setLineWidth:1.5];
+			[linePath stroke];
+		}
+	}
+}
+
+- (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
+{
+	if ([self drawLines])
+		[self drawLineGraphInInteriorRect:interiorRect withController:controller];
+	else
+		[self drawPointGraphInInteriorRect:interiorRect withController:controller];
 }
 
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
@@ -245,18 +412,111 @@
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];
 	
-	double *history = pop.fitness_history_;
-	slim_generation_t historyLength = pop.fitness_history_length_;
+	for (auto history_record_iter : pop.fitness_histories_)
+	{
+		if (history_record_iter.first == -1)
+		{
+			FitnessHistory &history_record = history_record_iter.second;
+			double *history = history_record.history_;
+			slim_generation_t historyLength = history_record.history_length_;
+			
+			for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+				[string appendFormat:@"%.4f, ", history[i]];
+			
+			[string appendString:@"\n"];
+		}
+	}
 	
-	for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
-		[string appendFormat:@"%.4f, ", history[i]];
+	// Subpopulation fitness histories
+	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 	
-	[string appendString:@"\n"];
+	if (showSubpops)
+	{
+		for (auto history_record_iter : pop.fitness_histories_)
+		{
+			if (history_record_iter.first != -1)
+			{
+				FitnessHistory &history_record = history_record_iter.second;
+				double *history = history_record.history_;
+				slim_generation_t historyLength = history_record.history_length_;
+				
+				[string appendFormat:@"\n\n# Fitness history (subpopulation p%d):\n", history_record_iter.first];
+				
+				for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+					[string appendFormat:@"%.4f, ", history[i]];
+				
+				[string appendString:@"\n"];
+			}
+		}
+	}
 	
 	// Get rid of extra commas
 	[string replaceOccurrencesOfString:@", \n" withString:@"\n" options:0 range:NSMakeRange(0, [string length])];
 	
 	return string;
+}
+
+- (NSArray *)legendKey
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
+	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+	
+	if (!showSubpops)
+		return nil;
+	
+	NSMutableArray *legendKey = [NSMutableArray array];
+	
+	[legendKey addObject:@[@"All", [NSColor blackColor]]];
+	
+	if (drawSubpopsGray)
+	{
+		[legendKey addObject:@[@"pX", [NSColor colorWithCalibratedWhite:0.5 alpha:1.0]]];
+	}
+	else
+	{
+		for (auto history_record_iter : pop.fitness_histories_)
+		{
+			if (history_record_iter.first != -1)
+			{
+				NSString *labelString = [NSString stringWithFormat:@"p%lld", (int64_t)history_record_iter.first];
+				
+				[legendKey addObject:@[labelString, [SLiMWindowController whiteContrastingColorForIndex:history_record_iter.first]]];
+			}
+		}
+	}
+	
+	return legendKey;
+}
+
+- (IBAction)toggleShowSubpopulations:(id)sender
+{
+	[self setShowSubpopulations:![self showSubpopulations]];
+	[self invalidateDrawingCache];
+	[self setNeedsDisplay:YES];
+}
+
+- (IBAction)toggleDrawLines:(id)sender
+{
+	[self setDrawLines:![self drawLines]];
+	[self invalidateDrawingCache];
+	[self setNeedsDisplay:YES];
+}
+
+- (void)subclassAddItemsToMenu:(NSMenu *)menu forEvent:(NSEvent *)theEvent
+{
+	if (menu)
+	{
+		NSMenuItem *menuItem;
+		
+		menuItem = [menu addItemWithTitle:([self showSubpopulations] ? @"Hide Subpopulations" : @"Show Subpopulations") action:@selector(toggleShowSubpopulations:) keyEquivalent:@""];
+		[menuItem setTarget:self];
+		
+		menuItem = [menu addItemWithTitle:([self drawLines] ? @"Draw Points (Faster)" : @"Draw Lines (Slower)") action:@selector(toggleDrawLines:) keyEquivalent:@""];
+		[menuItem setTarget:self];
+	}
 }
 
 @end

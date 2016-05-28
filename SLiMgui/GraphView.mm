@@ -1001,7 +1001,7 @@
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		NSString *labelString = [NSString stringWithFormat:@"m%lld", (int64_t)mutationType->mutation_type_id_];
 		
-		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:@[labelString, [SLiMWindowController colorForIndex:mutationTypeIndex]]];
+		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:@[labelString, [SLiMWindowController blackContrastingColorForIndex:mutationTypeIndex]]];
 	}
 	
 	return legendKey;
@@ -1039,7 +1039,7 @@
 				}
 				
 				// fill and fill
-				[[SLiMWindowController colorForIndex:subBinIndex] set];
+				[[SLiMWindowController blackContrastingColorForIndex:subBinIndex] set];
 				NSRectFill(barRect);
 				
 				[[NSColor blackColor] set];

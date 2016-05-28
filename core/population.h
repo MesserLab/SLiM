@@ -44,6 +44,17 @@
 class SLiMSim;
 
 
+#ifdef SLIMGUI
+// This struct is used to hold fitness values observed during a run, for display by GraphView_FitnessOverTime
+// The Population keeps the fitness histories for all the subpopulations, because subpops can come and go, but
+// we want to remember their histories and display them even after they're gone.
+typedef struct {
+	double *history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
+	slim_generation_t history_length_ = 0;			// the number of entries in the fitness_history buffer
+} FitnessHistory;
+#endif
+
+
 class Population : private std::map<slim_objectid_t,Subpopulation*>		// OWNED POINTERS
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -78,10 +89,11 @@ public:
 	// information-gathering for various graphs in SLiMgui
 	slim_generation_t *mutation_loss_times_ = nullptr;		// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
 	uint32_t mutation_loss_gen_slots_ = 0;					// the number of generation-sized slots (with bins per mutation-type) presently allocated
+	
 	slim_generation_t *mutation_fixation_times_ = nullptr;	// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
 	uint32_t mutation_fixation_gen_slots_ = 0;				// the number of generation-sized slots (with bins per mutation-type) presently allocated
-	double *fitness_history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
-	slim_generation_t fitness_history_length_ = 0;			// the number of entries in the fitness_history buffer
+	
+	std::map<slim_objectid_t,FitnessHistory> fitness_histories_;	// fitness histories indexed by subpopulation id (or by -1, for the Population history)
 	
 	// true if gui_selected_ is set for all subpops, otherwise false; must be kept in synch with subpop flags!
 	bool gui_all_selected_ = true;
@@ -156,6 +168,7 @@ public:
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
+	void RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double fitness_value);
 	void SurveyPopulation(void);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins);
 #endif
