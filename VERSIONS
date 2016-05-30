@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 Development head:
+	Improve the fitness~time plot (display of subpopulation fitnesses, point/line plotting option)
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
