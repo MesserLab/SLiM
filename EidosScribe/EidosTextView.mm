@@ -1825,6 +1825,9 @@ using std::string;
 		EidosScript script(script_string);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
+		//std::cout << "Eidos token stream:" << std::endl;
+		//script.PrintTokens(std::cout);
+		
 		const std::vector<EidosToken> &tokens = script.Tokens();
 		int lastTokenIndex = (int)tokens.size() - 1;
 		BOOL endedCleanly = NO, lastTokenInterrupted = NO;
@@ -1834,6 +1837,14 @@ using std::string;
 		{
 			--lastTokenIndex;
 			endedCleanly = YES;
+		}
+		
+		// if we are at the end of a comment, without whitespace following it, then we are actually in the comment, and cannot complete
+		if ((lastTokenIndex >= 0) && (tokens[lastTokenIndex].token_type_ == EidosTokenType::kTokenComment))
+		{
+			if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+			if (completions) *completions = nil;
+			return;
 		}
 		
 		// if we ended with whitespace or a comment, the previous token cannot be extended
@@ -1856,11 +1867,12 @@ using std::string;
 			if (completions) *completions = nil;
 			return;
 		}
-		else if (lastTokenInterrupted)
+		else
 		{
 			if (lastTokenIndex < 0)
 			{
-				// We're at the end of nothing but initial whitespace and comments; offer insertion-point completions
+				// We're at the end of nothing but initial whitespace and comments; or if (!lastTokenInterrupted),
+				// we're at the very beginning of the file.  Either way, offer insertion-point completions.
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
 				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
@@ -1869,50 +1881,91 @@ using std::string;
 			const EidosToken &token = tokens[lastTokenIndex];
 			EidosTokenType token_type = token.token_type_;
 			
-			// the last token cannot be extended, so if the last token is something an identifier can follow, like an
-			// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-			if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenReturn))
+			// BCH 31 May 2016: If the previous token is a right-paren, that is a tricky case because we could be following
+			// for(), an if(), or while (), in which case we should allow an identifier to follow the right paren, or we could
+			// be following parentheses for grouping, i.e. (a+b), or parentheses for a function call, foo(), in which case we
+			// should not allow an identifier to follow the right paren.  This annoyance is basically because the right paren
+			// serves a lot of different functions in the language and so just knowing that we are after one is not sufficient.
+			// So we will walk backwards, balancing our parenthesis count, to try to figure out which case we are in.  Note
+			// that even this code is not quite right; it mischaracterizes the do...while() case as allowing an identifier to
+			// follow, because it sees the "while".  This is harder to fix, and do...while() is not a common construct, and
+			// the mistake is pretty harmless, so whatever.
+			if (token_type == EidosTokenType::kTokenRParen)
 			{
-				if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
-				if (completions) *completions = nil;
-				return;
+				int parenCount = 1;
+				int walkbackIndex = lastTokenIndex;
+				
+				// First walk back until our paren count balances
+				while (--walkbackIndex >= 0)
+				{
+					const EidosToken &walkback_token = tokens[walkbackIndex];
+					EidosTokenType walkback_token_type = walkback_token.token_type_;
+					
+					if (walkback_token_type == EidosTokenType::kTokenRParen)			parenCount++;
+					else if (walkback_token_type == EidosTokenType::kTokenLParen)		parenCount--;
+					
+					if (parenCount == 0)
+						break;
+				}
+				
+				// Then walk back over whitespace, and if the first non-white thing we see is right, allow completion
+				while (--walkbackIndex >= 0)
+				{
+					const EidosToken &walkback_token = tokens[walkbackIndex];
+					EidosTokenType walkback_token_type = walkback_token.token_type_;
+					
+					if ((walkback_token_type != EidosTokenType::kTokenWhitespace) && (walkback_token_type != EidosTokenType::kTokenComment))
+					{
+						if ((walkback_token_type == EidosTokenType::kTokenFor) || (walkback_token_type == EidosTokenType::kTokenWhile) || (walkback_token_type == EidosTokenType::kTokenIf))
+						{
+							// We are at the end of for(), if(), or while(), so we allow global completions as if we were after a semicolon
+							if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+							if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+							return;
+						}
+						break;	// we didn't hit one of the favored cases, so the code below will reject completion
+					}
+				}
 			}
 			
-			if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
-			return;
-		}
-		else
-		{
-			if (lastTokenIndex < 0)
+			if (lastTokenInterrupted)
 			{
-				// We're at the very beginning of the script; offer insertion-point completions
+				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
+				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
+				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenReturn))
+				{
+					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+					if (completions) *completions = nil;
+					return;
+				}
+				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
 			}
-			
-			// the last token was not interrupted, so we can offer completions of it if we want to.
-			const EidosToken &token = tokens[lastTokenIndex];
-			NSRange tokenRange = NSMakeRange(token.token_UTF16_start_, token.token_UTF16_end_ - token.token_UTF16_start_ + 1);
-			
-			if (token.token_type_ >= EidosTokenType::kTokenIdentifier)
+			else
 			{
-				if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+				// the last token was not interrupted, so we can offer completions of it if we want to.
+				NSRange tokenRange = NSMakeRange(token.token_UTF16_start_, token.token_UTF16_end_ - token.token_UTF16_start_ + 1);
+				
+				if (token_type >= EidosTokenType::kTokenIdentifier)
+				{
+					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
+					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+					return;
+				}
+				
+				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket))
+				{
+					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
+					if (completions) *completions = nil;
+					return;
+				}
+				
+				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
 				return;
 			}
-			
-			if ((token.token_type_ == EidosTokenType::kTokenNumber) || (token.token_type_ == EidosTokenType::kTokenString) || (token.token_type_ == EidosTokenType::kTokenRParen) || (token.token_type_ == EidosTokenType::kTokenRBracket))
-			{
-				if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
-				if (completions) *completions = nil;
-				return;
-			}
-			
-			if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-			if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
-			return;
 		}
 	}
 }
