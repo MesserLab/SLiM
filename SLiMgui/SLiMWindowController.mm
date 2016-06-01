@@ -841,9 +841,9 @@
 		return !(continuousPlayOn || generationPlayOn);
 	
 	if (sel == @selector(exportScript:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || generationPlayOn);
 	if (sel == @selector(exportOutput:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || generationPlayOn);
 	if (sel == @selector(exportPopulation:))
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
 	
