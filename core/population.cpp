@@ -740,7 +740,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 					bool selfed, cloned;
-					bool firstTry = true;
+					int num_tries = 0;
 					
 					// We loop back to here to retry child generation if a mateChoice() or modifyChild() callback causes our first attempt at
 					// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
@@ -748,7 +748,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					// actually influence the proportion selfed/cloned, through e.g. lethal epistatic interactions or failed mate search.
 				retryChild:
 					
-					if (firstTry)
+					if (num_tries > 1000000)
+						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+					
+					if (num_tries == 0)
 					{
 						// first mating event, so follow our original plan for this offspring
 						// note we could draw self/cloned as below even for the first try; this code path is just more efficient,
@@ -817,7 +820,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							if (parent2 == -1)
 							{
 								// The mateChoice() callbacks rejected parent1 altogether, so we need to choose a new parent1 and start over
-								firstTry = false;
+								num_tries++;
 								goto retryChild;
 							}
 						}
@@ -833,7 +836,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
-							firstTry = false;
+							num_tries++;
 							goto retryChild;
 						}
 					}
@@ -842,6 +845,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			else
 			{
 				// CALLBACKS, NO MIGRATION, NO SEX, NO SELFING, NO CLONING: so we don't need to preplan or shuffle, each child is generated in the same exact way.
+				int num_tries = 0;
+				
 				while (child_count < total_children)
 				{
 					slim_popsize_t parent1, parent2;
@@ -859,7 +864,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								break;
 							
 							// parent1 was rejected by the callbacks, so we need to redraw a new parent1
+							num_tries++;
 							parent1 = source_subpop.DrawParentUsingFitness();
+							
+							if (num_tries > 1000000)
+								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
 						}
 					}
 					
@@ -868,11 +877,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
 					
 					if (modify_child_callbacks)
+					{
 						if (!ApplyModifyChildCallbacks(child_count, IndividualSex::kHermaphrodite, parent1, parent2, false, false, &p_subpop, &source_subpop, *modify_child_callbacks))
+						{
+							num_tries++;
+							
+							if (num_tries > 1000000)
+								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+							
 							continue;
+						}
+					}
 					
 					// if the child was accepted, change all our counters; can't be done before the modifyChild() callback since it might reject the child!
 					child_count++;
+					num_tries = 0;
 				}
 			}
 		}
@@ -984,7 +1003,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				Subpopulation *source_subpop = offspring_plan_ptr->planned_source;
 				IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 				bool selfed, cloned;
-				bool firstTry = true;
+				int num_tries = 0;
 				
 				// We loop back to here to retry child generation if a modifyChild() callback causes our first attempt at
 				// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
@@ -1006,7 +1025,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				// callback, which rejects parent1 but does not cause a redraw of the source subpop.
 			retryWithSameSourceSubpop:
 				
-				if (firstTry)
+				if (num_tries > 1000000)
+					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+				
+				if (num_tries == 0)
 				{
 					// first mating event, so follow our original plan for this offspring
 					// note we could draw self/cloned as below even for the first try; this code path is just more efficient,
@@ -1078,7 +1100,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						if (parent2 == -1)
 						{
 							// The mateChoice() callbacks rejected parent1 altogether, so we need to choose a new parent1 and start over
-							firstTry = false;
+							num_tries++;
 							goto retryWithSameSourceSubpop;
 						}
 					}
@@ -1105,7 +1127,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								break;
 							}
 						
-						firstTry = false;
+						num_tries++;
 						goto retryWithNewSourceSubpop;
 					}
 				}
