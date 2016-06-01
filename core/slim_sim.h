@@ -177,8 +177,9 @@ public:
 	EidosValue_SP FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
-	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map);					// derive a function map, adding zero-gen functions if needed
-	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// depends on the simulation state
+	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition = false);	// derive a function map, adding zero-gen functions if needed
+	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
+	void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
 	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	

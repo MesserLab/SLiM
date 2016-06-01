@@ -1360,7 +1360,9 @@
 	// be more technically correct in -updateAfterTick, but I don't want the tokenization overhead there, it's too heavyweight.  The
 	// only negative consequence of not having it there is that when the user steps out of initialization time into generation 1, an
 	// initialize...() function signature may persist in the status bar that should have been changed to "unrecognized call" - no biggie.
-	[self updateStatusFieldFromSelection];
+	// BCH 31 May 2016: commenting this out since the status bar is no longer dependent on the simulation state.  We want the
+	// initialize() functions to show their prototypes in the status bar whether we are in the zero generation or not.
+	//[self updateStatusFieldFromSelection];
 
 	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
 }
@@ -1914,6 +1916,14 @@
 
 - (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
 {
+	// When called for our script text view, we do not forward to eidosConsoleWindowController:functionMapFromBaseMap:,
+	// because it adds functions only when in the zero generation.  Instead, we want to add the functions always.
+	if (eidosTextView == scriptTextView)
+	{
+		if (sim && !invalidSimulation)
+			return sim->FunctionMapFromBaseMap(baseFunctionMap, true);	// true forces the add
+	}
+	
 	return [self eidosConsoleWindowController:nullptr functionMapFromBaseMap:baseFunctionMap];
 }
 
@@ -2095,18 +2105,8 @@
 							
 							// Get a function map and add initialization functions to it if we're completing inside an initialize() callback
 							if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-							{
 								if (sim)
-								{
-									const std::vector<const EidosFunctionSignature*> *signatures = sim->ZeroGenerationFunctionSignatures();
-									
-									if (signatures)
-									{
-										for (const EidosFunctionSignature *signature : *signatures)
-											(*functionMap)->insert(EidosFunctionMapPair(signature->function_name_, signature));
-									}
-								}
-							}
+									sim->AddZeroGenerationFunctionsToMap(*functionMap);
 							
 							// Make a type interpreter and add symbols to our type table using it
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants

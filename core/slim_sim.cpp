@@ -1751,6 +1751,17 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 	return &sim_0_signatures_;
 }
 
+void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map)
+{
+	const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
+	
+	if (signatures)
+	{
+		for (const EidosFunctionSignature *signature : *signatures)
+			p_map->insert(EidosFunctionMapPair(signature->function_name_, signature));
+	}
+}
+
 const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(void)
 {
 	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
@@ -1896,21 +1907,18 @@ EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbo
 	return simulation_constants_;
 }
 
-EidosFunctionMap *SLiMSim::FunctionMapFromBaseMap(EidosFunctionMap *p_base_map)
+EidosFunctionMap *SLiMSim::FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition)
 {
 	// Add signatures for functions we define – initialize...() functions only, right now
-	if (generation_ == 0)
+	if (p_force_addition || (generation_ == 0))
 	{
 		if (!sim_0_function_map_)
 		{
-			const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
-			
 			// construct a new map based on the base map, add our functions, and return it, which gives the pointer to the interpreter
 			// this is slow, but it doesn't matter; if we start adding functions outside of initialize time, this will need to be revisited
 			sim_0_function_map_ = new EidosFunctionMap(*p_base_map);
 			
-			for (const EidosFunctionSignature *signature : *signatures)
-				sim_0_function_map_->insert(EidosFunctionMapPair(signature->function_name_, signature));
+			AddZeroGenerationFunctionsToMap(sim_0_function_map_);
 		}
 		
 		return sim_0_function_map_;
