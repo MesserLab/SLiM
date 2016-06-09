@@ -26,8 +26,9 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSPopUpButton *subpopPopUpButton;
 	IBOutlet NSTextField *sampleSizeTextField;
+	IBOutlet NSButton *sampleWithReplacementCheckbox;
 	IBOutlet NSMatrix *sampledSexMatrix;
-	IBOutlet NSButton *useMSFormatCheckbox;
+	IBOutlet NSMatrix *useFormatMatrix;
 }
 @end
 

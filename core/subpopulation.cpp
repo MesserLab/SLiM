@@ -1639,6 +1639,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1863,13 +1865,16 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			
 			//
-			//	*********************	- (void)outputMSSample(integer$ sampleSize, [string$ requestedSex])
-			//	*********************	- (void)outputSample(integer$ sampleSize, [string$ requestedSex])
+			//	*********************	- (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex])
+			//	*********************	- (void)outputVCFSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex], [logical$ outputMultiallelics)
+			//	*********************	- (void)outputSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex])
 			//
 #pragma mark -outputMSSample()
+#pragma mark -outputVCFSample()
 #pragma mark -outputSample()
 			
 		case gID_outputMSSample:
+		case gID_outputVCFSample:
 		case gID_outputSample:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
@@ -1882,11 +1887,17 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			}
 			
 			slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-			IndividualSex requested_sex = IndividualSex::kUnspecified;
 			
-			if (p_argument_count == 2)
+			bool replace = true;		// default to sampling with replacement
+			
+			if (p_argument_count >= 2)
+				replace = arg1_value->LogicalAtIndex(0, nullptr);
+			
+			IndividualSex requested_sex = IndividualSex::kUnspecified;		// default to outputting all sexes
+			
+			if (p_argument_count >= 3)
 			{
-				string sex_string = arg1_value->StringAtIndex(0, nullptr);
+				string sex_string = arg2_value->StringAtIndex(0, nullptr);
 				
 				if (sex_string.compare("M") == 0)
 					requested_sex = IndividualSex::kMale;
@@ -1901,6 +1912,11 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << eidos_terminate();
 			}
 			
+			bool output_multiallelics = true;		// default to outputting multiallelic positions (used by VCF output only)
+			
+			if (p_argument_count >= 4)
+				output_multiallelics = arg3_value->LogicalAtIndex(0, nullptr);
+			
 			output_stream << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
 			
 			if (sim.SexEnabled())
@@ -1909,9 +1925,11 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			output_stream << endl;
 			
 			if (p_method_id == gID_outputSample)
-				population_.PrintSample(output_stream, *this, sample_size, requested_sex);
-			else
-				population_.PrintSample_ms(output_stream, *this, sample_size, sim.TheChromosome(), requested_sex);
+				population_.PrintSample_slim(output_stream, *this, sample_size, replace, requested_sex);
+			else if (p_method_id == gID_outputMSSample)
+				population_.PrintSample_ms(output_stream, *this, sample_size, replace, requested_sex, sim.TheChromosome());
+			else if (p_method_id == gID_outputVCFSample)
+				population_.PrintSample_vcf(output_stream, *this, sample_size, replace, requested_sex, output_multiallelics);
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -2044,6 +2062,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMSSample));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCFSample));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputSample));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -2061,6 +2080,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
+	static EidosInstanceMethodSignature *outputVCFSampleSig = nullptr;
 	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
 	
 	if (!setMigrationRatesSig)
@@ -2071,8 +2091,9 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
-		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
-		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddString_OS("requestedSex");
+		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace")->AddString_OS("requestedSex");
+		outputVCFSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace")->AddString_OS("requestedSex")->AddLogical_OS("outputMultiallelics");
+		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace")->AddString_OS("requestedSex");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2085,6 +2106,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_outputMSSample:		return outputMSSampleSig;
+		case gID_outputVCFSample:		return outputVCFSampleSig;
 		case gID_outputSample:			return outputSampleSig;
 			
 			// all others, including gID_none

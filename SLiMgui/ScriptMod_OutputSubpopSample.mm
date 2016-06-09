@@ -43,11 +43,12 @@
 	[generationTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)controller->sim->generation_]];
 	[self configureSubpopulationPopup:subpopPopUpButton];
 	[sampleSizeTextField setStringValue:@"100"];
+	[sampleWithReplacementCheckbox setState:NSOnState];
 	
 	[sampledSexMatrix selectCell:[sampledSexMatrix cellWithTag:0]];
 	[sampledSexMatrix setEnabled:controller->sim->sex_enabled_];
 	
-	[useMSFormatCheckbox setState:NSOffState];
+	[useFormatMatrix selectCell:[useFormatMatrix cellWithTag:0]];
 	
 	[super configSheetLoaded];
 }
@@ -82,10 +83,14 @@
 	slim_generation_t targetGenerationInt = SLiMClampToGenerationType((int64_t)[targetGeneration doubleValue]);
 	slim_objectid_t populationID = SLiMClampToObjectidType([subpopPopUpButton selectedTag]);
 	slim_popsize_t sampleSize = SLiMCastToPopsizeTypeOrRaise([[sampleSizeTextField stringValue] longLongValue]);
+	BOOL replacement = ([sampleWithReplacementCheckbox state] == NSOnState);
 	NSInteger sampledSexTag = [sampledSexMatrix selectedTag];
-	BOOL useMS = ([useMSFormatCheckbox state] == NSOnState);
+	NSInteger formatTag = [useFormatMatrix selectedTag];
 	
-	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%lld%@);\n}", populationID, useMS ? @"MS" : @"", (int64_t)sampleSize, (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"")];
+	NSString *formatArgString = ((formatTag == 0) ? @"" : ((formatTag == 1) ? @"MS" : @"VCF"));
+	NSString *sexArgString = (sampledSexTag == 1) ? @", \"M\"" : ((sampledSexTag == 2) ? @", \"F\"" : @"");
+	NSString *replaceArgString = (replacement ? ([sexArgString length] ? @", T" : @"") : @", F");
+	NSString *scriptInternal = [NSString stringWithFormat:@"{\n\tp%d.output%@Sample(%lld%@%@);\n}", populationID, formatArgString, (int64_t)sampleSize, replaceArgString, sexArgString];
 	NSString *scriptCommand = [NSString stringWithFormat:@"%@ late() %@\n", targetGeneration, scriptInternal];
 	
 	if (executeNow)

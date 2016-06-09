@@ -2652,32 +2652,51 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-void Population::PrintSample(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const
+void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
 	std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
+	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample): called to output Y chromosomes from females." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_slim): called to output Y chromosomes from females." << eidos_terminate();
 	
-	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
+	// assemble a sample (with or without replacement) and get the polymorphisms within it
+	std::vector<slim_popsize_t> candidates;
+	
+	for (slim_popsize_t s = subpop_size * 2 - 1; s >= 0; --s)
+		candidates.emplace_back(s);
+	
 	std::vector<slim_popsize_t> sample; 
 	multimap<const slim_position_t,Polymorphism> polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		slim_popsize_t j;
+		int candidate_index;
+		slim_popsize_t genome_index;
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
-		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
+			// select a random genome (not a random individual) by selecting a random candidate entry
+			if (candidates.size() == 0)
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_slim): not enough eligible genomes for sampling without replacement." << eidos_terminate();
+			
+			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			genome_index = candidates[candidate_index];
+			
+			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+			if (!p_replace)
+			{
+				candidates[candidate_index] = candidates.back();
+				candidates.pop_back();
+			}
+		} while (subpop_genomes[genome_index].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.emplace_back(j);
+		sample.emplace_back(genome_index);
 		
-		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[j][k]);
+		for (int k = 0; k < subpop_genomes[genome_index].size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[genome_index][k]);
 	}
 	
 	// print the sample's polymorphisms
@@ -2714,32 +2733,51 @@ void Population::PrintSample(std::ostream &p_out, Subpopulation &p_subpop, slim_
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const
+void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
 	std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
+	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
 		EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): called to output Y chromosomes from females." << eidos_terminate();
 	
-	// assemble a sample (with replacement, for statistics) and get the polymorphisms within it
+	// assemble a sample (with or without replacement) and get the polymorphisms within it
+	std::vector<slim_popsize_t> candidates;
+	
+	for (slim_popsize_t s = subpop_size * 2 - 1; s >= 0; --s)
+		candidates.emplace_back(s);
+	
 	std::vector<slim_popsize_t> sample; 
 	multimap<const slim_position_t,Polymorphism> polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		slim_popsize_t j;
+		int candidate_index;
+		slim_popsize_t genome_index;
 		
 		// Scan for a genome that is not null and that belongs to an individual of the requested sex
 		do {
-			j = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, subpop_genomes.size()));		// select a random genome (not a random individual)
-		} while (subpop_genomes[j].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(j / 2) != p_requested_sex));
+			// select a random genome (not a random individual) by selecting a random candidate entry
+			if (candidates.size() == 0)
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): not enough eligible genomes for sampling without replacement." << eidos_terminate();
+			
+			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			genome_index = candidates[candidate_index];
+			
+			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+			if (!p_replace)
+			{
+				candidates[candidate_index] = candidates.back();
+				candidates.pop_back();
+			}
+		} while (subpop_genomes[genome_index].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.emplace_back(j);
+		sample.emplace_back(genome_index);
 		
-		for (int k = 0; k < subpop_genomes[j].size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[j][k]);
+		for (int k = 0; k < subpop_genomes[genome_index].size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[genome_index][k]);
 	}
 	
 	// print header
@@ -2780,6 +2818,174 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 		}
 		
 		p_out << genotype << endl;
+	}
+}
+
+// print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id
+void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const
+{
+	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	
+	std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? p_subpop.child_genomes_ : p_subpop.parent_genomes_);
+	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
+	
+	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): called to output Y chromosomes from females." << eidos_terminate();
+	if (p_requested_sex == IndividualSex::kUnspecified && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): called to output Y chromosomes from both sexes." << eidos_terminate();
+	
+	// assemble a sample (with or without replacement) and get the polymorphisms within it
+	std::vector<slim_popsize_t> candidates;
+	
+	for (slim_popsize_t s = subpop_size - 1; s >= 0; --s)
+		candidates.emplace_back(s);
+	
+	std::vector<slim_popsize_t> sample; 
+	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	
+	for (slim_popsize_t s = 0; s < p_sample_size; s++)
+	{
+		int candidate_index;
+		slim_popsize_t individual_index;
+		slim_popsize_t genome1, genome2;
+		
+		// Scan for an individual of the requested sex
+		do {
+			// select a random genome (not a random individual) by selecting a random candidate entry
+			if (candidates.size() == 0)
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): not enough eligible individuals for sampling without replacement." << eidos_terminate();
+			
+			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			individual_index = candidates[candidate_index];
+			
+			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+			if (!p_replace)
+			{
+				candidates[candidate_index] = candidates.back();
+				candidates.pop_back();
+			}
+		} while (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (p_subpop.SexOfIndividual(individual_index) != p_requested_sex));
+		
+		sample.emplace_back(individual_index);
+		
+		genome1 = individual_index * 2;
+		genome2 = genome1 + 1;
+		
+		if (!subpop_genomes[genome1].IsNull())
+			for (int k = 0; k < subpop_genomes[genome1].size(); k++)
+				AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[genome1][k]);
+		
+		if (!subpop_genomes[genome2].IsNull())
+			for (int k = 0; k < subpop_genomes[genome2].size(); k++)
+				AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[genome2][k]);
+	}
+	
+	// print the VCF header
+	p_out << "##fileformat=VCFv4.2" << endl;
+	
+	{
+		time_t rawtime;
+		struct tm *timeinfo;
+		char buffer[25];	// should never be more than 10, in fact, plus a null
+		
+		time(&rawtime);
+		timeinfo = localtime(&rawtime);
+		strftime(buffer, 25, "%Y%m%d", timeinfo);
+		
+		p_out << "##fileDate=" << string(buffer) << endl;
+	}
+	
+	p_out << "##source=SLiM" << endl;
+	p_out << "##INFO=<ID=S,Number=1,Type=Float,Description=\"Selection Coefficient\">" << endl;
+	p_out << "##INFO=<ID=DOM,Number=1,Type=Float,Description=\"Dominance\">" << endl;
+	p_out << "##INFO=<ID=PO,Number=1,Type=Integer,Description=\"Population of Origin\">" << endl;
+	p_out << "##INFO=<ID=GO,Number=1,Type=Integer,Description=\"Generation of Origin\">" << endl;
+	p_out << "##INFO=<ID=MT,Number=1,Type=Integer,Description=\"Mutation Type\">" << endl;
+	p_out << "##INFO=<ID=AC,Number=1,Type=Integer,Description=\"Allele Count\">" << endl;
+	p_out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">" << endl;
+	if (p_output_multiallelics)
+		p_out << "##INFO=<ID=MULTIALLELIC,Number=0,Type=Flag,Description=\"Multiallelic\">" << endl;
+	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << endl;
+	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	
+	for (slim_popsize_t sample_index : sample)
+		p_out << "\tp" << p_subpop.subpopulation_id_ << ":" << "i" << sample_index;
+	p_out << endl;
+	
+	// Print a line for each mutation.  Note that we do NOT treat multiple mutations at the same position at being different alleles,
+	// output on the same line.  This is because a single individual can carry more than one mutation at the same position, so it is
+	// not really a question of different alleles; if there are N mutations at a given position, there are 2^N possible "alleles",
+	// which is just silly to try to wedge into VCF format.  So instead, we output each mutation as a separate line, and we tag lines
+	// for positions that carry more than one mutation with the MULTIALLELIC flag so they can be filtered out if they bother the user.
+	for (auto polymorphism_pair : polymorphisms)
+	{
+		slim_position_t mut_position = polymorphism_pair.first;
+		Polymorphism &polymorphism = polymorphism_pair.second;
+		const Mutation *mutation = polymorphism.mutation_ptr_;
+		
+		// Count the mutations at the given position to determine if we are multiallelic
+		std::pair<multimap<const slim_position_t,Polymorphism>::const_iterator,multimap<const slim_position_t,Polymorphism>::const_iterator> range = polymorphisms.equal_range(mut_position);
+		int allele_count = (int)std::distance(range.first, range.second);
+		
+		if (p_output_multiallelics || (allele_count == 1))
+		{
+			// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
+			p_out << "1\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+			
+			// emit QUAL (1000), FILTER (PASS)
+			p_out << "\t1000\tPASS\t";
+			
+			// emit the INFO fields and the Genotype marker
+			p_out << "S=" << mutation->selection_coeff_ << ";";
+			p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
+			p_out << "PO=" << mutation->subpop_index_ << ";";
+			p_out << "GO=" << mutation->generation_ << ";";
+			p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
+			p_out << "AC=" << polymorphism.prevalence_ << ";";
+			p_out << "DP=1000";
+			
+			if (allele_count > 1)
+				p_out << ";MULTIALLELIC";
+			
+			p_out << "\tGT";
+			
+			// emit the individual calls
+			for (slim_popsize_t s = 0; s < p_sample_size; s++)
+			{
+				slim_popsize_t genome1 = sample[s] * 2, genome2 = sample[s] * 2 + 1;
+				Genome &g1 = subpop_genomes[genome1], &g2 = subpop_genomes[genome2];
+				bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
+				
+				if (g1_null && g2_null)
+				{
+					// Both genomes are null; we should have eliminated the possibility of this with the check above
+					EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): (internal error) no non-null genome to output for individual." << eidos_terminate();
+				}
+				else if (g1_null)
+				{
+					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+					p_out << (g2.contains_mutation(mutation) ? "\t1" : "\t0");
+				}
+				else if (g2_null)
+				{
+					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+					p_out << (g1.contains_mutation(mutation) ? "\t1" : "\t0");
+				}
+				else
+				{
+					// Both genomes are non-null; emit an x|y pair that indicates the data is phased
+					bool g1_has_mut = g1.contains_mutation(mutation);
+					bool g2_has_mut = g2.contains_mutation(mutation);
+					
+					if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
+					else if (g1_has_mut)			p_out << "\t1|0";
+					else if (g2_has_mut)			p_out << "\t0|1";
+					else							p_out << "\t0|0";
+				}
+			}
+			
+			p_out << endl;
+		}
 	}
 }
 

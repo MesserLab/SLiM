@@ -198,6 +198,7 @@ const std::string gStr_setSexRatio = "setSexRatio";
 const std::string gStr_setSubpopulationSize = "setSubpopulationSize";
 const std::string gStr_cachedFitness = "cachedFitness";
 const std::string gStr_outputMSSample = "outputMSSample";
+const std::string gStr_outputVCFSample = "outputVCFSample";
 const std::string gStr_outputSample = "outputSample";
 
 // mostly SLiM variable names used in callbacks and such
@@ -360,6 +361,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setSubpopulationSize, gID_setSubpopulationSize);
 		Eidos_RegisterStringForGlobalID(gStr_cachedFitness, gID_cachedFitness);
 		Eidos_RegisterStringForGlobalID(gStr_outputMSSample, gID_outputMSSample);
+		Eidos_RegisterStringForGlobalID(gStr_outputVCFSample, gID_outputVCFSample);
 		Eidos_RegisterStringForGlobalID(gStr_outputSample, gID_outputSample);
 		
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);

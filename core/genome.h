@@ -139,7 +139,7 @@ public:
 		mutation_count_ = 0;
 	}
 	
-	inline bool contains_mutation(Mutation *p_mutation)
+	inline bool contains_mutation(const Mutation *p_mutation)
 	{
 #ifdef DEBUG
 		if (mutations_ == nullptr)

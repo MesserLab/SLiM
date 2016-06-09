@@ -323,6 +323,7 @@ extern const std::string gStr_setSexRatio;
 extern const std::string gStr_setSubpopulationSize;
 extern const std::string gStr_cachedFitness;
 extern const std::string gStr_outputMSSample;
+extern const std::string gStr_outputVCFSample;
 extern const std::string gStr_outputSample;
 
 extern const std::string gStr_sim;
@@ -472,6 +473,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setSubpopulationSize,
 	gID_cachedFitness,
 	gID_outputMSSample,
+	gID_outputVCFSample,
 	gID_outputSample,
 	
 	gID_sim,

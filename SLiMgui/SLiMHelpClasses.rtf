@@ -1795,13 +1795,15 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
+\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace], [string$\'a0requestedSex])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output a random sample from the subpopulation in MS format.  A sample of genomes (not entire individuals, note) of size 
 \f2\fs18 sampleSize
-\f0\fs20  from the subpopulation will be output.  Positions in the output will span the interval [0,1].  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
+\f0\fs20  from the subpopulation will be output.  The sample may be done either with or without replacement, as specified by 
+\f2\fs18 replace
+\f0\fs20 ; the default is to sample with replacement.  Positions in the output will span the interval [0,1].  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
 \f2\fs18 "M"
 \f0\fs20  or 
 \f2\fs18 "F"
@@ -1811,23 +1813,25 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 "*"
 \f0\fs20  or not supplying 
 \f2\fs18 requestedSex
-\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.  If non-MS format is desired, use 
+\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.\
+See 
 \f2\fs18 outputSample()
-\f3\fs20 .\
-
-\f0 Output is generally done in a 
+\f0\fs20  and 
+\f2\fs18 outputVCFSample()
+\f0\fs20  for other output formats.  Output is generally done in a 
 \f2\fs18 late()
-\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
-\f3 \
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [string$\'a0requestedSex])
+\f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [logical$\'a0replace], [string$\'a0requestedSex])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output a random sample from the subpopulation.  A sample of genomes (not entire individuals, note) of size 
 \f2\fs18 sampleSize
-\f0\fs20  from the subpopulation will be output.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
+\f0\fs20  from the subpopulation will be output.  The sample may be done either with or without replacement, as specified by 
+\f2\fs18 replace
+\f0\fs20 ; the default is to sample with replacement.  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
 \f2\fs18 "M"
 \f0\fs20  or 
 \f2\fs18 "F"
@@ -1837,11 +1841,70 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 "*"
 \f0\fs20  or not supplying 
 \f2\fs18 requestedSex
-\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.  If MS format is desired, use 
+\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.\
+See 
 \f2\fs18 outputMSSample()
-\f3\fs20 .\
+\f0\fs20  and 
+\f2\fs18 outputVCFSample()
+\f0\fs20  for other output formats.  Output is generally done in a 
+\f2\fs18 late()
+\f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0 Output is generally done in a 
+\f2\fs18 \cf0 \'96\'a0(void)outputVCFSample(integer$\'a0sampleSize, [logical$\'a0replace], [string$\'a0requestedSex], [logical$\'a0outputMultiallelics])
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Output a random sample from the subpopulation in VCF format.  A sample of individuals (not genomes, note \'96 unlike the 
+\f2\fs18 outputSample()
+\f0\fs20  and 
+\f2\fs18 outputMSSample()
+\f0\fs20  methods) of size 
+\f2\fs18 sampleSize
+\f0\fs20  from the subpopulation will be output.  The sample may be done either with or without replacement, as specified by 
+\f2\fs18 replace
+\f0\fs20 ; the default is to sample with replacement.  Positions in the output will span the interval [0,1].  A particular sex of individuals may be requested for the sample, for simulations in which sex is enabled, by passing 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  for 
+\f2\fs18 requestedSex
+\f0\fs20 ; passing 
+\f2\fs18 "*"
+\f0\fs20  or not supplying 
+\f2\fs18 requestedSex
+\f0\fs20  indicates that genomes from individuals should be selected randomly, without respect to sex.\
+In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
+\i N
+\i0  different mutations are segregating at a given position, there are 2
+\i \super N
+\i0 \nosupersub  different allelic states at that position in SLiM.  For this reason, SLiM does not attempt to represent multiple mutations at a single site as being alternative alleles in a single output line, as is typical in VCF format.  Instead, SLiM produces a separate line of VCF output for each segregating mutation at a given position.  SLiM always declares base positions as having a \'93reference base\'94 of 
+\f2\fs18 A
+\f0\fs20  (representing the state in individuals that do not carry a given mutation) and an \'93alternate base\'94 of 
+\f2\fs18 T
+\f0\fs20  (representing the state in individuals that do carry the given mutation).  Multiallelic positions will thus produce VCF output showing multiple 
+\f2\fs18 A
+\f0\fs20 -to-
+\f2\fs18 T
+\f0\fs20  changes at the same position, possessed by different but possibly overlapping sets of individuals.  Many programs that process VCF output may not behave correctly with this style of output.  SLiM therefore provides a choice, using the 
+\f2\fs18 outputMultiallelics
+\f0\fs20  flag; if that flag is 
+\f2\fs18 T
+\f0\fs20  (the default), SLiM will produce multiple lines of output for multiallelic base positions, but will mark those lines with a 
+\f2\fs18 MULTIALLELIC
+\f0\fs20  flag in the 
+\f2\fs18 INFO
+\f0\fs20  field of the VCF output so that those lines can be filtered or processed in a special manner.  If 
+\f2\fs18 outputMultiallelics
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , on the other hand, SLiM will completely suppress output of all mutations at multiallelic sites \'96 often the simplest option, if doing so does not lead to bias in the subsequent analysis.  This flag has no effect upon the output of sites with only a single mutation present.  Assessment of whether a site is multiallelic is done only within the sample; segregating mutations that are not part of the sample are ignored.\
+See 
+\f2\fs18 outputMSSample()
+\f0\fs20  and 
+\f2\fs18 outputSample()
+\f0\fs20  for other output formats.  Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \

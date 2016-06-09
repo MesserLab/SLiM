@@ -157,11 +157,14 @@ public:
 	void PrintAll(std::ostream &p_out) const;
 	void PrintAllBinary(std::ostream &p_out) const;
 	
-	// print sample of p_sample_size genomes from subpopulation p_subpop_id
-	void PrintSample(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, IndividualSex p_requested_sex) const;
+	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using SLiM's own format
+	void PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-	void PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, const Chromosome &p_chromosome, IndividualSex p_requested_sex) const;
+	void PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const;
+	
+	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "vcf" format
+	void PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const;
 	
 	// remove subpopulations, purge all mutations and substitutions, etc.; called before InitializePopulationFrom[Text|Binary]File()
 	void RemoveAllSubpopulationInfo(void);
