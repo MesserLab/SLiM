@@ -142,6 +142,25 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 #ifdef DEBUG
 	Genome::LogGenomeCopyAndAssign(old_log);
 #endif
+	
+	// This is also our cue to make sure that the individuals_ vector is sufficiently large
+	slim_popsize_t subpop_size = std::max(child_subpop_size_, parent_subpop_size_);
+	slim_popsize_t individuals_size = (slim_popsize_t)individuals_.size();
+	
+	// First we expand the individuals_ vector to have as many objects as needed; note we never shrink, only expand
+#ifdef DEBUG
+	old_log = Individual::LogIndividualCopyAndAssign(false);
+#endif
+	
+	while (individuals_size < subpop_size)
+	{
+		individuals_.emplace_back(Individual(*this, individuals_size));
+		individuals_size++;
+	}
+	
+#ifdef DEBUG
+	Individual::LogIndividualCopyAndAssign(old_log);
+#endif
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
@@ -288,11 +307,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			if (pure_neutral)
 				fitness = 1.0;
 			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * i, 2 * i + 1);
+				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
 			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * i, 2 * i + 1, p_fitness_callbacks, single_callback_mut_type);
+				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(2 * i, 2 * i + 1, p_fitness_callbacks);
+				fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
 			
 			cached_parental_fitness_[i] = fitness;
 			cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
@@ -315,11 +334,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			if (pure_neutral)
 				fitness = 1.0;
 			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * individual_index, 2 * individual_index + 1);
+				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
 			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * individual_index, 2 * individual_index + 1, p_fitness_callbacks, single_callback_mut_type);
+				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(2 * individual_index, 2 * individual_index + 1, p_fitness_callbacks);
+				fitness = FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
 			
 			cached_parental_fitness_[individual_index] = fitness;
 			cached_male_fitness_[individual_index] = fitness;
@@ -345,11 +364,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			if (pure_neutral)
 				fitness = 1.0;
 			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(2 * i, 2 * i + 1);
+				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
 			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(2 * i, 2 * i + 1, p_fitness_callbacks, single_callback_mut_type);
+				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(2 * i, 2 * i + 1, p_fitness_callbacks);
+				fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
 			
 			*(fitness_buffer_ptr++) = fitness;
 			
@@ -368,7 +387,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 #endif
 }
 
-double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *p_genome1, Genome *p_genome2)
+double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
 {
 	slim_objectid_t mutation_type_id = p_mutation->mutation_type_ptr_->mutation_type_id_;
 	SLiMSim &sim = population_.sim_;
@@ -429,6 +448,8 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 							local_relFitness.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, EidosValue_SP(&local_relFitness));
 						}
+						if (fitness_callback->contains_individual_)
+							callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
 						if (fitness_callback->contains_genome1_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_genome1, p_genome1->CachedEidosValue());
 						if (fitness_callback->contains_genome2_)
@@ -483,13 +504,13 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 
 // This version of FitnessOfParentWithGenomeIndices assumes no callbacks exist.  It tests for neutral mutations and skips processing them.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2)
+double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	Genome *genome1 = &(parent_genomes_[p_genome_index1]);
-	Genome *genome2 = &(parent_genomes_[p_genome_index2]);
+	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
+	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -754,13 +775,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 
 // This version of FitnessOfParentWithGenomeIndices assumes multiple callbacks exist.  It doesn't optimize neutral mutations since they might be modified by callbacks.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
+double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	Genome *genome1 = &(parent_genomes_[p_genome_index1]);
-	Genome *genome2 = &(parent_genomes_[p_genome_index2]);
+	Individual *individual = &(individuals_[p_individual_index]);
+	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
+	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -785,7 +807,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 				double rel_fitness = (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 				
-				w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -802,7 +824,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
 				double rel_fitness = (1.0 + selection_coeff);
 				
-				w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -836,7 +858,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 					double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -856,7 +878,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 					double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 					
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -890,7 +912,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 								// a match was found, so we multiply our fitness by the full selection coefficient
 								double rel_fitness = (1.0 + genome1_mutation->selection_coeff_);
 								
-								w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 								homozygous = true;
 								
 								if (w <= 0.0)
@@ -907,7 +929,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 						{
 							double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * genome1_mutation->selection_coeff_);
 							
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -947,7 +969,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 						{
 							double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * genome2_mutation->selection_coeff_);
 							
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -980,7 +1002,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			slim_selcoeff_t selection_coeff = genome1_mutation->selection_coeff_;
 			double rel_fitness = (1.0 + genome1_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
-			w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+			w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 			
 			if (w <= 0.0)
 				return 0.0;
@@ -995,7 +1017,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			slim_selcoeff_t selection_coeff = genome2_mutation->selection_coeff_;
 			double rel_fitness = (1.0 + genome2_mutation->mutation_type_ptr_->dominance_coeff_ * selection_coeff);
 			
-			w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+			w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 			
 			if (w <= 0.0)
 				return 0.0;
@@ -1009,13 +1031,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 
 // This version of FitnessOfParentWithGenomeIndices assumes a single callback exists, modifying the given mutation type.  It is a hybrid of the previous two versions.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type)
+double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	Genome *genome1 = &(parent_genomes_[p_genome_index1]);
-	Genome *genome2 = &(parent_genomes_[p_genome_index2]);
+	Individual *individual = &(individuals_[p_individual_index]);
+	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
+	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -1043,7 +1066,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				{
 					double rel_fitness = (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -1074,7 +1097,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				{
 					double rel_fitness = (1.0 + selection_coeff);
 					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -1123,7 +1146,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					{
 						double rel_fitness = (1.0 + genome1_muttype->dominance_coeff_ * selection_coeff);
 						
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1158,7 +1181,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					{
 						double rel_fitness = (1.0 + genome2_muttype->dominance_coeff_ * selection_coeff);
 						
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1207,7 +1230,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									// a match was found, so we multiply our fitness by the full selection coefficient
 									double rel_fitness = (1.0 + genome1_mutation->selection_coeff_);
 									
-									w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, genome1, genome2);
+									w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 									homozygous = true;
 									
 									if (w <= 0.0)
@@ -1224,7 +1247,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 							{
 								double rel_fitness = (1.0 + genome1_muttype->dominance_coeff_ * genome1_mutation->selection_coeff_);
 								
-								w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -1306,7 +1329,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 							{
 								double rel_fitness = (1.0 + genome2_muttype->dominance_coeff_ * genome2_mutation->selection_coeff_);
 								
-								w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -1376,7 +1399,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			{
 				double rel_fitness = (1.0 + genome1_muttype->dominance_coeff_ * selection_coeff);
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1406,7 +1429,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			{
 				double rel_fitness = (1.0 + genome2_muttype->dominance_coeff_ * selection_coeff);
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1577,22 +1600,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_individuals:
 		{
 			slim_popsize_t subpop_size = (child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
-			slim_popsize_t individuals_size = (slim_popsize_t)individuals_.size();
-			
-			// First we expand the individuals_ vector to have as many objects as needed; note we never shrink, only expand
-#ifdef DEBUG
-			bool old_log = Individual::LogIndividualCopyAndAssign(false);
-#endif
-			
-			while (individuals_size < subpop_size)
-			{
-				individuals_.emplace_back(Individual(*this, individuals_size));
-				individuals_size++;
-			}
-			
-#ifdef DEBUG
-			Individual::LogIndividualCopyAndAssign(old_log);
-#endif
 			
 			// Check for an outdated cache and detach from it
 			if (cached_individuals_value_ && (cached_individuals_value_->Count() != subpop_size))

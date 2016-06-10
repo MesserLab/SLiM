@@ -274,6 +274,13 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \f3\fs22 	
 \f0 The default relative fitness value calculated by SLiM\
 
+\f2\fs18 individual
+\f3\fs22 	
+\f0 The individual carrying this mutation (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
+\f3 \
+
 \f2\fs18 genome1
 \f3\fs22 	
 \f0 One genome of the individual carrying this mutation
@@ -435,7 +442,11 @@ In addition to the standard SLiM globals, a
 \f3\fs4 \cf0 \
 \pard\tx2070\tx2880\pardeftab720\fi547\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs18 \cf0 genome1
+\f2\fs18 \cf0 individual
+\f3\fs22 	
+\f0 The parent already chosen (the female, in sexual simulations)\
+
+\f2\fs18 genome1
 \f3\fs22 	
 \f0 One genome of the parent already chosen (the female, in sexual simulations)\
 
@@ -552,7 +563,14 @@ In addition to the standard SLiM globals, a
 \f3\fs4 \cf0 \
 \pard\tx2520\pardeftab720\fi547\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs18 \cf0 childGenome1
+\f2\fs18 \cf0 child
+\f3\fs22 	
+\f0 The generated child (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
+\f3 \
+
+\f2\fs18 childGenome1
 \f3\fs22 	
 \f0 One genome of the generated child
 \f3 \
@@ -567,6 +585,13 @@ In addition to the standard SLiM globals, a
 \f0\fs22  if the child will be female, 
 \f2\fs18 F
 \f0\fs22  if male (defined only if sex is enabled)
+\f3 \
+
+\f2\fs18 parent1
+\f3\fs22 	
+\f0 The first parent (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
 \f3 \
 
 \f2\fs18 parent1Genome1
@@ -587,6 +612,13 @@ In addition to the standard SLiM globals, a
 \f3\fs22 	
 \f2\fs18 T
 \f0\fs22  if the child is the result of selfing (but see note below)\
+
+\f2\fs18 parent2
+\f3\fs22 	
+\f0 The second parent (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
+\f3 \
 
 \f2\fs18 parent2Genome1
 \f3\fs22 	

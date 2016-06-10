@@ -51,6 +51,8 @@ class Individual : public EidosObjectElement
 	
 private:
 	
+	EidosValue_SP self_value_;			// cached EidosValue object for speed
+	
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	slim_usertag_t tag_value_;			// a user-defined tag value
@@ -79,6 +81,9 @@ public:
 	//
 	// Eidos support
 	//
+	void GenerateCachedEidosValue(void);
+	inline EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
+	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	

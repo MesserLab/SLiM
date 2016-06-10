@@ -605,19 +605,23 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
 		if (token_string.compare(gStr_relFitness) == 0)			contains_relFitness_ = true;
+		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_genome1) == 0)			contains_genome1_ = true;
 		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
 		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
 		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
 		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = true;
 		if (token_string.compare(gStr_weights) == 0)			contains_weights_ = true;
+		if (token_string.compare(gStr_child) == 0)				contains_child_ = true;
 		if (token_string.compare(gStr_childGenome1) == 0)		contains_childGenome1_ = true;
 		if (token_string.compare(gStr_childGenome2) == 0)		contains_childGenome2_ = true;
 		if (token_string.compare(gStr_childIsFemale) == 0)		contains_childIsFemale_ = true;
+		if (token_string.compare(gStr_parent1) == 0)			contains_parent1_ = true;
 		if (token_string.compare(gStr_parent1Genome1) == 0)		contains_parent1Genome1_ = true;
 		if (token_string.compare(gStr_parent1Genome2) == 0)		contains_parent1Genome2_ = true;
 		if (token_string.compare(gStr_isCloning) == 0)			contains_isCloning_ = true;
 		if (token_string.compare(gStr_isSelfing) == 0)			contains_isSelfing_ = true;
+		if (token_string.compare(gStr_parent2) == 0)			contains_parent2_ = true;
 		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
 		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
 	}

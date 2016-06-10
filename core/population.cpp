@@ -312,6 +312,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				// We can use that method because we know the lifetime of the symbol table is shorter than that of
 				// the value objects, and we know that the values we are setting here will not change (the objects
 				// referred to by the values may change, but the values themselves will not change).
+				if (mate_choice_callback->contains_individual_)
+				{
+					Individual *parent1 = &(p_source_subpop->individuals_[p_parent1_index]);
+					callback_symbols.InitializeConstantSymbolEntry(gID_individual, parent1->CachedEidosValue());
+				}
+				
 				if (mate_choice_callback->contains_genome1_)
 				{
 					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
@@ -488,6 +494,12 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			// We can use that method because we know the lifetime of the symbol table is shorter than that of
 			// the value objects, and we know that the values we are setting here will not change (the objects
 			// referred to by the values may change, but the values themselves will not change).
+			if (modify_child_callback->contains_child_)
+			{
+				Individual *child = &(p_subpop->individuals_[p_child_index]);
+				callback_symbols.InitializeConstantSymbolEntry(gID_child, child->CachedEidosValue());
+			}
+			
 			if (modify_child_callback->contains_childGenome1_)
 			{
 				Genome *child_genome1 = &(p_subpop->child_genomes_[p_child_index * 2]);
@@ -508,6 +520,12 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			
+			if (modify_child_callback->contains_parent1_)
+			{
+				Individual *parent1 = &(p_source_subpop->individuals_[p_parent1_index]);
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
+			}
+			
 			if (modify_child_callback->contains_parent1Genome1_)
 			{
 				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
@@ -525,6 +543,12 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			
 			if (modify_child_callback->contains_isCloning_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_isCloning, p_is_cloning ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			
+			if (modify_child_callback->contains_parent2_)
+			{
+				Individual *parent2 = &(p_source_subpop->individuals_[p_parent2_index]);
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
+			}
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{

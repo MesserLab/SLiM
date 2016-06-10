@@ -130,11 +130,11 @@ public:
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks);							// update the fitness lookup table based upon current mutations
 	
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	double FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2);
-	double FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks);
-	double FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_genome_index1, slim_popsize_t p_genome_index2, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type);
+	double FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index);
+	double FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks);
+	double FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type);
 	
-	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Genome *p_genome1, Genome *p_genome2);
+	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2);
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	bool ContainsGenome(Genome *p_genome);
 	

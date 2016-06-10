@@ -68,6 +68,13 @@ Individual::~Individual(void)
 #pragma mark -
 #pragma mark Eidos support
 
+void Individual::GenerateCachedEidosValue(void)
+{
+	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
+	// live for at least as long as the symbol table it may be placed into!
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class));
+}
+
 const EidosObjectClass *Individual::Class(void) const
 {
 	return gSLiM_Individual_Class;
