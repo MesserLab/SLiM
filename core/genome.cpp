@@ -641,7 +641,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 				{
-					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 					bool contains_mut = false;
 					
 					for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
@@ -656,7 +656,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 		}
 			
 			//
-			//	*********************	- (integer)countOfMutationsOfType(io<MutationType>$ mutType)
+			//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 			//
 #pragma mark -countOfMutationsOfType()
 			

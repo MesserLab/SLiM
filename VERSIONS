@@ -13,6 +13,7 @@ Development head:
 	Add infinite loop prevention for mateChoice() and modifyChild() callbacks
 	Add "replace" parameter to outputSample() and outputMSSample() – BREAKS BACKWARD COMPATIBILITY
 	Add outputVCFSample()
+	Fix a bug in Genome's -containsMutations() method that caused it to produce incorrect results if its argument was a non-singleton vector
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
