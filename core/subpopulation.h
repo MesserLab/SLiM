@@ -36,6 +36,7 @@
 #include "chromosome.h"
 #include "eidos_value.h"
 #include "slim_eidos_block.h"
+#include "individual.h"
 
 #include <vector>
 #include "limits.h"
@@ -84,6 +85,9 @@ public:
 	slim_popsize_t child_subpop_size_;				// child subpopulation size
 	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate
 	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Genome vector (NOT premultiplied by 2!); equal to the number of females
+	
+	std::vector<Individual> individuals_;			// objects representing simulated individuals, each of which has two genomes
+	EidosValue_SP cached_individuals_value_;		// cached for the individuals property; self-maintains
 	
 	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_modify_child_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental

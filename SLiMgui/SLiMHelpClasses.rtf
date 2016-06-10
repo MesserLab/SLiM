@@ -506,12 +506,106 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 proportions
 \f0\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from each corresponding type.  This is normally a constant in simulations, so be sure you know what you are doing.
 \f3 \
-\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.6  Class Mutation\
-\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+\f0\b\fs22 \cf0 5.6  Class Individual\
+\pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.6.1  
+\f1\fs18 Individual
+\f0\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 genomes => (object<Genome>)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The pair of 
+\f2\fs18 Genome
+\f0\fs20  objects associated with this individual.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 index => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The index of the individual in the 
+\f2\fs18 individuals
+\f0\fs20  vector of its 
+\f2\fs18 Subpopulation
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 subpopulation => (object<Subpopulation>)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The 
+\f2\fs18 Subpopulation
+\f0\fs20  object to which the individual belongs.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 tag <\'96> (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 integer
+\f0\fs20  value.  The value of 
+\f2\fs18 tag
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f2\fs18 tag
+\f0\fs20  is not used by SLiM; it is free for you to use.  Note that SLiM reuses 
+\f2\fs18 Individual
+\f0\fs20  objects internally, and so previously used 
+\f2\fs18 tag
+\f0\fs20  values may reappear in the 
+\f2\fs18 Individual
+\f0\fs20  objects in a later generation.  This is an implementation detail and should not be relied upon.
+\f3 \
+\pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
+
+\f0\i\fs22 \cf0 5.6.2  
+\f1\fs18 Individual
+\f0\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a 
+\f2\fs18 logical
+\f0\fs20  vector indicating whether each of the mutations in 
+\f2\fs18 mutations
+\f0\fs20  is present in the individual (in either of its genomes); each element in the returned vector indicates whether the corresponding mutation is present (
+\f2\fs18 T
+\f0\fs20 ) or absent (
+\f2\fs18 F
+\f0\fs20 ).  This method is provided for speed; it is much faster than the corresponding Eidos code.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the number of mutations that are of the type specified by 
+\f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the individual (in both of its genomes; a mutation that is present in both genomes counts twice).  If you need a vector of the matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, rather than just a count, use the 
+\f2\fs18 Genome
+\f0\fs20  method 
+\f2\fs18 -mutationsOfType()
+\f3\fs20 .
+\f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
+\f3 \
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 5.7  Class Mutation\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i\b0 \cf0 5.7.1  
 \f1\fs18 Mutation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -563,7 +657,7 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20 , however, since SLiM object identifiers are limited to nonnegative integers).\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.6.2  
+\i\fs22 \cf0 5.7.2  
 \f1\fs18 Mutation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -606,10 +700,10 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.7  Class MutationType\
+\b\fs22 \cf0 5.8  Class MutationType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.7.1  
+\i\b0 \cf0 5.8.1  
 \f1\fs18 MutationType
 \f0\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -877,7 +971,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.7.2  
+\f0\i\fs22 \cf0 5.8.2  
 \f1\fs18 MutationType
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -922,10 +1016,10 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.8  Class SLiMEidosBlock\
+\f0\b\fs22 \cf0 5.9  Class SLiMEidosBlock\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.8.1  
+\i\b0 \cf0 5.9.1  
 \f1\fs18 SLiMEidosBlock
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1022,7 +1116,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.8.2  
+\f0\i\fs22 \cf0 5.9.2  
 \f1\fs18 SLiMEidosBlock
 \f0\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -1030,10 +1124,10 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf0 5.9  Class SLiMSim\
+\f0\b \cf0 5.10  Class SLiMSim\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.9.1  
+\i\b0 \cf0 5.10.1  
 \f1\fs18 SLiMSim
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1156,7 +1250,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.9.2  
+\f0\i\fs22 \cf0 5.10.2  
 \f1\fs18 SLiMSim
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1669,10 +1763,10 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.10  Class Subpopulation\
+\f0\b\fs22 \cf0 5.11  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.10.1  
+\i\b0 \cf0 5.11.1  
 \f1\fs18 Subpopulation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1744,6 +1838,15 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 
 \f0\fs20 \cf0 The identifiers of the particular subpopulations from which immigrants will arrive in the next generation.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 individuals => (object<Individual>)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 All of the individuals contained by the subpopulation.  Each individual is diploid and thus contains two 
+\f2\fs18 Genome
+\f0\fs20  objects.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 selfingRate => (float$)\
@@ -1779,7 +1882,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.10.2  
+\i\fs22 \cf0 5.11.2  
 \f1\fs18 Subpopulation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1979,10 +2082,10 @@ See
 \f0\fs20  individuals (see the SLiM manual for further details).  This will take effect when children are next generated; it does not change the current subpopulation state.  Setting a subpopulation to a size of 0 does have some immediate effects that serve to disconnect it from the simulation: the subpopulation is removed from the list of active subpopulations, the subpopulation is removed as a source of migration for all other subpopulations, and the symbol representing the subpopulation is undefined.  In this case, the subpopulation itself remains unchanged until children are next generated (at which point it is deallocated), but it is no longer part of the simulation and should not be used.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.11  Class Substitution\
+\b\fs22 \cf0 5.12  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.11.1  
+\i\b0 \cf0 5.12.1  
 \f1\fs18 Substitution
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2041,7 +2144,7 @@ See
 \f0\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.11.2  
+\i\fs22 \cf0 5.12.2  
 \f1\fs18 Substitution
 \f0\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0

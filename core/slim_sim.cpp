@@ -24,6 +24,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+#include "individual.h"
 
 #include <iostream>
 #include <fstream>
@@ -234,7 +235,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 				{
 					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 					
-					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
+					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
 						symbols_to_remove.emplace_back(symbol_ID);
 				}
 			}
@@ -1773,6 +1774,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		auto methodsGenome =				gSLiM_Genome_Class->Methods();
 		auto methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
 		auto methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
+		auto methodsIndividual =			gSLiM_Individual_Class->Methods();
 		auto methodsMutation =				gSLiM_Mutation_Class->Methods();
 		auto methodsMutationType =			gSLiM_MutationType_Class->Methods();
 		auto methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
@@ -1786,6 +1788,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		methodSignatures->insert(methodSignatures->end(), methodsGenome->begin(), methodsGenome->end());
 		methodSignatures->insert(methodSignatures->end(), methodsGenomicElement->begin(), methodsGenomicElement->end());
 		methodSignatures->insert(methodSignatures->end(), methodsGenomicElementType->begin(), methodsGenomicElementType->end());
+		methodSignatures->insert(methodSignatures->end(), methodsIndividual->begin(), methodsIndividual->end());
 		methodSignatures->insert(methodSignatures->end(), methodsMutation->begin(), methodsMutation->end());
 		methodSignatures->insert(methodSignatures->end(), methodsMutationType->begin(), methodsMutationType->end());
 		methodSignatures->insert(methodSignatures->end(), methodsSLiMEidosBlock->begin(), methodsSLiMEidosBlock->end());
@@ -1847,6 +1850,7 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		auto propertiesGenome =					gSLiM_Genome_Class->Properties();
 		auto propertiesGenomicElement =			gSLiM_GenomicElement_Class->Properties();
 		auto propertiesGenomicElementType =		gSLiM_GenomicElementType_Class->Properties();
+		auto propertiesIndividual =				gSLiM_Individual_Class->Properties();
 		auto propertiesMutation =				gSLiM_Mutation_Class->Properties();
 		auto propertiesMutationType =			gSLiM_MutationType_Class->Properties();
 		auto propertiesSLiMEidosBlock =			gSLiM_SLiMEidosBlock_Class->Properties();
@@ -1860,6 +1864,7 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		propertySignatures->insert(propertySignatures->end(), propertiesGenome->begin(), propertiesGenome->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElement->begin(), propertiesGenomicElement->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElementType->begin(), propertiesGenomicElementType->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesIndividual->begin(), propertiesIndividual->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesMutation->begin(), propertiesMutation->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesMutationType->begin(), propertiesMutationType->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesSLiMEidosBlock->begin(), propertiesSLiMEidosBlock->end());

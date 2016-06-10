@@ -1574,6 +1574,42 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_parent_genomes_value_;
 			}
 		}
+		case gID_individuals:
+		{
+			slim_popsize_t subpop_size = (child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
+			slim_popsize_t individuals_size = (slim_popsize_t)individuals_.size();
+			
+			// First we expand the individuals_ vector to have as many objects as needed; note we never shrink, only expand
+#ifdef DEBUG
+			bool old_log = Individual::LogIndividualCopyAndAssign(false);
+#endif
+			
+			while (individuals_size < subpop_size)
+			{
+				individuals_.emplace_back(Individual(*this, individuals_size));
+				individuals_size++;
+			}
+			
+#ifdef DEBUG
+			Individual::LogIndividualCopyAndAssign(old_log);
+#endif
+			
+			// Check for an outdated cache and detach from it
+			if (cached_individuals_value_ && (cached_individuals_value_->Count() != subpop_size))
+				cached_individuals_value_.reset();
+			
+			// Build and return an EidosValue_Object_vector with the current set of individuals in it
+			if (!cached_individuals_value_)
+			{
+				EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+				cached_individuals_value_ = EidosValue_SP(vec);
+				
+				for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
+					vec->PushObjectElement(&individuals_[individual_index]);
+			}
+			
+			return cached_individuals_value_;
+		}
 		case gID_immigrantSubpopIDs:
 		{
 			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
@@ -1987,6 +2023,7 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_firstMaleIndex));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_individuals));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopIDs));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopFractions));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_selfingRate));
@@ -2006,6 +2043,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 	static EidosPropertySignature *idSig = nullptr;
 	static EidosPropertySignature *firstMaleIndexSig = nullptr;
 	static EidosPropertySignature *genomesSig = nullptr;
+	static EidosPropertySignature *individualsSig = nullptr;
 	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
 	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
 	static EidosPropertySignature *selfingRateSig = nullptr;
@@ -2019,6 +2057,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		idSig =							(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							gID_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		firstMaleIndexSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				gID_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
+		individualsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					gID_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class));
 		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
 		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
 		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
@@ -2034,6 +2073,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		case gID_id:						return idSig;
 		case gID_firstMaleIndex:			return firstMaleIndexSig;
 		case gID_genomes:					return genomesSig;
+		case gID_individuals:				return individualsSig;
 		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
 		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
 		case gID_selfingRate:				return selfingRateSig;

@@ -278,6 +278,9 @@ extern const std::string gStr_generation;
 extern const std::string gStr_tag;
 extern const std::string gStr_firstMaleIndex;
 extern const std::string gStr_genomes;
+extern const std::string gStr_individuals;
+extern const std::string gStr_subpopulation;
+extern const std::string gStr_index;
 extern const std::string gStr_immigrantSubpopIDs;
 extern const std::string gStr_immigrantSubpopFractions;
 extern const std::string gStr_selfingRate;
@@ -355,6 +358,7 @@ extern const std::string gStr_MutationType;
 extern const std::string gStr_SLiMEidosBlock;
 extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
+extern const std::string gStr_Individual;
 extern const std::string gStr_Substitution;
 
 extern const std::string gStr_A;
@@ -428,6 +432,9 @@ enum _SLiMGlobalStringID : int {
 	gID_tag,
 	gID_firstMaleIndex,
 	gID_genomes,
+	gID_individuals,
+	gID_subpopulation,
+	gID_index,
 	gID_immigrantSubpopIDs,
 	gID_immigrantSubpopFractions,
 	gID_selfingRate,
@@ -505,6 +512,7 @@ enum _SLiMGlobalStringID : int {
 	gID_SLiMEidosBlock,
 	gID_SLiMSim,
 	gID_Subpopulation,
+	gID_Individual,
 	gID_Substitution,
 	
 	gID_A,

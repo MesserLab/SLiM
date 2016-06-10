@@ -152,6 +152,9 @@ const std::string gStr_generation = "generation";
 const std::string gStr_tag = "tag";
 const std::string gStr_firstMaleIndex = "firstMaleIndex";
 const std::string gStr_genomes = "genomes";
+const std::string gStr_individuals = "individuals";
+const std::string gStr_subpopulation = "subpopulation";
+const std::string gStr_index = "index";
 const std::string gStr_immigrantSubpopIDs = "immigrantSubpopIDs";
 const std::string gStr_immigrantSubpopFractions = "immigrantSubpopFractions";
 const std::string gStr_selfingRate = "selfingRate";
@@ -232,6 +235,7 @@ const std::string gStr_MutationType = "MutationType";
 const std::string gStr_SLiMEidosBlock = "SLiMEidosBlock";
 const std::string gStr_SLiMSim = "SLiMSim";
 const std::string gStr_Subpopulation = "Subpopulation";
+const std::string gStr_Individual = "Individual";
 const std::string gStr_Substitution = "Substitution";
 
 // mostly other fixed strings
@@ -316,6 +320,9 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_tag, gID_tag);
 		Eidos_RegisterStringForGlobalID(gStr_firstMaleIndex, gID_firstMaleIndex);
 		Eidos_RegisterStringForGlobalID(gStr_genomes, gID_genomes);
+		Eidos_RegisterStringForGlobalID(gStr_individuals, gID_individuals);
+		Eidos_RegisterStringForGlobalID(gStr_subpopulation, gID_subpopulation);
+		Eidos_RegisterStringForGlobalID(gStr_index, gID_index);
 		Eidos_RegisterStringForGlobalID(gStr_immigrantSubpopIDs, gID_immigrantSubpopIDs);
 		Eidos_RegisterStringForGlobalID(gStr_immigrantSubpopFractions, gID_immigrantSubpopFractions);
 		Eidos_RegisterStringForGlobalID(gStr_selfingRate, gID_selfingRate);
@@ -393,6 +400,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_SLiMEidosBlock, gID_SLiMEidosBlock);
 		Eidos_RegisterStringForGlobalID(gStr_SLiMSim, gID_SLiMSim);
 		Eidos_RegisterStringForGlobalID(gStr_Subpopulation, gID_Subpopulation);
+		Eidos_RegisterStringForGlobalID(gStr_Individual, gID_Individual);
 		Eidos_RegisterStringForGlobalID(gStr_Substitution, gID_Substitution);
 		
 		Eidos_RegisterStringForGlobalID(gStr_A, gID_A);
