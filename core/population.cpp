@@ -314,7 +314,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				// referred to by the values may change, but the values themselves will not change).
 				if (mate_choice_callback->contains_individual_)
 				{
-					Individual *parent1 = &(p_source_subpop->individuals_[p_parent1_index]);
+					Individual *parent1 = &(p_source_subpop->parent_individuals_[p_parent1_index]);
 					callback_symbols.InitializeConstantSymbolEntry(gID_individual, parent1->CachedEidosValue());
 				}
 				
@@ -496,7 +496,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			// referred to by the values may change, but the values themselves will not change).
 			if (modify_child_callback->contains_child_)
 			{
-				Individual *child = &(p_subpop->individuals_[p_child_index]);
+				Individual *child = &(p_subpop->child_individuals_[p_child_index]);
 				callback_symbols.InitializeConstantSymbolEntry(gID_child, child->CachedEidosValue());
 			}
 			
@@ -522,7 +522,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			
 			if (modify_child_callback->contains_parent1_)
 			{
-				Individual *parent1 = &(p_source_subpop->individuals_[p_parent1_index]);
+				Individual *parent1 = &(p_source_subpop->parent_individuals_[p_parent1_index]);
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
 			}
 			
@@ -546,7 +546,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			
 			if (modify_child_callback->contains_parent2_)
 			{
-				Individual *parent2 = &(p_source_subpop->individuals_[p_parent2_index]);
+				Individual *parent2 = &(p_source_subpop->parent_individuals_[p_parent2_index]);
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
 			}
 			

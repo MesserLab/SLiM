@@ -143,19 +143,29 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	Genome::LogGenomeCopyAndAssign(old_log);
 #endif
 	
-	// This is also our cue to make sure that the individuals_ vector is sufficiently large
-	slim_popsize_t subpop_size = std::max(child_subpop_size_, parent_subpop_size_);
-	slim_popsize_t individuals_size = (slim_popsize_t)individuals_.size();
+	// This is also our cue to make sure that the individuals_ vectors are sufficiently large.  We just expand both to have as many individuals
+	// as would be needed to hold either the child or the parental generation, and we only expand, never shrink.  Since SLiM does not actually
+	// use these vectors for simulation dynamics, they do not need to be accurately sized, just sufficiently large.  By the way, if you're
+	// wondering why we need separate individuals for the child and parental generations at all, it is because in modifyChild() callbacks and
+	// similar situations, we need to be accessing tag values and genomes and such for the individuals in both generations at the same time.
+	// They two generations therefore need to keep separate state, just as with Genome objects and other such state.
+	slim_popsize_t max_subpop_size = std::max(child_subpop_size_, parent_subpop_size_);
+	slim_popsize_t parent_individuals_size = (slim_popsize_t)parent_individuals_.size();
+	slim_popsize_t child_individuals_size = (slim_popsize_t)child_individuals_.size();
 	
-	// First we expand the individuals_ vector to have as many objects as needed; note we never shrink, only expand
 #ifdef DEBUG
 	old_log = Individual::LogIndividualCopyAndAssign(false);
 #endif
 	
-	while (individuals_size < subpop_size)
+	while (parent_individuals_size < max_subpop_size)
 	{
-		individuals_.emplace_back(Individual(*this, individuals_size));
-		individuals_size++;
+		parent_individuals_.emplace_back(Individual(*this, parent_individuals_size));
+		parent_individuals_size++;
+	}
+	while (child_individuals_size < max_subpop_size)
+	{
+		child_individuals_.emplace_back(Individual(*this, child_individuals_size));
+		child_individuals_size++;
 	}
 	
 #ifdef DEBUG
@@ -780,7 +790,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	Individual *individual = &(individuals_[p_individual_index]);
+	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
 	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
 	bool genome1_null = genome1->IsNull();
@@ -1036,7 +1046,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
-	Individual *individual = &(individuals_[p_individual_index]);
+	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
 	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
 	bool genome1_null = genome1->IsNull();
@@ -1465,6 +1475,10 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	child_genomes_.swap(parent_genomes_);
 	cached_child_genomes_value_.swap(cached_parent_genomes_value_);
 	
+	// Execute a swap of individuals as well; since individuals carry so little baggage, this is mostly important just for moving tag values
+	child_individuals_.swap(parent_individuals_);
+	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
+	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
 	parent_sex_ratio_ = child_sex_ratio_;
@@ -1599,23 +1613,46 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_individuals:
 		{
-			slim_popsize_t subpop_size = (child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
-			
-			// Check for an outdated cache and detach from it
-			if (cached_individuals_value_ && (cached_individuals_value_->Count() != subpop_size))
-				cached_individuals_value_.reset();
-			
-			// Build and return an EidosValue_Object_vector with the current set of individuals in it
-			if (!cached_individuals_value_)
+			if (child_generation_valid_)
 			{
-				EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
-				cached_individuals_value_ = EidosValue_SP(vec);
+				slim_popsize_t subpop_size = child_subpop_size_;
 				
-				for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-					vec->PushObjectElement(&individuals_[individual_index]);
+				// Check for an outdated cache and detach from it
+				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
+					cached_child_individuals_value_.reset();
+				
+				// Build and return an EidosValue_Object_vector with the current set of individuals in it
+				if (!cached_child_individuals_value_)
+				{
+					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+					cached_child_individuals_value_ = EidosValue_SP(vec);
+					
+					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
+						vec->PushObjectElement(&child_individuals_[individual_index]);
+				}
+				
+				return cached_child_individuals_value_;
 			}
-			
-			return cached_individuals_value_;
+			else
+			{
+				slim_popsize_t subpop_size = parent_subpop_size_;
+				
+				// Check for an outdated cache and detach from it
+				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
+					cached_parent_individuals_value_.reset();
+				
+				// Build and return an EidosValue_Object_vector with the current set of individuals in it
+				if (!cached_parent_individuals_value_)
+				{
+					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+					cached_parent_individuals_value_ = EidosValue_SP(vec);
+					
+					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
+						vec->PushObjectElement(&parent_individuals_[individual_index]);
+				}
+				
+				return cached_parent_individuals_value_;
+			}
 		}
 		case gID_immigrantSubpopIDs:
 		{
