@@ -43,6 +43,18 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 }
 
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(p_mutation_id)
+{
+#if DEBUG_MUTATIONS
+	EIDOS_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+#endif
+	
+	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
+	if (g_next_mutation_id <= mutation_id_)
+		g_next_mutation_id = mutation_id_ + 1;
+}
+
 #if DEBUG_MUTATIONS
 Mutation::~Mutation(void)
 {

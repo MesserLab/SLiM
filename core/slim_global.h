@@ -70,14 +70,15 @@ extern std::ostringstream gSLiMOut;
 // will likely experience random crashes due to running out of memory if you try that.  So, long story short, SLiM's
 // memory usage is what it is, and is about as good as it could reasonably be.
 
-typedef int32_t	slim_generation_t;	// generation numbers, generation durations
-typedef int32_t	slim_position_t;	// chromosome positions, lengths in base pairs
-typedef int32_t	slim_objectid_t;	// identifiers values for objects, like the "5" in p5, g5, m5, s5
-typedef int32_t	slim_popsize_t;		// subpopulation sizes and indices, include genome indices
-typedef int64_t slim_usertag_t;		// user-provided "tag" values; also used for the "active" property, which is like tag
-typedef int32_t slim_refcount_t;	// mutation refcounts, counts of the number of occurrences of a mutation
-typedef int64_t slim_mutationid_t;	// identifiers for mutations, which require 64 bits since there can be so many
-typedef float slim_selcoeff_t;		// storage of selection coefficients in memory-tight classes; also dominance coefficients
+typedef int32_t	slim_generation_t;		// generation numbers, generation durations
+typedef int32_t	slim_position_t;		// chromosome positions, lengths in base pairs
+typedef int32_t	slim_objectid_t;		// identifiers values for objects, like the "5" in p5, g5, m5, s5
+typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include genome indices
+typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for the "active" property, which is like tag
+typedef int32_t slim_refcount_t;		// mutation refcounts, counts of the number of occurrences of a mutation
+typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 64 bits since there can be so many
+typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
+typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
 #define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this
 #define SLIM_MAX_BASE_POSITION	(1000000000L)	// base positions in the chromosome can range from 0 to this
@@ -90,6 +91,7 @@ void SLiMRaisePositionRangeError(int64_t p_long_value);
 void SLiMRaiseObjectidRangeError(int64_t p_long_value);
 void SLiMRaisePopsizeRangeError(int64_t p_long_value);
 void SLiMRaiseUsertagRangeError(int64_t p_long_value);
+void SLiMRaisePolymorphismidRangeError(int64_t p_long_value);
 
 inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationTypeOrRaise(int64_t p_long_value)
 {
@@ -129,6 +131,14 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRais
 	// SLiMRaiseUsertagRangeError(long_value);
 	
 	return static_cast<slim_usertag_t>(p_long_value);
+}
+
+inline __attribute__((always_inline)) slim_polymorphismid_t SLiMCastToPolymorphismidTypeOrRaise(int64_t p_long_value)
+{
+	if ((p_long_value < 0) || (p_long_value > INT32_MAX))
+		SLiMRaisePolymorphismidRangeError(p_long_value);
+	
+	return static_cast<slim_polymorphismid_t>(p_long_value);
 }
 
 inline __attribute__((always_inline)) slim_generation_t SLiMClampToGenerationType(int64_t p_long_value)

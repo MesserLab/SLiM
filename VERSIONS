@@ -17,6 +17,7 @@ Development head:
 	Add an Individual class to SLiM, and an "individuals" property to Subpopulation
 	Add type Individual parameters to SLiM callbacks as needed
 	Add a unique index and a tag to Mutation and Substitution
+	Added mutation id to output formats and load code, so it is preserved across save/load
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

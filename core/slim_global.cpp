@@ -71,6 +71,11 @@ void SLiMRaiseUsertagRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiMRaiseUsertagRangeError): value " << p_long_value << " for a user-supplied tag is out of range." << eidos_terminate();
 }
 
+void SLiMRaisePolymorphismidRangeError(int64_t p_long_value)
+{
+	EIDOS_TERMINATION << "ERROR (SLiMRaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << eidos_terminate();
+}
+
 
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)

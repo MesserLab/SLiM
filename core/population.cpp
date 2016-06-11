@@ -31,11 +31,11 @@
 #include "eidos_script.h"
 #include "eidos_interpreter.h"
 #include "eidos_symbol_table.h"
+#include "polymorphism.h"
 
 
 using std::endl;
 using std::string;
-using std::multimap;
 
 
 Population::Population(SLiMSim &p_sim) : sim_(p_sim)
@@ -2368,7 +2368,7 @@ void Population::PrintAll(std::ostream &p_out) const
 		p_out << endl;
 	}
 	
-	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	PolymorphismMap polymorphisms;
 	
 	// add all polymorphisms
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
@@ -2391,8 +2391,8 @@ void Population::PrintAll(std::ostream &p_out) const
 	// print all polymorphisms
 	p_out << "Mutations:"  << endl;
 	
-	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms)
-		polymorphism_pair.second.print(p_out);
+	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+		polymorphism_pair.second.print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
 	
 	// print all individuals
 	p_out << "Individuals:" << endl;
@@ -2442,8 +2442,12 @@ void Population::PrintAll(std::ostream &p_out) const
 			{
 				for (int k = 0; k < genome.size(); k++)								// go through all mutations
 				{
-					int id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
-					p_out << " " << id; 
+					slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+					
+					if (polymorphism_id == -1)
+						EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+					
+					p_out << " " << polymorphism_id; 
 				}
 			}
 			
@@ -2468,7 +2472,7 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 1;
+		int32_t version_tag = 2;																					// version 2 started with SLiM 2.1
 		
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
@@ -2489,6 +2493,8 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
 		int32_t slim_refcount_t_size = sizeof(slim_refcount_t);
 		int32_t slim_selcoeff_t_size = sizeof(slim_selcoeff_t);
+		int32_t slim_mutationid_t_size = sizeof(slim_mutationid_t);													// Added in version 2
+		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		
 		p_out.write(reinterpret_cast<char *>(&slim_generation_t_size), sizeof slim_generation_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
@@ -2496,6 +2502,8 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_refcount_t_size), sizeof slim_refcount_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_mutationid_t_size), sizeof slim_mutationid_t_size);				// Added in version 2
+		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		
 		// Write the generation
 		slim_generation_t generation = sim_.Generation();
@@ -2540,7 +2548,7 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	
 	// Find all polymorphisms
-	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	PolymorphismMap polymorphisms;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
@@ -2565,13 +2573,14 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 	p_out.write(reinterpret_cast<char *>(&mutation_map_size), sizeof mutation_map_size);
 	
 	// Mutations section
-	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms)
+	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
 	{
 		const Polymorphism &polymorphism = polymorphism_pair.second;
 		const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
 		const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
 		
-		int32_t mutation_id = polymorphism.mutation_id_;
+		slim_polymorphismid_t polymorphism_id = polymorphism.polymorphism_id_;
+		int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
 		slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 		slim_position_t position = mutation_ptr->position_;
 		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
@@ -2586,7 +2595,8 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		p_out.write(reinterpret_cast<char *>(&mutation_start_tag), sizeof mutation_start_tag);
 		
 		// Write the mutation data
-		p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
+		p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
+		p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);							// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
 		p_out.write(reinterpret_cast<char *>(&position), sizeof position);
 		p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
@@ -2641,11 +2651,14 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 					// Write out 16-bit mutation tags
 					for (int32_t k = 0; k < total_mutations; k++)								// go through all mutations
 					{
-						int32_t id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+						slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 						
-						if (id <= UINT16_MAX - 1)
+						if (polymorphism_id == -1)
+							EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+						
+						if (polymorphism_id <= UINT16_MAX - 1)
 						{
-							uint16_t id_16 = (uint16_t)id;
+							uint16_t id_16 = (uint16_t)polymorphism_id;
 							
 							p_out.write(reinterpret_cast<char *>(&id_16), sizeof id_16);
 						}
@@ -2660,9 +2673,12 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 					// Write out 32-bit mutation tags
 					for (int32_t k = 0; k < total_mutations; k++)								// go through all mutations
 					{
-						int32_t id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+						slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 						
-						p_out.write(reinterpret_cast<char *>(&id), sizeof id);
+						if (polymorphism_id == -1)
+							EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+						
+						p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
 					}
 				}
 				
@@ -2693,7 +2709,7 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 		candidates.emplace_back(s);
 	
 	std::vector<slim_popsize_t> sample; 
-	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	PolymorphismMap polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -2723,10 +2739,10 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 			AddMutationToPolymorphismMap(&polymorphisms, subpop_genomes[genome_index][k]);
 	}
 	
-	// print the sample's polymorphisms
+	// print the sample's polymorphisms; NOTE the output format changed due to the addition of mutation_id_, BCH 11 June 2016
 	p_out << "Mutations:"  << endl;
 	
-	for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
+	for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 		polymorphism_pair.second.print(p_out);
 	
 	// print the sample's genomes
@@ -2746,9 +2762,12 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 		{
 			for (int k = 0; k < genome.size(); k++)	// go through all mutations
 			{
-				int mutation_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+				slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
 				
-				p_out << " " << mutation_id;
+				if (polymorphism_id == -1)
+					EIDOS_TERMINATION << "ERROR (Population::PrintSample_slim): (internal error) polymorphism not found." << eidos_terminate();
+				
+				p_out << " " << polymorphism_id;
 			}
 		}
 		
@@ -2774,7 +2793,7 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 		candidates.emplace_back(s);
 	
 	std::vector<slim_popsize_t> sample; 
-	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	PolymorphismMap polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -2812,8 +2831,8 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 	{
 		p_out << "positions:";
 		
-		for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
-			p_out << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.first) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
+			p_out << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.second.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
 		p_out << endl;
 	}
@@ -2826,11 +2845,12 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 		for (int k = 0; k < subpop_genomes[sample[j]].size(); k++)	// go through all mutations
 		{
 			const Mutation *mutation = subpop_genomes[sample[j]][k];
+			slim_mutationid_t mutation_id = mutation->mutation_id_;
 			int genotype_string_position = 0;
 			
-			for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
+			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 			{
-				if (polymorphism_pair.second.mutation_ptr_ == mutation)
+				if (polymorphism_pair.first == mutation_id)
 				{
 					// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
 					genotype.replace(genotype_string_position, 1, "1");
@@ -2865,7 +2885,7 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 		candidates.emplace_back(s);
 	
 	std::vector<slim_popsize_t> sample; 
-	multimap<const slim_position_t,Polymorphism> polymorphisms;
+	PolymorphismMap polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -2920,6 +2940,7 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	p_out << "##source=SLiM" << endl;
+	p_out << "##INFO=<ID=MID,Number=1,Type=Integer,Description=\"Mutation ID in SLiM\">" << endl;
 	p_out << "##INFO=<ID=S,Number=1,Type=Float,Description=\"Selection Coefficient\">" << endl;
 	p_out << "##INFO=<ID=DOM,Number=1,Type=Float,Description=\"Dominance\">" << endl;
 	p_out << "##INFO=<ID=PO,Number=1,Type=Integer,Description=\"Population of Origin\">" << endl;
@@ -2943,13 +2964,16 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 	// for positions that carry more than one mutation with the MULTIALLELIC flag so they can be filtered out if they bother the user.
 	for (auto polymorphism_pair : polymorphisms)
 	{
-		slim_position_t mut_position = polymorphism_pair.first;
 		Polymorphism &polymorphism = polymorphism_pair.second;
 		const Mutation *mutation = polymorphism.mutation_ptr_;
+		slim_position_t mut_position = mutation->position_;
 		
 		// Count the mutations at the given position to determine if we are multiallelic
-		std::pair<multimap<const slim_position_t,Polymorphism>::const_iterator,multimap<const slim_position_t,Polymorphism>::const_iterator> range = polymorphisms.equal_range(mut_position);
-		int allele_count = (int)std::distance(range.first, range.second);
+		int allele_count = 0;
+		
+		for (const PolymorphismPair &allele_count_pair : polymorphisms) 
+			if (allele_count_pair.second.mutation_ptr_->position_ == mut_position)
+				allele_count++;
 		
 		if (p_output_multiallelics || (allele_count == 1))
 		{
@@ -2960,6 +2984,7 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 			p_out << "\t1000\tPASS\t";
 			
 			// emit the INFO fields and the Genotype marker
+			p_out << "MID=" << mutation->mutation_id_ << ";";
 			p_out << "S=" << mutation->selection_coeff_ << ";";
 			p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
 			p_out << "PO=" << mutation->subpop_index_ << ";";

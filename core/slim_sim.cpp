@@ -25,6 +25,7 @@
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
 #include "individual.h"
+#include "polymorphism.h"
 
 #include <iostream>
 #include <fstream>
@@ -36,7 +37,6 @@
 #include <utility>
 
 
-using std::multimap;
 using std::string;
 using std::endl;
 using std::istream;
@@ -259,7 +259,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	slim_generation_t file_generation;
-	std::map<int64_t,Mutation*> mutations;
+	std::map<slim_polymorphismid_t,Mutation*> mutations;
 	string line, sub; 
 	ifstream infile(p_file);
 	
@@ -345,10 +345,25 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		istringstream iss(line);
 		
-		iss >> sub; 
-		int64_t mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
-		
 		iss >> sub;
+		int64_t polymorphismid_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
+		
+		// Added in version 2 output, starting in SLiM 2.1
+		iss >> sub;
+		slim_mutationid_t mutation_id;
+		
+		if (sub[0] == 'm')	// autodetect whether we are parsing version 1 or version 2 output
+		{
+			mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
+		}
+		else
+		{
+			mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
+			
+			iss >> sub;		// queue up sub for mutation_type_id
+		}
+		
 		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'm', nullptr);
 		
 		iss >> sub;
@@ -380,10 +395,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations.insert(std::pair<int64_t,Mutation*>(mutation_id, new_mutation));
+		mutations.insert(std::pair<slim_polymorphismid_t,Mutation*>(polymorphism_id, new_mutation));
 		population_.mutation_registry_.emplace_back(new_mutation);
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
@@ -473,12 +488,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			do
 			{
-				int64_t mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
+				int64_t polymorphismid_long = EidosInterpreter::IntegerForString(sub, nullptr);
+				slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
 				
-				auto found_mut_pair = mutations.find(mutation_id);
+				auto found_mut_pair = mutations.find(polymorphism_id);
 				
 				if (found_mut_pair == mutations.end()) 
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation " << mutation_id << " has not been defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << eidos_terminate();
 				
 				Mutation *mutation = found_mut_pair->second;
 				
@@ -534,14 +550,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	infile.close();
 	
 	int32_t section_end_tag;
+	int32_t file_version;
 	
-	// Header section
+	// Header beginning, to check endianness and determine file version
 	{
-		int32_t endianness_tag, version_tag, double_size;
-		double double_test;
-		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size;
+		int32_t endianness_tag, version_tag;
 		
-		if (p + sizeof(endianness_tag) + sizeof(version_tag) + sizeof(double_size) + sizeof(double_test) + sizeof(slim_generation_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_generation) + sizeof(section_end_tag) > buf_end)
+		if (p + sizeof(endianness_tag) + sizeof(version_tag) > buf_end)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << eidos_terminate();
 		
 		endianness_tag = *(int32_t *)p;
@@ -549,6 +564,27 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		version_tag = *(int32_t *)p;
 		p += sizeof(version_tag);
+		
+		if (endianness_tag != 0x12345678)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << eidos_terminate();
+		if ((version_tag != 1) && (version_tag != 2))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << eidos_terminate();
+		
+		file_version = version_tag;
+	}
+	
+	// Header section
+	{
+		int32_t double_size;
+		double double_test;
+		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size;
+		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(slim_generation_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_generation) + sizeof(section_end_tag);
+		
+		if (file_version >= 2)
+			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
+		
+		if (p + header_length > buf_end)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << eidos_terminate();
 		
 		double_size = *(int32_t *)p;
 		p += sizeof(double_size);
@@ -574,16 +610,27 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		slim_selcoeff_t_size = *(int32_t *)p;
 		p += sizeof(slim_selcoeff_t_size);
 		
+		if (file_version >= 2)
+		{
+			slim_mutationid_t_size = *(int32_t *)p;
+			p += sizeof(slim_mutationid_t_size);
+			
+			slim_polymorphismid_t_size = *(int32_t *)p;
+			p += sizeof(slim_polymorphismid_t_size);
+		}
+		else
+		{
+			// Version 1 file; backfill correct values
+			slim_mutationid_t_size = sizeof(slim_mutationid_t);
+			slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);
+		}
+		
 		file_generation = *(slim_generation_t *)p;
 		p += sizeof(file_generation);
 		
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
-		if (endianness_tag != 0x12345678)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << eidos_terminate();
-		if (version_tag != 1)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << eidos_terminate();
 		if (double_size != sizeof(double))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sizeof(double) mismatch." << eidos_terminate();
 		if (double_test != 1234567890.0987654321)
@@ -593,7 +640,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
 			(slim_popsize_t_size != sizeof(slim_popsize_t)) ||
 			(slim_refcount_t_size != sizeof(slim_refcount_t)) ||
-			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)))
+			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
+			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
+			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << eidos_terminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << eidos_terminate();
@@ -676,7 +725,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	while (true)
 	{
 		int32_t mutation_start_tag;
-		int32_t mutation_id;
+		slim_polymorphismid_t polymorphism_id;
+		slim_mutationid_t mutation_id;					// Added in version 2
 		slim_objectid_t mutation_type_id;
 		slim_position_t position;
 		slim_selcoeff_t selection_coeff;
@@ -686,7 +736,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		slim_refcount_t prevalence;
 		
 		// If there isn't enough buffer left to read a full mutation record, we assume we are done with this section
-		if (p + sizeof(mutation_start_tag) + sizeof(mutation_id) + sizeof(mutation_type_id) + sizeof(position) + sizeof(selection_coeff) + sizeof(dominance_coeff) + sizeof(subpop_index) + sizeof(generation) + sizeof(prevalence) > buf_end)
+		int record_size = sizeof(mutation_start_tag) + sizeof(polymorphism_id) + sizeof(mutation_type_id) + sizeof(position) + sizeof(selection_coeff) + sizeof(dominance_coeff) + sizeof(subpop_index) + sizeof(generation) + sizeof(prevalence);
+		
+		if (file_version >= 2)
+			record_size += sizeof(mutation_id);
+		
+		if (p + record_size > buf_end)
 			break;
 		
 		// If the first int32_t is not a mutation start tag, then we are done with this section
@@ -697,8 +752,18 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		// Otherwise, we have a mutation record; read in the rest of it
 		p += sizeof(mutation_start_tag);
 		
-		mutation_id = *(int32_t *)p;
-		p += sizeof(mutation_id);
+		polymorphism_id = *(slim_polymorphismid_t *)p;
+		p += sizeof(polymorphism_id);
+		
+		if (file_version >= 2)
+		{
+			mutation_id = *(slim_mutationid_t *)p;
+			p += sizeof(mutation_id);
+		}
+		else
+		{
+			mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
+		}
 		
 		mutation_type_id = *(slim_objectid_t *)p;
 		p += sizeof(mutation_type_id);
@@ -733,10 +798,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations[mutation_id] = new_mutation;
+		mutations[polymorphism_id] = new_mutation;
 		population_.mutation_registry_.emplace_back(new_mutation);
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
@@ -2529,12 +2594,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
 				mutations.emplace_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
 			
-			// find all polymorphism of the mutations that are to be tracked
+			// find all polymorphisms of the mutations that are to be tracked
 			if (mutations_count > 0)
 			{
 				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 				{
-					multimap<const slim_position_t,Polymorphism> polymorphisms;
+					PolymorphismMap polymorphisms;
 					
 					for (slim_popsize_t i = 0; i < 2 * subpop_pair.second->parent_subpop_size_; i++)				// go through all parents
 					{
@@ -2549,7 +2614,8 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					}
 					
 					// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code
-					for (const std::pair<const slim_position_t,Polymorphism> &polymorphism_pair : polymorphisms) 
+					// NOTE the format of this output changed because print_no_id() added the mutation_id_ to its output; BCH 11 June 2016
+					for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 					{ 
 						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
 						polymorphism_pair.second.print_no_id(output_stream);

@@ -33,29 +33,38 @@
 #include "chromosome.h"
 
 
+class Polymorphism;
+
+// This used to be a multimap that indexed by position, allowing collisions.  Now is is a std::map that indexes by mutation_id_,
+// which avoids any possibility of collisions, making the code simpler and faster.  BCH 11 June 2016
+typedef std::map<const slim_mutationid_t,Polymorphism> PolymorphismMap;
+typedef std::pair<const slim_mutationid_t,Polymorphism> PolymorphismPair;
+
+
 class Polymorphism
 {
 	// This class allows copying by design
 	
 public:
 	
-	int mutation_id_;							// mutation id
+	slim_polymorphismid_t polymorphism_id_;		// a unique identifier for the polymorphism, starting at 0; this is used instead of the
+												// mutation's mutation_id_ because it compresses the range, allowing smaller output files
 	const Mutation *mutation_ptr_;				// the mutation represented
 	slim_refcount_t prevalence_;				// prevalence
 	
 	Polymorphism(void) = delete;				// no null construction
-	Polymorphism(int p_mutation_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence);
+	Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence);
 	
-	void print(std::ostream &p_out) const;
-	void print_no_id(std::ostream &p_out) const;
+	void print(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
+	void print_no_id(std::ostream &p_out) const;	// does not include polymorphism_id_
 };
 
 
-// find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const std::multimap<const slim_position_t,Polymorphism> &p_polymorphisms, const Mutation *p_mutation);
+// find p_mutation in p_polymorphisms and return its polymorphism_id_
+slim_polymorphismid_t FindMutationInPolymorphismMap(const PolymorphismMap &p_polymorphisms, const Mutation *p_mutation);
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(std::multimap<const slim_position_t,Polymorphism> *p_polymorphisms, const Mutation *p_mutation);
+void AddMutationToPolymorphismMap(PolymorphismMap *p_polymorphisms, const Mutation *p_mutation);
 
 
 #endif /* defined(__SLiM__polymorphism__) */

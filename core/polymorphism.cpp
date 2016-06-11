@@ -25,57 +25,56 @@
 #include <utility>
 
 
-using std::multimap;
-
-
-Polymorphism::Polymorphism(int p_mutation_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence) :
-	mutation_id_(p_mutation_id), mutation_ptr_(p_mutation_ptr), prevalence_(p_prevalence)
+Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence) :
+	polymorphism_id_(p_polymorphism_id), mutation_ptr_(p_mutation_ptr), prevalence_(p_prevalence)
 {
 }
 
 void Polymorphism::print(std::ostream &p_out) const
 {
-	p_out << mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
+	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
+	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
 }
 
 void Polymorphism::print_no_id(std::ostream &p_out) const
 {
-	p_out << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
+	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
+	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
 }
 
 // find p_mutation in p_polymorphisms and return its id
-int FindMutationInPolymorphismMap(const multimap<const slim_position_t,Polymorphism> &p_polymorphisms, const Mutation *p_mutation)
+slim_polymorphismid_t FindMutationInPolymorphismMap(const PolymorphismMap &p_polymorphisms, const Mutation *p_mutation)
 {
-	// iterate through all mutations with same position
-	std::pair<multimap<const slim_position_t,Polymorphism>::const_iterator,multimap<const slim_position_t,Polymorphism>::const_iterator> range = p_polymorphisms.equal_range(p_mutation->position_);
-	multimap<const slim_position_t,Polymorphism>::const_iterator polymorphisms_iter;
+	auto poly_iter = p_polymorphisms.find(p_mutation->mutation_id_);
 	
-	for (polymorphisms_iter = range.first; polymorphisms_iter != range.second; polymorphisms_iter++)
-		if (polymorphisms_iter->second.mutation_ptr_ == p_mutation) 
-			return polymorphisms_iter->second.mutation_id_;
+	if (poly_iter == p_polymorphisms.end())
+		return -1;								// a flag indicating a failed lookup
 	
-	return 0;
+	return poly_iter->second.polymorphism_id_;
 }
 
 // if mutation p_mutation is present in p_polymorphisms increase its prevalence, otherwise add it
-void AddMutationToPolymorphismMap(multimap<const slim_position_t,Polymorphism> *p_polymorphisms, const Mutation *p_mutation)
+void AddMutationToPolymorphismMap(PolymorphismMap *p_polymorphisms, const Mutation *p_mutation)
 {
-	// iterate through all mutations with same position
-	std::pair<multimap<const slim_position_t,Polymorphism>::iterator,multimap<const slim_position_t,Polymorphism>::iterator> range = p_polymorphisms->equal_range(p_mutation->position_);
-	multimap<const slim_position_t,Polymorphism>::iterator polymorphisms_iter;
+	auto poly_iter = p_polymorphisms->find(p_mutation->mutation_id_);
 	
-	for (polymorphisms_iter = range.first; polymorphisms_iter != range.second; polymorphisms_iter++)
-		if (polymorphisms_iter->second.mutation_ptr_ == p_mutation) 
-		{ 
-			polymorphisms_iter->second.prevalence_++;
-			return;
-		}
-	
-	// the mutation was not found, so add it to p_polymorphisms
-	int mutation_id = static_cast<int>(p_polymorphisms->size());
-	Polymorphism new_polymorphism = Polymorphism(mutation_id, p_mutation, 1);
-	
-	p_polymorphisms->insert(std::pair<const slim_position_t,Polymorphism>(p_mutation->position_, new_polymorphism));
+	if (poly_iter == p_polymorphisms->end())
+	{
+		// the mutation was not found, so add it to p_polymorphisms with a unique index counting up from 0
+		auto polymorphisms_size = p_polymorphisms->size();
+		
+		if (polymorphisms_size > INT32_MAX)
+			EIDOS_TERMINATION << "ERROR (AddMutationToPolymorphismMap): (internal error) polymorphism_id does not fit in int32_t." << eidos_terminate();
+		
+		slim_polymorphismid_t polymorphism_id = static_cast<slim_polymorphismid_t>(polymorphisms_size);
+		Polymorphism new_polymorphism = Polymorphism(polymorphism_id, p_mutation, 1);
+		
+		p_polymorphisms->insert(PolymorphismPair(p_mutation->mutation_id_, new_polymorphism));
+	}
+	else
+	{
+		poly_iter->second.prevalence_++;
+	}
 }
 
 

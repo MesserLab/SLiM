@@ -36,7 +36,6 @@
 #include "subpopulation.h"
 #include "substitution.h"
 #include "chromosome.h"
-#include "polymorphism.h"
 #include "slim_global.h"
 #include "slim_eidos_block.h"
 
