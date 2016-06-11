@@ -78,6 +78,8 @@ public:
 	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index);		// construct with a subpop and an index
 	~Individual(void);																	// destructor
 	
+	void GetGenomes(Genome **p_genome1, Genome **p_genome2);
+	
 	//
 	// Eidos support
 	//

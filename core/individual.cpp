@@ -85,6 +85,50 @@ void Individual::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
 }
 
+void Individual::GetGenomes(Genome **p_genome1, Genome **p_genome2)
+{
+	// The way we get our genomes is really disgusting, so it is localized here in a utility method.  The problem is that we could
+	// represent an individual in either the child or the parental generation.  The subpopulation's child_generation_valid_ flag
+	// is not the correct way to decide, because in some contexts, such as modifyChild() callbacks, Individual objects for both
+	// generations are being handled.  We don't want to contain a flag for which generation we refer to, because when the generation
+	// flips all of those flags would have to be flipped, which would just be a big waste of time.  So instead, we do an evil hack:
+	// we do pointer comparisons to determine which vector of Individuals in the subpopulation we belong to.  On the bright side,
+	// this also represents a sort of integrity checkback, since we will raise if we can't find ourselves.
+	std::vector<Individual> &parent_individuals = subpopulation_.parent_individuals_;
+	std::vector<Individual> &child_individuals = subpopulation_.child_individuals_;
+	bool is_parent = ((this >= &(parent_individuals.front())) && (this <= &(parent_individuals.back())));
+	bool is_child = ((this >= &(child_individuals.front())) && (this <= &(child_individuals.back())));
+	
+	std::vector<Genome> *genomes;
+	
+	if (is_parent && !is_child)
+		genomes = &subpopulation_.parent_genomes_;
+	else if (is_child && !is_parent)
+		genomes = &subpopulation_.child_genomes_;
+	else
+		EIDOS_TERMINATION << "ERROR (Individual::GetGenomes): (internal error) unable to unambiguously find genomes." << eidos_terminate();
+	
+	Genome *genome1, *genome2;
+	int genome_count = (int)genomes->size();
+	slim_popsize_t genome_index = index_ * 2;
+	
+	if (genome_index + 1 < genome_count)
+	{
+		genome1 = &((*genomes)[genome_index]);
+		genome2 = &((*genomes)[genome_index + 1]);
+	}
+	else
+	{
+		genome1 = nullptr;
+		genome2 = nullptr;
+	}
+	
+	if (p_genome1)
+		*p_genome1 = genome1;
+	if (p_genome2)
+		*p_genome2 = genome2;
+}
+
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -101,16 +145,16 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genomes:
 		{
-			std::vector<Genome> &genomes = (subpopulation_.child_generation_valid_ ? subpopulation_.child_genomes_ : subpopulation_.parent_genomes_);
-			int genome_count = (int)genomes.size();
-			slim_popsize_t genome_index = index_ * 2;
+			Genome *genome1, *genome2;
 			
-			if (genome_index + 1 < genome_count)
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
 			{
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->Reserve(2);
 				
-				vec->PushObjectElement(&genomes[genome_index]);
-				vec->PushObjectElement(&genomes[genome_index + 1]);
+				vec->PushObjectElement(genome1);
+				vec->PushObjectElement(genome2);
 				
 				return EidosValue_SP(vec);
 			}
@@ -164,14 +208,12 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_containsMutations:
 		{
-			std::vector<Genome> &genomes = (subpopulation_.child_generation_valid_ ? subpopulation_.child_genomes_ : subpopulation_.parent_genomes_);
-			int genome_count = (int)genomes.size();
-			slim_popsize_t genome_index = index_ * 2;
+			Genome *genome1, *genome2;
 			
-			if (genome_index + 1 < genome_count)
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
 			{
-				Genome *genome1 = &genomes[genome_index];
-				Genome *genome2 = &genomes[genome_index + 1];
 				int arg0_count = arg0_value->Count();
 				
 				if (arg0_count == 1)
@@ -211,14 +253,12 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_countOfMutationsOfType:
 		{
-			std::vector<Genome> &genomes = (subpopulation_.child_generation_valid_ ? subpopulation_.child_genomes_ : subpopulation_.parent_genomes_);
-			int genome_count = (int)genomes.size();
-			slim_popsize_t genome_index = index_ * 2;
+			Genome *genome1, *genome2;
 			
-			if (genome_index + 1 < genome_count)
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
 			{
-				Genome *genome1 = &genomes[genome_index];
-				Genome *genome2 = &genomes[genome_index + 1];
 				MutationType *mutation_type_ptr = nullptr;
 				
 				if (arg0_value->Type() == EidosValueType::kValueInt)
