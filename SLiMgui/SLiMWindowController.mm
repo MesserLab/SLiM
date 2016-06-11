@@ -1638,12 +1638,8 @@
 				SLIM_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
 				SLIM_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
 				
-				// Clean up after the import; the order of these steps is quite sensitive, so be careful
-				sim->generation_ = newGeneration;
-				[self updateAfterTickFull:YES];						// we need to do this first, to select all our subpopulations so our stats-gathering is correct
-				sim->population_.TallyMutationReferences(nullptr, true);
-				sim->population_.SurveyPopulation();
-				
+				// Clean up after the import; the order of these steps may be sensitive, so be careful
+				[self updateAfterTickFull:YES];
 				[_consoleController validateSymbolTable];	// trigger a reload of the variable browser to show the new symbols
 			}
 			

@@ -504,6 +504,20 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 	}
 	
+	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
+	// a new population in an early() event, in a late() event, or in between generations in SLiMgui using its Import Population command.
+	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
+	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the generation cycle,
+	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current generation
+	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
+	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
+	
+	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
+	generation_ = file_generation;
+	
+	// Re-tally mutation references so we have accurate frequency counts for our new mutations
+	population_.MaintainRegistry();
+	
 	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
 	// used to be generation + 1; removing that 18 Feb 2016 BCH
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
@@ -514,6 +528,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
+	
+#ifdef SLIMGUI
+	// Let SLiMgui survey the population for mean fitness and such, if it is our target
+	population_.SurveyPopulation();
+#endif
 	
 	return file_generation;
 }
@@ -943,6 +962,20 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after genomes." << eidos_terminate();
 	}
 	
+	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
+	// a new population in an early() event, in a late() event, or in between generations in SLiMgui using its Import Population command.
+	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
+	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the generation cycle,
+	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current generation
+	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
+	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
+	
+	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
+	generation_ = file_generation;
+	
+	// Re-tally mutation references so we have accurate frequency counts for our new mutations
+	population_.MaintainRegistry();
+	
 	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
 	// used to be generation + 1; removing that 18 Feb 2016 BCH
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
@@ -953,6 +986,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
+	
+#ifdef SLIMGUI
+	// Let SLiMgui survey the population for mean fitness and such, if it is our target
+	population_.SurveyPopulation();
+#endif
 	
 	return file_generation;
 }
