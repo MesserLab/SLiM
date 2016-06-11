@@ -32,19 +32,11 @@
 EidosObjectPool *gSLiM_Mutation_Pool = nullptr;
 
 
-#ifdef SLIMGUI
-// A global counter used to assign all Mutation objects a unique ID in SLiMgui
-uint64_t g_next_mutation_id = 0;
-#endif
+// A global counter used to assign all Mutation objects a unique ID
+slim_mutationid_t g_next_mutation_id = 0;
 
-#ifdef SLIMGUI
-// In SLiMgui, the mutation_id_ gets initialized here, from the global counter g_next_mutation_id
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(g_next_mutation_id++)
-#else
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
-	mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation)
-#endif
 {
 #if DEBUG_MUTATIONS
 	EIDOS_OUTSTREAM << "Mutation constructed: " << this << std::endl;
@@ -79,7 +71,7 @@ const EidosObjectClass *Mutation::Class(void) const
 
 void Mutation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << Class()->ElementType() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
 }
 
 EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
@@ -88,6 +80,8 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_id:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
 		case gID_mutationType:
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_originGeneration:
@@ -98,6 +92,10 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
 		case gID_subpopID:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
+			
+			// variables
+		case gID_tag:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -115,6 +113,13 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			subpop_index_ = value;
+			return;
+		}
+		case gID_tag:
+		{
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			
+			tag_value_ = value;
 			return;
 		}
 			
@@ -241,11 +246,13 @@ const std::vector<const EidosPropertySignature *> *Mutation_Class::Properties(vo
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_originGeneration));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_position));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_selectionCoeff));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopID));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -255,29 +262,35 @@ const std::vector<const EidosPropertySignature *> *Mutation_Class::Properties(vo
 const EidosPropertySignature *Mutation_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
 	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
 	static EidosPropertySignature *mutationTypeSig = nullptr;
 	static EidosPropertySignature *originGenerationSig = nullptr;
 	static EidosPropertySignature *positionSig = nullptr;
 	static EidosPropertySignature *selectionCoeffSig = nullptr;
 	static EidosPropertySignature *subpopIDSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	if (!mutationTypeSig)
+	if (!idSig)
 	{
+		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class));
 		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_id:				return idSig;
 		case gID_mutationType:		return mutationTypeSig;
 		case gID_originGeneration:	return originGenerationSig;
 		case gID_position:			return positionSig;
 		case gID_selectionCoeff:	return selectionCoeffSig;
 		case gID_subpopID:			return subpopIDSig;
+		case gID_tag:				return tagSig;
 			
 			// all others, including gID_none
 		default:

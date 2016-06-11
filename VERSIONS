@@ -15,6 +15,8 @@ Development head:
 	Add outputVCFSample()
 	Fix a bug in Genome's -containsMutations() method that caused it to produce incorrect results if its argument was a non-singleton vector
 	Add an Individual class to SLiM, and an "individuals" property to Subpopulation
+	Add type Individual parameters to SLiM callbacks as needed
+	Add a unique index and a tag to Mutation and Substitution
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

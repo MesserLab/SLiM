@@ -50,9 +50,8 @@ public:
 	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
 	slim_generation_t generation_;				// generation in which mutation arose  
 	slim_generation_t fixation_generation_;		// generation in which mutation fixed
-#ifdef SLIMGUI
-	const uint64_t mutation_id_;				// a unique id for each mutation, used to track mutations in SLiMgui
-#endif
+	const slim_mutationid_t mutation_id_;		// a unique id for each mutation, used to track mutations
+	slim_usertag_t tag_value_;					// a user-defined tag value
 	
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying

@@ -78,7 +78,7 @@
 {
 @public
 	// The 64-bit mutation ID is how we keep track of the mutation we reference; its pointer might go stale and be reused.
-	uint64_t mutationID;
+	slim_mutationid_t mutationID;
 	
 	// Mostly we are just a malloced array of uint16s.  The data we're storing is doubles, conceptually, but to minimize our memory footprint
 	// (which might be very large!) we convert the doubles, which are guaranteed to be in the range [0.0, 1.0], to uint16s in the range

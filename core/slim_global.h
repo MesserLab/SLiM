@@ -76,6 +76,7 @@ typedef int32_t	slim_objectid_t;	// identifiers values for objects, like the "5"
 typedef int32_t	slim_popsize_t;		// subpopulation sizes and indices, include genome indices
 typedef int64_t slim_usertag_t;		// user-provided "tag" values; also used for the "active" property, which is like tag
 typedef int32_t slim_refcount_t;	// mutation refcounts, counts of the number of occurrences of a mutation
+typedef int64_t slim_mutationid_t;	// identifiers for mutations, which require 64 bits since there can be so many
 typedef float slim_selcoeff_t;		// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
 #define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this

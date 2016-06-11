@@ -353,7 +353,7 @@
 			NSNumber *mutationIDNumber = [[NSNumber alloc] initWithLongLong:mutation->mutation_id_];
 			MutationFrequencyHistory *history = [frequencyHistoryDict objectForKey:mutationIDNumber];
 			
-			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %llu", refcount, value, history, mutation->mutation_id_);
+			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, mutation->mutation_id_);
 			
 			if (history)
 			{
@@ -382,7 +382,7 @@
 	[frequencyHistoryDict enumerateKeysAndObjectsUsingBlock:^(NSNumber *key, MutationFrequencyHistory *history, BOOL *stop) {
 		if (!history->updated)
 		{
-			uint64_t historyID = history->mutationID;
+			slim_mutationid_t historyID = history->mutationID;
 			Mutation **mutation_iter = mutationRegistry.begin_pointer();
 			Mutation **mutation_iter_end = mutationRegistry.end_pointer();
 			BOOL mutationStillExists = NO;
@@ -390,7 +390,7 @@
 			for ( ; mutation_iter != mutation_iter_end; ++mutation_iter)
 			{
 				const Mutation *mutation = *mutation_iter;
-				uint64_t mutationID = mutation->mutation_id_;
+				slim_mutationid_t mutationID = mutation->mutation_id_;
 				
 				if (historyID == mutationID)
 				{
@@ -423,7 +423,7 @@
 			// The remaining tricky bit is that we have to figure out whether the vanished mutation was fixed or lost; we do this by
 			// scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
 			// for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
-			uint64_t mutationID = history->mutationID;
+			slim_mutationid_t mutationID = history->mutationID;
 			BOOL wasFixed = NO;
 			
 			std::vector<Substitution*> &substitutions = population.substitutions_;

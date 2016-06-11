@@ -52,8 +52,10 @@ public:
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t generation_;				// generation in which mutation arose
 	mutable slim_refcount_t reference_count_;			// a count of the uses of this mutation; managed by Population, see TallyMutationReferences()
+	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
+	slim_usertag_t tag_value_;							// a user-defined tag value
+	
 #ifdef SLIMGUI
-	const uint64_t mutation_id_;						// a unique id for each mutation, used to track mutations in SLiMgui
 	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif

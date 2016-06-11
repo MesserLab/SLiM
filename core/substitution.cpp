@@ -29,14 +29,8 @@
 #include <vector>
 
 
-#ifdef SLIMGUI
-// In SLiMgui, the mutation_id_ gets initialized here, from the mutation
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_)
-#else
-Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-	mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_generation_(p_fixation_generation)
-#endif
+mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 {
 }
 
@@ -59,7 +53,7 @@ const EidosObjectClass *Substitution::Class(void) const
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<" << selection_coeff_ << ">";
+	p_ostream << Class()->ElementType() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
 }
 
 EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
@@ -68,6 +62,8 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_id:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
 		case gID_mutationType:
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:
@@ -80,6 +76,10 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
 		case gID_fixationGeneration:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_generation_));
+			
+			// variables
+		case gID_tag:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
@@ -99,7 +99,14 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			subpop_index_ = value;
 			return;
 		}
+		case gID_tag:
+		{
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
+			tag_value_ = value;
+			return;
+		}
+		
 		default:
 		{
 			return EidosObjectElement::SetProperty(p_property_id, p_value);
@@ -156,12 +163,14 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_position));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_selectionCoeff));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopID));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_originGeneration));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_fixationGeneration));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -171,32 +180,38 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
 	// Signatures are all preallocated, for speed
+	static EidosPropertySignature *idSig = nullptr;
 	static EidosPropertySignature *mutationTypeSig = nullptr;
 	static EidosPropertySignature *positionSig = nullptr;
 	static EidosPropertySignature *selectionCoeffSig = nullptr;
 	static EidosPropertySignature *subpopIDSig = nullptr;
 	static EidosPropertySignature *originGenerationSig = nullptr;
 	static EidosPropertySignature *fixationGenerationSig = nullptr;
+	static EidosPropertySignature *tagSig = nullptr;
 	
-	if (!mutationTypeSig)
+	if (!idSig)
 	{
+		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class));
 		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		fixationGenerationSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,gID_fixationGeneration,true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		fixationGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	gID_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_mutationType:		return mutationTypeSig;
-		case gID_position:			return positionSig;
-		case gID_selectionCoeff:	return selectionCoeffSig;
-		case gID_subpopID:			return subpopIDSig;
-		case gID_originGeneration:	return originGenerationSig;
+		case gID_id:					return idSig;
+		case gID_mutationType:			return mutationTypeSig;
+		case gID_position:				return positionSig;
+		case gID_selectionCoeff:		return selectionCoeffSig;
+		case gID_subpopID:				return subpopIDSig;
+		case gID_originGeneration:		return originGenerationSig;
 		case gID_fixationGeneration:	return fixationGenerationSig;
+		case gID_tag:					return tagSig;
 			
 			// all others, including gID_none
 		default:
