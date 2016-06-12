@@ -2292,6 +2292,12 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
+			
+			//
+			//	*********************	– (void)str(void)
+			//
+#pragma mark -str()
+			
 		case gEidosID_str:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
@@ -2508,10 +2514,14 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlo
 
 EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
-#pragma unused(p_arguments, p_interpreter)
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
+			//
+			//	*********************	+ (void)property([string$ propertyName])
+			//
+#pragma mark +property()
+			
 		case gEidosID_property:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
@@ -2537,6 +2547,13 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 			
 			return gStaticEidosValueNULLInvisible;
 		}
+			
+			
+			//
+			//	*********************	+ (void)method([string$ methodName])
+			//
+#pragma mark +method()
+			
 		case gEidosID_method:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
@@ -2580,6 +2597,13 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 			
 			return gStaticEidosValueNULLInvisible;
 		}
+			
+			
+			//
+			//	*********************	+ (integer$)size(void)
+			//
+#pragma mark +size()
+			
 		case gEidosID_size:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
