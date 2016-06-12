@@ -3218,6 +3218,23 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("version('foo');", 0, "requires at most");
 	EidosAssertScriptRaise("version(_Test(7));", 0, "requires at most");
 	
+#pragma mark methods
+	
+	// method()
+	EidosAssertScriptSuccess("_Test(7).method();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).method('method');", gStaticEidosValueNULL);
+	
+	// property()
+	EidosAssertScriptSuccess("_Test(7).property();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).property('yolk');", gStaticEidosValueNULL);
+	
+	// size()
+	EidosAssertScriptSuccess("_Test(7).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
+	EidosAssertScriptSuccess("rep(_Test(7), 5).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	
+	// str()
+	EidosAssertScriptSuccess("_Test(7).str();", gStaticEidosValueNULL);
+	
 #pragma mark code examples
 	
 	// Fibonacci sequence; see Eidos manual section 2.6.1-ish

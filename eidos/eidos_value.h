@@ -927,7 +927,7 @@ public:
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	
 	// These non-virtual utility methods do the same as SignatureForProperty() / SignatureForMethod() but raise on failure
 	const EidosPropertySignature *SignatureForPropertyOrRaise(EidosGlobalStringID p_property_id) const;

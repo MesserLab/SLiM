@@ -1994,7 +1994,9 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	// If the method is a class method, dispatch it to the class object
 	if (method_signature->is_class_method)
 	{
-		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		// Note that starting in Eidos 1.1 we pass this to ExecuteClassMethod(), to allow class methods to
+		// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, this, p_arguments, p_argument_count, p_interpreter);
 		
 		method_signature->CheckReturn(*result_SP);
 		
@@ -2212,7 +2214,9 @@ EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID
 	// If the method is a class method, dispatch it to the class object
 	if (method_signature->is_class_method)
 	{
-		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		// Note that starting in Eidos 1.1 we pass this to ExecuteClassMethod(), to allow class methods to
+		// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+		EidosValue_SP result_SP = class_->ExecuteClassMethod(p_method_id, this, p_arguments, p_argument_count, p_interpreter);
 		
 		method_signature->CheckReturn(*result_SP);
 		
@@ -2455,6 +2459,7 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 		// keep alphabetical order here
 		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_method));
 		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_property));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_size));
 		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_str));
 	}
 	
@@ -2464,14 +2469,16 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
-	static EidosInstanceMethodSignature *strSig = nullptr;
-	static EidosClassMethodSignature *propertySig = nullptr;
 	static EidosClassMethodSignature *methodSig = nullptr;
+	static EidosClassMethodSignature *propertySig = nullptr;
+	static EidosClassMethodSignature *sizeSig = nullptr;
+	static EidosInstanceMethodSignature *strSig = nullptr;
 	
-	if (!strSig)
+	if (!methodSig)
 	{
 		methodSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_method, kEidosValueMaskNULL))->AddString_OS("methodName");
 		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_property, kEidosValueMaskNULL))->AddString_OS("propertyName");
+		sizeSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton));
 		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL));
 	}
 	
@@ -2480,6 +2487,7 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStri
 	{
 		case gEidosID_method:	return methodSig;
 		case gEidosID_property:	return propertySig;
+		case gEidosID_size:		return sizeSig;
 		case gEidosID_str:		return strSig;
 			
 			// all others, including gID_none
@@ -2498,7 +2506,7 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlo
 	return signature;
 }
 
-EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 #pragma unused(p_arguments, p_interpreter)
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2571,6 +2579,10 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				output_stream << "No method signature found for \"" << match_string << "\"." << endl;
 			
 			return gStaticEidosValueNULLInvisible;
+		}
+		case gEidosID_size:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
 		}
 			
 			// all others, including gID_none

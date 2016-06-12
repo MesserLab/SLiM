@@ -19,6 +19,8 @@ Development head:
 	Add a unique index and a tag to Mutation and Substitution
 	Added mutation id to output formats and load code, so it is preserved across save/load
 	The readFromPopulationFile() method of SLiMSim now sets the generation as a side effect
+	Change Eidos class methods to also work as non-multicast class methods (receiving the vector of objects as an operand)
+	Added size() class method in Eidos
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
