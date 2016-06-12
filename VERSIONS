@@ -21,6 +21,7 @@ Development head:
 	The readFromPopulationFile() method of SLiMSim now sets the generation as a side effect
 	Change Eidos class methods to also work as non-multicast class methods (receiving the vector of objects as an operand)
 	Added size() class method in Eidos
+	Make code completion smart about functions like sample() that return the same type/class they are passed
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

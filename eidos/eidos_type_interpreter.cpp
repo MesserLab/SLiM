@@ -171,12 +171,13 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 		result_type.type_mask = p_function_signature->return_mask_;
 		result_type.object_class = p_function_signature->return_class_;
 		
-		// We don't call out to functions, but we do have special knowledge of the side effects of built-in Eidos
-		// functions.  In particular, we know that defineConstant() has the side effect of adding a new symbol,
-		// and we want to reflect that in our type table so that defined constants are always available.
-		// For now, this is the only one we special-case, so the argument-handling code here is rather hacked.
-		if ((p_function_signature->function_id_ == EidosFunctionIdentifier::defineConstantFunction) && (p_argument_count == 2))
+		// We don't call out to functions, but we do have special knowledge of the side effects of built-in Eidos functions.
+		EidosFunctionIdentifier function_id = p_function_signature->function_id_;
+		
+		if ((function_id == EidosFunctionIdentifier::defineConstantFunction) && (p_argument_count == 2))
 		{
+			// We know that defineConstant() has the side effect of adding a new symbol, and we want to reflect that in
+			// our type table so that defined constants are always available.
 			if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)
 			{
 				const std::string &constant_name = p_arguments[0]->token_->token_string_;
@@ -185,6 +186,35 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 				
 				if (constant_type.object_class == nullptr)
 					global_symbols_.SetTypeForSymbol(constant_id, constant_type);
+			}
+		}
+		else if (((function_id == EidosFunctionIdentifier::repFunction) || (function_id == EidosFunctionIdentifier::repEachFunction) || (function_id == EidosFunctionIdentifier::revFunction) || (function_id == EidosFunctionIdentifier::sampleFunction) || (function_id == EidosFunctionIdentifier::sortByFunction) || (function_id == EidosFunctionIdentifier::uniqueFunction)) && (p_argument_count >= 1))
+		{
+			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
+			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);
+			
+			result_type = argument_type;
+		}
+		else if ((function_id == EidosFunctionIdentifier::ifelseFunction) && (p_argument_count >= 2))
+		{
+			// These functions are all defined as returning *, but in fact return the same type/class as their second argument.
+			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[1]);
+			
+			result_type = argument_type;
+		}
+		else if ((function_id == EidosFunctionIdentifier::cFunction) && (p_argument_count >= 1))
+		{
+			// The c() function returns the highest type it is passed (in the sense of promotion order).  This is not
+			// important to us, except that if any argument is an object type, we assume the return will mirror that.
+			for (int argument_index = 0; argument_index < p_argument_count; ++argument_index)
+			{
+				EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[argument_index]);
+				
+				if ((argument_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskObject)
+				{
+					result_type = argument_type;
+					break;
+				}
 			}
 		}
 	}
