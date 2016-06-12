@@ -169,12 +169,14 @@
             </subviews>
             <constraints>
                 <constraint firstAttribute="bottom" secondItem="hJq-Nw-0S0" secondAttribute="bottom" constant="30" id="5ii-4e-RWE"/>
+                <constraint firstAttribute="trailing" secondItem="hsR-7t-6Qj" secondAttribute="trailing" constant="80" id="BpD-Uj-dEX"/>
                 <constraint firstItem="M8O-Rd-GEL" firstAttribute="top" secondItem="MNC-OH-9jP" secondAttribute="bottom" constant="20" id="DJP-Az-dmk"/>
                 <constraint firstItem="hsR-7t-6Qj" firstAttribute="baseline" secondItem="M8O-Rd-GEL" secondAttribute="baseline" id="DXQ-6B-rNl"/>
                 <constraint firstItem="BlU-kC-voe" firstAttribute="trailing" secondItem="hsR-7t-6Qj" secondAttribute="trailing" id="EDO-iY-N3s"/>
                 <constraint firstItem="M8O-Rd-GEL" firstAttribute="leading" secondItem="MNC-OH-9jP" secondAttribute="leading" id="I8d-kZ-5lO"/>
                 <constraint firstItem="MNC-OH-9jP" firstAttribute="leading" secondItem="cXU-20-n64" secondAttribute="leading" id="Iwa-jv-2Zf"/>
                 <constraint firstItem="TjJ-nx-Qb8" firstAttribute="leading" secondItem="hsR-7t-6Qj" secondAttribute="leading" id="KA4-Yu-NJr"/>
+                <constraint firstItem="9nO-6z-CmL" firstAttribute="top" secondItem="M8O-Rd-GEL" secondAttribute="bottom" constant="40" id="LMB-2q-XHR"/>
                 <constraint firstItem="cXU-20-n64" firstAttribute="baseline" secondItem="cTD-YU-teQ" secondAttribute="baseline" id="MLV-gG-702"/>
                 <constraint firstItem="dfP-Ze-LJe" firstAttribute="top" secondItem="TjJ-nx-Qb8" secondAttribute="bottom" constant="17" id="NG8-Wv-4C7"/>
                 <constraint firstItem="hJq-Nw-0S0" firstAttribute="top" secondItem="dfP-Ze-LJe" secondAttribute="bottom" constant="17" id="QAT-WH-mNV"/>
@@ -191,11 +193,11 @@
                 <constraint firstItem="9nO-6z-CmL" firstAttribute="top" secondItem="dfP-Ze-LJe" secondAttribute="top" id="oSG-83-ECT"/>
                 <constraint firstItem="9nO-6z-CmL" firstAttribute="leading" secondItem="M8O-Rd-GEL" secondAttribute="leading" id="rTB-w3-n4z"/>
                 <constraint firstItem="cXU-20-n64" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="50" id="v6m-nW-NUk"/>
-                <constraint firstAttribute="trailing" secondItem="TjJ-nx-Qb8" secondAttribute="trailing" constant="50" id="wpV-jd-ogx"/>
                 <constraint firstItem="hJq-Nw-0S0" firstAttribute="leading" secondItem="dfP-Ze-LJe" secondAttribute="leading" id="xMJ-0S-pXc"/>
                 <constraint firstItem="9nO-6z-CmL" firstAttribute="leading" secondItem="1z6-PP-cMp" secondAttribute="leading" id="y7v-JS-w5P"/>
+                <constraint firstItem="1z6-PP-cMp" firstAttribute="top" secondItem="9nO-6z-CmL" secondAttribute="bottom" constant="58" id="yjD-HV-2wR"/>
             </constraints>
-            <point key="canvasLocation" x="920" y="859"/>
+            <point key="canvasLocation" x="1416" y="895"/>
         </customView>
     </objects>
 </document>
