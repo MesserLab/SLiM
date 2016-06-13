@@ -89,7 +89,7 @@ void Individual::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
 }
 
-void Individual::GetGenomes(Genome **p_genome1, Genome **p_genome2)
+void Individual::GetGenomes(Genome **p_genome1, Genome **p_genome2) const
 {
 	// The way we get our genomes is really disgusting, so it is localized here in a utility method.  The problem is that we could
 	// represent an individual in either the child or the parental generation.  The subpopulation's child_generation_valid_ flag
@@ -133,6 +133,30 @@ void Individual::GetGenomes(Genome **p_genome1, Genome **p_genome2)
 		*p_genome2 = genome2;
 }
 
+IndividualSex Individual::Sex(void) const
+{
+	if (subpopulation_.sex_enabled_)
+	{
+		// See Individual::GetGenomes() above for general comments about why this approach is necessary and how it works.
+		std::vector<Individual> &parent_individuals = subpopulation_.parent_individuals_;
+		std::vector<Individual> &child_individuals = subpopulation_.child_individuals_;
+		bool is_parent = ((this >= &(parent_individuals.front())) && (this <= &(parent_individuals.back())));
+		bool is_child = ((this >= &(child_individuals.front())) && (this <= &(child_individuals.back())));
+		
+		if (is_parent && !is_child)
+			return ((index_ < subpopulation_.parent_first_male_index_) ? IndividualSex::kFemale : IndividualSex::kMale);
+		else if (is_child && !is_parent)
+			return ((index_ < subpopulation_.child_first_male_index_) ? IndividualSex::kFemale : IndividualSex::kMale);
+		else
+			EIDOS_TERMINATION << "ERROR (Individual::Sex): (internal error) unable to unambiguously find genomes." << eidos_terminate();
+	}
+	else
+	{
+		// If sex is not enabled, the question is easy to answer
+		return IndividualSex::kHermaphrodite;
+	}
+}
+
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -165,6 +189,29 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			else
 			{
 				return gStaticEidosValueNULL;
+			}
+		}
+		case gID_sex:
+		{
+			static EidosValue_SP static_sex_string_H;
+			static EidosValue_SP static_sex_string_F;
+			static EidosValue_SP static_sex_string_M;
+			static EidosValue_SP static_sex_string_O;
+			
+			if (!static_sex_string_H)
+			{
+				static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
+				static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
+				static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
+				static_sex_string_O = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("?"));
+			}
+			
+			switch (Sex())
+			{
+				case IndividualSex::kHermaphrodite:	return static_sex_string_H;
+				case IndividualSex::kFemale:		return static_sex_string_F;
+				case IndividualSex::kMale:			return static_sex_string_M;
+				default:							return static_sex_string_O;
 			}
 		}
 			
@@ -365,6 +412,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopulation));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_index));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_sex));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -378,13 +426,15 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *subpopulationSig = nullptr;
 	static EidosPropertySignature *indexSig = nullptr;
 	static EidosPropertySignature *genomesSig = nullptr;
+	static EidosPropertySignature *sexSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	
 	if (!subpopulationSig)
 	{
-		subpopulationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,	gID_subpopulation,	true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class));
+		subpopulationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,	gID_subpopulation,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class));
 		indexSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,			gID_index,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		genomesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,			gID_genomes,		true,	kEidosValueMaskObject, gSLiM_Genome_Class));
+		sexSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,				gID_sex,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 	}
 	
@@ -394,6 +444,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_subpopulation:		return subpopulationSig;
 		case gID_index:				return indexSig;
 		case gID_genomes:			return genomesSig;
+		case gID_sex:				return sexSig;
 		case gID_tag:				return tagSig;
 			
 			// all others, including gID_none

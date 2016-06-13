@@ -289,6 +289,7 @@ extern const std::string gStr_generation;
 extern const std::string gStr_tag;
 extern const std::string gStr_firstMaleIndex;
 extern const std::string gStr_genomes;
+extern const std::string gStr_sex;
 extern const std::string gStr_individuals;
 extern const std::string gStr_subpopulation;
 extern const std::string gStr_index;
@@ -450,6 +451,7 @@ enum _SLiMGlobalStringID : int {
 	gID_tag,
 	gID_firstMaleIndex,
 	gID_genomes,
+	gID_sex,
 	gID_individuals,
 	gID_subpopulation,
 	gID_index,
